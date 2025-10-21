@@ -124,18 +124,9 @@
           assetFileNames: 'assets/[name]-[hash].[ext]',
         }
       },
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: false, // Keep console logs for debugging
-          drop_debugger: true,
-          pure_funcs: [], // Don't remove any console functions
-          passes: 2, // Run minification twice for better results
-        },
-        mangle: {
-          safari10: true, // Safari 10 compatibility
-        },
-      },
+      minify: 'esbuild', // Use esbuild (faster than terser and already included)
+      // esbuild minification is faster and produces similar results to terser
+      // Removed terser dependency to reduce build complexity
       chunkSizeWarningLimit: 500, // Warn for chunks > 500KB
       reportCompressedSize: true,
       sourcemap: false, // Disable sourcemaps in production for smaller bundles
