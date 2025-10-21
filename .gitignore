@@ -1,0 +1,63 @@
+node_modules/
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+.env.test
+.DS_Store
+*.log
+dist/
+build/
+.vscode/
+.idea/
+*.swp
+*.swo
+coverage/
+.nyc_output/
+
+# Security - Credentials and keys
+*.key
+*.pem
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+*.jks
+*.keystore
+*credentials.json
+*serviceAccount.json
+*service-account.json
+*.env.backup
+
+# Security - Secrets and configs
+config/secrets.yml
+config/database.yml
+secrets/
+.secrets/
+production-credentials.txt
+*-credentials.txt
+*.secret
+
+# Security - Git backups
+security/git-backups/
+*.bundle
+
+# IDE and OS
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# Testing and debugging
+.nyc_output/
+coverage/
+*.lcov
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~

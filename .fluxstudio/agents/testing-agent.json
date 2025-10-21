@@ -1,0 +1,20 @@
+{
+  "id": "testing-agent",
+  "name": "Testing Agent",
+  "version": "1.0.0",
+  "description": "Test creation, coverage analysis, and quality assurance",
+  "model": "claude-sonnet-4",
+  "capabilities": [
+    "unit-testing",
+    "integration-testing",
+    "e2e-testing",
+    "test-coverage-analysis",
+    "regression-testing"
+  ],
+  "priority": "high",
+  "maxConcurrentTasks": 2,
+  "contextPaths": ["/tests/", "/src/", "/vitest.config.ts", "/jest.config.js"],
+  "responsibilities": {
+    "primary": ["Create unit tests", "Create integration tests", "Analyze test coverage", "Run regression tests"]
+  }
+}

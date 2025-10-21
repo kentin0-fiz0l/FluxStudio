@@ -1,0 +1,51 @@
+{
+  "id": "development-agent",
+  "name": "Development Agent",
+  "version": "1.0.0",
+  "description": "Feature implementation, code quality, testing, and best practices enforcement",
+  "model": "claude-sonnet-4",
+  "capabilities": [
+    "feature-implementation",
+    "code-refactoring",
+    "typescript-development",
+    "react-development",
+    "api-implementation",
+    "error-handling",
+    "code-review"
+  ],
+  "priority": "high",
+  "maxConcurrentTasks": 3,
+  "contextPaths": [
+    "/src/",
+    "/tests/",
+    "/package.json",
+    "/tsconfig.json",
+    "/vite.config.ts"
+  ],
+  "responsibilities": {
+    "primary": [
+      "Implement new features",
+      "Refactor existing code",
+      "Add TypeScript types",
+      "Implement error handling",
+      "Write unit tests",
+      "Fix bugs"
+    ]
+  },
+  "workflows": {
+    "newFeature": {
+      "steps": [
+        "Understand requirements",
+        "Create component structure",
+        "Implement business logic",
+        "Add error handling",
+        "Write tests",
+        "Create documentation"
+      ]
+    }
+  },
+  "prompts": {
+    "systemPrompt": "You are an expert Full-Stack developer for Flux Studio. You write clean, maintainable, TypeScript code following React best practices.",
+    "taskPrompt": "Implement the following feature:\n\n{task}\n\nProvide complete code with types, error handling, and tests."
+  }
+}

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google OAuth Verification - FluxStudio</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f0f0f;
+            color: #e0e0e0;
+        }
+        .container {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+        h1 {
+            color: #60a5fa;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #9ca3af;
+            margin-bottom: 30px;
+        }
+        .info-box {
+            background: #262626;
+            border: 1px solid #404040;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info-box h3 {
+            color: #60a5fa;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        .info-item {
+            margin: 10px 0;
+            padding: 8px;
+            background: #1f1f1f;
+            border-radius: 4px;
+        }
+        .label {
+            color: #9ca3af;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .value {
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-all;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.success { background: #10b981; color: white; }
+        .status.error { background: #ef4444; color: white; }
+        .status.warning { background: #f59e0b; color: white; }
+        .status.info { background: #3b82f6; color: white; }
+        #google-button-container {
+            margin: 30px 0;
+            min-height: 60px;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 10px;
+            margin: 5px 0;
+            background: #1f1f1f;
+            border-radius: 4px;
+            border-left: 3px solid #404040;
+        }
+        .checklist li.done {
+            border-left-color: #10b981;
+        }
+        .checklist li.error {
+            border-left-color: #ef4444;
+        }
+        button {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px 5px 10px 0;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .code {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Google OAuth Configuration Checker</h1>
+        <p class="subtitle">FluxStudio Production Environment</p>
+
+        <div class="info-box">
+            <h3>Current Configuration</h3>
+            <div class="info-item">
+                <div class="label">Domain</div>
+                <div class="value" id="current-domain">Loading...</div>
+            </div>
+            <div class="info-item">
+                <div class="label">Client ID</div>
+                <div class="value" id="client-id">65518208813-9ipe2nakc6sind9tbdppl6kr3dnh2gjb.apps.googleusercontent.com</div>
+            </div>
+            <div class="info-item">
+                <div class="label">Script Status</div>
+                <div class="value" id="script-status">Checking...</div>
+            </div>
+            <div class="info-item">
+                <div class="label">Google API Status</div>
+                <div class="value" id="api-status">Checking...</div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h3>Configuration Checklist</h3>
+            <ul class="checklist" id="checklist">
+                <li id="check-domain">✓ Domain matches fluxstudio.art</li>
+                <li id="check-https">✓ Using HTTPS</li>
+                <li id="check-script">⏳ Google Identity Services script loaded</li>
+                <li id="check-api">⏳ Google API available</li>
+                <li id="check-client">⏳ Client ID recognized by Google</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>Test Google Sign-In Button</h3>
+            <p style="color: #9ca3af; font-size: 14px; margin-bottom: 15px;">
+                If configured correctly, a Google Sign-In button should appear below:
+            </p>
+            <div id="google-button-container"></div>
+            <div id="button-error" style="color: #ef4444; margin-top: 10px; display: none;"></div>
+        </div>
+
+        <div class="info-box">
+            <h3>Console Errors</h3>
+            <div id="console-errors" class="code">No errors detected yet...</div>
+        </div>
+
+        <div class="info-box">
+            <h3>Next Steps</h3>
+            <div id="recommendations">
+                <p style="color: #9ca3af;">Checking configuration...</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #333;">
+            <button onclick="window.location.reload()">🔄 Refresh Check</button>
+            <button onclick="clearAllCache()">🗑️ Clear All Cache</button>
+            <button onclick="window.location.href='https://console.cloud.google.com/apis/credentials'">
+                ⚙️ Open Google Cloud Console
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const CLIENT_ID = '65518208813-9ipe2nakc6sind9tbdppl6kr3dnh2gjb.apps.googleusercontent.com';
+        const errors = [];
+
+        // Display current domain
+        document.getElementById('current-domain').textContent = window.location.hostname;
+
+        // Capture console errors
+        const originalError = console.error;
+        console.error = function(...args) {
+            errors.push(args.join(' '));
+            updateConsoleErrors();
+            originalError.apply(console, args);
+        };
+
+        function updateConsoleErrors() {
+            const container = document.getElementById('console-errors');
+            if (errors.length === 0) {
+                container.textContent = 'No errors detected yet...';
+            } else {
+                container.innerHTML = errors.map(err =>
+                    `<div style="margin: 5px 0; color: #ef4444;">• ${err}</div>`
+                ).join('');
+            }
+        }
+
+        function updateCheckItem(id, status, text) {
+            const item = document.getElementById(id);
+            if (item) {
+                item.className = status;
+                item.textContent = (status === 'done' ? '✓ ' : status === 'error' ? '✗ ' : '⏳ ') + text;
+            }
+        }
+
+        // Check HTTPS
+        if (window.location.protocol === 'https:') {
+            updateCheckItem('check-https', 'done', 'Using HTTPS');
+        } else {
+            updateCheckItem('check-https', 'error', 'NOT using HTTPS (required for OAuth)');
+        }
+
+        // Check domain
+        if (window.location.hostname === 'fluxstudio.art' || window.location.hostname === 'www.fluxstudio.art') {
+            updateCheckItem('check-domain', 'done', 'Domain matches fluxstudio.art');
+        } else {
+            updateCheckItem('check-domain', 'error', `Domain is ${window.location.hostname} (expected fluxstudio.art)`);
+        }
+
+        // Load Google Identity Services
+        function loadGoogleScript() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://accounts.google.com/gsi/client';
+                script.async = true;
+                script.defer = true;
+
+                script.onload = () => {
+                    document.getElementById('script-status').innerHTML =
+                        '<span class="status success">Loaded</span>';
+                    updateCheckItem('check-script', 'done', 'Google Identity Services script loaded');
+                    resolve();
+                };
+
+                script.onerror = () => {
+                    document.getElementById('script-status').innerHTML =
+                        '<span class="status error">Failed</span>';
+                    updateCheckItem('check-script', 'error', 'Failed to load Google script');
+                    reject(new Error('Failed to load Google script'));
+                };
+
+                document.head.appendChild(script);
+            });
+        }
+
+        // Wait for Google API
+        function waitForGoogle(timeout = 10000) {
+            return new Promise((resolve, reject) => {
+                const startTime = Date.now();
+
+                const check = () => {
+                    if (window.google && window.google.accounts && window.google.accounts.id) {
+                        document.getElementById('api-status').innerHTML =
+                            '<span class="status success">Available</span>';
+                        updateCheckItem('check-api', 'done', 'Google API available');
+                        resolve();
+                        return;
+                    }
+
+                    if (Date.now() - startTime > timeout) {
+                        document.getElementById('api-status').innerHTML =
+                            '<span class="status error">Timeout</span>';
+                        updateCheckItem('check-api', 'error', 'Google API not available (timeout)');
+                        reject(new Error('Timeout waiting for Google API'));
+                        return;
+                    }
+
+                    setTimeout(check, 100);
+                };
+
+                check();
+            });
+        }
+
+        // Try to render Google button
+        async function testGoogleButton() {
+            try {
+                await loadGoogleScript();
+                await waitForGoogle();
+
+                // Try to initialize
+                window.google.accounts.id.initialize({
+                    client_id: CLIENT_ID,
+                    callback: (response) => {
+                        alert('Success! Google OAuth is working correctly.\n\nYou can close this test page.');
+                    },
+                    auto_select: false,
+                });
+
+                // Try to render button
+                window.google.accounts.id.renderButton(
+                    document.getElementById('google-button-container'),
+                    {
+                        theme: 'filled_black',
+                        size: 'large',
+                        text: 'signin_with',
+                        shape: 'rectangular',
+                    }
+                );
+
+                updateCheckItem('check-client', 'done', 'Client ID recognized by Google');
+                showRecommendations('success');
+
+            } catch (error) {
+                console.error('Google button test failed:', error);
+                document.getElementById('button-error').style.display = 'block';
+                document.getElementById('button-error').textContent =
+                    'Failed to render Google Sign-In button: ' + error.message;
+                updateCheckItem('check-client', 'error', 'Client ID NOT recognized by Google');
+                showRecommendations('error');
+            }
+        }
+
+        function showRecommendations(status) {
+            const container = document.getElementById('recommendations');
+
+            if (status === 'success') {
+                container.innerHTML = `
+                    <p style="color: #10b981; font-weight: bold;">✓ All checks passed!</p>
+                    <p style="color: #9ca3af; margin-top: 10px;">
+                        Google OAuth is configured correctly. The sign-in button should work on your main application.
+                    </p>
+                `;
+            } else {
+                container.innerHTML = `
+                    <p style="color: #ef4444; font-weight: bold;">✗ Configuration Issues Detected</p>
+                    <ol style="color: #9ca3af; margin-top: 10px; line-height: 1.8;">
+                        <li>Verify you added <code>https://fluxstudio.art</code> to <strong>Authorized JavaScript origins</strong></li>
+                        <li>Check that the Client ID <code>${CLIENT_ID}</code> exists in your Google Cloud project</li>
+                        <li>Ensure the OAuth consent screen is configured with domain <code>fluxstudio.art</code></li>
+                        <li>Wait 15-30 minutes after making changes (Google propagation delay)</li>
+                        <li>Try in an incognito/private browser window to bypass cache</li>
+                        <li>If still not working, create a NEW Client ID for this domain</li>
+                    </ol>
+                    <p style="color: #f59e0b; margin-top: 15px; font-size: 14px;">
+                        ⚠️ <strong>Common Issue:</strong> The error "The given client ID is not found" means Google doesn't
+                        recognize this Client ID for the domain fluxstudio.art. Double-check the configuration in
+                        Google Cloud Console.
+                    </p>
+                `;
+            }
+        }
+
+        function clearAllCache() {
+            if (confirm('This will clear all cache and reload the page. Continue?')) {
+                // Clear various caches
+                if ('caches' in window) {
+                    caches.keys().then(names => {
+                        names.forEach(name => caches.delete(name));
+                    });
+                }
+
+                // Clear localStorage
+                localStorage.clear();
+
+                // Clear sessionStorage
+                sessionStorage.clear();
+
+                // Reload with cache bypass
+                window.location.reload(true);
+            }
+        }
+
+        // Run tests
+        testGoogleButton();
+    </script>
+</body>
+</html>

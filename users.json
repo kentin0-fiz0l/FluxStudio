@@ -1,0 +1,20 @@
+{
+  "users": [
+    {
+      "id": "1760301988450",
+      "email": "jason@fizol.io",
+      "name": "Jason Ino",
+      "googleId": "107077992427738509865",
+      "userType": "client",
+      "createdAt": "2025-10-12T20:46:28.450Z"
+    },
+    {
+      "id": "ba5800bc-540c-421b-a401-2baecfab22f6",
+      "email": "test@fluxstudio.art",
+      "name": "Test User",
+      "userType": "client",
+      "password": "$2b$10$mGokGGxk/S16iIOZ8E1F2.69NxZH.VkGDSZPDDEsEuUcn0oiTa.8K",
+      "createdAt": "2025-10-17T16:50:26.797Z"
+    }
+  ]
+}

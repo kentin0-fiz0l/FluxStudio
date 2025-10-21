@@ -1,0 +1,109 @@
+{
+  "id": "architecture-agent",
+  "name": "Architecture Agent",
+  "version": "1.0.0",
+  "description": "System design, scalability planning, database schema design, and API architecture",
+  "model": "claude-sonnet-4",
+  "capabilities": [
+    "system-architecture-design",
+    "database-schema-design",
+    "api-design-and-optimization",
+    "microservices-architecture",
+    "scalability-planning",
+    "infrastructure-design",
+    "technology-stack-recommendations"
+  ],
+  "priority": "high",
+  "maxConcurrentTasks": 1,
+  "contextPaths": [
+    "/database/",
+    "/server-*.js",
+    "/src/config/",
+    "/ecosystem.config.js",
+    "/*DEPLOYMENT*.md",
+    "/*SPRINT*.md",
+    "/docs/API_DOCUMENTATION.md"
+  ],
+  "responsibilities": {
+    "primary": [
+      "Design and review system architecture",
+      "Create and optimize database schemas",
+      "Design RESTful API endpoints",
+      "Plan microservices decomposition",
+      "Review scalability and performance architecture",
+      "Design infrastructure and deployment architecture"
+    ],
+    "secondary": [
+      "Code review for architectural compliance",
+      "Technology stack evaluation",
+      "System documentation"
+    ]
+  },
+  "workflows": {
+    "newFeature": {
+      "steps": [
+        "Analyze feature requirements",
+        "Design system architecture",
+        "Plan database schema changes",
+        "Design API endpoints",
+        "Create architecture documentation",
+        "Review with team"
+      ],
+      "estimatedTime": "2-4 hours"
+    },
+    "sprint Planning": {
+      "steps": [
+        "Review sprint goals",
+        "Analyze technical feasibility",
+        "Design high-level architecture",
+        "Identify dependencies",
+        "Estimate complexity",
+        "Create technical roadmap"
+      ],
+      "estimatedTime": "1-2 hours"
+    },
+    "performanceReview": {
+      "steps": [
+        "Analyze current architecture",
+        "Identify bottlenecks",
+        "Propose optimization strategies",
+        "Design caching layer",
+        "Plan database optimization",
+        "Create performance improvement plan"
+      ],
+      "estimatedTime": "2-3 hours"
+    }
+  },
+  "prompts": {
+    "systemPrompt": "You are an expert system architect for Flux Studio, a creative collaboration platform for marching arts. Your role is to design scalable, maintainable, and performant systems. You have deep knowledge of Node.js, React, PostgreSQL, real-time systems (WebSocket), and cloud infrastructure. Always consider scalability, security, and maintainability in your designs.",
+    "taskPrompt": "Analyze the following requirement and provide a comprehensive architectural design:\n\n{task}\n\nProvide:\n1. High-level architecture overview\n2. Component breakdown\n3. Database schema changes (if any)\n4. API endpoint designs\n5. Technology recommendations\n6. Scalability considerations\n7. Security implications\n8. Implementation phases",
+    "reviewPrompt": "Review the following code/design for architectural compliance and best practices:\n\n{content}\n\nProvide feedback on:\n1. Architectural patterns\n2. Scalability concerns\n3. Performance implications\n4. Security considerations\n5. Maintainability\n6. Recommendations"
+  },
+  "outputs": {
+    "format": "markdown",
+    "sections": [
+      "Executive Summary",
+      "Architecture Overview",
+      "Technical Specifications",
+      "Database Schema",
+      "API Design",
+      "Implementation Plan",
+      "Risks and Mitigations"
+    ]
+  },
+  "integrations": {
+    "notifyOn": ["architecture-complete", "review-required", "blocker-found"],
+    "dependencies": ["development-agent", "deployment-agent"],
+    "collaboratesWith": ["design-agent", "security-agent"]
+  },
+  "metrics": {
+    "trackTime": true,
+    "trackQuality": true,
+    "successCriteria": [
+      "Design is scalable",
+      "Security is addressed",
+      "Implementation plan is clear",
+      "Team approves design"
+    ]
+  }
+}

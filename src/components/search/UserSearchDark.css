@@ -1,0 +1,28 @@
+/* Dark theme overrides for UserSearch component */
+.user-search-dark input {
+  @apply bg-white/5 border-white/10 text-white placeholder-white/40;
+}
+
+.user-search-dark input:focus {
+  @apply ring-purple-500 border-transparent;
+}
+
+.user-search-dark .search-results {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.user-search-dark .search-item {
+  @apply hover:bg-gray-700;
+}
+
+.user-search-dark .search-item.highlighted {
+  @apply bg-purple-500/20;
+}
+
+.user-search-dark .selected-user {
+  @apply bg-purple-500/20 border-purple-500/30;
+}
+
+.user-search-dark .user-badge {
+  @apply bg-gray-700 text-gray-300;
+}

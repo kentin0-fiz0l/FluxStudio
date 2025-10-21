@@ -1,0 +1,305 @@
+#!/usr/bin/env node
+
+/**
+ * Flux Studio Agent CLI
+ * Command-line interface for interacting with AI agents
+ */
+
+const fs = require('fs');
+const path = require('path');
+const AgentOrchestrator = require('./orchestrator/agent-orchestrator');
+
+// ANSI color codes
+const colors = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  dim: '\x1b[2m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m'
+};
+
+function color(text, colorCode) {
+  return `${colorCode}${text}${colors.reset}`;
+}
+
+class FluxAgentCLI {
+  constructor() {
+    this.orchestrator = new AgentOrchestrator();
+    this.args = process.argv.slice(2);
+  }
+
+  async run() {
+    if (this.args.length === 0) {
+      this.showHelp();
+      return;
+    }
+
+    const command = this.args[0];
+
+    try {
+      switch (command) {
+        case 'task':
+          await this.handleTask();
+          break;
+        case 'workflow':
+          await this.handleWorkflow();
+          break;
+        case 'list':
+          this.handleList();
+          break;
+        case 'status':
+          this.handleStatus();
+          break;
+        case 'history':
+          this.handleHistory();
+          break;
+        case 'deploy':
+          await this.handleDeploy();
+          break;
+        case 'analyze':
+          await this.handleAnalyze();
+          break;
+        case 'security-audit':
+          await this.handleSecurityAudit();
+          break;
+        case 'sprint-plan':
+          await this.handleSprintPlan();
+          break;
+        case 'help':
+        case '--help':
+        case '-h':
+          this.showHelp();
+          break;
+        default:
+          console.error(color(`Unknown command: ${command}`, colors.red));
+          this.showHelp();
+          process.exit(1);
+      }
+    } catch (error) {
+      console.error(color('\n✗ Error:', colors.red), error.message);
+      process.exit(1);
+    }
+  }
+
+  async handleTask() {
+    const taskDescription = this.args.slice(1).join(' ');
+
+    if (!taskDescription) {
+      console.error(color('Error: Task description required', colors.red));
+      console.log('\nUsage: flux-agent task "your task description"');
+      process.exit(1);
+    }
+
+    console.log(color('\n🎯 Analyzing task...', colors.cyan));
+    const result = await this.orchestrator.routeTask(taskDescription);
+
+    console.log(color('\n✓ Task queued successfully!', colors.green));
+    console.log(color(`\nTask ID: ${result.taskId}`, colors.bright));
+    console.log(color(`Assigned to: ${result.agents.join(', ')}`, colors.cyan));
+
+    console.log(color('\n💡 Tip:', colors.yellow), 'Use', color('flux-agent status', colors.bright), 'to check task progress');
+  }
+
+  async handleWorkflow() {
+    const workflowName = this.args[1];
+    const context = this.parseContext(this.args.slice(2));
+
+    if (!workflowName) {
+      console.error(color('Error: Workflow name required', colors.red));
+      console.log('\nAvailable workflows:');
+      this.orchestrator.listWorkflows().forEach(w => {
+        console.log(color(`  • ${w.name}`, colors.cyan), `-  ${w.description}`);
+      });
+      process.exit(1);
+    }
+
+    console.log(color(`\n🚀 Executing workflow: ${workflowName}`, colors.magenta));
+    const result = await this.orchestrator.executeWorkflow(workflowName, context);
+
+    console.log(color('\n✓ Workflow completed!', colors.green));
+    console.log(color(`\nDuration: ${result.duration}ms`, colors.dim));
+    console.log(color(`Agents executed: ${result.agents.length}`, colors.dim));
+
+    result.agentResults.forEach(agentResult => {
+      console.log(color(`\n  ${agentResult.agentName}:`, colors.cyan), agentResult.status);
+    });
+  }
+
+  handleList() {
+    const type = this.args[1] || 'all';
+
+    if (type === 'agents' || type === 'all') {
+      console.log(color('\n=== Available Agents ===\n', colors.bright));
+      this.orchestrator.listAgents().forEach(agent => {
+        console.log(color(`${agent.name}`, colors.cyan));
+        console.log(color(`  ID: ${agent.id}`, colors.dim));
+        console.log(`  ${agent.description}`);
+        console.log(color(`  Priority: ${agent.priority}`, colors.dim));
+        console.log(color(`  Capabilities: ${agent.capabilities.join(', ')}`, colors.dim));
+        console.log('');
+      });
+    }
+
+    if (type === 'workflows' || type === 'all') {
+      console.log(color('=== Available Workflows ===\n', colors.bright));
+      this.orchestrator.listWorkflows().forEach(workflow => {
+        console.log(color(`${workflow.name}`, colors.cyan));
+        console.log(`  ${workflow.description}`);
+        console.log(color(`  Agents: ${workflow.agents.join(' → ')}`, colors.dim));
+        console.log(color(`  Mode: ${workflow.sequential ? 'Sequential' : 'Parallel'}`, colors.dim));
+        console.log('');
+      });
+    }
+  }
+
+  handleStatus() {
+    const taskId = this.args[1];
+
+    if (!taskId) {
+      console.log(color('\nActive tasks:', colors.bright));
+      const activeTasks = Array.from(this.orchestrator.activeTasks.values());
+
+      if (activeTasks.length === 0) {
+        console.log(color('  No active tasks', colors.dim));
+      } else {
+        activeTasks.forEach(task => {
+          console.log(color(`  ${task.id}`, colors.cyan), `-`, task.status);
+        });
+      }
+      return;
+    }
+
+    const task = this.orchestrator.getTaskStatus(taskId);
+
+    if (!task) {
+      console.error(color(`Task ${taskId} not found`, colors.red));
+      process.exit(1);
+    }
+
+    console.log(color('\nTask Status:\n', colors.bright));
+    console.log(color(`ID: ${task.id}`, colors.cyan));
+    console.log(`Status: ${task.status}`);
+    console.log(`Created: ${task.createdAt}`);
+    console.log(color(`Agents: ${task.agents.join(', ')}`, colors.dim));
+  }
+
+  handleHistory() {
+    const limit = parseInt(this.args[1]) || 10;
+    const history = this.orchestrator.getTaskHistory(limit);
+
+    console.log(color(`\n=== Task History (last ${limit}) ===\n`, colors.bright));
+
+    if (history.length === 0) {
+      console.log(color('No task history', colors.dim));
+      return;
+    }
+
+    history.forEach(task => {
+      console.log(color(`${task.workflow || 'Task'}`, colors.cyan));
+      console.log(`  Status: ${task.status}`);
+      console.log(`  Duration: ${task.duration}ms`);
+      console.log(color(`  Agents: ${task.agents.join(', ')}`, colors.dim));
+      console.log('');
+    });
+  }
+
+  async handleDeploy() {
+    const environment = this.args[1] || 'production';
+
+    console.log(color(`\n🚀 Deploying to ${environment}...`, colors.magenta));
+
+    const result = await this.orchestrator.executeWorkflow('deployment', {
+      environment,
+      timestamp: new Date().toISOString()
+    });
+
+    if (result.status === 'completed') {
+      console.log(color('\n✓ Deployment successful!', colors.green));
+    } else {
+      console.log(color('\n✗ Deployment failed', colors.red));
+    }
+  }
+
+  async handleAnalyze() {
+    const target = this.args[1] || 'performance';
+
+    console.log(color(`\n📊 Running ${target} analysis...`, colors.cyan));
+
+    let workflow = 'performanceOptimization';
+    if (target === 'security') workflow = 'securityAudit';
+
+    const result = await this.orchestrator.executeWorkflow(workflow);
+
+    console.log(color('\n✓ Analysis complete!', colors.green));
+  }
+
+  async handleSecurityAudit() {
+    console.log(color('\n🔒 Running security audit...', colors.magenta));
+
+    const result = await this.orchestrator.executeWorkflow('securityAudit');
+
+    console.log(color('\n✓ Security audit complete!', colors.green));
+  }
+
+  async handleSprintPlan() {
+    const sprintNumber = this.args[1];
+
+    console.log(color(`\n📋 Planning Sprint ${sprintNumber || 'Next'}...`, colors.cyan));
+
+    const result = await this.orchestrator.executeWorkflow('sprintPlanning', {
+      sprintNumber,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log(color('\n✓ Sprint planning complete!', colors.green));
+  }
+
+  parseContext(args) {
+    const context = {};
+
+    args.forEach(arg => {
+      if (arg.includes('=')) {
+        const [key, value] = arg.split('=');
+        context[key] = value;
+      }
+    });
+
+    return context;
+  }
+
+  showHelp() {
+    console.log(color('\n=== Flux Studio Agent CLI ===\n', colors.bright));
+    console.log('Usage: flux-agent <command> [options]\n');
+
+    console.log(color('Commands:', colors.bright));
+    console.log('  task <description>        Route task to appropriate agent(s)');
+    console.log('  workflow <name> [context] Execute a predefined workflow');
+    console.log('  list [agents|workflows]   List available agents and workflows');
+    console.log('  status [taskId]           Show task status');
+    console.log('  history [limit]           Show task history');
+    console.log('  deploy [environment]      Deploy to production');
+    console.log('  analyze [target]          Run performance/security analysis');
+    console.log('  security-audit            Run security audit');
+    console.log('  sprint-plan [number]      Plan next sprint');
+    console.log('  help                      Show this help message\n');
+
+    console.log(color('Examples:', colors.bright));
+    console.log(color('  flux-agent task "Add real-time notifications feature"', colors.dim));
+    console.log(color('  flux-agent workflow newFeature', colors.dim));
+    console.log(color('  flux-agent deploy production', colors.dim));
+    console.log(color('  flux-agent analyze performance', colors.dim));
+    console.log(color('  flux-agent list agents', colors.dim));
+    console.log('');
+  }
+}
+
+// Run CLI
+const cli = new FluxAgentCLI();
+cli.run().catch(error => {
+  console.error(color('\nFatal error:', colors.red), error.message);
+  process.exit(1);
+});

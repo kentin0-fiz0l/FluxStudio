@@ -1,0 +1,271 @@
+name: Deploy Preview Environments
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_API_URL: https://unified-backend-pr-${{ github.event.pull_request.number }}.ondigitalocean.app
+          VITE_COLLAB_URL: https://collaboration-pr-${{ github.event.pull_request.number }}.ondigitalocean.app
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Create preview app spec
+        run: |
+          cat > preview-app.yaml <<'EOF'
+          name: fluxstudio-pr-${{ github.event.pull_request.number }}
+          region: nyc
+
+          # Static Frontend
+          static_sites:
+            - name: frontend-preview
+              build_command: npm ci && npm run build
+              output_dir: build
+              github:
+                repo: ${{ github.repository }}
+                branch: ${{ github.head_ref }}
+              environment_slug: node-js
+              node_version: "20"
+              routes:
+                - path: /
+              envs:
+                - key: VITE_API_URL
+                  value: https://unified-backend-pr-${{ github.event.pull_request.number }}.ondigitalocean.app
+                - key: VITE_COLLAB_URL
+                  value: https://collaboration-pr-${{ github.event.pull_request.number }}.ondigitalocean.app
+                - key: VITE_GOOGLE_CLIENT_ID
+                  value: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+
+          # Unified Backend (Staging)
+          services:
+            - name: unified-backend-preview
+              github:
+                repo: ${{ github.repository }}
+                branch: ${{ github.head_ref }}
+              build_command: npm ci
+              run_command: node server-unified.js
+              environment_slug: node-js
+              node_version: "20"
+              http_port: 3001
+              health_check:
+                http_path: /health
+                initial_delay_seconds: 10
+              instance_count: 1
+              instance_size_slug: basic-xs
+              routes:
+                - path: /api
+                - path: /socket.io
+              envs:
+                - key: NODE_ENV
+                  value: staging
+                - key: PORT
+                  value: "3001"
+                - key: DATABASE_URL
+                  value: ${{ secrets.PREVIEW_DATABASE_URL }}
+                - key: REDIS_URL
+                  value: ${{ secrets.PREVIEW_REDIS_URL }}
+                - key: JWT_SECRET
+                  value: ${{ secrets.PREVIEW_JWT_SECRET }}
+                - key: JWT_EXPIRY
+                  value: "1h"
+                - key: SESSION_SECRET
+                  value: ${{ secrets.PREVIEW_SESSION_SECRET }}
+                - key: GOOGLE_CLIENT_ID
+                  value: ${{ secrets.GOOGLE_CLIENT_ID }}
+                - key: GOOGLE_CLIENT_SECRET
+                  value: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+                - key: CORS_ORIGINS
+                  value: "https://frontend-preview-pr-${{ github.event.pull_request.number }}.ondigitalocean.app"
+
+            # Collaboration Service (Staging)
+            - name: collaboration-preview
+              github:
+                repo: ${{ github.repository }}
+                branch: ${{ github.head_ref }}
+              build_command: npm ci
+              run_command: node server-collaboration.js
+              environment_slug: node-js
+              node_version: "20"
+              http_port: 4000
+              health_check:
+                http_path: /health
+                initial_delay_seconds: 10
+              instance_count: 1
+              instance_size_slug: basic-xs
+              routes:
+                - path: /collab
+              envs:
+                - key: NODE_ENV
+                  value: staging
+                - key: COLLAB_PORT
+                  value: "4000"
+                - key: DATABASE_URL
+                  value: ${{ secrets.PREVIEW_DATABASE_URL }}
+                - key: AUTH_SERVICE_URL
+                  value: https://unified-backend-pr-${{ github.event.pull_request.number }}.ondigitalocean.app
+          EOF
+
+          # Replace PR number in spec
+          sed -i "s/\${{ github.event.pull_request.number }}/${{ github.event.pull_request.number }}/g" preview-app.yaml
+
+      - name: Deploy preview app
+        id: deploy
+        run: |
+          # Check if app already exists
+          APP_ID=$(doctl apps list --format ID,Spec.Name --no-header | grep "fluxstudio-pr-${{ github.event.pull_request.number }}" | awk '{print $1}' || echo "")
+
+          if [ -z "$APP_ID" ]; then
+            echo "Creating new preview app..."
+            APP_ID=$(doctl apps create --spec preview-app.yaml --format ID --no-header)
+            echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
+            echo "deployment_type=created" >> $GITHUB_OUTPUT
+          else
+            echo "Updating existing preview app: $APP_ID"
+            doctl apps update $APP_ID --spec preview-app.yaml
+            echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
+            echo "deployment_type=updated" >> $GITHUB_OUTPUT
+          fi
+
+          # Wait for deployment to complete (max 10 minutes)
+          echo "Waiting for deployment to complete..."
+          for i in {1..60}; do
+            STATUS=$(doctl apps get $APP_ID --format ActiveDeployment.Phase --no-header)
+            echo "Deployment status: $STATUS (attempt $i/60)"
+
+            if [ "$STATUS" = "ACTIVE" ]; then
+              echo "Deployment successful!"
+              break
+            elif [ "$STATUS" = "ERROR" ] || [ "$STATUS" = "CANCELED" ]; then
+              echo "Deployment failed with status: $STATUS"
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+      - name: Get preview URLs
+        id: urls
+        run: |
+          APP_ID="${{ steps.deploy.outputs.app_id }}"
+
+          # Get component URLs
+          FRONTEND_URL=$(doctl apps get $APP_ID --format Spec.StaticSites[0].Name,LiveURL --no-header | awk '{print $2}')
+          BACKEND_URL=$(doctl apps get $APP_ID --format Spec.Services[0].Name,LiveURL --no-header | grep unified | awk '{print $2}')
+
+          echo "frontend_url=$FRONTEND_URL" >> $GITHUB_OUTPUT
+          echo "backend_url=$BACKEND_URL" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with preview URLs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Preview Environment')
+            );
+
+            const deploymentType = '${{ steps.deploy.outputs.deployment_type }}';
+            const emoji = deploymentType === 'created' ? '🎉' : '🔄';
+
+            const body = `## ${emoji} Preview Environment ${deploymentType === 'created' ? 'Ready' : 'Updated'}!
+
+            **Frontend:** ${{ steps.urls.outputs.frontend_url }}
+            **API:** ${{ steps.urls.outputs.backend_url }}
+            **App ID:** \`${{ steps.deploy.outputs.app_id }}\`
+
+            ### Test Your Changes
+            - Frontend UI: Click the frontend URL above
+            - API Health: ${{ steps.urls.outputs.backend_url }}/health
+            - WebSocket: ${{ steps.urls.outputs.backend_url }}/socket.io
+
+            ### Notes
+            - Preview will be automatically deleted when PR is closed
+            - Deployment uses staging database (data will not persist)
+            - OAuth callbacks configured for preview URLs
+
+            <sub>Last updated: ${new Date().toISOString()}</sub>`;
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                comment_id: botComment.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }
+
+  cleanup-preview:
+    runs-on: ubuntu-latest
+    if: github.event.action == 'closed'
+
+    steps:
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Delete preview app
+        run: |
+          APP_ID=$(doctl apps list --format ID,Spec.Name --no-header | grep "fluxstudio-pr-${{ github.event.pull_request.number }}" | awk '{print $1}' || echo "")
+
+          if [ ! -z "$APP_ID" ]; then
+            echo "Deleting preview app: $APP_ID"
+            doctl apps delete $APP_ID --force
+            echo "✅ Preview app deleted successfully"
+          else
+            echo "⚠️  No preview app found for PR #${{ github.event.pull_request.number }}"
+          fi
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🗑️ Preview environment has been deleted.'
+            });

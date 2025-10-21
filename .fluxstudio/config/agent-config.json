@@ -1,0 +1,63 @@
+{
+  "version": "1.0.0",
+  "workflows": {
+    "newFeature": {
+      "agents": ["architecture-agent", "design-agent", "development-agent", "testing-agent"],
+      "sequential": false,
+      "description": "Complete new feature implementation workflow"
+    },
+    "bugFix": {
+      "agents": ["development-agent", "testing-agent"],
+      "sequential": true,
+      "description": "Bug fix and verification workflow"
+    },
+    "deployment": {
+      "agents": ["testing-agent", "security-agent", "deployment-agent"],
+      "sequential": true,
+      "description": "Production deployment workflow"
+    },
+    "sprintPlanning": {
+      "agents": ["architecture-agent", "design-agent", "development-agent"],
+      "sequential": false,
+      "description": "Sprint planning and estimation workflow"
+    },
+    "securityAudit": {
+      "agents": ["security-agent", "optimization-agent"],
+      "sequential": true,
+      "description": "Security and performance audit"
+    },
+    "codeReview": {
+      "agents": ["architecture-agent", "development-agent", "security-agent"],
+      "sequential": false,
+      "description": "Comprehensive code review"
+    },
+    "performanceOptimization": {
+      "agents": ["optimization-agent", "testing-agent"],
+      "sequential": true,
+      "description": "Performance analysis and optimization"
+    },
+    "uiRedesign": {
+      "agents": ["design-agent", "development-agent", "testing-agent"],
+      "sequential": true,
+      "description": "UI component redesign and implementation"
+    }
+  },
+  "priorities": {
+    "critical": ["deployment-agent", "security-agent"],
+    "high": ["architecture-agent", "design-agent", "development-agent", "testing-agent"],
+    "medium": ["optimization-agent"]
+  },
+  "maxConcurrentAgents": 3,
+  "taskTimeout": 600000,
+  "retryAttempts": 2,
+  "notifications": {
+    "enabled": true,
+    "channels": ["console", "log"],
+    "notifyOn": ["task-complete", "task-failed", "workflow-complete"]
+  },
+  "logging": {
+    "level": "info",
+    "directory": ".fluxstudio/logs",
+    "retention": "30d"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "projects": [
+    {
+      "id": "c916b053-2aed-4552-9ada-39924837278c",
+      "name": "Test Project",
+      "description": "A valid test project",
+      "teamId": null,
+      "status": "planning",
+      "priority": "high",
+      "startDate": "2025-10-17T16:51:35.692Z",
+      "dueDate": null,
+      "progress": 0,
+      "createdBy": "ba5800bc-540c-421b-a401-2baecfab22f6",
+      "createdAt": "2025-10-17T16:51:35.692Z",
+      "updatedAt": "2025-10-17T16:51:35.692Z",
+      "members": [
+        {
+          "userId": "ba5800bc-540c-421b-a401-2baecfab22f6",
+          "role": "owner",
+          "joinedAt": "2025-10-17T16:51:35.692Z"
+        }
+      ],
+      "tasks": [],
+      "milestones": [],
+      "files": [],
+      "channelMetadata": null
+    },
+    {
+      "id": "98c37c10-096c-4028-ab45-d98249ccd04f",
+      "name": "&lt;script&gt;alert(XSS)&lt;&#x2F;script&gt;",
+      "description": "&lt;img src=x onerror=alert(1)&gt;",
+      "teamId": null,
+      "status": "planning",
+      "priority": "high",
+      "startDate": "2025-10-17T16:51:42.233Z",
+      "dueDate": null,
+      "progress": 0,
+      "createdBy": "ba5800bc-540c-421b-a401-2baecfab22f6",
+      "createdAt": "2025-10-17T16:51:42.233Z",
+      "updatedAt": "2025-10-17T16:51:42.233Z",
+      "members": [
+        {
+          "userId": "ba5800bc-540c-421b-a401-2baecfab22f6",
+          "role": "owner",
+          "joinedAt": "2025-10-17T16:51:42.233Z"
+        }
+      ],
+      "tasks": [],
+      "milestones": [],
+      "files": [],
+      "channelMetadata": null
+    }
+  ]
+}

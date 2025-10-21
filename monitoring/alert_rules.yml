@@ -1,0 +1,232 @@
+# Prometheus Alert Rules for FluxStudio Production
+groups:
+  - name: fluxstudio.rules
+    rules:
+      # High-level service availability alerts
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "FluxStudio service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{status=~"5.."}[5m]) /
+            rate(http_requests_total[5m])
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for service {{ $labels.service }}"
+
+      # Performance alerts
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time on {{ $labels.service }}"
+          description: "95th percentile response time is {{ $value }}s for service {{ $labels.service }}"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 90% ({{ $value | humanizePercentage }})"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is above 80% ({{ $value }}%)"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is below 10% ({{ $value | humanizePercentage }}) on {{ $labels.mountpoint }}"
+
+      # Database alerts
+      - alert: DatabaseConnectionsHigh
+        expr: |
+          (
+            sum(rate(database_connections_active[5m])) /
+            sum(rate(database_connections_max[5m]))
+          ) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connection usage"
+          description: "Database connections are at {{ $value | humanizePercentage }} of maximum"
+
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, rate(database_query_duration_seconds_bucket[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile query time is {{ $value }}s"
+
+      # Authentication and security alerts
+      - alert: HighAuthFailureRate
+        expr: rate(auth_failures_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is {{ $value }} failures/second"
+
+      - alert: SuspiciousActivity
+        expr: rate(security_events_total{type="suspicious_activity"}[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "{{ $value }} suspicious activities detected per second"
+
+      - alert: RateLimitExceeded
+        expr: rate(rate_limit_exceeded_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate limit violations"
+          description: "Rate limit exceeded {{ $value }} times per second"
+
+      # WebSocket alerts
+      - alert: WebSocketConnectionsHigh
+        expr: websocket_connections_active > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High WebSocket connections"
+          description: "{{ $value }} active WebSocket connections"
+
+      - alert: WebSocketLatencyHigh
+        expr: histogram_quantile(0.95, rate(websocket_message_duration_seconds_bucket[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High WebSocket latency"
+          description: "95th percentile WebSocket latency is {{ $value }}s"
+
+      # File upload alerts
+      - alert: HighFileUploadFailures
+        expr: |
+          (
+            rate(file_upload_total{status="failed"}[5m]) /
+            rate(file_upload_total[5m])
+          ) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High file upload failure rate"
+          description: "File upload failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: LargeFileUploadQueue
+        expr: file_upload_queue_size > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large file upload queue"
+          description: "{{ $value }} files queued for upload processing"
+
+      # Redis alerts
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis server is not responding"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+      # SSL certificate alerts
+      - alert: SSLCertificateExpiring
+        expr: ssl_certificate_expiry_days < 30
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.domain }} expires in {{ $value }} days"
+
+      - alert: SSLCertificateExpired
+        expr: ssl_certificate_expiry_days < 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SSL certificate has expired"
+          description: "SSL certificate for {{ $labels.domain }} has expired"
+
+      # Custom business logic alerts
+      - alert: LowUserActivity
+        expr: rate(user_actions_total[1h]) < 10
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low user activity"
+          description: "User activity rate is {{ $value }} actions per second over the last hour"
+
+      - alert: HighSignupRate
+        expr: rate(user_signups_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High signup rate detected"
+          description: "{{ $value }} user signups per second - possible promotion or viral growth"
+
+      # Infrastructure alerts
+      - alert: ContainerRestartLoop
+        expr: rate(container_restarts_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container restarting frequently"
+          description: "Container {{ $labels.container }} is restarting {{ $value }} times per second"
+
+      - alert: LoadBalancerUnhealthy
+        expr: nginx_upstream_server_health{state!="up"} == 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Load balancer backend unhealthy"
+          description: "Backend server {{ $labels.server }} is unhealthy"

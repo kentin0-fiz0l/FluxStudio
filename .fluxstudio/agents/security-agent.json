@@ -1,0 +1,21 @@
+{
+  "id": "security-agent",
+  "name": "Security Agent",
+  "version": "1.0.0",
+  "description": "Security audits, vulnerability scanning, and secure coding practices",
+  "model": "claude-sonnet-4",
+  "capabilities": [
+    "security-audit",
+    "vulnerability-scanning",
+    "authentication-review",
+    "authorization-review",
+    "input-validation",
+    "secure-coding"
+  ],
+  "priority": "critical",
+  "maxConcurrentTasks": 1,
+  "contextPaths": ["/middleware/security.js", "/server-*.js", "/src/config/environment.ts"],
+  "responsibilities": {
+    "primary": ["Audit authentication flows", "Review input validation", "Check for vulnerabilities", "Ensure secure configuration"]
+  }
+}

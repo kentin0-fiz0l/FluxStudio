@@ -1,0 +1,193 @@
+{
+  "timestamp": "2025-10-13T03:05:55.204Z",
+  "testDuration": 1760324755207,
+  "results": {
+    "endpoints": [
+      {
+        "url": "http://localhost:3001/health",
+        "method": "GET",
+        "name": "Auth Health",
+        "success": false,
+        "status": 0,
+        "responseTime": 1,
+        "error": "Invalid URL"
+      },
+      {
+        "url": "http://localhost:3004/health",
+        "method": "GET",
+        "name": "Messaging Health",
+        "success": false,
+        "status": 0,
+        "responseTime": 0,
+        "error": "Invalid URL"
+      },
+      {
+        "url": "http://localhost:3001/api/files",
+        "method": "GET",
+        "name": "Files Endpoint",
+        "success": true,
+        "status": 404,
+        "responseTime": 10
+      },
+      {
+        "url": "http://localhost:3004/api/conversations",
+        "method": "GET",
+        "name": "Conversations Endpoint",
+        "success": true,
+        "status": 404,
+        "responseTime": 15
+      }
+    ],
+    "health": {
+      "samples": [
+        {
+          "timestamp": 1760324746186,
+          "memory": {
+            "heapUsed": 12517616,
+            "heapTotal": 19873792,
+            "external": 2378163,
+            "rss": 58327040
+          },
+          "cpu": {
+            "user": 122970,
+            "system": 41935
+          }
+        },
+        {
+          "timestamp": 1760324747188,
+          "memory": {
+            "heapUsed": 12526408,
+            "heapTotal": 19873792,
+            "external": 2378219,
+            "rss": 58327040
+          },
+          "cpu": {
+            "user": 123146,
+            "system": 42000
+          }
+        },
+        {
+          "timestamp": 1760324748190,
+          "memory": {
+            "heapUsed": 12528088,
+            "heapTotal": 19873792,
+            "external": 2378219,
+            "rss": 58327040
+          },
+          "cpu": {
+            "user": 123327,
+            "system": 42049
+          }
+        },
+        {
+          "timestamp": 1760324749192,
+          "memory": {
+            "heapUsed": 12529912,
+            "heapTotal": 19873792,
+            "external": 2378219,
+            "rss": 58327040
+          },
+          "cpu": {
+            "user": 123521,
+            "system": 42094
+          }
+        },
+        {
+          "timestamp": 1760324750195,
+          "memory": {
+            "heapUsed": 8360760,
+            "heapTotal": 10698752,
+            "external": 2313621,
+            "rss": 50741248
+          },
+          "cpu": {
+            "user": 162063,
+            "system": 47669
+          }
+        },
+        {
+          "timestamp": 1760324751197,
+          "memory": {
+            "heapUsed": 8362584,
+            "heapTotal": 10698752,
+            "external": 2313621,
+            "rss": 50741248
+          },
+          "cpu": {
+            "user": 162153,
+            "system": 47710
+          }
+        },
+        {
+          "timestamp": 1760324752198,
+          "memory": {
+            "heapUsed": 8364264,
+            "heapTotal": 10698752,
+            "external": 2313621,
+            "rss": 50741248
+          },
+          "cpu": {
+            "user": 162414,
+            "system": 47754
+          }
+        },
+        {
+          "timestamp": 1760324753200,
+          "memory": {
+            "heapUsed": 8366088,
+            "heapTotal": 10698752,
+            "external": 2313621,
+            "rss": 50741248
+          },
+          "cpu": {
+            "user": 162679,
+            "system": 47840
+          }
+        },
+        {
+          "timestamp": 1760324754201,
+          "memory": {
+            "heapUsed": 8367768,
+            "heapTotal": 10698752,
+            "external": 2313621,
+            "rss": 50741248
+          },
+          "cpu": {
+            "user": 162823,
+            "system": 47905
+          }
+        },
+        {
+          "timestamp": 1760324755203,
+          "memory": {
+            "heapUsed": 8370312,
+            "heapTotal": 10698752,
+            "external": 2313621,
+            "rss": 50741248
+          },
+          "cpu": {
+            "user": 163003,
+            "system": 47939
+          }
+        }
+      ],
+      "avgHeapUsed": 10029380,
+      "avgRSS": 53775565,
+      "heapUtilization": 50
+    },
+    "performance": {
+      "totalRequests": 144,
+      "successfulRequests": 144,
+      "failedRequests": 0,
+      "avgResponseTime": 3,
+      "requestsPerSecond": 28.72,
+      "duration": 5014,
+      "concurrency": 3
+    }
+  },
+  "summary": {
+    "endpointsWorking": 2,
+    "totalEndpoints": 4,
+    "performanceScore": 333.33
+  }
+}

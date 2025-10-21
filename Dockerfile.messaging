@@ -1,0 +1,48 @@
+# FluxStudio Messaging Service Production Dockerfile
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache \
+    curl \
+    bash \
+    dumb-init \
+    postgresql-client
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S fluxstudio -u 1001
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy source code
+COPY server-messaging.js ./
+COPY config/ ./config/
+COPY database/ ./database/
+COPY monitoring/ ./monitoring/
+COPY middleware/ ./middleware/
+COPY health-check.js ./
+
+# Create required directories
+RUN mkdir -p logs && \
+    chown -R fluxstudio:nodejs /app
+
+# Switch to non-root user
+USER fluxstudio
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3004/health || exit 1
+
+# Expose port
+EXPOSE 3004
+
+# Start with dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "server-messaging.js"]

@@ -1,0 +1,20 @@
+{
+  "id": "optimization-agent",
+  "name": "Optimization Agent",
+  "version": "1.0.0",
+  "description": "Performance optimization, bundle size reduction, and caching strategies",
+  "model": "claude-sonnet-4",
+  "capabilities": [
+    "performance-optimization",
+    "bundle-optimization",
+    "database-optimization",
+    "caching-strategy",
+    "image-optimization"
+  ],
+  "priority": "medium",
+  "maxConcurrentTasks": 2,
+  "contextPaths": ["/vite.config.ts", "/src/", "/database/"],
+  "responsibilities": {
+    "primary": ["Optimize bundle size", "Improve database queries", "Implement caching", "Optimize assets"]
+  }
+}

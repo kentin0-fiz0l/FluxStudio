@@ -1,0 +1,146 @@
+# Promtail Configuration for FluxStudio Production Log Collection
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # FluxStudio Application Logs
+  - job_name: fluxstudio-auth
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: fluxstudio-auth
+          service: auth-service
+          environment: production
+          __path__: /var/log/fluxstudio/auth-*.log
+
+  - job_name: fluxstudio-messaging
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: fluxstudio-messaging
+          service: messaging-service
+          environment: production
+          __path__: /var/log/fluxstudio/messaging-*.log
+
+  # System Logs
+  - job_name: system-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system-logs
+          service: system
+          environment: production
+          __path__: /var/log/fluxstudio/system-*.log
+
+  # Security Logs
+  - job_name: security-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: security-logs
+          service: security
+          environment: production
+          __path__: /var/log/fluxstudio/security-*.log
+
+  # Performance Logs
+  - job_name: performance-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: performance-logs
+          service: performance
+          environment: production
+          __path__: /var/log/fluxstudio/performance-*.log
+
+  # Error Logs
+  - job_name: error-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: error-logs
+          service: error-tracking
+          environment: production
+          __path__: /var/log/fluxstudio/error-*.log
+
+  # Docker Container Logs
+  - job_name: docker-logs
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'logstream'
+      - source_labels: ['__meta_docker_container_label_logging']
+        target_label: 'logging'
+
+# Pipeline Stages for Log Processing
+  - job_name: fluxstudio-structured
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: fluxstudio-structured
+          service: all
+          environment: production
+          __path__: /var/log/fluxstudio/*.json
+    pipeline_stages:
+      # Parse JSON logs
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            service: service
+            userId: userId
+            requestId: requestId
+            duration: duration
+            statusCode: statusCode
+
+      # Extract timestamp
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+
+      # Add labels based on log content
+      - labels:
+          level:
+          service:
+
+      # Drop debug logs in production
+      - drop:
+          expression: '{{.level}} == "debug"'
+
+      # Add metrics
+      - metrics:
+          request_duration_seconds:
+            type: Histogram
+            description: "HTTP request duration in seconds"
+            source: duration
+            config:
+              buckets: [0.1, 0.5, 1, 2, 5, 10]
+          http_requests_total:
+            type: Counter
+            description: "Total HTTP requests"
+            config:
+              action: inc
+
+# Rate Limiting
+limits_config:
+  readline_rate: 10000
+  readline_burst: 20000

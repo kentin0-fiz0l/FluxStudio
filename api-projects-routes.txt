@@ -1,0 +1,183 @@
+// Project Management API Routes - Insert before Apple OAuth (line 1179)
+
+// Create a new project
+app.post('/api/projects', authenticateToken, async (req, res) => {
+  try {
+    const { name, description, teamId, status = 'active' } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: 'Project name is required' });
+    }
+
+    const projects = await getProjects();
+
+    // Create new project with channelMetadata for Phase 2 messaging integration
+    const newProject = {
+      id: uuidv4(),
+      name,
+      description: description || '',
+      teamId: teamId || null,
+      status,
+      createdBy: req.user.id,
+      createdAt: new Date().toISOString(),
+      members: [
+        {
+          userId: req.user.id,
+          role: 'owner',
+          joinedAt: new Date().toISOString()
+        }
+      ],
+      channelMetadata: null // Will be populated when user opens Messages tab (lazy creation)
+    };
+
+    projects.push(newProject);
+    await saveProjects(projects);
+
+    res.json({
+      message: 'Project created successfully',
+      project: newProject
+    });
+  } catch (error) {
+    console.error('Create project error:', error);
+    res.status(500).json({ message: 'Error creating project' });
+  }
+});
+
+// Get user's projects
+app.get('/api/projects', authenticateToken, async (req, res) => {
+  try {
+    const projects = await getProjects();
+    const userProjects = projects.filter(project =>
+      project.members.some(member => member.userId === req.user.id)
+    );
+
+    res.json({ projects: userProjects });
+  } catch (error) {
+    console.error('Get projects error:', error);
+    res.status(500).json({ message: 'Error retrieving projects' });
+  }
+});
+
+// Get project by ID
+app.get('/api/projects/:id', authenticateToken, async (req, res) => {
+  try {
+    const projects = await getProjects();
+    const project = projects.find(p => p.id === req.params.id);
+
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Check if user is a member
+    const isMember = project.members.some(member => member.userId === req.user.id);
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    res.json(project);
+  } catch (error) {
+    console.error('Get project error:', error);
+    res.status(500).json({ message: 'Error retrieving project' });
+  }
+});
+
+// Update project
+app.put('/api/projects/:id', authenticateToken, async (req, res) => {
+  try {
+    const projects = await getProjects();
+    const projectIndex = projects.findIndex(p => p.id === req.params.id);
+
+    if (projectIndex === -1) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Check if user is owner or admin
+    const member = projects[projectIndex].members.find(m => m.userId === req.user.id);
+    if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+      return res.status(403).json({ message: 'Permission denied' });
+    }
+
+    const { name, description, status } = req.body;
+
+    projects[projectIndex] = {
+      ...projects[projectIndex],
+      name: name || projects[projectIndex].name,
+      description: description !== undefined ? description : projects[projectIndex].description,
+      status: status || projects[projectIndex].status,
+      updatedAt: new Date().toISOString()
+    };
+
+    await saveProjects(projects);
+    res.json(projects[projectIndex]);
+  } catch (error) {
+    console.error('Update project error:', error);
+    res.status(500).json({ message: 'Error updating project' });
+  }
+});
+
+// Link message channel to project (Phase 2)
+app.post('/api/projects/:id/channel', authenticateToken, async (req, res) => {
+  try {
+    const { channelId } = req.body;
+
+    if (!channelId) {
+      return res.status(400).json({ message: 'Channel ID is required' });
+    }
+
+    const projects = await getProjects();
+    const projectIndex = projects.findIndex(p => p.id === req.params.id);
+
+    if (projectIndex === -1) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Check if user is a member
+    const isMember = projects[projectIndex].members.some(m => m.userId === req.user.id);
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Store channel metadata (lazy channel creation pattern)
+    projects[projectIndex].channelMetadata = {
+      channelId,
+      channelType: 'project',
+      linkedAt: new Date().toISOString()
+    };
+
+    await saveProjects(projects);
+
+    res.json({
+      message: 'Channel linked successfully',
+      project: projects[projectIndex]
+    });
+  } catch (error) {
+    console.error('Link channel error:', error);
+    res.status(500).json({ message: 'Error linking channel' });
+  }
+});
+
+// Get project's channel metadata
+app.get('/api/projects/:id/channel', authenticateToken, async (req, res) => {
+  try {
+    const projects = await getProjects();
+    const project = projects.find(p => p.id === req.params.id);
+
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Check if user is a member
+    const isMember = project.members.some(m => m.userId === req.user.id);
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    res.json({
+      channelMetadata: project.channelMetadata || null,
+      hasChannel: !!project.channelMetadata
+    });
+  } catch (error) {
+    console.error('Get channel metadata error:', error);
+    res.status(500).json({ message: 'Error retrieving channel' });
+  }
+});

@@ -1,0 +1,270 @@
+# DigitalOcean App Platform Configuration
+# FluxStudio Production Deployment
+# Architecture: Static Frontend + Unified Backend + Collaboration Service
+
+name: fluxstudio
+region: nyc
+
+# Managed Database (PostgreSQL 15)
+databases:
+  - name: fluxstudio-db
+    engine: PG
+    version: "15"
+    size: db-s-1vcpu-1gb
+    num_nodes: 1
+    production: true
+
+# Managed Redis (for Socket.IO adapter + sessions)
+services:
+  - name: fluxstudio-redis
+    engine: REDIS
+    version: "7"
+    size: db-s-1vcpu-1gb
+    production: true
+
+# Static Frontend (Vite-built React SPA)
+static_sites:
+  - name: frontend
+    github:
+      repo: kentin0-fiz0l/FluxStudio
+      branch: main
+      deploy_on_push: true
+    build_command: npm ci && npm run build
+    output_dir: build
+    routes:
+      - path: /
+    environment_slug: node-js
+    node_version: "20"
+    envs:
+      - key: VITE_API_URL
+        value: ${unified-backend.PUBLIC_URL}
+      - key: VITE_COLLAB_URL
+        value: ${collaboration.PUBLIC_URL}
+      - key: VITE_GOOGLE_CLIENT_ID
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+
+# Unified Backend (Auth + Messaging consolidated)
+services:
+  - name: unified-backend
+    github:
+      repo: kentin0-fiz0l/FluxStudio
+      branch: main
+      deploy_on_push: true
+    build_command: npm ci
+    run_command: node server-unified.js
+    environment_slug: node-js
+    node_version: "20"
+    http_port: 3001
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 10
+      period_seconds: 10
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+    instance_count: 1
+    instance_size_slug: professional-xs
+    routes:
+      - path: /api
+      - path: /socket.io
+    cors:
+      allow_origins:
+        - prefix: https://fluxstudio.art
+        - prefix: https://www.fluxstudio.art
+        - prefix: https://fluxstudio-
+      allow_methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      allow_headers:
+        - Content-Type
+        - Authorization
+      allow_credentials: true
+    envs:
+      # Node Environment
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+
+      # Database (Managed PostgreSQL - auto-injected by App Platform)
+      - key: DATABASE_URL
+        value: ${fluxstudio-db.DATABASE_URL}
+      - key: DB_SSL
+        value: "true"
+
+      # Redis (Managed Redis - auto-injected by App Platform)
+      - key: REDIS_URL
+        value: ${fluxstudio-redis.REDIS_URL}
+
+      # JWT Configuration (MUST BE SET AS SECRETS)
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: JWT_EXPIRY
+        value: "1h"
+
+      # Session (MUST BE SET AS SECRET)
+      - key: SESSION_SECRET
+        scope: RUN_TIME
+        type: SECRET
+
+      # OAuth Encryption (MUST BE SET AS SECRET)
+      - key: OAUTH_ENCRYPTION_KEY
+        scope: RUN_TIME
+        type: SECRET
+
+      # Google OAuth (MUST BE SET AS SECRETS)
+      - key: GOOGLE_CLIENT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: GOOGLE_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+
+      # GitHub OAuth (MUST BE SET AS SECRETS)
+      - key: GITHUB_CLIENT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: GITHUB_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+
+      # Figma OAuth (MUST BE SET AS SECRETS)
+      - key: FIGMA_CLIENT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: FIGMA_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+
+      # Slack OAuth (MUST BE SET AS SECRETS)
+      - key: SLACK_CLIENT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: SLACK_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: SLACK_SIGNING_SECRET
+        scope: RUN_TIME
+        type: SECRET
+
+      # SMTP Configuration (MUST BE SET AS SECRETS)
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        scope: RUN_TIME
+        type: SECRET
+      - key: SMTP_PASSWORD
+        scope: RUN_TIME
+        type: SECRET
+      - key: EMAIL_FROM
+        value: noreply@fluxstudio.art
+
+      # CORS Origins (hardcoded - App Platform doesn't interpolate ${} in runtime env vars)
+      - key: CORS_ORIGINS
+        value: "https://fluxstudio.art,https://www.fluxstudio.art,https://fluxstudio-frontend.ondigitalocean.app"
+
+      # Rate Limiting
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "50"
+      - key: AUTH_RATE_LIMIT_MAX
+        value: "3"
+
+      # Application Settings
+      - key: APP_NAME
+        value: FluxStudio
+      - key: APP_URL
+        value: https://fluxstudio.art
+      - key: UPLOAD_DIR
+        value: /tmp/uploads
+      - key: MAX_FILE_SIZE
+        value: "52428800"
+      - key: ENABLE_REGISTRATION
+        value: "true"
+      - key: ENABLE_OAUTH
+        value: "true"
+      - key: ENABLE_FILE_UPLOAD
+        value: "true"
+      - key: ENABLE_WEBSOCKET
+        value: "true"
+
+# Collaboration Service (Separate - uses Yjs/WebSocket, not Socket.IO)
+  - name: collaboration
+    github:
+      repo: kentin0-fiz0l/FluxStudio
+      branch: main
+      deploy_on_push: true
+    build_command: npm ci
+    run_command: node server-collaboration.js
+    environment_slug: node-js
+    node_version: "20"
+    http_port: 4000
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 10
+      period_seconds: 10
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+    instance_count: 1
+    instance_size_slug: professional-xs
+    routes:
+      - path: /collab
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: COLLAB_PORT
+        value: "4000"
+      - key: COLLAB_HOST
+        value: "0.0.0.0"
+      - key: DATABASE_URL
+        value: ${fluxstudio-db.DATABASE_URL}
+      - key: AUTH_SERVICE_URL
+        value: https://fluxstudio-unified-backend.ondigitalocean.app
+
+# Custom Domain Configuration
+domains:
+  - domain: fluxstudio.art
+    type: PRIMARY
+    zone: fluxstudio.art
+  - domain: www.fluxstudio.art
+    type: ALIAS
+    zone: fluxstudio.art
+
+# Monitoring & Alerts
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+  - rule: COMPONENT_FAILED
+
+# Ingress (Load Balancer Configuration)
+ingress:
+  rules:
+    - match:
+        path:
+          prefix: /api
+      component:
+        name: unified-backend
+    - match:
+        path:
+          prefix: /socket.io
+      component:
+        name: unified-backend
+    - match:
+        path:
+          prefix: /collab
+      component:
+        name: collaboration
+    - match:
+        path:
+          prefix: /
+      component:
+        name: frontend

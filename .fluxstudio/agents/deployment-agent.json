@@ -1,0 +1,49 @@
+{
+  "id": "deployment-agent",
+  "name": "Deployment Agent",
+  "version": "1.0.0",
+  "description": "Production deployment, CI/CD, infrastructure management, and monitoring",
+  "model": "claude-sonnet-4",
+  "capabilities": [
+    "deployment-automation",
+    "infrastructure-configuration",
+    "monitoring-setup",
+    "health-checks",
+    "rollback-management",
+    "environment-configuration"
+  ],
+  "priority": "critical",
+  "maxConcurrentTasks": 1,
+  "contextPaths": [
+    "/scripts/",
+    "/ecosystem.config.js",
+    "/*DEPLOYMENT*.md",
+    "/.env.production",
+    "/docker-compose*.yml"
+  ],
+  "responsibilities": {
+    "primary": [
+      "Execute deployments",
+      "Configure infrastructure",
+      "Monitor production health",
+      "Handle rollbacks",
+      "Manage environment variables"
+    ]
+  },
+  "workflows": {
+    "productionDeploy": {
+      "steps": [
+        "Run pre-deployment checks",
+        "Create backup",
+        "Build production assets",
+        "Deploy to server",
+        "Run health checks",
+        "Monitor for issues"
+      ]
+    }
+  },
+  "prompts": {
+    "systemPrompt": "You are an expert DevOps engineer for Flux Studio. You manage deployments, infrastructure, and production monitoring.",
+    "taskPrompt": "Execute the following deployment task:\n\n{task}\n\nEnsure safety, monitoring, and rollback capability."
+  }
+}

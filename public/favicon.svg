@@ -1,0 +1,28 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a1a"/>
+      <stop offset="100%" style="stop-color:#0a0a0a"/>
+    </linearGradient>
+    <linearGradient id="shadowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60A5FA"/>
+      <stop offset="33%" style="stop-color:#A78BFA"/>
+      <stop offset="66%" style="stop-color:#06B6D4"/>
+      <stop offset="100%" style="stop-color:#8B5CF6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background with gradient -->
+  <rect width="32" height="32" fill="url(#bgGradient)"/>
+
+  <!-- Border for contrast -->
+  <rect x="1" y="1" width="30" height="30" fill="none" stroke="#333" stroke-width="1"/>
+
+  <!-- 3D Shadow layers -->
+  <text x="18" y="24" font-family="Arial Black, serif" font-size="20" font-weight="900" text-anchor="middle" fill="url(#shadowGradient)" opacity="0.9">F</text>
+  <text x="17.5" y="23.5" font-family="Arial Black, serif" font-size="20" font-weight="900" text-anchor="middle" fill="url(#shadowGradient)" opacity="0.7">F</text>
+  <text x="17" y="23" font-family="Arial Black, serif" font-size="20" font-weight="900" text-anchor="middle" fill="url(#shadowGradient)" opacity="0.5">F</text>
+
+  <!-- Main white F -->
+  <text x="16" y="22" font-family="Arial Black, serif" font-size="20" font-weight="900" text-anchor="middle" fill="#ffffff" stroke="#ffffff" stroke-width="0.5">F</text>
+</svg>

@@ -1,0 +1,76 @@
+
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta name="service-worker-version" content="10.0" />
+      <meta name="google-oauth-optimized" content="ultra-sleek-v1" />
+      <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+      <meta http-equiv="Pragma" content="no-cache" />
+      <meta http-equiv="Expires" content="0" />
+      <title>Flux Studio - Design in Motion</title>
+
+      <!-- Google OAuth Resource Hints for Performance -->
+      <link rel="dns-prefetch" href="//accounts.google.com">
+      <link rel="dns-prefetch" href="//ssl.gstatic.com">
+      <link rel="preconnect" href="https://accounts.google.com" crossorigin>
+      <link rel="preconnect" href="https://ssl.gstatic.com" crossorigin>
+
+      <!-- Font Optimization -->
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Swanky+and+Moo+Moo&family=Orbitron:wght@400;700;900&family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+      <!-- PWA Manifest -->
+      <link rel="manifest" href="/manifest.json">
+
+      <!-- Apple PWA Meta Tags -->
+      <meta name="mobile-web-app-capable" content="yes">
+      <meta name="apple-mobile-web-app-capable" content="yes">
+      <meta name="apple-mobile-web-app-status-bar-style" content="default">
+      <meta name="apple-mobile-web-app-title" content="FluxStudio">
+
+      <!-- Microsoft PWA Meta Tags -->
+      <meta name="msapplication-TileColor" content="#6366f1">
+      <meta name="msapplication-config" content="/browserconfig.xml">
+
+      <!-- Theme Color -->
+      <meta name="theme-color" content="#6366f1">
+      <meta name="color-scheme" content="light dark">
+
+      <!-- Favicons -->
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg?t=1739098234">
+      <link rel="icon" type="image/x-icon" href="/favicon.ico?t=1739098234">
+      <link rel="shortcut icon" href="/favicon.ico?t=1739098234">
+      <link rel="apple-touch-icon" href="/favicon.svg?t=1739098234">
+    </head>
+
+    <body>
+      <div id="root"></div>
+      <script type="module" src="/src/main.tsx"></script>
+
+      <!-- PWA Service Worker Registration -->
+      <script>
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+              .then((registration) => {
+                console.log('SW registered: ', registration);
+              })
+              .catch((registrationError) => {
+                console.log('SW registration failed: ', registrationError);
+              });
+          });
+        }
+
+        // PWA Install Prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          window.deferredPrompt = e;
+          console.log('PWA install prompt available');
+        });
+      </script>
+    </body>
+  </html>
+  
