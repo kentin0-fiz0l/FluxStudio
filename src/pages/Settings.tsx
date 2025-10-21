@@ -8,7 +8,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button, Card } from '@/components/ui';
-import { Switch } from '@/components/ui/Switch';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Bell,
