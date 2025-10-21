@@ -6,10 +6,10 @@
  */
 
 // Button
-export { Button, buttonVariants, type ButtonProps } from './Button';
+export { Button, buttonVariants, type ButtonProps } from './button';
 
 // Input
-export { Input, inputVariants, type InputProps } from './Input';
+export { Input, inputVariants, type InputProps } from './input';
 
 // Card
 export {
@@ -21,10 +21,10 @@ export {
   CardContent,
   cardVariants,
   type CardProps,
-} from './Card';
+} from './card';
 
 // Badge
-export { Badge, badgeVariants, type BadgeProps } from './Badge';
+export { Badge, badgeVariants, type BadgeProps } from './badge';
 
 // Dialog/Modal
 export {
@@ -38,7 +38,7 @@ export {
   DialogFooter,
   DialogTitle,
   DialogDescription,
-} from './Dialog';
+} from './dialog';
 
 // Accessibility Components
 export { SkipLink, type SkipLinkProps } from './SkipLink';
