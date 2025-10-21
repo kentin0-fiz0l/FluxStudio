@@ -1,0 +1,99 @@
+# FluxStudio - Docker Compose for Local Development & Testing
+# Run: docker-compose up --build
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: fluxstudio-db
+    environment:
+      POSTGRES_DB: fluxstudio
+      POSTGRES_USER: fluxstudio_user
+      POSTGRES_PASSWORD: fluxstudio2025secure
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fluxstudio_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Unified Backend (Auth + Messaging)
+  unified-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.unified-backend
+    container_name: fluxstudio-backend
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://fluxstudio_user:fluxstudio2025secure@postgres:5432/fluxstudio
+      DB_SSL: "false"
+      JWT_SECRET: 06tFusPGjKw8PsPT5tgL/LhY9RGeB0jJrzkRgPLRhek=
+      SESSION_SECRET: aLwYTjHqfgieBfruFMfIrunY0r1UlzzJy11lRNCxiw4=
+      OAUTH_ENCRYPTION_KEY: aYxvo//TEnEKud8OczOe0fTgo4E+2iG0Rn6yhj4kZig=
+      JWT_EXPIRY: "7d"
+      APP_NAME: FluxStudio
+      APP_URL: http://localhost
+      ENABLE_REGISTRATION: "true"
+      ENABLE_OAUTH: "false"
+      ENABLE_FILE_UPLOAD: "true"
+      ENABLE_WEBSOCKET: "true"
+      UPLOAD_DIR: /tmp/uploads
+      MAX_FILE_SIZE: "52428800"
+      RATE_LIMIT_WINDOW_MS: "900000"
+      RATE_LIMIT_MAX_REQUESTS: "100"
+      AUTH_RATE_LIMIT_MAX: "5"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Collaboration Service (Yjs WebSocket)
+  collaboration:
+    build:
+      context: .
+      dockerfile: Dockerfile.collaboration
+    container_name: fluxstudio-collab
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      COLLAB_PORT: 4000
+      COLLAB_HOST: "0.0.0.0"
+      DATABASE_URL: postgresql://fluxstudio_user:fluxstudio2025secure@postgres:5432/fluxstudio
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Frontend (Nginx serving built React app)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: fluxstudio-frontend
+    ports:
+      - "80:80"
+    environment:
+      VITE_API_URL: http://localhost:3001
+      VITE_COLLAB_URL: http://localhost:4000
+    depends_on:
+      - unified-backend
+      - collaboration
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: fluxstudio-network

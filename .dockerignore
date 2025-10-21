@@ -1,0 +1,86 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json.bak
+
+# Build outputs
+build
+dist
+.next
+out
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Testing
+coverage
+.nyc_output
+tests/load/*.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.production.new
+.env.example
+.env.messaging.example
+.env.production.example
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs
+DEPLOYMENT_*.md
+SPRINT_*.md
+*.pdf
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Database files (should use remote DB)
+*.db
+*.sqlite
+*.sqlite3
+users.json
+messages.json
+channels.json
+teams.json
+files.json
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Archives
+*.tar.gz
+*.zip
+*.tgz
+
+# Scripts (included selectively)
+scripts/*
+!scripts/deploy*.sh
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore

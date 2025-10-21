@@ -1,0 +1,36 @@
+# FluxStudio Unified Backend - Docker Build
+# Combines Auth + Messaging services
+
+FROM node:22-alpine
+
+# Install production dependencies for native modules
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+
+# Install only production dependencies
+ENV NODE_ENV=production
+RUN npm ci --legacy-peer-deps --only=production
+
+# Copy server file and necessary configs
+COPY server-unified.js ./
+COPY lib ./lib
+COPY config ./config
+COPY middleware ./middleware
+COPY database ./database
+
+# Create upload directory
+RUN mkdir -p /tmp/uploads
+
+# Expose port
+EXPOSE 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
+
+# Start server
+CMD ["node", "server-unified.js"]

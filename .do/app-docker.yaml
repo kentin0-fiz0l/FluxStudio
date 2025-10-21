@@ -1,0 +1,132 @@
+# FluxStudio - Docker-based Deployment
+# Solves: @swc/core Bus error by using Docker with memory controls
+
+name: fluxstudio
+region: nyc
+
+# Frontend - Built with Docker and increased memory
+static_sites:
+  - name: frontend
+    github:
+      repo: kentin0-fiz0l/FluxStudio
+      branch: main
+      deploy_on_push: true
+    # Use Dockerfile instead of buildpacks
+    dockerfile_path: Dockerfile.frontend
+    # No build_command needed - Dockerfile handles it
+    envs:
+      - key: VITE_API_URL
+        value: "${unified-backend.PUBLIC_URL}"
+      - key: VITE_COLLAB_URL
+        value: "${collaboration.PUBLIC_URL}"
+    routes:
+      - path: /
+
+# Unified Backend - Docker build
+services:
+  - name: unified-backend
+    github:
+      repo: kentin0-fiz0l/FluxStudio
+      branch: main
+      deploy_on_push: true
+    # Use Dockerfile instead of buildpacks
+    dockerfile_path: Dockerfile.unified-backend
+    http_port: 3001
+    instance_count: 1
+    instance_size_slug: professional-xs
+    routes:
+      - path: /api
+      - path: /socket.io
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 30
+      period_seconds: 15
+      timeout_seconds: 10
+      success_threshold: 1
+      failure_threshold: 3
+    cors:
+      allow_origins:
+        - prefix: https://
+      allow_methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      allow_headers:
+        - Content-Type
+        - Authorization
+      allow_credentials: true
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: DATABASE_URL
+        value: ${DATABASE_URL}
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        value: 06tFusPGjKw8PsPT5tgL/LhY9RGeB0jJrzkRgPLRhek=
+      - key: SESSION_SECRET
+        value: aLwYTjHqfgieBfruFMfIrunY0r1UlzzJy11lRNCxiw4=
+      - key: OAUTH_ENCRYPTION_KEY
+        value: aYxvo//TEnEKud8OczOe0fTgo4E+2iG0Rn6yhj4kZig=
+      - key: JWT_EXPIRY
+        value: "7d"
+      - key: APP_NAME
+        value: FluxStudio
+      - key: APP_URL
+        value: https://fluxstudio.art
+      - key: ENABLE_REGISTRATION
+        value: "true"
+      - key: ENABLE_OAUTH
+        value: "false"
+      - key: ENABLE_FILE_UPLOAD
+        value: "true"
+      - key: ENABLE_WEBSOCKET
+        value: "true"
+      - key: UPLOAD_DIR
+        value: /tmp/uploads
+      - key: MAX_FILE_SIZE
+        value: "52428800"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "100"
+      - key: AUTH_RATE_LIMIT_MAX
+        value: "5"
+
+# Collaboration Service - Docker build
+  - name: collaboration
+    github:
+      repo: kentin0-fiz0l/FluxStudio
+      branch: main
+      deploy_on_push: true
+    # Use Dockerfile instead of buildpacks
+    dockerfile_path: Dockerfile.collaboration
+    http_port: 4000
+    instance_count: 1
+    instance_size_slug: professional-xs
+    routes:
+      - path: /collab
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 30
+      period_seconds: 15
+      timeout_seconds: 10
+      success_threshold: 1
+      failure_threshold: 3
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: COLLAB_PORT
+        value: "4000"
+      - key: COLLAB_HOST
+        value: "0.0.0.0"
+      - key: DATABASE_URL
+        value: ${DATABASE_URL}
+
+# Monitoring
+alerts:
+  - rule: DEPLOYMENT_FAILED
