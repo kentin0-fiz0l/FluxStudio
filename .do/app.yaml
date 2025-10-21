@@ -13,6 +13,7 @@ databases:
     size: db-s-1vcpu-1gb
     num_nodes: 1
     production: true
+    cluster_name: fluxstudio-postgres-cluster
 
 # Managed Redis (for Socket.IO adapter + sessions)
 services:
@@ -34,7 +35,6 @@ static_sites:
     routes:
       - path: /
     environment_slug: node-js
-    node_version: "20"
     envs:
       - key: VITE_API_URL
         value: ${unified-backend.PUBLIC_URL}
@@ -54,7 +54,6 @@ services:
     build_command: npm ci
     run_command: node server-unified.js
     environment_slug: node-js
-    node_version: "20"
     http_port: 3001
     health_check:
       http_path: /health
@@ -205,7 +204,6 @@ services:
     build_command: npm ci
     run_command: node server-collaboration.js
     environment_slug: node-js
-    node_version: "20"
     http_port: 4000
     health_check:
       http_path: /health
@@ -243,28 +241,3 @@ domains:
 alerts:
   - rule: DEPLOYMENT_FAILED
   - rule: DOMAIN_FAILED
-  - rule: COMPONENT_FAILED
-
-# Ingress (Load Balancer Configuration)
-ingress:
-  rules:
-    - match:
-        path:
-          prefix: /api
-      component:
-        name: unified-backend
-    - match:
-        path:
-          prefix: /socket.io
-      component:
-        name: unified-backend
-    - match:
-        path:
-          prefix: /collab
-      component:
-        name: collaboration
-    - match:
-        path:
-          prefix: /
-      component:
-        name: frontend
