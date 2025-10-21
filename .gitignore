@@ -60,4 +60,4 @@ coverage/
 *.temp
 *.bak
 *.backup
-*~
+*~tests/load/*.json
