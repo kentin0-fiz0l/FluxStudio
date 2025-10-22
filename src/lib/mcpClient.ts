@@ -47,13 +47,17 @@ export class MCPClient {
   private pendingRequests = new Map<number | string, {
     resolve: (value: any) => void;
     reject: (error: any) => void;
+    timeout: ReturnType<typeof setTimeout>;
   }>();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
+  private isReconnecting = false;
+  private authToken: string | null = null;
 
-  constructor(url?: string) {
+  constructor(url?: string, authToken?: string) {
     this.url = url || import.meta.env.VITE_MCP_WS_URL || 'ws://localhost:8787/mcp';
+    this.authToken = authToken || import.meta.env.VITE_MCP_AUTH_TOKEN || null;
   }
 
   /**
@@ -66,9 +70,16 @@ export class MCPClient {
         return;
       }
 
-      console.log(`[MCP Client] Connecting to ${this.url}...`);
+      // Build URL with auth token
+      let connectionUrl = this.url;
+      if (this.authToken) {
+        const separator = this.url.includes('?') ? '&' : '?';
+        connectionUrl = `${this.url}${separator}token=${this.authToken}`;
+      }
 
-      this.ws = new WebSocket(this.url);
+      console.log(`[MCP Client] Connecting to MCP server...`);
+
+      this.ws = new WebSocket(connectionUrl);
 
       this.ws.onopen = () => {
         console.log('[MCP Client] Connected');
@@ -87,6 +98,7 @@ export class MCPClient {
           const pending = this.pendingRequests.get(response.id);
 
           if (pending) {
+            clearTimeout(pending.timeout); // Clear timeout on response
             if (response.error) {
               pending.reject(new Error(response.error.message));
             } else {
@@ -110,17 +122,27 @@ export class MCPClient {
    * Handle reconnection with exponential backoff
    */
   private handleReconnect() {
+    if (this.isReconnecting) return; // Prevent multiple reconnection attempts
+
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.isReconnecting = true;
       this.reconnectAttempts++;
       const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
 
       console.log(`[MCP Client] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
 
       setTimeout(() => {
+        this.isReconnecting = false;
         this.connect().catch(console.error);
       }, delay);
     } else {
       console.error('[MCP Client] Max reconnection attempts reached');
+      // Reject all pending requests
+      for (const [id, pending] of this.pendingRequests.entries()) {
+        clearTimeout(pending.timeout);
+        pending.reject(new Error('Connection lost'));
+      }
+      this.pendingRequests.clear();
     }
   }
 
@@ -141,28 +163,14 @@ export class MCPClient {
     };
 
     return new Promise((resolve, reject) => {
-      this.pendingRequests.set(id, { resolve, reject });
-
       // Set timeout
       const timeout = setTimeout(() => {
         this.pendingRequests.delete(id);
         reject(new Error('Request timeout'));
       }, 30000); // 30 second timeout
 
-      // Override resolve/reject to clear timeout
-      const originalResolve = resolve;
-      const originalReject = reject;
-
-      this.pendingRequests.set(id, {
-        resolve: (value) => {
-          clearTimeout(timeout);
-          originalResolve(value);
-        },
-        reject: (error) => {
-          clearTimeout(timeout);
-          originalReject(error);
-        },
-      });
+      // Store request with timeout
+      this.pendingRequests.set(id, { resolve, reject, timeout });
 
       this.ws!.send(JSON.stringify(request));
     });
@@ -219,7 +227,13 @@ export class MCPClient {
       this.ws.close();
       this.ws = null;
     }
+    // Clear all pending requests with their timeouts
+    for (const [id, pending] of this.pendingRequests.entries()) {
+      clearTimeout(pending.timeout);
+      pending.reject(new Error('Client disconnected'));
+    }
     this.pendingRequests.clear();
+    this.isReconnecting = false;
   }
 
   /**

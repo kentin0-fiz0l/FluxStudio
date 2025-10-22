@@ -15,12 +15,16 @@ import { createServer } from 'http';
 import 'dotenv/config';
 import { GitHubClient } from './github.js';
 import { CreatePreviewInputSchema, TailLogsInputSchema } from './schema.js';
+import { validateAuth, RateLimiter } from './auth.js';
 
 const PORT = parseInt(process.env.PORT || '8787', 10);
 const USE_WEBSOCKET = process.env.TRANSPORT !== 'stdio';
 
 // Initialize GitHub client
 const github = new GitHubClient();
+
+// Initialize rate limiter (30 requests per minute per connection)
+const rateLimiter = new RateLimiter(60000, 30);
 
 // Create MCP server
 const server = new Server(
@@ -172,8 +176,22 @@ async function main() {
       path: '/mcp',
     });
 
-    wss.on('connection', (ws) => {
-      console.log('[MCP] Client connected');
+    wss.on('connection', (ws, req) => {
+      // Extract client identifier (IP address)
+      const clientId = req.socket.remoteAddress || 'unknown';
+
+      // Extract auth token from query string or headers
+      const url = new URL(req.url || '', `http://${req.headers.host}`);
+      const token = url.searchParams.get('token') || req.headers['authorization']?.replace('Bearer ', '');
+
+      // Validate authentication
+      if (!validateAuth(token || undefined)) {
+        console.warn(`[MCP] Unauthorized connection attempt from ${clientId}`);
+        ws.close(1008, 'Unauthorized - valid token required');
+        return;
+      }
+
+      console.log(`[MCP] Client connected: ${clientId}`);
 
       const transport = {
         async start() {
@@ -192,12 +210,35 @@ async function main() {
 
       ws.on('message', (data) => {
         try {
+          // Rate limiting check
+          const rateLimit = rateLimiter.check(clientId);
+          if (!rateLimit.allowed) {
+            const resetIn = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
+            console.warn(`[MCP] Rate limit exceeded for ${clientId}, resets in ${resetIn}s`);
+            ws.send(JSON.stringify({
+              jsonrpc: '2.0',
+              error: {
+                code: -32000,
+                message: `Rate limit exceeded. Try again in ${resetIn} seconds.`,
+                data: { resetAt: rateLimit.resetAt }
+              }
+            }));
+            return;
+          }
+
           const message = JSON.parse(data.toString());
           if (transport.onmessage) {
             transport.onmessage(message);
           }
         } catch (error) {
           console.error('[MCP] Failed to parse message:', error);
+          ws.send(JSON.stringify({
+            jsonrpc: '2.0',
+            error: {
+              code: -32700,
+              message: 'Parse error'
+            }
+          }));
         }
       });
 
@@ -209,7 +250,9 @@ async function main() {
       });
 
       ws.on('close', () => {
-        console.log('[MCP] Client disconnected');
+        console.log(`[MCP] Client disconnected: ${clientId}`);
+        // Reset rate limit for disconnected client
+        rateLimiter.reset(clientId);
         if (transport.onclose) {
           transport.onclose();
         }

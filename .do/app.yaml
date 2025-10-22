@@ -38,6 +38,9 @@ static_sites:
         value: wss://fluxstudio.art/mcp
       - key: VITE_GITHUB_CONNECTED
         value: "true"
+      - key: VITE_MCP_AUTH_TOKEN
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
 
 # Database Migration Job (runs before deployment)
 jobs:
@@ -283,6 +286,9 @@ services:
         value: FluxStudio
       - key: GITHUB_WORKFLOW_FILE
         value: deploy.yml
+      - key: MCP_AUTH_TOKEN
+        scope: RUN_TIME
+        type: SECRET
 
 # Custom Domain Configuration
 domains:
