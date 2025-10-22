@@ -2710,6 +2710,51 @@ app.get('/health', (req, res) => {
   });
 });
 
+// One-time database initialization endpoint (remove after use)
+app.post('/admin/init-database', async (req, res) => {
+  try {
+    // Simple auth check - require JWT_SECRET as header
+    const authHeader = req.headers['x-admin-secret'];
+    if (authHeader !== JWT_SECRET) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    console.log('🚀 Running database initialization...');
+
+    // Read and execute init SQL
+    const fs = require('fs');
+    const path = require('path');
+    const sqlPath = path.join(__dirname, 'database', 'init-production.sql');
+    const sql = fs.readFileSync(sqlPath, 'utf8');
+
+    // Execute using lib/db.js pool
+    const { query } = require('./lib/db');
+    await query(sql);
+
+    console.log('✅ Database initialization completed');
+
+    // Verify tables
+    const tables = await query(`
+      SELECT tablename FROM pg_tables
+      WHERE schemaname = 'public'
+      ORDER BY tablename
+    `);
+
+    res.json({
+      success: true,
+      message: 'Database initialized successfully',
+      tables: tables.rows.map(r => r.tablename)
+    });
+
+  } catch (err) {
+    console.error('❌ Database initialization failed:', err);
+    res.status(500).json({
+      error: 'Database initialization failed',
+      message: err.message
+    });
+  }
+});
+
 // Import health check module
 const { createHealthCheck, authHealthChecks, messagingHealthChecks } = require('./health-check');
 
