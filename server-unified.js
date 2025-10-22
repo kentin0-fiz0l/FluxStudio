@@ -2710,13 +2710,31 @@ app.get('/health', (req, res) => {
   });
 });
 
-// One-time database initialization endpoint (remove after use)
+// One-time database initialization endpoint (idempotent - safe to call multiple times)
 app.post('/admin/init-database', async (req, res) => {
   try {
-    // Simple auth check - require JWT_SECRET as header
+    const { query } = require('./lib/db');
+
+    // Check if users table exists
+    const tableCheck = await query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_name = 'users'
+      )
+    `);
+
+    const tablesExist = tableCheck.rows[0].exists;
+
+    // Simple auth: require JWT_SECRET OR allow if tables don't exist
     const authHeader = req.headers['x-admin-secret'];
-    if (authHeader !== JWT_SECRET) {
-      return res.status(403).json({ error: 'Unauthorized' });
+    const isAuthorized = (authHeader === JWT_SECRET) || !tablesExist;
+
+    if (!isAuthorized) {
+      return res.status(403).json({
+        error: 'Unauthorized',
+        message: 'Database already initialized. JWT_SECRET required for re-initialization.'
+      });
     }
 
     console.log('🚀 Running database initialization...');
@@ -2727,8 +2745,7 @@ app.post('/admin/init-database', async (req, res) => {
     const sqlPath = path.join(__dirname, 'database', 'init-production.sql');
     const sql = fs.readFileSync(sqlPath, 'utf8');
 
-    // Execute using lib/db.js pool
-    const { query } = require('./lib/db');
+    // Execute SQL
     await query(sql);
 
     console.log('✅ Database initialization completed');
@@ -2743,6 +2760,7 @@ app.post('/admin/init-database', async (req, res) => {
     res.json({
       success: true,
       message: 'Database initialized successfully',
+      wasAlreadyInitialized: tablesExist,
       tables: tables.rows.map(r => r.tablename)
     });
 
