@@ -2710,34 +2710,75 @@ app.get('/health', (req, res) => {
   });
 });
 
-// One-time database initialization endpoint (idempotent - safe to call multiple times)
+// Debug endpoint to check database tables
+app.get('/admin/db-status', async (req, res) => {
+  try {
+    const { query } = require('./lib/db');
+
+    // Get all tables
+    const tables = await query(`
+      SELECT tablename FROM pg_tables
+      WHERE schemaname = 'public'
+      ORDER BY tablename
+    `);
+
+    // Check for essential tables
+    const tableNames = tables.rows.map(r => r.tablename);
+    const essentialTables = ['users', 'refresh_tokens', 'security_events', 'organizations', 'projects'];
+    const missingTables = essentialTables.filter(t => !tableNames.includes(t));
+
+    res.json({
+      status: missingTables.length === 0 ? 'complete' : 'incomplete',
+      totalTables: tableNames.length,
+      tables: tableNames,
+      essentialTables: {
+        present: essentialTables.filter(t => tableNames.includes(t)),
+        missing: missingTables
+      }
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to check database status',
+      message: err.message
+    });
+  }
+});
+
+// Database initialization endpoint (idempotent - safe to call multiple times)
 app.post('/admin/init-database', async (req, res) => {
   try {
     const { query } = require('./lib/db');
 
-    // Check if users table exists
-    const tableCheck = await query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables
-        WHERE table_schema = 'public'
-        AND table_name = 'users'
-      )
+    console.log('🔍 Checking database status...');
+
+    // Get current tables
+    const currentTables = await query(`
+      SELECT tablename FROM pg_tables
+      WHERE schemaname = 'public'
+      ORDER BY tablename
     `);
 
-    const tablesExist = tableCheck.rows[0].exists;
+    const tableNames = currentTables.rows.map(r => r.tablename);
+    const hasUsers = tableNames.includes('users');
 
-    // Simple auth: require JWT_SECRET OR allow if tables don't exist
+    // Force mode: allow init with special header
+    const forceInit = req.headers['x-force-init'] === 'true';
+
+    // Simple auth: require JWT_SECRET if tables exist (unless forcing)
     const authHeader = req.headers['x-admin-secret'];
-    const isAuthorized = (authHeader === JWT_SECRET) || !tablesExist;
+    const isAuthorized = (authHeader === JWT_SECRET) || !hasUsers || forceInit;
 
     if (!isAuthorized) {
       return res.status(403).json({
         error: 'Unauthorized',
-        message: 'Database already initialized. JWT_SECRET required for re-initialization.'
+        message: 'Database already initialized. JWT_SECRET required for re-initialization.',
+        currentTables: tableNames
       });
     }
 
     console.log('🚀 Running database initialization...');
+    console.log(`📊 Current tables: ${tableNames.length}`);
 
     // Read and execute init SQL
     const fs = require('fs');
@@ -2750,25 +2791,35 @@ app.post('/admin/init-database', async (req, res) => {
 
     console.log('✅ Database initialization completed');
 
-    // Verify tables
-    const tables = await query(`
+    // Verify tables after init
+    const finalTables = await query(`
       SELECT tablename FROM pg_tables
       WHERE schemaname = 'public'
       ORDER BY tablename
     `);
 
+    const finalTableNames = finalTables.rows.map(r => r.tablename);
+
     res.json({
       success: true,
       message: 'Database initialized successfully',
-      wasAlreadyInitialized: tablesExist,
-      tables: tables.rows.map(r => r.tablename)
+      beforeInit: {
+        tableCount: tableNames.length,
+        tables: tableNames
+      },
+      afterInit: {
+        tableCount: finalTableNames.length,
+        tables: finalTableNames
+      },
+      tablesCreated: finalTableNames.filter(t => !tableNames.includes(t))
     });
 
   } catch (err) {
     console.error('❌ Database initialization failed:', err);
     res.status(500).json({
       error: 'Database initialization failed',
-      message: err.message
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
   }
 });
