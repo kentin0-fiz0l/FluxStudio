@@ -23,13 +23,13 @@ CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
 
--- Security Events table (if not exists)
+-- Security Events table (if not exists) - without foreign keys for flexibility
 CREATE TABLE IF NOT EXISTS security_events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   event_type VARCHAR(100) NOT NULL,
   severity VARCHAR(20) DEFAULT 'INFO',
   user_id UUID,
-  token_id UUID REFERENCES refresh_tokens(id) ON DELETE SET NULL,
+  token_id UUID,
   ip_address INET,
   user_agent TEXT,
   metadata JSONB,
@@ -55,14 +55,14 @@ CREATE TABLE IF NOT EXISTS organizations (
 CREATE INDEX IF NOT EXISTS idx_organizations_slug ON organizations(slug);
 CREATE INDEX IF NOT EXISTS idx_organizations_created_by ON organizations(created_by);
 
--- Conversations table (if not exists)
+-- Conversations table (if not exists) - without foreign key constraints for compatibility
 CREATE TABLE IF NOT EXISTS conversations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(255),
   description TEXT,
   type VARCHAR(50) DEFAULT 'direct',
-  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
-  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  organization_id UUID,
+  project_id UUID,
   created_by UUID,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -71,17 +71,29 @@ CREATE TABLE IF NOT EXISTS conversations (
 CREATE INDEX IF NOT EXISTS idx_conversations_organization_id ON conversations(organization_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_project_id ON conversations(project_id);
 
--- Conversation Participants (if not exists)
+-- Conversation Participants (if not exists) - with flexible foreign keys
 CREATE TABLE IF NOT EXISTS conversation_participants (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+  conversation_id UUID,
   user_id UUID,
   role VARCHAR(50) DEFAULT 'member',
   status VARCHAR(50) DEFAULT 'active',
   joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  last_read_at TIMESTAMP WITH TIME ZONE,
-  UNIQUE(conversation_id, user_id)
+  last_read_at TIMESTAMP WITH TIME ZONE
 );
+
+-- Add unique constraint separately to avoid conflicts
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'conversation_participants_conversation_id_user_id_key'
+  ) THEN
+    ALTER TABLE conversation_participants
+    ADD CONSTRAINT conversation_participants_conversation_id_user_id_key
+    UNIQUE (conversation_id, user_id);
+  END IF;
+END$$;
 
 CREATE INDEX IF NOT EXISTS idx_conversation_participants_conversation_id ON conversation_participants(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_conversation_participants_user_id ON conversation_participants(user_id);
@@ -90,9 +102,9 @@ CREATE INDEX IF NOT EXISTS idx_conversation_participants_user_id ON conversation
 DO $$
 BEGIN
   IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'messages') THEN
-    -- Add reply_to_id if doesn't exist
+    -- Add reply_to_id if doesn't exist (without foreign key for compatibility)
     IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'messages' AND column_name = 'reply_to_id') THEN
-      ALTER TABLE messages ADD COLUMN reply_to_id UUID REFERENCES messages(id);
+      ALTER TABLE messages ADD COLUMN reply_to_id UUID;
     END IF;
 
     -- Add message_type if doesn't exist
