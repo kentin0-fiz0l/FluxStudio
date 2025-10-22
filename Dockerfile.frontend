@@ -20,6 +20,12 @@ RUN npm ci --legacy-peer-deps --verbose
 # Copy source files
 COPY . .
 
+# Pass build-time environment variables for Vite
+# These are injected by DigitalOcean App Platform from app spec
+ARG VITE_API_URL
+ARG VITE_COLLAB_URL
+ARG VITE_GOOGLE_CLIENT_ID
+
 # Build frontend with increased memory
 RUN npm run build
 
