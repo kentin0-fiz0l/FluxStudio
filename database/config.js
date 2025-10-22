@@ -7,19 +7,40 @@ const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
-// Enhanced database configuration with production optimization
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'fluxstudio_db',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'password',
-  ssl: process.env.NODE_ENV === 'production'
-    ? {
-        rejectUnauthorized: false, // DigitalOcean uses self-signed certs
-        sslmode: 'require'
-      }
-    : false,
+// Parse DATABASE_URL if available, otherwise use individual variables
+const dbConfig = (() => {
+  if (process.env.DATABASE_URL) {
+    // Use DATABASE_URL (DigitalOcean managed database)
+    const config = {
+      connectionString: process.env.DATABASE_URL.replace(/[?&]sslmode=[^&]+/g, ''),
+      ssl: process.env.NODE_ENV === 'production' ? {
+        rejectUnauthorized: false, // Accept self-signed certificates
+      } : false,
+    };
+
+    console.log('✅ Using DATABASE_URL for database connection');
+    return config;
+  }
+
+  // Use individual environment variables (legacy/local development)
+  return {
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    database: process.env.DB_NAME || 'fluxstudio_db',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'password',
+    ssl: process.env.NODE_ENV === 'production'
+      ? {
+          rejectUnauthorized: false, // DigitalOcean uses self-signed certs
+          sslmode: 'require'
+        }
+      : false,
+  };
+})();
+
+// Merge with pool configuration
+const poolConfig = {
+  ...dbConfig,
 
   // Enhanced connection pool configuration
   max: process.env.NODE_ENV === 'production' ? 30 : 20, // Maximum number of clients in the pool
@@ -45,7 +66,7 @@ const dbConfig = {
 };
 
 // Create connection pool
-const pool = new Pool(dbConfig);
+const pool = new Pool(poolConfig);
 
 // Enhanced connection pool monitoring and error handling
 pool.on('error', (err, client) => {
