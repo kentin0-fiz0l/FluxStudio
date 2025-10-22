@@ -99,10 +99,8 @@ const PORT = config.AUTH_PORT; // Port 3001 - single unified endpoint
 const JWT_SECRET = config.JWT_SECRET;
 
 // Socket.IO configuration with namespaces
-// Note: DigitalOcean App Platform strips the /socket.io prefix when routing,
-// so we use path: '/' here since requests arrive without the prefix
 const io = new Server(httpServer, {
-  path: '/',
+  path: '/socket.io',
   cors: {
     origin: config.CORS_ORIGINS,
     credentials: true

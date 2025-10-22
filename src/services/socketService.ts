@@ -57,15 +57,14 @@ class SocketService {
   private connect() {
     // Use the current origin for production, localhost:3001 for development
     const isDevelopment = window.location.hostname === 'localhost';
-    const API_URL = isDevelopment ? 'http://localhost:3001' : window.location.origin;
+    const API_BASE_URL = isDevelopment ? 'http://localhost:3001' : `${window.location.origin}/api`;
 
     // Get auth token from localStorage
     const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
 
-    // Connect to /messaging namespace on unified backend (port 3001)
-    const serverUrl = `${API_URL}/messaging`;
-
-    this.socket = io(serverUrl, {
+    // Connect to /messaging namespace on unified backend
+    // Socket.IO server is at /api/socket.io, and we connect to /messaging namespace
+    this.socket = io(`${API_BASE_URL}/messaging`, {
       withCredentials: true,
       transports: ['websocket', 'polling'],
       autoConnect: true,
@@ -73,6 +72,7 @@ class SocketService {
       reconnectionAttempts: this.maxReconnectAttempts,
       reconnectionDelay: this.reconnectDelay,
       timeout: 20000,
+      path: '/api/socket.io', // Socket.IO path on DigitalOcean App Platform
       auth: {
         token: authToken
       }

@@ -96,7 +96,7 @@ class TaskSocketService {
     const isDevelopment = window.location.hostname === 'localhost';
     const serverUrl = isDevelopment
       ? import.meta.env.VITE_SOCKET_URL || 'http://localhost:3002'
-      : window.location.origin;
+      : `${window.location.origin}/api`;
 
     console.log(`Connecting to task socket server: ${serverUrl}`);
 
@@ -110,6 +110,7 @@ class TaskSocketService {
       reconnectionDelay: this.reconnectDelay,
       timeout: 20000,
       withCredentials: true,
+      path: '/api/socket.io', // Socket.IO path on DigitalOcean App Platform
     });
 
     this.setupConnectionHandlers();

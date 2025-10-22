@@ -75,7 +75,6 @@ services:
     instance_size_slug: professional-xs
     routes:
       - path: /api
-      - path: /socket.io
     cors:
       allow_origins:
         - prefix: https://fluxstudio.art
