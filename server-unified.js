@@ -193,9 +193,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // CSRF Protection (skip for OAuth endpoints)
+// Note: DigitalOcean App Platform routes /api/* to this service,
+// so paths here should NOT include /api prefix
 app.use(csrfProtection({
   ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
-  ignorePaths: ['/api/auth/google', '/api/auth/apple', '/health', '/api/monitoring']
+  ignorePaths: ['/auth/google', '/auth/apple', '/health', '/monitoring']
 }));
 
 // Static file serving
@@ -446,7 +448,8 @@ if (USE_DATABASE && authAdapter) {
 }
 
 // CSRF token endpoint
-app.get('/api/csrf-token', getCsrfToken);
+// Note: DigitalOcean routes /api/csrf-token to this service as /csrf-token
+app.get('/csrf-token', getCsrfToken);
 
 // Mount route modules (all auth routes consolidated here for simplicity)
 // For a production app, these would be in separate route files in ./routes/
@@ -455,7 +458,9 @@ app.get('/api/csrf-token', getCsrfToken);
 // Due to space constraints, routes are inline. In production, extract to ./routes/*.js
 
 // Import existing route modules
-app.use('/api/auth', refreshTokenRoutes);
+// Note: DigitalOcean App Platform routes /api/* to this service,
+// so mount paths should NOT include /api prefix
+app.use('/auth', refreshTokenRoutes);
 
 // Mount Sprint 13 Day 5 - Admin API Routes
 const adminBlockedIps = require('./lib/api/admin/blockedIps');
@@ -463,13 +468,13 @@ const adminTokens = require('./lib/api/admin/tokens');
 const adminSecurity = require('./lib/api/admin/security');
 const adminMaintenance = require('./lib/api/admin/maintenance');
 
-app.use('/api/admin/security', adminBlockedIps);
-app.use('/api/admin', adminTokens);
-app.use('/api/admin/security', adminSecurity);
-app.use('/api/admin/maintenance', adminMaintenance);
+app.use('/admin/security', adminBlockedIps);
+app.use('/admin', adminTokens);
+app.use('/admin/security', adminSecurity);
+app.use('/admin/maintenance', adminMaintenance);
 
 // Mount monitoring endpoints
-app.use('/api/monitoring', createMonitoringRouter());
+app.use('/monitoring', createMonitoringRouter());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -507,7 +512,8 @@ require('./sockets/auth-socket')(authNamespace, performanceMonitor, authAdapter)
 require('./sockets/messaging-socket')(messagingNamespace, createMessage, getMessages, getChannels, messagingAdapter, JWT_SECRET);
 
 // API 404 handler for unknown API routes
-app.use('/api', (req, res, next) => {
+// Note: Catch-all for any unmatched routes (DigitalOcean strips /api prefix)
+app.use('/', (req, res, next) => {
   if (!res.headersSent) {
     res.status(404).json({ message: 'API endpoint not found' });
   } else {
