@@ -1,0 +1,86 @@
+name: Deploy to DigitalOcean App Platform
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies (root)
+        run: npm ci
+
+      - name: Install MCP server dependencies
+        working-directory: apps/flux-mcp
+        run: npm ci
+
+      - name: Build MCP server
+        working-directory: apps/flux-mcp
+        run: npm run build
+
+      - name: Build web application
+        run: npm run build
+        env:
+          VITE_MCP_WS_URL: ${{ secrets.VITE_MCP_WS_URL }}
+          VITE_API_BASE_URL: /api
+          VITE_AUTH_URL: /api/auth
+          VITE_MESSAGING_URL: /api/messaging
+          VITE_SOCKET_URL: ${{ secrets.VITE_SOCKET_URL }}
+          VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
+          VITE_GITHUB_CONNECTED: 'true'
+
+      - name: Deploy to DigitalOcean
+        uses: digitalocean/app_action@v2
+        with:
+          app_name: fluxstudio
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          app_spec_location: .do/app.yaml
+          pr_preview: ${{ github.event_name == 'pull_request' }}
+
+      - name: Comment PR with preview URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const comment = `🚀 **Preview deployment is ready!**
+
+            Your preview will be available at: https://fluxstudio-pr-${prNumber}.ondigitalocean.app
+
+            **MCP Server:** wss://fluxstudio-pr-${prNumber}.ondigitalocean.app/mcp
+
+            Changes will be automatically deployed when you push new commits.`;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: comment
+            });
+
+      - name: Report deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed"
+            exit 1
+          fi

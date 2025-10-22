@@ -27,6 +27,7 @@ const { Component: SignupWizard } = lazyLoadWithRetry(() => import('./pages/Sign
 const { Component: EmailVerification } = lazyLoadWithRetry(() => import('./pages/EmailVerification'));
 const { Component: WelcomeFlow } = lazyLoadWithRetry(() => import('./pages/WelcomeFlow'));
 const { Component: AdaptiveDashboard } = lazyLoadWithRetry(() => import('./components/AdaptiveDashboard'));
+const { Component: Connectors } = lazyLoadWithRetry(() => import('./pages/Connectors'));
 
 // Legacy pages (original design)
 const { Component: MessagesPage } = lazyLoadWithRetry(() => import('./pages/MessagesPage'));
@@ -118,6 +119,7 @@ export default function App() {
                       <Route path="/messages" element={<MessagesNew />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/settings" element={<Settings />} />
+                      <Route path="/connectors" element={<Connectors />} />
 
                       {/* Legacy routes for backward compatibility */}
                       <Route path="/organization/legacy" element={<OrganizationPage />} />
