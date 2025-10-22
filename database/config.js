@@ -16,8 +16,7 @@ const dbConfig = {
   password: process.env.DB_PASSWORD || 'password',
   ssl: process.env.NODE_ENV === 'production'
     ? {
-        rejectUnauthorized: true,
-        ca: process.env.DATABASE_CA_CERT,
+        rejectUnauthorized: false, // DigitalOcean uses self-signed certs
         sslmode: 'require'
       }
     : false,

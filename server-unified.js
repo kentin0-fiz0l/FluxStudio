@@ -100,10 +100,13 @@ const JWT_SECRET = config.JWT_SECRET;
 
 // Socket.IO configuration with namespaces
 const io = new Server(httpServer, {
+  path: '/socket.io',
   cors: {
     origin: config.CORS_ORIGINS,
     credentials: true
-  }
+  },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true // Allow Engine.IO v3 clients
 });
 
 // Add WebSocket performance monitoring
