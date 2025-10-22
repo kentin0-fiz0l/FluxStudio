@@ -476,6 +476,32 @@ app.use('/admin/maintenance', adminMaintenance);
 // Mount monitoring endpoints
 app.use('/monitoring', createMonitoringRouter());
 
+// Organizations endpoint (teams API)
+// Note: Path is /organizations but DigitalOcean routes /api/organizations to here
+app.get('/organizations', authenticateToken, async (req, res) => {
+  try {
+    // Return user's organizations/teams
+    const teams = JSON.parse(fs.readFileSync(TEAMS_FILE, 'utf8')).teams || [];
+    const userTeams = teams.filter(team =>
+      team.members && team.members.some(member => member.userId === req.user.id)
+    );
+
+    const organizations = userTeams.map(team => ({
+      id: team.id,
+      name: team.name,
+      description: team.description,
+      role: team.members.find(m => m.userId === req.user.id)?.role || 'member',
+      createdAt: team.createdAt,
+      memberCount: team.members.length
+    }));
+
+    res.json({ organizations });
+  } catch (error) {
+    console.error('Error fetching organizations:', error);
+    res.status(500).json({ message: 'Failed to fetch organizations', organizations: [] });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({

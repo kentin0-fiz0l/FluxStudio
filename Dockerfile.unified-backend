@@ -37,4 +37,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
 # Start server
+# Note: Routes in server-unified.js don't have /api prefix (DO strips it)
 CMD ["node", "server-unified.js"]
