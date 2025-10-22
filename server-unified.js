@@ -476,6 +476,61 @@ app.use('/admin/maintenance', adminMaintenance);
 // Mount monitoring endpoints
 app.use('/monitoring', createMonitoringRouter());
 
+// Google OAuth endpoint
+// Note: Path is /auth/google but DigitalOcean routes /api/auth/google to here
+app.post('/auth/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({ message: 'Missing Google credential' });
+    }
+
+    if (!googleClient) {
+      return res.status(500).json({ message: 'Google OAuth not configured' });
+    }
+
+    // Verify Google ID token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID
+    });
+
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+
+    // Check if user exists
+    let user = await getUserByEmail(email);
+
+    if (!user) {
+      // Create new user
+      user = await createUser({
+        email,
+        name: name || email.split('@')[0],
+        googleId,
+        avatar: picture,
+        userType: 'client',
+        password: null // OAuth users don't have passwords
+      });
+      console.log(`✅ New user created via Google OAuth: ${email}`);
+    } else if (!user.googleId) {
+      // Link Google account to existing user
+      await updateUser(user.id, { googleId, avatar: picture || user.avatar });
+      console.log(`✅ Google account linked to existing user: ${email}`);
+    }
+
+    // Generate auth response
+    const authResponse = USE_DATABASE && authAdapter
+      ? await generateAuthResponse(user)
+      : simpleAuthResponse(user);
+
+    res.json(authResponse);
+  } catch (error) {
+    console.error('Google OAuth error:', error);
+    res.status(401).json({ message: 'Google authentication failed', error: error.message });
+  }
+});
+
 // Organizations endpoint (teams API)
 // Note: Path is /organizations but DigitalOcean routes /api/organizations to here
 app.get('/organizations', authenticateToken, async (req, res) => {
