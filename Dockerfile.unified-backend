@@ -17,11 +17,14 @@ RUN npm ci --legacy-peer-deps --only=production
 
 # Copy server file and necessary configs
 COPY server-unified.js ./
+COPY health-check.js ./
 COPY lib ./lib
 COPY config ./config
 COPY middleware ./middleware
 COPY database ./database
 COPY monitoring ./monitoring
+COPY services ./services
+COPY sockets ./sockets
 
 # Create upload directory
 RUN mkdir -p /tmp/uploads
