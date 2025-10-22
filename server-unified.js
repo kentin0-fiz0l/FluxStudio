@@ -2850,7 +2850,13 @@ require('./sockets/messaging-socket')(messagingNamespace, createMessage, getMess
 
 // API 404 handler for unknown API routes
 // Note: Catch-all for any unmatched routes (DigitalOcean strips /api prefix)
+// IMPORTANT: Don't interfere with Socket.IO requests
 app.use('/', (req, res, next) => {
+  // Skip Socket.IO requests - they're handled by the httpServer, not Express
+  if (req.path.startsWith('/socket.io')) {
+    return next();
+  }
+
   if (!res.headersSent) {
     res.status(404).json({ message: 'API endpoint not found' });
   } else {
