@@ -2780,11 +2780,13 @@ app.post('/admin/init-database', async (req, res) => {
     console.log('🚀 Running database initialization...');
     console.log(`📊 Current tables: ${tableNames.length}`);
 
-    // Read and execute init SQL
+    // Read and execute additive migration SQL (works with existing schemas)
     const fs = require('fs');
     const path = require('path');
-    const sqlPath = path.join(__dirname, 'database', 'init-production.sql');
+    const sqlPath = path.join(__dirname, 'database', 'add-missing-tables.sql');
     const sql = fs.readFileSync(sqlPath, 'utf8');
+
+    console.log('📄 Using additive migration: add-missing-tables.sql');
 
     // Execute SQL
     await query(sql);
