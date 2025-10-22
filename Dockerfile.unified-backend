@@ -21,6 +21,7 @@ COPY lib ./lib
 COPY config ./config
 COPY middleware ./middleware
 COPY database ./database
+COPY monitoring ./monitoring
 
 # Create upload directory
 RUN mkdir -p /tmp/uploads
