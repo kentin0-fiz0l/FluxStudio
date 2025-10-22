@@ -5,23 +5,8 @@
 name: fluxstudio
 region: nyc
 
-# Managed Database (PostgreSQL 15)
-databases:
-  - name: fluxstudio-db
-    engine: PG
-    version: "15"
-    size: db-s-1vcpu-1gb
-    num_nodes: 1
-    production: true
-    cluster_name: fluxstudio-postgres-cluster
-
-# Managed Redis (for Socket.IO adapter + sessions)
-services:
-  - name: fluxstudio-redis
-    engine: REDIS
-    version: "7"
-    size: db-s-1vcpu-1gb
-    production: true
+# Reference existing PostgreSQL database
+# Database ID: 49f4dc39-3d91-4bce-aa7a-7784c8e32a66
 
 # Static Frontend (Vite-built React SPA)
 static_sites:
@@ -36,10 +21,16 @@ static_sites:
       - path: /
     environment_slug: node-js
     envs:
-      - key: VITE_API_URL
-        value: ${unified-backend.PUBLIC_URL}
-      - key: VITE_COLLAB_URL
-        value: ${collaboration.PUBLIC_URL}
+      - key: VITE_API_BASE_URL
+        value: /api
+      - key: VITE_AUTH_URL
+        value: /api/auth
+      - key: VITE_MESSAGING_URL
+        value: /api/messaging
+      - key: VITE_SOCKET_URL
+        value: wss://fluxstudio.art
+      - key: VITE_APP_URL
+        value: https://fluxstudio.art
       - key: VITE_GOOGLE_CLIENT_ID
         scope: RUN_AND_BUILD_TIME
         type: SECRET
@@ -89,15 +80,17 @@ services:
       - key: PORT
         value: "3001"
 
-      # Database (Managed PostgreSQL - auto-injected by App Platform)
+      # Database (Existing PostgreSQL database)
       - key: DATABASE_URL
-        value: ${fluxstudio-db.DATABASE_URL}
+        scope: RUN_TIME
+        type: SECRET
       - key: DB_SSL
         value: "true"
 
-      # Redis (Managed Redis - auto-injected by App Platform)
+      # Redis (Optional - for Socket.IO scaling)
       - key: REDIS_URL
-        value: ${fluxstudio-redis.REDIS_URL}
+        scope: RUN_TIME
+        type: SECRET
 
       # JWT Configuration (MUST BE SET AS SECRETS)
       - key: JWT_SECRET
@@ -224,9 +217,11 @@ services:
       - key: COLLAB_HOST
         value: "0.0.0.0"
       - key: DATABASE_URL
-        value: ${fluxstudio-db.DATABASE_URL}
+        scope: RUN_TIME
+        type: SECRET
       - key: AUTH_SERVICE_URL
-        value: https://fluxstudio-unified-backend.ondigitalocean.app
+        scope: RUN_TIME
+        type: SECRET
 
 # Custom Domain Configuration
 domains:
