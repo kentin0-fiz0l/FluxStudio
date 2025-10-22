@@ -2849,20 +2849,15 @@ require('./sockets/auth-socket')(authNamespace, performanceMonitor, authAdapter)
 require('./sockets/messaging-socket')(messagingNamespace, createMessage, getMessages, getChannels, messagingAdapter, JWT_SECRET);
 
 // API 404 handler for unknown API routes
-// Note: Catch-all for any unmatched routes (DigitalOcean strips /api prefix)
-// IMPORTANT: Don't interfere with Socket.IO requests
-app.use('/', (req, res, next) => {
-  // Skip Socket.IO requests - they're handled by the httpServer, not Express
-  if (req.path.startsWith('/socket.io')) {
-    return next();
-  }
-
-  if (!res.headersSent) {
-    res.status(404).json({ message: 'API endpoint not found' });
-  } else {
-    next();
-  }
-});
+// Note: Disabled to allow Socket.IO to work properly
+// Socket.IO needs to handle its own 404s at the HTTP server level
+// app.use('/', (req, res, next) => {
+//   if (!res.headersSent) {
+//     res.status(404).json({ message: 'API endpoint not found' });
+//   } else {
+//     next();
+//   }
+// });
 
 // Sentry error handler (must be after all routes, before other error handlers)
 app.use(errorHandler());
