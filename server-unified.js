@@ -314,6 +314,52 @@ async function saveUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify({ users }, null, 2));
 }
 
+// Helper functions for files, teams, projects
+async function getFiles() {
+  if (authAdapter) {
+    return await authAdapter.getFiles();
+  }
+  const data = fs.readFileSync(FILES_FILE, 'utf8');
+  return JSON.parse(data).files;
+}
+
+async function saveFiles(files) {
+  if (authAdapter) {
+    return await authAdapter.saveFiles(files);
+  }
+  fs.writeFileSync(FILES_FILE, JSON.stringify({ files }, null, 2));
+}
+
+async function getTeams() {
+  if (authAdapter) {
+    return await authAdapter.getTeams();
+  }
+  const data = fs.readFileSync(TEAMS_FILE, 'utf8');
+  return JSON.parse(data).teams;
+}
+
+async function saveTeams(teams) {
+  if (authAdapter) {
+    return await authAdapter.saveTeams(teams);
+  }
+  fs.writeFileSync(TEAMS_FILE, JSON.stringify({ teams }, null, 2));
+}
+
+async function getProjects() {
+  if (authAdapter) {
+    return await authAdapter.getProjects();
+  }
+  const data = fs.readFileSync(PROJECTS_FILE, 'utf8');
+  return JSON.parse(data).projects;
+}
+
+async function saveProjects(projects) {
+  if (authAdapter) {
+    return await authAdapter.saveProjects(projects);
+  }
+  fs.writeFileSync(PROJECTS_FILE, JSON.stringify({ projects }, null, 2));
+}
+
 // Helper functions for messaging
 async function getMessages(conversationId = null, limit = 100) {
   if (messagingAdapter) {
@@ -554,6 +600,857 @@ app.get('/organizations', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching organizations:', error);
     res.status(500).json({ message: 'Failed to fetch organizations', organizations: [] });
+  }
+});
+
+// ========================================
+// PHASE 1: Auth & Core Routes
+// ========================================
+
+// User signup
+app.post('/auth/signup',
+  authRateLimit,
+  validateInput.email,
+  validateInput.password,
+  validateInput.sanitizeInput,
+  async (req, res) => {
+  try {
+    const { email, password, name, userType = 'client' } = req.body;
+
+    // Check if IP is blocked
+    const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
+    if (isBlocked) {
+      return res.status(429).json({
+        message: 'Too many requests. Please try again later.'
+      });
+    }
+
+    // Check for suspicious user agent
+    const isSuspicious = anomalyDetector.checkSuspiciousUserAgent(req.get('user-agent'));
+    if (isSuspicious) {
+      await securityLogger.logEvent(
+        'suspicious_user_agent_detected',
+        securityLogger.SEVERITY.WARNING,
+        {
+          email,
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+          endpoint: '/auth/signup'
+        }
+      );
+    }
+
+    // Check for rapid signup requests
+    const isRapidRequest = await anomalyDetector.checkRequestRate(req.ip, '/auth/signup');
+    if (isRapidRequest) {
+      await anomalyDetector.blockIpAddress(req.ip, 1800, 'rapid_signup_requests');
+      return res.status(429).json({
+        message: 'Too many signup attempts. Please try again later.'
+      });
+    }
+
+    // Validation
+    if (!email || !password || !name) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    // Validate userType
+    const validUserTypes = ['client', 'designer', 'admin'];
+    if (!validUserTypes.includes(userType)) {
+      return res.status(400).json({ message: 'Invalid user type' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters' });
+    }
+
+    // Check if user exists
+    const users = await getUsers();
+    if (users.find(u => u.email === email)) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const newUser = {
+      id: uuidv4(),
+      email,
+      name,
+      userType,
+      password: hashedPassword,
+      createdAt: new Date().toISOString()
+    };
+
+    users.push(newUser);
+    await saveUsers(users);
+
+    // Generate token pair
+    const authResponse = await generateAuthResponse(newUser, req);
+
+    // Log successful signup
+    await securityLogger.logSignupSuccess(newUser.id, email, req, {
+      userType,
+      name
+    });
+
+    res.json(authResponse);
+  } catch (error) {
+    console.error('Signup error:', error);
+
+    // Capture error in Sentry
+    captureAuthError(error, {
+      endpoint: '/auth/signup',
+      email: req.body.email,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent')
+    });
+
+    // Log failed signup
+    await securityLogger.logSignupFailure(req.body.email, error.message, req, {
+      error: error.message
+    });
+
+    res.status(500).json({ message: 'Server error during signup' });
+  }
+});
+
+// User login
+app.post('/auth/login',
+  authRateLimit,
+  validateInput.email,
+  validateInput.sanitizeInput,
+  async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Check if IP is blocked
+    const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
+    if (isBlocked) {
+      return res.status(429).json({
+        message: 'Too many failed attempts. Please try again later.'
+      });
+    }
+
+    // Find user
+    const user = await getUserByEmail(email);
+
+    if (!user) {
+      // Check for brute force
+      const isBruteForce = await anomalyDetector.checkFailedLoginRate(email, req.ip);
+      if (isBruteForce) {
+        await anomalyDetector.blockIpAddress(req.ip, 3600, 'brute_force_login');
+        return res.status(429).json({
+          message: 'Too many failed attempts. Your IP has been temporarily blocked.'
+        });
+      }
+
+      await securityLogger.logLoginFailure(email, 'User not found', req);
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    // Check password
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      // Check for brute force
+      const isBruteForce = await anomalyDetector.checkFailedLoginRate(email, req.ip);
+      if (isBruteForce) {
+        await anomalyDetector.blockIpAddress(req.ip, 3600, 'brute_force_login');
+        return res.status(429).json({
+          message: 'Too many failed attempts. Your IP has been temporarily blocked.'
+        });
+      }
+
+      await securityLogger.logLoginFailure(email, 'Invalid password', req, {
+        userId: user.id
+      });
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    // Reset failed login counter
+    await anomalyDetector.resetFailedLoginCounter(email, req.ip);
+
+    // Generate token pair
+    const authResponse = await generateAuthResponse(user, req);
+
+    // Log successful login
+    await securityLogger.logLoginSuccess(user.id, req, {
+      email: user.email,
+      userType: user.userType
+    });
+
+    res.json(authResponse);
+  } catch (error) {
+    console.error('Login error:', error);
+
+    // Capture error in Sentry
+    captureAuthError(error, {
+      endpoint: '/auth/login',
+      email: req.body.email,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent')
+    });
+
+    await securityLogger.logLoginFailure(req.body.email, `Server error: ${error.message}`, req);
+    res.status(500).json({ message: 'Server error during login' });
+  }
+});
+
+// Get current user
+app.get('/auth/me', authenticateToken, async (req, res) => {
+  const users = await getUsers();
+  const user = users.find(u => u.id === req.user.id);
+
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  const { password: _, ...userWithoutPassword } = user;
+  res.json(userWithoutPassword);
+});
+
+// Logout
+app.post('/auth/logout', authenticateToken, (req, res) => {
+  res.json({ message: 'Logged out successfully' });
+});
+
+// Apple OAuth (placeholder)
+app.post('/auth/apple', async (req, res) => {
+  try {
+    res.status(501).json({
+      message: 'Apple Sign In integration is in development. Please use email/password authentication for now.',
+      error: 'OAuth not yet implemented'
+    });
+  } catch (error) {
+    console.error('Apple OAuth error:', error);
+    res.status(500).json({ message: 'Apple authentication error' });
+  }
+});
+
+// ========================================
+// PHASE 2: File Management Routes
+// ========================================
+
+// Upload file(s)
+app.post('/files/upload', authenticateToken, upload.array('files', 10), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: 'No files uploaded' });
+    }
+
+    const files = await getFiles();
+    const uploadedFiles = [];
+
+    req.files.forEach(file => {
+      const fileMetadata = {
+        id: uuidv4(),
+        originalName: file.originalname,
+        filename: file.filename,
+        path: file.path,
+        url: `/uploads/${file.filename}`,
+        size: file.size,
+        mimetype: file.mimetype,
+        uploadedBy: req.user.id,
+        uploadedAt: new Date().toISOString(),
+        tags: [],
+        description: '',
+        isPublic: false
+      };
+
+      files.push(fileMetadata);
+      uploadedFiles.push(fileMetadata);
+    });
+
+    await saveFiles(files);
+
+    res.json({
+      message: 'Files uploaded successfully',
+      files: uploadedFiles
+    });
+  } catch (error) {
+    console.error('File upload error:', error);
+    res.status(500).json({ message: 'Error uploading files' });
+  }
+});
+
+// Get user's files
+app.get('/files', authenticateToken, async (req, res) => {
+  try {
+    const files = await getFiles();
+    const userFiles = files.filter(file => file.uploadedBy === req.user.id);
+
+    res.json({ files: userFiles });
+  } catch (error) {
+    console.error('Get files error:', error);
+    res.status(500).json({ message: 'Error retrieving files' });
+  }
+});
+
+// Get file by ID
+app.get('/files/:id', authenticateToken, async (req, res) => {
+  try {
+    const files = await getFiles();
+    const file = files.find(f => f.id === req.params.id && f.uploadedBy === req.user.id);
+
+    if (!file) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    res.json(file);
+  } catch (error) {
+    console.error('Get file error:', error);
+    res.status(500).json({ message: 'Error retrieving file' });
+  }
+});
+
+// Update file metadata
+app.put('/files/:id', authenticateToken, async (req, res) => {
+  try {
+    const files = await getFiles();
+    const fileIndex = files.findIndex(f => f.id === req.params.id && f.uploadedBy === req.user.id);
+
+    if (fileIndex === -1) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    const { description, tags, isPublic } = req.body;
+
+    files[fileIndex] = {
+      ...files[fileIndex],
+      description: description || files[fileIndex].description,
+      tags: tags || files[fileIndex].tags,
+      isPublic: isPublic !== undefined ? isPublic : files[fileIndex].isPublic,
+      updatedAt: new Date().toISOString()
+    };
+
+    await saveFiles(files);
+    res.json(files[fileIndex]);
+  } catch (error) {
+    console.error('Update file error:', error);
+    res.status(500).json({ message: 'Error updating file' });
+  }
+});
+
+// Delete file
+app.delete('/files/:id', authenticateToken, async (req, res) => {
+  try {
+    const files = await getFiles();
+    const fileIndex = files.findIndex(f => f.id === req.params.id && f.uploadedBy === req.user.id);
+
+    if (fileIndex === -1) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    const file = files[fileIndex];
+
+    // Delete physical file
+    try {
+      fs.unlinkSync(file.path);
+    } catch (err) {
+      console.warn('Could not delete physical file:', err.message);
+    }
+
+    // Remove from database
+    files.splice(fileIndex, 1);
+    await saveFiles(files);
+
+    res.json({ message: 'File deleted successfully' });
+  } catch (error) {
+    console.error('Delete file error:', error);
+    res.status(500).json({ message: 'Error deleting file' });
+  }
+});
+
+// ========================================
+// PHASE 3: Team Management Routes
+// ========================================
+
+// Create a new team
+app.post('/teams', authenticateToken, async (req, res) => {
+  try {
+    const { name, description } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: 'Team name is required' });
+    }
+
+    const teams = await getTeams();
+
+    const newTeam = {
+      id: uuidv4(),
+      name,
+      description: description || '',
+      createdBy: req.user.id,
+      createdAt: new Date().toISOString(),
+      members: [
+        {
+          userId: req.user.id,
+          role: 'owner',
+          joinedAt: new Date().toISOString()
+        }
+      ],
+      invites: []
+    };
+
+    teams.push(newTeam);
+    await saveTeams(teams);
+
+    res.json({
+      message: 'Team created successfully',
+      team: newTeam
+    });
+  } catch (error) {
+    console.error('Create team error:', error);
+    res.status(500).json({ message: 'Error creating team' });
+  }
+});
+
+// Get user's teams
+app.get('/teams', authenticateToken, async (req, res) => {
+  try {
+    const teams = await getTeams();
+    const userTeams = teams.filter(team =>
+      team.members.some(member => member.userId === req.user.id)
+    );
+
+    res.json({ teams: userTeams });
+  } catch (error) {
+    console.error('Get teams error:', error);
+    res.status(500).json({ message: 'Error retrieving teams' });
+  }
+});
+
+// Get team by ID
+app.get('/teams/:id', authenticateToken, async (req, res) => {
+  try {
+    const teams = await getTeams();
+    const team = teams.find(t => t.id === req.params.id);
+
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    // Check if user is a member
+    const isMember = team.members.some(member => member.userId === req.user.id);
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    res.json(team);
+  } catch (error) {
+    console.error('Get team error:', error);
+    res.status(500).json({ message: 'Error retrieving team' });
+  }
+});
+
+// Update team
+app.put('/teams/:id', authenticateToken, async (req, res) => {
+  try {
+    const teams = await getTeams();
+    const teamIndex = teams.findIndex(t => t.id === req.params.id);
+
+    if (teamIndex === -1) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    // Check if user is owner or admin
+    const member = teams[teamIndex].members.find(m => m.userId === req.user.id);
+    if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+      return res.status(403).json({ message: 'Permission denied' });
+    }
+
+    const { name, description } = req.body;
+
+    teams[teamIndex] = {
+      ...teams[teamIndex],
+      name: name || teams[teamIndex].name,
+      description: description !== undefined ? description : teams[teamIndex].description,
+      updatedAt: new Date().toISOString()
+    };
+
+    await saveTeams(teams);
+    res.json(teams[teamIndex]);
+  } catch (error) {
+    console.error('Update team error:', error);
+    res.status(500).json({ message: 'Error updating team' });
+  }
+});
+
+// Invite member to team
+app.post('/teams/:id/invite', authenticateToken, async (req, res) => {
+  try {
+    const { email, role = 'member' } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const teams = await getTeams();
+    const teamIndex = teams.findIndex(t => t.id === req.params.id);
+
+    if (teamIndex === -1) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    // Check if user has permission to invite
+    const member = teams[teamIndex].members.find(m => m.userId === req.user.id);
+    if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+      return res.status(403).json({ message: 'Permission denied' });
+    }
+
+    // Check if user is already a member or invited
+    const users = await getUsers();
+    const invitedUser = users.find(u => u.email === email);
+
+    if (invitedUser) {
+      const existingMember = teams[teamIndex].members.find(m => m.userId === invitedUser.id);
+      if (existingMember) {
+        return res.status(400).json({ message: 'User is already a team member' });
+      }
+    }
+
+    // Create invitation
+    const invite = {
+      id: uuidv4(),
+      email,
+      role,
+      invitedBy: req.user.id,
+      invitedAt: new Date().toISOString(),
+      status: 'pending'
+    };
+
+    if (!teams[teamIndex].invites) {
+      teams[teamIndex].invites = [];
+    }
+    teams[teamIndex].invites.push(invite);
+
+    await saveTeams(teams);
+
+    res.json({
+      message: 'Invitation sent successfully',
+      invite
+    });
+  } catch (error) {
+    console.error('Invite member error:', error);
+    res.status(500).json({ message: 'Error sending invitation' });
+  }
+});
+
+// Accept team invitation
+app.post('/teams/:id/accept-invite', authenticateToken, async (req, res) => {
+  try {
+    const teams = await getTeams();
+    const teamIndex = teams.findIndex(t => t.id === req.params.id);
+
+    if (teamIndex === -1) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    // Find invitation for user's email
+    const users = await getUsers();
+    const user = users.find(u => u.id === req.user.id);
+    const inviteIndex = teams[teamIndex].invites.findIndex(
+      i => i.email === user.email && i.status === 'pending'
+    );
+
+    if (inviteIndex === -1) {
+      return res.status(404).json({ message: 'Invitation not found' });
+    }
+
+    const invite = teams[teamIndex].invites[inviteIndex];
+
+    // Add user as member
+    teams[teamIndex].members.push({
+      userId: req.user.id,
+      role: invite.role,
+      joinedAt: new Date().toISOString()
+    });
+
+    // Update invitation status
+    teams[teamIndex].invites[inviteIndex].status = 'accepted';
+
+    await saveTeams(teams);
+
+    res.json({
+      message: 'Successfully joined the team',
+      team: teams[teamIndex]
+    });
+  } catch (error) {
+    console.error('Accept invitation error:', error);
+    res.status(500).json({ message: 'Error accepting invitation' });
+  }
+});
+
+// Remove member from team
+app.delete('/teams/:id/members/:userId', authenticateToken, async (req, res) => {
+  try {
+    const teams = await getTeams();
+    const teamIndex = teams.findIndex(t => t.id === req.params.id);
+
+    if (teamIndex === -1) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    // Check if user has permission to remove members
+    const member = teams[teamIndex].members.find(m => m.userId === req.user.id);
+    if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+      // Allow users to remove themselves
+      if (req.params.userId !== req.user.id) {
+        return res.status(403).json({ message: 'Permission denied' });
+      }
+    }
+
+    // Cannot remove the owner
+    const targetMember = teams[teamIndex].members.find(m => m.userId === req.params.userId);
+    if (targetMember && targetMember.role === 'owner' && req.params.userId !== req.user.id) {
+      return res.status(400).json({ message: 'Cannot remove team owner' });
+    }
+
+    // Remove member
+    teams[teamIndex].members = teams[teamIndex].members.filter(
+      m => m.userId !== req.params.userId
+    );
+
+    await saveTeams(teams);
+
+    res.json({
+      message: 'Member removed successfully'
+    });
+  } catch (error) {
+    console.error('Remove member error:', error);
+    res.status(500).json({ message: 'Error removing member' });
+  }
+});
+
+// Update member role
+app.put('/teams/:id/members/:userId', authenticateToken, async (req, res) => {
+  try {
+    const { role } = req.body;
+    const validRoles = ['owner', 'admin', 'member'];
+
+    if (!role || !validRoles.includes(role)) {
+      return res.status(400).json({ message: 'Valid role is required' });
+    }
+
+    const teams = await getTeams();
+    const teamIndex = teams.findIndex(t => t.id === req.params.id);
+
+    if (teamIndex === -1) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    // Check if user has permission
+    const member = teams[teamIndex].members.find(m => m.userId === req.user.id);
+    if (!member || member.role !== 'owner') {
+      return res.status(403).json({ message: 'Only team owner can change roles' });
+    }
+
+    // Find target member
+    const targetMemberIndex = teams[teamIndex].members.findIndex(
+      m => m.userId === req.params.userId
+    );
+
+    if (targetMemberIndex === -1) {
+      return res.status(404).json({ message: 'Member not found' });
+    }
+
+    // Update role
+    teams[teamIndex].members[targetMemberIndex].role = role;
+    await saveTeams(teams);
+
+    res.json({
+      message: 'Member role updated successfully',
+      member: teams[teamIndex].members[targetMemberIndex]
+    });
+  } catch (error) {
+    console.error('Update member role error:', error);
+    res.status(500).json({ message: 'Error updating member role' });
+  }
+});
+
+// ========================================
+// PHASE 4: Project Management Routes
+// ========================================
+
+// Create a new project
+app.post('/projects', authenticateToken, async (req, res) => {
+  try {
+    const { name, description, teamId, status = 'active' } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: 'Project name is required' });
+    }
+
+    const projects = await getProjects();
+
+    const newProject = {
+      id: uuidv4(),
+      name,
+      description: description || '',
+      teamId: teamId || null,
+      status,
+      createdBy: req.user.id,
+      createdAt: new Date().toISOString(),
+      members: [
+        {
+          userId: req.user.id,
+          role: 'owner',
+          joinedAt: new Date().toISOString()
+        }
+      ],
+      channelMetadata: null
+    };
+
+    projects.push(newProject);
+    await saveProjects(projects);
+
+    res.json({
+      message: 'Project created successfully',
+      project: newProject
+    });
+  } catch (error) {
+    console.error('Create project error:', error);
+    res.status(500).json({ message: 'Error creating project' });
+  }
+});
+
+// Get user's projects
+app.get('/projects', authenticateToken, async (req, res) => {
+  try {
+    const projects = await getProjects();
+    const userProjects = projects.filter(project =>
+      project.members.some(member => member.userId === req.user.id)
+    );
+
+    res.json({ projects: userProjects });
+  } catch (error) {
+    console.error('Get projects error:', error);
+    res.status(500).json({ message: 'Error retrieving projects' });
+  }
+});
+
+// Get project by ID
+app.get('/projects/:id', authenticateToken, async (req, res) => {
+  try {
+    const projects = await getProjects();
+    const project = projects.find(p => p.id === req.params.id);
+
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Check if user is a member
+    const isMember = project.members.some(member => member.userId === req.user.id);
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    res.json(project);
+  } catch (error) {
+    console.error('Get project error:', error);
+    res.status(500).json({ message: 'Error retrieving project' });
+  }
+});
+
+// Update project
+app.put('/projects/:id', authenticateToken, async (req, res) => {
+  try {
+    const projects = await getProjects();
+    const projectIndex = projects.findIndex(p => p.id === req.params.id);
+
+    if (projectIndex === -1) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Check if user is owner or admin
+    const member = projects[projectIndex].members.find(m => m.userId === req.user.id);
+    if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+      return res.status(403).json({ message: 'Permission denied' });
+    }
+
+    const { name, description, status } = req.body;
+
+    projects[projectIndex] = {
+      ...projects[projectIndex],
+      name: name || projects[projectIndex].name,
+      description: description !== undefined ? description : projects[projectIndex].description,
+      status: status || projects[projectIndex].status,
+      updatedAt: new Date().toISOString()
+    };
+
+    await saveProjects(projects);
+    res.json(projects[projectIndex]);
+  } catch (error) {
+    console.error('Update project error:', error);
+    res.status(500).json({ message: 'Error updating project' });
+  }
+});
+
+// Link message channel to project
+app.post('/projects/:id/channel', authenticateToken, async (req, res) => {
+  try {
+    const { channelId } = req.body;
+
+    if (!channelId) {
+      return res.status(400).json({ message: 'Channel ID is required' });
+    }
+
+    const projects = await getProjects();
+    const projectIndex = projects.findIndex(p => p.id === req.params.id);
+
+    if (projectIndex === -1) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Check if user is a member
+    const isMember = projects[projectIndex].members.some(m => m.userId === req.user.id);
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Store channel metadata
+    projects[projectIndex].channelMetadata = {
+      channelId,
+      channelType: 'project',
+      linkedAt: new Date().toISOString()
+    };
+
+    await saveProjects(projects);
+
+    res.json({
+      message: 'Channel linked successfully',
+      project: projects[projectIndex]
+    });
+  } catch (error) {
+    console.error('Link channel error:', error);
+    res.status(500).json({ message: 'Error linking channel' });
+  }
+});
+
+// Get project's channel metadata
+app.get('/projects/:id/channel', authenticateToken, async (req, res) => {
+  try {
+    const projects = await getProjects();
+    const project = projects.find(p => p.id === req.params.id);
+
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Check if user is a member
+    const isMember = project.members.some(m => m.userId === req.user.id);
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    res.json({
+      channelMetadata: project.channelMetadata || null,
+      hasChannel: !!project.channelMetadata
+    });
+  } catch (error) {
+    console.error('Get channel metadata error:', error);
+    res.status(500).json({ message: 'Error retrieving channel' });
   }
 });
 
