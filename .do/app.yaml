@@ -1,12 +1,51 @@
 # DigitalOcean App Platform Configuration
 # FluxStudio Production Deployment
-# Architecture: Static Frontend + Unified Backend + Collaboration Service
+# Architecture: Static Frontend + Unified Backend + Collaboration Service + MCP
 
 name: fluxstudio
 region: nyc
 
 # Reference existing PostgreSQL database
 # Database ID: 49f4dc39-3d91-4bce-aa7a-7784c8e32a66
+
+# Ingress Rules (Path-based routing)
+ingress:
+  rules:
+    - component:
+        name: unified-backend
+      match:
+        path:
+          prefix: /api
+      cors:
+        allow_origins:
+          - exact: https://fluxstudio.art
+          - exact: https://www.fluxstudio.art
+          - exact: https://fluxstudio-
+        allow_methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        allow_headers:
+          - Content-Type
+          - Authorization
+        allow_credentials: true
+    - component:
+        name: collaboration
+      match:
+        path:
+          prefix: /collab
+    - component:
+        name: flux-mcp
+      match:
+        path:
+          prefix: /mcp
+    - component:
+        name: frontend
+      match:
+        path:
+          prefix: /
 
 # Static Frontend (Vite-built React SPA)
 static_sites:
@@ -17,8 +56,6 @@ static_sites:
       deploy_on_push: true
     build_command: npm ci && npm run build
     output_dir: build
-    routes:
-      - path: /
     environment_slug: node-js
     envs:
       - key: VITE_API_BASE_URL
@@ -80,23 +117,6 @@ services:
       failure_threshold: 3
     instance_count: 1
     instance_size_slug: professional-xs
-    routes:
-      - path: /api
-    cors:
-      allow_origins:
-        - prefix: https://fluxstudio.art
-        - prefix: https://www.fluxstudio.art
-        - prefix: https://fluxstudio-
-      allow_methods:
-        - GET
-        - POST
-        - PUT
-        - DELETE
-        - OPTIONS
-      allow_headers:
-        - Content-Type
-        - Authorization
-      allow_credentials: true
     envs:
       # Node Environment
       - key: NODE_ENV
@@ -231,8 +251,6 @@ services:
       failure_threshold: 3
     instance_count: 1
     instance_size_slug: professional-xs
-    routes:
-      - path: /collab
     envs:
       - key: NODE_ENV
         value: production
@@ -267,8 +285,6 @@ services:
       failure_threshold: 3
     instance_count: 1
     instance_size_slug: basic-xxs
-    routes:
-      - path: /mcp
     envs:
       - key: NODE_ENV
         value: production
