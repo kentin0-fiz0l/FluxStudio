@@ -272,9 +272,8 @@ services:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    source_dir: apps/flux-mcp
-    build_command: npm ci && npm run build
-    run_command: npm run start
+    build_command: cd flux-mcp && npm ci && npm run build
+    run_command: cd flux-mcp && npm run start
     environment_slug: node-js
     http_port: 8787
     health_check:
