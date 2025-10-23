@@ -1,0 +1,52 @@
+name: Sync App Spec to DigitalOcean
+
+# Triggers when .do/app.yaml is changed and pushed to main
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.do/app.yaml'
+
+jobs:
+  sync-spec:
+    name: Update DigitalOcean App Spec
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Update App Spec
+        run: |
+          echo "🔄 Syncing app spec to DigitalOcean..."
+
+          APP_ID="bd400c99-683f-4d84-ac17-e7130fef0781"
+
+          # Update the app spec
+          doctl apps update "$APP_ID" --spec .do/app.yaml
+
+          echo "✅ App spec updated successfully!"
+          echo ""
+          echo "ℹ️  DigitalOcean will automatically deploy with the new spec."
+          echo "    Monitor at: https://cloud.digitalocean.com/apps/$APP_ID"
+
+      - name: Verify Update
+        run: |
+          APP_ID="bd400c99-683f-4d84-ac17-e7130fef0781"
+
+          echo "📊 Checking updated spec..."
+
+          # Get current deployment status
+          DEPLOYMENT_ID=$(doctl apps list --format InProgressDeployment.ID --no-header | head -1)
+
+          if [ -n "$DEPLOYMENT_ID" ]; then
+            echo "🚀 Deployment in progress: $DEPLOYMENT_ID"
+          else
+            echo "✅ No deployment in progress"
+          fi
