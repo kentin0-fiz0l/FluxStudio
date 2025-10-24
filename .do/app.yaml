@@ -267,15 +267,14 @@ services:
         type: SECRET
 
 # MCP Server (Model Context Protocol for AI integrations)
+  # Using Dockerfile for complete build control
   - name: flux-mcp
     github:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
+    dockerfile_path: flux-mcp/Dockerfile
     source_dir: flux-mcp
-    build_command: bash build.sh
-    run_command: npm run start
-    environment_slug: node-js
     http_port: 8787
     health_check:
       http_path: /health
@@ -287,9 +286,6 @@ services:
     instance_count: 1
     instance_size_slug: basic-xxs
     envs:
-      - key: NODE_VERSION
-        value: "20.18.1"
-        scope: BUILD_TIME
       - key: NODE_ENV
         value: production
       - key: PORT
