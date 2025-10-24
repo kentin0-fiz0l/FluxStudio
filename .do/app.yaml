@@ -272,8 +272,9 @@ services:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    build_command: cd flux-mcp && npm ci && npm run build
-    run_command: cd flux-mcp && npm run start
+    source_dir: flux-mcp
+    build_command: bash build.sh
+    run_command: npm run start
     environment_slug: node-js
     http_port: 8787
     health_check:
@@ -286,6 +287,9 @@ services:
     instance_count: 1
     instance_size_slug: basic-xxs
     envs:
+      - key: NODE_VERSION
+        value: "20.18.1"
+        scope: BUILD_TIME
       - key: NODE_ENV
         value: production
       - key: PORT
