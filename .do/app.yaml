@@ -81,22 +81,24 @@ static_sites:
         type: SECRET
 
 # Database Migration Job (runs before deployment)
-jobs:
-  - name: db-migrate
-    github:
-      repo: kentin0-fiz0l/FluxStudio
-      branch: main
-      deploy_on_push: true
-    build_command: npm ci
-    run_command: node run-migrations.js
-    environment_slug: node-js
-    kind: PRE_DEPLOY
-    envs:
-      - key: NODE_ENV
-        value: production
-      - key: DATABASE_URL
-        scope: RUN_TIME
-        type: SECRET
+# TEMPORARILY DISABLED: No database component configured yet
+# TODO: Add database component then re-enable
+#jobs:
+#  - name: db-migrate
+#    github:
+#      repo: kentin0-fiz0l/FluxStudio
+#      branch: main
+#      deploy_on_push: true
+#    build_command: npm ci
+#    run_command: node run-migrations.js
+#    environment_slug: node-js
+#    kind: PRE_DEPLOY
+#    envs:
+#      - key: NODE_ENV
+#        value: production
+#      - key: DATABASE_URL
+#        scope: RUN_TIME
+#        type: SECRET
 
 # Unified Backend (Auth + Messaging consolidated)
 services:
