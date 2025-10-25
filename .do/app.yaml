@@ -70,8 +70,7 @@ static_sites:
       - key: VITE_APP_URL
         value: https://fluxstudio.art
       - key: VITE_GOOGLE_CLIENT_ID
-        scope: RUN_AND_BUILD_TIME
-        type: SECRET
+        value: 65518208813-f4rgudom5b57qad0jlhjtsocsrb26mfc.apps.googleusercontent.com
       - key: VITE_MCP_WS_URL
         value: wss://fluxstudio.art/mcp
       - key: VITE_GITHUB_CONNECTED
