@@ -330,8 +330,8 @@ workers:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    dockerfile_path: services/ffmpeg-worker/Dockerfile
-    source_dir: /
+    dockerfile_path: Dockerfile
+    source_dir: services/ffmpeg-worker
     instance_count: 1
     instance_size_slug: basic-xs
     envs:
