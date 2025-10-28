@@ -234,6 +234,22 @@ services:
       - key: ENABLE_WEBSOCKET
         value: "true"
 
+      # DigitalOcean Spaces Configuration (for HLS video streaming)
+      - key: SPACES_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SPACES_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SPACES_BUCKET
+        value: fluxstudio
+      - key: SPACES_ENDPOINT
+        value: sfo3.digitaloceanspaces.com
+      - key: SPACES_REGION
+        value: sfo3
+      - key: SPACES_CDN
+        value: https://fluxstudio.sfo3.cdn.digitaloceanspaces.com
+
 # Collaboration Service (Separate - uses Yjs/WebSocket, not Socket.IO)
   - name: collaboration
     github:
@@ -306,6 +322,42 @@ services:
       - key: MCP_AUTH_TOKEN
         scope: RUN_TIME
         type: SECRET
+
+# FFmpeg Transcoding Worker (for HLS video streaming)
+workers:
+  - name: ffmpeg-worker
+    github:
+      repo: kentin0-fiz0l/FluxStudio
+      branch: main
+      deploy_on_push: true
+    dockerfile_path: services/ffmpeg-worker/Dockerfile
+    source_dir: /
+    instance_count: 1
+    instance_size_slug: basic-xs
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+      - key: SPACES_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SPACES_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SPACES_BUCKET
+        value: fluxstudio
+      - key: SPACES_ENDPOINT
+        value: sfo3.digitaloceanspaces.com
+      - key: SPACES_REGION
+        value: sfo3
+      - key: SPACES_CDN
+        value: https://fluxstudio.sfo3.cdn.digitaloceanspaces.com
+      - key: WORK_DIR
+        value: /tmp/transcoding
+      - key: CONCURRENT_JOBS
+        value: "1"
 
 # Custom Domain Configuration
 domains:
