@@ -4,13 +4,14 @@
  * Modern file management interface using the new component library.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/templates';
 import { FileCard } from '../components/molecules';
 import { Button, Badge, Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useFiles } from '../hooks/useFiles';
+import { toast } from '../lib/toast';
 import {
   Folder,
   FolderPlus,
@@ -55,64 +56,97 @@ export function FileNew() {
   const [showUpload, setShowUpload] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
 
-  // Mock file data (replace with real data from useFiles)
-  const [files, setFiles] = useState<FileItem[]>([
-    {
-      id: '1',
-      name: 'Design Assets',
-      type: 'folder',
-      modifiedAt: new Date('2024-10-08'),
-      owner: 'John Doe'
-    },
-    {
-      id: '2',
-      name: 'Project Files',
-      type: 'folder',
-      modifiedAt: new Date('2024-10-08'),
-      owner: 'John Doe',
-      starred: true
-    },
-    {
-      id: '3',
-      name: 'winter-show-script.pdf',
-      type: 'file',
-      size: 2048576,
-      mimeType: 'application/pdf',
-      modifiedAt: new Date('2024-10-07'),
-      owner: 'John Doe',
-      starred: true,
-      shared: true
-    },
-    {
-      id: '4',
-      name: 'design-mockup.png',
-      type: 'file',
-      size: 2097152,
-      mimeType: 'image/png',
-      modifiedAt: new Date('2024-10-08'),
-      owner: 'Jane Smith',
-      starred: true,
-      thumbnail: 'https://placeholders.dev/300x200'
-    },
-    {
-      id: '5',
-      name: 'demo-video.mp4',
-      type: 'file',
-      size: 15728640,
-      mimeType: 'video/mp4',
-      modifiedAt: new Date('2024-10-08'),
-      owner: 'John Doe'
-    },
-    {
-      id: '6',
-      name: 'background-music.mp3',
-      type: 'file',
-      size: 4194304,
-      mimeType: 'audio/mpeg',
-      modifiedAt: new Date('2024-10-08'),
-      owner: 'John Doe'
+  // LocalStorage key for persistence
+  const STORAGE_KEY = 'fluxstudio_files';
+
+  // Load files from localStorage or use default mock data
+  const getInitialFiles = (): FileItem[] => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Convert date strings back to Date objects
+        return parsed.map((file: any) => ({
+          ...file,
+          modifiedAt: new Date(file.modifiedAt)
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load files from localStorage:', error);
+      toast.error('Failed to load your files');
     }
-  ]);
+
+    // Default mock data
+    return [
+      {
+        id: '1',
+        name: 'Design Assets',
+        type: 'folder',
+        modifiedAt: new Date('2024-10-08'),
+        owner: 'John Doe'
+      },
+      {
+        id: '2',
+        name: 'Project Files',
+        type: 'folder',
+        modifiedAt: new Date('2024-10-08'),
+        owner: 'John Doe',
+        starred: true
+      },
+      {
+        id: '3',
+        name: 'winter-show-script.pdf',
+        type: 'file',
+        size: 2048576,
+        mimeType: 'application/pdf',
+        modifiedAt: new Date('2024-10-07'),
+        owner: 'John Doe',
+        starred: true,
+        shared: true
+      },
+      {
+        id: '4',
+        name: 'design-mockup.png',
+        type: 'file',
+        size: 2097152,
+        mimeType: 'image/png',
+        modifiedAt: new Date('2024-10-08'),
+        owner: 'Jane Smith',
+        starred: true,
+        thumbnail: 'https://placeholders.dev/300x200'
+      },
+      {
+        id: '5',
+        name: 'demo-video.mp4',
+        type: 'file',
+        size: 15728640,
+        mimeType: 'video/mp4',
+        modifiedAt: new Date('2024-10-08'),
+        owner: 'John Doe'
+      },
+      {
+        id: '6',
+        name: 'background-music.mp3',
+        type: 'file',
+        size: 4194304,
+        mimeType: 'audio/mpeg',
+        modifiedAt: new Date('2024-10-08'),
+        owner: 'John Doe'
+      }
+    ];
+  };
+
+  const [files, setFiles] = useState<FileItem[]>(getInitialFiles);
+
+  // Save files to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
+    } catch (error) {
+      console.error('Failed to save files to localStorage:', error);
+      toast.error('Failed to save changes');
+    }
+  }, [files]);
 
   // Tab options
   const tabOptions = [
@@ -156,19 +190,28 @@ export function FileNew() {
 
   // Handlers
   const handleCreateFolder = () => {
-    if (!newFolderName.trim()) return;
+    if (!newFolderName.trim()) {
+      toast.warning('Please enter a folder name');
+      return;
+    }
 
-    const newFolder: FileItem = {
-      id: Date.now().toString(),
-      name: newFolderName,
-      type: 'folder',
-      modifiedAt: new Date(),
-      owner: user?.name || 'You'
-    };
+    try {
+      const newFolder: FileItem = {
+        id: Date.now().toString(),
+        name: newFolderName,
+        type: 'folder',
+        modifiedAt: new Date(),
+        owner: user?.name || 'You'
+      };
 
-    setFiles(prev => [...prev, newFolder]);
-    setNewFolderName('');
-    setShowNewFolder(false);
+      setFiles(prev => [...prev, newFolder]);
+      setNewFolderName('');
+      setShowNewFolder(false);
+      toast.success(`Folder "${newFolderName}" created successfully`);
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+      toast.error('Failed to create folder. Please try again.');
+    }
   };
 
   const handleFileClick = (file: FileItem) => {
@@ -194,9 +237,33 @@ export function FileNew() {
   };
 
   const handleToggleStar = (fileId: string) => {
-    setFiles(prev =>
-      prev.map(f => f.id === fileId ? { ...f, starred: !f.starred } : f)
-    );
+    try {
+      const file = files.find(f => f.id === fileId);
+      if (!file) return;
+
+      setFiles(prev =>
+        prev.map(f => f.id === fileId ? { ...f, starred: !f.starred } : f)
+      );
+
+      const action = file.starred ? 'removed from' : 'added to';
+      toast.success(`"${file.name}" ${action} starred items`);
+    } catch (error) {
+      console.error('Failed to toggle star:', error);
+      toast.error('Failed to update starred status');
+    }
+  };
+
+  const handleDeleteFile = (fileId: string) => {
+    try {
+      const file = files.find(f => f.id === fileId);
+      if (!file) return;
+
+      setFiles(prev => prev.filter(item => item.id !== fileId));
+      toast.success(`"${file.name}" deleted successfully`);
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+      toast.error('Failed to delete file');
+    }
   };
 
   return (
@@ -223,12 +290,14 @@ export function FileNew() {
               variant="secondary"
               onClick={() => setShowNewFolder(true)}
               icon={<FolderPlus className="w-4 h-4" aria-hidden="true" />}
+              title="Create a new folder to organize your files"
             >
               New Folder
             </Button>
             <Button
               onClick={() => setShowUpload(true)}
               icon={<Upload className="w-4 h-4" aria-hidden="true" />}
+              title="Upload files from your computer"
             >
               Upload Files
             </Button>
@@ -298,6 +367,7 @@ export function FileNew() {
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
               aria-label="Grid view"
+              title="Switch to grid view - See files as cards"
             >
               <LayoutGrid className="w-4 h-4" aria-hidden="true" />
             </button>
@@ -309,6 +379,7 @@ export function FileNew() {
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
               aria-label="List view"
+              title="Switch to list view - See files in a compact list"
             >
               <ListIcon className="w-4 h-4" aria-hidden="true" />
             </button>
@@ -363,9 +434,15 @@ export function FileNew() {
                 showModified
                 showOwner
                 onClick={() => handleFileClick(file)}
-                onDownload={(f) => console.log('Download:', f.name)}
-                onShare={(f) => console.log('Share:', f.name)}
-                onDelete={(f) => setFiles(prev => prev.filter(item => item.id !== f.id))}
+                onDownload={(f) => {
+                  console.log('Download:', f.name);
+                  toast.info(`Downloading "${f.name}"...`);
+                }}
+                onShare={(f) => {
+                  console.log('Share:', f.name);
+                  toast.info(`Share options for "${f.name}" coming soon`);
+                }}
+                onDelete={(f) => handleDeleteFile(f.id)}
               />
             ))}
           </div>

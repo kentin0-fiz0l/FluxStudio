@@ -52,6 +52,8 @@ const refreshTokenRoutes = require('./lib/auth/refreshTokenRoutes');
 const { generateAuthResponse } = require('./lib/auth/authHelpers');
 
 // Import Sprint 13 - Security Logger
+// const transcodingService = require('./services/transcoding-service'); // AWS version
+const transcodingService = require('./services/transcoding-service-do'); // DigitalOcean version
 const securityLogger = require('./lib/auth/securityLogger');
 
 // Import Sprint 13 Day 2 - Sentry & Anomaly Detection
@@ -962,6 +964,173 @@ app.delete('/files/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Delete file error:', error);
     res.status(500).json({ message: 'Error deleting file' });
+  }
+});
+
+// ========================================
+// HLS TRANSCODING & DRM ROUTES
+// ========================================
+
+// Submit video for HLS transcoding (DigitalOcean Spaces version)
+app.post('/media/transcode', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.body;
+
+    if (!fileId) {
+      return res.status(400).json({ error: 'fileId is required' });
+    }
+
+    // Verify file exists and user owns it
+    const fileResult = await query(
+      'SELECT id, name, file_url, uploaded_by FROM files WHERE id = $1',
+      [fileId]
+    );
+
+    if (fileResult.rows.length === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const file = fileResult.rows[0];
+
+    if (file.uploaded_by !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    // Extract Spaces key from file_url
+    // Supports both formats:
+    // - https://fluxstudio.nyc3.digitaloceanspaces.com/uploads/file.mp4
+    // - https://fluxstudio.nyc3.cdn.digitaloceanspaces.com/uploads/file.mp4
+    const spacesKey = file.file_url.includes('digitaloceanspaces.com/')
+      ? file.file_url.split('digitaloceanspaces.com/')[1]
+      : file.file_url;
+
+    // Submit transcoding job (will be picked up by FFmpeg worker)
+    const job = await transcodingService.createTranscodingJob({
+      fileId: file.id,
+      fileName: file.name,
+      spacesKey: spacesKey,
+      userId: req.user.id
+    });
+
+    res.json({
+      message: 'Transcoding job submitted successfully',
+      jobId: job.jobId,
+      status: job.status,
+      estimatedCompletion: '5-10 minutes',
+      hlsUrl: job.outputUrl
+    });
+
+  } catch (error) {
+    console.error('Transcoding submission error:', error);
+    res.status(500).json({
+      error: 'Failed to submit transcoding job',
+      details: error.message
+    });
+  }
+});
+
+// Get transcoding status for a file
+app.get('/media/transcode/:fileId', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    const status = await transcodingService.getTranscodingStatus(fileId);
+
+    if (!status) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.json({
+      fileId: status.id,
+      fileName: status.name,
+      status: status.transcoding_status,
+      jobStatus: status.job_status,
+      progress: status.progress || 0,
+      hlsManifestUrl: status.hls_manifest_url,
+      drmProtected: status.drm_protected,
+      errorMessage: status.error_message,
+      createdAt: status.created_at,
+      completedAt: status.completed_at
+    });
+
+  } catch (error) {
+    console.error('Get transcoding status error:', error);
+    res.status(500).json({
+      error: 'Failed to get transcoding status',
+      details: error.message
+    });
+  }
+});
+
+// Admin endpoint: Monitor all in-progress transcoding jobs
+app.post('/media/monitor-jobs', authenticateToken, async (req, res) => {
+  try {
+    // TODO: Add admin check middleware
+    // For now, restrict to specific user emails or admin role
+
+    const result = await transcodingService.monitorJobs();
+
+    res.json({
+      message: 'Job monitoring completed',
+      jobsChecked: result.checked,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Job monitoring error:', error);
+    res.status(500).json({
+      error: 'Failed to monitor jobs',
+      details: error.message
+    });
+  }
+});
+
+// Get HLS manifest (with access control)
+app.get('/media/:fileId/manifest', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    const fileResult = await query(
+      `SELECT id, hls_manifest_url, drm_protected, is_public, uploaded_by
+       FROM files
+       WHERE id = $1`,
+      [fileId]
+    );
+
+    if (fileResult.rows.length === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const file = fileResult.rows[0];
+
+    // Check access permissions
+    if (!file.is_public && file.uploaded_by !== req.user.id) {
+      // TODO: Check organization/project membership
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!file.hls_manifest_url) {
+      return res.status(404).json({
+        error: 'HLS manifest not available',
+        suggestion: 'File may not be transcoded yet'
+      });
+    }
+
+    // Redirect to CloudFront URL or return manifest URL
+    res.json({
+      manifestUrl: file.hls_manifest_url,
+      drmProtected: file.drm_protected,
+      licenseServerUrl: file.drm_protected
+        ? `${process.env.FAIRPLAY_LICENSE_SERVER_URL || 'https://fluxstudio.art/fps'}/license?contentId=${fileId}`
+        : null
+    });
+
+  } catch (error) {
+    console.error('Get manifest error:', error);
+    res.status(500).json({
+      error: 'Failed to get manifest',
+      details: error.message
+    });
   }
 });
 
