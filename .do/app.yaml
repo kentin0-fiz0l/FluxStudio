@@ -290,7 +290,7 @@ services:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    dockerfile_path: flux-mcp/Dockerfile
+    dockerfile_path: Dockerfile
     source_dir: flux-mcp
     http_port: 8787
     health_check:
