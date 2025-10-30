@@ -76,7 +76,7 @@ static_sites:
       - key: VITE_GITHUB_CONNECTED
         value: "true"
       - key: VITE_MCP_AUTH_TOKEN
-        scope: RUN_AND_BUILD_TIME
+        scope: RUN_TIME
         type: SECRET
 
 # Database Migration Job (runs before deployment)
