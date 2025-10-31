@@ -22,9 +22,5 @@ COPY worker.js ./
 RUN mkdir -p /tmp/transcoding && \
     chmod 777 /tmp/transcoding
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "require('pg').Pool({connectionString:process.env.DATABASE_URL}).query('SELECT 1').then(()=>process.exit(0)).catch(()=>process.exit(1))"
-
 # Run worker
 CMD ["node", "worker.js"]
