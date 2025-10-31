@@ -250,6 +250,10 @@ services:
       - key: SPACES_CDN
         value: https://fluxstudio.sfo3.cdn.digitaloceanspaces.com
 
+      # MCP Configuration (disable postgres until DATABASE_URL is properly set)
+      - key: MCP_POSTGRES_ENABLED
+        value: "false"
+
 # Collaboration Service (Separate - uses Yjs/WebSocket, not Socket.IO)
   - name: collaboration
     github:
