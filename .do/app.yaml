@@ -328,7 +328,7 @@ services:
         type: SECRET
 
 # FFmpeg Transcoding Worker (for HLS video streaming)
-workers:
+# Configured as a service (not worker) because DigitalOcean App Platform requires HTTP endpoint
   - name: ffmpeg-worker
     github:
       repo: kentin0-fiz0l/FluxStudio
@@ -336,11 +336,21 @@ workers:
       deploy_on_push: true
     dockerfile_path: Dockerfile
     source_dir: services/ffmpeg-worker
+    http_port: 8080
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 10
+      period_seconds: 30
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
     instance_count: 1
     instance_size_slug: basic-xs
     envs:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: "8080"
       - key: DATABASE_URL
         scope: RUN_TIME
         type: SECRET

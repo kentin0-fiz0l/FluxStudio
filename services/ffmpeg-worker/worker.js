@@ -14,6 +14,7 @@
  */
 
 require('dotenv').config();
+const express = require('express');
 const { Pool } = require('pg');
 const AWS = require('aws-sdk');
 const ffmpeg = require('fluent-ffmpeg');
@@ -48,6 +49,35 @@ const spaces = new AWS.S3({
 
 // Active jobs tracker
 const activeJobs = new Map();
+
+// HTTP server for health checks (required by DigitalOcean App Platform)
+const app = express();
+const port = process.env.PORT || 8080;
+
+app.get('/health', async (req, res) => {
+  try {
+    // Check database connectivity
+    await db.query('SELECT 1');
+
+    res.status(200).json({
+      status: 'healthy',
+      service: 'ffmpeg-worker',
+      activeJobs: activeJobs.size,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      service: 'ffmpeg-worker',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`[Health] HTTP server listening on port ${port}`);
+});
 
 /**
  * Main worker loop
