@@ -37,11 +37,11 @@ ingress:
       match:
         path:
           prefix: /collab
-    - component:
-        name: flux-mcp
-      match:
-        path:
-          prefix: /mcp
+#    - component:
+#        name: flux-mcp
+#      match:
+#        path:
+#          prefix: /mcp
     - component:
         name: frontend
       match:
@@ -289,43 +289,45 @@ services:
 
 # MCP Server (Model Context Protocol for AI integrations)
   # Using Dockerfile for complete build control
-  - name: flux-mcp
-    github:
-      repo: kentin0-fiz0l/FluxStudio
-      branch: main
-      deploy_on_push: true
-    dockerfile_path: Dockerfile
-    source_dir: flux-mcp
-    http_port: 8787
-    health_check:
-      http_path: /health
-      initial_delay_seconds: 10
-      period_seconds: 30
-      timeout_seconds: 5
-      success_threshold: 1
-      failure_threshold: 3
-    instance_count: 1
-    instance_size_slug: basic-xxs
-    envs:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: "8787"
-      - key: TRANSPORT
-        value: websocket
-      - key: GITHUB_TOKEN
-        scope: RUN_TIME
-        type: SECRET
-      - key: GITHUB_OWNER
-        scope: RUN_TIME
-        type: SECRET
-      - key: GITHUB_REPO
-        value: FluxStudio
-      - key: GITHUB_WORKFLOW_FILE
-        value: deploy.yml
-      - key: MCP_AUTH_TOKEN
-        scope: RUN_TIME
-        type: SECRET
+  # TEMPORARILY DISABLED TO UNBLOCK OAUTH TESTING
+  # Re-enable after OAuth fix is verified and working
+#  - name: flux-mcp
+#    github:
+#      repo: kentin0-fiz0l/FluxStudio
+#      branch: main
+#      deploy_on_push: true
+#    dockerfile_path: Dockerfile
+#    source_dir: flux-mcp
+#    http_port: 8787
+#    health_check:
+#      http_path: /health
+#      initial_delay_seconds: 10
+#      period_seconds: 30
+#      timeout_seconds: 5
+#      success_threshold: 1
+#      failure_threshold: 3
+#    instance_count: 1
+#    instance_size_slug: basic-xxs
+#    envs:
+#      - key: NODE_ENV
+#        value: production
+#      - key: PORT
+#        value: "8787"
+#      - key: TRANSPORT
+#        value: websocket
+#      - key: GITHUB_TOKEN
+#        scope: RUN_TIME
+#        type: SECRET
+#      - key: GITHUB_OWNER
+#        scope: RUN_TIME
+#        type: SECRET
+#      - key: GITHUB_REPO
+#        value: FluxStudio
+#      - key: GITHUB_WORKFLOW_FILE
+#        value: deploy.yml
+#      - key: MCP_AUTH_TOKEN
+#        scope: RUN_TIME
+#        type: SECRET
 
 # FFmpeg Transcoding Worker (for HLS video streaming)
 # Configured as a service (not worker) because DigitalOcean App Platform requires HTTP endpoint
