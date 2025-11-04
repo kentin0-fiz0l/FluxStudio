@@ -500,7 +500,7 @@ if (USE_DATABASE && authAdapter) {
 
 // CSRF token endpoint
 // Note: DigitalOcean routes /api/csrf-token to this service as /csrf-token
-app.get('/csrf-token', getCsrfToken);
+app.get('/api/csrf-token', getCsrfToken);
 
 // Mount route modules (all auth routes consolidated here for simplicity)
 // For a production app, these would be in separate route files in ./routes/
@@ -528,7 +528,7 @@ app.use('/admin/maintenance', adminMaintenance);
 app.use('/monitoring', createMonitoringRouter());
 
 // Google OAuth endpoint
-app.post('/auth/google', async (req, res) => {
+app.post('/api/auth/google', async (req, res) => {
   try {
     const { credential } = req.body;
 
@@ -583,7 +583,7 @@ app.post('/auth/google', async (req, res) => {
 
 // Organizations endpoint (teams API)
 // Note: Path is /organizations but DigitalOcean routes /api/organizations to here
-app.get('/organizations', authenticateToken, async (req, res) => {
+app.get('/api/organizations', authenticateToken, async (req, res) => {
   try {
     // Return user's organizations/teams
     const teams = JSON.parse(fs.readFileSync(TEAMS_FILE, 'utf8')).teams || [];
@@ -612,7 +612,7 @@ app.get('/organizations', authenticateToken, async (req, res) => {
 // ========================================
 
 // User signup
-app.post('/auth/signup',
+app.post('/api/auth/signup',
   authRateLimit,
   validateInput.email,
   validateInput.password,
@@ -721,7 +721,7 @@ app.post('/auth/signup',
 });
 
 // User login
-app.post('/auth/login',
+app.post('/api/auth/login',
   authRateLimit,
   validateInput.email,
   validateInput.sanitizeInput,
@@ -802,7 +802,7 @@ app.post('/auth/login',
 });
 
 // Get current user
-app.get('/auth/me', authenticateToken, async (req, res) => {
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
   const users = await getUsers();
   const user = users.find(u => u.id === req.user.id);
 
@@ -815,12 +815,12 @@ app.get('/auth/me', authenticateToken, async (req, res) => {
 });
 
 // Logout
-app.post('/auth/logout', authenticateToken, (req, res) => {
+app.post('/api/auth/logout', authenticateToken, (req, res) => {
   res.json({ message: 'Logged out successfully' });
 });
 
 // Apple OAuth (placeholder)
-app.post('/auth/apple', async (req, res) => {
+app.post('/api/auth/apple', async (req, res) => {
   try {
     res.status(501).json({
       message: 'Apple Sign In integration is in development. Please use email/password authentication for now.',
@@ -837,7 +837,7 @@ app.post('/auth/apple', async (req, res) => {
 // ========================================
 
 // Upload file(s)
-app.post('/files/upload', authenticateToken, upload.array('files', 10), async (req, res) => {
+app.post('/api/files/upload', authenticateToken, upload.array('files', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'No files uploaded' });
@@ -879,7 +879,7 @@ app.post('/files/upload', authenticateToken, upload.array('files', 10), async (r
 });
 
 // Get user's files
-app.get('/files', authenticateToken, async (req, res) => {
+app.get('/api/files', authenticateToken, async (req, res) => {
   try {
     const files = await getFiles();
     const userFiles = files.filter(file => file.uploadedBy === req.user.id);
@@ -892,7 +892,7 @@ app.get('/files', authenticateToken, async (req, res) => {
 });
 
 // Get file by ID
-app.get('/files/:id', authenticateToken, async (req, res) => {
+app.get('/api/files/:id', authenticateToken, async (req, res) => {
   try {
     const files = await getFiles();
     const file = files.find(f => f.id === req.params.id && f.uploadedBy === req.user.id);
@@ -909,7 +909,7 @@ app.get('/files/:id', authenticateToken, async (req, res) => {
 });
 
 // Update file metadata
-app.put('/files/:id', authenticateToken, async (req, res) => {
+app.put('/api/files/:id', authenticateToken, async (req, res) => {
   try {
     const files = await getFiles();
     const fileIndex = files.findIndex(f => f.id === req.params.id && f.uploadedBy === req.user.id);
@@ -937,7 +937,7 @@ app.put('/files/:id', authenticateToken, async (req, res) => {
 });
 
 // Delete file
-app.delete('/files/:id', authenticateToken, async (req, res) => {
+app.delete('/api/files/:id', authenticateToken, async (req, res) => {
   try {
     const files = await getFiles();
     const fileIndex = files.findIndex(f => f.id === req.params.id && f.uploadedBy === req.user.id);
@@ -971,7 +971,7 @@ app.delete('/files/:id', authenticateToken, async (req, res) => {
 // ========================================
 
 // Submit video for HLS transcoding (DigitalOcean Spaces version)
-app.post('/media/transcode', authenticateToken, async (req, res) => {
+app.post('/api/media/transcode', authenticateToken, async (req, res) => {
   try {
     const { fileId } = req.body;
 
@@ -1029,7 +1029,7 @@ app.post('/media/transcode', authenticateToken, async (req, res) => {
 });
 
 // Get transcoding status for a file
-app.get('/media/transcode/:fileId', authenticateToken, async (req, res) => {
+app.get('/api/media/transcode/:fileId', authenticateToken, async (req, res) => {
   try {
     const { fileId } = req.params;
 
@@ -1062,7 +1062,7 @@ app.get('/media/transcode/:fileId', authenticateToken, async (req, res) => {
 });
 
 // Admin endpoint: Monitor all in-progress transcoding jobs
-app.post('/media/monitor-jobs', authenticateToken, async (req, res) => {
+app.post('/api/media/monitor-jobs', authenticateToken, async (req, res) => {
   try {
     // TODO: Add admin check middleware
     // For now, restrict to specific user emails or admin role
@@ -1085,7 +1085,7 @@ app.post('/media/monitor-jobs', authenticateToken, async (req, res) => {
 });
 
 // Get HLS manifest (with access control)
-app.get('/media/:fileId/manifest', authenticateToken, async (req, res) => {
+app.get('/api/media/:fileId/manifest', authenticateToken, async (req, res) => {
   try {
     const { fileId } = req.params;
 
@@ -1138,7 +1138,7 @@ app.get('/media/:fileId/manifest', authenticateToken, async (req, res) => {
 // ========================================
 
 // Create a new team
-app.post('/teams', authenticateToken, async (req, res) => {
+app.post('/api/teams', authenticateToken, async (req, res) => {
   try {
     const { name, description } = req.body;
 
@@ -1178,7 +1178,7 @@ app.post('/teams', authenticateToken, async (req, res) => {
 });
 
 // Get user's teams
-app.get('/teams', authenticateToken, async (req, res) => {
+app.get('/api/teams', authenticateToken, async (req, res) => {
   try {
     const teams = await getTeams();
     const userTeams = teams.filter(team =>
@@ -1193,7 +1193,7 @@ app.get('/teams', authenticateToken, async (req, res) => {
 });
 
 // Get team by ID
-app.get('/teams/:id', authenticateToken, async (req, res) => {
+app.get('/api/teams/:id', authenticateToken, async (req, res) => {
   try {
     const teams = await getTeams();
     const team = teams.find(t => t.id === req.params.id);
@@ -1216,7 +1216,7 @@ app.get('/teams/:id', authenticateToken, async (req, res) => {
 });
 
 // Update team
-app.put('/teams/:id', authenticateToken, async (req, res) => {
+app.put('/api/teams/:id', authenticateToken, async (req, res) => {
   try {
     const teams = await getTeams();
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
@@ -1249,7 +1249,7 @@ app.put('/teams/:id', authenticateToken, async (req, res) => {
 });
 
 // Invite member to team
-app.post('/teams/:id/invite', authenticateToken, async (req, res) => {
+app.post('/api/teams/:id/invite', authenticateToken, async (req, res) => {
   try {
     const { email, role = 'member' } = req.body;
 
@@ -1309,7 +1309,7 @@ app.post('/teams/:id/invite', authenticateToken, async (req, res) => {
 });
 
 // Accept team invitation
-app.post('/teams/:id/accept-invite', authenticateToken, async (req, res) => {
+app.post('/api/teams/:id/accept-invite', authenticateToken, async (req, res) => {
   try {
     const teams = await getTeams();
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
@@ -1354,7 +1354,7 @@ app.post('/teams/:id/accept-invite', authenticateToken, async (req, res) => {
 });
 
 // Remove member from team
-app.delete('/teams/:id/members/:userId', authenticateToken, async (req, res) => {
+app.delete('/api/teams/:id/members/:userId', authenticateToken, async (req, res) => {
   try {
     const teams = await getTeams();
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
@@ -1395,7 +1395,7 @@ app.delete('/teams/:id/members/:userId', authenticateToken, async (req, res) => 
 });
 
 // Update member role
-app.put('/teams/:id/members/:userId', authenticateToken, async (req, res) => {
+app.put('/api/teams/:id/members/:userId', authenticateToken, async (req, res) => {
   try {
     const { role } = req.body;
     const validRoles = ['owner', 'admin', 'member'];
@@ -1445,7 +1445,7 @@ app.put('/teams/:id/members/:userId', authenticateToken, async (req, res) => {
 // ========================================
 
 // Create a new project
-app.post('/projects', authenticateToken, async (req, res) => {
+app.post('/api/projects', authenticateToken, async (req, res) => {
   try {
     const { name, description, teamId, status = 'active' } = req.body;
 
@@ -1487,7 +1487,7 @@ app.post('/projects', authenticateToken, async (req, res) => {
 });
 
 // Get user's projects
-app.get('/projects', authenticateToken, async (req, res) => {
+app.get('/api/projects', authenticateToken, async (req, res) => {
   try {
     const projects = await getProjects();
     const userProjects = projects.filter(project =>
@@ -1502,7 +1502,7 @@ app.get('/projects', authenticateToken, async (req, res) => {
 });
 
 // Get project by ID
-app.get('/projects/:id', authenticateToken, async (req, res) => {
+app.get('/api/projects/:id', authenticateToken, async (req, res) => {
   try {
     const projects = await getProjects();
     const project = projects.find(p => p.id === req.params.id);
@@ -1525,7 +1525,7 @@ app.get('/projects/:id', authenticateToken, async (req, res) => {
 });
 
 // Update project
-app.put('/projects/:id', authenticateToken, async (req, res) => {
+app.put('/api/projects/:id', authenticateToken, async (req, res) => {
   try {
     const projects = await getProjects();
     const projectIndex = projects.findIndex(p => p.id === req.params.id);
@@ -1559,7 +1559,7 @@ app.put('/projects/:id', authenticateToken, async (req, res) => {
 });
 
 // Link message channel to project
-app.post('/projects/:id/channel', authenticateToken, async (req, res) => {
+app.post('/api/projects/:id/channel', authenticateToken, async (req, res) => {
   try {
     const { channelId } = req.body;
 
@@ -1600,7 +1600,7 @@ app.post('/projects/:id/channel', authenticateToken, async (req, res) => {
 });
 
 // Get project's channel metadata
-app.get('/projects/:id/channel', authenticateToken, async (req, res) => {
+app.get('/api/projects/:id/channel', authenticateToken, async (req, res) => {
   try {
     const projects = await getProjects();
     const project = projects.find(p => p.id === req.params.id);
@@ -1630,7 +1630,7 @@ app.get('/projects/:id/channel', authenticateToken, async (req, res) => {
 // ========================================
 
 // Get user's conversations
-app.get('/conversations', authenticateToken, async (req, res) => {
+app.get('/api/conversations', authenticateToken, async (req, res) => {
   try {
     const { limit = 20, offset = 0 } = req.query;
 
@@ -1659,7 +1659,7 @@ app.get('/conversations', authenticateToken, async (req, res) => {
 });
 
 // Get messages in a conversation
-app.get('/conversations/:conversationId/messages', authenticateToken, async (req, res) => {
+app.get('/api/conversations/:conversationId/messages', authenticateToken, async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { limit = 50, offset = 0 } = req.query;
@@ -1693,7 +1693,7 @@ app.get('/conversations/:conversationId/messages', authenticateToken, async (req
 });
 
 // Get user notifications
-app.get('/notifications', authenticateToken, async (req, res) => {
+app.get('/api/notifications', authenticateToken, async (req, res) => {
   try {
     const { limit = 20, offset = 0 } = req.query;
 
@@ -1721,7 +1721,7 @@ app.get('/notifications', authenticateToken, async (req, res) => {
 });
 
 // Get message thread
-app.get('/messages/:messageId/thread', authenticateToken, async (req, res) => {
+app.get('/api/messages/:messageId/thread', authenticateToken, async (req, res) => {
   try {
     const { messageId } = req.params;
     const { limit = 50 } = req.query;
@@ -1749,7 +1749,7 @@ app.get('/messages/:messageId/thread', authenticateToken, async (req, res) => {
 });
 
 // Get conversation threads
-app.get('/conversations/:conversationId/threads', authenticateToken, async (req, res) => {
+app.get('/api/conversations/:conversationId/threads', authenticateToken, async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { limit = 20 } = req.query;
@@ -1777,7 +1777,7 @@ app.get('/conversations/:conversationId/threads', authenticateToken, async (req,
 });
 
 // Mark conversation as read
-app.post('/conversations/:conversationId/read', authenticateToken, async (req, res) => {
+app.post('/api/conversations/:conversationId/read', authenticateToken, async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { messageId } = req.body;
@@ -1802,7 +1802,7 @@ app.post('/conversations/:conversationId/read', authenticateToken, async (req, r
 });
 
 // Search messages
-app.get('/search/messages', authenticateToken, async (req, res) => {
+app.get('/api/search/messages', authenticateToken, async (req, res) => {
   try {
     const { q: searchTerm, conversation_id, limit = 20, offset = 0 } = req.query;
 
@@ -1841,7 +1841,7 @@ app.get('/search/messages', authenticateToken, async (req, res) => {
 });
 
 // Typing status endpoint
-app.post('/presence/typing', authenticateToken, async (req, res) => {
+app.post('/api/presence/typing', authenticateToken, async (req, res) => {
   try {
     const { conversationId, isTyping = false } = req.body;
 
@@ -1865,7 +1865,7 @@ app.post('/presence/typing', authenticateToken, async (req, res) => {
 });
 
 // Create channel
-app.post('/channels', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+app.post('/api/channels', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
   const { name, teamId, description } = req.body;
 
   if (!name || !teamId) {
@@ -1889,14 +1889,14 @@ app.post('/channels', authenticateToken, validateInput.sanitizeInput, async (req
 });
 
 // Get channels by team
-app.get('/channels/:teamId', authenticateToken, async (req, res) => {
+app.get('/api/channels/:teamId', authenticateToken, async (req, res) => {
   const channels = await getChannels();
   const teamChannels = channels.filter(c => c.teamId === req.params.teamId);
   res.json(teamChannels);
 });
 
 // POST /organizations - Create organization
-app.post('/organizations', authenticateToken, async (req, res) => {
+app.post('/api/organizations', authenticateToken, async (req, res) => {
   try {
     const { name, description } = req.body;
 
@@ -1949,7 +1949,7 @@ app.post('/organizations', authenticateToken, async (req, res) => {
 // ========================================
 
 // Get OAuth authorization URL (initiate OAuth flow)
-app.get('/integrations/:provider/auth', authenticateToken, async (req, res) => {
+app.get('/api/integrations/:provider/auth', authenticateToken, async (req, res) => {
   try {
     const { provider } = req.params;
     const userId = req.user.id;
@@ -1968,7 +1968,7 @@ app.get('/integrations/:provider/auth', authenticateToken, async (req, res) => {
 });
 
 // OAuth callback handler (GET - for direct browser redirects)
-app.get('/integrations/:provider/callback', async (req, res) => {
+app.get('/api/integrations/:provider/callback', async (req, res) => {
   try {
     const { provider } = req.params;
     const { code, state } = req.query;
@@ -1988,7 +1988,7 @@ app.get('/integrations/:provider/callback', async (req, res) => {
 });
 
 // OAuth callback handler (POST - for frontend OAuth callback page)
-app.post('/integrations/:provider/callback', async (req, res) => {
+app.post('/api/integrations/:provider/callback', async (req, res) => {
   try {
     const { provider } = req.params;
     const { code, state } = req.body;
@@ -2024,7 +2024,7 @@ app.post('/integrations/:provider/callback', async (req, res) => {
 });
 
 // Get user's active integrations
-app.get('/integrations', authenticateToken, async (req, res) => {
+app.get('/api/integrations', authenticateToken, async (req, res) => {
   try {
     const integrations = await oauthManager.getUserIntegrations(req.user.id);
     res.json({ integrations });
@@ -2035,7 +2035,7 @@ app.get('/integrations', authenticateToken, async (req, res) => {
 });
 
 // Disconnect an integration
-app.delete('/integrations/:provider', authenticateToken, async (req, res) => {
+app.delete('/api/integrations/:provider', authenticateToken, async (req, res) => {
   try {
     const { provider } = req.params;
     await oauthManager.disconnectIntegration(req.user.id, provider);
@@ -2055,7 +2055,7 @@ app.delete('/integrations/:provider', authenticateToken, async (req, res) => {
 // ========================================
 
 // Get Figma files for authenticated user
-app.get('/integrations/figma/files', authenticateToken, async (req, res) => {
+app.get('/api/integrations/figma/files', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'figma');
     const FigmaService = require('./src/services/figmaService').default;
@@ -2086,7 +2086,7 @@ app.get('/integrations/figma/files', authenticateToken, async (req, res) => {
 });
 
 // Get Figma file details
-app.get('/integrations/figma/files/:fileKey', authenticateToken, async (req, res) => {
+app.get('/api/integrations/figma/files/:fileKey', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'figma');
     const FigmaService = require('./src/services/figmaService').default;
@@ -2102,7 +2102,7 @@ app.get('/integrations/figma/files/:fileKey', authenticateToken, async (req, res
 });
 
 // Get Figma file comments
-app.get('/integrations/figma/comments/:fileKey', authenticateToken, async (req, res) => {
+app.get('/api/integrations/figma/comments/:fileKey', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'figma');
     const FigmaService = require('./src/services/figmaService').default;
@@ -2118,7 +2118,7 @@ app.get('/integrations/figma/comments/:fileKey', authenticateToken, async (req, 
 });
 
 // Figma webhook endpoint
-app.post('/integrations/figma/webhook', async (req, res) => {
+app.post('/api/integrations/figma/webhook', async (req, res) => {
   try {
     const signature = req.headers['x-figma-signature'];
     const webhookSecret = process.env.FIGMA_WEBHOOK_SECRET;
@@ -2167,7 +2167,7 @@ app.post('/integrations/figma/webhook', async (req, res) => {
 // ========================================
 
 // Get Slack channels
-app.get('/integrations/slack/channels', authenticateToken, async (req, res) => {
+app.get('/api/integrations/slack/channels', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'slack');
     const SlackService = require('./src/services/slackService').default;
@@ -2183,7 +2183,7 @@ app.get('/integrations/slack/channels', authenticateToken, async (req, res) => {
 });
 
 // Post message to Slack channel
-app.post('/integrations/slack/message', authenticateToken, async (req, res) => {
+app.post('/api/integrations/slack/message', authenticateToken, async (req, res) => {
   try {
     const { channel, text, blocks } = req.body;
 
@@ -2205,7 +2205,7 @@ app.post('/integrations/slack/message', authenticateToken, async (req, res) => {
 });
 
 // Send project update to Slack
-app.post('/integrations/slack/project-update', authenticateToken, async (req, res) => {
+app.post('/api/integrations/slack/project-update', authenticateToken, async (req, res) => {
   try {
     const { channel, projectName, updateType, details } = req.body;
 
@@ -2227,7 +2227,7 @@ app.post('/integrations/slack/project-update', authenticateToken, async (req, re
 });
 
 // Slack webhook endpoint
-app.post('/integrations/slack/webhook', async (req, res) => {
+app.post('/api/integrations/slack/webhook', async (req, res) => {
   try {
     const SlackService = require('./src/services/slackService').default;
 
@@ -2284,7 +2284,7 @@ app.post('/integrations/slack/webhook', async (req, res) => {
 // ========================================
 
 // Get GitHub repositories for authenticated user
-app.get('/integrations/github/repositories', authenticateToken, async (req, res) => {
+app.get('/api/integrations/github/repositories', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2307,7 +2307,7 @@ app.get('/integrations/github/repositories', authenticateToken, async (req, res)
 });
 
 // Get single GitHub repository
-app.get('/integrations/github/repositories/:owner/:repo', authenticateToken, async (req, res) => {
+app.get('/api/integrations/github/repositories/:owner/:repo', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2325,7 +2325,7 @@ app.get('/integrations/github/repositories/:owner/:repo', authenticateToken, asy
 });
 
 // Get GitHub issues for a repository
-app.get('/integrations/github/repositories/:owner/:repo/issues', authenticateToken, async (req, res) => {
+app.get('/api/integrations/github/repositories/:owner/:repo/issues', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2352,7 +2352,7 @@ app.get('/integrations/github/repositories/:owner/:repo/issues', authenticateTok
 });
 
 // Get single GitHub issue
-app.get('/integrations/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, async (req, res) => {
+app.get('/api/integrations/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2374,7 +2374,7 @@ app.get('/integrations/github/repositories/:owner/:repo/issues/:issue_number', a
 });
 
 // Create GitHub issue
-app.post('/integrations/github/repositories/:owner/:repo/issues', authenticateToken, async (req, res) => {
+app.post('/api/integrations/github/repositories/:owner/:repo/issues', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2404,7 +2404,7 @@ app.post('/integrations/github/repositories/:owner/:repo/issues', authenticateTo
 });
 
 // Update GitHub issue
-app.patch('/integrations/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, async (req, res) => {
+app.patch('/api/integrations/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2432,7 +2432,7 @@ app.patch('/integrations/github/repositories/:owner/:repo/issues/:issue_number',
 });
 
 // Add comment to GitHub issue
-app.post('/integrations/github/repositories/:owner/:repo/issues/:issue_number/comments', authenticateToken, async (req, res) => {
+app.post('/api/integrations/github/repositories/:owner/:repo/issues/:issue_number/comments', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2460,7 +2460,7 @@ app.post('/integrations/github/repositories/:owner/:repo/issues/:issue_number/co
 });
 
 // Get GitHub pull requests for a repository
-app.get('/integrations/github/repositories/:owner/:repo/pulls', authenticateToken, async (req, res) => {
+app.get('/api/integrations/github/repositories/:owner/:repo/pulls', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2486,7 +2486,7 @@ app.get('/integrations/github/repositories/:owner/:repo/pulls', authenticateToke
 });
 
 // Get GitHub commits for a repository
-app.get('/integrations/github/repositories/:owner/:repo/commits', authenticateToken, async (req, res) => {
+app.get('/api/integrations/github/repositories/:owner/:repo/commits', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2511,7 +2511,7 @@ app.get('/integrations/github/repositories/:owner/:repo/commits', authenticateTo
 });
 
 // Get GitHub branches for a repository
-app.get('/integrations/github/repositories/:owner/:repo/branches', authenticateToken, async (req, res) => {
+app.get('/api/integrations/github/repositories/:owner/:repo/branches', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2534,7 +2534,7 @@ app.get('/integrations/github/repositories/:owner/:repo/branches', authenticateT
 });
 
 // Get GitHub repository collaborators
-app.get('/integrations/github/repositories/:owner/:repo/collaborators', authenticateToken, async (req, res) => {
+app.get('/api/integrations/github/repositories/:owner/:repo/collaborators', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2558,7 +2558,7 @@ app.get('/integrations/github/repositories/:owner/:repo/collaborators', authenti
 });
 
 // Link GitHub repository to FluxStudio project
-app.post('/integrations/github/repositories/:owner/:repo/link', authenticateToken, async (req, res) => {
+app.post('/api/integrations/github/repositories/:owner/:repo/link', authenticateToken, async (req, res) => {
   try {
     const { owner, repo } = req.params;
     const { projectId } = req.body;
@@ -2609,7 +2609,7 @@ app.post('/integrations/github/repositories/:owner/:repo/link', authenticateToke
 });
 
 // Get authenticated GitHub user
-app.get('/integrations/github/user', authenticateToken, async (req, res) => {
+app.get('/api/integrations/github/user', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2632,7 +2632,7 @@ app.get('/integrations/github/user', authenticateToken, async (req, res) => {
 });
 
 // GitHub webhook endpoint for issue synchronization
-app.post('/integrations/github/webhook', async (req, res) => {
+app.post('/api/integrations/github/webhook', async (req, res) => {
   try {
     const signature = req.headers['x-hub-signature-256'];
     const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
@@ -2692,7 +2692,7 @@ app.post('/integrations/github/webhook', async (req, res) => {
 // GitHub Sync API Endpoints
 
 // Manually trigger sync for a specific repository link
-app.post('/integrations/github/sync/:linkId', authenticateToken, async (req, res) => {
+app.post('/api/integrations/github/sync/:linkId', authenticateToken, async (req, res) => {
   try {
     if (!githubSyncService) {
       return res.status(503).json({
@@ -2715,7 +2715,7 @@ app.post('/integrations/github/sync/:linkId', authenticateToken, async (req, res
 });
 
 // Start auto-sync
-app.post('/integrations/github/sync/start', authenticateToken, async (req, res) => {
+app.post('/api/integrations/github/sync/start', authenticateToken, async (req, res) => {
   try {
     if (!githubSyncService) {
       return res.status(503).json({
@@ -2740,7 +2740,7 @@ app.post('/integrations/github/sync/start', authenticateToken, async (req, res) 
 });
 
 // Stop auto-sync
-app.post('/integrations/github/sync/stop', authenticateToken, async (req, res) => {
+app.post('/api/integrations/github/sync/stop', authenticateToken, async (req, res) => {
   try {
     if (!githubSyncService) {
       return res.status(503).json({
@@ -2764,7 +2764,7 @@ app.post('/integrations/github/sync/stop', authenticateToken, async (req, res) =
 });
 
 // Get sync status for a repository link
-app.get('/integrations/github/sync/status/:linkId', authenticateToken, async (req, res) => {
+app.get('/api/integrations/github/sync/status/:linkId', authenticateToken, async (req, res) => {
   try {
     if (!githubSyncService) {
       return res.status(503).json({
@@ -2805,7 +2805,7 @@ app.get('/integrations/github/sync/status/:linkId', authenticateToken, async (re
 // ========================================
 
 // Execute natural language database query
-app.post('/mcp/query', authenticateToken, async (req, res) => {
+app.post('/api/mcp/query', authenticateToken, async (req, res) => {
   try {
     const { query: naturalLanguageQuery } = req.body;
 
@@ -2830,7 +2830,7 @@ app.post('/mcp/query', authenticateToken, async (req, res) => {
 });
 
 // List available MCP tools
-app.get('/mcp/tools', authenticateToken, async (req, res) => {
+app.get('/api/mcp/tools', authenticateToken, async (req, res) => {
   try {
     if (!mcpInitialized) {
       return res.json({ tools: {}, available: false });
@@ -2846,7 +2846,7 @@ app.get('/mcp/tools', authenticateToken, async (req, res) => {
 });
 
 // Clear MCP query cache
-app.post('/mcp/cache/clear', authenticateToken, async (req, res) => {
+app.post('/api/mcp/cache/clear', authenticateToken, async (req, res) => {
   try {
     if (req.user.userType !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });
@@ -2866,7 +2866,7 @@ app.post('/mcp/cache/clear', authenticateToken, async (req, res) => {
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',
     service: 'unified-backend',
