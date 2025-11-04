@@ -112,7 +112,7 @@ services:
     http_port: 3001
     health_check:
       http_path: /health
-      initial_delay_seconds: 10
+      initial_delay_seconds: 30
       period_seconds: 10
       timeout_seconds: 5
       success_threshold: 1
