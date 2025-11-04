@@ -528,8 +528,7 @@ app.use('/admin/maintenance', adminMaintenance);
 app.use('/monitoring', createMonitoringRouter());
 
 // Google OAuth endpoint
-// Note: Path is /auth/google but DigitalOcean routes /api/auth/google to here
-app.post('/auth/google', async (req, res) => {
+app.post('/api/auth/google', async (req, res) => {
   try {
     const { credential } = req.body;
 
@@ -613,7 +612,7 @@ app.get('/api/organizations', authenticateToken, async (req, res) => {
 // ========================================
 
 // User signup
-app.post('/auth/signup',
+app.post('/api/auth/signup',
   authRateLimit,
   validateInput.email,
   validateInput.password,
@@ -722,7 +721,7 @@ app.post('/auth/signup',
 });
 
 // User login
-app.post('/auth/login',
+app.post('/api/auth/login',
   authRateLimit,
   validateInput.email,
   validateInput.sanitizeInput,
@@ -803,7 +802,7 @@ app.post('/auth/login',
 });
 
 // Get current user
-app.get('/auth/me', authenticateToken, async (req, res) => {
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
   const users = await getUsers();
   const user = users.find(u => u.id === req.user.id);
 
@@ -816,12 +815,12 @@ app.get('/auth/me', authenticateToken, async (req, res) => {
 });
 
 // Logout
-app.post('/auth/logout', authenticateToken, (req, res) => {
+app.post('/api/auth/logout', authenticateToken, (req, res) => {
   res.json({ message: 'Logged out successfully' });
 });
 
 // Apple OAuth (placeholder)
-app.post('/auth/apple', async (req, res) => {
+app.post('/api/auth/apple', async (req, res) => {
   try {
     res.status(501).json({
       message: 'Apple Sign In integration is in development. Please use email/password authentication for now.',
@@ -2405,7 +2404,7 @@ app.post('/api/integrations/github/repositories/:owner/:repo/issues', authentica
 });
 
 // Update GitHub issue
-app.patch('/integrations/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, async (req, res) => {
+app.patch('/api/integrations/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
