@@ -26,6 +26,8 @@ const fs = require('fs');
 const { OAuth2Client } = require('google-auth-library');
 const multer = require('multer');
 const crypto = require('crypto');
+const axios = require('axios');
+const FormData = require('form-data');
 
 // Import security and configuration modules
 const { config } = require('./config/environment');
@@ -500,7 +502,7 @@ if (USE_DATABASE && authAdapter) {
 
 // CSRF token endpoint
 // Note: DigitalOcean routes /api/csrf-token to this service as /csrf-token
-app.get('/api/csrf-token', getCsrfToken);
+app.get('/csrf-token', getCsrfToken);
 
 // Mount route modules (all auth routes consolidated here for simplicity)
 // For a production app, these would be in separate route files in ./routes/
@@ -528,7 +530,7 @@ app.use('/admin/maintenance', adminMaintenance);
 app.use('/monitoring', createMonitoringRouter());
 
 // Google OAuth endpoint
-app.post('/api/auth/google', async (req, res) => {
+app.post('/auth/google', async (req, res) => {
   try {
     const { credential } = req.body;
 
@@ -583,7 +585,7 @@ app.post('/api/auth/google', async (req, res) => {
 
 // Organizations endpoint (teams API)
 // Note: Path is /organizations but DigitalOcean routes /api/organizations to here
-app.get('/api/organizations', authenticateToken, async (req, res) => {
+app.get('/organizations', authenticateToken, async (req, res) => {
   try {
     // Return user's organizations/teams
     const teams = JSON.parse(fs.readFileSync(TEAMS_FILE, 'utf8')).teams || [];
@@ -612,7 +614,7 @@ app.get('/api/organizations', authenticateToken, async (req, res) => {
 // ========================================
 
 // User signup
-app.post('/api/auth/signup',
+app.post('/auth/signup',
   authRateLimit,
   validateInput.email,
   validateInput.password,
@@ -721,7 +723,7 @@ app.post('/api/auth/signup',
 });
 
 // User login
-app.post('/api/auth/login',
+app.post('/auth/login',
   authRateLimit,
   validateInput.email,
   validateInput.sanitizeInput,
@@ -802,7 +804,7 @@ app.post('/api/auth/login',
 });
 
 // Get current user
-app.get('/api/auth/me', authenticateToken, async (req, res) => {
+app.get('/auth/me', authenticateToken, async (req, res) => {
   const users = await getUsers();
   const user = users.find(u => u.id === req.user.id);
 
@@ -815,12 +817,12 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 });
 
 // Logout
-app.post('/api/auth/logout', authenticateToken, (req, res) => {
+app.post('/auth/logout', authenticateToken, (req, res) => {
   res.json({ message: 'Logged out successfully' });
 });
 
 // Apple OAuth (placeholder)
-app.post('/api/auth/apple', async (req, res) => {
+app.post('/auth/apple', async (req, res) => {
   try {
     res.status(501).json({
       message: 'Apple Sign In integration is in development. Please use email/password authentication for now.',
@@ -837,7 +839,7 @@ app.post('/api/auth/apple', async (req, res) => {
 // ========================================
 
 // Upload file(s)
-app.post('/api/files/upload', authenticateToken, upload.array('files', 10), async (req, res) => {
+app.post('/files/upload', authenticateToken, upload.array('files', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'No files uploaded' });
@@ -879,7 +881,7 @@ app.post('/api/files/upload', authenticateToken, upload.array('files', 10), asyn
 });
 
 // Get user's files
-app.get('/api/files', authenticateToken, async (req, res) => {
+app.get('/files', authenticateToken, async (req, res) => {
   try {
     const files = await getFiles();
     const userFiles = files.filter(file => file.uploadedBy === req.user.id);
@@ -892,7 +894,7 @@ app.get('/api/files', authenticateToken, async (req, res) => {
 });
 
 // Get file by ID
-app.get('/api/files/:id', authenticateToken, async (req, res) => {
+app.get('/files/:id', authenticateToken, async (req, res) => {
   try {
     const files = await getFiles();
     const file = files.find(f => f.id === req.params.id && f.uploadedBy === req.user.id);
@@ -909,7 +911,7 @@ app.get('/api/files/:id', authenticateToken, async (req, res) => {
 });
 
 // Update file metadata
-app.put('/api/files/:id', authenticateToken, async (req, res) => {
+app.put('/files/:id', authenticateToken, async (req, res) => {
   try {
     const files = await getFiles();
     const fileIndex = files.findIndex(f => f.id === req.params.id && f.uploadedBy === req.user.id);
@@ -937,7 +939,7 @@ app.put('/api/files/:id', authenticateToken, async (req, res) => {
 });
 
 // Delete file
-app.delete('/api/files/:id', authenticateToken, async (req, res) => {
+app.delete('/files/:id', authenticateToken, async (req, res) => {
   try {
     const files = await getFiles();
     const fileIndex = files.findIndex(f => f.id === req.params.id && f.uploadedBy === req.user.id);
@@ -971,7 +973,7 @@ app.delete('/api/files/:id', authenticateToken, async (req, res) => {
 // ========================================
 
 // Submit video for HLS transcoding (DigitalOcean Spaces version)
-app.post('/api/media/transcode', authenticateToken, async (req, res) => {
+app.post('/media/transcode', authenticateToken, async (req, res) => {
   try {
     const { fileId } = req.body;
 
@@ -1029,7 +1031,7 @@ app.post('/api/media/transcode', authenticateToken, async (req, res) => {
 });
 
 // Get transcoding status for a file
-app.get('/api/media/transcode/:fileId', authenticateToken, async (req, res) => {
+app.get('/media/transcode/:fileId', authenticateToken, async (req, res) => {
   try {
     const { fileId } = req.params;
 
@@ -1062,7 +1064,7 @@ app.get('/api/media/transcode/:fileId', authenticateToken, async (req, res) => {
 });
 
 // Admin endpoint: Monitor all in-progress transcoding jobs
-app.post('/api/media/monitor-jobs', authenticateToken, async (req, res) => {
+app.post('/media/monitor-jobs', authenticateToken, async (req, res) => {
   try {
     // TODO: Add admin check middleware
     // For now, restrict to specific user emails or admin role
@@ -1085,7 +1087,7 @@ app.post('/api/media/monitor-jobs', authenticateToken, async (req, res) => {
 });
 
 // Get HLS manifest (with access control)
-app.get('/api/media/:fileId/manifest', authenticateToken, async (req, res) => {
+app.get('/media/:fileId/manifest', authenticateToken, async (req, res) => {
   try {
     const { fileId } = req.params;
 
@@ -1138,7 +1140,7 @@ app.get('/api/media/:fileId/manifest', authenticateToken, async (req, res) => {
 // ========================================
 
 // Create a new team
-app.post('/api/teams', authenticateToken, async (req, res) => {
+app.post('/teams', authenticateToken, async (req, res) => {
   try {
     const { name, description } = req.body;
 
@@ -1178,7 +1180,7 @@ app.post('/api/teams', authenticateToken, async (req, res) => {
 });
 
 // Get user's teams
-app.get('/api/teams', authenticateToken, async (req, res) => {
+app.get('/teams', authenticateToken, async (req, res) => {
   try {
     const teams = await getTeams();
     const userTeams = teams.filter(team =>
@@ -1193,7 +1195,7 @@ app.get('/api/teams', authenticateToken, async (req, res) => {
 });
 
 // Get team by ID
-app.get('/api/teams/:id', authenticateToken, async (req, res) => {
+app.get('/teams/:id', authenticateToken, async (req, res) => {
   try {
     const teams = await getTeams();
     const team = teams.find(t => t.id === req.params.id);
@@ -1216,7 +1218,7 @@ app.get('/api/teams/:id', authenticateToken, async (req, res) => {
 });
 
 // Update team
-app.put('/api/teams/:id', authenticateToken, async (req, res) => {
+app.put('/teams/:id', authenticateToken, async (req, res) => {
   try {
     const teams = await getTeams();
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
@@ -1249,7 +1251,7 @@ app.put('/api/teams/:id', authenticateToken, async (req, res) => {
 });
 
 // Invite member to team
-app.post('/api/teams/:id/invite', authenticateToken, async (req, res) => {
+app.post('/teams/:id/invite', authenticateToken, async (req, res) => {
   try {
     const { email, role = 'member' } = req.body;
 
@@ -1309,7 +1311,7 @@ app.post('/api/teams/:id/invite', authenticateToken, async (req, res) => {
 });
 
 // Accept team invitation
-app.post('/api/teams/:id/accept-invite', authenticateToken, async (req, res) => {
+app.post('/teams/:id/accept-invite', authenticateToken, async (req, res) => {
   try {
     const teams = await getTeams();
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
@@ -1354,7 +1356,7 @@ app.post('/api/teams/:id/accept-invite', authenticateToken, async (req, res) => 
 });
 
 // Remove member from team
-app.delete('/api/teams/:id/members/:userId', authenticateToken, async (req, res) => {
+app.delete('/teams/:id/members/:userId', authenticateToken, async (req, res) => {
   try {
     const teams = await getTeams();
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
@@ -1395,7 +1397,7 @@ app.delete('/api/teams/:id/members/:userId', authenticateToken, async (req, res)
 });
 
 // Update member role
-app.put('/api/teams/:id/members/:userId', authenticateToken, async (req, res) => {
+app.put('/teams/:id/members/:userId', authenticateToken, async (req, res) => {
   try {
     const { role } = req.body;
     const validRoles = ['owner', 'admin', 'member'];
@@ -1445,7 +1447,7 @@ app.put('/api/teams/:id/members/:userId', authenticateToken, async (req, res) =>
 // ========================================
 
 // Create a new project
-app.post('/api/projects', authenticateToken, async (req, res) => {
+app.post('/projects', authenticateToken, async (req, res) => {
   try {
     const { name, description, teamId, status = 'active' } = req.body;
 
@@ -1487,7 +1489,7 @@ app.post('/api/projects', authenticateToken, async (req, res) => {
 });
 
 // Get user's projects
-app.get('/api/projects', authenticateToken, async (req, res) => {
+app.get('/projects', authenticateToken, async (req, res) => {
   try {
     const projects = await getProjects();
     const userProjects = projects.filter(project =>
@@ -1502,7 +1504,7 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
 });
 
 // Get project by ID
-app.get('/api/projects/:id', authenticateToken, async (req, res) => {
+app.get('/projects/:id', authenticateToken, async (req, res) => {
   try {
     const projects = await getProjects();
     const project = projects.find(p => p.id === req.params.id);
@@ -1525,7 +1527,7 @@ app.get('/api/projects/:id', authenticateToken, async (req, res) => {
 });
 
 // Update project
-app.put('/api/projects/:id', authenticateToken, async (req, res) => {
+app.put('/projects/:id', authenticateToken, async (req, res) => {
   try {
     const projects = await getProjects();
     const projectIndex = projects.findIndex(p => p.id === req.params.id);
@@ -1559,7 +1561,7 @@ app.put('/api/projects/:id', authenticateToken, async (req, res) => {
 });
 
 // Link message channel to project
-app.post('/api/projects/:id/channel', authenticateToken, async (req, res) => {
+app.post('/projects/:id/channel', authenticateToken, async (req, res) => {
   try {
     const { channelId } = req.body;
 
@@ -1600,7 +1602,7 @@ app.post('/api/projects/:id/channel', authenticateToken, async (req, res) => {
 });
 
 // Get project's channel metadata
-app.get('/api/projects/:id/channel', authenticateToken, async (req, res) => {
+app.get('/projects/:id/channel', authenticateToken, async (req, res) => {
   try {
     const projects = await getProjects();
     const project = projects.find(p => p.id === req.params.id);
@@ -1630,7 +1632,7 @@ app.get('/api/projects/:id/channel', authenticateToken, async (req, res) => {
 // ========================================
 
 // Get user's conversations
-app.get('/api/conversations', authenticateToken, async (req, res) => {
+app.get('/conversations', authenticateToken, async (req, res) => {
   try {
     const { limit = 20, offset = 0 } = req.query;
 
@@ -1659,7 +1661,7 @@ app.get('/api/conversations', authenticateToken, async (req, res) => {
 });
 
 // Get messages in a conversation
-app.get('/api/conversations/:conversationId/messages', authenticateToken, async (req, res) => {
+app.get('/conversations/:conversationId/messages', authenticateToken, async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { limit = 50, offset = 0 } = req.query;
@@ -1693,7 +1695,7 @@ app.get('/api/conversations/:conversationId/messages', authenticateToken, async 
 });
 
 // Get user notifications
-app.get('/api/notifications', authenticateToken, async (req, res) => {
+app.get('/notifications', authenticateToken, async (req, res) => {
   try {
     const { limit = 20, offset = 0 } = req.query;
 
@@ -1721,7 +1723,7 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
 });
 
 // Get message thread
-app.get('/api/messages/:messageId/thread', authenticateToken, async (req, res) => {
+app.get('/messages/:messageId/thread', authenticateToken, async (req, res) => {
   try {
     const { messageId } = req.params;
     const { limit = 50 } = req.query;
@@ -1749,7 +1751,7 @@ app.get('/api/messages/:messageId/thread', authenticateToken, async (req, res) =
 });
 
 // Get conversation threads
-app.get('/api/conversations/:conversationId/threads', authenticateToken, async (req, res) => {
+app.get('/conversations/:conversationId/threads', authenticateToken, async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { limit = 20 } = req.query;
@@ -1777,7 +1779,7 @@ app.get('/api/conversations/:conversationId/threads', authenticateToken, async (
 });
 
 // Mark conversation as read
-app.post('/api/conversations/:conversationId/read', authenticateToken, async (req, res) => {
+app.post('/conversations/:conversationId/read', authenticateToken, async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { messageId } = req.body;
@@ -1802,7 +1804,7 @@ app.post('/api/conversations/:conversationId/read', authenticateToken, async (re
 });
 
 // Search messages
-app.get('/api/search/messages', authenticateToken, async (req, res) => {
+app.get('/search/messages', authenticateToken, async (req, res) => {
   try {
     const { q: searchTerm, conversation_id, limit = 20, offset = 0 } = req.query;
 
@@ -1841,7 +1843,7 @@ app.get('/api/search/messages', authenticateToken, async (req, res) => {
 });
 
 // Typing status endpoint
-app.post('/api/presence/typing', authenticateToken, async (req, res) => {
+app.post('/presence/typing', authenticateToken, async (req, res) => {
   try {
     const { conversationId, isTyping = false } = req.body;
 
@@ -1865,7 +1867,7 @@ app.post('/api/presence/typing', authenticateToken, async (req, res) => {
 });
 
 // Create channel
-app.post('/api/channels', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+app.post('/channels', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
   const { name, teamId, description } = req.body;
 
   if (!name || !teamId) {
@@ -1889,14 +1891,14 @@ app.post('/api/channels', authenticateToken, validateInput.sanitizeInput, async 
 });
 
 // Get channels by team
-app.get('/api/channels/:teamId', authenticateToken, async (req, res) => {
+app.get('/channels/:teamId', authenticateToken, async (req, res) => {
   const channels = await getChannels();
   const teamChannels = channels.filter(c => c.teamId === req.params.teamId);
   res.json(teamChannels);
 });
 
 // POST /organizations - Create organization
-app.post('/api/organizations', authenticateToken, async (req, res) => {
+app.post('/organizations', authenticateToken, async (req, res) => {
   try {
     const { name, description } = req.body;
 
@@ -1949,7 +1951,7 @@ app.post('/api/organizations', authenticateToken, async (req, res) => {
 // ========================================
 
 // Get OAuth authorization URL (initiate OAuth flow)
-app.get('/api/integrations/:provider/auth', authenticateToken, async (req, res) => {
+app.get('/integrations/:provider/auth', authenticateToken, async (req, res) => {
   try {
     const { provider } = req.params;
     const userId = req.user.id;
@@ -1968,7 +1970,7 @@ app.get('/api/integrations/:provider/auth', authenticateToken, async (req, res) 
 });
 
 // OAuth callback handler (GET - for direct browser redirects)
-app.get('/api/integrations/:provider/callback', async (req, res) => {
+app.get('/integrations/:provider/callback', async (req, res) => {
   try {
     const { provider } = req.params;
     const { code, state } = req.query;
@@ -1988,7 +1990,7 @@ app.get('/api/integrations/:provider/callback', async (req, res) => {
 });
 
 // OAuth callback handler (POST - for frontend OAuth callback page)
-app.post('/api/integrations/:provider/callback', async (req, res) => {
+app.post('/integrations/:provider/callback', async (req, res) => {
   try {
     const { provider } = req.params;
     const { code, state } = req.body;
@@ -2024,7 +2026,7 @@ app.post('/api/integrations/:provider/callback', async (req, res) => {
 });
 
 // Get user's active integrations
-app.get('/api/integrations', authenticateToken, async (req, res) => {
+app.get('/integrations', authenticateToken, async (req, res) => {
   try {
     const integrations = await oauthManager.getUserIntegrations(req.user.id);
     res.json({ integrations });
@@ -2035,7 +2037,7 @@ app.get('/api/integrations', authenticateToken, async (req, res) => {
 });
 
 // Disconnect an integration
-app.delete('/api/integrations/:provider', authenticateToken, async (req, res) => {
+app.delete('/integrations/:provider', authenticateToken, async (req, res) => {
   try {
     const { provider } = req.params;
     await oauthManager.disconnectIntegration(req.user.id, provider);
@@ -2055,7 +2057,7 @@ app.delete('/api/integrations/:provider', authenticateToken, async (req, res) =>
 // ========================================
 
 // Get Figma files for authenticated user
-app.get('/api/integrations/figma/files', authenticateToken, async (req, res) => {
+app.get('/integrations/figma/files', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'figma');
     const FigmaService = require('./src/services/figmaService').default;
@@ -2086,7 +2088,7 @@ app.get('/api/integrations/figma/files', authenticateToken, async (req, res) => 
 });
 
 // Get Figma file details
-app.get('/api/integrations/figma/files/:fileKey', authenticateToken, async (req, res) => {
+app.get('/integrations/figma/files/:fileKey', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'figma');
     const FigmaService = require('./src/services/figmaService').default;
@@ -2102,7 +2104,7 @@ app.get('/api/integrations/figma/files/:fileKey', authenticateToken, async (req,
 });
 
 // Get Figma file comments
-app.get('/api/integrations/figma/comments/:fileKey', authenticateToken, async (req, res) => {
+app.get('/integrations/figma/comments/:fileKey', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'figma');
     const FigmaService = require('./src/services/figmaService').default;
@@ -2118,7 +2120,7 @@ app.get('/api/integrations/figma/comments/:fileKey', authenticateToken, async (r
 });
 
 // Figma webhook endpoint
-app.post('/api/integrations/figma/webhook', async (req, res) => {
+app.post('/integrations/figma/webhook', async (req, res) => {
   try {
     const signature = req.headers['x-figma-signature'];
     const webhookSecret = process.env.FIGMA_WEBHOOK_SECRET;
@@ -2167,7 +2169,7 @@ app.post('/api/integrations/figma/webhook', async (req, res) => {
 // ========================================
 
 // Get Slack channels
-app.get('/api/integrations/slack/channels', authenticateToken, async (req, res) => {
+app.get('/integrations/slack/channels', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'slack');
     const SlackService = require('./src/services/slackService').default;
@@ -2183,7 +2185,7 @@ app.get('/api/integrations/slack/channels', authenticateToken, async (req, res) 
 });
 
 // Post message to Slack channel
-app.post('/api/integrations/slack/message', authenticateToken, async (req, res) => {
+app.post('/integrations/slack/message', authenticateToken, async (req, res) => {
   try {
     const { channel, text, blocks } = req.body;
 
@@ -2205,7 +2207,7 @@ app.post('/api/integrations/slack/message', authenticateToken, async (req, res) 
 });
 
 // Send project update to Slack
-app.post('/api/integrations/slack/project-update', authenticateToken, async (req, res) => {
+app.post('/integrations/slack/project-update', authenticateToken, async (req, res) => {
   try {
     const { channel, projectName, updateType, details } = req.body;
 
@@ -2227,7 +2229,7 @@ app.post('/api/integrations/slack/project-update', authenticateToken, async (req
 });
 
 // Slack webhook endpoint
-app.post('/api/integrations/slack/webhook', async (req, res) => {
+app.post('/integrations/slack/webhook', async (req, res) => {
   try {
     const SlackService = require('./src/services/slackService').default;
 
@@ -2284,7 +2286,7 @@ app.post('/api/integrations/slack/webhook', async (req, res) => {
 // ========================================
 
 // Get GitHub repositories for authenticated user
-app.get('/api/integrations/github/repositories', authenticateToken, async (req, res) => {
+app.get('/integrations/github/repositories', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2307,7 +2309,7 @@ app.get('/api/integrations/github/repositories', authenticateToken, async (req, 
 });
 
 // Get single GitHub repository
-app.get('/api/integrations/github/repositories/:owner/:repo', authenticateToken, async (req, res) => {
+app.get('/integrations/github/repositories/:owner/:repo', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2325,7 +2327,7 @@ app.get('/api/integrations/github/repositories/:owner/:repo', authenticateToken,
 });
 
 // Get GitHub issues for a repository
-app.get('/api/integrations/github/repositories/:owner/:repo/issues', authenticateToken, async (req, res) => {
+app.get('/integrations/github/repositories/:owner/:repo/issues', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2352,7 +2354,7 @@ app.get('/api/integrations/github/repositories/:owner/:repo/issues', authenticat
 });
 
 // Get single GitHub issue
-app.get('/api/integrations/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, async (req, res) => {
+app.get('/integrations/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2374,7 +2376,7 @@ app.get('/api/integrations/github/repositories/:owner/:repo/issues/:issue_number
 });
 
 // Create GitHub issue
-app.post('/api/integrations/github/repositories/:owner/:repo/issues', authenticateToken, async (req, res) => {
+app.post('/integrations/github/repositories/:owner/:repo/issues', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2404,7 +2406,7 @@ app.post('/api/integrations/github/repositories/:owner/:repo/issues', authentica
 });
 
 // Update GitHub issue
-app.patch('/api/integrations/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, async (req, res) => {
+app.patch('/integrations/github/repositories/:owner/:repo/issues/:issue_number', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2432,7 +2434,7 @@ app.patch('/api/integrations/github/repositories/:owner/:repo/issues/:issue_numb
 });
 
 // Add comment to GitHub issue
-app.post('/api/integrations/github/repositories/:owner/:repo/issues/:issue_number/comments', authenticateToken, async (req, res) => {
+app.post('/integrations/github/repositories/:owner/:repo/issues/:issue_number/comments', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2460,7 +2462,7 @@ app.post('/api/integrations/github/repositories/:owner/:repo/issues/:issue_numbe
 });
 
 // Get GitHub pull requests for a repository
-app.get('/api/integrations/github/repositories/:owner/:repo/pulls', authenticateToken, async (req, res) => {
+app.get('/integrations/github/repositories/:owner/:repo/pulls', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2486,7 +2488,7 @@ app.get('/api/integrations/github/repositories/:owner/:repo/pulls', authenticate
 });
 
 // Get GitHub commits for a repository
-app.get('/api/integrations/github/repositories/:owner/:repo/commits', authenticateToken, async (req, res) => {
+app.get('/integrations/github/repositories/:owner/:repo/commits', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2511,7 +2513,7 @@ app.get('/api/integrations/github/repositories/:owner/:repo/commits', authentica
 });
 
 // Get GitHub branches for a repository
-app.get('/api/integrations/github/repositories/:owner/:repo/branches', authenticateToken, async (req, res) => {
+app.get('/integrations/github/repositories/:owner/:repo/branches', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2534,7 +2536,7 @@ app.get('/api/integrations/github/repositories/:owner/:repo/branches', authentic
 });
 
 // Get GitHub repository collaborators
-app.get('/api/integrations/github/repositories/:owner/:repo/collaborators', authenticateToken, async (req, res) => {
+app.get('/integrations/github/repositories/:owner/:repo/collaborators', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2558,7 +2560,7 @@ app.get('/api/integrations/github/repositories/:owner/:repo/collaborators', auth
 });
 
 // Link GitHub repository to FluxStudio project
-app.post('/api/integrations/github/repositories/:owner/:repo/link', authenticateToken, async (req, res) => {
+app.post('/integrations/github/repositories/:owner/:repo/link', authenticateToken, async (req, res) => {
   try {
     const { owner, repo } = req.params;
     const { projectId } = req.body;
@@ -2609,7 +2611,7 @@ app.post('/api/integrations/github/repositories/:owner/:repo/link', authenticate
 });
 
 // Get authenticated GitHub user
-app.get('/api/integrations/github/user', authenticateToken, async (req, res) => {
+app.get('/integrations/github/user', authenticateToken, async (req, res) => {
   try {
     const accessToken = await oauthManager.getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -2632,7 +2634,7 @@ app.get('/api/integrations/github/user', authenticateToken, async (req, res) => 
 });
 
 // GitHub webhook endpoint for issue synchronization
-app.post('/api/integrations/github/webhook', async (req, res) => {
+app.post('/integrations/github/webhook', async (req, res) => {
   try {
     const signature = req.headers['x-hub-signature-256'];
     const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
@@ -2692,7 +2694,7 @@ app.post('/api/integrations/github/webhook', async (req, res) => {
 // GitHub Sync API Endpoints
 
 // Manually trigger sync for a specific repository link
-app.post('/api/integrations/github/sync/:linkId', authenticateToken, async (req, res) => {
+app.post('/integrations/github/sync/:linkId', authenticateToken, async (req, res) => {
   try {
     if (!githubSyncService) {
       return res.status(503).json({
@@ -2715,7 +2717,7 @@ app.post('/api/integrations/github/sync/:linkId', authenticateToken, async (req,
 });
 
 // Start auto-sync
-app.post('/api/integrations/github/sync/start', authenticateToken, async (req, res) => {
+app.post('/integrations/github/sync/start', authenticateToken, async (req, res) => {
   try {
     if (!githubSyncService) {
       return res.status(503).json({
@@ -2740,7 +2742,7 @@ app.post('/api/integrations/github/sync/start', authenticateToken, async (req, r
 });
 
 // Stop auto-sync
-app.post('/api/integrations/github/sync/stop', authenticateToken, async (req, res) => {
+app.post('/integrations/github/sync/stop', authenticateToken, async (req, res) => {
   try {
     if (!githubSyncService) {
       return res.status(503).json({
@@ -2764,7 +2766,7 @@ app.post('/api/integrations/github/sync/stop', authenticateToken, async (req, re
 });
 
 // Get sync status for a repository link
-app.get('/api/integrations/github/sync/status/:linkId', authenticateToken, async (req, res) => {
+app.get('/integrations/github/sync/status/:linkId', authenticateToken, async (req, res) => {
   try {
     if (!githubSyncService) {
       return res.status(503).json({
@@ -2805,7 +2807,7 @@ app.get('/api/integrations/github/sync/status/:linkId', authenticateToken, async
 // ========================================
 
 // Execute natural language database query
-app.post('/api/mcp/query', authenticateToken, async (req, res) => {
+app.post('/mcp/query', authenticateToken, async (req, res) => {
   try {
     const { query: naturalLanguageQuery } = req.body;
 
@@ -2830,7 +2832,7 @@ app.post('/api/mcp/query', authenticateToken, async (req, res) => {
 });
 
 // List available MCP tools
-app.get('/api/mcp/tools', authenticateToken, async (req, res) => {
+app.get('/mcp/tools', authenticateToken, async (req, res) => {
   try {
     if (!mcpInitialized) {
       return res.json({ tools: {}, available: false });
@@ -2846,7 +2848,7 @@ app.get('/api/mcp/tools', authenticateToken, async (req, res) => {
 });
 
 // Clear MCP query cache
-app.post('/api/mcp/cache/clear', authenticateToken, async (req, res) => {
+app.post('/mcp/cache/clear', authenticateToken, async (req, res) => {
   try {
     if (req.user.userType !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });
@@ -2866,7 +2868,7 @@ app.post('/api/mcp/cache/clear', authenticateToken, async (req, res) => {
 });
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     service: 'unified-backend',
@@ -3015,6 +3017,184 @@ app.use(createHealthCheck({
 // Socket.IO namespace handlers
 require('./sockets/auth-socket')(authNamespace, performanceMonitor, authAdapter);
 require('./sockets/messaging-socket')(messagingNamespace, createMessage, getMessages, getChannels, messagingAdapter, JWT_SECRET);
+
+// ============================================================================
+// FluxPrint Integration - 3D Printing Proxy Layer (Phase 1)
+// ============================================================================
+// Proxies requests to FluxPrint microservice running on localhost:5001
+// Enables seamless 3D printing capabilities within FluxStudio workflow
+
+const FLUXPRINT_URL = process.env.FLUXPRINT_SERVICE_URL || 'http://localhost:5001';
+const FLUXPRINT_ENABLED = process.env.FLUXPRINT_ENABLED === 'true';
+
+// Middleware to check if FluxPrint service is enabled
+const checkFluxPrintEnabled = (req, res, next) => {
+  if (!FLUXPRINT_ENABLED) {
+    return res.status(503).json({
+      error: 'FluxPrint service is not enabled',
+      message: 'Set FLUXPRINT_ENABLED=true in environment configuration'
+    });
+  }
+  next();
+};
+
+// Helper function to proxy requests to FluxPrint
+const proxyToFluxPrint = async (req, res, endpoint, method = 'GET', options = {}) => {
+  try {
+    const url = `${FLUXPRINT_URL}${endpoint}`;
+    const config = {
+      method,
+      url,
+      headers: {
+        ...req.headers,
+        host: new URL(FLUXPRINT_URL).host,
+      },
+      params: req.query,
+      timeout: options.timeout || 30000,
+      validateStatus: () => true, // Don't throw on any status
+    };
+
+    // Add request body for POST/PUT requests
+    if (method !== 'GET' && method !== 'DELETE') {
+      config.data = req.body;
+    }
+
+    // Handle multipart form data
+    if (options.multipart) {
+      config.headers['content-type'] = req.headers['content-type'];
+      config.data = req.body;
+    }
+
+    const response = await axios(config);
+    res.status(response.status).json(response.data);
+  } catch (error) {
+    console.error(`FluxPrint proxy error [${endpoint}]:`, error.message);
+
+    if (error.code === 'ECONNREFUSED') {
+      res.status(503).json({
+        error: 'FluxPrint service unavailable',
+        message: 'Unable to connect to FluxPrint service. Please ensure it is running on port 5001.'
+      });
+    } else if (error.code === 'ETIMEDOUT') {
+      res.status(504).json({
+        error: 'FluxPrint service timeout',
+        message: 'The request to FluxPrint service timed out.'
+      });
+    } else {
+      res.status(500).json({
+        error: 'Proxy error',
+        message: error.message
+      });
+    }
+  }
+};
+
+// Get printer status
+app.get('/printing/status', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/printer/status');
+});
+
+// Get current print job
+app.get('/printing/job', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/job');
+});
+
+// Get print queue
+app.get('/printing/queue', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/queue');
+});
+
+// Add job to print queue
+app.post('/printing/queue', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/queue', 'POST');
+});
+
+// Get uploaded files list
+app.get('/printing/files', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/files');
+});
+
+// Upload file for printing
+app.post('/printing/files/upload', checkFluxPrintEnabled, upload.array('files', 10), async (req, res) => {
+  try {
+    const formData = new FormData();
+
+    // Add files to form data
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        formData.append('files', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype
+        });
+      });
+    }
+
+    const response = await axios.post(`${FLUXPRINT_URL}/api/files/upload`, formData, {
+      headers: {
+        ...formData.getHeaders(),
+      },
+      timeout: 60000, // 60 second timeout for file uploads
+      validateStatus: () => true,
+    });
+
+    res.status(response.status).json(response.data);
+  } catch (error) {
+    console.error('FluxPrint file upload error:', error.message);
+    res.status(500).json({
+      error: 'File upload failed',
+      message: error.message
+    });
+  }
+});
+
+// Get temperature data
+app.get('/printing/temperature', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/printer/temperature');
+});
+
+// Proxy MJPEG camera stream
+app.get('/printing/camera/stream', checkFluxPrintEnabled, async (req, res) => {
+  try {
+    const response = await axios({
+      method: 'GET',
+      url: `${FLUXPRINT_URL}/api/camera/stream`,
+      responseType: 'stream',
+      timeout: 0, // No timeout for streaming
+    });
+
+    // Set headers for MJPEG stream
+    res.setHeader('Content-Type', 'multipart/x-mixed-replace; boundary=frame');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // Pipe the stream
+    response.data.pipe(res);
+
+    // Handle stream errors
+    response.data.on('error', (error) => {
+      console.error('Camera stream error:', error.message);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Camera stream error' });
+      }
+    });
+
+    // Handle client disconnect
+    req.on('close', () => {
+      response.data.destroy();
+    });
+  } catch (error) {
+    console.error('FluxPrint camera stream error:', error.message);
+    if (!res.headersSent) {
+      res.status(503).json({
+        error: 'Camera stream unavailable',
+        message: error.message
+      });
+    }
+  }
+});
+
+console.log('✅ FluxPrint proxy routes registered');
 
 // API 404 handler for unknown API routes
 // Note: Disabled to allow Socket.IO to work properly
