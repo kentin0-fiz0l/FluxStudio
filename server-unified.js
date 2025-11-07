@@ -2880,6 +2880,20 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Health check endpoint with /api prefix for DigitalOcean App Platform
+// DO ingress prepends /api to health check path
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'unified-backend',
+    timestamp: new Date().toISOString(),
+    services: ['auth', 'messaging'],
+    port: PORT,
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+});
+
 // Debug endpoint to check database tables
 app.get('/admin/db-status', async (req, res) => {
   try {
