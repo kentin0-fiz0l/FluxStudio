@@ -32,11 +32,12 @@ ingress:
           - Content-Type
           - Authorization
         allow_credentials: true
-    - component:
-        name: collaboration
-      match:
-        path:
-          prefix: /collab
+# TEMPORARILY DISABLED - Collaboration service commented out
+#    - component:
+#        name: collaboration
+#      match:
+#        path:
+#          prefix: /collab
 #    - component:
 #        name: flux-mcp
 #      match:
@@ -263,37 +264,39 @@ services:
         value: "false"
 
 # Collaboration Service (Separate - uses Yjs/WebSocket, not Socket.IO)
-  - name: collaboration
-    github:
-      repo: kentin0-fiz0l/FluxStudio
-      branch: main
-      deploy_on_push: true
-    build_command: npm ci
-    run_command: node server-collaboration.js
-    environment_slug: node-js
-    http_port: 4000
-    health_check:
-      http_path: /health
-      initial_delay_seconds: 10
-      period_seconds: 10
-      timeout_seconds: 5
-      success_threshold: 1
-      failure_threshold: 3
-    instance_count: 1
-    instance_size_slug: professional-xs
-    envs:
-      - key: NODE_ENV
-        value: production
-      - key: COLLAB_PORT
-        value: "4000"
-      - key: COLLAB_HOST
-        value: "0.0.0.0"
-      - key: DATABASE_URL
-        scope: RUN_TIME
-        type: SECRET
-      - key: AUTH_SERVICE_URL
-        scope: RUN_TIME
-        type: SECRET
+# TEMPORARILY DISABLED TO ISOLATE DEPLOYMENT ISSUE
+# Re-enable after verifying Phase 4A deployment succeeds
+#  - name: collaboration
+#    github:
+#      repo: kentin0-fiz0l/FluxStudio
+#      branch: main
+#      deploy_on_push: true
+#    build_command: npm ci
+#    run_command: node server-collaboration.js
+#    environment_slug: node-js
+#    http_port: 4000
+#    health_check:
+#      http_path: /health
+#      initial_delay_seconds: 10
+#      period_seconds: 10
+#      timeout_seconds: 5
+#      success_threshold: 1
+#      failure_threshold: 3
+#    instance_count: 1
+#    instance_size_slug: professional-xs
+#    envs:
+#      - key: NODE_ENV
+#        value: production
+#      - key: COLLAB_PORT
+#        value: "4000"
+#      - key: COLLAB_HOST
+#        value: "0.0.0.0"
+#      - key: DATABASE_URL
+#        scope: RUN_TIME
+#        type: SECRET
+#      - key: AUTH_SERVICE_URL
+#        scope: RUN_TIME
+#        type: SECRET
 
 # MCP Server (Model Context Protocol for AI integrations)
   # Using Dockerfile for complete build control
