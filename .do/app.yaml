@@ -247,6 +247,14 @@ services:
         value: sfo3.digitaloceanspaces.com
       - key: SPACES_REGION
         value: sfo3
+
+      # FluxPrint Integration (Phase 4A)
+      # Set to false initially - UI will be visible but print endpoints return "Feature not enabled"
+      # To enable: Deploy FluxPrint service and set FLUXPRINT_SERVICE_URL
+      - key: FLUXPRINT_ENABLED
+        value: "false"
+      - key: FLUXPRINT_SERVICE_URL
+        value: "http://localhost:5001"
       - key: SPACES_CDN
         value: https://fluxstudio.sfo3.cdn.digitaloceanspaces.com
 
