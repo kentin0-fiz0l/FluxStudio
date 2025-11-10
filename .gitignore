@@ -61,3 +61,4 @@ coverage/
 *.bak
 *.backup
 *~tests/load/*.json
+tests/load/auth-results.json

@@ -49,6 +49,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/hooks/useProjects';
 import { ProjectOverviewTab } from '@/components/projects/ProjectOverviewTab';
 import { ProjectMessagesTab } from '@/components/projects/ProjectMessagesTab';
+import { ProjectFilesTab } from '@/components/projects/ProjectFilesTab';
 import { TaskListView } from '@/components/tasks/TaskListView';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { TaskDetailModal } from '@/components/tasks/TaskDetailModal';
@@ -683,20 +684,7 @@ export const ProjectDetail = () => {
               <div role="status" aria-live="polite" className="sr-only">
                 {activeTab === 'files' ? `Showing ${tabLabels.files} tab` : ''}
               </div>
-              {/* Files Tab Placeholder */}
-              <Card className="max-w-2xl mx-auto p-12 text-center">
-                <FileText className="h-16 w-16 text-neutral-300 mx-auto mb-4" aria-hidden="true" />
-                <h2 className="text-xl font-semibold text-neutral-900 mb-2">
-                  File Management Coming Soon
-                </h2>
-                <p className="text-neutral-600 mb-6">
-                  File upload, organization, and sharing features will be available in the
-                  next update. Store and manage all your project files in one place.
-                </p>
-                <div className="text-sm text-neutral-500" aria-label={`Current files: ${project.files?.length || 0}`}>
-                  Current files: {project.files?.length || 0}
-                </div>
-              </Card>
+              <ProjectFilesTab project={project} />
             </TabsContent>
 
             {/* Messages Tab */}

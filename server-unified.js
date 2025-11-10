@@ -121,6 +121,9 @@ const authNamespace = io.of('/auth');
 const messagingNamespace = io.of('/messaging');
 const printingNamespace = io.of('/printing'); // Phase 3A: Real-time printing updates
 
+// Store printing namespace in app for access in routes (Phase 4A)
+app.set('printingNamespace', printingNamespace);
+
 // Google OAuth configuration
 const GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID;
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
@@ -3189,9 +3192,12 @@ app.get('/api/printing/files', checkFluxPrintEnabled, async (req, res) => {
   await proxyToFluxPrint(req, res, '/api/files');
 });
 
-// Upload file for printing
-app.post('/api/printing/files/upload', checkFluxPrintEnabled, upload.array('files', 10), async (req, res) => {
+// Upload file for printing (with optional project linking)
+app.post('/api/printing/files/upload', checkFluxPrintEnabled, authenticateToken, upload.array('files', 10), async (req, res) => {
   try {
+    const { project_id } = req.query;  // Optional project_id for auto-linking
+    const userId = req.user.id;
+
     const formData = new FormData();
 
     // Add files to form data
@@ -3211,6 +3217,51 @@ app.post('/api/printing/files/upload', checkFluxPrintEnabled, upload.array('file
       timeout: 60000, // 60 second timeout for file uploads
       validateStatus: () => true,
     });
+
+    // If project_id provided and upload successful, auto-link files
+    if (project_id && response.status === 200 && req.files && req.files.length > 0) {
+      try {
+        // Verify user has access to project
+        const hasAccess = await canUserAccessProject(userId, project_id);
+
+        if (hasAccess) {
+          const { createId } = require('@paralleldrive/cuid2');
+
+          // Link each uploaded file to the project
+          for (const file of req.files) {
+            const filename = file.originalname;
+
+            // Check if already linked
+            const existingLink = await query(
+              'SELECT id FROM printing_files WHERE filename = $1 AND project_id = $2',
+              [filename, project_id]
+            );
+
+            if (existingLink.rows.length === 0) {
+              // Create new link
+              await query(`
+                INSERT INTO printing_files (
+                  id, project_id, filename, file_size, uploaded_by
+                ) VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (project_id, filename) DO NOTHING
+              `, [
+                createId(),
+                project_id,
+                filename,
+                file.size,
+                userId
+              ]);
+            }
+          }
+
+          // Add project_id to response
+          response.data.linked_to_project = project_id;
+        }
+      } catch (linkError) {
+        console.error('Auto-link error (non-fatal):', linkError.message);
+        // Don't fail upload if linking fails
+      }
+    }
 
     res.status(response.status).json(response.data);
   } catch (error) {
@@ -3714,6 +3765,626 @@ app.get('/api/printing/jobs/history/filter', authenticateToken, async (req, res)
   }
 });
 
+// ============================================================================
+// Phase 4A: Designer-First Quick Print API
+// ============================================================================
+
+/**
+ * Quick Print Endpoint - Designer-friendly one-click printing
+ * POST /api/printing/quick-print
+ *
+ * Simplified endpoint that handles:
+ * 1. File validation
+ * 2. Project access control
+ * 3. Queue job with FluxPrint
+ * 4. Create database record
+ * 5. Link to project
+ * 6. Return estimate
+ */
+app.post('/api/printing/quick-print', rateLimit, csrfProtection, authenticateToken, async (req, res) => {
+  try {
+    const { filename, projectId, config } = req.body;
+    const userId = req.user.id;
+
+    // Validation
+    if (!filename) {
+      return res.status(400).json({ error: 'filename is required' });
+    }
+
+    if (!projectId) {
+      return res.status(400).json({ error: 'projectId is required' });
+    }
+
+    if (!config || !config.material || !config.quality) {
+      return res.status(400).json({
+        error: 'config with material and quality is required',
+        example: {
+          material: 'PLA',
+          quality: 'standard',
+          copies: 1,
+          supports: false,
+          infill: 20,
+          notes: 'Optional notes'
+        }
+      });
+    }
+
+    // Sanitize filename to prevent path traversal
+    if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+
+    // Validate file is 3D printable
+    const ext = filename.toLowerCase().split('.').pop();
+    const printableExtensions = ['stl', 'obj', 'gltf', 'glb', 'gcode', '3mf'];
+    if (!printableExtensions.includes(ext)) {
+      return res.status(400).json({
+        error: 'File type not supported for printing',
+        supported: printableExtensions
+      });
+    }
+
+    // Validate material and quality
+    const validMaterials = ['PLA', 'PETG', 'ABS', 'TPU', 'NYLON'];
+    const validQualities = ['draft', 'standard', 'high', 'ultra'];
+
+    if (!validMaterials.includes(config.material)) {
+      return res.status(400).json({
+        error: 'Invalid material',
+        valid: validMaterials
+      });
+    }
+
+    if (!validQualities.includes(config.quality)) {
+      return res.status(400).json({
+        error: 'Invalid quality preset',
+        valid: validQualities
+      });
+    }
+
+    // Check project access
+    const hasAccess = await canUserAccessProject(userId, projectId);
+    if (!hasAccess) {
+      return res.status(403).json({
+        error: 'You do not have permission to access this project'
+      });
+    }
+
+    // Check if file exists in FluxPrint
+    try {
+      const fileCheckResponse = await axios.get(`${FLUXPRINT_URL}/api/files`, {
+        timeout: 5000,
+        validateStatus: () => true
+      });
+
+      if (fileCheckResponse.status === 200) {
+        const files = fileCheckResponse.data.files || [];
+        const fileExists = files.some(f => f === filename);
+
+        if (!fileExists) {
+          return res.status(404).json({
+            error: 'File not found in print queue',
+            message: 'Please upload the file first before printing'
+          });
+        }
+      }
+    } catch (fileCheckError) {
+      console.error('File check error (non-fatal):', fileCheckError.message);
+      // Continue anyway - FluxPrint queue will validate
+    }
+
+    // Queue job with FluxPrint
+    const queuePayload = {
+      file_name: filename,
+      project_id: projectId,
+      metadata: {
+        material: config.material,
+        quality: config.quality,
+        copies: config.copies || 1,
+        supports: config.supports || false,
+        infill: config.infill || 20,
+        notes: config.notes || '',
+        queued_by: userId,
+        queued_at: new Date().toISOString()
+      }
+    };
+
+    const queueResponse = await axios.post(`${FLUXPRINT_URL}/api/queue`, queuePayload, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000,
+      validateStatus: () => true
+    });
+
+    if (queueResponse.status !== 200 && queueResponse.status !== 201) {
+      return res.status(queueResponse.status).json({
+        error: 'Failed to queue print job',
+        message: queueResponse.data?.error || 'FluxPrint service error'
+      });
+    }
+
+    const fluxprintQueueId = queueResponse.data?.queue_id || queueResponse.data?.id;
+
+    // Create database record
+    const { createId } = require('@paralleldrive/cuid2');
+    const jobId = createId();
+
+    await query(`
+      INSERT INTO print_jobs (
+        id,
+        fluxprint_queue_id,
+        file_name,
+        project_id,
+        status,
+        progress,
+        print_settings,
+        metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [
+      jobId,
+      fluxprintQueueId,
+      filename,
+      projectId,
+      'queued',
+      0,
+      JSON.stringify({
+        material: config.material,
+        quality: config.quality,
+        supports: config.supports,
+        infill: config.infill
+      }),
+      JSON.stringify({
+        copies: config.copies,
+        notes: config.notes,
+        queued_by: userId
+      })
+    ]);
+
+    // Link file to project if not already linked
+    try {
+      const existingLink = await query(
+        'SELECT id FROM printing_files WHERE filename = $1 AND project_id = $2',
+        [filename, projectId]
+      );
+
+      if (existingLink.rows.length === 0) {
+        await query(`
+          INSERT INTO printing_files (
+            id, project_id, filename, uploaded_by
+          ) VALUES ($1, $2, $3, $4)
+          ON CONFLICT (project_id, filename) DO NOTHING
+        `, [
+          createId(),
+          projectId,
+          filename,
+          userId
+        ]);
+      }
+    } catch (linkError) {
+      console.error('File linking error (non-fatal):', linkError.message);
+    }
+
+    // Calculate estimate
+    const materialCosts = {
+      PLA: 0.02,
+      PETG: 0.025,
+      ABS: 0.022,
+      TPU: 0.035,
+      NYLON: 0.04
+    };
+
+    const qualityTimeMultipliers = {
+      draft: 0.6,
+      standard: 1.0,
+      high: 1.4,
+      ultra: 2.0
+    };
+
+    // Rough estimation (in production, use slicer API)
+    const baseMaterialGrams = 50; // Placeholder
+    const baseTimeHours = 3; // Placeholder
+    const materialGrams = baseMaterialGrams * (config.copies || 1);
+    const timeHours = baseTimeHours * qualityTimeMultipliers[config.quality] * (config.copies || 1);
+    const materialCost = materialGrams * materialCosts[config.material];
+    const totalCost = materialCost + 5; // $5 base print fee
+
+    const estimate = {
+      timeHours: Math.floor(timeHours),
+      timeMinutes: Math.round((timeHours % 1) * 60),
+      materialGrams,
+      materialCost: parseFloat(materialCost.toFixed(2)),
+      totalCost: parseFloat(totalCost.toFixed(2)),
+      confidence: 'low' // Low until we integrate slicer
+    };
+
+    // Broadcast to project room via WebSocket
+    const printingNamespace = req.app.get('printingNamespace');
+    if (printingNamespace) {
+      printingNamespace.to(`project:${projectId}`).emit('print:status-update', {
+        fileId: jobId,
+        filename,
+        projectId,
+        status: 'queued',
+        progress: 0,
+        estimate,
+        queueId: fluxprintQueueId
+      });
+    }
+
+    res.json({
+      success: true,
+      jobId,
+      queueId: fluxprintQueueId,
+      estimate,
+      message: 'Print job queued successfully'
+    });
+
+  } catch (error) {
+    console.error('Quick print error:', error.message);
+    res.status(500).json({
+      error: 'Failed to queue print job',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Print Estimate Endpoint
+ * POST /api/printing/estimate
+ *
+ * Calculate print time and cost estimates before printing
+ */
+app.post('/api/printing/estimate', authenticateToken, async (req, res) => {
+  try {
+    const { filename, material, quality, copies = 1 } = req.body;
+
+    // Validation
+    if (!filename) {
+      return res.status(400).json({ error: 'filename is required' });
+    }
+
+    if (!material) {
+      return res.status(400).json({ error: 'material is required' });
+    }
+
+    if (!quality) {
+      return res.status(400).json({ error: 'quality is required' });
+    }
+
+    const validMaterials = ['PLA', 'PETG', 'ABS', 'TPU', 'NYLON'];
+    const validQualities = ['draft', 'standard', 'high', 'ultra'];
+
+    if (!validMaterials.includes(material)) {
+      return res.status(400).json({
+        error: 'Invalid material',
+        valid: validMaterials
+      });
+    }
+
+    if (!validQualities.includes(quality)) {
+      return res.status(400).json({
+        error: 'Invalid quality preset',
+        valid: validQualities
+      });
+    }
+
+    // Material cost per gram
+    const materialCosts = {
+      PLA: 0.02,
+      PETG: 0.025,
+      ABS: 0.022,
+      TPU: 0.035,
+      NYLON: 0.04
+    };
+
+    // Quality time multipliers
+    const qualityTimeMultipliers = {
+      draft: 0.6,
+      standard: 1.0,
+      high: 1.4,
+      ultra: 2.0
+    };
+
+    // Try to get accurate estimate from FluxPrint slicer API
+    let estimate;
+    try {
+      const slicerResponse = await axios.post(
+        `${FLUXPRINT_URL}/api/slicer/estimate`,
+        { filename, quality },
+        { timeout: 10000, validateStatus: () => true }
+      );
+
+      if (slicerResponse.status === 200 && slicerResponse.data) {
+        const slicerData = slicerResponse.data;
+        estimate = {
+          timeHours: Math.floor(slicerData.print_time_minutes / 60),
+          timeMinutes: Math.round(slicerData.print_time_minutes % 60),
+          materialGrams: slicerData.filament_used_g * copies,
+          materialCost: parseFloat((slicerData.filament_used_g * copies * materialCosts[material]).toFixed(2)),
+          totalCost: parseFloat((slicerData.filament_used_g * copies * materialCosts[material] + 5).toFixed(2)),
+          confidence: 'high'
+        };
+      } else {
+        throw new Error('Slicer API unavailable');
+      }
+    } catch (slicerError) {
+      console.log('Slicer API unavailable, using rough estimate');
+
+      // Fallback: rough estimation based on file size
+      const baseMaterialGrams = 50;
+      const baseTimeHours = 3;
+      const materialGrams = baseMaterialGrams * copies;
+      const timeHours = baseTimeHours * qualityTimeMultipliers[quality] * copies;
+      const materialCost = materialGrams * materialCosts[material];
+      const totalCost = materialCost + 5;
+
+      estimate = {
+        timeHours: Math.floor(timeHours),
+        timeMinutes: Math.round((timeHours % 1) * 60),
+        materialGrams,
+        materialCost: parseFloat(materialCost.toFixed(2)),
+        totalCost: parseFloat(totalCost.toFixed(2)),
+        confidence: 'low'
+      };
+    }
+
+    res.json(estimate);
+
+  } catch (error) {
+    console.error('Estimate calculation error:', error.message);
+    res.status(500).json({
+      error: 'Failed to calculate estimate',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Get Project Files (with print status)
+ * GET /api/projects/:projectId/files
+ */
+app.get('/api/projects/:projectId/files', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user.id;
+
+    // Check project access
+    const hasAccess = await canUserAccessProject(userId, projectId);
+    if (!hasAccess) {
+      return res.status(403).json({
+        error: 'You do not have permission to access this project'
+      });
+    }
+
+    // Get files linked to project from database
+    const result = await query(`
+      SELECT
+        pf.id,
+        pf.filename as name,
+        pf.file_size as size,
+        pf.created_at as "uploadedAt",
+        pf.uploaded_by as "uploadedBy",
+        pj.status as "printStatus",
+        pj.progress as "printProgress",
+        pj.id as "printJobId"
+      FROM printing_files pf
+      LEFT JOIN print_jobs pj ON pf.filename = pj.file_name
+        AND pj.project_id = pf.project_id
+        AND pj.status IN ('queued', 'printing')
+      WHERE pf.project_id = $1
+      ORDER BY pf.created_at DESC
+    `, [projectId]);
+
+    // Add file type detection
+    const files = result.rows.map(file => ({
+      ...file,
+      type: file.name ? file.name.split('.').pop()?.toLowerCase() : 'unknown',
+      printStatus: file.printStatus || 'idle'
+    }));
+
+    res.json(files);
+
+  } catch (error) {
+    console.error('Failed to get project files:', error.message);
+    res.status(500).json({
+      error: 'Failed to get project files',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Upload Files to Project
+ * POST /api/projects/:projectId/files/upload
+ */
+app.post('/api/projects/:projectId/files/upload',
+  rateLimit,
+  csrfProtection,
+  authenticateToken,
+  upload.array('files', 10),
+  async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const userId = req.user.id;
+
+      // Check project access
+      const hasAccess = await canUserAccessProject(userId, projectId);
+      if (!hasAccess) {
+        return res.status(403).json({
+          error: 'You do not have permission to access this project'
+        });
+      }
+
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ error: 'No files uploaded' });
+      }
+
+      // Validate file sizes (max 100MB per file)
+      const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+      for (const file of req.files) {
+        if (file.size > MAX_FILE_SIZE) {
+          return res.status(400).json({
+            error: 'File too large',
+            filename: file.originalname,
+            maxSize: '100MB'
+          });
+        }
+      }
+
+      // Validate file types (magic bytes check would be better)
+      const allowedExtensions = [
+        'stl', 'obj', 'gltf', 'glb', 'gcode', '3mf', // 3D files
+        'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', // Images
+        'pdf', 'doc', 'docx', 'txt', 'md' // Documents
+      ];
+
+      for (const file of req.files) {
+        const ext = file.originalname.toLowerCase().split('.').pop();
+        if (!allowedExtensions.includes(ext)) {
+          return res.status(400).json({
+            error: 'File type not allowed',
+            filename: file.originalname,
+            allowed: allowedExtensions
+          });
+        }
+      }
+
+      // Upload files to FluxPrint
+      const formData = new FormData();
+      req.files.forEach(file => {
+        formData.append('files', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype
+        });
+      });
+
+      const uploadResponse = await axios.post(
+        `${FLUXPRINT_URL}/api/files/upload`,
+        formData,
+        {
+          headers: { ...formData.getHeaders() },
+          timeout: 60000,
+          validateStatus: () => true
+        }
+      );
+
+      if (uploadResponse.status !== 200) {
+        return res.status(uploadResponse.status).json({
+          error: 'File upload to FluxPrint failed',
+          message: uploadResponse.data?.error || 'Unknown error'
+        });
+      }
+
+      // Link files to project in database
+      const { createId } = require('@paralleldrive/cuid2');
+      const uploadedFiles = [];
+
+      for (const file of req.files) {
+        try {
+          // Check if already linked
+          const existingLink = await query(
+            'SELECT id FROM printing_files WHERE filename = $1 AND project_id = $2',
+            [file.originalname, projectId]
+          );
+
+          if (existingLink.rows.length === 0) {
+            const fileId = createId();
+            await query(`
+              INSERT INTO printing_files (
+                id, project_id, filename, file_size, uploaded_by
+              ) VALUES ($1, $2, $3, $4, $5)
+            `, [
+              fileId,
+              projectId,
+              file.originalname,
+              file.size,
+              userId
+            ]);
+
+            uploadedFiles.push({
+              id: fileId,
+              name: file.originalname,
+              size: file.size,
+              type: file.originalname.split('.').pop()?.toLowerCase()
+            });
+          }
+        } catch (linkError) {
+          console.error('File link error:', linkError.message);
+        }
+      }
+
+      res.json({
+        success: true,
+        files: uploadedFiles,
+        message: `${uploadedFiles.length} file(s) uploaded successfully`
+      });
+
+    } catch (error) {
+      console.error('File upload error:', error.message);
+      res.status(500).json({
+        error: 'File upload failed',
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * Delete Project File
+ * DELETE /api/projects/:projectId/files/:fileId
+ */
+app.delete('/api/projects/:projectId/files/:fileId', csrfProtection, authenticateToken, async (req, res) => {
+  try {
+    const { projectId, fileId } = req.params;
+    const userId = req.user.id;
+
+    // Check project access
+    const hasAccess = await canUserAccessProject(userId, projectId);
+    if (!hasAccess) {
+      return res.status(403).json({
+        error: 'You do not have permission to access this project'
+      });
+    }
+
+    // Get file info
+    const fileResult = await query(
+      'SELECT filename FROM printing_files WHERE id = $1 AND project_id = $2',
+      [fileId, projectId]
+    );
+
+    if (fileResult.rows.length === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const filename = fileResult.rows[0].filename;
+
+    // Delete from database
+    await query('DELETE FROM printing_files WHERE id = $1', [fileId]);
+
+    // Try to delete from FluxPrint (non-fatal if fails)
+    try {
+      await axios.delete(`${FLUXPRINT_URL}/api/files/${filename}`, {
+        timeout: 5000,
+        validateStatus: () => true
+      });
+    } catch (deleteError) {
+      console.error('FluxPrint file deletion error (non-fatal):', deleteError.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'File deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('File deletion error:', error.message);
+    res.status(500).json({
+      error: 'Failed to delete file',
+      message: error.message
+    });
+  }
+});
+
+console.log('✅ Phase 4A Designer-First Quick Print API registered');
 console.log('✅ FluxPrint proxy routes registered');
 console.log('✅ FluxPrint database integration routes registered (Phase 2.5)');
 console.log('✅ FluxPrint project-file association routes registered (Phase 3D)');

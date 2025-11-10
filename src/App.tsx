@@ -58,6 +58,9 @@ const { Component: TeamManagement } = lazyLoadWithRetry(() => import('./componen
 const { Component: RealTimeCollaboration } = lazyLoadWithRetry(() => import('./components/collaboration/RealTimeCollaboration'));
 const { Component: WorkspaceManager } = lazyLoadWithRetry(() => import('./components/workspace/WorkspaceManager'));
 
+// FluxPrint Integration - 3D Printing Dashboard
+const PrintingDashboard = React.lazy(() => import('./components/printing/PrintingDashboard'));
+
 export default function App() {
   // Initialize performance monitoring and CSRF token
   React.useEffect(() => {
@@ -158,6 +161,10 @@ export default function App() {
                       {/* Direct access routes */}
                       <Route path="/dashboard/teams/:teamId" element={<TeamDashboard />} />
                       <Route path="/dashboard/projects/:projectId" element={<ProjectDashboard />} />
+
+                      {/* FluxPrint Integration - 3D Printing */}
+                      <Route path="/printing" element={<PrintingDashboard />} />
+                      <Route path="/dashboard/printing" element={<PrintingDashboard />} />
                       </Routes>
                     </Suspense>
                   </WorkspaceProvider>
