@@ -95,11 +95,14 @@ class ApiService {
 
   private async getDefaultHeaders(
     includeAuth: boolean = true,
-    requireCsrf: boolean = false
+    requireCsrf: boolean = false,
+    includeContentType: boolean = true
   ): Promise<Record<string, string>> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = {};
+
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (includeAuth) {
       const token = this.getAuthToken();
@@ -137,11 +140,14 @@ class ApiService {
     const method = (fetchOptions.method || 'GET').toUpperCase();
     const requireCsrf = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
 
+    // Detect FormData - don't set Content-Type header (browser will set with boundary)
+    const isFormData = fetchOptions.body instanceof FormData;
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const defaultHeaders = await this.getDefaultHeaders(requireAuth, requireCsrf);
+      const defaultHeaders = await this.getDefaultHeaders(requireAuth, requireCsrf, !isFormData);
       const headers = {
         ...defaultHeaders,
         ...fetchOptions.headers,
@@ -343,12 +349,9 @@ class ApiService {
       formData.append('metadata', JSON.stringify(metadata));
     }
 
+    // makeRequest automatically handles CSRF token and auth headers for FormData
     return this.makeRequest(buildApiUrl(`/projects/${projectId}/files`), {
       method: 'POST',
-      headers: {
-        // Don't set Content-Type for FormData, let browser set it with boundary
-        'Authorization': `Bearer ${this.getAuthToken()}`,
-      },
       body: formData,
     });
   }
@@ -363,6 +366,31 @@ class ApiService {
   async deleteFile(id: string) {
     return this.makeRequest(buildApiUrl(`/files/${id}`), {
       method: 'DELETE',
+    });
+  }
+
+  async uploadMultipleFiles(projectId: string, files: File[]) {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+
+    // makeRequest automatically handles CSRF token and auth headers for FormData
+    return this.makeRequest(buildApiUrl(`/projects/${projectId}/files/upload`), {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  // Printing API calls
+  async quickPrint(filename: string, projectId: string, config: any) {
+    return this.makeRequest(buildApiUrl('/printing/quick-print'), {
+      method: 'POST',
+      body: JSON.stringify({
+        filename,
+        projectId,
+        config,
+      }),
     });
   }
 

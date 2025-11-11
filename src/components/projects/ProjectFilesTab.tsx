@@ -46,6 +46,7 @@ import { cn } from '@/lib/utils';
 import type { QuickPrintConfig } from '@/types/printing';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { toast } from '@/lib/toast';
+import { apiService } from '@/services/apiService';
 
 // ============================================================================
 // Type Definitions
@@ -325,32 +326,17 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
     if (!selectedFile) return;
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Not authenticated');
+      const result = await apiService.quickPrint(
+        selectedFile.name,
+        project.id,
+        config
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to queue print job');
       }
 
-      const response = await fetch('/api/printing/quick-print', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          filename: selectedFile.name,
-          projectId: project.id,
-          config,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to queue print job');
-      }
-
-      const result = await response.json();
-
-      toast.success(`Print queued! Job #${result.queueId}`);
+      toast.success(`Print queued! Job #${result.data.queueId}`);
 
       // Refetch files to update status
       refetch();

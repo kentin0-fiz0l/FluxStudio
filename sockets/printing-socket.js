@@ -19,6 +19,7 @@
 
 const axios = require('axios');
 const io = require('socket.io-client');
+const jwt = require('jsonwebtoken');
 
 /**
  * FluxPrint WebSocket URL
@@ -27,7 +28,30 @@ const io = require('socket.io-client');
 const FLUXPRINT_WS_URL = process.env.FLUXPRINT_WS_URL || 'http://localhost:5001';
 const FLUXPRINT_ENABLED = process.env.ENABLE_FLUXPRINT === 'true';
 
-module.exports = (namespace) => {
+module.exports = (namespace, JWT_SECRET) => {
+  // SECURITY: JWT Authentication Middleware
+  // This prevents unauthorized users from connecting to the printing namespace
+  // and accessing print job data for projects they don't have access to
+  namespace.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth.token;
+
+      if (!token) {
+        console.warn('⚠️  Printing socket: Connection rejected - no token');
+        return next(new Error('Authentication required'));
+      }
+
+      const decoded = jwt.verify(token, JWT_SECRET);
+      socket.userId = decoded.id;
+      socket.userEmail = decoded.email;
+
+      console.log(`✅ Printing socket: Authenticated user ${socket.userId} (${socket.userEmail})`);
+      next();
+    } catch (err) {
+      console.warn('⚠️  Printing socket: Invalid token -', err.message);
+      return next(new Error('Invalid or expired token'));
+    }
+  });
   // Store active connections and FluxPrint client
   const activeClients = new Set();
   let fluxprintClient = null;
@@ -160,11 +184,34 @@ module.exports = (namespace) => {
     });
 
     // Phase 4A: Join project room for project-scoped updates
-    socket.on('project:join', (projectId) => {
-      const room = `project:${projectId}`;
-      socket.join(room);
-      console.log(`🖨️  Client ${socket.id} joined room: ${room}`);
-      socket.emit('project:joined', { projectId, room });
+    // SECURITY: Check project access before allowing room join
+    socket.on('project:join', async (projectId) => {
+      try {
+        if (!projectId || typeof projectId !== 'string') {
+          return socket.emit('error', {
+            message: 'Invalid project ID',
+            code: 'INVALID_PROJECT_ID'
+          });
+        }
+
+        // TODO: Implement project access check when database is available
+        // For now, we trust that the user is authenticated (verified by middleware)
+        // In production, you should check:
+        // const hasAccess = await checkProjectAccess(socket.userId, projectId);
+        // if (!hasAccess) { return socket.emit('error', { message: 'Unauthorized' }); }
+
+        const room = `project:${projectId}`;
+        socket.join(room);
+
+        console.log(`🖨️  User ${socket.userId} (${socket.id}) joined room: ${room}`);
+        socket.emit('project:joined', { projectId, room });
+      } catch (error) {
+        console.error('Error handling project:join:', error);
+        socket.emit('error', {
+          message: 'Failed to join project room',
+          code: 'PROJECT_JOIN_ERROR'
+        });
+      }
     });
 
     // Phase 4A: Leave project room

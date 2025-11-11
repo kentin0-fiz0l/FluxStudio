@@ -3039,7 +3039,7 @@ app.use(createHealthCheck({
 // Socket.IO namespace handlers
 require('./sockets/auth-socket')(authNamespace, performanceMonitor, authAdapter);
 require('./sockets/messaging-socket')(messagingNamespace, createMessage, getMessages, getChannels, messagingAdapter, JWT_SECRET);
-require('./sockets/printing-socket')(printingNamespace); // Phase 3A: Real-time printing updates
+require('./sockets/printing-socket')(printingNamespace, JWT_SECRET); // Phase 3A + Security: Real-time printing updates with JWT auth
 
 // ============================================================================
 // FluxPrint Integration - 3D Printing Proxy Layer (Phase 1 + Phase 2.5)

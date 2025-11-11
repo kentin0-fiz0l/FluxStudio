@@ -167,6 +167,19 @@ export function usePrintWebSocket(
       return;
     }
 
+    // SECURITY: Get JWT token from localStorage
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) {
+      console.error('❌ No authentication token available for WebSocket');
+      setConnectionStatus({
+        connected: false,
+        connecting: false,
+        error: 'Authentication required',
+        reconnectAttempts: 0,
+      });
+      return;
+    }
+
     console.log('Connecting to printer WebSocket:', WEBSOCKET_URL);
 
     setConnectionStatus((prev) => ({
@@ -175,8 +188,13 @@ export function usePrintWebSocket(
       error: null,
     }));
 
-    // Create Socket.IO connection
+    // Create Socket.IO connection with JWT authentication
+    // SECURITY: Token is sent in socket.handshake.auth.token
+    // Backend verifies this token before allowing connection
     const socket = io(`${WEBSOCKET_URL}/printing`, {
+      auth: {
+        token: authToken,
+      },
       reconnection: autoReconnect,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 30000,

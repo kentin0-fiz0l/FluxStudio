@@ -15,6 +15,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { usePrintWebSocket } from './usePrintWebSocket';
+import { apiService } from '@/services/apiService';
 
 /**
  * Project file type
@@ -117,30 +118,14 @@ async function uploadProjectFiles(
   projectId: string,
   files: FileList
 ): Promise<FileUploadResult> {
-  const token = getAuthToken();
-  if (!token) {
-    throw new Error('Not authenticated');
+  const filesArray = Array.from(files);
+  const result = await apiService.uploadMultipleFiles(projectId, filesArray);
+
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to upload files');
   }
 
-  const formData = new FormData();
-  Array.from(files).forEach((file) => {
-    formData.append('files', file);
-  });
-
-  const response = await fetch(`/api/projects/${projectId}/files/upload`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to upload files');
-  }
-
-  return response.json();
+  return result.data;
 }
 
 /**
