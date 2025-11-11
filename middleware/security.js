@@ -43,6 +43,24 @@ const authRateLimit = createRateLimit({
 });
 
 /**
+ * Rate limiting for 3D print endpoints
+ * Prevents abuse of expensive print operations
+ */
+const printRateLimit = createRateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour window
+  max: 10, // limit each IP to 10 print jobs per hour
+  message: {
+    error: 'Too many print jobs queued. Maximum 10 print jobs per hour allowed.',
+    retryAfter: 3600
+  },
+  skipSuccessfulRequests: false, // Count all requests, not just errors
+  keyGenerator: (req) => {
+    // Use user ID if authenticated, otherwise fall back to IP
+    return req.user?.id || req.ip;
+  }
+});
+
+/**
  * CORS configuration
  */
 const corsOptions = {
@@ -215,6 +233,7 @@ const auditLogger = (req, res, next) => {
 module.exports = {
   rateLimit: createRateLimit,
   authRateLimit,
+  printRateLimit,
   cors: cors(corsOptions),
   helmet: helmet(helmetConfig),
   validateInput,

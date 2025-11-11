@@ -26,6 +26,7 @@ import { Slider } from '../ui/slider';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
+import { Alert, AlertDescription } from '../ui/alert';
 import {
   Printer,
   Clock,
@@ -38,7 +39,9 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  Rocket,
 } from 'lucide-react';
+import { config } from '@/config/environment';
 import {
   type QuickPrintDialogProps,
   type QuickPrintConfig,
@@ -221,13 +224,15 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, selected, onClick
       onClick={onClick}
       className={cn(
         'relative w-full p-4 rounded-lg border-2 transition-all text-left',
-        'hover:shadow-md hover:scale-[1.02]',
+        'hover:shadow-md hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2',
         selected
           ? 'border-primary-600 bg-primary-50 shadow-md'
           : 'border-neutral-200 bg-white hover:border-neutral-300'
       )}
-      aria-pressed={selected}
-      aria-label={`Select ${material.name} material`}
+      role="radio"
+      aria-checked={selected}
+      aria-label={`${material.name} material - ${material.description}. Cost: $${material.costPerGram.toFixed(2)} per gram`}
+      tabIndex={selected ? 0 : -1}
     >
       {selected && (
         <div className="absolute top-2 right-2">
@@ -277,13 +282,15 @@ const QualityCard: React.FC<QualityCardProps> = ({ preset, selected, onClick }) 
       onClick={onClick}
       className={cn(
         'relative w-full p-4 rounded-lg border-2 transition-all text-left',
-        'hover:shadow-md hover:scale-[1.02]',
+        'hover:shadow-md hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2',
         selected
           ? 'border-primary-600 bg-primary-50 shadow-md'
           : 'border-neutral-200 bg-white hover:border-neutral-300'
       )}
-      aria-pressed={selected}
-      aria-label={`Select ${preset.name} quality`}
+      role="radio"
+      aria-checked={selected}
+      aria-label={`${preset.name} quality - ${preset.description}. Layer height: ${preset.layerHeight}mm`}
+      tabIndex={selected ? 0 : -1}
     >
       {selected && (
         <div className="absolute top-2 right-2">
@@ -423,6 +430,20 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Coming Soon Banner when FLUXPRINT is disabled */}
+          {!config.ENABLE_FLUXPRINT && (
+            <Alert className="bg-gradient-to-r from-primary-50 to-blue-50 border-primary-200">
+              <Rocket className="h-5 w-5 text-primary-600" />
+              <AlertDescription className="text-sm">
+                <strong className="block mb-1">3D Printing Coming Soon!</strong>
+                <span className="text-neutral-600">
+                  We're preparing our 3D printing integration for launch. You'll soon be able to
+                  print your designs directly from FluxStudio with one click.
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Printability Warning (if issues) */}
           {analysis && analysis.score < 70 && (
             <div className="flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -445,10 +466,31 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
 
           {/* Material Selection */}
           <div>
-            <Label className="text-sm font-semibold text-neutral-900 mb-3 block">
+            <Label
+              id="material-group-label"
+              className="text-sm font-semibold text-neutral-900 mb-3 block"
+            >
               Choose Material
             </Label>
-            <div className="grid grid-cols-2 gap-3">
+            <div
+              className="grid grid-cols-2 gap-3"
+              role="radiogroup"
+              aria-labelledby="material-group-label"
+              onKeyDown={(e) => {
+                const materials = MATERIALS.slice(0, 4);
+                const currentIndex = materials.findIndex(m => m.id === material);
+
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  const nextIndex = (currentIndex + 1) % materials.length;
+                  setMaterial(materials[nextIndex].id);
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  const prevIndex = (currentIndex - 1 + materials.length) % materials.length;
+                  setMaterial(materials[prevIndex].id);
+                }
+              }}
+            >
               {MATERIALS.slice(0, 4).map((mat) => (
                 <MaterialCard
                   key={mat.id}
@@ -462,10 +504,30 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
 
           {/* Quality Selection */}
           <div>
-            <Label className="text-sm font-semibold text-neutral-900 mb-3 block">
+            <Label
+              id="quality-group-label"
+              className="text-sm font-semibold text-neutral-900 mb-3 block"
+            >
               Print Quality
             </Label>
-            <div className="grid grid-cols-2 gap-3">
+            <div
+              className="grid grid-cols-2 gap-3"
+              role="radiogroup"
+              aria-labelledby="quality-group-label"
+              onKeyDown={(e) => {
+                const currentIndex = QUALITY_PRESETS.findIndex(p => p.id === quality);
+
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  const nextIndex = (currentIndex + 1) % QUALITY_PRESETS.length;
+                  handleQualityChange(QUALITY_PRESETS[nextIndex].id);
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  const prevIndex = (currentIndex - 1 + QUALITY_PRESETS.length) % QUALITY_PRESETS.length;
+                  handleQualityChange(QUALITY_PRESETS[prevIndex].id);
+                }
+              }}
+            >
               {QUALITY_PRESETS.map((preset) => (
                 <QualityCard
                   key={preset.id}
@@ -523,7 +585,9 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
           <div>
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center gap-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 rounded-md px-2 py-1"
+              aria-expanded={showAdvanced}
+              aria-controls="advanced-options-panel"
             >
               {showAdvanced ? (
                 <ChevronUp className="h-4 w-4" />
@@ -534,7 +598,12 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
             </button>
 
             {showAdvanced && (
-              <div className="mt-4 space-y-4 p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+              <div
+                id="advanced-options-panel"
+                className="mt-4 space-y-4 p-4 bg-neutral-50 rounded-lg border border-neutral-200"
+                role="region"
+                aria-label="Advanced printing options"
+              >
                 {/* Number of Copies */}
                 <div>
                   <Label htmlFor="copies" className="text-sm font-medium text-neutral-700 mb-2 block">
@@ -614,10 +683,15 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
           <Button
             variant="primary"
             onClick={handlePrint}
-            disabled={isPrinting || (analysis && !analysis.canPrint)}
+            disabled={!config.ENABLE_FLUXPRINT || isPrinting || (analysis && !analysis.canPrint)}
             icon={<Printer className="h-4 w-4" />}
+            title={!config.ENABLE_FLUXPRINT ? "3D printing feature coming soon" : undefined}
           >
-            {isPrinting ? 'Starting Print...' : `Print ${copies > 1 ? `(${copies} copies)` : ''}`}
+            {!config.ENABLE_FLUXPRINT
+              ? 'Coming Soon'
+              : isPrinting
+                ? 'Starting Print...'
+                : `Print ${copies > 1 ? `(${copies} copies)` : ''}`}
           </Button>
         </DialogFooter>
       </DialogContent>

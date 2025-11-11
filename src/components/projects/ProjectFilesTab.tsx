@@ -42,11 +42,13 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { QuickPrintDialog } from '../printing/QuickPrintDialog';
+import { Alert, AlertDescription } from '../ui/alert';
 import { cn } from '@/lib/utils';
 import type { QuickPrintConfig } from '@/types/printing';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { toast } from '@/lib/toast';
 import { apiService } from '@/services/apiService';
+import { config } from '@/config/environment';
 
 // ============================================================================
 // Type Definitions
@@ -245,9 +247,13 @@ const FileCard: React.FC<FileCardProps> = ({ file, onPrint, onDownload, onDelete
           <DropdownMenuContent align="end">
             {isPrintable && (
               <>
-                <DropdownMenuItem onClick={() => onPrint(file)}>
+                <DropdownMenuItem
+                  onClick={() => config.ENABLE_FLUXPRINT ? onPrint(file) : null}
+                  disabled={!config.ENABLE_FLUXPRINT}
+                  className={!config.ENABLE_FLUXPRINT ? "opacity-50 cursor-not-allowed" : ""}
+                >
                   <Printer className="h-4 w-4 mr-2" />
-                  Print This File
+                  {config.ENABLE_FLUXPRINT ? "Print This File" : "Print (Coming Soon)"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
@@ -307,6 +313,7 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
     error,
     refetch,
     uploadFiles,
+    uploadProgress,
     deleteFile,
   } = useProjectFiles({
     projectId: project.id,
@@ -455,8 +462,50 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
     );
   }
 
+  const hasPrintableFiles = files.some((f) => isPrintableFile(f.name));
+
   return (
     <div className={cn('space-y-6', className)}>
+      {/* Coming Soon Banner for Print Feature */}
+      {!config.ENABLE_FLUXPRINT && hasPrintableFiles && (
+        <Alert className="bg-gradient-to-r from-primary-50 to-blue-50 border-primary-200">
+          <Printer className="h-5 w-5 text-primary-600" />
+          <AlertDescription className="text-sm">
+            <strong className="block mb-1">3D Printing Coming Soon!</strong>
+            <span className="text-neutral-600">
+              You have {files.filter((f) => isPrintableFile(f.name)).length} printable file(s).
+              The 3D printing feature will be available soon, allowing you to print directly from FluxStudio.
+            </span>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Upload Progress Bar */}
+      {uploadFiles.isLoading && (
+        <Card className="p-4 bg-primary-50 border-primary-200">
+          <div className="flex items-center gap-3 mb-2">
+            <Upload className="h-5 w-5 text-primary-600 animate-pulse" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-medium text-neutral-900">Uploading files...</span>
+                <span className="text-sm text-primary-600">{uploadProgress}%</span>
+              </div>
+              <div className="w-full bg-neutral-200 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-primary-600 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          </div>
+          {uploadProgress > 0 && uploadProgress < 100 && (
+            <p className="text-xs text-neutral-600 ml-8">
+              Please wait while your files are being uploaded...
+            </p>
+          )}
+        </Card>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

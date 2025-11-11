@@ -15,6 +15,7 @@ export interface EnvironmentConfig {
   API_TIMEOUT: number;
   MAX_FILE_SIZE: number;
   SUPPORTED_FILE_TYPES: string[];
+  ENABLE_FLUXPRINT: boolean;
 }
 
 // Environment detection
@@ -34,7 +35,8 @@ const baseConfig = {
   ENABLE_DEBUG: isDevelopment,
   API_TIMEOUT: 30000, // 30 seconds
   MAX_FILE_SIZE: 104857600, // 100MB
-  SUPPORTED_FILE_TYPES: ['png', 'jpg', 'jpeg', 'gif', 'pdf', 'figma', 'sketch', 'svg', 'webp']
+  SUPPORTED_FILE_TYPES: ['png', 'jpg', 'jpeg', 'gif', 'pdf', 'figma', 'sketch', 'svg', 'webp'],
+  ENABLE_FLUXPRINT: getEnvVar('VITE_ENABLE_FLUXPRINT', 'false') === 'true'
 };
 
 // Development configuration

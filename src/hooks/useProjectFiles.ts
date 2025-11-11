@@ -13,7 +13,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePrintWebSocket } from './usePrintWebSocket';
 import { apiService } from '@/services/apiService';
 
@@ -73,6 +73,9 @@ export interface UseProjectFilesReturn {
     error: Error | null;
   };
 
+  /** Upload progress (0-100) */
+  uploadProgress: number;
+
   /** Delete file mutation */
   deleteFile: {
     mutate: (fileId: string) => void;
@@ -112,14 +115,15 @@ async function fetchProjectFiles(projectId: string): Promise<ProjectFile[]> {
 }
 
 /**
- * Upload files to project
+ * Upload files to project with progress tracking
  */
 async function uploadProjectFiles(
   projectId: string,
-  files: FileList
+  files: FileList,
+  onProgress?: (progress: number) => void
 ): Promise<FileUploadResult> {
   const filesArray = Array.from(files);
-  const result = await apiService.uploadMultipleFiles(projectId, filesArray);
+  const result = await apiService.uploadMultipleFiles(projectId, filesArray, onProgress);
 
   if (!result.success) {
     throw new Error(result.error || 'Failed to upload files');
@@ -163,6 +167,7 @@ export function useProjectFiles(
 ): UseProjectFilesReturn {
   const { projectId, enabled = true } = options;
   const queryClient = useQueryClient();
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   // Fetch files
   const {
@@ -178,10 +183,16 @@ export function useProjectFiles(
     refetchInterval: 30 * 1000, // Refetch every 30 seconds
   });
 
-  // Upload files mutation
+  // Upload files mutation with progress tracking
   const uploadFilesMutation = useMutation({
-    mutationFn: (files: FileList) => uploadProjectFiles(projectId, files),
+    mutationFn: (files: FileList) =>
+      uploadProjectFiles(projectId, files, (progress) => {
+        setUploadProgress(progress);
+      }),
     onSuccess: (data) => {
+      // Reset progress
+      setUploadProgress(0);
+
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['project-files', projectId] });
 
@@ -189,6 +200,8 @@ export function useProjectFiles(
       console.log('Files uploaded successfully:', data.files.length);
     },
     onError: (error: Error) => {
+      // Reset progress on error
+      setUploadProgress(0);
       console.error('File upload error:', error.message);
     },
   });
@@ -265,6 +278,7 @@ export function useProjectFiles(
       isLoading: uploadFilesMutation.isPending,
       error: uploadFilesMutation.error as Error | null,
     },
+    uploadProgress,
     deleteFile: {
       mutate: deleteFileMutation.mutate,
       isLoading: deleteFileMutation.isPending,

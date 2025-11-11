@@ -31,7 +31,7 @@ const FormData = require('form-data');
 
 // Import security and configuration modules
 const { config } = require('./config/environment');
-const { rateLimit, authRateLimit, cors, helmet, validateInput, securityErrorHandler, auditLogger } = require('./middleware/security');
+const { rateLimit, authRateLimit, printRateLimit, cors, helmet, validateInput, securityErrorHandler, auditLogger } = require('./middleware/security');
 const { csrfProtection, getCsrfToken } = require('./middleware/csrf');
 const cookieParser = require('cookie-parser');
 
@@ -52,6 +52,9 @@ const refreshTokenRoutes = require('./lib/auth/refreshTokenRoutes');
 
 // Import Week 2 Security Sprint - Auth Helpers for Token Integration
 const { generateAuthResponse } = require('./lib/auth/authHelpers');
+
+// Import file validation utilities
+const { validateUploadedFiles, validateFileType } = require('./lib/fileValidator');
 
 // Import Sprint 13 - Security Logger
 // const transcodingService = require('./services/transcoding-service'); // AWS version
@@ -3051,6 +3054,35 @@ require('./sockets/printing-socket')(printingNamespace, JWT_SECRET); // Phase 3A
 const FLUXPRINT_URL = process.env.FLUXPRINT_SERVICE_URL || 'http://localhost:5001';
 const FLUXPRINT_ENABLED = process.env.FLUXPRINT_ENABLED === 'true';
 
+// Validate FluxPrint URL on startup
+if (FLUXPRINT_ENABLED) {
+  try {
+    const fluxPrintUrl = new URL(FLUXPRINT_URL);
+
+    // Validate protocol
+    if (!['http:', 'https:'].includes(fluxPrintUrl.protocol)) {
+      throw new Error(`Invalid protocol: ${fluxPrintUrl.protocol}. Must be http: or https:`);
+    }
+
+    // Validate hostname
+    if (!fluxPrintUrl.hostname) {
+      throw new Error('FluxPrint URL must include a hostname');
+    }
+
+    // Warn about localhost in production
+    if (process.env.NODE_ENV === 'production' && fluxPrintUrl.hostname === 'localhost') {
+      console.warn('⚠️  WARNING: FluxPrint is configured to use localhost in production environment');
+    }
+
+    console.log(`✅ FluxPrint URL validated: ${FLUXPRINT_URL}`);
+  } catch (error) {
+    console.error('❌ FLUXPRINT_SERVICE_URL validation failed:', error.message);
+    console.error('   FluxPrint features will be disabled');
+    // Don't crash the server, just disable the feature
+    process.env.FLUXPRINT_ENABLED = 'false';
+  }
+}
+
 // Import print job logger service (Phase 2.5)
 const printJobLogger = require('./services/printJobLogger');
 
@@ -3132,8 +3164,37 @@ app.get('/api/printing/queue', checkFluxPrintEnabled, async (req, res) => {
 });
 
 // Add job to print queue (with database logging)
-app.post('/api/printing/queue', checkFluxPrintEnabled, async (req, res) => {
+app.post('/api/printing/queue', printRateLimit, checkFluxPrintEnabled, authenticateToken, async (req, res) => {
   try {
+    const userId = req.user.id;
+    const { project_id } = req.body;
+
+    // If project_id is provided, check permissions
+    if (project_id) {
+      const projectAccessQuery = await query(`
+        SELECT p.id, p."clientId" as owner_id, pm.role
+        FROM projects p
+        LEFT JOIN project_members pm ON p.id = pm.project_id AND pm.user_id = $2
+        WHERE p.id = $1 AND p.deleted_at IS NULL
+      `, [project_id, userId]);
+
+      if (projectAccessQuery.rows.length === 0) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      const project = projectAccessQuery.rows[0];
+      const isOwner = project.owner_id === userId;
+      const memberRole = project.role;
+      const canPrint = isOwner || memberRole === 'manager' || memberRole === 'editor';
+
+      if (!canPrint) {
+        return res.status(403).json({
+          error: 'Insufficient permissions',
+          message: 'You need owner, manager, or editor role to queue print jobs'
+        });
+      }
+    }
+
     // Proxy request to FluxPrint
     const response = await axios.post(`${FLUXPRINT_URL}/api/queue`, req.body, {
       headers: { ...req.headers, host: new URL(FLUXPRINT_URL).host },
@@ -3178,7 +3239,9 @@ app.post('/api/printing/queue/reorder', checkFluxPrintEnabled, async (req, res) 
 });
 
 // Start specific job from queue
-app.post('/api/printing/queue/:id/start', checkFluxPrintEnabled, async (req, res) => {
+app.post('/api/printing/queue/:id/start', checkFluxPrintEnabled, authenticateToken, async (req, res) => {
+  // Starting a job requires authentication but not project-specific permissions
+  // since the job was already authorized when added to the queue
   await proxyToFluxPrint(req, res, `/api/queue/${req.params.id}/start`, 'POST');
 });
 
@@ -3781,7 +3844,7 @@ app.get('/api/printing/jobs/history/filter', authenticateToken, async (req, res)
  * 5. Link to project
  * 6. Return estimate
  */
-app.post('/api/printing/quick-print', rateLimit, csrfProtection, authenticateToken, async (req, res) => {
+app.post('/api/printing/quick-print', printRateLimit, csrfProtection, authenticateToken, async (req, res) => {
   try {
     const { filename, projectId, config } = req.body;
     const userId = req.user.id;
@@ -3806,6 +3869,33 @@ app.post('/api/printing/quick-print', rateLimit, csrfProtection, authenticateTok
           infill: 20,
           notes: 'Optional notes'
         }
+      });
+    }
+
+    // Check project access and role
+    const projectAccessQuery = await query(`
+      SELECT p.id, p."clientId" as owner_id, pm.role
+      FROM projects p
+      LEFT JOIN project_members pm ON p.id = pm.project_id AND pm.user_id = $2
+      WHERE p.id = $1 AND p.deleted_at IS NULL
+    `, [projectId, userId]);
+
+    if (projectAccessQuery.rows.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const project = projectAccessQuery.rows[0];
+    const isOwner = project.owner_id === userId;
+    const memberRole = project.role;
+
+    // Check print permissions: owner, manager, or editor can print
+    // Viewers cannot print
+    const canPrint = isOwner || memberRole === 'manager' || memberRole === 'editor';
+
+    if (!canPrint) {
+      return res.status(403).json({
+        error: 'Insufficient permissions',
+        message: 'You need owner, manager, or editor role to print files'
       });
     }
 
@@ -4201,6 +4291,7 @@ app.post('/api/projects/:projectId/files/upload',
   csrfProtection,
   authenticateToken,
   upload.array('files', 10),
+  validateUploadedFiles,
   async (req, res) => {
     try {
       const { projectId } = req.params;
