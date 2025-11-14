@@ -61,6 +61,7 @@
             "cors": "^2.8.5",
             "csurf": "^1.11.0",
             "cuid": "^2.1.8",
+            "@paralleldrive/cuid2": "^2.2.2",
             "date-fns": "^3.6.0",
             "dompurify": "^3.3.0",
             "dotenv": "^17.2.2",
