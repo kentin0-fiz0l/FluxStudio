@@ -3,7 +3,7 @@
  * Provides rate limiting, CORS, validation, and security headers
  */
 
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const helmet = require('helmet');
 const cors = require('cors');
 const validator = require('validator');
@@ -55,8 +55,8 @@ const printRateLimit = createRateLimit({
   },
   skipSuccessfulRequests: false, // Count all requests, not just errors
   keyGenerator: (req) => {
-    // Use user ID if authenticated, otherwise fall back to IP
-    return req.user?.id || req.ip;
+    // Use user ID if authenticated, otherwise fall back to properly normalized IP
+    return req.user?.id || ipKeyGenerator(req);
   }
 });
 
