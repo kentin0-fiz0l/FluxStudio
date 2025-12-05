@@ -13,8 +13,11 @@ import {
   Check,
   Clock,
   Zap,
+  Music,
+  ChevronDown,
 } from 'lucide-react';
 import { useMetMapStore } from '@/stores/useMetMapStore';
+import { MetronomeControls } from '@/components/MetronomeControls';
 import {
   ConfidenceLevel,
   SECTION_COLORS,
@@ -48,6 +51,7 @@ export default function PracticeModePage() {
   const [isPaused, setIsPaused] = useState(true);
   const [practiceTime, setPracticeTime] = useState(0);
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
+  const [showMetronome, setShowMetronome] = useState(false);
 
   // Simulated playback state (in real app, this would connect to audio player)
   const [currentTime, setCurrentTime] = useState(0);
@@ -298,7 +302,7 @@ export default function PracticeModePage() {
           </button>
         </div>
 
-        {/* Loop toggle and mark complete */}
+        {/* Loop toggle, metronome toggle, and mark complete */}
         <div className="flex items-center justify-between">
           <button
             onClick={() => setIsLooping(!isLooping)}
@@ -314,6 +318,25 @@ export default function PracticeModePage() {
           </button>
 
           <button
+            onClick={() => setShowMetronome(!showMetronome)}
+            className={clsx(
+              'flex items-center gap-2 px-4 py-2 rounded-lg tap-target',
+              showMetronome
+                ? 'bg-blue-500/20 text-blue-400'
+                : 'text-gray-400 hover:bg-gray-800'
+            )}
+          >
+            <Music className="w-5 h-5" />
+            <span className="text-sm">Metronome</span>
+            <ChevronDown
+              className={clsx(
+                'w-4 h-4 transition-transform',
+                showMetronome && 'rotate-180'
+              )}
+            />
+          </button>
+
+          <button
             onClick={handleSectionComplete}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg tap-target"
           >
@@ -321,6 +344,13 @@ export default function PracticeModePage() {
             <span className="text-sm">Mark Done</span>
           </button>
         </div>
+
+        {/* Metronome Panel */}
+        {showMetronome && (
+          <div className="mt-4">
+            <MetronomeControls />
+          </div>
+        )}
       </div>
 
       {/* Section Quick Nav */}
