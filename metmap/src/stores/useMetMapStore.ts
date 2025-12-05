@@ -5,13 +5,18 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import {
   Song,
   Section,
+  TempoEvent,
+  TimeSignature,
   PracticeSession,
   MetMapPreferences,
   MetMapState,
   DEFAULT_PREFERENCES,
+  DEFAULT_TIME_SIGNATURE,
+  DEFAULT_BPM,
   generateId,
   createSong,
   createSection,
+  createTempoEvent,
 } from '@/types/metmap';
 
 /**
@@ -32,6 +37,15 @@ interface MetMapActions {
   updateSection: (songId: string, sectionId: string, updates: Partial<Section>) => void;
   deleteSection: (songId: string, sectionId: string) => void;
   reorderSections: (songId: string, sectionIds: string[]) => void;
+
+  // Tempo event actions
+  addTempoEvent: (
+    songId: string,
+    event: Partial<TempoEvent> & Pick<TempoEvent, 'time' | 'bpm'>
+  ) => TempoEvent | undefined;
+  updateTempoEvent: (songId: string, eventId: string, updates: Partial<TempoEvent>) => void;
+  deleteTempoEvent: (songId: string, eventId: string) => void;
+  updateSongTempo: (songId: string, bpm: number, timeSignature?: TimeSignature) => void;
 
   // Practice actions
   startPracticeSession: (songId: string) => PracticeSession;
@@ -170,6 +184,83 @@ export const useMetMapStore = create<MetMapStore>()(
         }));
       },
 
+      // Tempo event actions
+      addTempoEvent: (songId, partial) => {
+        const event = createTempoEvent(partial);
+        let addedEvent: TempoEvent | undefined;
+
+        set((state) => ({
+          songs: state.songs.map((song) => {
+            if (song.id === songId) {
+              addedEvent = event;
+              // Insert event in order by time
+              const tempoEvents = [...(song.tempoEvents || []), event].sort(
+                (a, b) => a.time - b.time
+              );
+              return {
+                ...song,
+                tempoEvents,
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return song;
+          }),
+        }));
+
+        return addedEvent;
+      },
+
+      updateTempoEvent: (songId, eventId, updates) => {
+        set((state) => ({
+          songs: state.songs.map((song) => {
+            if (song.id === songId) {
+              const tempoEvents = (song.tempoEvents || [])
+                .map((event) =>
+                  event.id === eventId ? { ...event, ...updates } : event
+                )
+                .sort((a, b) => a.time - b.time);
+              return {
+                ...song,
+                tempoEvents,
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return song;
+          }),
+        }));
+      },
+
+      deleteTempoEvent: (songId, eventId) => {
+        set((state) => ({
+          songs: state.songs.map((song) => {
+            if (song.id === songId) {
+              return {
+                ...song,
+                tempoEvents: (song.tempoEvents || []).filter((e) => e.id !== eventId),
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return song;
+          }),
+        }));
+      },
+
+      updateSongTempo: (songId, bpm, timeSignature) => {
+        set((state) => ({
+          songs: state.songs.map((song) => {
+            if (song.id === songId) {
+              return {
+                ...song,
+                bpm,
+                ...(timeSignature && { defaultTimeSignature: timeSignature }),
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return song;
+          }),
+        }));
+      },
+
       // Practice actions
       startPracticeSession: (songId) => {
         const session: PracticeSession = {
@@ -294,6 +385,12 @@ export const useMetMapStore = create<MetMapStore>()(
             ...s,
             id: generateId(),
           })),
+          tempoEvents: (songData.tempoEvents || []).map((e) => ({
+            ...e,
+            id: generateId(),
+          })),
+          defaultTimeSignature: songData.defaultTimeSignature || DEFAULT_TIME_SIGNATURE,
+          bpm: songData.bpm || DEFAULT_BPM,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -318,19 +415,35 @@ export const useMetMapStore = create<MetMapStore>()(
     {
       name: 'metmap-storage',
       storage: createJSONStorage(() => localStorage),
-      version: 1,
+      version: 2,
       // Handle migrations between versions
       migrate: (persistedState, version) => {
+        const state = persistedState as MetMapState;
+
         if (version === 0) {
-          // Migration from version 0 to 1
+          // Migration from version 0 to 1: add preferences
           return {
-            ...(persistedState as MetMapState),
+            ...state,
             preferences: {
               ...DEFAULT_PREFERENCES,
-              ...((persistedState as MetMapState)?.preferences ?? {}),
+              ...(state?.preferences ?? {}),
             },
           };
         }
+
+        if (version === 1) {
+          // Migration from version 1 to 2: add tempo events to songs
+          return {
+            ...state,
+            songs: (state.songs || []).map((song) => ({
+              ...song,
+              tempoEvents: song.tempoEvents || [],
+              defaultTimeSignature: song.defaultTimeSignature || DEFAULT_TIME_SIGNATURE,
+              bpm: song.bpm || DEFAULT_BPM,
+            })),
+          };
+        }
+
         return persistedState as MetMapStore;
       },
     }
