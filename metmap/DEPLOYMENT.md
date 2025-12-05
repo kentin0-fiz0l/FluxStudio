@@ -12,27 +12,21 @@ fluxstudio.art/metmap   → Redirects to metmap.fluxstudio.art
 
 ## Deploying MetMap to DigitalOcean
 
-### 1. Push to a separate GitHub repo
+MetMap deploys via DigitalOcean App Platform UI only (no CI automation).
 
-```bash
-cd metmap
-git init
-git add .
-git commit -m "chore: initial MetMap scaffolding"
-git remote add origin git@github.com:<your-username>/metmap.git
-git push -u origin main
-```
-
-### 2. Create DigitalOcean App
+### 1. Create DigitalOcean App
 
 1. Log into DigitalOcean → Apps → Create App
-2. Connect your GitHub repo (`metmap`)
-3. DO should auto-detect Next.js. If not:
-   - Build command: `npm run build`
+2. Connect GitHub repo: `kentin0-fiz0l/FluxStudio`
+3. Import the app spec from `metmap/.do/app.yaml`
+4. Or configure manually:
+   - Source directory: `metmap`
+   - Build command: `npm ci && npm run build`
    - Run command: `npm start`
-4. Deploy to get a default URL like `metmap-xxxxx.ondigitalocean.app`
+   - HTTP port: `3000`
+5. Deploy to get a URL like `metmap-xxxxx.ondigitalocean.app`
 
-### 3. Add Custom Domain
+### 2. Add Custom Domain
 
 1. In the DO App settings → Domains
 2. Add: `metmap.fluxstudio.art`
@@ -103,12 +97,15 @@ routes:
 
 ## Environment Variables
 
-MetMap currently uses localStorage only (no backend required). If you add backend features later:
+MetMap currently uses localStorage only (no backend required). Feature flags are configured in `.do/app.yaml`:
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `NEXT_PUBLIC_API_URL` | API base URL if separate from app |
+| `NEXT_PUBLIC_FF_TEMPO_MAP_EDITOR` | Enable tempo map editor |
+| `NEXT_PUBLIC_FF_VISUAL_ONLY_MODE` | Enable visual-only mode |
+| `NEXT_PUBLIC_FF_LATENCY_CALIBRATION` | Enable latency calibration |
+| `NEXT_PUBLIC_FF_DEMO_SONG` | Load demo song for new users |
+| `NEXT_PUBLIC_FF_ONBOARDING` | Show onboarding for new users |
 
 ## PWA Setup
 
@@ -132,3 +129,17 @@ MetMap runs at root (`/`), so its routes are:
 | `/song/[id]/practice` | Practice mode |
 
 No `/metmap` prefix needed within the app itself.
+
+## Deployment Checklist
+
+Before deploying:
+- [ ] Run `npm run lint` (no errors)
+- [ ] Run `npm run build` (successful)
+- [ ] Test `npm start` locally
+- [ ] Verify feature flags in `.do/app.yaml`
+
+After deploying:
+- [ ] Verify app loads at DO-provided URL
+- [ ] Test metronome playback
+- [ ] Test tempo map editor
+- [ ] Add custom domain (if ready)
