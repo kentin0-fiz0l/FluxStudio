@@ -6,11 +6,17 @@ import { Plus, Music, Calendar, Search, MoreVertical } from 'lucide-react';
 import { useMetMapStore, useSongsByLastPracticed } from '@/stores/useMetMapStore';
 import { formatTime, getSongConfidence } from '@/types/metmap';
 import { clsx } from 'clsx';
+import { OnboardingPanel, FirstUseChecklist } from '@/components/OnboardingPanel';
+import { useInitializeApp } from '@/hooks/useInitializeApp';
+import { isDemoSong } from '@/lib/demoSong';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewSongModal, setShowNewSongModal] = useState(false);
   const songs = useSongsByLastPracticed();
+
+  // Initialize app (load demo song for first-time users)
+  const { isInitialized } = useInitializeApp();
 
   const filteredSongs = songs.filter(
     (song) =>
@@ -20,6 +26,9 @@ export default function Home() {
 
   return (
     <main className="flex-1 flex flex-col max-w-2xl mx-auto w-full">
+      {/* Onboarding for new users */}
+      <OnboardingPanel />
+
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 py-4">
         <div className="flex items-center justify-between mb-4">
@@ -50,7 +59,10 @@ export default function Home() {
 
       {/* Song List */}
       <div className="flex-1 px-4 py-4">
-        {filteredSongs.length === 0 ? (
+        {/* First-use checklist */}
+        <FirstUseChecklist />
+
+        {filteredSongs.length === 0 && isInitialized ? (
           <EmptyState onAddSong={() => setShowNewSongModal(true)} />
         ) : (
           <div className="space-y-3">
@@ -95,11 +107,17 @@ function EmptyState({ onAddSong }: { onAddSong: () => void }) {
 function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[number] }) {
   const confidence = getSongConfidence(song);
   const confidenceLevel = Math.round(confidence) || 1;
+  const isDemo = isDemoSong(song);
 
   return (
     <Link
       href={`/song/${song.id}`}
-      className="block p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-metmap-300 dark:hover:border-metmap-600 transition-colors"
+      className={clsx(
+        'block p-4 bg-white dark:bg-gray-800 rounded-xl border transition-colors',
+        isDemo
+          ? 'border-metmap-300 dark:border-metmap-700 ring-1 ring-metmap-200 dark:ring-metmap-800'
+          : 'border-gray-200 dark:border-gray-700 hover:border-metmap-300 dark:hover:border-metmap-600'
+      )}
     >
       <div className="flex items-start gap-3">
         {/* Confidence indicator */}
@@ -118,9 +136,16 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-            {song.title}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+              {song.title}
+            </h3>
+            {isDemo && (
+              <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-metmap-100 dark:bg-metmap-900 text-metmap-600 dark:text-metmap-400 rounded-full">
+                Demo
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
             {song.artist}
           </p>

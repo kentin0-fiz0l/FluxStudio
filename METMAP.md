@@ -126,12 +126,72 @@ The metronome engine includes defensive guards for reliability:
 - [ ] Page reload during playback restores position (paused)
 - [ ] Very short loop (< 1 second) handles gracefully
 
+## Public Beta Guide
+
+### Installing on Mobile (PWA)
+
+MetMap works as a Progressive Web App (PWA) - you can install it on your phone's home screen for a native app experience.
+
+**iOS (Safari):**
+1. Open `metmap.fluxstudio.art` in Safari
+2. Tap the Share button (square with arrow)
+3. Scroll down and tap "Add to Home Screen"
+4. Tap "Add" to confirm
+
+**Android (Chrome):**
+1. Open `metmap.fluxstudio.art` in Chrome
+2. Tap the three-dot menu (⋮)
+3. Tap "Add to Home screen" or "Install app"
+4. Tap "Add" to confirm
+
+### Creating a Tempo Map
+
+1. **Add a Song**: Tap "New Song" and enter the title and artist
+2. **Set Base Tempo**: In the song editor, set the starting BPM and time signature
+3. **Add Tempo Events**: Use the Tempo Map Editor to add tempo changes:
+   - Choose a timestamp (in seconds)
+   - Set the new BPM
+   - Select change type (instant, ramp, step, or swing)
+   - For ramps, set the duration of the transition
+4. **Test It**: Use the metronome toggle to hear your tempo map
+
+### Using Practice Mode Effectively
+
+1. **Map Your Sections First**: Break the song into logical sections with timestamps
+2. **Rate Your Confidence**: Give each section a 1-5 confidence rating
+3. **Start a Practice Session**: Tap "Practice" on the song page
+4. **Loop Weak Sections**: Toggle looping on sections you're struggling with
+5. **Use the Metronome**: Enable the metronome for timing practice
+6. **Mark Progress**: Update confidence as you improve
+7. **End Session**: Add notes about what you worked on
+
+### Tips for Musicians
+
+- **Demo Song**: Try the pre-loaded "MetMap Demo Song" to see tempo changes and time signature changes in action
+- **Visual-Only Mode**: Enable this for silent practice with just visual beat feedback
+- **Tap Tempo**: If you're not sure of the BPM, use tap tempo to find it
+- **Count-In**: Enable count-in to get ready before the metronome starts
+- **Latency Calibration**: If clicks feel off, calibrate your device's audio latency
+
+### Feature Flags
+
+The following features can be toggled via environment variables for staged rollout:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `NEXT_PUBLIC_FF_TEMPO_MAP_EDITOR` | `true` | Tempo map editor UI |
+| `NEXT_PUBLIC_FF_VISUAL_ONLY_MODE` | `true` | Silent visual-only mode |
+| `NEXT_PUBLIC_FF_LATENCY_CALIBRATION` | `true` | Audio latency calibration |
+| `NEXT_PUBLIC_FF_DEMO_SONG` | `true` | Auto-load demo song for new users |
+| `NEXT_PUBLIC_FF_ONBOARDING` | `true` | Show onboarding for new users |
+
 ## Tech Stack
 
 - Next.js 14 (App Router)
 - TypeScript
 - Zustand (state management with localStorage persistence)
 - Tailwind CSS
+- Web Audio API (metronome timing)
 
 ## Deployment
 
