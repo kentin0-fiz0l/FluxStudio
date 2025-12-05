@@ -1,0 +1,129 @@
+name: Deploy MetMap to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/tempo-map-*'
+      - 'claude/setup-metmap-*'
+    paths:
+      - 'metmap/**'
+      - '.github/workflows/deploy-metmap.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'metmap/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: metmap
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: metmap/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Build application
+        run: npm run build
+        env:
+          NEXT_PUBLIC_FF_TEMPO_MAP_EDITOR: 'true'
+          NEXT_PUBLIC_FF_VISUAL_ONLY_MODE: 'true'
+          NEXT_PUBLIC_FF_LATENCY_CALIBRATION: 'true'
+          NEXT_PUBLIC_FF_DEMO_SONG: 'true'
+          NEXT_PUBLIC_FF_ONBOARDING: 'true'
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: metmap-build
+          path: metmap/.next
+          retention-days: 1
+
+  deploy-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://metmap-staging.ondigitalocean.app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to DigitalOcean App Platform
+        uses: digitalocean/app_action@v2
+        with:
+          app_name: metmap
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          app_spec_location: metmap/.do/app.yaml
+
+      - name: Report deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ MetMap staging deployment successful!"
+            echo "URL: https://metmap-staging.ondigitalocean.app"
+          else
+            echo "❌ MetMap staging deployment failed"
+            exit 1
+          fi
+
+  deploy-production:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: https://metmap.fluxstudio.art
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to DigitalOcean App Platform
+        uses: digitalocean/app_action@v2
+        with:
+          app_name: metmap-production
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          app_spec_location: metmap/.do/app.yaml
+
+      - name: Report deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ MetMap production deployment successful!"
+            echo "URL: https://metmap.fluxstudio.art"
+          else
+            echo "❌ MetMap production deployment failed"
+            exit 1
+          fi
