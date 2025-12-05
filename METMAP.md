@@ -56,6 +56,76 @@ This architecture ensures clicks never drift or stutter, even when the UI is bus
 
 Tempo ramping uses linear interpolation across beats, and the engine automatically handles loop boundaries and count-in sequences.
 
+### Runtime Safeguards
+
+The metronome engine includes defensive guards for reliability:
+
+- **Audio Context Failures**: Graceful fallback when Web Audio API is unavailable
+- **Visual-Only Mode**: Silent practice with visual beat indicators when audio fails or for quiet environments
+- **Loop Validation**: Guards against invalid loop boundaries (start >= end, negative times)
+- **BPM Clamping**: Valid range enforced (20-400 BPM)
+- **Iteration Limits**: Scheduler loop protection prevents infinite loops
+- **State Persistence**: Playback position and loop boundaries persist across page reloads
+
+## Beta Usage
+
+### Features Ready for Testing
+
+1. **Metronome Playback** - Play/pause with tempo map support
+2. **Visual Beat Indicator** - Downbeat accent, beat dots
+3. **Visual-Only Mode** - Silent practice with visual feedback only
+4. **Tap Tempo** - Tap to detect BPM
+5. **Count-In** - Optional count-in bars before playback
+6. **Section Looping** - Loop individual sections during practice
+7. **State Persistence** - Position and loop boundaries restore on reload
+
+### Known Limitations
+
+- Audio may not work in some mobile browsers until user interaction
+- Tempo ramps with very short durations may sound slightly stepped
+- Loop boundaries under 0.5 seconds may cause timing jitter
+
+## Beta QA Checklist
+
+### Tempo Accuracy
+- [ ] Play at 60 BPM and verify clicks align with second marks
+- [ ] Play at 120 BPM for 2 minutes without drift
+- [ ] Play at 200 BPM and verify stable timing
+- [ ] Play at 40 BPM (slow) and verify no stuttering
+
+### Ramp Smoothness
+- [ ] Create tempo ramp from 80 to 120 BPM over 8 seconds
+- [ ] Verify gradual acceleration without audible steps
+- [ ] Create deceleration ramp (120 to 80 BPM)
+- [ ] Test ramp across loop boundary
+
+### Loop Transitions
+- [ ] Loop a 4-bar section and verify seamless transition
+- [ ] Loop a 1-bar section at high tempo
+- [ ] Loop a section with tempo change inside it
+- [ ] Change loop boundaries while playing
+
+### Tap Tempo Accuracy
+- [ ] Tap 8 times at known tempo (use external reference)
+- [ ] Verify detected BPM within ±2 of reference
+- [ ] Test tap tempo resets after 2 seconds of no taps
+- [ ] Verify tap tempo updates song BPM when callback provided
+
+### Mobile Browser Behavior
+- [ ] **iOS Safari**: First tap starts audio after user interaction
+- [ ] **iOS Safari**: Visual-only mode works without audio permission
+- [ ] **Android Chrome**: Audio plays reliably
+- [ ] **Android Chrome**: Large touch targets are easy to hit
+- [ ] Landscape orientation maintains usable layout
+- [ ] Portrait orientation shows all controls
+
+### Edge Cases
+- [ ] Rapid play/pause toggling (10x in 2 seconds) doesn't crash
+- [ ] Switching songs while playing stops cleanly
+- [ ] Editing tempo events while playing updates timing
+- [ ] Page reload during playback restores position (paused)
+- [ ] Very short loop (< 1 second) handles gracefully
+
 ## Tech Stack
 
 - Next.js 14 (App Router)

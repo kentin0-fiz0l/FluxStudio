@@ -331,6 +331,7 @@ export default function PracticeModePage() {
           loopStart={isLooping ? currentSection.startTime : null}
           loopEnd={isLooping ? currentSection.endTime : null}
           countInBars={preferences.countInBeats > 0 ? 1 : 0}
+          persistState
         />
       </div>
 

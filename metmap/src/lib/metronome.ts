@@ -41,6 +41,8 @@ export interface MetronomeOptions {
   onStateChange?: (state: MetronomeState) => void;
   /** Callback on each beat (for visual sync) */
   onBeat?: (beat: number, measure: number, isDownbeat: boolean) => void;
+  /** Callback on each subdivision (for visual pulse) */
+  onSubdivision?: (subdivision: number, beat: number) => void;
   /** High frequency for downbeat click (Hz) */
   downbeatFrequency?: number;
   /** Low frequency for other beats (Hz) */
@@ -49,16 +51,30 @@ export interface MetronomeOptions {
   clickDuration?: number;
   /** Master volume (0-1) */
   volume?: number;
+  /** Visual-only mode - no audio clicks */
+  visualOnly?: boolean;
+  /** Subdivisions per beat (1 = none, 2 = eighth notes, 4 = sixteenth notes) */
+  subdivisions?: number;
 }
 
 const DEFAULT_OPTIONS: Required<MetronomeOptions> = {
   onStateChange: () => {},
   onBeat: () => {},
+  onSubdivision: () => {},
   downbeatFrequency: 1000, // Higher pitch for downbeat
   beatFrequency: 800, // Lower pitch for other beats
   clickDuration: 0.05, // 50ms click
   volume: 0.7,
+  visualOnly: false,
+  subdivisions: 1,
 };
+
+/** Minimum valid BPM */
+const MIN_BPM = 20;
+/** Maximum valid BPM */
+const MAX_BPM = 400;
+/** Minimum loop duration in seconds */
+const MIN_LOOP_DURATION = 0.5;
 
 /**
  * Metronome Engine class
@@ -90,25 +106,70 @@ export class MetronomeEngine {
   private countInBeats = 0;
   private countInRemaining = 0;
 
+  // Error state
+  private initError: Error | null = null;
+  private initAttempted = false;
+
   constructor(options: MetronomeOptions = {}) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
   }
 
   /**
    * Initialize the audio context (must be called after user interaction)
+   * Returns true if initialization succeeded, false otherwise
    */
-  async init(): Promise<void> {
-    if (this.audioContext) return;
+  async init(): Promise<boolean> {
+    if (this.audioContext) return true;
 
-    this.audioContext = new AudioContext();
-    this.masterGain = this.audioContext.createGain();
-    this.masterGain.gain.value = this.options.volume;
-    this.masterGain.connect(this.audioContext.destination);
-
-    // Resume if suspended (browser autoplay policy)
-    if (this.audioContext.state === 'suspended') {
-      await this.audioContext.resume();
+    // Don't retry if we already failed
+    if (this.initAttempted && this.initError) {
+      console.warn('MetronomeEngine: Previous init failed, not retrying');
+      return false;
     }
+
+    this.initAttempted = true;
+
+    try {
+      // Check if Web Audio API is available
+      if (typeof AudioContext === 'undefined') {
+        throw new Error('Web Audio API not supported in this browser');
+      }
+
+      this.audioContext = new AudioContext();
+      this.masterGain = this.audioContext.createGain();
+      this.masterGain.gain.value = this.options.volume;
+      this.masterGain.connect(this.audioContext.destination);
+
+      // Resume if suspended (browser autoplay policy)
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+
+      this.initError = null;
+      return true;
+    } catch (error) {
+      this.initError = error instanceof Error ? error : new Error(String(error));
+      console.error('MetronomeEngine: Failed to initialize audio context:', this.initError.message);
+
+      // Clean up partial state
+      this.audioContext = null;
+      this.masterGain = null;
+      return false;
+    }
+  }
+
+  /**
+   * Check if audio is available
+   */
+  isAudioAvailable(): boolean {
+    return this.audioContext !== null && this.initError === null;
+  }
+
+  /**
+   * Get initialization error if any
+   */
+  getInitError(): Error | null {
+    return this.initError;
   }
 
   /**
@@ -120,8 +181,25 @@ export class MetronomeEngine {
 
   /**
    * Set loop boundaries (in seconds)
+   * Validates that boundaries are reasonable
    */
   setLoop(start: number | null, end: number | null): void {
+    // Validate loop boundaries
+    if (start !== null && end !== null) {
+      // Ensure start < end
+      if (start >= end) {
+        console.warn('MetronomeEngine: Invalid loop boundaries (start >= end), ignoring');
+        return;
+      }
+      // Ensure minimum loop duration
+      if (end - start < MIN_LOOP_DURATION) {
+        console.warn(`MetronomeEngine: Loop too short (< ${MIN_LOOP_DURATION}s), may cause issues`);
+      }
+      // Ensure non-negative
+      if (start < 0) {
+        start = 0;
+      }
+    }
     this.loopStart = start;
     this.loopEnd = end;
   }
@@ -145,12 +223,24 @@ export class MetronomeEngine {
 
   /**
    * Get current tempo and time signature at a given time
+   * Always returns valid, clamped values
    */
   private getTempoAt(time: number): { bpm: number; timeSignature: TimeSignature } {
     if (!this.song) {
       return { bpm: DEFAULT_BPM, timeSignature: DEFAULT_TIME_SIGNATURE };
     }
-    return getTempoAtTime(this.song, time);
+
+    const result = getTempoAtTime(this.song, time);
+
+    // Clamp BPM to valid range
+    result.bpm = Math.max(MIN_BPM, Math.min(MAX_BPM, result.bpm));
+
+    // Ensure valid time signature
+    if (!result.timeSignature || result.timeSignature.beats < 1 || result.timeSignature.noteValue < 1) {
+      result.timeSignature = DEFAULT_TIME_SIGNATURE;
+    }
+
+    return result;
   }
 
   /**
@@ -170,41 +260,76 @@ export class MetronomeEngine {
   }
 
   /**
-   * Schedule a click sound
+   * Schedule a click sound (respects visualOnly mode)
    */
   private scheduleClick(time: number, isDownbeat: boolean): void {
+    // Skip audio in visual-only mode
+    if (this.options.visualOnly) return;
     if (!this.audioContext || !this.masterGain) return;
 
-    const osc = this.audioContext.createOscillator();
-    const gain = this.audioContext.createGain();
+    try {
+      const osc = this.audioContext.createOscillator();
+      const gain = this.audioContext.createGain();
 
-    osc.connect(gain);
-    gain.connect(this.masterGain);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
 
-    // Set frequency based on beat type
-    osc.frequency.value = isDownbeat
-      ? this.options.downbeatFrequency
-      : this.options.beatFrequency;
+      // Set frequency based on beat type
+      osc.frequency.value = isDownbeat
+        ? this.options.downbeatFrequency
+        : this.options.beatFrequency;
 
-    // Sharp attack, quick decay envelope
-    gain.gain.setValueAtTime(0, time);
-    gain.gain.linearRampToValueAtTime(1, time + 0.001);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + this.options.clickDuration);
+      // Sharp attack, quick decay envelope
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime(1, time + 0.001);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + this.options.clickDuration);
 
-    osc.start(time);
-    osc.stop(time + this.options.clickDuration);
+      osc.start(time);
+      osc.stop(time + this.options.clickDuration);
+    } catch (error) {
+      // Audio scheduling can fail in edge cases; log but don't crash
+      console.warn('MetronomeEngine: Failed to schedule click:', error);
+    }
+  }
+
+  /**
+   * Set visual-only mode (no audio clicks)
+   */
+  setVisualOnly(visualOnly: boolean): void {
+    this.options.visualOnly = visualOnly;
+  }
+
+  /**
+   * Get visual-only mode state
+   */
+  isVisualOnly(): boolean {
+    return this.options.visualOnly;
   }
 
   /**
    * The main scheduler - runs periodically and schedules upcoming beats
+   * Works with or without audio context (for visual-only mode)
    */
   private scheduler = (): void => {
-    if (!this.audioContext || !this.isPlaying) return;
+    if (!this.isPlaying) return;
 
-    const currentTime = this.audioContext.currentTime;
+    // Use audio context time if available, otherwise Date-based time
+    const currentTime = this.audioContext
+      ? this.audioContext.currentTime
+      : Date.now() / 1000;
 
     // Schedule all beats that fall within the look-ahead window
+    // Safety limit to prevent infinite loops in edge cases
+    let iterationCount = 0;
+    const maxIterations = 100;
+
     while (this.nextBeatTime < currentTime + this.scheduleAheadTime) {
+      // Prevent infinite loops
+      if (++iterationCount > maxIterations) {
+        console.warn('MetronomeEngine: Scheduler iteration limit reached, stopping');
+        break;
+      }
+
       // Handle count-in
       if (this.countInRemaining > 0) {
         const isDownbeat = this.countInRemaining === this.countInBeats;
@@ -238,7 +363,7 @@ export class MetronomeEngine {
           // Jump back to loop start
           const overshoot = songTime - this.loopEnd;
           this.pauseTime = this.loopStart + overshoot;
-          this.startTime = this.audioContext.currentTime;
+          this.startTime = currentTime;
           this.nextBeatTime = this.startTime;
           this.currentBeat = 1;
           this.currentMeasure = 1;
@@ -296,14 +421,33 @@ export class MetronomeEngine {
 
   /**
    * Start playback
+   * Returns true if playback started successfully
    */
-  async start(fromTime = 0): Promise<void> {
-    await this.init();
-    if (!this.audioContext) return;
+  async start(fromTime = 0): Promise<boolean> {
+    // Prevent rapid toggling issues
+    if (this.isPlaying) {
+      return true;
+    }
+
+    // Try to initialize audio (may fail in visual-only mode or unsupported browsers)
+    const audioReady = await this.init();
+
+    // In visual-only mode, we can proceed without audio
+    if (!audioReady && !this.options.visualOnly) {
+      console.warn('MetronomeEngine: Audio not available and not in visual-only mode');
+      // Still allow visual-only operation
+    }
 
     this.isPlaying = true;
-    this.pauseTime = fromTime;
-    this.startTime = this.audioContext.currentTime;
+    this.pauseTime = Math.max(0, fromTime);
+
+    // Use audio context time if available, otherwise use Date.now() based timing
+    if (this.audioContext) {
+      this.startTime = this.audioContext.currentTime;
+    } else {
+      this.startTime = Date.now() / 1000;
+    }
+
     this.nextBeatTime = this.startTime;
     this.currentBeat = 1;
     this.currentMeasure = 1;
@@ -311,12 +455,19 @@ export class MetronomeEngine {
     // Set up count-in if configured
     this.countInRemaining = this.countInBeats;
 
+    // Clear any existing scheduler before starting new one
+    if (this.schedulerTimer !== null) {
+      window.clearInterval(this.schedulerTimer);
+    }
+
     // Start scheduler
     this.schedulerTimer = window.setInterval(this.scheduler, this.schedulerInterval);
     this.scheduler(); // Run immediately
 
     const { bpm, timeSignature } = this.getTempoAt(fromTime);
     this.emitState(bpm, timeSignature, fromTime);
+
+    return true;
   }
 
   /**
