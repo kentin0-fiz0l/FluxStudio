@@ -1,0 +1,51 @@
+# DigitalOcean App Platform Configuration
+# MetMap - Practice Tracking App for Musicians
+# Deploy via DO App Platform UI only (no CI automation)
+
+name: metmap
+region: nyc
+
+services:
+  - name: metmap
+    github:
+      repo: kentin0-fiz0l/FluxStudio
+      branch: main
+      deploy_on_push: true
+    source_dir: metmap
+    dockerfile_path: metmap/Dockerfile
+    http_port: 3000
+    health_check:
+      http_path: /
+      initial_delay_seconds: 30
+      period_seconds: 10
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    envs:
+      # Node Environment
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+
+      # Feature Flags (all enabled for beta)
+      - key: NEXT_PUBLIC_FF_TEMPO_MAP_EDITOR
+        value: "true"
+      - key: NEXT_PUBLIC_FF_VISUAL_ONLY_MODE
+        value: "true"
+      - key: NEXT_PUBLIC_FF_LATENCY_CALIBRATION
+        value: "true"
+      - key: NEXT_PUBLIC_FF_DEMO_SONG
+        value: "true"
+      - key: NEXT_PUBLIC_FF_ONBOARDING
+        value: "true"
+
+# Monitoring & Alerts
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+
+# Custom domain: Add metmap.fluxstudio.art after initial deployment
+# via DO App Platform UI → Settings → Domains
