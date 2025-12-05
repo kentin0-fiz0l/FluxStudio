@@ -12,12 +12,9 @@ import {
   Save,
   Clock,
   Music,
-  Settings,
-  MoreVertical,
 } from 'lucide-react';
 import { useMetMapStore, useSongStats } from '@/stores/useMetMapStore';
 import {
-  Song,
   Section,
   SectionType,
   ConfidenceLevel,
@@ -35,7 +32,6 @@ export default function SongEditorPage() {
   const song = useMetMapStore((state) => state.getSong(songId));
   const updateSong = useMetMapStore((state) => state.updateSong);
   const deleteSong = useMetMapStore((state) => state.deleteSong);
-  const addSection = useMetMapStore((state) => state.addSection);
   const updateSection = useMetMapStore((state) => state.updateSection);
   const deleteSection = useMetMapStore((state) => state.deleteSection);
   const stats = useSongStats(songId);
@@ -255,7 +251,6 @@ export default function SongEditorPage() {
               <SectionCard
                 key={section.id}
                 section={section}
-                songId={songId}
                 isEditing={editingSectionId === section.id}
                 onEdit={() => setEditingSectionId(section.id)}
                 onClose={() => setEditingSectionId(null)}
@@ -286,7 +281,6 @@ export default function SongEditorPage() {
       {showAddSection && (
         <AddSectionModal
           songId={songId}
-          songDuration={song.duration}
           onClose={() => setShowAddSection(false)}
         />
       )}
@@ -296,7 +290,6 @@ export default function SongEditorPage() {
 
 function SectionCard({
   section,
-  songId,
   isEditing,
   onEdit,
   onClose,
@@ -304,7 +297,6 @@ function SectionCard({
   onUpdate,
 }: {
   section: Section;
-  songId: string;
   isEditing: boolean;
   onEdit: () => void;
   onClose: () => void;
@@ -467,11 +459,9 @@ function SectionCard({
 
 function AddSectionModal({
   songId,
-  songDuration,
   onClose,
 }: {
   songId: string;
-  songDuration: number;
   onClose: () => void;
 }) {
   const addSection = useMetMapStore((state) => state.addSection);

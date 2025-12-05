@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Music, Calendar, Star, Search, MoreVertical } from 'lucide-react';
+import { Plus, Music, Calendar, Search, MoreVertical } from 'lucide-react';
 import { useMetMapStore, useSongsByLastPracticed } from '@/stores/useMetMapStore';
 import { formatTime, getSongConfidence } from '@/types/metmap';
 import { clsx } from 'clsx';

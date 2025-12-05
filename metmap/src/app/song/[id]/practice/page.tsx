@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -11,14 +11,11 @@ import {
   SkipForward,
   Repeat,
   Check,
-  ChevronUp,
-  ChevronDown,
   Clock,
   Zap,
 } from 'lucide-react';
 import { useMetMapStore } from '@/stores/useMetMapStore';
 import {
-  Section,
   ConfidenceLevel,
   SECTION_COLORS,
   formatTime,
