@@ -1,5 +1,7 @@
 # MetMap
 
+> **Deployment:** See [`metmap/DEPLOYMENT.md`](./metmap/DEPLOYMENT.md) for DigitalOcean setup.
+
 MetMap is a practice tracking app for musicians. It helps you break down songs into discrete sections (verse, chorus, bridge, solo, etc.), assign confidence levels to each section, and focus your practice time on the parts that need the most work. The app is designed to be mobile-friendly so you can use it on your phone during practice sessions.
 
 All data is stored locally in your browser's localStorage, so your songs and practice history persist between sessions without needing an account or backend. This makes MetMap work offline and keeps your data private. When deployed, MetMap lives at `metmap.fluxstudio.art` as a standalone Next.js application, separate from the main Flux Studio site.

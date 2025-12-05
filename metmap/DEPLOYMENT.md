@@ -2,6 +2,83 @@
 
 MetMap is designed to run as a standalone Next.js app at `metmap.fluxstudio.art`.
 
+## Quick Start
+
+Deploy MetMap to DigitalOcean App Platform in 4 steps:
+
+### 1. Create the App
+
+1. Log into [DigitalOcean](https://cloud.digitalocean.com/) → **Apps** → **Create App**
+2. Select **GitHub** as the source
+3. Authorize and select repo: `kentin0-fiz0l/FluxStudio`
+4. Choose branch: `main`
+
+### 2. Import the App Spec
+
+1. In the app creation flow, click **Edit** next to the detected component
+2. Click **Import App Spec** (or use "App Spec" tab)
+3. Paste the contents of `metmap/.do/app.yaml` or point to the file
+4. This configures:
+   - Source directory: `metmap`
+   - Build: `npm ci && npm run build`
+   - Run: `npm start`
+   - Port: `3000`
+   - Feature flags (all enabled)
+
+### 3. Deploy
+
+1. Review the configuration
+2. Select the cheapest plan (Basic, $5/mo is sufficient)
+3. Click **Create Resources**
+4. Wait for build and deployment (~3-5 minutes)
+5. You'll get a URL like `metmap-xxxxx.ondigitalocean.app`
+
+### 4. Attach Custom Domain
+
+1. In your app's dashboard → **Settings** → **Domains**
+2. Click **Add Domain** → enter `metmap.fluxstudio.art`
+3. Add a DNS CNAME record:
+   ```
+   metmap  CNAME  metmap-xxxxx.ondigitalocean.app
+   ```
+4. Wait for SSL certificate provisioning (usually <5 minutes)
+
+## Verification
+
+After deployment, verify everything works:
+
+### Basic Checks
+- [ ] App loads at the DO-provided URL
+- [ ] App loads at `metmap.fluxstudio.art` (after domain setup)
+- [ ] No console errors in browser dev tools
+
+### Feature Tests
+- [ ] Demo song appears for first-time users
+- [ ] Create a new song → verify it saves
+- [ ] Navigate to practice page (`/song/[id]/practice`)
+- [ ] Start metronome → hear clicks and see visual beat indicator
+- [ ] Test tap tempo → verify BPM detection
+- [ ] Test section looping
+
+### Mobile/PWA
+- [ ] Open on mobile device
+- [ ] "Add to Home Screen" prompt appears (or use share menu)
+- [ ] Installed PWA opens correctly
+- [ ] Touch targets are easy to tap
+
+## Using doctl (Optional)
+
+If you have the [DigitalOcean CLI](https://docs.digitalocean.com/reference/doctl/) installed:
+
+```bash
+# One-time app creation (mirrors the UI steps above)
+./scripts/do-create-metmap-app.sh
+```
+
+This is just a convenience wrapper—not CI. See the script for details.
+
+---
+
 ## Architecture
 
 ```
@@ -10,39 +87,11 @@ metmap.fluxstudio.art   → MetMap standalone app (Next.js) ← This app
 fluxstudio.art/metmap   → Redirects to metmap.fluxstudio.art
 ```
 
-## Deploying MetMap to DigitalOcean
-
-MetMap deploys via DigitalOcean App Platform UI only (no CI automation).
-
-### 1. Create DigitalOcean App
-
-1. Log into DigitalOcean → Apps → Create App
-2. Connect GitHub repo: `kentin0-fiz0l/FluxStudio`
-3. Import the app spec from `metmap/.do/app.yaml`
-4. Or configure manually:
-   - Source directory: `metmap`
-   - Build command: `npm ci && npm run build`
-   - Run command: `npm start`
-   - HTTP port: `3000`
-5. Deploy to get a URL like `metmap-xxxxx.ondigitalocean.app`
-
-### 2. Add Custom Domain
-
-1. In the DO App settings → Domains
-2. Add: `metmap.fluxstudio.art`
-3. Create DNS record:
-   ```
-   metmap  CNAME  metmap-xxxxx.ondigitalocean.app
-   ```
-4. Wait for SSL certificate provisioning
-
 ## Redirect from `fluxstudio.art/metmap`
 
 Since the main FluxStudio site uses Vite/React (not Next.js), you have several options:
 
 ### Option A: Server-level redirect (recommended)
-
-If using Nginx/Apache on the main site:
 
 **Nginx:**
 ```nginx
@@ -58,17 +107,7 @@ Redirect 302 /metmap https://metmap.fluxstudio.art
 
 ### Option B: Client-side redirect
 
-Add to FluxStudio's `index.html` or create a redirect component:
-
-```javascript
-// In FluxStudio's router (React Router v6)
-<Route
-  path="/metmap"
-  element={<Navigate to="https://metmap.fluxstudio.art" replace />}
-/>
-```
-
-Or add a simple HTML page at `public/metmap/index.html`:
+Add a simple HTML page at `public/metmap/index.html`:
 
 ```html
 <!DOCTYPE html>
@@ -83,21 +122,9 @@ Or add a simple HTML page at `public/metmap/index.html`:
 </html>
 ```
 
-### Option C: DigitalOcean App Platform redirect
-
-If the main site is also on DO App Platform, you can add a redirect rule in the app spec:
-
-```yaml
-routes:
-  - path: /metmap
-    redirect:
-      uri: https://metmap.fluxstudio.art
-      redirect_code: 302
-```
-
 ## Environment Variables
 
-MetMap currently uses localStorage only (no backend required). Feature flags are configured in `.do/app.yaml`:
+MetMap uses localStorage only (no backend). Feature flags are configured in `.do/app.yaml`:
 
 | Variable | Description |
 |----------|-------------|
@@ -118,9 +145,7 @@ MetMap includes a `manifest.json` for PWA support. For full PWA functionality:
 
 2. Consider adding a service worker for offline support (e.g., using `next-pwa`)
 
-## Routing Summary
-
-MetMap runs at root (`/`), so its routes are:
+## Routes
 
 | Route | Purpose |
 |-------|---------|
@@ -128,18 +153,10 @@ MetMap runs at root (`/`), so its routes are:
 | `/song/[id]` | Song editor |
 | `/song/[id]/practice` | Practice mode |
 
-No `/metmap` prefix needed within the app itself.
-
-## Deployment Checklist
+## Pre-Deployment Checklist
 
 Before deploying:
-- [ ] Run `npm run lint` (no errors)
-- [ ] Run `npm run build` (successful)
-- [ ] Test `npm start` locally
-- [ ] Verify feature flags in `.do/app.yaml`
-
-After deploying:
-- [ ] Verify app loads at DO-provided URL
-- [ ] Test metronome playback
-- [ ] Test tempo map editor
-- [ ] Add custom domain (if ready)
+- [ ] `npm run lint` passes (no errors)
+- [ ] `npm run build` succeeds
+- [ ] `npm start` runs locally
+- [ ] Feature flags verified in `.do/app.yaml`
