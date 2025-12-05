@@ -22,6 +22,8 @@ import {
   formatTime,
   parseTime,
 } from '@/types/metmap';
+import { TempoMapEditor } from '@/components/TempoMapEditor';
+import { MetronomeToggle } from '@/components/MetronomeControls';
 import { clsx } from 'clsx';
 
 export default function SongEditorPage() {
@@ -140,6 +142,8 @@ export default function SongEditorPage() {
               </button>
             )}
 
+            <MetronomeToggle song={song} />
+
             <Link
               href={`/song/${songId}/practice`}
               className="flex items-center gap-2 px-4 py-2 bg-metmap-500 hover:bg-metmap-600 text-white rounded-lg font-medium transition-colors"
@@ -215,6 +219,11 @@ export default function SongEditorPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Tempo Map Editor */}
+      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-800">
+        <TempoMapEditor songId={songId} />
       </div>
 
       {/* Sections List */}

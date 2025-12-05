@@ -21,6 +21,7 @@ import {
   formatTime,
   getSectionsNeedingPractice,
 } from '@/types/metmap';
+import { MetronomeControls } from '@/components/MetronomeControls';
 import { clsx } from 'clsx';
 
 export default function PracticeModePage() {
@@ -321,6 +322,16 @@ export default function PracticeModePage() {
             <span className="text-sm">Mark Done</span>
           </button>
         </div>
+      </div>
+
+      {/* Metronome Controls */}
+      <div className="px-4 pb-4">
+        <MetronomeControls
+          song={song}
+          loopStart={isLooping ? currentSection.startTime : null}
+          loopEnd={isLooping ? currentSection.endTime : null}
+          countInBars={preferences.countInBeats > 0 ? 1 : 0}
+        />
       </div>
 
       {/* Section Quick Nav */}
