@@ -15,9 +15,11 @@ import {
   Zap,
   Music,
   ChevronDown,
+  Grid3X3,
 } from 'lucide-react';
 import { useMetMapStore } from '@/stores/useMetMapStore';
-import { MetronomeControls } from '@/components/MetronomeControls';
+import { HardwareMetronome } from '@/components/HardwareMetronome';
+import { SectionPadGrid, ConfidenceRating } from '@/components/SectionPadGrid';
 import {
   ConfidenceLevel,
   SECTION_COLORS,
@@ -177,9 +179,9 @@ export default function PracticeModePage() {
     100;
 
   return (
-    <main className="flex-1 flex flex-col bg-gray-900 text-white">
+    <main className="flex-1 flex flex-col bg-hw-charcoal text-white">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-hw-surface">
         <button
           onClick={() => setShowEndSessionModal(true)}
           className="flex items-center gap-2 text-gray-400 hover:text-white"
@@ -223,9 +225,9 @@ export default function PracticeModePage() {
 
         {/* Progress bar */}
         <div className="w-full max-w-sm mb-8">
-          <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-2 bg-hw-surface rounded-full overflow-hidden">
             <div
-              className="h-full bg-metmap-500 transition-all duration-100"
+              className="h-full bg-hw-brass transition-all duration-100"
               style={{ width: `${Math.min(100, Math.max(0, sectionProgress))}%` }}
             />
           </div>
@@ -240,34 +242,22 @@ export default function PracticeModePage() {
           <p className="text-sm text-gray-400 text-center mb-3">
             How confident are you with this section?
           </p>
-          <div className="flex items-center gap-2">
-            {([1, 2, 3, 4, 5] as ConfidenceLevel[]).map((level) => (
-              <button
-                key={level}
-                onClick={() => handleConfidenceChange(level)}
-                className={clsx(
-                  'w-12 h-12 rounded-full text-lg font-bold transition-all tap-target',
-                  level <= currentSection.confidence
-                    ? 'bg-metmap-500 text-white scale-110'
-                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                )}
-              >
-                {level}
-              </button>
-            ))}
-          </div>
+          <ConfidenceRating
+            value={currentSection.confidence}
+            onChange={handleConfidenceChange}
+          />
         </div>
 
         {/* Notes */}
         {currentSection.notes && (
-          <div className="w-full max-w-sm p-4 bg-gray-800 rounded-xl mb-6">
+          <div className="w-full max-w-sm p-4 bg-hw-surface rounded-xl mb-6 shadow-pad">
             <p className="text-sm text-gray-300">{currentSection.notes}</p>
           </div>
         )}
       </div>
 
       {/* Playback Controls */}
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-hw-surface">
         {/* Section navigation */}
         <div className="flex items-center justify-center gap-4 mb-4">
           <button
@@ -280,7 +270,7 @@ export default function PracticeModePage() {
 
           <button
             onClick={() => setIsPaused(!isPaused)}
-            className="w-16 h-16 rounded-full bg-metmap-500 hover:bg-metmap-600 flex items-center justify-center tap-target"
+            className="w-16 h-16 rounded-full bg-hw-brass hover:bg-hw-brass/90 shadow-knob active:shadow-knob-pressed flex items-center justify-center tap-target transition-all"
           >
             {isPaused ? (
               <Play className="w-8 h-8 ml-1" />
@@ -307,10 +297,10 @@ export default function PracticeModePage() {
           <button
             onClick={() => setIsLooping(!isLooping)}
             className={clsx(
-              'flex items-center gap-2 px-4 py-2 rounded-lg tap-target',
+              'flex items-center gap-2 px-4 py-2 rounded-lg tap-target transition-all',
               isLooping
-                ? 'bg-metmap-500/20 text-metmap-400'
-                : 'text-gray-400 hover:bg-gray-800'
+                ? 'bg-hw-brass/20 text-hw-brass shadow-pad-active'
+                : 'text-gray-400 hover:bg-gray-800 shadow-pad'
             )}
           >
             <Repeat className="w-5 h-5" />
@@ -320,10 +310,10 @@ export default function PracticeModePage() {
           <button
             onClick={() => setShowMetronome(!showMetronome)}
             className={clsx(
-              'flex items-center gap-2 px-4 py-2 rounded-lg tap-target',
+              'flex items-center gap-2 px-4 py-2 rounded-lg tap-target transition-all',
               showMetronome
-                ? 'bg-blue-500/20 text-blue-400'
-                : 'text-gray-400 hover:bg-gray-800'
+                ? 'bg-hw-orange/20 text-hw-orange shadow-pad-active'
+                : 'text-gray-400 hover:bg-gray-800 shadow-pad'
             )}
           >
             <Music className="w-5 h-5" />
@@ -338,7 +328,7 @@ export default function PracticeModePage() {
 
           <button
             onClick={handleSectionComplete}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg tap-target"
+            className="flex items-center gap-2 px-4 py-2 bg-section-front hover:bg-section-front/90 rounded-lg tap-target shadow-pad active:shadow-pad-active transition-all"
           >
             <Check className="w-5 h-5" />
             <span className="text-sm">Mark Done</span>
@@ -348,36 +338,29 @@ export default function PracticeModePage() {
         {/* Metronome Panel */}
         {showMetronome && (
           <div className="mt-4">
-            <MetronomeControls />
+            <HardwareMetronome />
           </div>
         )}
       </div>
 
-      {/* Section Quick Nav */}
+      {/* Section Pad Grid */}
       <div className="px-4 pb-4">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4">
-          {song.sections.map((section, index) => (
-            <button
-              key={section.id}
-              onClick={() => setCurrentSectionIndex(index)}
-              className={clsx(
-                'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-all',
-                index === currentSectionIndex
-                  ? 'bg-metmap-500 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-              )}
-            >
-              {section.name}
-            </button>
-          ))}
-        </div>
+        <SectionPadGrid
+          sections={song.sections}
+          currentSectionIndex={currentSectionIndex}
+          onSectionSelect={setCurrentSectionIndex}
+          onConfidenceChange={(sectionId, confidence) =>
+            updateSectionConfidence(songId, sectionId, confidence)
+          }
+          maxColumns={4}
+        />
       </div>
 
       {/* Weak Sections Suggestion */}
       {weakSections.length > 0 && (
         <div className="px-4 pb-4">
-          <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-            <div className="flex items-center gap-2 text-yellow-400 text-sm mb-2">
+          <div className="p-3 bg-hw-orange/10 border border-hw-orange/30 rounded-xl">
+            <div className="flex items-center gap-2 text-hw-orange text-sm mb-2">
               <Zap className="w-4 h-4" />
               <span className="font-medium">Focus Areas</span>
             </div>
@@ -388,7 +371,7 @@ export default function PracticeModePage() {
                   <button
                     key={section.id}
                     onClick={() => setCurrentSectionIndex(index)}
-                    className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded hover:bg-yellow-500/30"
+                    className="text-xs px-2 py-1 bg-hw-orange/20 text-hw-peach rounded shadow-pad hover:bg-hw-orange/30 active:shadow-pad-active transition-all"
                   >
                     {section.name} ({section.confidence}/5)
                   </button>
@@ -425,7 +408,10 @@ function EndSessionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70">
-      <div className="w-full max-w-md bg-gray-800 rounded-t-2xl sm:rounded-2xl">
+      <div className="w-full max-w-md bg-hw-charcoal rounded-t-2xl sm:rounded-2xl overflow-hidden">
+        {/* Brass accent strip */}
+        <div className="h-1.5 bg-gradient-to-r from-hw-brass via-hw-peach to-hw-brass" />
+
         <div className="p-6">
           <h2 className="text-xl font-bold text-white mb-2">End Practice Session</h2>
           <p className="text-gray-400 mb-6">
@@ -434,29 +420,17 @@ function EndSessionModal({
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">
+              <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-2">
                 How did it go?
               </label>
-              <div className="flex items-center gap-2">
-                {([1, 2, 3, 4, 5] as ConfidenceLevel[]).map((level) => (
-                  <button
-                    key={level}
-                    onClick={() => setRating(level)}
-                    className={clsx(
-                      'flex-1 py-3 rounded-lg font-bold transition-all',
-                      rating === level
-                        ? 'bg-metmap-500 text-white'
-                        : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                    )}
-                  >
-                    {level}
-                  </button>
-                ))}
-              </div>
+              <ConfidenceRating
+                value={rating || 3}
+                onChange={setRating}
+              />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">
+              <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-2">
                 Session notes (optional)
               </label>
               <textarea
@@ -464,22 +438,22 @@ function EndSessionModal({
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="What did you work on? Any breakthroughs?"
                 rows={3}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-metmap-500 resize-none"
+                className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass resize-none"
               />
             </div>
           </div>
         </div>
 
-        <div className="flex gap-3 p-4 border-t border-gray-700">
+        <div className="flex gap-3 p-4 border-t border-hw-surface">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-3 text-gray-400 hover:bg-gray-700 rounded-lg font-medium"
+            className="flex-1 px-4 py-3 text-gray-400 hover:bg-hw-surface rounded-lg font-medium shadow-pad active:shadow-pad-active transition-all"
           >
             Keep Practicing
           </button>
           <button
             onClick={() => onEnd(notes || undefined, rating)}
-            className="flex-1 px-4 py-3 bg-metmap-500 hover:bg-metmap-600 text-white rounded-lg font-medium"
+            className="flex-1 px-4 py-3 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal rounded-lg font-medium shadow-pad active:shadow-pad-active transition-all"
           >
             End Session
           </button>
