@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useMetronome, SoundPreset } from '@/hooks/useMetronome';
 import { TIME_SIGNATURES } from '@/lib/accentPatterns';
 import { clsx } from 'clsx';
@@ -235,7 +235,7 @@ function HardwareButton({
 export function HardwareMetronome({
   className = '',
   onTempoChange,
-  compact = false,
+  compact: _compact = false,
 }: HardwareMetronomeProps) {
   const {
     isPlaying,
