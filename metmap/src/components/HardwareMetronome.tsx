@@ -235,7 +235,6 @@ function HardwareButton({
 export function HardwareMetronome({
   className = '',
   onTempoChange,
-  compact: _compact = false,
 }: HardwareMetronomeProps) {
   const {
     isPlaying,

@@ -35,13 +35,11 @@ function SectionPad({
   index,
   isActive,
   onSelect,
-  onConfidenceChange: _onConfidenceChange,
 }: {
   section: Section;
   index: number;
   isActive: boolean;
   onSelect: () => void;
-  onConfidenceChange?: (confidence: ConfidenceLevel) => void;
 }) {
   const sectionColor = section.color || SECTION_COLORS[section.type];
   const confidenceColor = getConfidenceColor(section.confidence);
@@ -107,6 +105,7 @@ export function SectionPadGrid({
   sections,
   currentSectionIndex,
   onSectionSelect,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onConfidenceChange,
   className = '',
   maxColumns = 4,
@@ -149,11 +148,6 @@ export function SectionPadGrid({
             index={index}
             isActive={index === currentSectionIndex}
             onSelect={() => onSectionSelect(index)}
-            onConfidenceChange={
-              onConfidenceChange
-                ? (conf) => onConfidenceChange(section.id, conf)
-                : undefined
-            }
           />
         ))}
       </div>
