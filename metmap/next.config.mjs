@@ -5,6 +5,22 @@ const nextConfig = {
 
   // Enable standalone output for Docker deployment
   output: 'standalone',
+
+  // Allow OAuth provider images (Google, GitHub avatars)
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
