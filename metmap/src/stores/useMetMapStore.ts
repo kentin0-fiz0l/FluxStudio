@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { useEffect } from 'react';
 import {
   Song,
   Section,
@@ -319,6 +320,8 @@ export const useMetMapStore = create<MetMapStore>()(
       name: 'metmap-storage',
       storage: createJSONStorage(() => localStorage),
       version: 1,
+      // Skip hydration during SSR to avoid hydration mismatch
+      skipHydration: true,
       // Handle migrations between versions
       migrate: (persistedState, version) => {
         if (version === 0) {
@@ -336,6 +339,16 @@ export const useMetMapStore = create<MetMapStore>()(
     }
   )
 );
+
+/**
+ * Hook to hydrate the store from localStorage on the client.
+ * Call this once in your app's root layout or provider.
+ */
+export function useStoreHydration() {
+  useEffect(() => {
+    useMetMapStore.persist.rehydrate();
+  }, []);
+}
 
 /**
  * Hook to get songs sorted by last practiced (most recent first)
