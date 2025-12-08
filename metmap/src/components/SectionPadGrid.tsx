@@ -35,7 +35,7 @@ function SectionPad({
   index,
   isActive,
   onSelect,
-  onConfidenceChange,
+  onConfidenceChange: _onConfidenceChange,
 }: {
   section: Section;
   index: number;

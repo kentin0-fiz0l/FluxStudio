@@ -15,7 +15,6 @@ import {
   Zap,
   Music,
   ChevronDown,
-  Grid3X3,
 } from 'lucide-react';
 import { useMetMapStore } from '@/stores/useMetMapStore';
 import { HardwareMetronome } from '@/components/HardwareMetronome';
