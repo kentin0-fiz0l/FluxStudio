@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { AuthProvider } from '@/components/auth';
+import { StoreProvider } from '@/components/StoreProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -33,9 +34,11 @@ export default function RootLayout({
     <html lang="en">
       <body className="font-sans antialiased">
         <AuthProvider>
-          <div className="min-h-screen flex flex-col">
-            {children}
-          </div>
+          <StoreProvider>
+            <div className="min-h-screen flex flex-col">
+              {children}
+            </div>
+          </StoreProvider>
         </AuthProvider>
       </body>
     </html>

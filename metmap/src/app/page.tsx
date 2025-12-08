@@ -1,15 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Music, Calendar, Search, MoreVertical } from 'lucide-react';
 import { useMetMapStore, useSongsByLastPracticed } from '@/stores/useMetMapStore';
 import { formatTime, getSongConfidence } from '@/types/metmap';
 import { clsx } from 'clsx';
 
+// Hook to detect when client-side hydration is complete
+function useHasMounted() {
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  return hasMounted;
+}
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewSongModal, setShowNewSongModal] = useState(false);
+  const hasMounted = useHasMounted();
   const songs = useSongsByLastPracticed();
 
   const filteredSongs = songs.filter(
@@ -50,7 +60,22 @@ export default function Home() {
 
       {/* Song List */}
       <div className="flex-1 px-4 py-4">
-        {filteredSongs.length === 0 ? (
+        {!hasMounted ? (
+          // Loading skeleton while hydrating from localStorage
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 animate-pulse">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700" />
+                  <div className="flex-1">
+                    <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2" />
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredSongs.length === 0 ? (
           <EmptyState onAddSong={() => setShowNewSongModal(true)} />
         ) : (
           <div className="space-y-3">
