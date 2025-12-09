@@ -5,6 +5,7 @@ import GitHubProvider from 'next-auth/providers/github';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
+import { generateMusicalUsername, ensureUniqueUsername } from './username';
 
 // Extend the built-in session types
 declare module 'next-auth' {
@@ -107,8 +108,31 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async createUser({ user }) {
-      // Create default preferences for new users
+      // Generate a unique name if the user doesn't have one or has a duplicate
       if (user.id) {
+        const baseName = user.name || generateMusicalUsername();
+        const uniqueName = await ensureUniqueUsername(baseName, async (candidate) => {
+          // Check if another user (not this one) has this name
+          const existing = await prisma.user.findFirst({
+            where: {
+              name: candidate,
+              NOT: { id: user.id },
+            },
+          });
+          return !!existing;
+        });
+
+        // Update user with unique name if different
+        if (uniqueName !== user.name) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { name: uniqueName },
+          }).catch(() => {
+            // Ignore if update fails
+          });
+        }
+
+        // Create default preferences for new users
         await prisma.userPreferences.create({
           data: {
             userId: user.id,
