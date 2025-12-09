@@ -108,7 +108,7 @@ export default function HelpPage() {
         {/* Version info */}
         <div className="text-center text-gray-500 text-xs space-y-1">
           <p>MetMap v1.0.0</p>
-          <p>Build 2024.12.09</p>
+          <p>Build 2025.12.09</p>
         </div>
       </main>
     </div>
