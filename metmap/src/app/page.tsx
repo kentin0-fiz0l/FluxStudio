@@ -29,16 +29,16 @@ export default function Home() {
   );
 
   return (
-    <main className="flex-1 flex flex-col max-w-2xl mx-auto w-full">
+    <main className="flex-1 flex flex-col max-w-2xl mx-auto w-full bg-hw-charcoal">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 py-4">
+      <header className="sticky top-0 z-10 bg-hw-charcoal/95 backdrop-blur-sm border-b border-hw-surface px-4 py-4">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            MetMap
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <span className="text-hw-brass">Met</span>Map
           </h1>
           <button
             onClick={() => setShowNewSongModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-metmap-500 hover:bg-metmap-600 text-white rounded-lg font-medium transition-colors tap-target"
+            className="flex items-center gap-2 px-4 py-2 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active tap-target"
           >
             <Plus className="w-5 h-5" />
             <span className="hidden sm:inline">New Song</span>
@@ -47,13 +47,13 @@ export default function Home() {
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
           <input
             type="text"
             placeholder="Search songs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-metmap-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2.5 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass focus:border-transparent transition-all"
           />
         </div>
       </header>
@@ -64,12 +64,12 @@ export default function Home() {
           // Loading skeleton while hydrating from localStorage
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 animate-pulse">
+              <div key={i} className="p-4 bg-hw-surface rounded-xl shadow-pad animate-pulse">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700" />
+                  <div className="w-12 h-12 rounded-lg bg-gray-700" />
                   <div className="flex-1">
-                    <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2" />
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                    <div className="h-5 bg-gray-700 rounded w-3/4 mb-2" />
+                    <div className="h-4 bg-gray-700 rounded w-1/2" />
                   </div>
                 </div>
               </div>
@@ -97,18 +97,18 @@ export default function Home() {
 function EmptyState({ onAddSong }: { onAddSong: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-16 h-16 mb-4 rounded-full bg-metmap-100 dark:bg-metmap-900 flex items-center justify-center">
-        <Music className="w-8 h-8 text-metmap-500" />
+      <div className="w-16 h-16 mb-4 rounded-full bg-hw-surface flex items-center justify-center shadow-pad">
+        <Music className="w-8 h-8 text-hw-brass" />
       </div>
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+      <h2 className="text-xl font-semibold text-white mb-2">
         No songs yet
       </h2>
-      <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm">
+      <p className="text-gray-400 mb-6 max-w-sm">
         Add your first song to start mapping out sections and tracking your practice progress.
       </p>
       <button
         onClick={onAddSong}
-        className="flex items-center gap-2 px-6 py-3 bg-metmap-500 hover:bg-metmap-600 text-white rounded-lg font-medium transition-colors"
+        className="flex items-center gap-2 px-6 py-3 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active"
       >
         <Plus className="w-5 h-5" />
         Add Your First Song
@@ -121,36 +121,43 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
   const confidence = getSongConfidence(song);
   const confidenceLevel = Math.round(confidence) || 1;
 
+  const getConfidenceColor = (level: number) => {
+    if (confidence === 0) return 'bg-gray-600';
+    const colors = {
+      1: 'bg-red-500',
+      2: 'bg-orange-500',
+      3: 'bg-yellow-500',
+      4: 'bg-lime-500',
+      5: 'bg-green-500',
+    };
+    return colors[level as keyof typeof colors] || 'bg-gray-600';
+  };
+
   return (
     <Link
       href={`/song/${song.id}`}
-      className="block p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-metmap-300 dark:hover:border-metmap-600 transition-colors"
+      className="block p-4 bg-hw-surface rounded-xl shadow-pad hover:shadow-pad-active border border-transparent hover:border-hw-brass/30 transition-all"
     >
       <div className="flex items-start gap-3">
         {/* Confidence indicator */}
         <div
           className={clsx(
-            'w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold',
-            confidenceLevel === 1 && 'bg-red-500',
-            confidenceLevel === 2 && 'bg-orange-500',
-            confidenceLevel === 3 && 'bg-yellow-500',
-            confidenceLevel === 4 && 'bg-lime-500',
-            confidenceLevel === 5 && 'bg-green-500',
-            confidence === 0 && 'bg-gray-400'
+            'w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold shadow-knob',
+            getConfidenceColor(confidenceLevel)
           )}
         >
           {confidence > 0 ? confidence.toFixed(1) : '-'}
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+          <h3 className="font-semibold text-white truncate">
             {song.title}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+          <p className="text-sm text-gray-400 truncate">
             {song.artist}
           </p>
 
-          <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 dark:text-gray-500">
+          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
             <span className="flex items-center gap-1">
               <Music className="w-3 h-3" />
               {song.sections.length} sections
@@ -172,7 +179,7 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
             e.preventDefault();
             // TODO: Show song menu
           }}
-          className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+          className="p-2 text-gray-500 hover:text-gray-300 rounded-lg hover:bg-hw-charcoal transition-colors"
         >
           <MoreVertical className="w-5 h-5" />
         </button>
@@ -180,7 +187,7 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
 
       {/* Section preview bar */}
       {song.sections.length > 0 && song.duration > 0 && (
-        <div className="mt-3 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden flex">
+        <div className="mt-3 h-2 bg-hw-charcoal rounded-full overflow-hidden flex">
           {song.sections.map((section) => {
             const width = ((section.endTime - section.startTime) / song.duration) * 100;
             const left = (section.startTime / song.duration) * 100;
@@ -225,19 +232,25 @@ function NewSongModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+      <div className="w-full max-w-md bg-hw-charcoal rounded-2xl shadow-xl overflow-hidden">
+        {/* Brass accent strip */}
+        <div className="h-1.5 bg-gradient-to-r from-hw-brass via-hw-peach to-hw-brass" />
+
         <form onSubmit={handleSubmit}>
           <div className="p-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-xl font-bold text-white mb-1">
               Add New Song
             </h2>
+            <p className="text-sm text-gray-400 mb-6">
+              Start tracking your practice progress
+            </p>
 
             <div className="space-y-4">
               <div>
                 <label
                   htmlFor="title"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5"
                 >
                   Song Title
                 </label>
@@ -247,7 +260,7 @@ function NewSongModal({ onClose }: { onClose: () => void }) {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g., Autumn Leaves"
-                  className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-metmap-500"
+                  className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
                   autoFocus
                 />
               </div>
@@ -255,7 +268,7 @@ function NewSongModal({ onClose }: { onClose: () => void }) {
               <div>
                 <label
                   htmlFor="artist"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5"
                 >
                   Artist / Composer
                 </label>
@@ -265,24 +278,24 @@ function NewSongModal({ onClose }: { onClose: () => void }) {
                   value={artist}
                   onChange={(e) => setArtist(e.target.value)}
                   placeholder="e.g., Joseph Kosma"
-                  className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-metmap-500"
+                  className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
                 />
               </div>
             </div>
           </div>
 
-          <div className="flex gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex gap-3 p-4 border-t border-hw-surface">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors"
+              className="flex-1 px-4 py-3 text-gray-400 hover:bg-hw-surface rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!title.trim() || !artist.trim()}
-              className="flex-1 px-4 py-2 bg-metmap-500 hover:bg-metmap-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-3 bg-hw-brass hover:bg-hw-brass/90 disabled:bg-gray-600 disabled:text-gray-400 text-hw-charcoal rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active disabled:cursor-not-allowed disabled:shadow-none"
             >
               Create Song
             </button>

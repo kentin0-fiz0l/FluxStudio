@@ -53,12 +53,12 @@ export default function SongEditorPage() {
 
   if (!song) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center bg-hw-charcoal">
         <div className="text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Song not found</p>
+          <p className="text-gray-400 mb-4">Song not found</p>
           <Link
             href="/"
-            className="text-metmap-500 hover:text-metmap-600 font-medium"
+            className="text-hw-brass hover:text-hw-peach font-medium"
           >
             Go back home
           </Link>
@@ -84,13 +84,13 @@ export default function SongEditorPage() {
   };
 
   return (
-    <main className="flex-1 flex flex-col max-w-2xl mx-auto w-full">
+    <main className="flex-1 flex flex-col max-w-2xl mx-auto w-full bg-hw-charcoal">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 px-4 py-4">
+      <header className="sticky top-0 z-10 bg-hw-charcoal/95 backdrop-blur-sm border-b border-hw-surface px-4 py-4">
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="p-2 -ml-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-2 -ml-2 text-gray-400 hover:text-white rounded-lg hover:bg-hw-surface transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
@@ -101,23 +101,23 @@ export default function SongEditorPage() {
                 type="text"
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
-                className="w-full text-xl font-bold bg-transparent border-b border-metmap-500 focus:outline-none"
+                className="w-full text-xl font-bold bg-transparent border-b border-hw-brass focus:outline-none text-white"
                 placeholder="Song title"
               />
               <input
                 type="text"
                 value={editArtist}
                 onChange={(e) => setEditArtist(e.target.value)}
-                className="w-full text-sm text-gray-500 bg-transparent border-b border-gray-300 focus:outline-none mt-1"
+                className="w-full text-sm text-gray-400 bg-transparent border-b border-gray-600 focus:border-hw-brass focus:outline-none mt-1"
                 placeholder="Artist"
               />
             </div>
           ) : (
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white truncate">
+              <h1 className="text-xl font-bold text-white truncate">
                 {song.title}
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+              <p className="text-sm text-gray-400 truncate">
                 {song.artist}
               </p>
             </div>
@@ -127,14 +127,14 @@ export default function SongEditorPage() {
             {isEditing ? (
               <button
                 onClick={handleSaveDetails}
-                className="p-2 text-metmap-500 hover:bg-metmap-50 dark:hover:bg-metmap-900/20 rounded-lg"
+                className="p-2 text-hw-brass hover:bg-hw-surface rounded-lg transition-colors"
               >
                 <Save className="w-5 h-5" />
               </button>
             ) : (
               <button
                 onClick={() => setIsEditing(true)}
-                className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-hw-surface transition-colors"
               >
                 <Edit3 className="w-5 h-5" />
               </button>
@@ -142,7 +142,7 @@ export default function SongEditorPage() {
 
             <Link
               href={`/song/${songId}/practice`}
-              className="flex items-center gap-2 px-4 py-2 bg-metmap-500 hover:bg-metmap-600 text-white rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active"
             >
               <Play className="w-4 h-4" />
               Practice
@@ -152,8 +152,8 @@ export default function SongEditorPage() {
       </header>
 
       {/* Song Info */}
-      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+      <div className="px-4 py-4 border-b border-hw-surface">
+        <div className="flex items-center gap-6 text-sm text-gray-400">
           {isEditing ? (
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
@@ -162,7 +162,7 @@ export default function SongEditorPage() {
                 value={editDuration}
                 onChange={(e) => setEditDuration(e.target.value)}
                 placeholder="3:45"
-                className="w-16 bg-transparent border-b border-gray-300 focus:border-metmap-500 focus:outline-none"
+                className="w-16 bg-transparent border-b border-gray-600 focus:border-hw-brass focus:outline-none text-white"
               />
             </div>
           ) : song.duration > 0 ? (
@@ -187,7 +187,7 @@ export default function SongEditorPage() {
         {/* Section Timeline */}
         {song.sections.length > 0 && song.duration > 0 && (
           <div className="mt-4">
-            <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden relative">
+            <div className="h-8 bg-hw-surface rounded-lg overflow-hidden relative shadow-pad">
               {song.sections.map((section) => {
                 const width =
                   ((section.endTime - section.startTime) / song.duration) * 100;
@@ -209,7 +209,7 @@ export default function SongEditorPage() {
                 );
               })}
             </div>
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
               <span>0:00</span>
               <span>{formatTime(song.duration)}</span>
             </div>
@@ -220,12 +220,12 @@ export default function SongEditorPage() {
       {/* Sections List */}
       <div className="flex-1 px-4 py-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-lg font-semibold text-white">
             Sections
           </h2>
           <button
             onClick={() => setShowAddSection(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-metmap-500 hover:bg-metmap-50 dark:hover:bg-metmap-900/20 rounded-lg font-medium transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-hw-brass hover:bg-hw-surface rounded-lg font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Section
@@ -234,12 +234,12 @@ export default function SongEditorPage() {
 
         {song.sections.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
+            <p className="text-gray-400 mb-4">
               No sections yet. Add sections to map out different parts of the song.
             </p>
             <button
               onClick={() => setShowAddSection(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-metmap-500 hover:bg-metmap-50 dark:hover:bg-metmap-900/20 rounded-lg font-medium"
+              className="inline-flex items-center gap-2 px-4 py-2 text-hw-brass hover:bg-hw-surface rounded-lg font-medium transition-colors"
             >
               <Plus className="w-5 h-5" />
               Add First Section
@@ -267,10 +267,10 @@ export default function SongEditorPage() {
       </div>
 
       {/* Delete Song Button */}
-      <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-800">
+      <div className="px-4 py-4 border-t border-hw-surface">
         <button
           onClick={handleDeleteSong}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg font-medium transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-hw-red hover:bg-hw-red/10 rounded-lg font-medium transition-colors"
         >
           <Trash2 className="w-4 h-4" />
           Delete Song
@@ -322,43 +322,43 @@ function SectionCard({
 
   if (isEditing) {
     return (
-      <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-metmap-500 space-y-3">
+      <div className="p-4 bg-hw-surface rounded-xl border-2 border-hw-brass shadow-pad space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
-            <label className="block text-xs text-gray-500 mb-1">Name</label>
+            <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">Name</label>
             <input
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-metmap-500"
+              className="w-full px-3 py-2 bg-hw-charcoal rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-hw-brass text-white"
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Start</label>
+            <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">Start</label>
             <input
               type="text"
               value={editStart}
               onChange={(e) => setEditStart(e.target.value)}
               placeholder="0:00"
-              className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-metmap-500"
+              className="w-full px-3 py-2 bg-hw-charcoal rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-hw-brass text-white"
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">End</label>
+            <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">End</label>
             <input
               type="text"
               value={editEnd}
               onChange={(e) => setEditEnd(e.target.value)}
               placeholder="0:30"
-              className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-metmap-500"
+              className="w-full px-3 py-2 bg-hw-charcoal rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-hw-brass text-white"
             />
           </div>
           <div className="col-span-2">
-            <label className="block text-xs text-gray-500 mb-1">Type</label>
+            <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">Type</label>
             <select
               value={editType}
               onChange={(e) => setEditType(e.target.value as SectionType)}
-              className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-metmap-500"
+              className="w-full px-3 py-2 bg-hw-charcoal rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-hw-brass text-white"
             >
               {Object.keys(SECTION_COLORS).map((type) => (
                 <option key={type} value={type}>
@@ -368,26 +368,26 @@ function SectionCard({
             </select>
           </div>
           <div className="col-span-2">
-            <label className="block text-xs text-gray-500 mb-1">Notes</label>
+            <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">Notes</label>
             <textarea
               value={editNotes}
               onChange={(e) => setEditNotes(e.target.value)}
               placeholder="Any notes about this section..."
               rows={2}
-              className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-metmap-500 resize-none"
+              className="w-full px-3 py-2 bg-hw-charcoal rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-hw-brass text-white resize-none"
             />
           </div>
         </div>
         <div className="flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium"
+            className="flex-1 px-3 py-2 text-gray-400 hover:bg-hw-charcoal rounded-lg font-medium transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 px-3 py-2 bg-metmap-500 hover:bg-metmap-600 text-white rounded-lg font-medium"
+            className="flex-1 px-3 py-2 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal rounded-lg font-medium transition-colors"
           >
             Save
           </button>
@@ -398,7 +398,7 @@ function SectionCard({
 
   return (
     <div
-      className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer"
+      className="flex items-center gap-3 p-3 bg-hw-surface rounded-xl shadow-pad hover:shadow-pad-active border border-transparent hover:border-hw-brass/30 transition-all cursor-pointer"
       onClick={onEdit}
     >
       {/* Color indicator */}
@@ -410,14 +410,14 @@ function SectionCard({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-gray-900 dark:text-white">
+          <span className="font-medium text-white">
             {section.name}
           </span>
-          <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-500">
+          <span className="text-xs px-2 py-0.5 bg-hw-charcoal rounded text-gray-400">
             {section.type}
           </span>
         </div>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="text-sm text-gray-500">
           {formatTime(section.startTime)} - {formatTime(section.endTime)}
         </div>
       </div>
@@ -432,10 +432,10 @@ function SectionCard({
               onUpdate({ confidence: level as ConfidenceLevel });
             }}
             className={clsx(
-              'w-6 h-6 rounded-full text-xs font-medium transition-all',
+              'w-6 h-6 rounded-full text-xs font-medium transition-all shadow-knob',
               level <= section.confidence
-                ? 'bg-metmap-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                ? 'bg-hw-brass text-hw-charcoal'
+                : 'bg-hw-charcoal text-gray-500 hover:bg-gray-700'
             )}
           >
             {level}
@@ -449,7 +449,7 @@ function SectionCard({
           e.stopPropagation();
           onDelete();
         }}
-        className="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+        className="p-2 text-gray-500 hover:text-hw-red rounded-lg hover:bg-hw-charcoal transition-colors"
       >
         <Trash2 className="w-4 h-4" />
       </button>
@@ -484,17 +484,23 @@ function AddSectionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+      <div className="w-full max-w-md bg-hw-charcoal rounded-2xl shadow-xl overflow-hidden">
+        {/* Brass accent strip */}
+        <div className="h-1.5 bg-gradient-to-r from-hw-brass via-hw-peach to-hw-brass" />
+
         <form onSubmit={handleSubmit}>
           <div className="p-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-xl font-bold text-white mb-1">
               Add Section
             </h2>
+            <p className="text-sm text-gray-400 mb-6">
+              Map out a part of the song
+            </p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
                   Section Name
                 </label>
                 <input
@@ -502,19 +508,19 @@ function AddSectionModal({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g., Verse 1, Chorus, Bridge"
-                  className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-metmap-500"
+                  className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
                   Section Type
                 </label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as SectionType)}
-                  className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-metmap-500"
+                  className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
                 >
                   {Object.keys(SECTION_COLORS).map((t) => (
                     <option key={t} value={t}>
@@ -526,7 +532,7 @@ function AddSectionModal({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
                     Start Time
                   </label>
                   <input
@@ -534,11 +540,11 @@ function AddSectionModal({
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
                     placeholder="0:00"
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-metmap-500"
+                    className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
                     End Time
                   </label>
                   <input
@@ -546,25 +552,25 @@ function AddSectionModal({
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
                     placeholder="0:30"
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-metmap-500"
+                    className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex gap-3 p-4 border-t border-hw-surface">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors"
+              className="flex-1 px-4 py-3 text-gray-400 hover:bg-hw-surface rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!name.trim()}
-              className="flex-1 px-4 py-2 bg-metmap-500 hover:bg-metmap-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-3 bg-hw-brass hover:bg-hw-brass/90 disabled:bg-gray-600 disabled:text-gray-400 text-hw-charcoal rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active disabled:cursor-not-allowed disabled:shadow-none"
             >
               Add Section
             </button>
