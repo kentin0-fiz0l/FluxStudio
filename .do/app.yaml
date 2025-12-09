@@ -138,6 +138,9 @@ services:
         value: "true"
 
       # Redis (Optional - for Socket.IO scaling)
+      # Disabled by default - enable when Redis database is added
+      - key: USE_REDIS
+        value: "false"
       - key: REDIS_URL
         scope: RUN_TIME
         type: SECRET
