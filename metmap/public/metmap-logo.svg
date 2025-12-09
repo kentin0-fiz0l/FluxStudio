@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" fill="none">
+  <defs>
+    <!-- Glow filter for the chromatic aberration effect -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Pink/Magenta offset layer (chromatic aberration) -->
+  <path
+    d="M 80 340
+       L 120 180
+       L 180 320
+       L 250 100
+       L 320 320
+       L 380 200
+       L 400 280
+       Q 420 340 380 360
+       L 360 340"
+    stroke="#FF69B4"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    transform="translate(-3, -3)"
+    opacity="0.7"
+  />
+
+  <!-- Cyan offset layer (chromatic aberration) -->
+  <path
+    d="M 80 340
+       L 120 180
+       L 180 320
+       L 250 100
+       L 320 320
+       L 380 200
+       L 400 280
+       Q 420 340 380 360
+       L 360 340"
+    stroke="#00CED1"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    transform="translate(3, 3)"
+    opacity="0.7"
+  />
+
+  <!-- Main cyan/blue stroke -->
+  <path
+    d="M 80 340
+       L 120 180
+       L 180 320
+       L 250 100
+       L 320 320
+       L 380 200
+       L 400 280
+       Q 420 340 380 360
+       L 360 340"
+    stroke="#00BFFF"
+    stroke-width="24"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#glow)"
+  />
+</svg>

@@ -8,6 +8,8 @@ import { formatTime, getSongConfidence } from '@/types/metmap';
 import { clsx } from 'clsx';
 import { SyncButton } from '@/components/SyncButton';
 import { useSession } from 'next-auth/react';
+import { QuickMetronome } from '@/components/QuickMetronome';
+import { MetMapLogo } from '@/components/MetMapLogo';
 
 // Hook to detect when client-side hydration is complete
 function useHasMounted() {
@@ -35,9 +37,12 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-hw-charcoal/95 backdrop-blur-sm border-b border-hw-surface px-4 py-4">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <span className="text-hw-brass">Met</span>Map
-          </h1>
+          <div className="flex items-center gap-2">
+            <MetMapLogo size="md" />
+            <h1 className="text-2xl font-bold text-white flex items-center">
+              <span className="text-hw-brass">Met</span>Map
+            </h1>
+          </div>
           <div className="flex items-center gap-2">
             <SyncButton compact />
             <Link
@@ -68,6 +73,11 @@ export default function Home() {
           />
         </div>
       </header>
+
+      {/* Quick Metronome */}
+      <div className="px-4 pt-4">
+        <QuickMetronome />
+      </div>
 
       {/* Song List */}
       <div className="flex-1 px-4 py-4">
