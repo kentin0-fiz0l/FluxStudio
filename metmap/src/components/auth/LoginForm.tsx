@@ -46,81 +46,86 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-gray-900 rounded-2xl p-8 shadow-xl">
-        <h1 className="text-2xl font-bold text-white mb-2">Welcome back</h1>
-        <p className="text-gray-400 mb-6">Sign in to sync your practice data</p>
+      <div className="bg-hw-surface rounded-2xl shadow-xl overflow-hidden">
+        {/* Brass accent strip */}
+        <div className="h-1.5 bg-gradient-to-r from-hw-brass via-hw-peach to-hw-brass" />
 
-        {errorMessage && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-            {errorMessage}
-          </div>
-        )}
+        <div className="p-8">
+          <h1 className="text-2xl font-bold text-white mb-2">Welcome back</h1>
+          <p className="text-gray-400 mb-6">Sign in to sync your practice data</p>
 
-        <OAuthButtons callbackUrl={callbackUrl} />
+          {errorMessage && (
+            <div className="mb-4 p-3 bg-hw-red/10 border border-hw-red/20 rounded-lg text-hw-red text-sm">
+              {errorMessage}
+            </div>
+          )}
 
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-700" />
+          <OAuthButtons callbackUrl={callbackUrl} />
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-700" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-hw-surface text-gray-400">or continue with email</span>
+            </div>
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-gray-900 text-gray-400">or continue with email</span>
-          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-hw-charcoal border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass focus:border-transparent transition-all"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-hw-charcoal border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass focus:border-transparent transition-all"
+                placeholder="Enter your password"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3 px-4 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal font-medium rounded-lg transition-all shadow-pad active:shadow-pad-active disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'Signing in...' : 'Sign in'}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-gray-400 text-sm">
+            Don&apos;t have an account?{' '}
+            <Link
+              href={`/auth/signup${callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`}
+              className="text-hw-brass hover:text-hw-peach transition-colors"
+            >
+              Sign up
+            </Link>
+          </p>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-metmap-500 focus:border-transparent"
-              placeholder="you@example.com"
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-metmap-500 focus:border-transparent"
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-3 px-4 bg-metmap-500 hover:bg-metmap-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-gray-400 text-sm">
-          Don&apos;t have an account?{' '}
-          <Link
-            href={`/auth/signup${callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`}
-            className="text-metmap-400 hover:text-metmap-300"
-          >
-            Sign up
-          </Link>
-        </p>
       </div>
 
       <p className="mt-4 text-center text-gray-500 text-xs">
         You can also{' '}
-        <Link href="/" className="text-gray-400 hover:text-gray-300">
+        <Link href="/" className="text-gray-400 hover:text-gray-300 transition-colors">
           continue without an account
         </Link>
       </p>
