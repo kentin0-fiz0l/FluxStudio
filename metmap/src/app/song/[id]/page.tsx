@@ -204,37 +204,38 @@ export default function SongEditorPage() {
           )}
         </div>
 
-        {/* Section Timeline */}
-        {song.sections.length > 0 && song.duration > 0 && (
-          <div className="mt-4">
-            <div className="h-8 bg-hw-surface rounded-lg overflow-hidden relative shadow-pad">
-              {song.sections.map((section) => {
-                const width =
-                  ((section.endTime - section.startTime) / song.duration) * 100;
-                const left = (section.startTime / song.duration) * 100;
-                return (
-                  <div
-                    key={section.id}
-                    className="absolute h-full cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-center text-xs text-white font-medium overflow-hidden"
-                    style={{
-                      width: `${width}%`,
-                      left: `${left}%`,
-                      backgroundColor: section.color || SECTION_COLORS[section.type],
-                    }}
-                    onClick={() => setEditingSectionId(section.id)}
-                    title={`${section.name} (${formatTime(section.startTime)} - ${formatTime(section.endTime)})`}
-                  >
-                    {width > 10 && section.name}
-                  </div>
-                );
-              })}
+        {/* Section Timeline - shows sections proportionally based on bar counts */}
+        {song.sections.length > 0 && (() => {
+          const totalBars = song.sections.reduce((sum, s) => sum + (s.bars || 8), 0);
+          return (
+            <div className="mt-4">
+              <div className="h-8 bg-hw-surface rounded-lg overflow-hidden relative shadow-pad flex">
+                {song.sections.map((section) => {
+                  const sectionBars = section.bars || 8;
+                  const width = (sectionBars / totalBars) * 100;
+                  return (
+                    <div
+                      key={section.id}
+                      className="h-full cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-center text-xs text-white font-medium overflow-hidden"
+                      style={{
+                        width: `${width}%`,
+                        backgroundColor: section.color || SECTION_COLORS[section.type],
+                      }}
+                      onClick={() => setEditingSectionId(section.id)}
+                      title={`${section.name} (${sectionBars} bars)`}
+                    >
+                      {width > 10 && section.name}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0</span>
+                <span>{totalBars} bars</span>
+              </div>
             </div>
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>0:00</span>
-              <span>{formatTime(song.duration)}</span>
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Sections List */}
@@ -333,16 +334,14 @@ function SectionCard({
   onUpdate: (updates: Partial<Section>) => void;
 }) {
   const [editName, setEditName] = useState(section.name);
-  const [editStart, setEditStart] = useState(formatTime(section.startTime));
-  const [editEnd, setEditEnd] = useState(formatTime(section.endTime));
+  const [editBars, setEditBars] = useState(section.bars || 8);
   const [editType, setEditType] = useState(section.type);
   const [editNotes, setEditNotes] = useState(section.notes || '');
 
   const handleSave = () => {
     onUpdate({
       name: editName.trim(),
-      startTime: parseTime(editStart),
-      endTime: parseTime(editEnd),
+      bars: editBars,
       type: editType,
       notes: editNotes.trim() || undefined,
     });
@@ -363,26 +362,6 @@ function SectionCard({
             />
           </div>
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">Start</label>
-            <input
-              type="text"
-              value={editStart}
-              onChange={(e) => setEditStart(e.target.value)}
-              placeholder="0:00"
-              className="w-full px-3 py-2 bg-hw-charcoal rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-hw-brass text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">End</label>
-            <input
-              type="text"
-              value={editEnd}
-              onChange={(e) => setEditEnd(e.target.value)}
-              placeholder="0:30"
-              className="w-full px-3 py-2 bg-hw-charcoal rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-hw-brass text-white"
-            />
-          </div>
-          <div className="col-span-2">
             <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">Type</label>
             <select
               value={editType}
@@ -395,6 +374,17 @@ function SectionCard({
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">Bars</label>
+            <input
+              type="number"
+              min="1"
+              max="999"
+              value={editBars}
+              onChange={(e) => setEditBars(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-full px-3 py-2 bg-hw-charcoal rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-hw-brass text-white"
+            />
           </div>
           <div className="col-span-2">
             <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">Notes</label>
@@ -447,7 +437,7 @@ function SectionCard({
           </span>
         </div>
         <div className="text-sm text-gray-500">
-          {formatTime(section.startTime)} - {formatTime(section.endTime)}
+          {section.bars || 8} bars
         </div>
       </div>
 
@@ -496,8 +486,7 @@ function AddSectionModal({
   const addSection = useMetMapStore((state) => state.addSection);
   const [name, setName] = useState('');
   const [type, setType] = useState<SectionType>('verse');
-  const [startTime, setStartTime] = useState('0:00');
-  const [endTime, setEndTime] = useState('0:30');
+  const [bars, setBars] = useState(8);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -506,8 +495,7 @@ function AddSectionModal({
     addSection(songId, {
       name: name.trim(),
       type,
-      startTime: parseTime(startTime),
-      endTime: parseTime(endTime),
+      bars,
     });
     onClose();
   };
@@ -542,45 +530,34 @@ function AddSectionModal({
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
-                  Section Type
-                </label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value as SectionType)}
-                  className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
-                >
-                  {Object.keys(SECTION_COLORS).map((t) => (
-                    <option key={t} value={t}>
-                      {t.charAt(0).toUpperCase() + t.slice(1).replace('-', ' ')}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
-                    Start Time
+                    Section Type
                   </label>
-                  <input
-                    type="text"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    placeholder="0:00"
-                    className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
-                  />
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value as SectionType)}
+                    className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
+                  >
+                    {Object.keys(SECTION_COLORS).map((t) => (
+                      <option key={t} value={t}>
+                        {t.charAt(0).toUpperCase() + t.slice(1).replace('-', ' ')}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
                 <div>
                   <label className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
-                    End Time
+                    Bars / Counts
                   </label>
                   <input
-                    type="text"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    placeholder="0:30"
+                    type="number"
+                    min="1"
+                    max="999"
+                    value={bars}
+                    onChange={(e) => setBars(Math.max(1, parseInt(e.target.value) || 1))}
                     className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
                   />
                 </div>

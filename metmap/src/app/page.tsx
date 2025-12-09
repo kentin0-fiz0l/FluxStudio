@@ -196,33 +196,32 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
         </button>
       </div>
 
-      {/* Section preview bar */}
-      {song.sections.length > 0 && song.duration > 0 && (
-        <div className="mt-3 h-2 bg-hw-charcoal rounded-full overflow-hidden flex">
-          {song.sections.map((section) => {
-            const width = ((section.endTime - section.startTime) / song.duration) * 100;
-            const left = (section.startTime / song.duration) * 100;
-            return (
-              <div
-                key={section.id}
-                className={clsx(
-                  'h-full',
-                  section.confidence === 1 && 'bg-red-500',
-                  section.confidence === 2 && 'bg-orange-500',
-                  section.confidence === 3 && 'bg-yellow-500',
-                  section.confidence === 4 && 'bg-lime-500',
-                  section.confidence === 5 && 'bg-green-500'
-                )}
-                style={{
-                  width: `${width}%`,
-                  marginLeft: section === song.sections[0] ? `${left}%` : undefined,
-                }}
-                title={`${section.name}: ${section.confidence}/5`}
-              />
-            );
-          })}
-        </div>
-      )}
+      {/* Section preview bar - shows sections proportionally based on bar counts */}
+      {song.sections.length > 0 && (() => {
+        const totalBars = song.sections.reduce((sum, s) => sum + (s.bars || 8), 0);
+        return (
+          <div className="mt-3 h-2 bg-hw-charcoal rounded-full overflow-hidden flex">
+            {song.sections.map((section) => {
+              const width = ((section.bars || 8) / totalBars) * 100;
+              return (
+                <div
+                  key={section.id}
+                  className={clsx(
+                    'h-full',
+                    section.confidence === 1 && 'bg-red-500',
+                    section.confidence === 2 && 'bg-orange-500',
+                    section.confidence === 3 && 'bg-yellow-500',
+                    section.confidence === 4 && 'bg-lime-500',
+                    section.confidence === 5 && 'bg-green-500'
+                  )}
+                  style={{ width: `${width}%` }}
+                  title={`${section.name}: ${section.bars || 8} bars, ${section.confidence}/5`}
+                />
+              );
+            })}
+          </div>
+        );
+      })()}
     </Link>
   );
 }

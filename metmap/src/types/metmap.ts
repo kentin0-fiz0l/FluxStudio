@@ -25,7 +25,7 @@ export type ConfidenceLevel = 1 | 2 | 3 | 4 | 5;
 
 /**
  * A Section represents a discrete part of a song to practice.
- * Sections have timestamps, labels, and can track practice progress.
+ * Sections have bar counts, labels, and can track practice progress.
  */
 export interface Section {
   id: ID;
@@ -33,10 +33,8 @@ export interface Section {
   name: string;
   /** Section type for categorization and color-coding */
   type: SectionType;
-  /** Start time in seconds */
-  startTime: number;
-  /** End time in seconds */
-  endTime: number;
+  /** Number of bars/counts in this section */
+  bars: number;
   /** Optional notes about this section (techniques, challenges, etc.) */
   notes?: string;
   /** Current confidence level (1-5) */
@@ -47,6 +45,11 @@ export interface Section {
   lastPracticed?: string;
   /** Color override (defaults based on type) */
   color?: string;
+  // Legacy fields for backwards compatibility
+  /** @deprecated Use bars instead */
+  startTime?: number;
+  /** @deprecated Use bars instead */
+  endTime?: number;
 }
 
 /**
@@ -191,12 +194,12 @@ export function createSong(partial: Partial<Song> & Pick<Song, 'title' | 'artist
  * Create a new section with defaults
  */
 export function createSection(
-  partial: Partial<Section> & Pick<Section, 'name' | 'startTime' | 'endTime'>
+  partial: Partial<Section> & Pick<Section, 'name' | 'bars'>
 ): Section {
   return {
     id: generateId(),
     type: 'custom',
-    confidence: 1,
+    confidence: 3,
     practiceCount: 0,
     ...partial,
   };
