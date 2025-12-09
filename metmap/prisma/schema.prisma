@@ -51,12 +51,13 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  accounts         Account[]
-  sessions         Session[]
-  songs            Song[]
-  sections         Section[]
-  practiceSessions PracticeSession[]
-  preferences      UserPreferences?
+  accounts          Account[]
+  sessions          Session[]
+  songs             Song[]
+  sections          Section[]
+  practiceSessions  PracticeSession[]
+  preferences       UserPreferences?
+  collaborations    SongCollaborator[]
 
   @@map("users")
 }
@@ -70,30 +71,48 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+// Song visibility enum
+enum SongVisibility {
+  PRIVATE  // Only owner can access
+  SHARED   // Accessible via share link or collaborators
+  PUBLIC   // Anyone can view (future feature)
+}
+
+// Collaborator role enum
+enum CollaboratorRole {
+  VIEWER   // Can view song structure only
+  EDITOR   // Can edit sections
+  ADMIN    // Can manage collaborators
+}
+
 // MetMap domain models
 model Song {
-  id            String    @id @default(uuid())
-  userId        String    @map("user_id")
+  id            String         @id @default(uuid())
+  userId        String         @map("user_id")
   title         String
   artist        String?
   album         String?
   duration      Int?
   bpm           Int?
   key           String?
-  timeSignature String    @default("4/4") @map("time_signature")
+  timeSignature String         @default("4/4") @map("time_signature")
   tags          String[]
   notes         String?
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
-  version       Int       @default(1)
+  visibility    SongVisibility @default(PRIVATE)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  deletedAt     DateTime?      @map("deleted_at")
+  version       Int            @default(1)
 
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   sections         Section[]
   practiceSessions PracticeSession[]
+  shareLinks       ShareLink[]
+  collaborators    SongCollaborator[]
 
   @@index([userId])
   @@index([updatedAt])
+  @@index([visibility])
   @@map("songs")
 }
 
@@ -150,4 +169,37 @@ model UserPreferences {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_preferences")
+}
+
+// Share links for view-only access via URL
+model ShareLink {
+  id        String    @id @default(uuid())
+  songId    String    @map("song_id")
+  token     String    @unique
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  createdBy String    @map("created_by")
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([songId])
+  @@map("share_links")
+}
+
+// Direct collaborators with specific roles
+model SongCollaborator {
+  id        String           @id @default(uuid())
+  songId    String           @map("song_id")
+  userId    String           @map("user_id")
+  role      CollaboratorRole @default(VIEWER)
+  createdAt DateTime         @default(now()) @map("created_at")
+  invitedBy String           @map("invited_by")
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([songId, userId])
+  @@index([userId])
+  @@map("song_collaborators")
 }
