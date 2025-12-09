@@ -7,6 +7,7 @@ import { useMetMapStore, useSongsByLastPracticed } from '@/stores/useMetMapStore
 import { formatTime, getSongConfidence } from '@/types/metmap';
 import { clsx } from 'clsx';
 import { SyncButton } from '@/components/SyncButton';
+import { useSession } from 'next-auth/react';
 
 // Hook to detect when client-side hydration is complete
 function useHasMounted() {
@@ -227,9 +228,17 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
 }
 
 function NewSongModal({ onClose }: { onClose: () => void }) {
+  const { data: session } = useSession();
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const addSong = useMetMapStore((state) => state.addSong);
+
+  // Auto-populate artist with user's name when session loads
+  useEffect(() => {
+    if (session?.user?.name && !artist) {
+      setArtist(session.user.name);
+    }
+  }, [session?.user?.name, artist]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
