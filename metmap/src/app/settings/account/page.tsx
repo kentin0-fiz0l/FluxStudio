@@ -1,15 +1,20 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
-import { ArrowLeft, Mail, User, Calendar, Shield, LogOut } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { ArrowLeft, Mail, User, Calendar, Shield, LogOut, Edit3, Check, X, Loader2 } from 'lucide-react';
 
 export default function AccountPage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -18,7 +23,54 @@ export default function AccountPage() {
     }
   }, [status, router]);
 
+  // Initialize edit name when session loads
+  useEffect(() => {
+    if (session?.user?.name) {
+      setEditName(session.user.name);
+    }
+  }, [session?.user?.name]);
+
+  const handleSaveName = async () => {
+    if (!editName.trim()) {
+      setError('Name cannot be empty');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update name');
+      }
+
+      // Update the session with the new name
+      await updateSession({ name: data.user.name });
+
+      setIsEditingName(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update name');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditName(session?.user?.name || '');
+    setIsEditingName(false);
+    setError(null);
+  };
+
   const handleSignOut = async () => {
+    const { signOut } = await import('next-auth/react');
     await signOut({ callbackUrl: '/' });
   };
 
@@ -81,16 +133,66 @@ export default function AccountPage() {
 
           <div className="h-px bg-hw-charcoal mb-6" />
 
+          {error && (
+            <div className="mb-4 p-3 bg-hw-red/10 border border-hw-red/30 rounded-lg text-hw-red text-sm">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-4">
+            {/* Editable Name Field */}
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-hw-charcoal flex items-center justify-center">
                 <User className="w-5 h-5 text-gray-400" />
               </div>
               <div className="flex-1">
                 <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
-                  Name
+                  Display Name
                 </p>
-                <p className="text-white">{user.name || 'Not set'}</p>
+                {isEditingName ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-hw-charcoal rounded-lg border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-hw-brass"
+                      placeholder="Enter your name"
+                      autoFocus
+                      disabled={saving}
+                    />
+                    <button
+                      onClick={handleSaveName}
+                      disabled={saving || !editName.trim()}
+                      className="p-2 text-green-500 hover:bg-green-500/10 rounded-lg transition-colors disabled:opacity-50"
+                      title="Save"
+                    >
+                      {saving ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Check className="w-5 h-5" />
+                      )}
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                      disabled={saving}
+                      className="p-2 text-gray-400 hover:bg-hw-charcoal rounded-lg transition-colors disabled:opacity-50"
+                      title="Cancel"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <p className="text-white">{user.name || 'Not set'}</p>
+                    <button
+                      onClick={() => setIsEditingName(true)}
+                      className="p-1 text-gray-500 hover:text-hw-brass rounded transition-colors"
+                      title="Edit name"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 

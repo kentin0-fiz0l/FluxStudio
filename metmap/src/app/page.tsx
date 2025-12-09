@@ -230,21 +230,16 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
 function NewSongModal({ onClose }: { onClose: () => void }) {
   const { data: session } = useSession();
   const [title, setTitle] = useState('');
-  const [artist, setArtist] = useState('');
   const addSong = useMetMapStore((state) => state.addSong);
 
-  // Auto-populate artist with user's name when session loads
-  useEffect(() => {
-    if (session?.user?.name && !artist) {
-      setArtist(session.user.name);
-    }
-  }, [session?.user?.name, artist]);
+  // Use the user's display name as the artist
+  const artistName = session?.user?.name || 'Unknown Artist';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !artist.trim()) return;
+    if (!title.trim()) return;
 
-    const song = addSong({ title: title.trim(), artist: artist.trim() });
+    const song = addSong({ title: title.trim(), artist: artistName });
     onClose();
     // Navigate to the new song
     window.location.href = `/song/${song.id}`;
@@ -278,27 +273,25 @@ function NewSongModal({ onClose }: { onClose: () => void }) {
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Autumn Leaves"
+                  placeholder="e.g., Autumn Leaves, My New Piece"
                   className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
                   autoFocus
                 />
               </div>
 
-              <div>
-                <label
-                  htmlFor="artist"
-                  className="block text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5"
-                >
-                  Artist / Composer
-                </label>
-                <input
-                  id="artist"
-                  type="text"
-                  value={artist}
-                  onChange={(e) => setArtist(e.target.value)}
-                  placeholder="e.g., Joseph Kosma"
-                  className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
-                />
+              {/* Show who is creating the song */}
+              <div className="flex items-center gap-3 p-3 bg-hw-surface/50 rounded-lg">
+                <div className="w-8 h-8 rounded-full bg-hw-brass flex items-center justify-center">
+                  <span className="text-hw-charcoal font-bold text-sm">
+                    {artistName[0].toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
+                    Created by
+                  </p>
+                  <p className="text-white text-sm">{artistName}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -313,7 +306,7 @@ function NewSongModal({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="submit"
-              disabled={!title.trim() || !artist.trim()}
+              disabled={!title.trim()}
               className="flex-1 px-4 py-3 bg-hw-brass hover:bg-hw-brass/90 disabled:bg-gray-600 disabled:text-gray-400 text-hw-charcoal rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active disabled:cursor-not-allowed disabled:shadow-none"
             >
               Create Song
