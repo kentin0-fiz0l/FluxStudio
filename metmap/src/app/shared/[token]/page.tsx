@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import {
   ArrowLeft,
@@ -197,9 +198,11 @@ export default function SharedSongPage() {
           <div className="flex items-center gap-2 pt-4 border-t border-hw-charcoal">
             <div className="w-8 h-8 rounded-full bg-hw-brass/20 flex items-center justify-center">
               {song.owner.image ? (
-                <img
+                <Image
                   src={song.owner.image}
                   alt={song.owner.name}
+                  width={32}
+                  height={32}
                   className="w-8 h-8 rounded-full"
                 />
               ) : (
