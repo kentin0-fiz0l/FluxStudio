@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { ChordTimeline } from '@/components/ChordTimeline';
+import { useTimelinePlayback } from '@/hooks/useTimelinePlayback';
 import {
   ChordSection,
   TimeSignature,
@@ -14,9 +15,10 @@ import {
  * Demo page for the ChordTimeline component
  *
  * This page demonstrates the chord progression editor with:
+ * - Drag-and-drop chord repositioning
+ * - Playback position indicator
  * - A sample 8-bar section
- * - Adjustable time signature
- * - Real-time state logging
+ * - Adjustable time signature and BPM
  */
 export default function ChordTimelineDemoPage() {
   // Demo state: a section with some pre-populated chords
@@ -37,7 +39,7 @@ export default function ChordTimelineDemoPage() {
         bar: 2,
         beat: 1,
         durationBeats: 4,
-        root: 'Am',
+        root: 'A',
         quality: 'min',
       },
       {
@@ -64,6 +66,46 @@ export default function ChordTimelineDemoPage() {
         root: 'C',
         quality: 'maj',
       },
+      {
+        id: crypto.randomUUID(),
+        bar: 5,
+        beat: 1,
+        durationBeats: 2,
+        root: 'D',
+        quality: 'min',
+      },
+      {
+        id: crypto.randomUUID(),
+        bar: 5,
+        beat: 3,
+        durationBeats: 2,
+        root: 'E',
+        quality: 'min',
+      },
+      {
+        id: crypto.randomUUID(),
+        bar: 6,
+        beat: 1,
+        durationBeats: 4,
+        root: 'F',
+        quality: 'maj7',
+      },
+      {
+        id: crypto.randomUUID(),
+        bar: 7,
+        beat: 1,
+        durationBeats: 4,
+        root: 'G',
+        quality: '7',
+      },
+      {
+        id: crypto.randomUUID(),
+        bar: 8,
+        beat: 1,
+        durationBeats: 4,
+        root: 'C',
+        quality: 'maj',
+      },
     ];
     return s;
   });
@@ -72,6 +114,21 @@ export default function ChordTimelineDemoPage() {
   const [timeSignature, setTimeSignature] = useState<TimeSignature>(
     defaultTimeSignature()
   );
+
+  // Playback state
+  const {
+    position,
+    isPlaying,
+    toggle,
+    reset,
+    bpm,
+    setBpm,
+  } = useTimelinePlayback({
+    totalBars: section.bars,
+    beatsPerBar: timeSignature.numerator,
+    bpm: 120,
+    loop: true,
+  });
 
   // Handle section changes
   const handleChange = useCallback((updatedSection: ChordSection) => {
@@ -121,12 +178,75 @@ export default function ChordTimelineDemoPage() {
             ChordTimeline Demo
           </h1>
           <p className="text-gray-400">
-            Click on empty cells to add chords. Click on existing chords to edit
-            or delete them.
+            Drag chords to reposition them. Click empty cells to add chords.
+            Use playback controls to preview the timeline.
           </p>
         </div>
 
-        {/* Controls */}
+        {/* Playback Controls */}
+        <div className="mb-6 bg-hw-surface rounded-xl p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Play/Stop Button */}
+            <button
+              onClick={toggle}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                isPlaying
+                  ? 'bg-hw-red hover:bg-hw-red/80'
+                  : 'bg-hw-brass hover:bg-hw-brass/80'
+              }`}
+            >
+              {isPlaying ? (
+                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="6" y="5" width="4" height="14" rx="1" />
+                  <rect x="14" y="5" width="4" height="14" rx="1" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6 text-hw-charcoal ml-1" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
+            </button>
+
+            {/* Reset Button */}
+            <button
+              onClick={reset}
+              className="w-10 h-10 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-colors"
+              title="Reset"
+            >
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+
+            {/* Position Display */}
+            <div className="px-4 py-2 bg-hw-charcoal rounded-lg">
+              <span className="text-gray-400 text-sm">Position: </span>
+              <span className="font-mono text-lg text-white">
+                Bar {position.bar}, Beat {position.beat}
+              </span>
+            </div>
+
+            {/* BPM Control */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-400">BPM:</label>
+              <button
+                onClick={() => setBpm(bpm - 10)}
+                className="w-8 h-8 bg-hw-charcoal rounded hover:bg-gray-700 transition-colors"
+              >
+                -
+              </button>
+              <span className="w-12 text-center font-mono text-lg">{bpm}</span>
+              <button
+                onClick={() => setBpm(bpm + 10)}
+                className="w-8 h-8 bg-hw-charcoal rounded hover:bg-gray-700 transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Settings Controls */}
         <div className="mb-6 flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-400">Time Signature:</label>
@@ -179,6 +299,8 @@ export default function ChordTimelineDemoPage() {
             section={section}
             timeSignature={timeSignature}
             onChange={handleChange}
+            playbackPosition={position}
+            isPlaying={isPlaying}
           />
         </div>
 
@@ -239,6 +361,10 @@ export default function ChordTimelineDemoPage() {
           <h3 className="font-semibold text-gray-400 mb-2">Instructions</h3>
           <ul className="list-disc list-inside space-y-1">
             <li>
+              <strong>Drag a chord:</strong> Click and drag any chord block to
+              reposition it on the timeline
+            </li>
+            <li>
               <strong>Add a chord:</strong> Click on any empty beat cell in the
               grid
             </li>
@@ -250,12 +376,8 @@ export default function ChordTimelineDemoPage() {
               × icon, or use the delete button in the editor
             </li>
             <li>
-              <strong>Change duration:</strong> Edit the Duration field in the
-              chord editor
-            </li>
-            <li>
-              <strong>Move a chord:</strong> Edit the Bar and Beat fields in the
-              chord editor
+              <strong>Playback:</strong> Use the play button to see the playhead
+              move through the timeline
             </li>
           </ul>
         </div>
