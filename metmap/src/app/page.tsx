@@ -9,7 +9,7 @@ import { clsx } from 'clsx';
 import { SyncButton } from '@/components/SyncButton';
 import { useSession } from 'next-auth/react';
 import { QuickMetronome } from '@/components/QuickMetronome';
-import { MetMapLogo } from '@/components/MetMapLogo';
+import { FlatLogo } from '@/components/branding';
 
 // Hook to detect when client-side hydration is complete
 function useHasMounted() {
@@ -33,27 +33,27 @@ export default function Home() {
   );
 
   return (
-    <main className="flex-1 flex flex-col max-w-2xl mx-auto w-full bg-hw-charcoal">
+    <main className="flex-1 flex flex-col max-w-2xl mx-auto w-full bg-brand-midnight">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-hw-charcoal/95 backdrop-blur-sm border-b border-hw-surface px-4 py-4">
+      <header className="sticky top-0 z-10 bg-brand-midnight/95 backdrop-blur-sm border-b border-brand-surface px-4 py-4">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <MetMapLogo size="md" />
-            <h1 className="text-2xl font-bold text-white flex items-center">
-              <span className="text-hw-brass">Met</span>Map
+          <div className="flex items-center gap-3">
+            <FlatLogo size={36} />
+            <h1 className="text-2xl font-bold text-brand-white flex items-center">
+              <span className="bg-gradient-prism bg-clip-text text-transparent">Met</span>Map
             </h1>
           </div>
           <div className="flex items-center gap-2">
             <SyncButton compact />
             <Link
               href="/settings"
-              className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-hw-surface transition-colors"
+              className="p-2 text-gray-400 hover:text-brand-mint rounded-lg hover:bg-brand-surface transition-colors"
             >
               <Settings className="w-5 h-5" />
             </Link>
             <button
               onClick={() => setShowNewSongModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active tap-target"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-violet hover:bg-gradient-prism text-white rounded-button font-medium transition-all shadow-glow-violet hover:shadow-glow-prism tap-target"
             >
               <Plus className="w-5 h-5" />
               <span className="hidden sm:inline">New Song</span>
@@ -69,7 +69,7 @@ export default function Home() {
             placeholder="Search songs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass focus:border-transparent transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-brand-surface border border-brand-surface rounded-input text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-mint focus:border-transparent transition-all"
           />
         </div>
       </header>
@@ -85,12 +85,12 @@ export default function Home() {
           // Loading skeleton while hydrating from localStorage
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="p-4 bg-hw-surface rounded-xl shadow-pad animate-pulse">
+              <div key={i} className="p-4 bg-brand-surface rounded-card shadow-card animate-pulse">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-gray-700" />
+                  <div className="w-12 h-12 rounded-lg bg-brand-surfaceElevated" />
                   <div className="flex-1">
-                    <div className="h-5 bg-gray-700 rounded w-3/4 mb-2" />
-                    <div className="h-4 bg-gray-700 rounded w-1/2" />
+                    <div className="h-5 bg-brand-surfaceElevated rounded w-3/4 mb-2" />
+                    <div className="h-4 bg-brand-surfaceElevated rounded w-1/2" />
                   </div>
                 </div>
               </div>
@@ -118,10 +118,10 @@ export default function Home() {
 function EmptyState({ onAddSong }: { onAddSong: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-16 h-16 mb-4 rounded-full bg-hw-surface flex items-center justify-center shadow-pad">
-        <Music className="w-8 h-8 text-hw-brass" />
+      <div className="w-16 h-16 mb-4 rounded-full bg-brand-surface flex items-center justify-center shadow-glow-violet">
+        <Music className="w-8 h-8 text-brand-mint" />
       </div>
-      <h2 className="text-xl font-semibold text-white mb-2">
+      <h2 className="text-xl font-semibold text-brand-white mb-2">
         No songs yet
       </h2>
       <p className="text-gray-400 mb-6 max-w-sm">
@@ -129,7 +129,7 @@ function EmptyState({ onAddSong }: { onAddSong: () => void }) {
       </p>
       <button
         onClick={onAddSong}
-        className="flex items-center gap-2 px-6 py-3 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active"
+        className="flex items-center gap-2 px-6 py-3 bg-brand-violet hover:bg-gradient-prism text-white rounded-button font-medium transition-all shadow-glow-violet hover:shadow-glow-prism"
       >
         <Plus className="w-5 h-5" />
         Add Your First Song
@@ -144,12 +144,13 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
 
   const getConfidenceColor = (level: number) => {
     if (confidence === 0) return 'bg-gray-600';
+    // Pulse Prism confidence colors: coral -> violet -> mint
     const colors = {
-      1: 'bg-red-500',
+      1: 'bg-brand-coral',
       2: 'bg-orange-500',
-      3: 'bg-yellow-500',
-      4: 'bg-lime-500',
-      5: 'bg-green-500',
+      3: 'bg-chord-major',
+      4: 'bg-chord-minor',
+      5: 'bg-brand-mint',
     };
     return colors[level as keyof typeof colors] || 'bg-gray-600';
   };
@@ -157,7 +158,7 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
   return (
     <Link
       href={`/song/${song.id}`}
-      className="block p-4 bg-hw-surface rounded-xl shadow-pad hover:shadow-pad-active border border-transparent hover:border-hw-brass/30 transition-all"
+      className="block p-4 bg-brand-surface rounded-card shadow-card hover:shadow-card-hover border border-white/5 hover:border-brand-violet/30 transition-all"
     >
       <div className="flex items-start gap-3">
         {/* Confidence indicator */}
@@ -171,7 +172,7 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-white truncate">
+          <h3 className="font-semibold text-brand-white truncate">
             {song.title}
           </h3>
           <p className="text-sm text-gray-400 truncate">
@@ -200,7 +201,7 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
             e.preventDefault();
             // TODO: Show song menu
           }}
-          className="p-2 text-gray-500 hover:text-gray-300 rounded-lg hover:bg-hw-charcoal transition-colors"
+          className="p-2 text-gray-500 hover:text-brand-mint rounded-lg hover:bg-brand-midnight transition-colors"
         >
           <MoreVertical className="w-5 h-5" />
         </button>
@@ -210,7 +211,7 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
       {song.sections.length > 0 && (() => {
         const totalBars = song.sections.reduce((sum, s) => sum + (s.bars || 8), 0);
         return (
-          <div className="mt-3 h-2 bg-hw-charcoal rounded-full overflow-hidden flex">
+          <div className="mt-3 h-2 bg-brand-midnight rounded-full overflow-hidden flex">
             {song.sections.map((section) => {
               const width = ((section.bars || 8) / totalBars) * 100;
               return (
@@ -218,11 +219,11 @@ function SongCard({ song }: { song: ReturnType<typeof useSongsByLastPracticed>[n
                   key={section.id}
                   className={clsx(
                     'h-full',
-                    section.confidence === 1 && 'bg-red-500',
+                    section.confidence === 1 && 'bg-brand-coral',
                     section.confidence === 2 && 'bg-orange-500',
-                    section.confidence === 3 && 'bg-yellow-500',
-                    section.confidence === 4 && 'bg-lime-500',
-                    section.confidence === 5 && 'bg-green-500'
+                    section.confidence === 3 && 'bg-chord-major',
+                    section.confidence === 4 && 'bg-chord-minor',
+                    section.confidence === 5 && 'bg-brand-mint'
                   )}
                   style={{ width: `${width}%` }}
                   title={`${section.name}: ${section.bars || 8} bars, ${section.confidence}/5`}
@@ -255,14 +256,14 @@ function NewSongModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-      <div className="w-full max-w-md bg-hw-charcoal rounded-2xl shadow-xl overflow-hidden">
-        {/* Brass accent strip */}
-        <div className="h-1.5 bg-gradient-to-r from-hw-brass via-hw-peach to-hw-brass" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+      <div className="w-full max-w-md bg-brand-midnight rounded-card shadow-glow-prism overflow-hidden border border-white/10">
+        {/* Prism gradient accent strip */}
+        <div className="h-1.5 bg-gradient-prism" />
 
         <form onSubmit={handleSubmit}>
           <div className="p-6">
-            <h2 className="text-xl font-bold text-white mb-1">
+            <h2 className="text-xl font-bold text-brand-white mb-1">
               Add New Song
             </h2>
             <p className="text-sm text-gray-400 mb-6">
@@ -283,15 +284,15 @@ function NewSongModal({ onClose }: { onClose: () => void }) {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g., Autumn Leaves, My New Piece"
-                  className="w-full px-4 py-3 bg-hw-surface border border-hw-surface rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-hw-brass transition-all"
+                  className="w-full px-4 py-3 bg-brand-surface border border-brand-surface rounded-input text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-mint transition-all"
                   autoFocus
                 />
               </div>
 
               {/* Show who is creating the song */}
-              <div className="flex items-center gap-3 p-3 bg-hw-surface/50 rounded-lg">
-                <div className="w-8 h-8 rounded-full bg-hw-brass flex items-center justify-center">
-                  <span className="text-hw-charcoal font-bold text-sm">
+              <div className="flex items-center gap-3 p-3 bg-brand-surface/50 rounded-lg">
+                <div className="w-8 h-8 rounded-full bg-brand-violet flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">
                     {artistName[0].toUpperCase()}
                   </span>
                 </div>
@@ -305,18 +306,18 @@ function NewSongModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          <div className="flex gap-3 p-4 border-t border-hw-surface">
+          <div className="flex gap-3 p-4 border-t border-brand-surface">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 text-gray-400 hover:bg-hw-surface rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active"
+              className="flex-1 px-4 py-3 text-gray-400 hover:bg-brand-surface rounded-button font-medium transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!title.trim()}
-              className="flex-1 px-4 py-3 bg-hw-brass hover:bg-hw-brass/90 disabled:bg-gray-600 disabled:text-gray-400 text-hw-charcoal rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active disabled:cursor-not-allowed disabled:shadow-none"
+              className="flex-1 px-4 py-3 bg-brand-violet hover:bg-gradient-prism disabled:bg-gray-600 disabled:text-gray-400 text-white rounded-button font-medium transition-all shadow-glow-violet hover:shadow-glow-prism disabled:cursor-not-allowed disabled:shadow-none"
             >
               Create Song
             </button>
