@@ -159,10 +159,10 @@ services:
         scope: RUN_TIME
         type: SECRET
 
-      # Google OAuth (MUST BE SET AS SECRETS)
+      # Google OAuth
+      # Note: Client ID is public (same as frontend), but secret must be set in DO dashboard
       - key: GOOGLE_CLIENT_ID
-        scope: RUN_TIME
-        type: SECRET
+        value: 65518208813-f4rgudom5b57qad0jlhjtsocsrb26mfc.apps.googleusercontent.com
       - key: GOOGLE_CLIENT_SECRET
         scope: RUN_TIME
         type: SECRET
