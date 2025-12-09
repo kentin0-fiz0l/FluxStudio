@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ArrowLeft, Mail, User, Calendar, Shield, LogOut, Edit3, Check, X, Loader2 } from 'lucide-react';
+import { ProfilePictureUpload } from '@/components/profile';
 
 export default function AccountPage() {
   const { data: session, status, update: updateSession } = useSession();
@@ -108,21 +108,15 @@ export default function AccountPage() {
         {/* Profile Card */}
         <div className="bg-hw-surface rounded-xl p-6">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-20 h-20 rounded-full bg-hw-brass flex items-center justify-center shadow-knob overflow-hidden">
-              {user.image ? (
-                <Image
-                  src={user.image}
-                  alt={user.name || 'User'}
-                  width={80}
-                  height={80}
-                  className="w-20 h-20 rounded-full"
-                />
-              ) : (
-                <span className="text-hw-charcoal font-bold text-3xl">
-                  {(user.name || user.email || 'U')[0].toUpperCase()}
-                </span>
-              )}
-            </div>
+            <ProfilePictureUpload
+              currentImage={user.image}
+              userName={user.name}
+              onUploadComplete={async (imageUrl) => {
+                // Update the session with the new image
+                await updateSession({ image: imageUrl });
+              }}
+              size="md"
+            />
             <div>
               <h2 className="text-2xl font-bold text-white">
                 {user.name || 'User'}
