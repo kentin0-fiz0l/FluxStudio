@@ -1,7 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" fill="none">
   <defs>
-    <!-- Glow filter for the chromatic aberration effect -->
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+    <!-- Glow filters for the chromatic aberration effect -->
+    <filter id="glowMint" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glowViolet" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="3" result="blur"/>
       <feMerge>
         <feMergeNode in="blur"/>
@@ -10,59 +17,36 @@
     </filter>
   </defs>
 
-  <!-- Pink/Magenta offset layer (chromatic aberration) -->
+  <!-- Coral offset layer (back) - Pulse Prism brand -->
   <path
-    d="M 80 340
-       L 120 180
-       L 180 320
-       L 250 100
-       L 320 320
-       L 380 200
-       L 400 280
-       Q 420 340 380 360
-       L 360 340"
-    stroke="#FF69B4"
-    stroke-width="28"
+    d="M 80 340 L 120 180 L 180 320 L 250 100 L 320 320 L 380 200 L 400 280 Q 420 340 380 360 L 360 340"
+    stroke="#FF5A70"
+    stroke-width="26"
     stroke-linecap="round"
     stroke-linejoin="round"
-    transform="translate(-3, -3)"
-    opacity="0.7"
+    transform="translate(4, 4)"
+    opacity="0.6"
   />
 
-  <!-- Cyan offset layer (chromatic aberration) -->
+  <!-- Violet offset layer (middle) - Pulse Prism brand -->
   <path
-    d="M 80 340
-       L 120 180
-       L 180 320
-       L 250 100
-       L 320 320
-       L 380 200
-       L 400 280
-       Q 420 340 380 360
-       L 360 340"
-    stroke="#00CED1"
-    stroke-width="28"
+    d="M 80 340 L 120 180 L 180 320 L 250 100 L 320 320 L 380 200 L 400 280 Q 420 340 380 360 L 360 340"
+    stroke="#8B5CF6"
+    stroke-width="26"
     stroke-linecap="round"
     stroke-linejoin="round"
-    transform="translate(3, 3)"
+    transform="translate(-2, -2)"
     opacity="0.7"
+    filter="url(#glowViolet)"
   />
 
-  <!-- Main cyan/blue stroke -->
+  <!-- Mint main stroke (front) - Pulse Prism brand -->
   <path
-    d="M 80 340
-       L 120 180
-       L 180 320
-       L 250 100
-       L 320 320
-       L 380 200
-       L 400 280
-       Q 420 340 380 360
-       L 360 340"
-    stroke="#00BFFF"
-    stroke-width="24"
+    d="M 80 340 L 120 180 L 180 320 L 250 100 L 320 320 L 380 200 L 400 280 Q 420 340 380 360 L 360 340"
+    stroke="#3EF2C8"
+    stroke-width="22"
     stroke-linecap="round"
     stroke-linejoin="round"
-    filter="url(#glow)"
+    filter="url(#glowMint)"
   />
 </svg>
