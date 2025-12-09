@@ -93,22 +93,27 @@ class AuthAdapter {
   }
 
   // Transform database user to frontend format
+  // Supports both FluxStudio schema (password_hash) and MetMap schema (passwordHash mapped to password_hash)
   transformUser(dbUser) {
     return {
       id: dbUser.id,
       email: dbUser.email,
       name: dbUser.name,
-      userType: dbUser.user_type,
+      // Include password hash for authentication (used by server-unified.js)
+      password: dbUser.password_hash || dbUser.passwordHash,
+      passwordHash: dbUser.password_hash || dbUser.passwordHash,
+      userType: dbUser.user_type || 'client',
       googleId: dbUser.oauth_id,
-      avatar_url: dbUser.avatar_url,
+      avatar_url: dbUser.avatar_url || dbUser.image,
+      image: dbUser.image || dbUser.avatar_url,
       phone: dbUser.phone,
       timezone: dbUser.timezone,
       preferences: dbUser.preferences,
-      emailVerified: dbUser.email_verified,
-      isActive: dbUser.is_active,
+      emailVerified: dbUser.email_verified || dbUser.emailVerified,
+      isActive: dbUser.is_active !== false,
       lastLogin: dbUser.last_login,
-      createdAt: dbUser.created_at,
-      updatedAt: dbUser.updated_at
+      createdAt: dbUser.created_at || dbUser.createdAt,
+      updatedAt: dbUser.updated_at || dbUser.updatedAt
     };
   }
 
