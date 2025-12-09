@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   title: 'MetMap - Practice Smarter, Not Harder',
   description: 'Break down songs into sections, track your progress, and master every part with focused practice.',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/icon',
+    apple: '/apple-icon',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
