@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
 import {
   ArrowLeft,
@@ -67,11 +68,13 @@ export default function SettingsPage() {
                   href="/settings/account"
                   className="flex items-center gap-4 p-4 hover:bg-hw-charcoal/50 transition-colors"
                 >
-                  <div className="w-12 h-12 rounded-full bg-hw-brass flex items-center justify-center shadow-knob">
+                  <div className="w-12 h-12 rounded-full bg-hw-brass flex items-center justify-center shadow-knob overflow-hidden">
                     {session.user.image ? (
-                      <img
+                      <Image
                         src={session.user.image}
                         alt={session.user.name || 'User'}
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded-full"
                       />
                     ) : (

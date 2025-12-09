@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { ArrowLeft, Mail, User, Calendar, Shield, LogOut } from 'lucide-react';
@@ -55,11 +56,13 @@ export default function AccountPage() {
         {/* Profile Card */}
         <div className="bg-hw-surface rounded-xl p-6">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-20 h-20 rounded-full bg-hw-brass flex items-center justify-center shadow-knob">
+            <div className="w-20 h-20 rounded-full bg-hw-brass flex items-center justify-center shadow-knob overflow-hidden">
               {user.image ? (
-                <img
+                <Image
                   src={user.image}
                   alt={user.name || 'User'}
+                  width={80}
+                  height={80}
                   className="w-20 h-20 rounded-full"
                 />
               ) : (
