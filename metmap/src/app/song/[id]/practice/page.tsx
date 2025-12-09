@@ -96,7 +96,15 @@ export default function PracticeModePage() {
     currentBeat,
     beatsPerMeasure,
     timeSignature: metronomeTimeSignature,
+    stop: stopMetronome,
   } = useMetronome();
+
+  // Stop metronome when leaving the page
+  useEffect(() => {
+    return () => {
+      stopMetronome();
+    };
+  }, [stopMetronome]);
 
   // Track current bar (1-indexed) based on beat changes
   const [currentBar, setCurrentBar] = useState(1);
