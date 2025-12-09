@@ -3,7 +3,7 @@
  * Provides database operations for the auth service
  */
 
-const { userQueries, organizationQueries, query } = require('./config');
+const { userQueries, organizationQueries, query, generateCuid } = require('./config');
 
 class AuthAdapter {
 
@@ -133,10 +133,11 @@ class AuthAdapter {
       const orgId = result.rows[0].id;
 
       // Add user as organization owner
+      const memberId = generateCuid();
       await query(
-        `INSERT INTO organization_members (organization_id, user_id, role, is_active)
-         VALUES ($1, $2, 'owner', true)`,
-        [orgId, userId]
+        `INSERT INTO organization_members (id, organization_id, user_id, role, is_active)
+         VALUES ($1, $2, $3, 'owner', true)`,
+        [memberId, orgId, userId]
       );
 
       return orgId;

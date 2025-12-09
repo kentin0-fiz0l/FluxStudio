@@ -6,6 +6,17 @@
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+
+/**
+ * Generate a cuid-like ID compatible with Prisma/MetMap schema
+ * Format: 25 character string starting with 'c'
+ */
+function generateCuid() {
+  const timestamp = Date.now().toString(36);
+  const randomPart = crypto.randomBytes(12).toString('base64url').substring(0, 16);
+  return 'c' + timestamp + randomPart;
+}
 
 // Parse DATABASE_URL if available, otherwise use individual variables
 const dbConfig = (() => {
@@ -342,11 +353,14 @@ const userQueries = {
 
   findByEmail: (email) => query('SELECT * FROM users WHERE email = $1', [email]),
   findById: (id) => query('SELECT * FROM users WHERE id = $1', [id]),
-  create: (userData) => query(
-    `INSERT INTO users (email, name, password_hash, user_type, oauth_provider, oauth_id)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [userData.email, userData.name, userData.password_hash, userData.user_type, userData.oauth_provider, userData.oauth_id]
-  ),
+  create: (userData) => {
+    const id = generateCuid();
+    return query(
+      `INSERT INTO users (id, email, name, password_hash, user_type, oauth_provider, oauth_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [id, userData.email, userData.name, userData.password_hash, userData.user_type, userData.oauth_provider, userData.oauth_id]
+    );
+  },
   update: (id, updates) => {
     // Validate and filter columns against whitelist
     const allowedUpdates = {};
@@ -396,11 +410,14 @@ const projectQueries = {
 const organizationQueries = {
   findBySlug: (slug) => query('SELECT * FROM organizations WHERE slug = $1', [slug]),
   findById: (id) => query('SELECT * FROM organizations WHERE id = $1', [id]),
-  create: (orgData) => query(
-    `INSERT INTO organizations (name, slug, description, type, created_by)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [orgData.name, orgData.slug, orgData.description, orgData.type, orgData.created_by]
-  )
+  create: (orgData) => {
+    const id = generateCuid();
+    return query(
+      `INSERT INTO organizations (id, name, slug, description, type, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [id, orgData.name, orgData.slug, orgData.description, orgData.type, orgData.created_by]
+    );
+  }
 };
 
 // Enhanced messaging queries with optimization
@@ -624,5 +641,6 @@ module.exports = {
   messagingQueries,
   getPoolStats,
   healthCheck,
-  closePool
+  closePool,
+  generateCuid
 };
