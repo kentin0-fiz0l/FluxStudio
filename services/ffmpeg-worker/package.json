@@ -1,0 +1,30 @@
+{
+  "name": "ffmpeg-transcoding-worker",
+  "version": "1.0.0",
+  "description": "FFmpeg-based HLS transcoding worker for FluxStudio",
+  "main": "worker.js",
+  "scripts": {
+    "start": "node worker.js",
+    "dev": "nodemon worker.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ffmpeg",
+    "hls",
+    "transcoding",
+    "video"
+  ],
+  "author": "FluxStudio",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.1412.0",
+    "cuid": "^2.1.8",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "fluent-ffmpeg": "^2.1.2",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

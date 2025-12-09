@@ -3,7 +3,7 @@
  * Provides rate limiting, CORS, validation, and security headers
  */
 
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const helmet = require('helmet');
 const cors = require('cors');
 const validator = require('validator');
@@ -39,6 +39,24 @@ const authRateLimit = createRateLimit({
   message: {
     error: 'Too many authentication attempts, please try again in 15 minutes.',
     retryAfter: 900
+  }
+});
+
+/**
+ * Rate limiting for 3D print endpoints
+ * Prevents abuse of expensive print operations
+ */
+const printRateLimit = createRateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour window
+  max: 10, // limit each IP to 10 print jobs per hour
+  message: {
+    error: 'Too many print jobs queued. Maximum 10 print jobs per hour allowed.',
+    retryAfter: 3600
+  },
+  skipSuccessfulRequests: false, // Count all requests, not just errors
+  keyGenerator: (req) => {
+    // Use user ID if authenticated, otherwise fall back to properly normalized IP
+    return req.user?.id || ipKeyGenerator(req);
   }
 });
 
@@ -215,6 +233,7 @@ const auditLogger = (req, res, next) => {
 module.exports = {
   rateLimit: createRateLimit,
   authRateLimit,
+  printRateLimit,
   cors: cors(corsOptions),
   helmet: helmet(helmetConfig),
   validateInput,

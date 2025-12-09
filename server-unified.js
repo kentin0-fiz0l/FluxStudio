@@ -26,10 +26,12 @@ const fs = require('fs');
 const { OAuth2Client } = require('google-auth-library');
 const multer = require('multer');
 const crypto = require('crypto');
+const axios = require('axios');
+const FormData = require('form-data');
 
 // Import security and configuration modules
 const { config } = require('./config/environment');
-const { rateLimit, authRateLimit, cors, helmet, validateInput, securityErrorHandler, auditLogger } = require('./middleware/security');
+const { rateLimit, authRateLimit, printRateLimit, cors, helmet, validateInput, securityErrorHandler, auditLogger } = require('./middleware/security');
 const { csrfProtection, getCsrfToken } = require('./middleware/csrf');
 const cookieParser = require('cookie-parser');
 
@@ -51,7 +53,12 @@ const refreshTokenRoutes = require('./lib/auth/refreshTokenRoutes');
 // Import Week 2 Security Sprint - Auth Helpers for Token Integration
 const { generateAuthResponse } = require('./lib/auth/authHelpers');
 
+// Import file validation utilities
+const { validateUploadedFiles, validateFileType } = require('./lib/fileValidator');
+
 // Import Sprint 13 - Security Logger
+// const transcodingService = require('./services/transcoding-service'); // AWS version
+const transcodingService = require('./services/transcoding-service-do'); // DigitalOcean version
 const securityLogger = require('./lib/auth/securityLogger');
 
 // Import Sprint 13 Day 2 - Sentry & Anomaly Detection
@@ -115,6 +122,10 @@ performanceMonitor.monitorWebSocket(io, 'unified-service');
 // Create Socket.IO namespaces for separation
 const authNamespace = io.of('/auth');
 const messagingNamespace = io.of('/messaging');
+const printingNamespace = io.of('/printing'); // Phase 3A: Real-time printing updates
+
+// Store printing namespace in app for access in routes (Phase 4A)
+app.set('printingNamespace', printingNamespace);
 
 // Google OAuth configuration
 const GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID;
@@ -509,24 +520,9 @@ app.get('/csrf-token', getCsrfToken);
 // Import existing route modules
 // Note: DigitalOcean App Platform routes /api/* to this service,
 // so mount paths should NOT include /api prefix
-app.use('/auth', refreshTokenRoutes);
 
-// Mount Sprint 13 Day 5 - Admin API Routes
-const adminBlockedIps = require('./lib/api/admin/blockedIps');
-const adminTokens = require('./lib/api/admin/tokens');
-const adminSecurity = require('./lib/api/admin/security');
-const adminMaintenance = require('./lib/api/admin/maintenance');
-
-app.use('/admin/security', adminBlockedIps);
-app.use('/admin', adminTokens);
-app.use('/admin/security', adminSecurity);
-app.use('/admin/maintenance', adminMaintenance);
-
-// Mount monitoring endpoints
-app.use('/monitoring', createMonitoringRouter());
-
-// Google OAuth endpoint
-// Note: Path is /auth/google but DigitalOcean routes /api/auth/google to here
+// Google OAuth endpoint - MUST be defined BEFORE mounting /auth router
+// to avoid being caught by the router and returning 404
 app.post('/auth/google', async (req, res) => {
   try {
     const { credential } = req.body;
@@ -579,6 +575,24 @@ app.post('/auth/google', async (req, res) => {
     res.status(401).json({ message: 'Google authentication failed', error: error.message });
   }
 });
+
+// NOW mount the /auth router (after OAuth route is defined)
+// This prevents the router from catching OAuth requests
+app.use('/auth', refreshTokenRoutes);
+
+// Mount Sprint 13 Day 5 - Admin API Routes
+const adminBlockedIps = require('./lib/api/admin/blockedIps');
+const adminTokens = require('./lib/api/admin/tokens');
+const adminSecurity = require('./lib/api/admin/security');
+const adminMaintenance = require('./lib/api/admin/maintenance');
+
+app.use('/admin/security', adminBlockedIps);
+app.use('/admin', adminTokens);
+app.use('/admin/security', adminSecurity);
+app.use('/admin/maintenance', adminMaintenance);
+
+// Mount monitoring endpoints
+app.use('/monitoring', createMonitoringRouter());
 
 // Organizations endpoint (teams API)
 // Note: Path is /organizations but DigitalOcean routes /api/organizations to here
@@ -962,6 +976,173 @@ app.delete('/files/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Delete file error:', error);
     res.status(500).json({ message: 'Error deleting file' });
+  }
+});
+
+// ========================================
+// HLS TRANSCODING & DRM ROUTES
+// ========================================
+
+// Submit video for HLS transcoding (DigitalOcean Spaces version)
+app.post('/media/transcode', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.body;
+
+    if (!fileId) {
+      return res.status(400).json({ error: 'fileId is required' });
+    }
+
+    // Verify file exists and user owns it
+    const fileResult = await query(
+      'SELECT id, name, file_url, uploaded_by FROM files WHERE id = $1',
+      [fileId]
+    );
+
+    if (fileResult.rows.length === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const file = fileResult.rows[0];
+
+    if (file.uploaded_by !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    // Extract Spaces key from file_url
+    // Supports both formats:
+    // - https://fluxstudio.nyc3.digitaloceanspaces.com/uploads/file.mp4
+    // - https://fluxstudio.nyc3.cdn.digitaloceanspaces.com/uploads/file.mp4
+    const spacesKey = file.file_url.includes('digitaloceanspaces.com/')
+      ? file.file_url.split('digitaloceanspaces.com/')[1]
+      : file.file_url;
+
+    // Submit transcoding job (will be picked up by FFmpeg worker)
+    const job = await transcodingService.createTranscodingJob({
+      fileId: file.id,
+      fileName: file.name,
+      spacesKey: spacesKey,
+      userId: req.user.id
+    });
+
+    res.json({
+      message: 'Transcoding job submitted successfully',
+      jobId: job.jobId,
+      status: job.status,
+      estimatedCompletion: '5-10 minutes',
+      hlsUrl: job.outputUrl
+    });
+
+  } catch (error) {
+    console.error('Transcoding submission error:', error);
+    res.status(500).json({
+      error: 'Failed to submit transcoding job',
+      details: error.message
+    });
+  }
+});
+
+// Get transcoding status for a file
+app.get('/media/transcode/:fileId', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    const status = await transcodingService.getTranscodingStatus(fileId);
+
+    if (!status) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.json({
+      fileId: status.id,
+      fileName: status.name,
+      status: status.transcoding_status,
+      jobStatus: status.job_status,
+      progress: status.progress || 0,
+      hlsManifestUrl: status.hls_manifest_url,
+      drmProtected: status.drm_protected,
+      errorMessage: status.error_message,
+      createdAt: status.created_at,
+      completedAt: status.completed_at
+    });
+
+  } catch (error) {
+    console.error('Get transcoding status error:', error);
+    res.status(500).json({
+      error: 'Failed to get transcoding status',
+      details: error.message
+    });
+  }
+});
+
+// Admin endpoint: Monitor all in-progress transcoding jobs
+app.post('/media/monitor-jobs', authenticateToken, async (req, res) => {
+  try {
+    // TODO: Add admin check middleware
+    // For now, restrict to specific user emails or admin role
+
+    const result = await transcodingService.monitorJobs();
+
+    res.json({
+      message: 'Job monitoring completed',
+      jobsChecked: result.checked,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Job monitoring error:', error);
+    res.status(500).json({
+      error: 'Failed to monitor jobs',
+      details: error.message
+    });
+  }
+});
+
+// Get HLS manifest (with access control)
+app.get('/media/:fileId/manifest', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    const fileResult = await query(
+      `SELECT id, hls_manifest_url, drm_protected, is_public, uploaded_by
+       FROM files
+       WHERE id = $1`,
+      [fileId]
+    );
+
+    if (fileResult.rows.length === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const file = fileResult.rows[0];
+
+    // Check access permissions
+    if (!file.is_public && file.uploaded_by !== req.user.id) {
+      // TODO: Check organization/project membership
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!file.hls_manifest_url) {
+      return res.status(404).json({
+        error: 'HLS manifest not available',
+        suggestion: 'File may not be transcoded yet'
+      });
+    }
+
+    // Redirect to CloudFront URL or return manifest URL
+    res.json({
+      manifestUrl: file.hls_manifest_url,
+      drmProtected: file.drm_protected,
+      licenseServerUrl: file.drm_protected
+        ? `${process.env.FAIRPLAY_LICENSE_SERVER_URL || 'https://fluxstudio.art/fps'}/license?contentId=${fileId}`
+        : null
+    });
+
+  } catch (error) {
+    console.error('Get manifest error:', error);
+    res.status(500).json({
+      error: 'Failed to get manifest',
+      details: error.message
+    });
   }
 });
 
@@ -2710,6 +2891,20 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Health check endpoint with /api prefix for DigitalOcean App Platform
+// DO ingress prepends /api to health check path
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'unified-backend',
+    timestamp: new Date().toISOString(),
+    services: ['auth', 'messaging'],
+    port: PORT,
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+});
+
 // Debug endpoint to check database tables
 app.get('/admin/db-status', async (req, res) => {
   try {
@@ -2847,6 +3042,1443 @@ app.use(createHealthCheck({
 // Socket.IO namespace handlers
 require('./sockets/auth-socket')(authNamespace, performanceMonitor, authAdapter);
 require('./sockets/messaging-socket')(messagingNamespace, createMessage, getMessages, getChannels, messagingAdapter, JWT_SECRET);
+require('./sockets/printing-socket')(printingNamespace, JWT_SECRET); // Phase 3A + Security: Real-time printing updates with JWT auth
+
+// ============================================================================
+// FluxPrint Integration - 3D Printing Proxy Layer (Phase 1 + Phase 2.5)
+// ============================================================================
+// Proxies requests to FluxPrint microservice running on localhost:5001
+// Enables seamless 3D printing capabilities within FluxStudio workflow
+// Phase 2.5: Database integration for print job logging and project linking
+
+const FLUXPRINT_URL = process.env.FLUXPRINT_SERVICE_URL || 'http://localhost:5001';
+const FLUXPRINT_ENABLED = process.env.FLUXPRINT_ENABLED === 'true';
+
+// Validate FluxPrint URL on startup
+if (FLUXPRINT_ENABLED) {
+  try {
+    const fluxPrintUrl = new URL(FLUXPRINT_URL);
+
+    // Validate protocol
+    if (!['http:', 'https:'].includes(fluxPrintUrl.protocol)) {
+      throw new Error(`Invalid protocol: ${fluxPrintUrl.protocol}. Must be http: or https:`);
+    }
+
+    // Validate hostname
+    if (!fluxPrintUrl.hostname) {
+      throw new Error('FluxPrint URL must include a hostname');
+    }
+
+    // Warn about localhost in production
+    if (process.env.NODE_ENV === 'production' && fluxPrintUrl.hostname === 'localhost') {
+      console.warn('⚠️  WARNING: FluxPrint is configured to use localhost in production environment');
+    }
+
+    console.log(`✅ FluxPrint URL validated: ${FLUXPRINT_URL}`);
+  } catch (error) {
+    console.error('❌ FLUXPRINT_SERVICE_URL validation failed:', error.message);
+    console.error('   FluxPrint features will be disabled');
+    // Don't crash the server, just disable the feature
+    process.env.FLUXPRINT_ENABLED = 'false';
+  }
+}
+
+// Import print job logger service (Phase 2.5)
+const printJobLogger = require('./services/printJobLogger');
+
+// Middleware to check if FluxPrint service is enabled
+const checkFluxPrintEnabled = (req, res, next) => {
+  if (!FLUXPRINT_ENABLED) {
+    return res.status(503).json({
+      error: 'FluxPrint service is not enabled',
+      message: 'Set FLUXPRINT_ENABLED=true in environment configuration'
+    });
+  }
+  next();
+};
+
+// Helper function to proxy requests to FluxPrint
+const proxyToFluxPrint = async (req, res, endpoint, method = 'GET', options = {}) => {
+  try {
+    const url = `${FLUXPRINT_URL}${endpoint}`;
+    const config = {
+      method,
+      url,
+      headers: {
+        ...req.headers,
+        host: new URL(FLUXPRINT_URL).host,
+      },
+      params: req.query,
+      timeout: options.timeout || 30000,
+      validateStatus: () => true, // Don't throw on any status
+    };
+
+    // Add request body for POST/PUT requests
+    if (method !== 'GET' && method !== 'DELETE') {
+      config.data = req.body;
+    }
+
+    // Handle multipart form data
+    if (options.multipart) {
+      config.headers['content-type'] = req.headers['content-type'];
+      config.data = req.body;
+    }
+
+    const response = await axios(config);
+    res.status(response.status).json(response.data);
+  } catch (error) {
+    console.error(`FluxPrint proxy error [${endpoint}]:`, error.message);
+
+    if (error.code === 'ECONNREFUSED') {
+      res.status(503).json({
+        error: 'FluxPrint service unavailable',
+        message: 'Unable to connect to FluxPrint service. Please ensure it is running on port 5001.'
+      });
+    } else if (error.code === 'ETIMEDOUT') {
+      res.status(504).json({
+        error: 'FluxPrint service timeout',
+        message: 'The request to FluxPrint service timed out.'
+      });
+    } else {
+      res.status(500).json({
+        error: 'Proxy error',
+        message: error.message
+      });
+    }
+  }
+};
+
+// Get printer status
+app.get('/api/printing/status', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/printer/status');
+});
+
+// Get current print job
+app.get('/api/printing/job', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/job');
+});
+
+// Get print queue
+app.get('/api/printing/queue', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/queue');
+});
+
+// Add job to print queue (with database logging)
+app.post('/api/printing/queue', printRateLimit, checkFluxPrintEnabled, authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { project_id } = req.body;
+
+    // If project_id is provided, check permissions
+    if (project_id) {
+      const projectAccessQuery = await query(`
+        SELECT p.id, p."clientId" as owner_id, pm.role
+        FROM projects p
+        LEFT JOIN project_members pm ON p.id = pm.project_id AND pm.user_id = $2
+        WHERE p.id = $1 AND p.deleted_at IS NULL
+      `, [project_id, userId]);
+
+      if (projectAccessQuery.rows.length === 0) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      const project = projectAccessQuery.rows[0];
+      const isOwner = project.owner_id === userId;
+      const memberRole = project.role;
+      const canPrint = isOwner || memberRole === 'manager' || memberRole === 'editor';
+
+      if (!canPrint) {
+        return res.status(403).json({
+          error: 'Insufficient permissions',
+          message: 'You need owner, manager, or editor role to queue print jobs'
+        });
+      }
+    }
+
+    // Proxy request to FluxPrint
+    const response = await axios.post(`${FLUXPRINT_URL}/api/queue`, req.body, {
+      headers: { ...req.headers, host: new URL(FLUXPRINT_URL).host },
+      timeout: 30000,
+      validateStatus: () => true,
+    });
+
+    // If successful, log to database
+    if (response.status === 200 || response.status === 201) {
+      try {
+        const { file_name, project_id, file_id, metadata } = req.body;
+        const fluxprintQueueId = response.data?.queue_id || response.data?.id;
+
+        await printJobLogger.createPrintJob({
+          file_name,
+          fluxprint_queue_id: fluxprintQueueId,
+          project_id: project_id || null,
+          file_id: file_id || null,
+          metadata: metadata || {},
+        });
+      } catch (logError) {
+        // Log error but don't fail the request
+        console.error('Failed to log print job:', logError.message);
+      }
+    }
+
+    res.status(response.status).json(response.data);
+  } catch (error) {
+    console.error('FluxPrint queue POST error:', error.message);
+    res.status(500).json({ error: 'Failed to add job to queue', message: error.message });
+  }
+});
+
+// Remove job from print queue
+app.delete('/api/printing/queue/:id', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, `/api/queue/${req.params.id}`, 'DELETE');
+});
+
+// Reorder print queue
+app.post('/api/printing/queue/reorder', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/queue/reorder', 'POST');
+});
+
+// Start specific job from queue
+app.post('/api/printing/queue/:id/start', checkFluxPrintEnabled, authenticateToken, async (req, res) => {
+  // Starting a job requires authentication but not project-specific permissions
+  // since the job was already authorized when added to the queue
+  await proxyToFluxPrint(req, res, `/api/queue/${req.params.id}/start`, 'POST');
+});
+
+// Clear entire print queue
+app.delete('/api/printing/queue', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/queue', 'DELETE');
+});
+
+// Get uploaded files list
+app.get('/api/printing/files', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/files');
+});
+
+// Upload file for printing (with optional project linking)
+app.post('/api/printing/files/upload', checkFluxPrintEnabled, authenticateToken, upload.array('files', 10), async (req, res) => {
+  try {
+    const { project_id } = req.query;  // Optional project_id for auto-linking
+    const userId = req.user.id;
+
+    const formData = new FormData();
+
+    // Add files to form data
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        formData.append('files', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype
+        });
+      });
+    }
+
+    const response = await axios.post(`${FLUXPRINT_URL}/api/files/upload`, formData, {
+      headers: {
+        ...formData.getHeaders(),
+      },
+      timeout: 60000, // 60 second timeout for file uploads
+      validateStatus: () => true,
+    });
+
+    // If project_id provided and upload successful, auto-link files
+    if (project_id && response.status === 200 && req.files && req.files.length > 0) {
+      try {
+        // Verify user has access to project
+        const hasAccess = await canUserAccessProject(userId, project_id);
+
+        if (hasAccess) {
+          const { createId } = require('@paralleldrive/cuid2');
+
+          // Link each uploaded file to the project
+          for (const file of req.files) {
+            const filename = file.originalname;
+
+            // Check if already linked
+            const existingLink = await query(
+              'SELECT id FROM printing_files WHERE filename = $1 AND project_id = $2',
+              [filename, project_id]
+            );
+
+            if (existingLink.rows.length === 0) {
+              // Create new link
+              await query(`
+                INSERT INTO printing_files (
+                  id, project_id, filename, file_size, uploaded_by
+                ) VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (project_id, filename) DO NOTHING
+              `, [
+                createId(),
+                project_id,
+                filename,
+                file.size,
+                userId
+              ]);
+            }
+          }
+
+          // Add project_id to response
+          response.data.linked_to_project = project_id;
+        }
+      } catch (linkError) {
+        console.error('Auto-link error (non-fatal):', linkError.message);
+        // Don't fail upload if linking fails
+      }
+    }
+
+    res.status(response.status).json(response.data);
+  } catch (error) {
+    console.error('FluxPrint file upload error:', error.message);
+    res.status(500).json({
+      error: 'File upload failed',
+      message: error.message
+    });
+  }
+});
+
+// Delete file
+app.delete('/api/printing/files/:filename', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, `/api/files/${req.params.filename}`, 'DELETE');
+});
+
+// Get temperature data
+app.get('/api/printing/temperature', checkFluxPrintEnabled, async (req, res) => {
+  await proxyToFluxPrint(req, res, '/api/printer/temperature');
+});
+
+// Proxy MJPEG camera stream
+app.get('/api/printing/camera/stream', checkFluxPrintEnabled, async (req, res) => {
+  try {
+    const response = await axios({
+      method: 'GET',
+      url: `${FLUXPRINT_URL}/api/camera/stream`,
+      responseType: 'stream',
+      timeout: 0, // No timeout for streaming
+    });
+
+    // Set headers for MJPEG stream
+    res.setHeader('Content-Type', 'multipart/x-mixed-replace; boundary=frame');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // Pipe the stream
+    response.data.pipe(res);
+
+    // Handle stream errors
+    response.data.on('error', (error) => {
+      console.error('Camera stream error:', error.message);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Camera stream error' });
+      }
+    });
+
+    // Handle client disconnect
+    req.on('close', () => {
+      response.data.destroy();
+    });
+  } catch (error) {
+    console.error('FluxPrint camera stream error:', error.message);
+    if (!res.headersSent) {
+      res.status(503).json({
+        error: 'Camera stream unavailable',
+        message: error.message
+      });
+    }
+  }
+});
+
+// ============================================================================
+// FluxPrint Database Integration - Print Job Management (Phase 2.5)
+// ============================================================================
+
+// Get active print jobs
+app.get('/api/printing/jobs/active', async (req, res) => {
+  try {
+    const activeJobs = await printJobLogger.getActiveJobs();
+    res.json(activeJobs);
+  } catch (error) {
+    console.error('Failed to get active jobs:', error.message);
+    res.status(500).json({ error: 'Failed to get active jobs', message: error.message });
+  }
+});
+
+// Get print job history
+app.get('/api/printing/jobs/history', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    const history = await printJobLogger.getJobHistory(limit);
+    res.json(history);
+  } catch (error) {
+    console.error('Failed to get job history:', error.message);
+    res.status(500).json({ error: 'Failed to get job history', message: error.message });
+  }
+});
+
+// Get print statistics for a project
+app.get('/api/printing/projects/:projectId/stats', async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const stats = await printJobLogger.getProjectStats(projectId);
+    res.json(stats || { message: 'No print jobs found for this project' });
+  } catch (error) {
+    console.error('Failed to get project stats:', error.message);
+    res.status(500).json({ error: 'Failed to get project stats', message: error.message });
+  }
+});
+
+// Link a print job to a project
+app.post('/api/printing/jobs/:jobId/link', async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { project_id, file_id } = req.body;
+
+    if (!project_id) {
+      return res.status(400).json({ error: 'project_id is required' });
+    }
+
+    const linked = await printJobLogger.linkToProject(jobId, project_id, file_id);
+    if (linked) {
+      res.json({ success: true, job: linked });
+    } else {
+      res.status(404).json({ error: 'Print job not found' });
+    }
+  } catch (error) {
+    console.error('Failed to link job to project:', error.message);
+    res.status(500).json({ error: 'Failed to link job to project', message: error.message });
+  }
+});
+
+// Update print job status manually
+app.patch('/api/printing/jobs/:jobId/status', async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { status, progress, error_message } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ error: 'status is required' });
+    }
+
+    await printJobLogger.updateJobStatus(jobId, status, progress, { error_message });
+
+    // Calculate print time if job is completed
+    if (status === 'completed') {
+      await printJobLogger.calculatePrintTime(jobId);
+    }
+
+    res.json({ success: true, jobId, status });
+  } catch (error) {
+    console.error('Failed to update job status:', error.message);
+    res.status(500).json({ error: 'Failed to update job status', message: error.message });
+  }
+});
+
+// Sync job status from FluxPrint (useful for monitoring updates)
+app.post('/api/printing/jobs/sync/:fluxprintQueueId', async (req, res) => {
+  try {
+    const { fluxprintQueueId } = req.params;
+    const { status, progress } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ error: 'status is required' });
+    }
+
+    const updated = await printJobLogger.updateJobByFluxPrintId(
+      parseInt(fluxprintQueueId),
+      status,
+      progress
+    );
+
+    if (updated) {
+      // Calculate print time if job is completed
+      if (status === 'completed') {
+        await printJobLogger.calculatePrintTime(updated.id);
+      }
+      res.json({ success: true, job: updated });
+    } else {
+      res.status(404).json({ error: 'Print job not found' });
+    }
+  } catch (error) {
+    console.error('Failed to sync job status:', error.message);
+    res.status(500).json({ error: 'Failed to sync job status', message: error.message });
+  }
+});
+
+// Get print job by ID
+app.get('/api/printing/jobs/:jobId', async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const result = await query('SELECT * FROM print_jobs WHERE id = $1', [jobId]);
+
+    if (result.rows.length > 0) {
+      res.json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'Print job not found' });
+    }
+  } catch (error) {
+    console.error('Failed to get print job:', error.message);
+    res.status(500).json({ error: 'Failed to get print job', message: error.message });
+  }
+});
+
+// ============================================================================
+// Phase 3D: Project-File Association Endpoints
+// ============================================================================
+
+/**
+ * Helper function: Check if user can access project
+ * @param {string} userId - User ID
+ * @param {string} projectId - Project ID
+ * @returns {Promise<boolean>} - True if user has access
+ */
+async function canUserAccessProject(userId, projectId) {
+  try {
+    const result = await query(`
+      SELECT p.id
+      FROM projects p
+      LEFT JOIN project_members pm ON p.id = pm.project_id
+      WHERE p.id = $1
+        AND (p."clientId" = $2 OR pm.user_id = $2)
+        AND p.deleted_at IS NULL
+      LIMIT 1
+    `, [projectId, userId]);
+
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Error checking project access:', error);
+    return false;
+  }
+}
+
+/**
+ * Link a file to a project
+ * POST /api/printing/files/:filename/link
+ */
+app.post('/api/printing/files/:filename/link', authenticateToken, async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const { project_id, file_id, metadata, notes } = req.body;
+    const userId = req.user.id;
+
+    // Validation
+    if (!project_id) {
+      return res.status(400).json({ error: 'project_id is required' });
+    }
+
+    // Sanitize filename to prevent path traversal
+    if (filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+
+    // Check project access
+    const hasAccess = await canUserAccessProject(userId, project_id);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'You do not have permission to access this project' });
+    }
+
+    // Check if file already linked to a different project
+    const existingLink = await query(
+      'SELECT id, project_id FROM printing_files WHERE filename = $1',
+      [filename]
+    );
+
+    if (existingLink.rows.length > 0) {
+      const existing = existingLink.rows[0];
+      if (existing.project_id !== project_id) {
+        return res.status(409).json({
+          error: 'File already linked to another project',
+          linked_to: existing.project_id
+        });
+      }
+      // Already linked to this project
+      return res.status(200).json({
+        success: true,
+        message: 'File already linked to this project',
+        file: existing
+      });
+    }
+
+    // Create the link
+    const { createId } = require('@paralleldrive/cuid2');
+    const fileRecordId = createId();
+
+    const result = await query(`
+      INSERT INTO printing_files (
+        id, project_id, file_id, filename, uploaded_by, metadata, notes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `, [
+      fileRecordId,
+      project_id,
+      file_id || null,
+      filename,
+      userId,
+      metadata ? JSON.stringify(metadata) : '{}',
+      notes || null
+    ]);
+
+    res.status(201).json({
+      success: true,
+      file: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Failed to link file to project:', error);
+    res.status(500).json({
+      error: 'Failed to link file to project',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Unlink a file from a project
+ * DELETE /api/printing/files/:filename/link
+ */
+app.delete('/api/printing/files/:filename/link', authenticateToken, async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const { project_id } = req.query;
+    const userId = req.user.id;
+
+    // Sanitize filename
+    if (filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+
+    // Get the current link
+    const existingLink = await query(
+      'SELECT id, project_id FROM printing_files WHERE filename = $1',
+      [filename]
+    );
+
+    if (existingLink.rows.length === 0) {
+      return res.status(404).json({ error: 'File link not found' });
+    }
+
+    const linkedProjectId = existingLink.rows[0].project_id;
+
+    // Verify project_id if provided
+    if (project_id && linkedProjectId !== project_id) {
+      return res.status(400).json({ error: 'File is not linked to the specified project' });
+    }
+
+    // Check project access
+    const hasAccess = await canUserAccessProject(userId, linkedProjectId);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'You do not have permission to modify this project' });
+    }
+
+    // Delete the link
+    await query('DELETE FROM printing_files WHERE filename = $1', [filename]);
+
+    res.json({
+      success: true,
+      message: 'File unlinked from project'
+    });
+  } catch (error) {
+    console.error('Failed to unlink file:', error);
+    res.status(500).json({
+      error: 'Failed to unlink file',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Get files for a project
+ * GET /api/printing/projects/:projectId/files
+ */
+app.get('/api/printing/projects/:projectId/files', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = parseInt(req.query.offset) || 0;
+
+    // Check project access
+    const hasAccess = await canUserAccessProject(userId, projectId);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'You do not have permission to view this project' });
+    }
+
+    // Get files with print statistics
+    const result = await query(`
+      SELECT
+        pf.*,
+        u.email as uploaded_by_email,
+        COUNT(pj.id) as print_count,
+        MAX(pj.completed_at) as last_printed,
+        SUM(pj.material_used) FILTER (WHERE pj.status = 'completed') as total_material_used
+      FROM printing_files pf
+      LEFT JOIN users u ON pf.uploaded_by = u.id
+      LEFT JOIN print_jobs pj ON pf.filename = pj.file_name AND pj.project_id = pf.project_id
+      WHERE pf.project_id = $1
+      GROUP BY pf.id, u.email
+      ORDER BY pf.upload_date DESC
+      LIMIT $2 OFFSET $3
+    `, [projectId, limit, offset]);
+
+    // Get total count
+    const countResult = await query(
+      'SELECT COUNT(*) FROM printing_files WHERE project_id = $1',
+      [projectId]
+    );
+
+    res.json({
+      files: result.rows,
+      total_files: parseInt(countResult.rows[0].count),
+      limit,
+      offset
+    });
+  } catch (error) {
+    console.error('Failed to get project files:', error);
+    res.status(500).json({
+      error: 'Failed to get project files',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Enhanced project stats (extends existing endpoint)
+ * GET /api/printing/projects/:projectId/stats/detailed
+ */
+app.get('/api/printing/projects/:projectId/stats/detailed', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user.id;
+
+    // Check project access
+    const hasAccess = await canUserAccessProject(userId, projectId);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'You do not have permission to view this project' });
+    }
+
+    // Get detailed stats from view
+    const result = await query(
+      'SELECT * FROM project_print_stats_detailed WHERE project_id = $1',
+      [projectId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        project_id: projectId,
+        message: 'No printing activity for this project yet'
+      });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Failed to get detailed project stats:', error);
+    res.status(500).json({
+      error: 'Failed to get detailed project stats',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Enhanced job history with project filtering
+ * Extends existing /api/printing/jobs/history endpoint
+ */
+app.get('/api/printing/jobs/history/filter', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { project_id, limit = 100, offset = 0 } = req.query;
+
+    let queryText = `
+      SELECT
+        pj.*,
+        p.title as project_name,
+        EXTRACT(EPOCH FROM (pj.completed_at - pj.started_at))::INTEGER as duration_seconds
+      FROM print_jobs pj
+      LEFT JOIN projects p ON pj.project_id = p.id
+      WHERE (pj.completed_at IS NOT NULL OR pj.status IN ('failed', 'canceled'))
+    `;
+
+    const queryParams = [];
+    let paramIndex = 1;
+
+    // Add project filter if specified
+    if (project_id) {
+      // Verify user has access to this project
+      const hasAccess = await canUserAccessProject(userId, project_id);
+      if (!hasAccess) {
+        return res.status(403).json({ error: 'You do not have permission to view this project' });
+      }
+
+      queryText += ` AND pj.project_id = $${paramIndex}`;
+      queryParams.push(project_id);
+      paramIndex++;
+    }
+
+    queryText += ` ORDER BY COALESCE(pj.completed_at, pj.canceled_at, pj.created_at) DESC`;
+    queryText += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    queryParams.push(parseInt(limit), parseInt(offset));
+
+    const result = await query(queryText, queryParams);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Failed to get filtered job history:', error);
+    res.status(500).json({
+      error: 'Failed to get filtered job history',
+      message: error.message
+    });
+  }
+});
+
+// ============================================================================
+// Phase 4A: Designer-First Quick Print API
+// ============================================================================
+
+/**
+ * Quick Print Endpoint - Designer-friendly one-click printing
+ * POST /api/printing/quick-print
+ *
+ * Simplified endpoint that handles:
+ * 1. File validation
+ * 2. Project access control
+ * 3. Queue job with FluxPrint
+ * 4. Create database record
+ * 5. Link to project
+ * 6. Return estimate
+ */
+app.post('/api/printing/quick-print', printRateLimit, csrfProtection, authenticateToken, async (req, res) => {
+  try {
+    const { filename, projectId, config } = req.body;
+    const userId = req.user.id;
+
+    // Validation
+    if (!filename) {
+      return res.status(400).json({ error: 'filename is required' });
+    }
+
+    if (!projectId) {
+      return res.status(400).json({ error: 'projectId is required' });
+    }
+
+    if (!config || !config.material || !config.quality) {
+      return res.status(400).json({
+        error: 'config with material and quality is required',
+        example: {
+          material: 'PLA',
+          quality: 'standard',
+          copies: 1,
+          supports: false,
+          infill: 20,
+          notes: 'Optional notes'
+        }
+      });
+    }
+
+    // Check project access and role
+    const projectAccessQuery = await query(`
+      SELECT p.id, p."clientId" as owner_id, pm.role
+      FROM projects p
+      LEFT JOIN project_members pm ON p.id = pm.project_id AND pm.user_id = $2
+      WHERE p.id = $1 AND p.deleted_at IS NULL
+    `, [projectId, userId]);
+
+    if (projectAccessQuery.rows.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const project = projectAccessQuery.rows[0];
+    const isOwner = project.owner_id === userId;
+    const memberRole = project.role;
+
+    // Check print permissions: owner, manager, or editor can print
+    // Viewers cannot print
+    const canPrint = isOwner || memberRole === 'manager' || memberRole === 'editor';
+
+    if (!canPrint) {
+      return res.status(403).json({
+        error: 'Insufficient permissions',
+        message: 'You need owner, manager, or editor role to print files'
+      });
+    }
+
+    // Sanitize filename to prevent path traversal
+    if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+
+    // Validate file is 3D printable
+    const ext = filename.toLowerCase().split('.').pop();
+    const printableExtensions = ['stl', 'obj', 'gltf', 'glb', 'gcode', '3mf'];
+    if (!printableExtensions.includes(ext)) {
+      return res.status(400).json({
+        error: 'File type not supported for printing',
+        supported: printableExtensions
+      });
+    }
+
+    // Validate material and quality
+    const validMaterials = ['PLA', 'PETG', 'ABS', 'TPU', 'NYLON'];
+    const validQualities = ['draft', 'standard', 'high', 'ultra'];
+
+    if (!validMaterials.includes(config.material)) {
+      return res.status(400).json({
+        error: 'Invalid material',
+        valid: validMaterials
+      });
+    }
+
+    if (!validQualities.includes(config.quality)) {
+      return res.status(400).json({
+        error: 'Invalid quality preset',
+        valid: validQualities
+      });
+    }
+
+    // Check project access
+    const hasAccess = await canUserAccessProject(userId, projectId);
+    if (!hasAccess) {
+      return res.status(403).json({
+        error: 'You do not have permission to access this project'
+      });
+    }
+
+    // Check if file exists in FluxPrint
+    try {
+      const fileCheckResponse = await axios.get(`${FLUXPRINT_URL}/api/files`, {
+        timeout: 5000,
+        validateStatus: () => true
+      });
+
+      if (fileCheckResponse.status === 200) {
+        const files = fileCheckResponse.data.files || [];
+        const fileExists = files.some(f => f === filename);
+
+        if (!fileExists) {
+          return res.status(404).json({
+            error: 'File not found in print queue',
+            message: 'Please upload the file first before printing'
+          });
+        }
+      }
+    } catch (fileCheckError) {
+      console.error('File check error (non-fatal):', fileCheckError.message);
+      // Continue anyway - FluxPrint queue will validate
+    }
+
+    // Queue job with FluxPrint
+    const queuePayload = {
+      file_name: filename,
+      project_id: projectId,
+      metadata: {
+        material: config.material,
+        quality: config.quality,
+        copies: config.copies || 1,
+        supports: config.supports || false,
+        infill: config.infill || 20,
+        notes: config.notes || '',
+        queued_by: userId,
+        queued_at: new Date().toISOString()
+      }
+    };
+
+    const queueResponse = await axios.post(`${FLUXPRINT_URL}/api/queue`, queuePayload, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000,
+      validateStatus: () => true
+    });
+
+    if (queueResponse.status !== 200 && queueResponse.status !== 201) {
+      return res.status(queueResponse.status).json({
+        error: 'Failed to queue print job',
+        message: queueResponse.data?.error || 'FluxPrint service error'
+      });
+    }
+
+    const fluxprintQueueId = queueResponse.data?.queue_id || queueResponse.data?.id;
+
+    // Create database record
+    const { createId } = require('@paralleldrive/cuid2');
+    const jobId = createId();
+
+    await query(`
+      INSERT INTO print_jobs (
+        id,
+        fluxprint_queue_id,
+        file_name,
+        project_id,
+        status,
+        progress,
+        print_settings,
+        metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [
+      jobId,
+      fluxprintQueueId,
+      filename,
+      projectId,
+      'queued',
+      0,
+      JSON.stringify({
+        material: config.material,
+        quality: config.quality,
+        supports: config.supports,
+        infill: config.infill
+      }),
+      JSON.stringify({
+        copies: config.copies,
+        notes: config.notes,
+        queued_by: userId
+      })
+    ]);
+
+    // Link file to project if not already linked
+    try {
+      const existingLink = await query(
+        'SELECT id FROM printing_files WHERE filename = $1 AND project_id = $2',
+        [filename, projectId]
+      );
+
+      if (existingLink.rows.length === 0) {
+        await query(`
+          INSERT INTO printing_files (
+            id, project_id, filename, uploaded_by
+          ) VALUES ($1, $2, $3, $4)
+          ON CONFLICT (project_id, filename) DO NOTHING
+        `, [
+          createId(),
+          projectId,
+          filename,
+          userId
+        ]);
+      }
+    } catch (linkError) {
+      console.error('File linking error (non-fatal):', linkError.message);
+    }
+
+    // Calculate estimate
+    const materialCosts = {
+      PLA: 0.02,
+      PETG: 0.025,
+      ABS: 0.022,
+      TPU: 0.035,
+      NYLON: 0.04
+    };
+
+    const qualityTimeMultipliers = {
+      draft: 0.6,
+      standard: 1.0,
+      high: 1.4,
+      ultra: 2.0
+    };
+
+    // Rough estimation (in production, use slicer API)
+    const baseMaterialGrams = 50; // Placeholder
+    const baseTimeHours = 3; // Placeholder
+    const materialGrams = baseMaterialGrams * (config.copies || 1);
+    const timeHours = baseTimeHours * qualityTimeMultipliers[config.quality] * (config.copies || 1);
+    const materialCost = materialGrams * materialCosts[config.material];
+    const totalCost = materialCost + 5; // $5 base print fee
+
+    const estimate = {
+      timeHours: Math.floor(timeHours),
+      timeMinutes: Math.round((timeHours % 1) * 60),
+      materialGrams,
+      materialCost: parseFloat(materialCost.toFixed(2)),
+      totalCost: parseFloat(totalCost.toFixed(2)),
+      confidence: 'low' // Low until we integrate slicer
+    };
+
+    // Broadcast to project room via WebSocket
+    const printingNamespace = req.app.get('printingNamespace');
+    if (printingNamespace) {
+      printingNamespace.to(`project:${projectId}`).emit('print:status-update', {
+        fileId: jobId,
+        filename,
+        projectId,
+        status: 'queued',
+        progress: 0,
+        estimate,
+        queueId: fluxprintQueueId
+      });
+    }
+
+    res.json({
+      success: true,
+      jobId,
+      queueId: fluxprintQueueId,
+      estimate,
+      message: 'Print job queued successfully'
+    });
+
+  } catch (error) {
+    console.error('Quick print error:', error.message);
+    res.status(500).json({
+      error: 'Failed to queue print job',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Print Estimate Endpoint
+ * POST /api/printing/estimate
+ *
+ * Calculate print time and cost estimates before printing
+ */
+app.post('/api/printing/estimate', authenticateToken, async (req, res) => {
+  try {
+    const { filename, material, quality, copies = 1 } = req.body;
+
+    // Validation
+    if (!filename) {
+      return res.status(400).json({ error: 'filename is required' });
+    }
+
+    if (!material) {
+      return res.status(400).json({ error: 'material is required' });
+    }
+
+    if (!quality) {
+      return res.status(400).json({ error: 'quality is required' });
+    }
+
+    const validMaterials = ['PLA', 'PETG', 'ABS', 'TPU', 'NYLON'];
+    const validQualities = ['draft', 'standard', 'high', 'ultra'];
+
+    if (!validMaterials.includes(material)) {
+      return res.status(400).json({
+        error: 'Invalid material',
+        valid: validMaterials
+      });
+    }
+
+    if (!validQualities.includes(quality)) {
+      return res.status(400).json({
+        error: 'Invalid quality preset',
+        valid: validQualities
+      });
+    }
+
+    // Material cost per gram
+    const materialCosts = {
+      PLA: 0.02,
+      PETG: 0.025,
+      ABS: 0.022,
+      TPU: 0.035,
+      NYLON: 0.04
+    };
+
+    // Quality time multipliers
+    const qualityTimeMultipliers = {
+      draft: 0.6,
+      standard: 1.0,
+      high: 1.4,
+      ultra: 2.0
+    };
+
+    // Try to get accurate estimate from FluxPrint slicer API
+    let estimate;
+    try {
+      const slicerResponse = await axios.post(
+        `${FLUXPRINT_URL}/api/slicer/estimate`,
+        { filename, quality },
+        { timeout: 10000, validateStatus: () => true }
+      );
+
+      if (slicerResponse.status === 200 && slicerResponse.data) {
+        const slicerData = slicerResponse.data;
+        estimate = {
+          timeHours: Math.floor(slicerData.print_time_minutes / 60),
+          timeMinutes: Math.round(slicerData.print_time_minutes % 60),
+          materialGrams: slicerData.filament_used_g * copies,
+          materialCost: parseFloat((slicerData.filament_used_g * copies * materialCosts[material]).toFixed(2)),
+          totalCost: parseFloat((slicerData.filament_used_g * copies * materialCosts[material] + 5).toFixed(2)),
+          confidence: 'high'
+        };
+      } else {
+        throw new Error('Slicer API unavailable');
+      }
+    } catch (slicerError) {
+      console.log('Slicer API unavailable, using rough estimate');
+
+      // Fallback: rough estimation based on file size
+      const baseMaterialGrams = 50;
+      const baseTimeHours = 3;
+      const materialGrams = baseMaterialGrams * copies;
+      const timeHours = baseTimeHours * qualityTimeMultipliers[quality] * copies;
+      const materialCost = materialGrams * materialCosts[material];
+      const totalCost = materialCost + 5;
+
+      estimate = {
+        timeHours: Math.floor(timeHours),
+        timeMinutes: Math.round((timeHours % 1) * 60),
+        materialGrams,
+        materialCost: parseFloat(materialCost.toFixed(2)),
+        totalCost: parseFloat(totalCost.toFixed(2)),
+        confidence: 'low'
+      };
+    }
+
+    res.json(estimate);
+
+  } catch (error) {
+    console.error('Estimate calculation error:', error.message);
+    res.status(500).json({
+      error: 'Failed to calculate estimate',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Get Project Files (with print status)
+ * GET /api/projects/:projectId/files
+ */
+app.get('/api/projects/:projectId/files', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user.id;
+
+    // Check project access
+    const hasAccess = await canUserAccessProject(userId, projectId);
+    if (!hasAccess) {
+      return res.status(403).json({
+        error: 'You do not have permission to access this project'
+      });
+    }
+
+    // Get files linked to project from database
+    const result = await query(`
+      SELECT
+        pf.id,
+        pf.filename as name,
+        pf.file_size as size,
+        pf.created_at as "uploadedAt",
+        pf.uploaded_by as "uploadedBy",
+        pj.status as "printStatus",
+        pj.progress as "printProgress",
+        pj.id as "printJobId"
+      FROM printing_files pf
+      LEFT JOIN print_jobs pj ON pf.filename = pj.file_name
+        AND pj.project_id = pf.project_id
+        AND pj.status IN ('queued', 'printing')
+      WHERE pf.project_id = $1
+      ORDER BY pf.created_at DESC
+    `, [projectId]);
+
+    // Add file type detection
+    const files = result.rows.map(file => ({
+      ...file,
+      type: file.name ? file.name.split('.').pop()?.toLowerCase() : 'unknown',
+      printStatus: file.printStatus || 'idle'
+    }));
+
+    res.json(files);
+
+  } catch (error) {
+    console.error('Failed to get project files:', error.message);
+    res.status(500).json({
+      error: 'Failed to get project files',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Upload Files to Project
+ * POST /api/projects/:projectId/files/upload
+ */
+app.post('/api/projects/:projectId/files/upload',
+  rateLimit,
+  csrfProtection,
+  authenticateToken,
+  upload.array('files', 10),
+  validateUploadedFiles,
+  async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const userId = req.user.id;
+
+      // Check project access
+      const hasAccess = await canUserAccessProject(userId, projectId);
+      if (!hasAccess) {
+        return res.status(403).json({
+          error: 'You do not have permission to access this project'
+        });
+      }
+
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ error: 'No files uploaded' });
+      }
+
+      // Validate file sizes (max 100MB per file)
+      const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+      for (const file of req.files) {
+        if (file.size > MAX_FILE_SIZE) {
+          return res.status(400).json({
+            error: 'File too large',
+            filename: file.originalname,
+            maxSize: '100MB'
+          });
+        }
+      }
+
+      // Validate file types (magic bytes check would be better)
+      const allowedExtensions = [
+        'stl', 'obj', 'gltf', 'glb', 'gcode', '3mf', // 3D files
+        'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', // Images
+        'pdf', 'doc', 'docx', 'txt', 'md' // Documents
+      ];
+
+      for (const file of req.files) {
+        const ext = file.originalname.toLowerCase().split('.').pop();
+        if (!allowedExtensions.includes(ext)) {
+          return res.status(400).json({
+            error: 'File type not allowed',
+            filename: file.originalname,
+            allowed: allowedExtensions
+          });
+        }
+      }
+
+      // Upload files to FluxPrint
+      const formData = new FormData();
+      req.files.forEach(file => {
+        formData.append('files', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype
+        });
+      });
+
+      const uploadResponse = await axios.post(
+        `${FLUXPRINT_URL}/api/files/upload`,
+        formData,
+        {
+          headers: { ...formData.getHeaders() },
+          timeout: 60000,
+          validateStatus: () => true
+        }
+      );
+
+      if (uploadResponse.status !== 200) {
+        return res.status(uploadResponse.status).json({
+          error: 'File upload to FluxPrint failed',
+          message: uploadResponse.data?.error || 'Unknown error'
+        });
+      }
+
+      // Link files to project in database
+      const { createId } = require('@paralleldrive/cuid2');
+      const uploadedFiles = [];
+
+      for (const file of req.files) {
+        try {
+          // Check if already linked
+          const existingLink = await query(
+            'SELECT id FROM printing_files WHERE filename = $1 AND project_id = $2',
+            [file.originalname, projectId]
+          );
+
+          if (existingLink.rows.length === 0) {
+            const fileId = createId();
+            await query(`
+              INSERT INTO printing_files (
+                id, project_id, filename, file_size, uploaded_by
+              ) VALUES ($1, $2, $3, $4, $5)
+            `, [
+              fileId,
+              projectId,
+              file.originalname,
+              file.size,
+              userId
+            ]);
+
+            uploadedFiles.push({
+              id: fileId,
+              name: file.originalname,
+              size: file.size,
+              type: file.originalname.split('.').pop()?.toLowerCase()
+            });
+          }
+        } catch (linkError) {
+          console.error('File link error:', linkError.message);
+        }
+      }
+
+      res.json({
+        success: true,
+        files: uploadedFiles,
+        message: `${uploadedFiles.length} file(s) uploaded successfully`
+      });
+
+    } catch (error) {
+      console.error('File upload error:', error.message);
+      res.status(500).json({
+        error: 'File upload failed',
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * Delete Project File
+ * DELETE /api/projects/:projectId/files/:fileId
+ */
+app.delete('/api/projects/:projectId/files/:fileId', csrfProtection, authenticateToken, async (req, res) => {
+  try {
+    const { projectId, fileId } = req.params;
+    const userId = req.user.id;
+
+    // Check project access
+    const hasAccess = await canUserAccessProject(userId, projectId);
+    if (!hasAccess) {
+      return res.status(403).json({
+        error: 'You do not have permission to access this project'
+      });
+    }
+
+    // Get file info
+    const fileResult = await query(
+      'SELECT filename FROM printing_files WHERE id = $1 AND project_id = $2',
+      [fileId, projectId]
+    );
+
+    if (fileResult.rows.length === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const filename = fileResult.rows[0].filename;
+
+    // Delete from database
+    await query('DELETE FROM printing_files WHERE id = $1', [fileId]);
+
+    // Try to delete from FluxPrint (non-fatal if fails)
+    try {
+      await axios.delete(`${FLUXPRINT_URL}/api/files/${filename}`, {
+        timeout: 5000,
+        validateStatus: () => true
+      });
+    } catch (deleteError) {
+      console.error('FluxPrint file deletion error (non-fatal):', deleteError.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'File deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('File deletion error:', error.message);
+    res.status(500).json({
+      error: 'Failed to delete file',
+      message: error.message
+    });
+  }
+});
+
+console.log('✅ Phase 4A Designer-First Quick Print API registered');
+console.log('✅ FluxPrint proxy routes registered');
+console.log('✅ FluxPrint database integration routes registered (Phase 2.5)');
+console.log('✅ FluxPrint project-file association routes registered (Phase 3D)');
 
 // API 404 handler for unknown API routes
 // Note: Disabled to allow Socket.IO to work properly

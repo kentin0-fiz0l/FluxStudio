@@ -1,0 +1,17 @@
+{
+  "name": "MetMap - Practice Smarter",
+  "short_name": "MetMap",
+  "description": "Break down songs into sections, track your progress, and master every part with focused practice.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2a2a2f",
+  "theme_color": "#c9a962",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

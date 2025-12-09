@@ -32,16 +32,17 @@ ingress:
           - Content-Type
           - Authorization
         allow_credentials: true
-    - component:
-        name: collaboration
-      match:
-        path:
-          prefix: /collab
-    - component:
-        name: flux-mcp
-      match:
-        path:
-          prefix: /mcp
+# TEMPORARILY DISABLED - Collaboration service commented out
+#    - component:
+#        name: collaboration
+#      match:
+#        path:
+#          prefix: /collab
+#    - component:
+#        name: flux-mcp
+#      match:
+#        path:
+#          prefix: /mcp
     - component:
         name: frontend
       match:
@@ -70,33 +71,34 @@ static_sites:
       - key: VITE_APP_URL
         value: https://fluxstudio.art
       - key: VITE_GOOGLE_CLIENT_ID
-        scope: RUN_AND_BUILD_TIME
-        type: SECRET
+        value: 65518208813-f4rgudom5b57qad0jlhjtsocsrb26mfc.apps.googleusercontent.com
       - key: VITE_MCP_WS_URL
         value: wss://fluxstudio.art/mcp
       - key: VITE_GITHUB_CONNECTED
         value: "true"
       - key: VITE_MCP_AUTH_TOKEN
-        scope: RUN_AND_BUILD_TIME
+        scope: BUILD_TIME
         type: SECRET
 
 # Database Migration Job (runs before deployment)
-jobs:
-  - name: db-migrate
-    github:
-      repo: kentin0-fiz0l/FluxStudio
-      branch: main
-      deploy_on_push: true
-    build_command: npm ci
-    run_command: node run-migrations.js
-    environment_slug: node-js
-    kind: PRE_DEPLOY
-    envs:
-      - key: NODE_ENV
-        value: production
-      - key: DATABASE_URL
-        scope: RUN_TIME
-        type: SECRET
+# TEMPORARILY DISABLED: No database component configured yet
+# TODO: Add database component then re-enable
+#jobs:
+#  - name: db-migrate
+#    github:
+#      repo: kentin0-fiz0l/FluxStudio
+#      branch: main
+#      deploy_on_push: true
+#    build_command: npm ci
+#    run_command: node run-migrations.js
+#    environment_slug: node-js
+#    kind: PRE_DEPLOY
+#    envs:
+#      - key: NODE_ENV
+#        value: production
+#      - key: DATABASE_URL
+#        scope: RUN_TIME
+#        type: SECRET
 
 # Unified Backend (Auth + Messaging consolidated)
 services:
@@ -111,11 +113,11 @@ services:
     http_port: 3001
     health_check:
       http_path: /health
-      initial_delay_seconds: 10
+      initial_delay_seconds: 120
       period_seconds: 10
       timeout_seconds: 5
       success_threshold: 1
-      failure_threshold: 3
+      failure_threshold: 5
     instance_count: 1
     instance_size_slug: professional-xs
     envs:
@@ -233,79 +235,158 @@ services:
       - key: ENABLE_WEBSOCKET
         value: "true"
 
+      # DigitalOcean Spaces Configuration (for HLS video streaming)
+      - key: SPACES_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SPACES_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SPACES_BUCKET
+        value: fluxstudio
+      - key: SPACES_ENDPOINT
+        value: sfo3.digitaloceanspaces.com
+      - key: SPACES_REGION
+        value: sfo3
+
+      # FluxPrint Integration (Phase 4A)
+      # Set to false initially - UI will be visible but print endpoints return "Feature not enabled"
+      # To enable: Deploy FluxPrint service and set FLUXPRINT_SERVICE_URL
+      - key: FLUXPRINT_ENABLED
+        value: "false"
+      - key: FLUXPRINT_SERVICE_URL
+        value: "http://localhost:5001"
+      - key: SPACES_CDN
+        value: https://fluxstudio.sfo3.cdn.digitaloceanspaces.com
+
+      # MCP Configuration (disable postgres until DATABASE_URL is properly set)
+      - key: MCP_POSTGRES_ENABLED
+        value: "false"
+
 # Collaboration Service (Separate - uses Yjs/WebSocket, not Socket.IO)
-  - name: collaboration
-    github:
-      repo: kentin0-fiz0l/FluxStudio
-      branch: main
-      deploy_on_push: true
-    build_command: npm ci
-    run_command: node server-collaboration.js
-    environment_slug: node-js
-    http_port: 4000
-    health_check:
-      http_path: /health
-      initial_delay_seconds: 10
-      period_seconds: 10
-      timeout_seconds: 5
-      success_threshold: 1
-      failure_threshold: 3
-    instance_count: 1
-    instance_size_slug: professional-xs
-    envs:
-      - key: NODE_ENV
-        value: production
-      - key: COLLAB_PORT
-        value: "4000"
-      - key: COLLAB_HOST
-        value: "0.0.0.0"
-      - key: DATABASE_URL
-        scope: RUN_TIME
-        type: SECRET
-      - key: AUTH_SERVICE_URL
-        scope: RUN_TIME
-        type: SECRET
+# TEMPORARILY DISABLED TO ISOLATE DEPLOYMENT ISSUE
+# Re-enable after verifying Phase 4A deployment succeeds
+#  - name: collaboration
+#    github:
+#      repo: kentin0-fiz0l/FluxStudio
+#      branch: main
+#      deploy_on_push: true
+#    build_command: npm ci
+#    run_command: node server-collaboration.js
+#    environment_slug: node-js
+#    http_port: 4000
+#    health_check:
+#      http_path: /health
+#      initial_delay_seconds: 10
+#      period_seconds: 10
+#      timeout_seconds: 5
+#      success_threshold: 1
+#      failure_threshold: 3
+#    instance_count: 1
+#    instance_size_slug: professional-xs
+#    envs:
+#      - key: NODE_ENV
+#        value: production
+#      - key: COLLAB_PORT
+#        value: "4000"
+#      - key: COLLAB_HOST
+#        value: "0.0.0.0"
+#      - key: DATABASE_URL
+#        scope: RUN_TIME
+#        type: SECRET
+#      - key: AUTH_SERVICE_URL
+#        scope: RUN_TIME
+#        type: SECRET
 
 # MCP Server (Model Context Protocol for AI integrations)
-  - name: flux-mcp
-    github:
-      repo: kentin0-fiz0l/FluxStudio
-      branch: main
-      deploy_on_push: true
-    source_dir: apps/flux-mcp
-    build_command: npm ci && npm run build
-    run_command: npm run start
-    environment_slug: node-js
-    http_port: 8787
-    health_check:
-      http_path: /health
-      initial_delay_seconds: 10
-      period_seconds: 30
-      timeout_seconds: 5
-      success_threshold: 1
-      failure_threshold: 3
-    instance_count: 1
-    instance_size_slug: basic-xxs
-    envs:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: "8787"
-      - key: TRANSPORT
-        value: websocket
-      - key: GITHUB_TOKEN
-        scope: RUN_TIME
-        type: SECRET
-      - key: GITHUB_OWNER
-        scope: RUN_TIME
-        type: SECRET
-      - key: GITHUB_REPO
-        value: FluxStudio
-      - key: GITHUB_WORKFLOW_FILE
-        value: deploy.yml
-      - key: MCP_AUTH_TOKEN
-        scope: RUN_TIME
-        type: SECRET
+  # Using Dockerfile for complete build control
+  # TEMPORARILY DISABLED TO UNBLOCK OAUTH TESTING
+  # Re-enable after OAuth fix is verified and working
+#  - name: flux-mcp
+#    github:
+#      repo: kentin0-fiz0l/FluxStudio
+#      branch: main
+#      deploy_on_push: true
+#    dockerfile_path: Dockerfile
+#    source_dir: flux-mcp
+#    http_port: 8787
+#    health_check:
+#      http_path: /health
+#      initial_delay_seconds: 10
+#      period_seconds: 30
+#      timeout_seconds: 5
+#      success_threshold: 1
+#      failure_threshold: 3
+#    instance_count: 1
+#    instance_size_slug: basic-xxs
+#    envs:
+#      - key: NODE_ENV
+#        value: production
+#      - key: PORT
+#        value: "8787"
+#      - key: TRANSPORT
+#        value: websocket
+#      - key: GITHUB_TOKEN
+#        scope: RUN_TIME
+#        type: SECRET
+#      - key: GITHUB_OWNER
+#        scope: RUN_TIME
+#        type: SECRET
+#      - key: GITHUB_REPO
+#        value: FluxStudio
+#      - key: GITHUB_WORKFLOW_FILE
+#        value: deploy.yml
+#      - key: MCP_AUTH_TOKEN
+#        scope: RUN_TIME
+#        type: SECRET
+
+# FFmpeg Transcoding Worker (for HLS video streaming)
+# Configured as a service (not worker) because DigitalOcean App Platform requires HTTP endpoint
+# TEMPORARILY DISABLED TO UNBLOCK OAUTH TESTING
+# Uncomment after OAuth fix is verified and working
+#  - name: ffmpeg-worker
+#    github:
+#      repo: kentin0-fiz0l/FluxStudio
+#      branch: main
+#      deploy_on_push: true
+#    dockerfile_path: Dockerfile
+#    source_dir: services/ffmpeg-worker
+#    http_port: 8080
+#    health_check:
+#      http_path: /health
+#      initial_delay_seconds: 10
+#      period_seconds: 30
+#      timeout_seconds: 5
+#      success_threshold: 1
+#      failure_threshold: 3
+#    instance_count: 1
+#    instance_size_slug: basic-xs
+#    envs:
+#      - key: NODE_ENV
+#        value: production
+#      - key: PORT
+#        value: "8080"
+#      - key: DATABASE_URL
+#        scope: RUN_TIME
+#        type: SECRET
+#      - key: SPACES_ACCESS_KEY
+#        scope: RUN_TIME
+#        type: SECRET
+#      - key: SPACES_SECRET_KEY
+#        scope: RUN_TIME
+#        type: SECRET
+#      - key: SPACES_BUCKET
+#        value: fluxstudio
+#      - key: SPACES_ENDPOINT
+#        value: sfo3.digitaloceanspaces.com
+#      - key: SPACES_REGION
+#        value: sfo3
+#      - key: SPACES_CDN
+#        value: https://fluxstudio.sfo3.cdn.digitaloceanspaces.com
+#      - key: WORK_DIR
+#        value: /tmp/transcoding
+#      - key: CONCURRENT_JOBS
+#        value: "1"
 
 # Custom Domain Configuration
 domains:

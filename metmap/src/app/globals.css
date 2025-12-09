@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* MetMap Pulse Prism brand colors */
+  --brand-midnight: #0E1020;
+  --brand-mint: #3EF2C8;
+  --brand-violet: #8B5CF6;
+  --brand-coral: #FF5A70;
+  --brand-white: #F3F5FA;
+  --brand-surface: #1A1D2E;
+  --brand-surface-elevated: #252840;
+
+  /* Gradients */
+  --gradient-prism: linear-gradient(90deg, #3EF2C8 0%, #8B5CF6 50%, #FF5A70 100%);
+  --gradient-prism-vertical: linear-gradient(180deg, #3EF2C8 0%, #8B5CF6 50%, #FF5A70 100%);
+
+  /* Shadows */
+  --shadow-glow-mint: 0 0 12px rgba(62, 242, 200, 0.35);
+  --shadow-glow-violet: 0 0 14px rgba(139, 92, 246, 0.35);
+  --shadow-glow-coral: 0 0 14px rgba(255, 90, 112, 0.35);
+  --shadow-glow-prism: 0 0 20px rgba(139, 92, 246, 0.25), 0 0 40px rgba(62, 242, 200, 0.15);
+
+  /* Radii */
+  --radius-card: 20px;
+  --radius-button: 14px;
+  --radius-input: 12px;
+
+  /* Legacy support */
+  --foreground-rgb: 243, 245, 250;
+  --background-rgb: 14, 16, 32;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background-color: var(--brand-midnight);
+  min-height: 100vh;
+  font-family: 'Inter', 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition-property: background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* Custom scrollbar - Pulse Prism aesthetic */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--brand-surface);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.4); /* violet */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.6); /* violet */
+}
+
+/* Confidence level colors */
+.confidence-1 { --confidence-color: #ef4444; }
+.confidence-2 { --confidence-color: #f97316; }
+.confidence-3 { --confidence-color: #eab308; }
+.confidence-4 { --confidence-color: #84cc16; }
+.confidence-5 { --confidence-color: #22c55e; }
+
+/* Section timeline animation */
+@keyframes pulse-section {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.section-playing {
+  animation: pulse-section 1s ease-in-out infinite;
+}
+
+/* Touch-friendly tap targets */
+@media (pointer: coarse) {
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Hardware knob interaction */
+.knob-dragging {
+  cursor: grabbing;
+}

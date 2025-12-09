@@ -10,15 +10,16 @@ export function ServiceWorkerManager() {
 
   useEffect(() => {
     // Skip service worker in development/preview environments
-    const isDevelopment = window.location.hostname === 'localhost' || 
+    const isDevelopment = window.location.hostname === 'localhost' ||
                          window.location.hostname.includes('figma') ||
                          window.location.hostname.includes('127.0.0.1') ||
                          window.location.hostname.includes('preview');
-    
+
+    // TEMPORARILY DISABLED: Service worker registration causes caching issues in development
     // Register service worker only in production
-    if ('serviceWorker' in navigator && !isDevelopment) {
-      registerServiceWorker();
-    }
+    // if ('serviceWorker' in navigator && !isDevelopment) {
+    //   registerServiceWorker();
+    // }
 
     // Handle online/offline status
     const handleOnline = () => setIsOnline(true);

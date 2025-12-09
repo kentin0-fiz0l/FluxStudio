@@ -95,11 +95,14 @@ class ApiService {
 
   private async getDefaultHeaders(
     includeAuth: boolean = true,
-    requireCsrf: boolean = false
+    requireCsrf: boolean = false,
+    includeContentType: boolean = true
   ): Promise<Record<string, string>> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = {};
+
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (includeAuth) {
       const token = this.getAuthToken();
@@ -137,11 +140,14 @@ class ApiService {
     const method = (fetchOptions.method || 'GET').toUpperCase();
     const requireCsrf = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
 
+    // Detect FormData - don't set Content-Type header (browser will set with boundary)
+    const isFormData = fetchOptions.body instanceof FormData;
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const defaultHeaders = await this.getDefaultHeaders(requireAuth, requireCsrf);
+      const defaultHeaders = await this.getDefaultHeaders(requireAuth, requireCsrf, !isFormData);
       const headers = {
         ...defaultHeaders,
         ...fetchOptions.headers,
@@ -343,12 +349,9 @@ class ApiService {
       formData.append('metadata', JSON.stringify(metadata));
     }
 
+    // makeRequest automatically handles CSRF token and auth headers for FormData
     return this.makeRequest(buildApiUrl(`/projects/${projectId}/files`), {
       method: 'POST',
-      headers: {
-        // Don't set Content-Type for FormData, let browser set it with boundary
-        'Authorization': `Bearer ${this.getAuthToken()}`,
-      },
       body: formData,
     });
   }
@@ -363,6 +366,90 @@ class ApiService {
   async deleteFile(id: string) {
     return this.makeRequest(buildApiUrl(`/files/${id}`), {
       method: 'DELETE',
+    });
+  }
+
+  async uploadMultipleFiles(
+    projectId: string,
+    files: File[],
+    onProgress?: (progress: number) => void
+  ): Promise<ApiResponse<any>> {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+
+    // Use XMLHttpRequest for progress tracking
+    return new Promise(async (resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const url = buildApiUrl(`/projects/${projectId}/files/upload`);
+
+      // Get headers with auth and CSRF token
+      const headers = await this.getDefaultHeaders(true, true, false);
+
+      // Setup progress tracking
+      if (onProgress) {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            onProgress(percentComplete);
+          }
+        });
+      }
+
+      // Handle completion
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve({
+              success: true,
+              data,
+              message: data.message,
+            });
+          } catch (error) {
+            reject(new Error('Invalid response format'));
+          }
+        } else {
+          try {
+            const errorData = JSON.parse(xhr.responseText);
+            reject(new Error(errorData.message || `Upload failed: ${xhr.statusText}`));
+          } catch {
+            reject(new Error(`Upload failed: ${xhr.statusText}`));
+          }
+        }
+      });
+
+      // Handle errors
+      xhr.addEventListener('error', () => {
+        reject(new Error('Network error during upload'));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload cancelled'));
+      });
+
+      // Open connection and set headers
+      xhr.open('POST', url);
+      Object.entries(headers).forEach(([key, value]) => {
+        xhr.setRequestHeader(key, value as string);
+      });
+      xhr.withCredentials = true;
+
+      // Send the request
+      xhr.send(formData);
+    });
+  }
+
+  // Printing API calls
+  async quickPrint(filename: string, projectId: string, config: any) {
+    return this.makeRequest(buildApiUrl('/printing/quick-print'), {
+      method: 'POST',
+      body: JSON.stringify({
+        filename,
+        projectId,
+        config,
+      }),
     });
   }
 

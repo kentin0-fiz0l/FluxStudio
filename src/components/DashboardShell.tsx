@@ -47,6 +47,7 @@ import {
   PanelLeft,
   FileText,
   MessageSquare,
+  Printer,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -187,6 +188,12 @@ export function DashboardShell({ children }: DashboardShellProps) {
         url: "/dashboard/messages",
         isActive: location.pathname.startsWith("/dashboard/messages"),
         badge: unreadCount || 0
+      },
+      {
+        title: "3D Printing",
+        icon: Printer,
+        url: "/dashboard/printing",
+        isActive: location.pathname.startsWith("/dashboard/printing") || location.pathname.startsWith("/printing"),
       },
     ];
 

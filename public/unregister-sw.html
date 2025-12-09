@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Unregister Service Worker</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007bff;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Service Worker Manager</h1>
+
+        <div id="status" class="status info">
+            Checking for service workers...
+        </div>
+
+        <button id="unregisterBtn" onclick="unregisterAllServiceWorkers()">
+            Unregister All Service Workers
+        </button>
+
+        <button id="goToPrinting" onclick="location.href='/printing'" disabled>
+            Go to Printing Dashboard
+        </button>
+
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+        const goBtn = document.getElementById('goToPrinting');
+
+        function log(message) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function checkServiceWorkers() {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                log(`Found ${registrations.length} service worker(s)`);
+
+                if (registrations.length > 0) {
+                    statusDiv.innerHTML = `⚠️ Found ${registrations.length} active service worker(s). Click the button below to unregister them.`;
+                    statusDiv.className = 'status info';
+
+                    registrations.forEach((reg, index) => {
+                        log(`SW ${index + 1}: ${reg.scope}`);
+                    });
+                } else {
+                    statusDiv.innerHTML = '✅ No service workers registered. You can go to the printing dashboard.';
+                    statusDiv.className = 'status success';
+                    goBtn.disabled = false;
+                }
+            } else {
+                statusDiv.innerHTML = '❌ Service workers not supported in this browser.';
+                log('Service workers not supported');
+            }
+        }
+
+        async function unregisterAllServiceWorkers() {
+            const btn = document.getElementById('unregisterBtn');
+            btn.disabled = true;
+            btn.textContent = 'Unregistering...';
+
+            log('Starting unregistration process...');
+
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    log(`Unregistering ${registrations.length} service worker(s)...`);
+
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                        log(`✅ Unregistered: ${registration.scope}`);
+                    }
+
+                    // Clear all caches
+                    if ('caches' in window) {
+                        const cacheNames = await caches.keys();
+                        log(`Clearing ${cacheNames.length} cache(s)...`);
+
+                        for (let cacheName of cacheNames) {
+                            await caches.delete(cacheName);
+                            log(`✅ Cleared cache: ${cacheName}`);
+                        }
+                    }
+
+                    statusDiv.innerHTML = '✅ All service workers unregistered and caches cleared! Redirecting to printing dashboard in 2 seconds...';
+                    statusDiv.className = 'status success';
+                    log('✅ Cleanup complete!');
+
+                    // Redirect after 2 seconds
+                    setTimeout(() => {
+                        log('Redirecting to /printing...');
+                        window.location.href = '/printing';
+                    }, 2000);
+
+                } catch (error) {
+                    statusDiv.innerHTML = `❌ Error: ${error.message}`;
+                    statusDiv.className = 'status error';
+                    log(`❌ Error: ${error.message}`);
+                    btn.disabled = false;
+                    btn.textContent = 'Retry Unregistration';
+                }
+            }
+        }
+
+        // Check on page load
+        checkServiceWorkers();
+        log('Service Worker Manager initialized');
+    </script>
+</body>
+</html>
