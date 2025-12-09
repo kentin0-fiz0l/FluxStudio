@@ -29,7 +29,7 @@ export async function GET() {
     });
 
     // Transform to match client-side format
-    const transformedSongs = songs.map((song) => ({
+    const transformedSongs = songs.map((song: typeof songs[number]) => ({
       id: song.id,
       title: song.title,
       artist: song.artist || '',
@@ -44,7 +44,7 @@ export async function GET() {
       updatedAt: song.updatedAt.toISOString(),
       lastPracticed: undefined, // Will be computed from sessions
       totalPracticeSessions: 0, // Will be computed from sessions
-      sections: song.sections.map((section) => ({
+      sections: song.sections.map((section: typeof song.sections[number]) => ({
         id: section.id,
         name: section.name,
         type: section.type as 'intro' | 'verse' | 'pre-chorus' | 'chorus' | 'bridge' | 'solo' | 'breakdown' | 'outro' | 'custom',
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       updatedAt: song.updatedAt.toISOString(),
       lastPracticed: undefined,
       totalPracticeSessions: 0,
-      sections: song.sections.map((section) => ({
+      sections: song.sections.map((section: typeof song.sections[number]) => ({
         id: section.id,
         name: section.name,
         type: section.type as 'intro' | 'verse' | 'pre-chorus' | 'chorus' | 'bridge' | 'solo' | 'breakdown' | 'outro' | 'custom',

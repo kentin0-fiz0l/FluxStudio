@@ -41,7 +41,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     });
 
     // Transform to match client-side format
-    const transformedSections = sections.map((section) => ({
+    const transformedSections = sections.map((section: typeof sections[number]) => ({
       id: section.id,
       name: section.name,
       type: section.type,

@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Transform to match client-side format
-    const transformedSongs = dbSongs.map((song) => ({
+    const transformedSongs = dbSongs.map((song: typeof dbSongs[number]) => ({
       id: song.id,
       title: song.title,
       artist: song.artist || '',
@@ -258,8 +258,8 @@ export async function POST(request: NextRequest) {
       createdAt: song.createdAt.toISOString(),
       updatedAt: song.updatedAt.toISOString(),
       lastPracticed: undefined,
-      totalPracticeSessions: dbSessions.filter((s) => s.songId === song.id).length,
-      sections: song.sections.map((section) => ({
+      totalPracticeSessions: dbSessions.filter((s: typeof dbSessions[number]) => s.songId === song.id).length,
+      sections: song.sections.map((section: typeof song.sections[number]) => ({
         id: section.id,
         name: section.name,
         type: section.type,
@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
       })),
     }));
 
-    const transformedSessions = dbSessions.map((s) => ({
+    const transformedSessions = dbSessions.map((s: typeof dbSessions[number]) => ({
       id: s.id,
       songId: s.songId,
       startedAt: s.startedAt.toISOString(),
@@ -331,7 +331,7 @@ export async function GET() {
     });
 
     // Transform to match client-side format
-    const transformedSongs = songs.map((song) => ({
+    const transformedSongs = songs.map((song: typeof songs[number]) => ({
       id: song.id,
       title: song.title,
       artist: song.artist || '',
@@ -345,8 +345,8 @@ export async function GET() {
       createdAt: song.createdAt.toISOString(),
       updatedAt: song.updatedAt.toISOString(),
       lastPracticed: undefined,
-      totalPracticeSessions: sessions.filter((s) => s.songId === song.id).length,
-      sections: song.sections.map((section) => ({
+      totalPracticeSessions: sessions.filter((s: typeof sessions[number]) => s.songId === song.id).length,
+      sections: song.sections.map((section: typeof song.sections[number]) => ({
         id: section.id,
         name: section.name,
         type: section.type,
@@ -360,7 +360,7 @@ export async function GET() {
       })),
     }));
 
-    const transformedSessions = sessions.map((s) => ({
+    const transformedSessions = sessions.map((s: typeof sessions[number]) => ({
       id: s.id,
       songId: s.songId,
       startedAt: s.startedAt.toISOString(),
