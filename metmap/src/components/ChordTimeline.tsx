@@ -66,7 +66,6 @@ function ChordBlock({
   chord,
   beatsPerBar,
   barWidthPercent,
-  onClick,
   onDelete,
   isDragging,
   isGhost,
@@ -75,7 +74,6 @@ function ChordBlock({
   chord: ChordEvent;
   beatsPerBar: number;
   barWidthPercent: number;
-  onClick: () => void;
   onDelete: () => void;
   isDragging?: boolean;
   isGhost?: boolean;
@@ -547,20 +545,6 @@ export function ChordTimeline({
     [getChordAtBeat, dragState.isDragging]
   );
 
-  // Handle clicking a chord block to edit
-  const handleChordClick = useCallback((chord: ChordEvent) => {
-    // Only open editor if not dragging
-    if (!dragState.isDragging) {
-      setEditor({
-        isOpen: true,
-        mode: 'edit',
-        bar: chord.bar,
-        beat: chord.beat,
-        chord,
-      });
-    }
-  }, [dragState.isDragging]);
-
   // Save a chord (add or update)
   const handleSaveChord = useCallback(
     (chord: ChordEvent) => {
@@ -612,11 +596,6 @@ export function ChordTimeline({
     () => Array.from({ length: beatsPerBar }, (_, i) => i + 1),
     [beatsPerBar]
   );
-
-  // Get the chord being dragged (for preview)
-  const draggedChord = dragState.isDragging
-    ? section.chords.find((c) => c.id === dragState.chordId)
-    : null;
 
   return (
     <div className="relative bg-hw-charcoal rounded-lg overflow-hidden">
@@ -694,7 +673,6 @@ export function ChordTimeline({
                       chord={chord}
                       beatsPerBar={beatsPerBar}
                       barWidthPercent={barWidthPercent}
-                      onClick={() => {}}
                       onDelete={() => {}}
                       isGhost
                     />
@@ -704,7 +682,6 @@ export function ChordTimeline({
                     chord={displayChord}
                     beatsPerBar={beatsPerBar}
                     barWidthPercent={barWidthPercent}
-                    onClick={() => handleChordClick(chord)}
                     onDelete={() => handleDeleteChord(chord.id)}
                     isDragging={isBeingDragged}
                     onDragStart={handleDragStart(chord)}
