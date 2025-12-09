@@ -53,6 +53,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY scripts/entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
+# Create cache directory with proper permissions for Next.js ISR
+RUN mkdir -p .next/cache && chown -R nextjs:nodejs .next/cache
+
 USER nextjs
 
 EXPOSE 3000
