@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth';
+import { generateMusicalUsername, generateNameFromEmail, ensureUniqueUsername } from '@/lib/username';
 
 const signupSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -41,6 +42,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Generate a unique name if not provided
+    let finalName = name?.trim();
+    if (!finalName) {
+      // Try to generate from email first, then fall back to musical username
+      const baseName = generateNameFromEmail(email) || generateMusicalUsername();
+      finalName = await ensureUniqueUsername(baseName, async (candidate) => {
+        const existing = await prisma.user.findFirst({ where: { name: candidate } });
+        return !!existing;
+      });
+    } else {
+      // Ensure provided name is unique
+      finalName = await ensureUniqueUsername(finalName, async (candidate) => {
+        const existing = await prisma.user.findFirst({ where: { name: candidate } });
+        return !!existing;
+      });
+    }
+
     // Hash password and create user
     const passwordHash = await hashPassword(password);
 
@@ -48,7 +66,7 @@ export async function POST(request: NextRequest) {
       data: {
         email,
         passwordHash,
-        name,
+        name: finalName,
       },
     });
 
