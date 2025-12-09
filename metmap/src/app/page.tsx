@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Music, Calendar, Search, MoreVertical } from 'lucide-react';
+import { Plus, Music, Calendar, Search, MoreVertical, Settings } from 'lucide-react';
 import { useMetMapStore, useSongsByLastPracticed } from '@/stores/useMetMapStore';
 import { formatTime, getSongConfidence } from '@/types/metmap';
 import { clsx } from 'clsx';
+import { SyncButton } from '@/components/SyncButton';
 
 // Hook to detect when client-side hydration is complete
 function useHasMounted() {
@@ -36,13 +37,22 @@ export default function Home() {
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <span className="text-hw-brass">Met</span>Map
           </h1>
-          <button
-            onClick={() => setShowNewSongModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active tap-target"
-          >
-            <Plus className="w-5 h-5" />
-            <span className="hidden sm:inline">New Song</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <SyncButton compact />
+            <Link
+              href="/settings"
+              className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-hw-surface transition-colors"
+            >
+              <Settings className="w-5 h-5" />
+            </Link>
+            <button
+              onClick={() => setShowNewSongModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal rounded-lg font-medium transition-all shadow-pad active:shadow-pad-active tap-target"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">New Song</span>
+            </button>
+          </div>
         </div>
 
         {/* Search */}

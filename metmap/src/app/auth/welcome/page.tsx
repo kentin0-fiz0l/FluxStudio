@@ -19,19 +19,19 @@ export default function WelcomePage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-2 border-metmap-500 border-t-transparent rounded-full" />
+      <div className="min-h-screen bg-hw-charcoal flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-2 border-hw-brass border-t-transparent rounded-full" />
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4 py-12">
+      <div className="min-h-screen bg-hw-charcoal flex flex-col items-center justify-center px-4 py-12">
         <p className="text-gray-400 mb-4">You need to be signed in to view this page.</p>
         <Link
           href="/auth/login"
-          className="px-4 py-2 bg-metmap-500 hover:bg-metmap-600 text-white rounded-lg"
+          className="px-4 py-2 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal font-medium rounded-lg shadow-pad"
         >
           Sign in
         </Link>
@@ -40,13 +40,19 @@ export default function WelcomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-hw-charcoal flex flex-col items-center justify-center px-4 py-12">
       <Link href="/" className="flex items-center gap-2 mb-8">
-        <Music className="w-8 h-8 text-metmap-500" />
-        <span className="text-2xl font-bold text-white">MetMap</span>
+        <div className="w-10 h-10 rounded-lg bg-hw-brass flex items-center justify-center shadow-knob">
+          <span className="text-hw-charcoal font-bold text-lg">M</span>
+        </div>
+        <span className="text-2xl font-bold text-white">
+          <span className="text-hw-brass">Met</span>Map
+        </span>
       </Link>
 
-      <div className="bg-gray-900 rounded-2xl p-8 shadow-xl max-w-md w-full text-center">
+      <div className="bg-hw-surface rounded-2xl overflow-hidden shadow-xl max-w-md w-full text-center">
+        <div className="h-1.5 bg-gradient-to-r from-hw-brass via-hw-peach to-hw-brass" />
+        <div className="p-8">
         <div className="bg-green-500/10 p-4 rounded-full inline-flex mb-6">
           <CheckCircle2 className="w-12 h-12 text-green-500" />
         </div>
@@ -55,16 +61,16 @@ export default function WelcomePage() {
           Welcome{session.user?.name ? `, ${session.user.name.split(' ')[0]}` : ''}!
         </h1>
         <p className="text-gray-400 mb-6">
-          Your account is set up. Your practice data will now sync across all your devices.
+          Your account is set up. You can now save songs and track your practice progress.
         </p>
 
         {hasLocalData && (
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
-            <h2 className="text-sm font-medium text-blue-400 mb-1">
-              Existing data found
+          <div className="bg-hw-brass/10 border border-hw-brass/20 rounded-lg p-4 mb-6">
+            <h2 className="text-sm font-medium text-hw-brass mb-1">
+              Local data found
             </h2>
             <p className="text-xs text-gray-400">
-              We found practice data on this device. It will be synced to your account automatically.
+              You have practice data saved on this device. Use the sync button to save it to your account.
             </p>
           </div>
         )}
@@ -72,11 +78,12 @@ export default function WelcomePage() {
         <div className="space-y-3">
           <Link
             href="/"
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-metmap-500 hover:bg-metmap-600 text-white font-medium rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal font-medium rounded-lg transition-all shadow-pad active:shadow-pad-active"
           >
             Start practicing
             <ArrowRight className="w-4 h-4" />
           </Link>
+        </div>
         </div>
       </div>
     </div>

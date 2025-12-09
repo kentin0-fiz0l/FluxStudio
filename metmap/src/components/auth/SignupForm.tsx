@@ -93,7 +93,7 @@ export function SignupForm() {
 
         <div className="p-8">
           <h1 className="text-2xl font-bold text-white mb-2">Create your account</h1>
-          <p className="text-gray-400 mb-6">Start syncing your practice across devices</p>
+          <p className="text-gray-400 mb-6">Save your songs and track your progress</p>
 
           {errorMessage && (
             <div className="mb-4 p-3 bg-hw-red/10 border border-hw-red/20 rounded-lg text-hw-red text-sm">
