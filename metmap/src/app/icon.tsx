@@ -5,11 +5,10 @@ export const size = { width: 192, height: 192 };
 export const contentType = 'image/png';
 
 export default function Icon() {
-  // Pulse Prism brand colors
+  // MetMap logo colors - Cyan with Pink chromatic aberration
   const midnight = '#0E1020';
-  const mint = '#3EF2C8';
-  const violet = '#8B5CF6';
-  const coral = '#FF5A70';
+  const cyan = '#4CC9F0';
+  const pink = '#FF4DA6';
 
   return new ImageResponse(
     (
@@ -30,32 +29,21 @@ export default function Icon() {
           viewBox="0 0 500 500"
           fill="none"
         >
-          {/* Coral offset layer (back) */}
+          {/* Pink chromatic offset layer (back) */}
           <path
             d="M 80 340 L 120 180 L 180 320 L 250 100 L 320 320 L 380 200 L 400 280 Q 420 340 380 360 L 360 340"
-            stroke={coral}
+            stroke={pink}
             strokeWidth="26"
             strokeLinecap="round"
             strokeLinejoin="round"
             transform="translate(4, 4)"
-            opacity="0.6"
-          />
-
-          {/* Violet offset layer (middle) */}
-          <path
-            d="M 80 340 L 120 180 L 180 320 L 250 100 L 320 320 L 380 200 L 400 280 Q 420 340 380 360 L 360 340"
-            stroke={violet}
-            strokeWidth="26"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            transform="translate(-2, -2)"
             opacity="0.7"
           />
 
-          {/* Mint main stroke (front) */}
+          {/* Cyan main stroke (front) */}
           <path
             d="M 80 340 L 120 180 L 180 320 L 250 100 L 320 320 L 380 200 L 400 280 Q 420 340 380 360 L 360 340"
-            stroke={mint}
+            stroke={cyan}
             strokeWidth="22"
             strokeLinecap="round"
             strokeLinejoin="round"
