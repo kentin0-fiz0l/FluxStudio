@@ -59,6 +59,7 @@ static_sites:
     build_command: npm ci && npm run build
     output_dir: build
     environment_slug: node-js
+    catchall_document: index.html
     envs:
       - key: VITE_API_BASE_URL
         value: /api
