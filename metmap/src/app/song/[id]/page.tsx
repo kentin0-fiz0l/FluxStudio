@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -19,6 +19,8 @@ import {
   X,
   Link as LinkIcon,
   ExternalLink,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useMetMapStore, useSongStats } from '@/stores/useMetMapStore';
@@ -30,7 +32,38 @@ import {
   formatTime,
   parseTime,
 } from '@/types/metmap';
+import { ChordTimeline } from '@/components/ChordTimeline';
+import { ChordSection, TimeSignature } from '@/types/song';
 import { clsx } from 'clsx';
+
+/**
+ * Parse a time signature string like "4/4" into a TimeSignature object
+ */
+function parseTimeSignature(timeSig?: string): TimeSignature {
+  if (!timeSig) return { numerator: 4, denominator: 4 };
+  const parts = timeSig.split('/');
+  if (parts.length === 2) {
+    const num = parseInt(parts[0], 10);
+    const denom = parseInt(parts[1], 10);
+    if (!isNaN(num) && !isNaN(denom)) {
+      return { numerator: num, denominator: denom };
+    }
+  }
+  return { numerator: 4, denominator: 4 };
+}
+
+/**
+ * Convert a Section to ChordSection format for the timeline
+ */
+function sectionToChordSection(section: Section, order: number): ChordSection {
+  return {
+    id: section.id,
+    name: section.name,
+    order,
+    bars: section.bars || 8,
+    chords: section.chords || [],
+  };
+}
 
 export default function SongEditorPage() {
   const params = useParams();
@@ -268,10 +301,12 @@ export default function SongEditorPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {song.sections.map((section) => (
+            {song.sections.map((section, index) => (
               <SectionCard
                 key={section.id}
                 section={section}
+                sectionIndex={index}
+                timeSignature={parseTimeSignature(song.timeSignature)}
                 isEditing={editingSectionId === section.id}
                 onEdit={() => setEditingSectionId(section.id)}
                 onClose={() => setEditingSectionId(null)}
@@ -320,6 +355,8 @@ export default function SongEditorPage() {
 
 function SectionCard({
   section,
+  sectionIndex,
+  timeSignature,
   isEditing,
   onEdit,
   onClose,
@@ -327,6 +364,8 @@ function SectionCard({
   onUpdate,
 }: {
   section: Section;
+  sectionIndex: number;
+  timeSignature: TimeSignature;
   isEditing: boolean;
   onEdit: () => void;
   onClose: () => void;
@@ -337,6 +376,7 @@ function SectionCard({
   const [editBars, setEditBars] = useState(section.bars || 8);
   const [editType, setEditType] = useState(section.type);
   const [editNotes, setEditNotes] = useState(section.notes || '');
+  const [showChords, setShowChords] = useState(false);
 
   const handleSave = () => {
     onUpdate({
@@ -347,6 +387,18 @@ function SectionCard({
     });
     onClose();
   };
+
+  // Handle chord timeline updates
+  const handleChordChange = useCallback(
+    (updatedChordSection: ChordSection) => {
+      onUpdate({ chords: updatedChordSection.chords });
+    },
+    [onUpdate]
+  );
+
+  // Convert section to ChordSection format for the timeline
+  const chordSection = sectionToChordSection(section, sectionIndex);
+  const hasChords = section.chords && section.chords.length > 0;
 
   if (isEditing) {
     return (
@@ -416,62 +468,114 @@ function SectionCard({
   }
 
   return (
-    <div
-      className="flex items-center gap-3 p-3 bg-hw-surface rounded-xl shadow-pad hover:shadow-pad-active border border-transparent hover:border-hw-brass/30 transition-all cursor-pointer"
-      onClick={onEdit}
-    >
-      {/* Color indicator */}
+    <div className="bg-hw-surface rounded-xl shadow-pad border border-transparent hover:border-hw-brass/30 transition-all">
+      {/* Main row */}
       <div
-        className="w-3 h-12 rounded-full"
-        style={{ backgroundColor: section.color || SECTION_COLORS[section.type] }}
-      />
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-white">
-            {section.name}
-          </span>
-          <span className="text-xs px-2 py-0.5 bg-hw-charcoal rounded text-gray-400">
-            {section.type}
-          </span>
-        </div>
-        <div className="text-sm text-gray-500">
-          {section.bars || 8} bars
-        </div>
-      </div>
-
-      {/* Confidence */}
-      <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((level) => (
-          <button
-            key={level}
-            onClick={(e) => {
-              e.stopPropagation();
-              onUpdate({ confidence: level as ConfidenceLevel });
-            }}
-            className={clsx(
-              'w-6 h-6 rounded-full text-xs font-medium transition-all shadow-knob',
-              level <= section.confidence
-                ? 'bg-hw-brass text-hw-charcoal'
-                : 'bg-hw-charcoal text-gray-500 hover:bg-gray-700'
-            )}
-          >
-            {level}
-          </button>
-        ))}
-      </div>
-
-      {/* Delete */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        className="p-2 text-gray-500 hover:text-hw-red rounded-lg hover:bg-hw-charcoal transition-colors"
+        className="flex items-center gap-3 p-3 cursor-pointer"
+        onClick={onEdit}
       >
-        <Trash2 className="w-4 h-4" />
-      </button>
+        {/* Color indicator */}
+        <div
+          className="w-3 h-12 rounded-full"
+          style={{ backgroundColor: section.color || SECTION_COLORS[section.type] }}
+        />
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-white">
+              {section.name}
+            </span>
+            <span className="text-xs px-2 py-0.5 bg-hw-charcoal rounded text-gray-400">
+              {section.type}
+            </span>
+            {hasChords && (
+              <span className="text-xs px-2 py-0.5 bg-hw-brass/20 rounded text-hw-brass">
+                {section.chords!.length} chord{section.chords!.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+          <div className="text-sm text-gray-500">
+            {section.bars || 8} bars
+          </div>
+        </div>
+
+        {/* Confidence */}
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((level) => (
+            <button
+              key={level}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdate({ confidence: level as ConfidenceLevel });
+              }}
+              className={clsx(
+                'w-6 h-6 rounded-full text-xs font-medium transition-all shadow-knob',
+                level <= section.confidence
+                  ? 'bg-hw-brass text-hw-charcoal'
+                  : 'bg-hw-charcoal text-gray-500 hover:bg-gray-700'
+              )}
+            >
+              {level}
+            </button>
+          ))}
+        </div>
+
+        {/* Expand chords button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowChords(!showChords);
+          }}
+          className={clsx(
+            'p-2 rounded-lg transition-colors',
+            showChords
+              ? 'text-hw-brass bg-hw-brass/10'
+              : 'text-gray-500 hover:text-white hover:bg-hw-charcoal'
+          )}
+          title={showChords ? 'Hide chords' : 'Show chords'}
+        >
+          {showChords ? (
+            <ChevronUp className="w-4 h-4" />
+          ) : (
+            <ChevronDown className="w-4 h-4" />
+          )}
+        </button>
+
+        {/* Delete */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="p-2 text-gray-500 hover:text-hw-red rounded-lg hover:bg-hw-charcoal transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Expandable chord timeline */}
+      {showChords && (
+        <div className="px-3 pb-3">
+          <div className="border-t border-hw-charcoal pt-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-gray-500 font-medium">
+                Chord Progression
+              </span>
+              <span className="text-xs text-gray-600">
+                {timeSignature.numerator}/{timeSignature.denominator} time
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <ChordTimeline
+                section={chordSection}
+                timeSignature={timeSignature}
+                onChange={handleChordChange}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
