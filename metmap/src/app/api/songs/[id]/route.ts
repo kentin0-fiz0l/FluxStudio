@@ -53,7 +53,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       updatedAt: song.updatedAt.toISOString(),
       lastPracticed: undefined,
       totalPracticeSessions: 0,
-      sections: song.sections.map((section) => ({
+      sections: song.sections.map((section: typeof song.sections[number]) => ({
         id: section.id,
         name: section.name,
         type: section.type,
@@ -139,7 +139,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       updatedAt: song.updatedAt.toISOString(),
       lastPracticed: undefined,
       totalPracticeSessions: 0,
-      sections: song.sections.map((section) => ({
+      sections: song.sections.map((section: typeof song.sections[number]) => ({
         id: section.id,
         name: section.name,
         type: section.type,

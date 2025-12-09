@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform to match client-side format
-    const transformedSessions = sessions.map((s) => ({
+    const transformedSessions = sessions.map((s: typeof sessions[number]) => ({
       id: s.id,
       songId: s.songId,
       startedAt: s.startedAt.toISOString(),

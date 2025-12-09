@@ -2,7 +2,8 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { CollaboratorRole } from '@prisma/client';
+
+type CollaboratorRole = 'VIEWER' | 'EDITOR' | 'ADMIN';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -72,7 +73,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     });
 
     return NextResponse.json({
-      collaborators: collaborators.map((c) => ({
+      collaborators: collaborators.map((c: typeof collaborators[number]) => ({
         id: c.id,
         userId: c.userId,
         role: c.role,

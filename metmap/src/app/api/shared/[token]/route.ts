@@ -87,7 +87,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
         name: song.user.name || 'Anonymous',
         image: song.user.image,
       },
-      sections: song.sections.map((section) => ({
+      sections: song.sections.map((section: typeof song.sections[number]) => ({
         id: section.id,
         name: section.name,
         type: section.type,
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         tags: originalSong.tags,
         visibility: 'PRIVATE',
         sections: {
-          create: originalSong.sections.map((section, index) => ({
+          create: originalSong.sections.map((section: typeof originalSong.sections[number], index: number) => ({
             userId: session.user.id,
             name: section.name,
             type: section.type,
