@@ -18,29 +18,42 @@ export default function Icon() {
           borderRadius: '32px',
         }}
       >
-        {/* Metronome shape */}
         <svg
-          width="140"
+          width="160"
           height="160"
-          viewBox="0 0 140 160"
-          style={{ position: 'absolute' }}
+          viewBox="0 0 500 500"
+          fill="none"
         >
-          {/* Triangle body */}
-          <path d="M70 10 L120 150 L20 150 Z" fill="#c9a962" />
-          {/* Pendulum arm */}
-          <line
-            x1="70"
-            y1="30"
-            x2="100"
-            y2="70"
-            stroke="#f5f0e6"
-            strokeWidth="6"
+          {/* Pink/Magenta offset layer (chromatic aberration) */}
+          <path
+            d="M 80 340 L 120 180 L 180 320 L 250 100 L 320 320 L 380 200 L 400 280 Q 420 340 380 360 L 360 340"
+            stroke="#FF69B4"
+            strokeWidth="28"
             strokeLinecap="round"
+            strokeLinejoin="round"
+            transform="translate(-3, -3)"
+            opacity="0.7"
           />
-          {/* Weight */}
-          <circle cx="100" cy="70" r="12" fill="#f5f0e6" />
-          {/* Base */}
-          <rect x="15" y="140" width="110" height="12" rx="3" fill="#d4a056" />
+
+          {/* Cyan offset layer (chromatic aberration) */}
+          <path
+            d="M 80 340 L 120 180 L 180 320 L 250 100 L 320 320 L 380 200 L 400 280 Q 420 340 380 360 L 360 340"
+            stroke="#00CED1"
+            strokeWidth="28"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            transform="translate(3, 3)"
+            opacity="0.7"
+          />
+
+          {/* Main cyan/blue stroke */}
+          <path
+            d="M 80 340 L 120 180 L 180 320 L 250 100 L 320 320 L 380 200 L 400 280 Q 420 340 380 360 L 360 340"
+            stroke="#00BFFF"
+            strokeWidth="24"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </div>
     ),
