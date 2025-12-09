@@ -566,7 +566,7 @@ app.post('/auth/google', async (req, res) => {
 
     // Generate auth response
     const authResponse = USE_DATABASE && authAdapter
-      ? await generateAuthResponse(user)
+      ? await generateAuthResponse(user, req)
       : simpleAuthResponse(user);
 
     res.json(authResponse);
