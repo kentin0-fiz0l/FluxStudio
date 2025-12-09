@@ -15,17 +15,47 @@ import {
   Zap,
   Music,
   ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { useMetMapStore } from '@/stores/useMetMapStore';
 import { HardwareMetronome } from '@/components/HardwareMetronome';
 import { SectionPadGrid, ConfidenceRating } from '@/components/SectionPadGrid';
+import { ChordTimeline, PlaybackPosition } from '@/components/ChordTimeline';
+import { useMetronome } from '@/hooks/useMetronome';
 import {
   ConfidenceLevel,
   SECTION_COLORS,
   formatTime,
   getSectionsNeedingPractice,
+  Section,
 } from '@/types/metmap';
+import { ChordSection, TimeSignature } from '@/types/song';
 import { clsx } from 'clsx';
+
+/**
+ * Convert a MetMap Section to ChordSection format for ChordTimeline
+ */
+function sectionToChordSection(section: Section, order: number): ChordSection {
+  return {
+    id: section.id,
+    name: section.name,
+    order,
+    bars: section.bars || 8,
+    chords: section.chords || [],
+  };
+}
+
+/**
+ * Parse time signature string to TimeSignature object
+ */
+function parseTimeSignature(timeSig?: string): TimeSignature {
+  if (!timeSig) return { numerator: 4, denominator: 4 };
+  const [num, denom] = timeSig.split('/').map(Number);
+  return {
+    numerator: num || 4,
+    denominator: denom || 4,
+  };
+}
 
 export default function PracticeModePage() {
   const params = useParams();
@@ -53,11 +83,51 @@ export default function PracticeModePage() {
   const [practiceTime, setPracticeTime] = useState(0);
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [showMetronome, setShowMetronome] = useState(false);
+  const [showChordTimeline, setShowChordTimeline] = useState(true);
 
   // Simulated playback state (in real app, this would connect to audio player)
   const [currentTime, setCurrentTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const practiceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Metronome sync for chord timeline
+  const {
+    isPlaying: metronomeIsPlaying,
+    currentBeat,
+    beatsPerMeasure,
+    timeSignature: metronomeTimeSignature,
+  } = useMetronome();
+
+  // Track current bar (1-indexed) based on beat changes
+  const [currentBar, setCurrentBar] = useState(1);
+  const prevBeatRef = useRef(currentBeat);
+
+  // Update bar counter when metronome beat wraps around
+  useEffect(() => {
+    if (metronomeIsPlaying) {
+      // Detect when beat wraps from last beat back to 0 (bar transition)
+      if (prevBeatRef.current === beatsPerMeasure - 1 && currentBeat === 0) {
+        const sectionBars = song?.sections[currentSectionIndex]?.bars || 8;
+        setCurrentBar((bar) => {
+          const nextBar = bar + 1;
+          // Loop back to bar 1 if we've reached the end of the section
+          return nextBar > sectionBars ? 1 : nextBar;
+        });
+      }
+    }
+    prevBeatRef.current = currentBeat;
+  }, [currentBeat, beatsPerMeasure, metronomeIsPlaying, song, currentSectionIndex]);
+
+  // Reset bar counter when section changes or metronome stops
+  useEffect(() => {
+    setCurrentBar(1);
+  }, [currentSectionIndex]);
+
+  // Calculate playback position for ChordTimeline (1-indexed bar and beat)
+  const playbackPosition: PlaybackPosition = {
+    bar: currentBar,
+    beat: currentBeat + 1, // Convert 0-indexed beat to 1-indexed
+  };
 
   // Start session on mount
   useEffect(() => {
@@ -222,9 +292,44 @@ export default function PracticeModePage() {
 
         {/* Section name and bars */}
         <h2 className="text-2xl font-bold mb-2">{currentSection.name}</h2>
-        <p className="text-gray-400 mb-6">
+        <p className="text-gray-400 mb-4">
           {currentSection.bars || 8} bars
+          {metronomeIsPlaying && (
+            <span className="ml-2 text-hw-brass">
+              • Bar {currentBar}, Beat {currentBeat + 1}
+            </span>
+          )}
         </p>
+
+        {/* Chord Timeline - synced with metronome */}
+        {currentSection.chords && currentSection.chords.length > 0 && (
+          <div className="w-full max-w-2xl mb-6">
+            <button
+              onClick={() => setShowChordTimeline(!showChordTimeline)}
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white mb-2 transition-colors"
+            >
+              <Music className="w-4 h-4" />
+              <span>Chord Progression</span>
+              <span className="text-xs text-hw-brass">({currentSection.chords.length} chords)</span>
+              {showChordTimeline ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+            {showChordTimeline && (
+              <div className="overflow-x-auto pb-2">
+                <ChordTimeline
+                  section={sectionToChordSection(currentSection, currentSectionIndex)}
+                  timeSignature={parseTimeSignature(song.timeSignature || metronomeTimeSignature)}
+                  onChange={() => {}} // Read-only in practice mode
+                  playbackPosition={metronomeIsPlaying ? playbackPosition : undefined}
+                  isPlaying={metronomeIsPlaying}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Progress bar */}
         <div className="w-full max-w-sm mb-8">
