@@ -714,18 +714,25 @@ function ShareModal({
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expiresIn, setExpiresIn] = useState<'never' | '1d' | '7d' | '30d'>('never');
+  const [songNotSynced, setSongNotSynced] = useState(false);
 
   // Fetch existing share links
   useEffect(() => {
     async function fetchShareLinks() {
       try {
         const response = await fetch(`/api/songs/${songId}/share`);
+        if (response.status === 404) {
+          // Song doesn't exist in database - it's only stored locally
+          setSongNotSynced(true);
+          setLoading(false);
+          return;
+        }
         if (response.ok) {
           const data = await response.json();
           setShareLinks(data.shareLinks || []);
         }
       } catch {
-        setError('Failed to load share links');
+        // Network error - might be offline, don't show error
       } finally {
         setLoading(false);
       }
@@ -817,7 +824,29 @@ function ShareModal({
             </div>
           )}
 
-          {/* Create new link */}
+          {/* Song not synced message */}
+          {songNotSynced && (
+            <div className="bg-hw-surface rounded-xl p-4 text-center space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-full bg-hw-charcoal flex items-center justify-center">
+                <Share2 className="w-6 h-6 text-gray-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-white mb-1">Sync Required</h3>
+                <p className="text-xs text-gray-400">
+                  This song is stored locally on your device. Sign in and sync your data to enable sharing.
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-hw-brass/20 text-hw-brass rounded-lg text-sm font-medium hover:bg-hw-brass/30 transition-colors"
+              >
+                Got it
+              </button>
+            </div>
+          )}
+
+          {/* Create new link - only show if song is synced */}
+          {!songNotSynced && (
           <div className="bg-hw-surface rounded-xl p-4 space-y-3">
             <h3 className="text-sm font-medium text-white">Create Share Link</h3>
             <p className="text-xs text-gray-400">
@@ -848,8 +877,10 @@ function ShareModal({
               </button>
             </div>
           </div>
+          )}
 
-          {/* Existing links */}
+          {/* Existing links - only show if song is synced */}
+          {!songNotSynced && (
           <div>
             <h3 className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-2">
               Active Links ({shareLinks.length})
@@ -919,6 +950,7 @@ function ShareModal({
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>
