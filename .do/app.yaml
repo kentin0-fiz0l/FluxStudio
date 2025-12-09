@@ -128,10 +128,12 @@ services:
       - key: PORT
         value: "3001"
 
-      # Database (Existing PostgreSQL database)
+      # Database (Existing PostgreSQL database - same as MetMap for shared accounts)
       - key: DATABASE_URL
         scope: RUN_TIME
         type: SECRET
+      - key: USE_DATABASE
+        value: "true"
       - key: DB_SSL
         value: "true"
 
