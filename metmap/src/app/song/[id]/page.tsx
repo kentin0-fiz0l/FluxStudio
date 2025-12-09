@@ -12,7 +12,15 @@ import {
   Save,
   Clock,
   Music,
+  Share2,
+  Copy,
+  Check,
+  Loader2,
+  X,
+  Link as LinkIcon,
+  ExternalLink,
 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useMetMapStore, useSongStats } from '@/stores/useMetMapStore';
 import {
   Section,
@@ -27,6 +35,7 @@ import { clsx } from 'clsx';
 export default function SongEditorPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const songId = params.id as string;
 
   const song = useMetMapStore((state) => state.getSong(songId));
@@ -42,6 +51,7 @@ export default function SongEditorPage() {
   const [editDuration, setEditDuration] = useState('');
   const [showAddSection, setShowAddSection] = useState(false);
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     if (song) {
@@ -137,6 +147,16 @@ export default function SongEditorPage() {
                 className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-hw-surface transition-colors"
               >
                 <Edit3 className="w-5 h-5" />
+              </button>
+            )}
+
+            {session?.user && (
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-hw-surface transition-colors"
+                title="Share song"
+              >
+                <Share2 className="w-5 h-5" />
               </button>
             )}
 
@@ -282,6 +302,15 @@ export default function SongEditorPage() {
         <AddSectionModal
           songId={songId}
           onClose={() => setShowAddSection(false)}
+        />
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <ShareModal
+          songId={songId}
+          songTitle={song.title}
+          onClose={() => setShowShareModal(false)}
         />
       )}
     </main>
@@ -576,6 +605,240 @@ function AddSectionModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+interface ShareLink {
+  id: string;
+  token: string;
+  expiresAt: string | null;
+  createdAt: string;
+  url: string;
+}
+
+function ShareModal({
+  songId,
+  songTitle,
+  onClose,
+}: {
+  songId: string;
+  songTitle: string;
+  onClose: () => void;
+}) {
+  const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [expiresIn, setExpiresIn] = useState<'never' | '1d' | '7d' | '30d'>('never');
+
+  // Fetch existing share links
+  useEffect(() => {
+    async function fetchShareLinks() {
+      try {
+        const response = await fetch(`/api/songs/${songId}/share`);
+        if (response.ok) {
+          const data = await response.json();
+          setShareLinks(data.shareLinks || []);
+        }
+      } catch {
+        setError('Failed to load share links');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchShareLinks();
+  }, [songId]);
+
+  const handleCreateLink = async () => {
+    setCreating(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/songs/${songId}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expiresIn: expiresIn === 'never' ? null : expiresIn }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create share link');
+      }
+
+      setShareLinks((prev) => [data.shareLink, ...prev]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create share link');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeleteLink = async (linkId: string) => {
+    try {
+      const response = await fetch(`/api/songs/${songId}/share/${linkId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete share link');
+      }
+
+      setShareLinks((prev) => prev.filter((link) => link.id !== linkId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete share link');
+    }
+  };
+
+  const handleCopyLink = async (link: ShareLink) => {
+    try {
+      await navigator.clipboard.writeText(link.url);
+      setCopiedId(link.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      setError('Failed to copy link');
+    }
+  };
+
+  const formatExpiry = (expiresAt: string | null) => {
+    if (!expiresAt) return 'Never expires';
+    const date = new Date(expiresAt);
+    if (date < new Date()) return 'Expired';
+    return `Expires ${date.toLocaleDateString()}`;
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+      <div className="w-full max-w-md bg-hw-charcoal rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+        {/* Brass accent strip */}
+        <div className="h-1.5 bg-gradient-to-r from-hw-brass via-hw-peach to-hw-brass" />
+
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 pb-4">
+          <div>
+            <h2 className="text-xl font-bold text-white mb-1">Share Song</h2>
+            <p className="text-sm text-gray-400 truncate">{songTitle}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-hw-surface transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-4">
+          {error && (
+            <div className="p-3 bg-hw-red/10 border border-hw-red/30 rounded-lg text-hw-red text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Create new link */}
+          <div className="bg-hw-surface rounded-xl p-4 space-y-3">
+            <h3 className="text-sm font-medium text-white">Create Share Link</h3>
+            <p className="text-xs text-gray-400">
+              Anyone with the link can view the song structure (sections, timing). Practice data stays private.
+            </p>
+            <div className="flex gap-2">
+              <select
+                value={expiresIn}
+                onChange={(e) => setExpiresIn(e.target.value as typeof expiresIn)}
+                className="flex-1 px-3 py-2 bg-hw-charcoal rounded-lg border border-gray-700 text-sm text-white focus:outline-none focus:ring-2 focus:ring-hw-brass"
+              >
+                <option value="never">Never expires</option>
+                <option value="1d">Expires in 1 day</option>
+                <option value="7d">Expires in 7 days</option>
+                <option value="30d">Expires in 30 days</option>
+              </select>
+              <button
+                onClick={handleCreateLink}
+                disabled={creating}
+                className="flex items-center gap-2 px-4 py-2 bg-hw-brass hover:bg-hw-brass/90 text-hw-charcoal rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <LinkIcon className="w-4 h-4" />
+                )}
+                Create
+              </button>
+            </div>
+          </div>
+
+          {/* Existing links */}
+          <div>
+            <h3 className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-2">
+              Active Links ({shareLinks.length})
+            </h3>
+            {loading ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="w-6 h-6 text-hw-brass animate-spin" />
+              </div>
+            ) : shareLinks.length === 0 ? (
+              <div className="text-center py-6 text-gray-400 text-sm">
+                No share links yet. Create one above.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {shareLinks.map((link) => (
+                  <div
+                    key={link.id}
+                    className="flex items-center gap-3 p-3 bg-hw-surface rounded-xl"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-hw-charcoal flex items-center justify-center">
+                      <LinkIcon className="w-4 h-4 text-hw-brass" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white font-mono truncate">
+                        ...{link.token.slice(-8)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formatExpiry(link.expiresAt)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleCopyLink(link)}
+                        className={clsx(
+                          'p-2 rounded-lg transition-colors',
+                          copiedId === link.id
+                            ? 'text-green-500 bg-green-500/10'
+                            : 'text-gray-400 hover:text-white hover:bg-hw-charcoal'
+                        )}
+                        title="Copy link"
+                      >
+                        {copiedId === link.id ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 text-gray-400 hover:text-white hover:bg-hw-charcoal rounded-lg transition-colors"
+                        title="Open link"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                      <button
+                        onClick={() => handleDeleteLink(link.id)}
+                        className="p-2 text-gray-400 hover:text-hw-red hover:bg-hw-charcoal rounded-lg transition-colors"
+                        title="Delete link"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
