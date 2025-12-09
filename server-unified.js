@@ -823,7 +823,8 @@ app.get('/auth/me', authenticateToken, async (req, res) => {
     return res.status(404).json({ message: 'User not found' });
   }
 
-  const { password: _, ...userWithoutPassword } = user;
+  // Remove both password fields (FluxStudio and MetMap compatible)
+  const { password: _p, passwordHash: _ph, ...userWithoutPassword } = user;
   res.json(userWithoutPassword);
 });
 
