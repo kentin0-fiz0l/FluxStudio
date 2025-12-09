@@ -52,7 +52,7 @@ export function LoginForm() {
 
         <div className="p-8">
           <h1 className="text-2xl font-bold text-white mb-2">Welcome back</h1>
-          <p className="text-gray-400 mb-6">Sign in to sync your practice data</p>
+          <p className="text-gray-400 mb-6">Sign in to access your saved songs</p>
 
           {errorMessage && (
             <div className="mb-4 p-3 bg-hw-red/10 border border-hw-red/20 rounded-lg text-hw-red text-sm">
