@@ -12,6 +12,10 @@ export const brand = {
     coral: "#FF5A70",
     white: "#F3F5FA",
 
+    // Logo colors (cyan with pink chromatic aberration)
+    logoCyan: "#4CC9F0",
+    logoPink: "#FF4DA6",
+
     // Chord type colors
     chordMajor: "#FFC857",
     chordMinor: "#4CC9F0",
