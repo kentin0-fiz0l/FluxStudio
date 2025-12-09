@@ -5,6 +5,8 @@
  * All data is persisted to localStorage for offline-first mobile use.
  */
 
+import type { ChordEvent } from './song';
+
 /** Unique identifier type */
 export type ID = string;
 
@@ -45,6 +47,8 @@ export interface Section {
   lastPracticed?: string;
   /** Color override (defaults based on type) */
   color?: string;
+  /** Chord progression for this section */
+  chords?: ChordEvent[];
   // Legacy fields for backwards compatibility
   /** @deprecated Use bars instead */
   startTime?: number;
