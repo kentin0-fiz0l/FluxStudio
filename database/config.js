@@ -355,10 +355,11 @@ const userQueries = {
   findById: (id) => query('SELECT * FROM users WHERE id = $1', [id]),
   create: (userData) => {
     const id = generateCuid();
+    const now = new Date();
     return query(
-      `INSERT INTO users (id, email, name, password_hash, user_type, oauth_provider, oauth_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [id, userData.email, userData.name, userData.password_hash, userData.user_type, userData.oauth_provider, userData.oauth_id]
+      `INSERT INTO users (id, email, name, password_hash, user_type, oauth_provider, oauth_id, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [id, userData.email, userData.name, userData.password_hash, userData.user_type, userData.oauth_provider, userData.oauth_id, now, now]
     );
   },
   update: (id, updates) => {
@@ -412,10 +413,11 @@ const organizationQueries = {
   findById: (id) => query('SELECT * FROM organizations WHERE id = $1', [id]),
   create: (orgData) => {
     const id = generateCuid();
+    const now = new Date();
     return query(
-      `INSERT INTO organizations (id, name, slug, description, type, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [id, orgData.name, orgData.slug, orgData.description, orgData.type, orgData.created_by]
+      `INSERT INTO organizations (id, name, slug, description, type, created_by, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [id, orgData.name, orgData.slug, orgData.description, orgData.type, orgData.created_by, now, now]
     );
   }
 };
