@@ -28,7 +28,7 @@ interface MetMapActions {
   // Section actions
   addSection: (
     songId: string,
-    section: Partial<Section> & Pick<Section, 'name' | 'startTime' | 'endTime'>
+    section: Partial<Section> & Pick<Section, 'name' | 'bars'>
   ) => Section | undefined;
   updateSection: (songId: string, sectionId: string, updates: Partial<Section>) => void;
   deleteSection: (songId: string, sectionId: string) => void;
@@ -103,13 +103,10 @@ export const useMetMapStore = create<MetMapStore>()(
           songs: state.songs.map((song) => {
             if (song.id === songId) {
               addedSection = section;
-              // Insert section in order by startTime
-              const sections = [...song.sections, section].sort(
-                (a, b) => a.startTime - b.startTime
-              );
+              // Add section to the end of the list
               return {
                 ...song,
-                sections,
+                sections: [...song.sections, section],
                 updatedAt: new Date().toISOString(),
               };
             }

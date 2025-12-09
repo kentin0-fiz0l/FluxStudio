@@ -84,24 +84,26 @@ export default function PracticeModePage() {
   useEffect(() => {
     if (!isPaused && song && song.sections.length > 0) {
       const section = song.sections[currentSectionIndex];
+      const sectionEndTime = section.endTime ?? 0;
+      const sectionStartTime = section.startTime ?? 0;
 
       timerRef.current = setInterval(() => {
         setCurrentTime((time) => {
           const newTime = time + 0.1;
 
           // Check if we've reached the end of the section
-          if (newTime >= section.endTime) {
+          if (sectionEndTime > 0 && newTime >= sectionEndTime) {
             if (isLooping) {
               // Loop back to start of section
-              return section.startTime;
+              return sectionStartTime;
             } else {
               // Move to next section or pause
               if (currentSectionIndex < song.sections.length - 1) {
                 setCurrentSectionIndex((i) => i + 1);
-                return song.sections[currentSectionIndex + 1].startTime;
+                return song.sections[currentSectionIndex + 1].startTime ?? 0;
               } else {
                 setIsPaused(true);
-                return section.endTime;
+                return sectionEndTime;
               }
             }
           }
@@ -121,7 +123,7 @@ export default function PracticeModePage() {
   // Jump to section start when section changes
   useEffect(() => {
     if (song && song.sections.length > 0) {
-      setCurrentTime(song.sections[currentSectionIndex].startTime);
+      setCurrentTime(song.sections[currentSectionIndex].startTime ?? 0);
     }
   }, [currentSectionIndex, song]);
 
@@ -172,10 +174,12 @@ export default function PracticeModePage() {
 
   const currentSection = song.sections[currentSectionIndex];
   const weakSections = getSectionsNeedingPractice(song);
-  const sectionProgress =
-    ((currentTime - currentSection.startTime) /
-      (currentSection.endTime - currentSection.startTime)) *
-    100;
+  const startTime = currentSection.startTime ?? 0;
+  const endTime = currentSection.endTime ?? 0;
+  const sectionDuration = endTime - startTime;
+  const sectionProgress = sectionDuration > 0
+    ? ((currentTime - startTime) / sectionDuration) * 100
+    : 0;
 
   return (
     <main className="flex-1 flex flex-col bg-hw-charcoal text-white">
@@ -216,10 +220,10 @@ export default function PracticeModePage() {
           </div>
         </div>
 
-        {/* Section name and time */}
+        {/* Section name and bars */}
         <h2 className="text-2xl font-bold mb-2">{currentSection.name}</h2>
         <p className="text-gray-400 mb-6">
-          {formatTime(currentSection.startTime)} - {formatTime(currentSection.endTime)}
+          {currentSection.bars || 8} bars
         </p>
 
         {/* Progress bar */}
@@ -232,7 +236,7 @@ export default function PracticeModePage() {
           </div>
           <div className="flex justify-between text-xs text-gray-500 mt-1">
             <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(currentSection.endTime)}</span>
+            <span>{formatTime(endTime)}</span>
           </div>
         </div>
 
