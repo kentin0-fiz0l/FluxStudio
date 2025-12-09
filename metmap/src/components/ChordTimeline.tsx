@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   ChordSection,
   ChordEvent,
@@ -14,10 +14,19 @@ import {
 // Types
 // ============================================================================
 
+export type PlaybackPosition = {
+  bar: number;  // 1-indexed
+  beat: number; // 1-indexed
+};
+
 export type ChordTimelineProps = {
   section: ChordSection;
   timeSignature: TimeSignature; // Effective time sig (local or global, already resolved)
   onChange: (updatedSection: ChordSection) => void;
+  /** Current playback position (optional) */
+  playbackPosition?: PlaybackPosition;
+  /** Whether playback is active */
+  isPlaying?: boolean;
 };
 
 type EditorState = {
@@ -26,6 +35,17 @@ type EditorState = {
   bar: number;
   beat: number;
   chord?: ChordEvent;
+};
+
+type DragState = {
+  isDragging: boolean;
+  chordId: string | null;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+  originalBar: number;
+  originalBeat: number;
 };
 
 // ============================================================================
@@ -48,12 +68,18 @@ function ChordBlock({
   barWidthPercent,
   onClick,
   onDelete,
+  isDragging,
+  isGhost,
+  onDragStart,
 }: {
   chord: ChordEvent;
   beatsPerBar: number;
   barWidthPercent: number;
   onClick: () => void;
   onDelete: () => void;
+  isDragging?: boolean;
+  isGhost?: boolean;
+  onDragStart?: (e: React.MouseEvent | React.TouchEvent) => void;
 }) {
   // Calculate position and width
   // Left position: (bar-1) * barWidth + (beat-1) / beatsPerBar * barWidth
@@ -66,34 +92,98 @@ function ChordBlock({
 
   return (
     <div
-      className="absolute top-1 bottom-1 flex items-center group cursor-pointer"
+      className={`absolute top-1 bottom-1 flex items-center group ${
+        isDragging ? 'z-50 cursor-grabbing' : 'cursor-grab'
+      } ${isGhost ? 'opacity-40 pointer-events-none' : ''}`}
       style={{
         left: `${leftPercent}%`,
         width: `${widthPercent}%`,
         minWidth: '40px',
+        transition: isDragging ? 'none' : 'left 0.15s ease-out',
       }}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
+      onMouseDown={(e) => {
+        if (e.button === 0 && onDragStart) {
+          e.preventDefault();
+          onDragStart(e);
+        }
+      }}
+      onTouchStart={(e) => {
+        if (onDragStart) {
+          onDragStart(e);
+        }
       }}
     >
-      <div className="w-full h-full bg-hw-brass/90 hover:bg-hw-brass rounded-md px-2 py-1 flex items-center justify-between shadow-pad transition-colors overflow-hidden">
-        <span className="text-hw-charcoal font-semibold text-sm truncate">
+      <div
+        className={`w-full h-full rounded-md px-2 py-1 flex items-center justify-between shadow-pad transition-colors overflow-hidden ${
+          isDragging
+            ? 'bg-hw-brass ring-2 ring-white/50 shadow-lg'
+            : 'bg-hw-brass/90 hover:bg-hw-brass'
+        }`}
+      >
+        <span className="text-hw-charcoal font-semibold text-sm truncate select-none">
           {formatChordSymbol(chord)}
         </span>
-        <button
-          className="opacity-0 group-hover:opacity-100 ml-1 text-hw-charcoal/60 hover:text-hw-red transition-opacity flex-shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          title="Delete chord"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        {!isDragging && (
+          <button
+            className="opacity-0 group-hover:opacity-100 ml-1 text-hw-charcoal/60 hover:text-hw-red transition-opacity flex-shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            title="Delete chord"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * PlayheadIndicator - Vertical line showing current playback position
+ */
+function PlayheadIndicator({
+  position,
+  beatsPerBar,
+  totalBars,
+  isPlaying,
+}: {
+  position: PlaybackPosition;
+  beatsPerBar: number;
+  totalBars: number;
+  isPlaying: boolean;
+}) {
+  // Calculate position as percentage
+  const totalBeats = totalBars * beatsPerBar;
+  const currentBeatPosition = (position.bar - 1) * beatsPerBar + (position.beat - 1);
+  const leftPercent = (currentBeatPosition / totalBeats) * 100;
+
+  // Don't show if position is out of bounds
+  if (position.bar < 1 || position.bar > totalBars) {
+    return null;
+  }
+
+  return (
+    <div
+      className={`absolute top-0 bottom-0 w-0.5 pointer-events-none z-40 ${
+        isPlaying ? 'bg-hw-red' : 'bg-hw-brass/60'
+      }`}
+      style={{
+        left: `${leftPercent}%`,
+        transition: isPlaying ? 'left 0.05s linear' : 'none',
+        boxShadow: isPlaying ? '0 0 8px rgba(255, 100, 100, 0.6)' : 'none',
+      }}
+    >
+      {/* Playhead triangle top */}
+      <div
+        className={`absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent ${
+          isPlaying ? 'border-t-hw-red' : 'border-t-hw-brass/60'
+        }`}
+      />
     </div>
   );
 }
@@ -274,12 +364,14 @@ function ChordEditor({
  *
  * Renders a horizontal grid representing bars and beats, with chord blocks
  * positioned according to their bar/beat/duration. Supports adding, editing,
- * and deleting chords through an inline editor.
+ * deleting, and dragging chords.
  */
 export function ChordTimeline({
   section,
   timeSignature,
   onChange,
+  playbackPosition,
+  isPlaying = false,
 }: ChordTimelineProps) {
   const [editor, setEditor] = useState<EditorState>({
     isOpen: false,
@@ -287,6 +379,21 @@ export function ChordTimeline({
     bar: 1,
     beat: 1,
   });
+
+  const [dragState, setDragState] = useState<DragState>({
+    isDragging: false,
+    chordId: null,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
+    originalBar: 0,
+    originalBeat: 0,
+  });
+
+  const [dragPreview, setDragPreview] = useState<{ bar: number; beat: number } | null>(null);
+
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const beatsPerBar = timeSignature.numerator;
   const totalBars = section.bars;
@@ -302,9 +409,120 @@ export function ChordTimeline({
     [section.chords]
   );
 
+  // Convert pixel position to bar/beat
+  const positionToBarBeat = useCallback(
+    (clientX: number): { bar: number; beat: number } => {
+      if (!gridRef.current) return { bar: 1, beat: 1 };
+
+      const rect = gridRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const gridWidth = rect.width;
+
+      // Calculate total beat position
+      const totalBeats = totalBars * beatsPerBar;
+      const beatPosition = (x / gridWidth) * totalBeats;
+
+      // Convert to bar/beat (1-indexed)
+      const bar = Math.floor(beatPosition / beatsPerBar) + 1;
+      const beat = Math.floor(beatPosition % beatsPerBar) + 1;
+
+      // Clamp to valid range
+      return {
+        bar: Math.max(1, Math.min(totalBars, bar)),
+        beat: Math.max(1, Math.min(beatsPerBar, beat)),
+      };
+    },
+    [totalBars, beatsPerBar]
+  );
+
+  // Handle drag start
+  const handleDragStart = useCallback(
+    (chord: ChordEvent) => (e: React.MouseEvent | React.TouchEvent) => {
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+      setDragState({
+        isDragging: true,
+        chordId: chord.id,
+        startX: clientX,
+        startY: clientY,
+        currentX: clientX,
+        currentY: clientY,
+        originalBar: chord.bar,
+        originalBeat: chord.beat,
+      });
+
+      setDragPreview({ bar: chord.bar, beat: chord.beat });
+    },
+    []
+  );
+
+  // Handle drag move
+  useEffect(() => {
+    if (!dragState.isDragging) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+      setDragState((prev) => ({
+        ...prev,
+        currentX: clientX,
+        currentY: clientY,
+      }));
+
+      // Update drag preview position
+      const newPosition = positionToBarBeat(clientX);
+      setDragPreview(newPosition);
+    };
+
+    const handleEnd = () => {
+      if (dragState.chordId && dragPreview) {
+        // Check if position actually changed
+        const chord = section.chords.find((c) => c.id === dragState.chordId);
+        if (chord && (chord.bar !== dragPreview.bar || chord.beat !== dragPreview.beat)) {
+          // Update chord position
+          const updatedChords = section.chords.map((c) =>
+            c.id === dragState.chordId
+              ? { ...c, bar: dragPreview.bar, beat: dragPreview.beat }
+              : c
+          );
+          onChange({ ...section, chords: updatedChords });
+        }
+      }
+
+      setDragState({
+        isDragging: false,
+        chordId: null,
+        startX: 0,
+        startY: 0,
+        currentX: 0,
+        currentY: 0,
+        originalBar: 0,
+        originalBeat: 0,
+      });
+      setDragPreview(null);
+    };
+
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleMove);
+    document.addEventListener('touchend', handleEnd);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
+    };
+  }, [dragState.isDragging, dragState.chordId, dragPreview, section, onChange, positionToBarBeat]);
+
   // Handle clicking an empty cell to add a chord
   const handleCellClick = useCallback(
     (bar: number, beat: number) => {
+      // Don't handle if we're dragging
+      if (dragState.isDragging) return;
+
       // Check if there's already a chord at this position
       const existingChord = getChordAtBeat(bar, beat);
       if (existingChord) {
@@ -326,19 +544,22 @@ export function ChordTimeline({
         });
       }
     },
-    [getChordAtBeat]
+    [getChordAtBeat, dragState.isDragging]
   );
 
   // Handle clicking a chord block to edit
   const handleChordClick = useCallback((chord: ChordEvent) => {
-    setEditor({
-      isOpen: true,
-      mode: 'edit',
-      bar: chord.bar,
-      beat: chord.beat,
-      chord,
-    });
-  }, []);
+    // Only open editor if not dragging
+    if (!dragState.isDragging) {
+      setEditor({
+        isOpen: true,
+        mode: 'edit',
+        bar: chord.bar,
+        beat: chord.beat,
+        chord,
+      });
+    }
+  }, [dragState.isDragging]);
 
   // Save a chord (add or update)
   const handleSaveChord = useCallback(
@@ -392,6 +613,11 @@ export function ChordTimeline({
     [beatsPerBar]
   );
 
+  // Get the chord being dragged (for preview)
+  const draggedChord = dragState.isDragging
+    ? section.chords.find((c) => c.id === dragState.chordId)
+    : null;
+
   return (
     <div className="relative bg-hw-charcoal rounded-lg overflow-hidden">
       {/* Bar labels header */}
@@ -409,6 +635,7 @@ export function ChordTimeline({
 
       {/* Main grid with beat cells and chord blocks */}
       <div
+        ref={gridRef}
         className="relative"
         style={{ minWidth: `${totalBars * BAR_MIN_WIDTH}px` }}
       >
@@ -422,14 +649,25 @@ export function ChordTimeline({
               }`}
               style={{ width: `${barWidthPercent}%` }}
             >
-              {beats.map((beatNum) => (
-                <div
-                  key={`${barNum}-${beatNum}`}
-                  className="flex-1 border-r border-hw-surface/50 last:border-r-0 hover:bg-hw-brass/10 cursor-pointer transition-colors"
-                  onClick={() => handleCellClick(barNum, beatNum)}
-                  title={`Bar ${barNum}, Beat ${beatNum}`}
-                />
-              ))}
+              {beats.map((beatNum) => {
+                const isDropTarget =
+                  dragState.isDragging &&
+                  dragPreview?.bar === barNum &&
+                  dragPreview?.beat === beatNum;
+
+                return (
+                  <div
+                    key={`${barNum}-${beatNum}`}
+                    className={`flex-1 border-r border-hw-surface/50 last:border-r-0 cursor-pointer transition-colors ${
+                      isDropTarget
+                        ? 'bg-hw-brass/30'
+                        : 'hover:bg-hw-brass/10'
+                    }`}
+                    onClick={() => handleCellClick(barNum, beatNum)}
+                    title={`Bar ${barNum}, Beat ${beatNum}`}
+                  />
+                );
+              })}
             </div>
           ))}
         </div>
@@ -440,18 +678,57 @@ export function ChordTimeline({
           style={{ height: `${BEAT_HEIGHT}px` }}
         >
           <div className="relative w-full h-full pointer-events-auto">
-            {section.chords.map((chord) => (
-              <ChordBlock
-                key={chord.id}
-                chord={chord}
-                beatsPerBar={beatsPerBar}
-                barWidthPercent={barWidthPercent}
-                onClick={() => handleChordClick(chord)}
-                onDelete={() => handleDeleteChord(chord.id)}
-              />
-            ))}
+            {section.chords.map((chord) => {
+              const isBeingDragged = dragState.chordId === chord.id;
+
+              // If being dragged, show at preview position
+              const displayChord = isBeingDragged && dragPreview
+                ? { ...chord, bar: dragPreview.bar, beat: dragPreview.beat }
+                : chord;
+
+              return (
+                <React.Fragment key={chord.id}>
+                  {/* Ghost at original position when dragging */}
+                  {isBeingDragged && (
+                    <ChordBlock
+                      chord={chord}
+                      beatsPerBar={beatsPerBar}
+                      barWidthPercent={barWidthPercent}
+                      onClick={() => {}}
+                      onDelete={() => {}}
+                      isGhost
+                    />
+                  )}
+                  {/* Main chord block (at current/preview position) */}
+                  <ChordBlock
+                    chord={displayChord}
+                    beatsPerBar={beatsPerBar}
+                    barWidthPercent={barWidthPercent}
+                    onClick={() => handleChordClick(chord)}
+                    onDelete={() => handleDeleteChord(chord.id)}
+                    isDragging={isBeingDragged}
+                    onDragStart={handleDragStart(chord)}
+                  />
+                </React.Fragment>
+              );
+            })}
           </div>
         </div>
+
+        {/* Playhead indicator */}
+        {playbackPosition && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ height: `${BEAT_HEIGHT}px` }}
+          >
+            <PlayheadIndicator
+              position={playbackPosition}
+              beatsPerBar={beatsPerBar}
+              totalBars={totalBars}
+              isPlaying={isPlaying}
+            />
+          </div>
+        )}
       </div>
 
       {/* Beat numbers footer */}
