@@ -8,6 +8,7 @@ import { formatTime, getSongConfidence } from '@/types/metmap';
 import { clsx } from 'clsx';
 import { SyncButton } from '@/components/SyncButton';
 import { useSession } from 'next-auth/react';
+import { QuickMetronome } from '@/components/QuickMetronome';
 
 // Hook to detect when client-side hydration is complete
 function useHasMounted() {
@@ -68,6 +69,11 @@ export default function Home() {
           />
         </div>
       </header>
+
+      {/* Quick Metronome */}
+      <div className="px-4 pt-4">
+        <QuickMetronome />
+      </div>
 
       {/* Song List */}
       <div className="flex-1 px-4 py-4">
