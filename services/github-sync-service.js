@@ -8,13 +8,29 @@ const { Pool } = require('pg');
 
 class GitHubSyncService {
   constructor(config = {}) {
-    this.dbConfig = config.database || {
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
-      database: process.env.DB_NAME || 'fluxstudio',
-      user: process.env.DB_USER || 'fluxstudio_user',
-      password: process.env.DB_PASSWORD
-    };
+    // Use DATABASE_URL if available (DigitalOcean managed database)
+    if (process.env.DATABASE_URL) {
+      this.dbConfig = {
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production'
+          ? { rejectUnauthorized: false }
+          : false
+      };
+      console.log('[GitHubSyncService] Using DATABASE_URL for database connection');
+    } else if (config.database) {
+      this.dbConfig = config.database;
+      console.log('[GitHubSyncService] Using provided database config');
+    } else {
+      // Fallback to individual variables (development only)
+      this.dbConfig = {
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 5432,
+        database: process.env.DB_NAME || 'fluxstudio',
+        user: process.env.DB_USER || 'fluxstudio_user',
+        password: process.env.DB_PASSWORD
+      };
+      console.log('[GitHubSyncService] Using individual DB variables (fallback)');
+    }
 
     this.pool = new Pool(this.dbConfig);
     this.syncInterval = config.syncInterval || 300000; // 5 minutes default
