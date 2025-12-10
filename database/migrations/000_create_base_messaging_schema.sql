@@ -95,41 +95,108 @@ CREATE TABLE IF NOT EXISTS message_reactions (
     UNIQUE(message_id, user_id, reaction)
 );
 
--- Add basic indexes
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_conversations_organization ON conversations(organization_id);
-CREATE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id);
-CREATE INDEX IF NOT EXISTS idx_conversations_team ON conversations(team_id);
-CREATE INDEX IF NOT EXISTS idx_conversations_created_by ON conversations(created_by);
-CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
-CREATE INDEX IF NOT EXISTS idx_messages_author ON messages(author_id);
-CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
-CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id);
-CREATE INDEX IF NOT EXISTS idx_message_reactions_user ON message_reactions(user_id);
+-- Add basic indexes (conditionally - only if columns exist)
+DO $$
+BEGIN
+  -- Users indexes
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'email') THEN
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+  END IF;
 
--- Populate users table from existing Prisma User table
-INSERT INTO users (id, name, email, created_at, updated_at)
-SELECT "id", "name", "email", "createdAt", "updatedAt"
-FROM "User"
-ON CONFLICT (id) DO UPDATE SET
-    name = EXCLUDED.name,
-    email = EXCLUDED.email,
-    updated_at = EXCLUDED.updated_at;
+  -- Conversations indexes
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'conversations' AND column_name = 'organization_id') THEN
+    CREATE INDEX IF NOT EXISTS idx_conversations_organization ON conversations(organization_id);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'conversations' AND column_name = 'project_id') THEN
+    CREATE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'conversations' AND column_name = 'team_id') THEN
+    CREATE INDEX IF NOT EXISTS idx_conversations_team ON conversations(team_id);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'conversations' AND column_name = 'created_by') THEN
+    CREATE INDEX IF NOT EXISTS idx_conversations_created_by ON conversations(created_by);
+  END IF;
+
+  -- Messages indexes
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'messages' AND column_name = 'conversation_id') THEN
+    CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'messages' AND column_name = 'author_id') THEN
+    CREATE INDEX IF NOT EXISTS idx_messages_author ON messages(author_id);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'messages' AND column_name = 'created_at') THEN
+    CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
+  END IF;
+
+  -- Message reactions indexes
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'message_reactions' AND column_name = 'message_id') THEN
+    CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'message_reactions' AND column_name = 'user_id') THEN
+    CREATE INDEX IF NOT EXISTS idx_message_reactions_user ON message_reactions(user_id);
+  END IF;
+END $$;
+
+-- Populate users table from existing Prisma User table (if both tables exist)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+     AND EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'User') THEN
+    INSERT INTO users (id, name, email, created_at, updated_at)
+    SELECT "id", "name", "email", "createdAt", "updatedAt"
+    FROM "User"
+    ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        email = EXCLUDED.email,
+        updated_at = EXCLUDED.updated_at;
+    RAISE NOTICE 'Users synced from MetMap User table';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Could not sync users: %', SQLERRM;
+END $$;
 
 -- Create a default organization and project if they don't exist
--- Use a deterministic id based on slug for consistency
-INSERT INTO organizations (id, name, slug, description)
-VALUES ('fluxstudio-default-org', 'FluxStudio', 'fluxstudio', 'Default FluxStudio organization')
-ON CONFLICT (slug) DO NOTHING;
+DO $$
+BEGIN
+  -- Only create defaults if organizations table exists and has required columns
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'slug') THEN
+    INSERT INTO organizations (id, name, slug, description)
+    VALUES ('fluxstudio-default-org', 'FluxStudio', 'fluxstudio', 'Default FluxStudio organization')
+    ON CONFLICT (slug) DO NOTHING;
+    RAISE NOTICE 'Default organization created/verified';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Could not create default organization: %', SQLERRM;
+END $$;
 
-INSERT INTO projects (id, organization_id, name, description)
-SELECT 'fluxstudio-default-project', o.id, 'Default Project', 'Default project for FluxStudio'
-FROM organizations o
-WHERE o.slug = 'fluxstudio'
-AND NOT EXISTS (SELECT 1 FROM projects WHERE id = 'fluxstudio-default-project');
+DO $$
+BEGIN
+  -- Only create default project if projects table exists with required columns
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'projects' AND column_name = 'organization_id') THEN
+    INSERT INTO projects (id, organization_id, name, description)
+    SELECT 'fluxstudio-default-project', o.id, 'Default Project', 'Default project for FluxStudio'
+    FROM organizations o
+    WHERE o.slug = 'fluxstudio'
+    AND NOT EXISTS (SELECT 1 FROM projects WHERE id = 'fluxstudio-default-project');
+    RAISE NOTICE 'Default project created/verified';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Could not create default project: %', SQLERRM;
+END $$;
 
--- Add helpful comments
-COMMENT ON TABLE users IS 'User accounts for the messaging system';
-COMMENT ON TABLE conversations IS 'Chat conversations/channels';
-COMMENT ON TABLE messages IS 'Individual messages within conversations';
-COMMENT ON TABLE message_reactions IS 'User reactions to messages (emojis, etc.)';
+-- Add helpful comments (conditionally)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') THEN
+    COMMENT ON TABLE users IS 'User accounts for the messaging system';
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'conversations') THEN
+    COMMENT ON TABLE conversations IS 'Chat conversations/channels';
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'messages') THEN
+    COMMENT ON TABLE messages IS 'Individual messages within conversations';
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'message_reactions') THEN
+    COMMENT ON TABLE message_reactions IS 'User reactions to messages (emojis, etc.)';
+  END IF;
+END $$;
