@@ -4608,6 +4608,159 @@ httpServer.listen(PORT, async () => {
             RAISE NOTICE 'Fixed: security_events.user_id converted from UUID to TEXT';
           END IF;
 
+          -- =============================================
+          -- FIX organizations TABLE
+          -- =============================================
+
+          -- Drop FK constraints that reference organizations.id
+          ALTER TABLE organization_members DROP CONSTRAINT IF EXISTS organization_members_organization_id_fkey;
+          ALTER TABLE organization_members DROP CONSTRAINT IF EXISTS fk_organization_members_org_id;
+          ALTER TABLE teams DROP CONSTRAINT IF EXISTS teams_organization_id_fkey;
+          ALTER TABLE teams DROP CONSTRAINT IF EXISTS fk_teams_organization_id;
+          ALTER TABLE projects DROP CONSTRAINT IF EXISTS projects_organization_id_fkey;
+          ALTER TABLE projects DROP CONSTRAINT IF EXISTS fk_projects_organization_id;
+
+          -- Convert organizations.id from UUID to TEXT if needed
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'organizations'
+            AND column_name = 'id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE organizations ALTER COLUMN id TYPE TEXT USING id::TEXT;
+            RAISE NOTICE 'Fixed: organizations.id converted from UUID to TEXT';
+          END IF;
+
+          -- Convert organizations.owner_id from UUID to TEXT if needed
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'organizations'
+            AND column_name = 'owner_id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE organizations ALTER COLUMN owner_id TYPE TEXT USING owner_id::TEXT;
+            RAISE NOTICE 'Fixed: organizations.owner_id converted from UUID to TEXT';
+          END IF;
+
+          -- =============================================
+          -- FIX organization_members TABLE
+          -- =============================================
+
+          -- Convert organization_members.organization_id from UUID to TEXT if needed
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'organization_members'
+            AND column_name = 'organization_id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE organization_members ALTER COLUMN organization_id TYPE TEXT USING organization_id::TEXT;
+            RAISE NOTICE 'Fixed: organization_members.organization_id converted from UUID to TEXT';
+          END IF;
+
+          -- Convert organization_members.user_id from UUID to TEXT if needed
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'organization_members'
+            AND column_name = 'user_id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE organization_members ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT;
+            RAISE NOTICE 'Fixed: organization_members.user_id converted from UUID to TEXT';
+          END IF;
+
+          -- =============================================
+          -- FIX teams TABLE
+          -- =============================================
+
+          -- Drop FK constraints
+          ALTER TABLE team_members DROP CONSTRAINT IF EXISTS team_members_team_id_fkey;
+          ALTER TABLE team_members DROP CONSTRAINT IF EXISTS fk_team_members_team_id;
+
+          -- Convert teams.id from UUID to TEXT if needed
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'teams'
+            AND column_name = 'id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE teams ALTER COLUMN id TYPE TEXT USING id::TEXT;
+            RAISE NOTICE 'Fixed: teams.id converted from UUID to TEXT';
+          END IF;
+
+          -- Convert teams.organization_id from UUID to TEXT if needed
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'teams'
+            AND column_name = 'organization_id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE teams ALTER COLUMN organization_id TYPE TEXT USING organization_id::TEXT;
+            RAISE NOTICE 'Fixed: teams.organization_id converted from UUID to TEXT';
+          END IF;
+
+          -- =============================================
+          -- FIX team_members TABLE
+          -- =============================================
+
+          -- Convert team_members.team_id from UUID to TEXT if needed
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'team_members'
+            AND column_name = 'team_id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE team_members ALTER COLUMN team_id TYPE TEXT USING team_id::TEXT;
+            RAISE NOTICE 'Fixed: team_members.team_id converted from UUID to TEXT';
+          END IF;
+
+          -- Convert team_members.user_id from UUID to TEXT if needed
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'team_members'
+            AND column_name = 'user_id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE team_members ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT;
+            RAISE NOTICE 'Fixed: team_members.user_id converted from UUID to TEXT';
+          END IF;
+
+          -- =============================================
+          -- FIX projects TABLE
+          -- =============================================
+
+          -- Convert projects.id from UUID to TEXT if needed
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'projects'
+            AND column_name = 'id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE projects ALTER COLUMN id TYPE TEXT USING id::TEXT;
+            RAISE NOTICE 'Fixed: projects.id converted from UUID to TEXT';
+          END IF;
+
+          -- Convert projects.organization_id from UUID to TEXT if needed
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'projects'
+            AND column_name = 'organization_id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE projects ALTER COLUMN organization_id TYPE TEXT USING organization_id::TEXT;
+            RAISE NOTICE 'Fixed: projects.organization_id converted from UUID to TEXT';
+          END IF;
+
+          -- Convert projects.team_id from UUID to TEXT if needed
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'projects'
+            AND column_name = 'team_id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE projects ALTER COLUMN team_id TYPE TEXT USING team_id::TEXT;
+            RAISE NOTICE 'Fixed: projects.team_id converted from UUID to TEXT';
+          END IF;
+
         END $$;
       `);
       console.log('✅ Database schema fixes complete');
