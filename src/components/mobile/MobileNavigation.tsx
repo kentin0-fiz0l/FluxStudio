@@ -11,7 +11,8 @@ import {
   Settings,
   User,
   Bell,
-  Search
+  Search,
+  Wrench
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -32,6 +33,7 @@ const navigationItems = [
   { id: 'clients', label: 'Clients', icon: Users },
   { id: 'messages', label: 'Messages', icon: MessageSquare },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'tools', label: 'Tools', icon: Wrench },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
