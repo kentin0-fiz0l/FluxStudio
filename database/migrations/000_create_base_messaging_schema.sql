@@ -13,9 +13,9 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create organizations table
+-- Create organizations table (TEXT id for MetMap CUID compatibility)
 CREATE TABLE IF NOT EXISTS organizations (
-    id SERIAL PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
@@ -24,10 +24,10 @@ CREATE TABLE IF NOT EXISTS organizations (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create teams table
+-- Create teams table (TEXT ids for MetMap CUID compatibility)
 CREATE TABLE IF NOT EXISTS teams (
-    id SERIAL PRIMARY KEY,
-    organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    organization_id TEXT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     settings JSONB DEFAULT '{}',
@@ -35,11 +35,11 @@ CREATE TABLE IF NOT EXISTS teams (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create projects table
+-- Create projects table (TEXT ids for MetMap CUID compatibility)
 CREATE TABLE IF NOT EXISTS projects (
-    id SERIAL PRIMARY KEY,
-    organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
-    team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,
+    id TEXT PRIMARY KEY,
+    organization_id TEXT,
+    team_id TEXT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     status VARCHAR(50) DEFAULT 'active',
@@ -48,15 +48,15 @@ CREATE TABLE IF NOT EXISTS projects (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create conversations table
+-- Create conversations table (TEXT ids for MetMap CUID compatibility)
 CREATE TABLE IF NOT EXISTS conversations (
-    id SERIAL PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     type VARCHAR(50) DEFAULT 'group', -- 'group', 'direct', 'channel'
-    organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
-    project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
-    team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,
+    organization_id TEXT,
+    project_id TEXT,
+    team_id TEXT,
     created_by VARCHAR(255) NOT NULL,
     is_archived BOOLEAN DEFAULT FALSE,
     last_message_at TIMESTAMP WITH TIME ZONE,
@@ -66,17 +66,17 @@ CREATE TABLE IF NOT EXISTS conversations (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create messages table
+-- Create messages table (TEXT ids for MetMap CUID compatibility)
 CREATE TABLE IF NOT EXISTS messages (
-    id SERIAL PRIMARY KEY,
-    conversation_id INTEGER REFERENCES conversations(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    conversation_id TEXT,
     author_id VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
     message_type VARCHAR(50) DEFAULT 'text', -- 'text', 'file', 'image', 'system'
     priority VARCHAR(20) DEFAULT 'normal', -- 'low', 'normal', 'high', 'urgent'
     status VARCHAR(20) DEFAULT 'sent', -- 'sending', 'sent', 'delivered', 'read', 'failed'
-    reply_to_id INTEGER REFERENCES messages(id) ON DELETE SET NULL,
-    thread_id INTEGER,
+    reply_to_id TEXT,
+    thread_id TEXT,
     mentions TEXT[] DEFAULT '{}',
     attachments JSONB DEFAULT '[]',
     metadata JSONB DEFAULT '{}',
@@ -85,10 +85,10 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create message_reactions table
+-- Create message_reactions table (TEXT ids for MetMap CUID compatibility)
 CREATE TABLE IF NOT EXISTS message_reactions (
-    id SERIAL PRIMARY KEY,
-    message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    message_id TEXT NOT NULL,
     user_id VARCHAR(255) NOT NULL,
     reaction VARCHAR(50) NOT NULL, -- emoji or reaction type
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -117,15 +117,16 @@ ON CONFLICT (id) DO UPDATE SET
     updated_at = EXCLUDED.updated_at;
 
 -- Create a default organization and project if they don't exist
-INSERT INTO organizations (name, slug, description)
-VALUES ('FluxStudio', 'fluxstudio', 'Default FluxStudio organization')
+-- Use a deterministic id based on slug for consistency
+INSERT INTO organizations (id, name, slug, description)
+VALUES ('fluxstudio-default-org', 'FluxStudio', 'fluxstudio', 'Default FluxStudio organization')
 ON CONFLICT (slug) DO NOTHING;
 
-INSERT INTO projects (organization_id, name, description)
-SELECT o.id, 'Default Project', 'Default project for FluxStudio'
+INSERT INTO projects (id, organization_id, name, description)
+SELECT 'fluxstudio-default-project', o.id, 'Default Project', 'Default project for FluxStudio'
 FROM organizations o
 WHERE o.slug = 'fluxstudio'
-ON CONFLICT DO NOTHING;
+AND NOT EXISTS (SELECT 1 FROM projects WHERE id = 'fluxstudio-default-project');
 
 -- Add helpful comments
 COMMENT ON TABLE users IS 'User accounts for the messaging system';
