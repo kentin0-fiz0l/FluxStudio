@@ -44,8 +44,8 @@ const { createMonitoringRouter } = require('./monitoring/endpoints');
 // Import Redis cache layer
 const cache = require('./lib/cache');
 
-// Import database query function (for Phase 1 webhook storage)
-const { query } = require('./database/config');
+// Import database query function (for Phase 1 webhook storage) and migrations
+const { query, runMigrations } = require('./database/config');
 
 // Import Week 1 Security Sprint - JWT Refresh Token Routes
 const refreshTokenRoutes = require('./lib/auth/refreshTokenRoutes');
@@ -4498,7 +4498,7 @@ app.use(errorHandler());
 // Security error handler (must be last)
 app.use(securityErrorHandler);
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
   console.log('');
   console.log('='.repeat(60));
   console.log('🚀 FluxStudio Unified Backend Service');
@@ -4508,6 +4508,20 @@ httpServer.listen(PORT, () => {
   console.log(`💬 Messaging namespace: ws://localhost:${PORT}/messaging`);
   console.log(`🏥 Health check: http://localhost:${PORT}/health`);
   console.log(`📊 Monitoring: http://localhost:${PORT}/api/monitoring`);
+  console.log('');
+
+  // Run database migrations on startup (if using database)
+  if (USE_DATABASE) {
+    try {
+      console.log('🔄 Running database migrations...');
+      await runMigrations();
+      console.log('✅ Database migrations completed');
+    } catch (migrationError) {
+      console.error('⚠️ Migration warning:', migrationError.message);
+      // Don't crash server on migration errors - log and continue
+    }
+  }
+
   console.log('');
   console.log('Services consolidated:');
   console.log('  ✅ Authentication (formerly port 3001)');
