@@ -376,21 +376,35 @@ router.post('/google', async (req, res) => {
     res.json(authResponse);
 
   } catch (error) {
-    console.error('Google OAuth error details:', {
-      message: error.message,
-      stack: error.stack,
-      hasCredential: !!req.body.credential,
-      credentialLength: req.body.credential ? req.body.credential.length : 0
-      // Note: Credential not logged for security (sensitive OAuth token)
-    });
+    // Classify the Google OAuth error for better diagnostics
+    let errorType = 'unknown';
+    let userMessage = 'Google authentication failed';
+
+    if (error.message?.includes('Token used too late') || error.message?.includes('expired')) {
+      errorType = 'token_expired';
+      userMessage = 'Google sign-in expired. Please try again.';
+    } else if (error.message?.includes('Invalid token') || error.message?.includes('Wrong number of segments')) {
+      errorType = 'invalid_token';
+      userMessage = 'Invalid Google credential. Please try again.';
+    } else if (error.message?.includes('audience') || error.message?.includes('client_id')) {
+      errorType = 'audience_mismatch';
+      userMessage = 'Google authentication configuration error.';
+    } else if (error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+      errorType = 'network_error';
+      userMessage = 'Unable to verify Google sign-in. Please check your connection.';
+    }
+
+    // Log error without sensitive data
+    console.error(`[GoogleOAuth] Auth failed (${errorType}): ${error.message}`);
 
     // Log failed OAuth attempt
     await securityLogger.logOAuthFailure('google', error.message, req, {
-      error: error.message,
+      errorType,
+      errorMessage: error.message,
       hasCredential: !!req.body.credential
     });
 
-    res.status(500).json({ message: 'Google authentication error', error: error.message });
+    res.status(401).json({ message: userMessage, errorType });
   }
 });
 
