@@ -4512,13 +4512,17 @@ httpServer.listen(PORT, async () => {
 
   // Run database migrations on startup (if using database)
   if (USE_DATABASE) {
-    // CRITICAL: Fix refresh_tokens schema mismatch before running migrations
+    // CRITICAL: Fix table schema mismatches before running migrations
     // This must run first because the migration runner may fail on other migrations
     try {
-      console.log('🔧 Fixing refresh_tokens table schema...');
+      console.log('🔧 Fixing database table schemas...');
       const fixResult = await query(`
         DO $$
         BEGIN
+          -- =============================================
+          -- FIX refresh_tokens TABLE
+          -- =============================================
+
           -- Drop FK constraints that might block changes
           ALTER TABLE refresh_tokens DROP CONSTRAINT IF EXISTS refresh_tokens_user_id_fkey;
           ALTER TABLE refresh_tokens DROP CONSTRAINT IF EXISTS fk_user;
@@ -4584,9 +4588,29 @@ httpServer.listen(PORT, async () => {
             ALTER TABLE refresh_tokens ADD COLUMN revoked_at TIMESTAMP;
             RAISE NOTICE 'Fixed: refresh_tokens.revoked_at column added';
           END IF;
+
+          -- =============================================
+          -- FIX security_events TABLE
+          -- =============================================
+
+          -- Drop FK constraints
+          ALTER TABLE security_events DROP CONSTRAINT IF EXISTS security_events_user_id_fkey;
+          ALTER TABLE security_events DROP CONSTRAINT IF EXISTS fk_security_events_user_id;
+
+          -- Convert security_events.user_id from UUID to TEXT if needed
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'security_events'
+            AND column_name = 'user_id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE security_events ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT;
+            RAISE NOTICE 'Fixed: security_events.user_id converted from UUID to TEXT';
+          END IF;
+
         END $$;
       `);
-      console.log('✅ refresh_tokens schema fix complete');
+      console.log('✅ Database schema fixes complete');
     } catch (fixError) {
       console.error('⚠️ Schema fix warning:', fixError.message);
     }
