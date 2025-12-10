@@ -4512,6 +4512,34 @@ httpServer.listen(PORT, async () => {
 
   // Run database migrations on startup (if using database)
   if (USE_DATABASE) {
+    // CRITICAL: Fix refresh_tokens.user_id UUID to TEXT before running migrations
+    // This must run first because the migration runner may fail on other migrations
+    try {
+      console.log('🔧 Checking refresh_tokens.user_id column type...');
+      const fixResult = await query(`
+        DO $$
+        BEGIN
+          -- Drop FK constraints that might block the type change
+          ALTER TABLE refresh_tokens DROP CONSTRAINT IF EXISTS refresh_tokens_user_id_fkey;
+          ALTER TABLE refresh_tokens DROP CONSTRAINT IF EXISTS fk_user;
+
+          -- Check if user_id is UUID type and convert to TEXT
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'refresh_tokens'
+            AND column_name = 'user_id'
+            AND data_type = 'uuid'
+          ) THEN
+            ALTER TABLE refresh_tokens ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT;
+            RAISE NOTICE 'Fixed: refresh_tokens.user_id converted from UUID to TEXT';
+          END IF;
+        END $$;
+      `);
+      console.log('✅ refresh_tokens.user_id type check complete');
+    } catch (fixError) {
+      console.error('⚠️ user_id fix warning:', fixError.message);
+    }
+
     try {
       console.log('🔄 Running database migrations...');
       await runMigrations();
