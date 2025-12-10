@@ -4612,13 +4612,21 @@ httpServer.listen(PORT, async () => {
           -- FIX organizations TABLE
           -- =============================================
 
-          -- Drop FK constraints that reference organizations.id
-          ALTER TABLE organization_members DROP CONSTRAINT IF EXISTS organization_members_organization_id_fkey;
-          ALTER TABLE organization_members DROP CONSTRAINT IF EXISTS fk_organization_members_org_id;
-          ALTER TABLE teams DROP CONSTRAINT IF EXISTS teams_organization_id_fkey;
-          ALTER TABLE teams DROP CONSTRAINT IF EXISTS fk_teams_organization_id;
-          ALTER TABLE projects DROP CONSTRAINT IF EXISTS projects_organization_id_fkey;
-          ALTER TABLE projects DROP CONSTRAINT IF EXISTS fk_projects_organization_id;
+          -- Drop FK constraints that reference organizations.id (only if tables exist)
+          IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'organization_members') THEN
+            ALTER TABLE organization_members DROP CONSTRAINT IF EXISTS organization_members_organization_id_fkey;
+            ALTER TABLE organization_members DROP CONSTRAINT IF EXISTS fk_organization_members_org_id;
+          END IF;
+
+          IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'teams') THEN
+            ALTER TABLE teams DROP CONSTRAINT IF EXISTS teams_organization_id_fkey;
+            ALTER TABLE teams DROP CONSTRAINT IF EXISTS fk_teams_organization_id;
+          END IF;
+
+          IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'projects') THEN
+            ALTER TABLE projects DROP CONSTRAINT IF EXISTS projects_organization_id_fkey;
+            ALTER TABLE projects DROP CONSTRAINT IF EXISTS fk_projects_organization_id;
+          END IF;
 
           -- Convert organizations.id from UUID to TEXT if needed
           IF EXISTS (
@@ -4643,7 +4651,7 @@ httpServer.listen(PORT, async () => {
           END IF;
 
           -- =============================================
-          -- FIX organization_members TABLE
+          -- FIX organization_members TABLE (if exists)
           -- =============================================
 
           -- Convert organization_members.organization_id from UUID to TEXT if needed
@@ -4669,12 +4677,14 @@ httpServer.listen(PORT, async () => {
           END IF;
 
           -- =============================================
-          -- FIX teams TABLE
+          -- FIX teams TABLE (if exists)
           -- =============================================
 
-          -- Drop FK constraints
-          ALTER TABLE team_members DROP CONSTRAINT IF EXISTS team_members_team_id_fkey;
-          ALTER TABLE team_members DROP CONSTRAINT IF EXISTS fk_team_members_team_id;
+          -- Drop FK constraints (only if table exists)
+          IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'team_members') THEN
+            ALTER TABLE team_members DROP CONSTRAINT IF EXISTS team_members_team_id_fkey;
+            ALTER TABLE team_members DROP CONSTRAINT IF EXISTS fk_team_members_team_id;
+          END IF;
 
           -- Convert teams.id from UUID to TEXT if needed
           IF EXISTS (
@@ -4699,7 +4709,7 @@ httpServer.listen(PORT, async () => {
           END IF;
 
           -- =============================================
-          -- FIX team_members TABLE
+          -- FIX team_members TABLE (if exists)
           -- =============================================
 
           -- Convert team_members.team_id from UUID to TEXT if needed
