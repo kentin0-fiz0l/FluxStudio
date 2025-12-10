@@ -31,7 +31,8 @@ import {
   Menu,
   X,
   FileText,
-  MessageSquare
+  MessageSquare,
+  Wrench
 } from 'lucide-react';
 // SidebarTrigger removed - no longer using sidebar
 import { UnifiedNotificationCenter } from './notifications/UnifiedNotificationCenter';
@@ -202,18 +203,31 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-gray-900 border-gray-700">
-              <DropdownMenuItem className="text-gray-300 hover:text-white hover:bg-gray-800 focus:bg-gray-800">
+              <DropdownMenuItem
+                onClick={() => navigate('/profile')}
+                className="text-gray-300 hover:text-white hover:bg-gray-800 focus:bg-gray-800 cursor-pointer"
+              >
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-300 hover:text-white hover:bg-gray-800 focus:bg-gray-800">
+              <DropdownMenuItem
+                onClick={() => navigate('/tools')}
+                className="text-gray-300 hover:text-white hover:bg-gray-800 focus:bg-gray-800 cursor-pointer"
+              >
+                <Wrench className="mr-2 h-4 w-4" />
+                Tools
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => navigate('/settings')}
+                className="text-gray-300 hover:text-white hover:bg-gray-800 focus:bg-gray-800 cursor-pointer"
+              >
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-gray-700" />
               <DropdownMenuItem
                 onClick={logout}
-                className="text-gray-300 hover:text-white hover:bg-gray-800 focus:bg-gray-800"
+                className="text-gray-300 hover:text-white hover:bg-gray-800 focus:bg-gray-800 cursor-pointer"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out

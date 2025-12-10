@@ -28,6 +28,7 @@ const { Component: EmailVerification } = lazyLoadWithRetry(() => import('./pages
 const { Component: WelcomeFlow } = lazyLoadWithRetry(() => import('./pages/WelcomeFlow'));
 const { Component: AdaptiveDashboard } = lazyLoadWithRetry(() => import('./components/AdaptiveDashboard'));
 const { Component: Connectors } = lazyLoadWithRetry(() => import('./pages/Connectors'));
+const { Component: Tools } = lazyLoadWithRetry(() => import('./pages/Tools'));
 
 // Legacy pages (original design)
 const { Component: MessagesPage } = lazyLoadWithRetry(() => import('./pages/MessagesPage'));
@@ -123,6 +124,7 @@ export default function App() {
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/connectors" element={<Connectors />} />
+                      <Route path="/tools" element={<Tools />} />
 
                       {/* Legacy routes for backward compatibility */}
                       <Route path="/organization/legacy" element={<OrganizationPage />} />

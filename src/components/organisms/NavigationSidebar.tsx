@@ -25,6 +25,7 @@ import {
   Building2,
   LogOut,
   User,
+  Wrench,
 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -80,6 +81,7 @@ const defaultNavigationItems: NavigationItem[] = [
   { label: 'Team', icon: <Users className="h-5 w-5" aria-hidden="true" />, path: '/team' },
   { label: 'Organization', icon: <Building2 className="h-5 w-5" aria-hidden="true" />, path: '/organization' },
   { label: 'Messages', icon: <MessageSquare className="h-5 w-5" aria-hidden="true" />, path: '/messages', badge: 3 },
+  { label: 'Tools', icon: <Wrench className="h-5 w-5" aria-hidden="true" />, path: '/tools' },
   { label: 'Settings', icon: <Settings className="h-5 w-5" aria-hidden="true" />, path: '/settings' },
 ];
 
