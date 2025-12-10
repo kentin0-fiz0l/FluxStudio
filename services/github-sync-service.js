@@ -452,17 +452,39 @@ class GitHubSyncService {
    * Sync all repository links
    */
   async syncAllRepositories() {
-    const links = await this.pool.query(
-      'SELECT * FROM github_repository_links WHERE sync_issues = true'
-    );
+    try {
+      // Check if the table exists first
+      const tableCheck = await this.pool.query(`
+        SELECT EXISTS (
+          SELECT 1 FROM information_schema.tables
+          WHERE table_name = 'github_repository_links'
+        ) as exists
+      `);
 
-    console.log(`Syncing ${links.rows.length} repository links`);
+      if (!tableCheck.rows[0]?.exists) {
+        // Table doesn't exist yet, skip silently
+        return;
+      }
 
-    for (const link of links.rows) {
-      try {
-        await this.syncIssuesFromGitHub(link.id);
-      } catch (error) {
-        console.error(`Error syncing ${link.full_name}:`, error);
+      const links = await this.pool.query(
+        'SELECT * FROM github_repository_links WHERE sync_issues = true'
+      );
+
+      if (links.rows.length > 0) {
+        console.log(`Syncing ${links.rows.length} repository links`);
+
+        for (const link of links.rows) {
+          try {
+            await this.syncIssuesFromGitHub(link.id);
+          } catch (error) {
+            console.error(`Error syncing ${link.full_name}:`, error);
+          }
+        }
+      }
+    } catch (error) {
+      // Only log if it's not a "table doesn't exist" error
+      if (!error.message?.includes('does not exist')) {
+        console.error('Error in syncAllRepositories:', error);
       }
     }
   }
