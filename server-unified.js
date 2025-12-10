@@ -4512,18 +4512,18 @@ httpServer.listen(PORT, async () => {
 
   // Run database migrations on startup (if using database)
   if (USE_DATABASE) {
-    // CRITICAL: Fix refresh_tokens.user_id UUID to TEXT before running migrations
+    // CRITICAL: Fix refresh_tokens schema mismatch before running migrations
     // This must run first because the migration runner may fail on other migrations
     try {
-      console.log('🔧 Checking refresh_tokens.user_id column type...');
+      console.log('🔧 Fixing refresh_tokens table schema...');
       const fixResult = await query(`
         DO $$
         BEGIN
-          -- Drop FK constraints that might block the type change
+          -- Drop FK constraints that might block changes
           ALTER TABLE refresh_tokens DROP CONSTRAINT IF EXISTS refresh_tokens_user_id_fkey;
           ALTER TABLE refresh_tokens DROP CONSTRAINT IF EXISTS fk_user;
 
-          -- Check if user_id is UUID type and convert to TEXT
+          -- Fix 1: Convert user_id from UUID to TEXT if needed
           IF EXISTS (
             SELECT 1 FROM information_schema.columns
             WHERE table_name = 'refresh_tokens'
@@ -4533,11 +4533,62 @@ httpServer.listen(PORT, async () => {
             ALTER TABLE refresh_tokens ALTER COLUMN user_id TYPE TEXT USING user_id::TEXT;
             RAISE NOTICE 'Fixed: refresh_tokens.user_id converted from UUID to TEXT';
           END IF;
+
+          -- Fix 2: Add 'token' column if it doesn't exist (code expects 'token', table has 'token_hash')
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'refresh_tokens'
+            AND column_name = 'token'
+          ) THEN
+            -- If token_hash exists, rename it to token
+            IF EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'refresh_tokens'
+              AND column_name = 'token_hash'
+            ) THEN
+              ALTER TABLE refresh_tokens RENAME COLUMN token_hash TO token;
+              RAISE NOTICE 'Fixed: refresh_tokens.token_hash renamed to token';
+            ELSE
+              -- Otherwise add token column
+              ALTER TABLE refresh_tokens ADD COLUMN token TEXT;
+              RAISE NOTICE 'Fixed: refresh_tokens.token column added';
+            END IF;
+          END IF;
+
+          -- Fix 3: Add device_name column if it doesn't exist
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'refresh_tokens'
+            AND column_name = 'device_name'
+          ) THEN
+            ALTER TABLE refresh_tokens ADD COLUMN device_name VARCHAR(255);
+            RAISE NOTICE 'Fixed: refresh_tokens.device_name column added';
+          END IF;
+
+          -- Fix 4: Add last_used_at column if it doesn't exist
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'refresh_tokens'
+            AND column_name = 'last_used_at'
+          ) THEN
+            ALTER TABLE refresh_tokens ADD COLUMN last_used_at TIMESTAMP DEFAULT NOW();
+            RAISE NOTICE 'Fixed: refresh_tokens.last_used_at column added';
+          END IF;
+
+          -- Fix 5: Add revoked_at column if it doesn't exist
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'refresh_tokens'
+            AND column_name = 'revoked_at'
+          ) THEN
+            ALTER TABLE refresh_tokens ADD COLUMN revoked_at TIMESTAMP;
+            RAISE NOTICE 'Fixed: refresh_tokens.revoked_at column added';
+          END IF;
         END $$;
       `);
-      console.log('✅ refresh_tokens.user_id type check complete');
+      console.log('✅ refresh_tokens schema fix complete');
     } catch (fixError) {
-      console.error('⚠️ user_id fix warning:', fixError.message);
+      console.error('⚠️ Schema fix warning:', fixError.message);
     }
 
     try {
