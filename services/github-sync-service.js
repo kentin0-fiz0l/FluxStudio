@@ -9,14 +9,18 @@ const { Pool } = require('pg');
 class GitHubSyncService {
   constructor(config = {}) {
     // Use DATABASE_URL if available (DigitalOcean managed database)
+    // Always prefer DATABASE_URL over passed config for consistency
     if (process.env.DATABASE_URL) {
+      // Strip sslmode from DATABASE_URL to prevent conflict with ssl config
+      const connectionString = process.env.DATABASE_URL.replace(/[?&]sslmode=[^&]+/g, '');
       this.dbConfig = {
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production'
-          ? { rejectUnauthorized: false }
+        connectionString,
+        ssl: process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true'
+          ? { rejectUnauthorized: false }  // Accept DigitalOcean self-signed certs
           : false
       };
-      console.log('[GitHubSyncService] Using DATABASE_URL for database connection');
+      console.log('[GitHubSyncService] Using DATABASE_URL for database connection (SSL: ' +
+        (this.dbConfig.ssl ? 'enabled with rejectUnauthorized=false' : 'disabled') + ')');
     } else if (config.database) {
       this.dbConfig = config.database;
       console.log('[GitHubSyncService] Using provided database config');

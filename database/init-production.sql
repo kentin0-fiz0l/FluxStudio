@@ -26,9 +26,10 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_oauth ON users(oauth_provider, oauth_id);
 
 -- Refresh Tokens table (Week 1 Security Sprint)
+-- Note: user_id is TEXT to support CUID format from MetMap integration
 CREATE TABLE IF NOT EXISTS refresh_tokens (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
   token_hash TEXT NOT NULL UNIQUE,
   device_fingerprint JSONB,
   ip_address INET,
@@ -45,12 +46,13 @@ CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
 
 -- Security Events table (Week 2 Security Sprint)
+-- Note: user_id is TEXT to support CUID format from MetMap integration
 CREATE TABLE IF NOT EXISTS security_events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   event_type VARCHAR(100) NOT NULL,
   severity VARCHAR(20) DEFAULT 'INFO',
-  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  token_id UUID REFERENCES refresh_tokens(id) ON DELETE SET NULL,
+  user_id TEXT,
+  token_id UUID,
   ip_address INET,
   user_agent TEXT,
   metadata JSONB,
