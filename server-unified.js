@@ -107,7 +107,7 @@ const JWT_SECRET = config.JWT_SECRET;
 
 // Socket.IO configuration with namespaces
 const io = new Server(httpServer, {
-  path: '/socket.io',
+  path: '/api/socket.io', // Match frontend path on DigitalOcean App Platform
   cors: {
     origin: config.CORS_ORIGINS,
     credentials: true
