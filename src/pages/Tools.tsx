@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import {
-  Map,
+  Map as MapIcon,
   ExternalLink,
   Wrench,
   ArrowRight,
@@ -32,7 +32,7 @@ const tools: Tool[] = [
     name: 'MetMap',
     description: 'AI-powered meeting intelligence platform',
     longDescription: 'Transform your meetings with AI-driven transcription, smart summaries, and actionable insights. MetMap helps teams capture every important detail and turn conversations into organized, searchable knowledge.',
-    icon: <Map className="w-8 h-8" />,
+    icon: <MapIcon className="w-8 h-8" />,
     url: 'https://metmap.art',
     category: 'Productivity',
     features: [
