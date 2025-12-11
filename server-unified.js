@@ -1853,6 +1853,278 @@ async function createAndEmitNotification(notificationData) {
 }
 
 // ========================================
+// CONNECTORS API
+// ========================================
+
+const connectorsAdapter = require('./database/connectors-adapter');
+const oauthManager = require('./lib/oauth-manager');
+
+// Get list of all connectors with status
+app.get('/connectors/list', authenticateToken, async (req, res) => {
+  try {
+    const connectedProviders = await connectorsAdapter.getUserConnectors(req.user.id);
+
+    // Define all available connectors
+    const allConnectors = [
+      { id: 'github', name: 'GitHub', description: 'Version control and code collaboration', category: 'Development', icon: 'github' },
+      { id: 'google_drive', name: 'Google Drive', description: 'Cloud storage and file sync', category: 'Storage', icon: 'cloud' },
+      { id: 'dropbox', name: 'Dropbox', description: 'File storage and sharing', category: 'Storage', icon: 'dropbox' },
+      { id: 'onedrive', name: 'OneDrive', description: 'Microsoft cloud storage', category: 'Storage', icon: 'cloud' },
+      { id: 'figma', name: 'Figma', description: 'Design collaboration', category: 'Design', icon: 'figma' },
+      { id: 'slack', name: 'Slack', description: 'Team communication', category: 'Communication', icon: 'slack' }
+    ];
+
+    // Merge connection status
+    const connectors = allConnectors.map(connector => {
+      const connection = connectedProviders.find(c => c.provider === connector.id);
+      return {
+        ...connector,
+        status: connection?.isActive && !connection?.isExpired ? 'connected' : 'disconnected',
+        username: connection?.username,
+        email: connection?.email,
+        connectedAt: connection?.connectedAt,
+        lastUsedAt: connection?.lastUsedAt,
+        isExpired: connection?.isExpired || false
+      };
+    });
+
+    res.json({ success: true, connectors });
+  } catch (error) {
+    console.error('Error getting connectors list:', error);
+    res.status(500).json({ error: 'Failed to get connectors list' });
+  }
+});
+
+// Get OAuth authorization URL for a provider
+app.get('/connectors/:provider/auth-url', authenticateToken, async (req, res) => {
+  try {
+    const { provider } = req.params;
+    const validProviders = ['github', 'google_drive', 'dropbox', 'onedrive', 'figma', 'slack'];
+
+    if (!validProviders.includes(provider)) {
+      return res.status(400).json({ error: `Invalid provider: ${provider}` });
+    }
+
+    const { url, stateToken } = await oauthManager.getAuthorizationURL(provider, req.user.id);
+
+    res.json({ success: true, url, stateToken });
+  } catch (error) {
+    console.error('Error generating OAuth URL:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate authorization URL' });
+  }
+});
+
+// Handle OAuth callback
+app.get('/connectors/:provider/callback', async (req, res) => {
+  try {
+    const { provider } = req.params;
+    const { code, state, error: oauthError, error_description } = req.query;
+
+    if (oauthError) {
+      console.error(`OAuth error for ${provider}:`, oauthError, error_description);
+      return res.redirect(`/connectors?error=${encodeURIComponent(oauthError)}&provider=${provider}`);
+    }
+
+    if (!code || !state) {
+      return res.redirect('/connectors?error=missing_params');
+    }
+
+    const result = await oauthManager.handleCallback(provider, code, state);
+
+    // Create notification for successful connection
+    if (messagingAdapter) {
+      await createAndEmitNotification({
+        userId: result.userInfo?.userId,
+        type: 'info',
+        title: `${provider.charAt(0).toUpperCase() + provider.slice(1).replace('_', ' ')} Connected`,
+        message: `Successfully connected your ${provider.replace('_', ' ')} account`,
+        priority: 'medium',
+        actionUrl: '/connectors'
+      });
+    }
+
+    res.redirect(`/connectors?success=true&provider=${provider}`);
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    res.redirect(`/connectors?error=${encodeURIComponent(error.message)}`);
+  }
+});
+
+// Disconnect a connector
+app.delete('/connectors/:provider', authenticateToken, async (req, res) => {
+  try {
+    const { provider } = req.params;
+    await connectorsAdapter.disconnectConnector(req.user.id, provider);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error disconnecting connector:', error);
+    res.status(500).json({ error: 'Failed to disconnect connector' });
+  }
+});
+
+// Get files from a connector
+app.get('/connectors/:provider/files', authenticateToken, async (req, res) => {
+  try {
+    const { provider } = req.params;
+    const { path, folderId, owner, repo } = req.query;
+
+    // Check if connected
+    const isConnected = await connectorsAdapter.isConnected(req.user.id, provider);
+    if (!isConnected) {
+      return res.status(401).json({ error: `Not connected to ${provider}` });
+    }
+
+    let files;
+    switch (provider) {
+      case 'github':
+        if (owner && repo) {
+          files = await connectorsAdapter.getGitHubRepoContents(req.user.id, owner, repo, path || '');
+        } else {
+          files = await connectorsAdapter.getGitHubRepos(req.user.id);
+        }
+        break;
+      case 'google_drive':
+        files = await connectorsAdapter.getGoogleDriveFiles(req.user.id, folderId || 'root');
+        break;
+      case 'dropbox':
+        files = await connectorsAdapter.getDropboxFiles(req.user.id, path || '');
+        break;
+      case 'onedrive':
+        files = await connectorsAdapter.getOneDriveFiles(req.user.id, folderId || 'root');
+        break;
+      default:
+        return res.status(400).json({ error: `File listing not supported for ${provider}` });
+    }
+
+    res.json({ success: true, files });
+  } catch (error) {
+    console.error(`Error getting ${req.params.provider} files:`, error);
+    res.status(500).json({ error: error.message || 'Failed to get files' });
+  }
+});
+
+// Import file from connector
+app.post('/connectors/:provider/import', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const { provider } = req.params;
+    const { fileId, projectId, organizationId } = req.body;
+
+    if (!fileId) {
+      return res.status(400).json({ error: 'fileId is required' });
+    }
+
+    // Check if connected
+    const isConnected = await connectorsAdapter.isConnected(req.user.id, provider);
+    if (!isConnected) {
+      return res.status(401).json({ error: `Not connected to ${provider}` });
+    }
+
+    const importedFile = await connectorsAdapter.importFile(req.user.id, provider, fileId, {
+      projectId,
+      organizationId
+    });
+
+    // Create notification for import
+    await createAndEmitNotification({
+      userId: req.user.id,
+      type: 'project_file_uploaded',
+      title: 'File Imported',
+      message: `Successfully imported "${importedFile.name}" from ${provider.replace('_', ' ')}`,
+      priority: 'medium',
+      actionUrl: projectId ? `/projects/${projectId}` : '/file',
+      data: { fileId: importedFile.id, provider }
+    });
+
+    res.json({ success: true, file: importedFile });
+  } catch (error) {
+    console.error(`Error importing from ${req.params.provider}:`, error);
+    res.status(500).json({ error: error.message || 'Failed to import file' });
+  }
+});
+
+// Get imported files
+app.get('/connectors/files', authenticateToken, async (req, res) => {
+  try {
+    const { provider, projectId, limit = 100, offset = 0 } = req.query;
+
+    const files = await connectorsAdapter.getConnectorFiles(req.user.id, {
+      provider,
+      projectId,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    res.json({ success: true, files });
+  } catch (error) {
+    console.error('Error getting connector files:', error);
+    res.status(500).json({ error: 'Failed to get files' });
+  }
+});
+
+// Link imported file to project
+app.post('/connectors/files/:fileId/link', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { projectId } = req.body;
+
+    if (!projectId) {
+      return res.status(400).json({ error: 'projectId is required' });
+    }
+
+    const file = await connectorsAdapter.linkFileToProject(fileId, projectId, req.user.id);
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Create notification for file linked
+    await createAndEmitNotification({
+      userId: req.user.id,
+      type: 'project_file_uploaded',
+      title: 'File Linked to Project',
+      message: `"${file.name}" has been linked to your project`,
+      priority: 'low',
+      actionUrl: `/projects/${projectId}`,
+      data: { fileId: file.id, projectId }
+    });
+
+    res.json({ success: true, file });
+  } catch (error) {
+    console.error('Error linking file to project:', error);
+    res.status(500).json({ error: 'Failed to link file' });
+  }
+});
+
+// Delete imported file
+app.delete('/connectors/files/:fileId', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const deleted = await connectorsAdapter.deleteConnectorFile(fileId, req.user.id);
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting connector file:', error);
+    res.status(500).json({ error: 'Failed to delete file' });
+  }
+});
+
+// Get sync jobs
+app.get('/connectors/sync-jobs', authenticateToken, async (req, res) => {
+  try {
+    const { provider, limit = 10 } = req.query;
+    const jobs = await connectorsAdapter.getSyncJobs(req.user.id, provider, parseInt(limit));
+    res.json({ success: true, jobs });
+  } catch (error) {
+    console.error('Error getting sync jobs:', error);
+    res.status(500).json({ error: 'Failed to get sync jobs' });
+  }
+});
+
+// ========================================
 // USER MANAGEMENT APIs (for messaging)
 // ========================================
 

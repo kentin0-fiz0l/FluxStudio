@@ -8,6 +8,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { MessagingProvider } from './contexts/MessagingContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { ConnectorsProvider } from './contexts/ConnectorsContext';
 import { ToastContainer } from './components/notifications/ToastContainer';
 import ErrorBoundary from './components/error/ErrorBoundary';
 import { performanceMonitoring } from './services/performanceMonitoring';
@@ -94,6 +95,7 @@ function AuthenticatedRoutes() {
           <NotificationProvider>
             <OrganizationProvider>
               <WorkspaceProvider>
+                <ConnectorsProvider>
                 <Suspense fallback={<DefaultLoadingFallback />}>
                   <Routes>
                   {/* Root route - redirects based on auth state */}
@@ -171,6 +173,7 @@ function AuthenticatedRoutes() {
                 </Suspense>
                 {/* Global Toast Notifications */}
                 <ToastContainer />
+                </ConnectorsProvider>
               </WorkspaceProvider>
             </OrganizationProvider>
           </NotificationProvider>

@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/templates';
 import { ProjectCard, SearchBar } from '../components/molecules';
 import { Button, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, Input } from '../components/ui';
@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProjects, Project } from '../hooks/useProjects';
 import { useTeams } from '../hooks/useTeams';
 import { useOrganizations } from '../hooks/useOrganizations';
+import { useConnectors } from '../contexts/ConnectorsContext';
 import { toast } from '../lib/toast';
 import {
   Plus,
@@ -26,7 +27,9 @@ import {
   LayoutGrid,
   List as ListIcon,
   Target,
-  X
+  X,
+  Link2,
+  FileText
 } from 'lucide-react';
 
 type ViewMode = 'grid' | 'list';
@@ -35,9 +38,21 @@ type StatusFilter = 'all' | Project['status'];
 export function ProjectsNew() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { projects, loading, error, createProject } = useProjects();
   const { teams } = useTeams();
   const { currentOrganization } = useOrganizations();
+
+  // Try to get connectors context for file linking
+  let linkFileToProject: ((fileId: string, projectId: string) => Promise<void>) | undefined;
+  let importedFiles: { id: string; name: string }[] = [];
+  try {
+    const connectorsContext = useConnectors();
+    linkFileToProject = connectorsContext.linkFileToProject;
+    importedFiles = connectorsContext.state.importedFiles;
+  } catch {
+    // Connectors context not available
+  }
 
   // UI State
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -46,6 +61,9 @@ export function ProjectsNew() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string>('');
+  const [showLinkFileModal, setShowLinkFileModal] = useState(false);
+  const [linkingFileId, setLinkingFileId] = useState<string | null>(null);
+  const [isLinking, setIsLinking] = useState(false);
 
   // Form State
   const [createForm, setCreateForm] = useState({
@@ -72,6 +90,37 @@ export function ProjectsNew() {
       }, 100);
     }
   }, [showCreateModal]);
+
+  // Handle linkFile query parameter from Connectors page
+  useEffect(() => {
+    const linkFileParam = searchParams.get('linkFile');
+    if (linkFileParam && linkFileToProject) {
+      setLinkingFileId(linkFileParam);
+      setShowLinkFileModal(true);
+      // Clear the search param
+      searchParams.delete('linkFile');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, linkFileToProject, setSearchParams]);
+
+  // Handle linking file to project
+  const handleLinkFileToProject = async (projectId: string) => {
+    if (!linkingFileId || !linkFileToProject) return;
+
+    setIsLinking(true);
+    try {
+      await linkFileToProject(linkingFileId, projectId);
+      const linkedFile = importedFiles.find(f => f.id === linkingFileId);
+      toast.success(`File "${linkedFile?.name || 'file'}" linked to project successfully!`);
+      setShowLinkFileModal(false);
+      setLinkingFileId(null);
+    } catch (error) {
+      toast.error('Failed to link file to project');
+      console.error('Error linking file:', error);
+    } finally {
+      setIsLinking(false);
+    }
+  };
 
   // Filtered and searched projects
   const filteredProjects = useMemo(() => {
@@ -536,6 +585,95 @@ export function ProjectsNew() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Link File to Project Modal */}
+      <Dialog open={showLinkFileModal} onOpenChange={(open) => {
+        if (!open) {
+          setShowLinkFileModal(false);
+          setLinkingFileId(null);
+        }
+      }}>
+        <DialogContent
+          aria-labelledby="link-file-title"
+          aria-describedby="link-file-description"
+          role="dialog"
+          aria-modal="true"
+        >
+          <DialogHeader>
+            <DialogTitle id="link-file-title" className="flex items-center gap-2">
+              <Link2 className="w-5 h-5 text-primary-600" aria-hidden="true" />
+              Link File to Project
+            </DialogTitle>
+            <p id="link-file-description" className="text-sm text-neutral-600 mt-1">
+              Select a project to link the imported file to.
+            </p>
+          </DialogHeader>
+
+          {/* File info */}
+          {linkingFileId && (
+            <div className="p-3 bg-neutral-50 rounded-lg flex items-center gap-3">
+              <FileText className="w-5 h-5 text-neutral-400" aria-hidden="true" />
+              <span className="text-sm font-medium text-neutral-700">
+                {importedFiles.find(f => f.id === linkingFileId)?.name || 'Selected file'}
+              </span>
+            </div>
+          )}
+
+          {/* Project selection */}
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {projects.length === 0 ? (
+              <div className="text-center py-8">
+                <Target className="w-12 h-12 text-neutral-200 mx-auto mb-3" aria-hidden="true" />
+                <p className="text-neutral-600 mb-4">No projects available</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowLinkFileModal(false);
+                    setShowCreateModal(true);
+                  }}
+                >
+                  Create a Project First
+                </Button>
+              </div>
+            ) : (
+              projects.map((project) => (
+                <button
+                  key={project.id}
+                  onClick={() => handleLinkFileToProject(project.id)}
+                  disabled={isLinking}
+                  className="w-full p-3 text-left rounded-lg border border-neutral-200 hover:border-primary-300 hover:bg-primary-50/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-neutral-900">{project.name}</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">
+                        {project.status.replace('_', ' ')} • {project.priority} priority
+                      </p>
+                    </div>
+                    <Badge variant={project.status === 'in_progress' ? 'info' : 'default'} size="sm">
+                      {project.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowLinkFileModal(false);
+                setLinkingFileId(null);
+              }}
+              disabled={isLinking}
+            >
+              Cancel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
