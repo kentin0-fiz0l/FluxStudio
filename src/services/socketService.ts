@@ -43,6 +43,7 @@ class SocketService {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private isConnected = false;
+  private authFailed = false;
   private currentUserId: string | null = null;
   private eventListeners = new Map<string, Set<Function>>();
 
@@ -55,16 +56,22 @@ class SocketService {
    * Updated for unified backend with /messaging namespace
    */
   private connect() {
+    // Don't connect without auth token
+    const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+    if (!authToken) {
+      console.log('⚠️ No auth token found, skipping Socket.IO connection');
+      return;
+    }
+
     // Use the current origin for production, localhost:3001 for development
     const isDevelopment = window.location.hostname === 'localhost';
-    const API_BASE_URL = isDevelopment ? 'http://localhost:3001' : `${window.location.origin}/api`;
+    // Socket.IO server is at /api/socket.io path, namespace is /messaging
+    const socketUrl = isDevelopment ? 'http://localhost:3001' : window.location.origin;
 
-    // Get auth token from localStorage
-    const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+    console.log(`🔌 Connecting to Socket.IO at ${socketUrl}/messaging`);
 
     // Connect to /messaging namespace on unified backend
-    // Socket.IO server is at /api/socket.io, and we connect to /messaging namespace
-    this.socket = io(`${API_BASE_URL}/messaging`, {
+    this.socket = io(`${socketUrl}/messaging`, {
       withCredentials: true,
       transports: ['websocket', 'polling'],
       autoConnect: true,
@@ -115,6 +122,17 @@ class SocketService {
     });
 
     this.socket.on('connect_error', (error) => {
+      const errorMessage = error.message || '';
+      // Check if this is an auth error - stop reconnecting
+      if (errorMessage.includes('unauthorized') ||
+          errorMessage.includes('Authentication') ||
+          errorMessage.includes('Invalid token') ||
+          errorMessage.includes('jwt')) {
+        console.error('🔴 Authentication error - stopping reconnection:', errorMessage);
+        this.authFailed = true;
+        this.disconnect();
+        return;
+      }
       console.error('🔴 Connection error:', error);
       this.handleReconnection();
     });
@@ -178,6 +196,12 @@ class SocketService {
    * Handle reconnection attempts
    */
   private handleReconnection() {
+    // Don't reconnect if auth failed
+    if (this.authFailed) {
+      console.log('⚠️ Not reconnecting due to authentication failure');
+      return;
+    }
+
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
@@ -185,12 +209,12 @@ class SocketService {
       console.log(`🔄 Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
 
       setTimeout(() => {
-        if (this.socket) {
+        if (this.socket && !this.authFailed) {
           this.socket.connect();
         }
       }, delay);
     } else {
-      console.error('🔴 Max reconnection attempts reached');
+      console.error('🔴 Max reconnection attempts reached - falling back to REST API');
     }
   }
 
@@ -199,6 +223,9 @@ class SocketService {
    */
   authenticateUser(userId: string, userData?: { name: string; userType: string }) {
     this.currentUserId = userId;
+    // Reset auth failed flag on new auth attempt
+    this.authFailed = false;
+    this.reconnectAttempts = 0;
 
     // Initialize connection if not already connected
     if (!this.socket) {

@@ -84,7 +84,14 @@ class MessagingService {
       });
     }
 
-    const conversations = await this.apiRequest(`/conversations?${params.toString()}`);
+    const response = await this.apiRequest(`/conversations?${params.toString()}`);
+    // Backend returns { success, conversations, total } - extract conversations array
+    const conversations = response.conversations || response || [];
+
+    if (!Array.isArray(conversations)) {
+      console.error('[MessagingService] Invalid conversations response:', response);
+      return [];
+    }
 
     // Transform participants from strings to MessageUser objects if needed
     return conversations.map((conv: any) => ({
@@ -249,7 +256,16 @@ class MessagingService {
     if (options.offset) params.append('offset', options.offset.toString());
     if (options.before) params.append('before', options.before);
 
-    return this.apiRequest(`/conversations/${conversationId}/messages?${params.toString()}`);
+    const response = await this.apiRequest(`/conversations/${conversationId}/messages?${params.toString()}`);
+    // Backend returns { success, messages, conversationId, total } - extract messages array
+    const messages = response.messages || response || [];
+
+    if (!Array.isArray(messages)) {
+      console.error('[MessagingService] Invalid messages response:', response);
+      return [];
+    }
+
+    return messages;
   }
 
   /**
@@ -445,15 +461,25 @@ class MessagingService {
       }
     });
 
-    return this.apiRequest(`/notifications?${params.toString()}`);
+    const response = await this.apiRequest(`/notifications?${params.toString()}`);
+    // Backend returns { success, notifications, total } - extract notifications array
+    const notifications = response.notifications || response || [];
+
+    if (!Array.isArray(notifications)) {
+      console.error('[MessagingService] Invalid notifications response:', response);
+      return [];
+    }
+
+    return notifications;
   }
 
   /**
    * Mark notification as read
    */
   async markNotificationAsRead(notificationId: string): Promise<void> {
-    await this.apiRequest(`/notifications/${notificationId}/read`, {
+    await this.apiRequest('/notifications/read', {
       method: 'POST',
+      body: JSON.stringify({ ids: [notificationId] }),
     });
   }
 
@@ -461,8 +487,9 @@ class MessagingService {
    * Mark all notifications as read
    */
   async markAllNotificationsAsRead(): Promise<void> {
-    await this.apiRequest('/notifications/read-all', {
+    await this.apiRequest('/notifications/read', {
       method: 'POST',
+      body: JSON.stringify({ all: true }),
     });
   }
 
