@@ -534,7 +534,8 @@ function MessageBubble({
 
   return (
     <div
-      className={`relative group flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${isGrouped ? 'py-0.5' : 'py-1'}`}
+      data-message-id={message.id}
+      className={`relative group flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${isGrouped ? 'py-0.5' : 'py-1'} transition-all`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => { setShowActions(false); setShowReactions(false); }}
     >
@@ -1051,6 +1052,7 @@ function MessagesNew() {
     conversationMessages,
     sendMessage,
     setActiveConversation,
+    createConversation,
     isLoading,
     error: messagingError,
     refresh
@@ -1069,131 +1071,179 @@ function MessagesNew() {
   const [isSending, setIsSending] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // User search state for new conversations
+  const [availableUsers, setAvailableUsers] = useState<MessageUser[]>([]);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<MessageUser[]>([]);
+  const [newConversationName, setNewConversationName] = useState('');
+
+  // Pinned messages state
+  const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Mock data for demo
-  const mockConversations: Conversation[] = [
-    {
-      id: '1',
-      title: 'Sarah Chen',
-      type: 'direct',
-      participant: { id: 'user1', name: 'Sarah Chen', initials: 'SC', isOnline: true },
-      lastMessage: {
-        id: 'msg1',
-        content: 'The latest color palette looks fantastic! Can we schedule a review?',
-        author: { id: 'user1', name: 'Sarah Chen', initials: 'SC' },
-        timestamp: new Date(Date.now() - 15 * 60 * 1000),
-        isCurrentUser: false
-      },
-      unreadCount: 2,
-      isPinned: true,
-      isTyping: false
-    },
-    {
-      id: '2',
-      title: 'Design Team',
-      type: 'group',
-      participant: { id: 'group1', name: 'Design Team', initials: 'DT', isOnline: true },
-      participants: [
-        { id: 'user1', name: 'Sarah Chen', initials: 'SC', isOnline: true },
-        { id: 'user2', name: 'Mike Johnson', initials: 'MJ', isOnline: false },
-        { id: 'user3', name: 'Emily Davis', initials: 'ED', isOnline: true }
-      ],
-      lastMessage: {
-        id: 'msg2',
-        content: "I've pushed the updated mockups to Figma. Let me know your thoughts!",
-        author: { id: 'user2', name: 'Mike Johnson', initials: 'MJ' },
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        isCurrentUser: false
-      },
-      unreadCount: 5,
-      isTyping: true,
-      typingUsers: ['Mike']
-    },
-    {
-      id: '3',
-      title: 'Alex Rodriguez',
-      type: 'direct',
-      participant: { id: 'user4', name: 'Alex Rodriguez', initials: 'AR', isOnline: false },
-      lastMessage: {
-        id: 'msg3',
-        content: "I've uploaded the wireframes for the checkout flow.",
-        author: { id: 'user4', name: 'Alex Rodriguez', initials: 'AR' },
-        timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        isCurrentUser: false,
-        attachments: [{
-          id: 'att1',
-          name: 'checkout-wireframes.pdf',
-          url: '/files/checkout-wireframes.pdf',
-          type: 'document',
-          size: 2458000
-        }]
-      },
-      unreadCount: 0,
-      isMuted: true
-    }
-  ];
+  // Import messaging service for API calls
+  const messagingServiceRef = useRef<typeof import('../services/messagingService').messagingService | null>(null);
 
-  const mockMessages: Message[] = [
-    {
-      id: 'msg1-1',
-      content: 'Hi! I saw the initial designs for the brand refresh. They look great!',
-      author: { id: 'user1', name: 'Sarah Chen', initials: 'SC', isOnline: true },
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      isCurrentUser: false,
-      status: 'read'
-    },
-    {
-      id: 'msg1-2',
-      content: "Thank you! I'm glad you like them. We focused on modernizing the color palette while keeping the brand identity strong.",
-      author: { id: 'current', name: 'You', initials: 'YO' },
-      timestamp: new Date(Date.now() - 23 * 60 * 60 * 1000),
-      isCurrentUser: true,
-      status: 'read'
-    },
-    {
-      id: 'msg1-3',
-      content: 'The gradient choices are particularly nice. Have you considered adding some motion design elements?',
-      author: { id: 'user1', name: 'Sarah Chen', initials: 'SC', isOnline: true },
-      timestamp: new Date(Date.now() - 22 * 60 * 60 * 1000),
-      isCurrentUser: false,
-      status: 'read',
-      reactions: [
-        { reaction: '👍', count: 1, userNames: ['You'], hasReacted: true }
-      ]
-    },
-    {
-      id: 'msg1-4',
-      content: "That's a great idea! I was thinking about subtle hover effects and micro-interactions. Check out this inspiration:",
-      author: { id: 'current', name: 'You', initials: 'YO' },
-      timestamp: new Date(Date.now() - 21 * 60 * 60 * 1000),
-      isCurrentUser: true,
-      status: 'read',
-      linkPreviews: [{
-        url: 'https://dribbble.com/shots/motion-design',
-        title: 'Motion Design Inspiration',
-        description: 'Beautiful micro-interactions and animations for modern web apps',
-        siteName: 'Dribbble',
-        imageUrl: 'https://cdn.dribbble.com/preview.jpg'
-      }]
-    },
-    {
-      id: 'msg1-5',
-      content: 'The latest color palette looks fantastic! Can we schedule a review meeting?',
-      author: { id: 'user1', name: 'Sarah Chen', initials: 'SC', isOnline: true },
-      timestamp: new Date(Date.now() - 15 * 60 * 1000),
-      isCurrentUser: false,
-      status: 'delivered',
-      isPinned: true
-    }
-  ];
+  // Load messaging service
+  useEffect(() => {
+    import('../services/messagingService').then(module => {
+      messagingServiceRef.current = module.messagingService;
+    });
+  }, []);
 
-  // Use backend data or fallback to mock
-  const conversations = backendConversations.length > 0 ? backendConversations : mockConversations;
-  const selectedConversation = activeConversation || (showMobileChat ? mockConversations.find(c => c.id === '1') : null);
-  const messages = conversationMessages.length > 0 ? conversationMessages : (selectedConversation?.id === '1' ? mockMessages : []);
+  // Fetch users when new conversation dialog opens
+  useEffect(() => {
+    if (showNewConversation) {
+      fetchUsers();
+    }
+  }, [showNewConversation]);
+
+  // Fetch users with search
+  const fetchUsers = async (search?: string) => {
+    setLoadingUsers(true);
+    try {
+      if (messagingServiceRef.current) {
+        const users = await messagingServiceRef.current.getUsers(search);
+        setAvailableUsers(users);
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Debounced user search
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (userSearchTerm) {
+        fetchUsers(userSearchTerm);
+      } else if (showNewConversation) {
+        fetchUsers();
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [userSearchTerm, showNewConversation]);
+
+  // Fetch pinned messages when conversation changes
+  useEffect(() => {
+    if (activeConversation && messagingServiceRef.current) {
+      messagingServiceRef.current.getPinnedMessages(activeConversation.id)
+        .then(pinned => {
+          const transformed = pinned.map((p: any) => ({
+            id: p.message_id,
+            content: p.content,
+            author: {
+              id: p.author_id,
+              name: p.author_name || 'Unknown',
+              initials: getInitials(p.author_name || 'U'),
+              avatar: p.author_avatar
+            },
+            timestamp: new Date(p.message_created_at),
+            isCurrentUser: p.author_id === user?.id,
+            isPinned: true
+          }));
+          setPinnedMessages(transformed);
+        })
+        .catch(() => setPinnedMessages([]));
+    }
+  }, [activeConversation, user?.id]);
+
+  // Transform backend conversations to local format
+  const transformConversation = (conv: any): Conversation => {
+    const participants = conv.participants || [];
+    const otherParticipant = participants.find((p: any) => p?.id !== user?.id) || participants[0];
+
+    return {
+      id: conv.id,
+      title: conv.name || otherParticipant?.name || 'Unknown',
+      type: conv.type === 'direct' ? 'direct' : conv.type === 'group' ? 'group' : 'channel',
+      participant: otherParticipant ? {
+        id: otherParticipant.id,
+        name: otherParticipant.name || 'Unknown',
+        initials: getInitials(otherParticipant.name || 'U'),
+        avatar: otherParticipant.avatar,
+        isOnline: otherParticipant.isOnline || false
+      } : { id: '', name: 'Unknown', initials: 'U' },
+      participants: participants.map((p: any) => ({
+        id: p?.id || '',
+        name: p?.name || 'Unknown',
+        initials: getInitials(p?.name || 'U'),
+        avatar: p?.avatar,
+        isOnline: p?.isOnline || false
+      })),
+      lastMessage: conv.lastMessage ? {
+        id: conv.lastMessage.id,
+        content: conv.lastMessage.content,
+        author: {
+          id: conv.lastMessage.author?.id || conv.lastMessage.authorId,
+          name: conv.lastMessage.author?.name || 'Unknown',
+          initials: getInitials(conv.lastMessage.author?.name || 'U')
+        },
+        timestamp: new Date(conv.lastMessage.createdAt || conv.lastMessage.timestamp),
+        isCurrentUser: conv.lastMessage.author?.id === user?.id || conv.lastMessage.authorId === user?.id
+      } : undefined,
+      unreadCount: conv.unreadCount || 0,
+      isPinned: conv.metadata?.isPinned || false,
+      isArchived: conv.metadata?.isArchived || false,
+      isMuted: conv.metadata?.isMuted || false,
+      isTyping: false,
+      typingUsers: []
+    };
+  };
+
+  // Transform backend messages to local format
+  const transformMessage = (msg: any): Message => ({
+    id: msg.id,
+    content: msg.content,
+    author: {
+      id: msg.author?.id || msg.authorId,
+      name: msg.author?.name || 'Unknown',
+      initials: getInitials(msg.author?.name || 'U'),
+      avatar: msg.author?.avatar,
+      isOnline: msg.author?.isOnline || false
+    },
+    timestamp: new Date(msg.createdAt || msg.timestamp),
+    isCurrentUser: msg.author?.id === user?.id || msg.authorId === user?.id,
+    status: msg.status || 'sent',
+    isEdited: msg.isEdited || false,
+    editedAt: msg.editedAt ? new Date(msg.editedAt) : undefined,
+    isDeleted: msg.isDeleted || !!msg.deletedAt,
+    replyTo: msg.replyTo ? {
+      id: msg.replyTo.id,
+      content: msg.replyTo.content,
+      author: {
+        id: msg.replyTo.author?.id,
+        name: msg.replyTo.author?.name || 'Unknown',
+        initials: getInitials(msg.replyTo.author?.name || 'U')
+      }
+    } : undefined,
+    attachments: (msg.attachments || []).map((a: any) => ({
+      id: a.id,
+      name: a.name || a.filename,
+      url: a.url,
+      type: a.type || 'file',
+      size: a.size || 0,
+      mimeType: a.mimeType
+    })),
+    reactions: (msg.reactions || []).map((r: any) => ({
+      reaction: r.reaction,
+      count: r.count || 1,
+      userNames: r.userNames || [],
+      hasReacted: r.userIds?.includes(user?.id) || false
+    })),
+    isPinned: msg.isPinned || false,
+    isForwarded: msg.isForwarded || !!msg.forwardedFrom
+  });
+
+  // Use only real backend data
+  const conversations: Conversation[] = backendConversations.map(transformConversation);
+  const selectedConversation = activeConversation ? transformConversation(activeConversation) : null;
+  const messages: Message[] = conversationMessages.map(transformMessage);
 
   // Filter conversations
   const filteredConversations = useMemo(() => {
@@ -1248,9 +1298,20 @@ function MessagesNew() {
 
     setIsSending(true);
     try {
-      await sendMessage(selectedConversation.id, newMessage);
+      // If replying, use the reply API
+      if (replyTo && messagingServiceRef.current) {
+        await messagingServiceRef.current.replyToMessage(
+          replyTo.id,
+          selectedConversation.id,
+          newMessage.trim()
+        );
+      } else {
+        await sendMessage(selectedConversation.id, { content: newMessage.trim() });
+      }
       setNewMessage('');
       setReplyTo(undefined);
+      // Refresh to get new messages
+      await refresh();
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
@@ -1266,21 +1327,93 @@ function MessagesNew() {
     });
   };
 
-  const handleReact = (messageId: string, emoji: string) => {
-    console.log(`Reacting to ${messageId} with ${emoji}`);
-    // TODO: Call API
+  const handleReact = async (messageId: string, emoji: string) => {
+    if (!selectedConversation || !messagingServiceRef.current) return;
+
+    try {
+      await messagingServiceRef.current.toggleReaction(messageId, selectedConversation.id, emoji);
+      // Refresh to update reactions
+      await refresh();
+    } catch (error) {
+      console.error('Failed to toggle reaction:', error);
+    }
+  };
+
+  const handlePinMessage = async (messageId: string) => {
+    if (!selectedConversation || !messagingServiceRef.current) return;
+
+    try {
+      const message = messages.find(m => m.id === messageId);
+      if (message?.isPinned) {
+        await messagingServiceRef.current.unpinMessage(selectedConversation.id, messageId);
+      } else {
+        await messagingServiceRef.current.pinMessage(selectedConversation.id, messageId);
+      }
+      // Refresh pinned messages
+      const pinned = await messagingServiceRef.current.getPinnedMessages(selectedConversation.id);
+      setPinnedMessages(pinned.map((p: any) => ({
+        id: p.message_id,
+        content: p.content,
+        author: {
+          id: p.author_id,
+          name: p.author_name || 'Unknown',
+          initials: getInitials(p.author_name || 'U'),
+          avatar: p.author_avatar
+        },
+        timestamp: new Date(p.message_created_at),
+        isCurrentUser: p.author_id === user?.id,
+        isPinned: true
+      })));
+    } catch (error) {
+      console.error('Failed to pin/unpin message:', error);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!selectedConversation || !messagingServiceRef.current) return;
+
+    try {
+      await messagingServiceRef.current.deleteMessage(messageId);
+      await refresh();
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+    }
+  };
+
+  const handleForwardMessage = async (messageId: string, toConversationId: string) => {
+    if (!messagingServiceRef.current) return;
+
+    try {
+      await messagingServiceRef.current.forwardMessage(messageId, toConversationId);
+    } catch (error) {
+      console.error('Failed to forward message:', error);
+    }
   };
 
   const handleAttach = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
-      console.log('Files selected:', files);
-      // TODO: Upload files
+    if (!files || files.length === 0 || !selectedConversation || !messagingServiceRef.current) return;
+
+    for (const file of Array.from(files)) {
+      try {
+        const uploadedFile = await messagingServiceRef.current.uploadMessageFile(file, selectedConversation.id);
+        if (uploadedFile) {
+          // Send message with attachment
+          await sendMessage(selectedConversation.id, {
+            content: `Shared a file: ${file.name}`,
+            attachments: [file]
+          });
+        }
+      } catch (error) {
+        console.error('Failed to upload file:', error);
+      }
     }
+    // Clear the input
+    e.target.value = '';
   };
 
   const handleConversationClick = (conversation: Conversation) => {
@@ -1288,10 +1421,47 @@ function MessagesNew() {
     setShowMobileChat(true);
   };
 
+  // Create new conversation
+  const handleCreateConversation = async () => {
+    if (selectedUsers.length === 0) return;
+
+    try {
+      const isGroup = selectedUsers.length > 1;
+      const name = isGroup ? newConversationName || `Group with ${selectedUsers.map(u => u.name).join(', ')}` : undefined;
+
+      const conversationId = await createConversation({
+        type: isGroup ? 'team' : 'direct',
+        name: name || selectedUsers[0].name,
+        participants: selectedUsers.map(u => u.id)
+      });
+
+      // Close dialog and open new conversation
+      setShowNewConversation(false);
+      setSelectedUsers([]);
+      setNewConversationName('');
+      setUserSearchTerm('');
+      setActiveConversation(conversationId);
+      setShowMobileChat(true);
+      await refresh();
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+    }
+  };
+
+  // Toggle user selection for new conversation
+  const toggleUserSelection = (user: MessageUser) => {
+    setSelectedUsers(prev => {
+      const exists = prev.find(u => u.id === user.id);
+      if (exists) {
+        return prev.filter(u => u.id !== user.id);
+      }
+      return [...prev, user];
+    });
+  };
+
   // Calculate stats
   const unreadCount = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
-  const onlineCount = conversations.filter(c => c.participant.isOnline).length;
-  const pinnedMessages = messages.filter(m => m.isPinned);
+  const onlineCount = conversations.filter(c => c.participant?.isOnline).length;
 
   return (
     <DashboardLayout
@@ -1461,8 +1631,17 @@ function MessagesNew() {
                 <PinnedMessagesPanel
                   messages={pinnedMessages}
                   onClose={() => setShowPinnedMessages(false)}
-                  onUnpin={(id) => console.log('Unpin:', id)}
-                  onJumpTo={(id) => console.log('Jump to:', id)}
+                  onUnpin={(id) => handlePinMessage(id)}
+                  onJumpTo={(id) => {
+                    // Scroll to message
+                    const messageEl = document.querySelector(`[data-message-id="${id}"]`);
+                    if (messageEl) {
+                      messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      messageEl.classList.add('ring-2', 'ring-primary-500');
+                      setTimeout(() => messageEl.classList.remove('ring-2', 'ring-primary-500'), 2000);
+                    }
+                    setShowPinnedMessages(false);
+                  }}
                 />
               )}
 
@@ -1499,9 +1678,18 @@ function MessagesNew() {
                             message={message}
                             onReply={() => handleReply(message)}
                             onEdit={() => setEditingMessage(message.id)}
-                            onDelete={() => console.log('Delete:', message.id)}
-                            onPin={() => console.log('Pin:', message.id)}
-                            onForward={() => console.log('Forward:', message.id)}
+                            onDelete={() => handleDeleteMessage(message.id)}
+                            onPin={() => handlePinMessage(message.id)}
+                            onForward={() => {
+                              // For now, show a simple forward prompt
+                              // Could be enhanced with a modal to select conversation
+                              if (conversations.length > 0) {
+                                const targetConv = conversations.find(c => c.id !== selectedConversation?.id);
+                                if (targetConv) {
+                                  handleForwardMessage(message.id, targetConv.id);
+                                }
+                              }
+                            }}
                             onReact={(emoji) => handleReact(message.id, emoji)}
                             isGrouped={isGrouped}
                           />
@@ -1537,7 +1725,14 @@ function MessagesNew() {
       </div>
 
       {/* New Conversation Dialog */}
-      <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>
+      <Dialog open={showNewConversation} onOpenChange={(open) => {
+        setShowNewConversation(open);
+        if (!open) {
+          setSelectedUsers([]);
+          setUserSearchTerm('');
+          setNewConversationName('');
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1549,36 +1744,104 @@ function MessagesNew() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Selected users chips */}
+            {selectedUsers.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {selectedUsers.map((u) => (
+                  <div
+                    key={u.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full text-sm"
+                  >
+                    <span>{u.name}</span>
+                    <button
+                      onClick={() => toggleUserSelection(u)}
+                      className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-primary-200 dark:hover:bg-primary-800"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Group name input (when multiple users selected) */}
+            {selectedUsers.length > 1 && (
+              <div>
+                <label className="block text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                  Group Name (optional)
+                </label>
+                <input
+                  type="text"
+                  value={newConversationName}
+                  onChange={(e) => setNewConversationName(e.target.value)}
+                  placeholder="Enter group name..."
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            )}
+
+            {/* Search input */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
               <input
                 type="text"
+                value={userSearchTerm}
+                onChange={(e) => setUserSearchTerm(e.target.value)}
                 placeholder="Search by name or email..."
                 className="w-full pl-10 pr-4 py-2 text-sm border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
+            {/* User list */}
             <div>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">Suggested</p>
-              <div className="space-y-2">
-                {mockConversations.slice(0, 3).map((conv) => (
-                  <button
-                    key={conv.id}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-                    onClick={() => {
-                      setShowNewConversation(false);
-                      handleConversationClick(conv);
-                    }}
-                  >
-                    <Avatar user={conv.participant} size="md" showStatus />
-                    <div className="text-left">
-                      <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{conv.title}</p>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                        {conv.participant.isOnline ? 'Online' : 'Offline'}
-                      </p>
-                    </div>
-                  </button>
-                ))}
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
+                {userSearchTerm ? 'Search Results' : 'Team Members'}
+              </p>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {loadingUsers ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
+                  </div>
+                ) : availableUsers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="w-10 h-10 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" />
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                      {userSearchTerm ? 'No users found' : 'No team members available'}
+                    </p>
+                  </div>
+                ) : (
+                  availableUsers.map((u) => {
+                    const isSelected = selectedUsers.some(s => s.id === u.id);
+                    return (
+                      <button
+                        key={u.id}
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                          isSelected
+                            ? 'bg-primary-50 dark:bg-primary-900/20 ring-2 ring-primary-500'
+                            : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                        }`}
+                        onClick={() => toggleUserSelection(u)}
+                      >
+                        <Avatar user={u} size="md" showStatus />
+                        <div className="flex-1 text-left">
+                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{u.name}</p>
+                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                            {u.isOnline ? (
+                              <span className="text-green-600 dark:text-green-400">Online</span>
+                            ) : (
+                              'Offline'
+                            )}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div className="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -1586,9 +1849,21 @@ function MessagesNew() {
               <Button variant="outline" onClick={() => setShowNewConversation(false)}>
                 Cancel
               </Button>
-              <Button>
-                <Users className="w-4 h-4 mr-2" />
-                Create Group
+              <Button
+                onClick={handleCreateConversation}
+                disabled={selectedUsers.length === 0}
+              >
+                {selectedUsers.length > 1 ? (
+                  <>
+                    <Users className="w-4 h-4 mr-2" />
+                    Create Group
+                  </>
+                ) : (
+                  <>
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Start Chat
+                  </>
+                )}
               </Button>
             </div>
           </div>

@@ -655,6 +655,307 @@ class MessagingService {
   getCurrentUser(): MessageUser | null {
     return this.currentUser;
   }
+
+  // ========================================
+  // USER MANAGEMENT (for new conversations)
+  // ========================================
+
+  /**
+   * Get all users for starting new conversations
+   */
+  async getUsers(search?: string): Promise<MessageUser[]> {
+    const params = new URLSearchParams();
+    if (search) {
+      params.append('search', search);
+    }
+    params.append('excludeSelf', 'true');
+    params.append('limit', '50');
+
+    const response = await this.apiRequest(`/users?${params.toString()}`);
+    const users = response.users || [];
+
+    return users.map((u: any) => ({
+      id: u.id,
+      name: u.name || 'Unknown',
+      email: u.email,
+      avatar: u.avatar,
+      userType: u.userType || 'client',
+      isOnline: u.isOnline || false,
+      lastSeen: u.lastSeen ? new Date(u.lastSeen) : undefined
+    }));
+  }
+
+  /**
+   * Get a specific user by ID
+   */
+  async getUserById(userId: string): Promise<MessageUser | null> {
+    try {
+      const response = await this.apiRequest(`/users/${userId}`);
+      const u = response.user;
+      if (!u) return null;
+
+      return {
+        id: u.id,
+        name: u.name || 'Unknown',
+        email: u.email,
+        avatar: u.avatar,
+        userType: u.userType || 'client',
+        isOnline: u.isOnline || false,
+        lastSeen: u.lastSeen ? new Date(u.lastSeen) : undefined
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // ========================================
+  // PINNED MESSAGES
+  // ========================================
+
+  /**
+   * Pin a message in a conversation
+   */
+  async pinMessage(conversationId: string, messageId: string): Promise<boolean> {
+    try {
+      await this.apiRequest(`/conversations/${conversationId}/messages/${messageId}/pin`, {
+        method: 'POST'
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Unpin a message
+   */
+  async unpinMessage(conversationId: string, messageId: string): Promise<boolean> {
+    try {
+      await this.apiRequest(`/conversations/${conversationId}/messages/${messageId}/pin`, {
+        method: 'DELETE'
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get pinned messages for a conversation
+   */
+  async getPinnedMessages(conversationId: string): Promise<any[]> {
+    try {
+      const response = await this.apiRequest(`/conversations/${conversationId}/pinned`);
+      return response.pinnedMessages || [];
+    } catch {
+      return [];
+    }
+  }
+
+  // ========================================
+  // MUTE / NOTIFICATION SETTINGS
+  // ========================================
+
+  /**
+   * Mute a conversation
+   */
+  async muteConversation(conversationId: string, durationHours?: number): Promise<boolean> {
+    try {
+      await this.apiRequest(`/conversations/${conversationId}/mute`, {
+        method: 'POST',
+        body: JSON.stringify({ duration: durationHours })
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Unmute a conversation
+   */
+  async unmuteConversation(conversationId: string): Promise<boolean> {
+    try {
+      await this.apiRequest(`/conversations/${conversationId}/mute`, {
+        method: 'DELETE'
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get mute status
+   */
+  async getMuteStatus(conversationId: string): Promise<{ isMuted: boolean; mutedUntil?: Date }> {
+    try {
+      const response = await this.apiRequest(`/conversations/${conversationId}/mute`);
+      return {
+        isMuted: response.isMuted || false,
+        mutedUntil: response.mutedUntil ? new Date(response.mutedUntil) : undefined
+      };
+    } catch {
+      return { isMuted: false };
+    }
+  }
+
+  // ========================================
+  // REACTIONS
+  // ========================================
+
+  /**
+   * Toggle a reaction on a message
+   */
+  async toggleReaction(messageId: string, conversationId: string, reaction: string): Promise<{ action: 'added' | 'removed'; reactionCounts: any[] } | null> {
+    try {
+      const response = await this.apiRequest(`/messages/${messageId}/reactions`, {
+        method: 'POST',
+        body: JSON.stringify({ reaction, conversationId })
+      });
+      return {
+        action: response.action,
+        reactionCounts: response.reactionCounts || []
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get reactions for a message
+   */
+  async getReactions(messageId: string): Promise<any[]> {
+    try {
+      const response = await this.apiRequest(`/messages/${messageId}/reactions`);
+      return response.reactions || [];
+    } catch {
+      return [];
+    }
+  }
+
+  // ========================================
+  // MESSAGE ACTIONS
+  // ========================================
+
+  /**
+   * Reply to a message
+   */
+  async replyToMessage(messageId: string, conversationId: string, content: string, attachments?: any[]): Promise<Message | null> {
+    try {
+      const response = await this.apiRequest(`/messages/${messageId}/reply`, {
+        method: 'POST',
+        body: JSON.stringify({ content, conversationId, attachments })
+      });
+      return response.message || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Forward a message to another conversation
+   */
+  async forwardMessage(messageId: string, toConversationId: string): Promise<Message | null> {
+    try {
+      const response = await this.apiRequest(`/messages/${messageId}/forward`, {
+        method: 'POST',
+        body: JSON.stringify({ toConversationId })
+      });
+      return response.message || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get message thread (replies)
+   */
+  async getMessageThread(messageId: string): Promise<{ message: Message | null; replies: Message[] }> {
+    try {
+      const response = await this.apiRequest(`/messages/${messageId}/thread`);
+      return {
+        message: response.message || null,
+        replies: response.replies || []
+      };
+    } catch {
+      return { message: null, replies: [] };
+    }
+  }
+
+  // ========================================
+  // READ RECEIPTS
+  // ========================================
+
+  /**
+   * Mark a specific message as read
+   */
+  async markMessageAsRead(messageId: string, conversationId: string): Promise<boolean> {
+    try {
+      await this.apiRequest(`/messages/${messageId}/read`, {
+        method: 'POST',
+        body: JSON.stringify({ conversationId })
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get read receipts for a message
+   */
+  async getMessageReceipts(messageId: string): Promise<any[]> {
+    try {
+      const response = await this.apiRequest(`/messages/${messageId}/receipts`);
+      return response.receipts || [];
+    } catch {
+      return [];
+    }
+  }
+
+  // ========================================
+  // FILE UPLOAD
+  // ========================================
+
+  /**
+   * Upload a file for a message
+   */
+  async uploadMessageFile(file: File, conversationId: string): Promise<any | null> {
+    try {
+      // Convert file to base64
+      const base64 = await this.fileToBase64(file);
+
+      const response = await this.apiRequest('/messages/upload', {
+        method: 'POST',
+        body: JSON.stringify({
+          filename: file.name,
+          content: base64,
+          mimeType: file.type,
+          conversationId
+        })
+      });
+
+      return response.file || null;
+    } catch (error) {
+      console.error('File upload error:', error);
+      return null;
+    }
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data URL prefix (e.g., "data:image/png;base64,")
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+    });
+  }
 }
 
 // Export singleton instance

@@ -79,12 +79,14 @@ cache.initializeCache()
 // Database adapters (with fallback to file-based storage)
 let authAdapter = null;
 let messagingAdapter = null;
+let projectsAdapter = null;
 const USE_DATABASE = process.env.USE_DATABASE === 'true';
 
 if (USE_DATABASE) {
   try {
     authAdapter = require('./database/auth-adapter');
     messagingAdapter = require('./database/messaging-adapter');
+    projectsAdapter = require('./database/projects-adapter');
     console.log('✅ Database adapters loaded for unified service');
   } catch (error) {
     console.warn('⚠️ Failed to load database adapters, falling back to file-based storage:', error.message);
@@ -1758,6 +1760,417 @@ app.post('/notifications/read', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to mark notifications as read' });
   }
 });
+
+// ========================================
+// USER MANAGEMENT APIs (for messaging)
+// ========================================
+
+// Get all users (for starting new conversations)
+app.get('/users', authenticateToken, async (req, res) => {
+  try {
+    const { search, limit = 50, excludeSelf = true } = req.query;
+
+    let users = [];
+    if (authAdapter) {
+      users = await authAdapter.getUsers();
+    }
+
+    // Filter out current user if requested
+    if (excludeSelf === 'true' || excludeSelf === true) {
+      users = users.filter(u => u.id !== req.user.id);
+    }
+
+    // Filter by search term if provided
+    if (search) {
+      const searchLower = search.toLowerCase();
+      users = users.filter(u =>
+        u.name?.toLowerCase().includes(searchLower) ||
+        u.email?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Limit results
+    users = users.slice(0, parseInt(limit));
+
+    // Transform to messaging-friendly format
+    const usersForMessaging = users.map(u => ({
+      id: u.id,
+      name: u.name || u.email?.split('@')[0] || 'Unknown',
+      email: u.email,
+      avatar: u.avatar || u.avatar_url,
+      userType: u.userType || u.user_type || 'client',
+      isOnline: false, // Would need presence tracking
+      lastSeen: u.lastLogin || u.last_login || null
+    }));
+
+    res.json({
+      success: true,
+      users: usersForMessaging,
+      total: usersForMessaging.length
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Get a specific user by ID
+app.get('/users/:userId', authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!authAdapter) {
+      return res.status(501).json({ error: 'Requires database mode' });
+    }
+
+    const user = await authAdapter.getUserById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name || user.email?.split('@')[0] || 'Unknown',
+        email: user.email,
+        avatar: user.avatar || user.avatar_url,
+        userType: user.userType || user.user_type || 'client',
+        isOnline: false,
+        lastSeen: user.lastLogin || user.last_login || null
+      }
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+// ==========================================================================
+// Project Management API Endpoints
+// ==========================================================================
+
+/**
+ * Get all projects for the authenticated user
+ * GET /api/projects
+ */
+app.get('/api/projects', authenticateToken, async (req, res) => {
+  try {
+    const { organizationId, status, limit = 50, offset = 0 } = req.query;
+    const userId = req.user.id;
+
+    let projects = [];
+
+    if (projectsAdapter) {
+      projects = await projectsAdapter.getProjects(userId, {
+        organizationId,
+        status,
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+
+      // Fetch unread message counts for each project
+      const projectsWithUnread = await Promise.all(
+        projects.map(async (project) => {
+          const unreadCount = await projectsAdapter.getProjectUnreadCount(project.id, userId);
+          return { ...project, unreadCount };
+        })
+      );
+
+      projects = projectsWithUnread;
+    } else {
+      // Fallback to file-based storage
+      const allProjects = await getProjects();
+      projects = allProjects.filter(p =>
+        !organizationId || p.organizationId === organizationId
+      ).map(p => ({
+        ...p,
+        unreadCount: 0,
+        progress: 0,
+        memberCount: p.members?.length || 0
+      }));
+    }
+
+    res.json({ success: true, projects, total: projects.length });
+  } catch (error) {
+    console.error('Get projects error:', error);
+    res.status(500).json({ error: 'Failed to fetch projects' });
+  }
+});
+
+/**
+ * Get a single project by ID
+ * GET /api/projects/:projectId
+ */
+app.get('/api/projects/:projectId', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user.id;
+
+    let project = null;
+
+    if (projectsAdapter) {
+      project = await projectsAdapter.getProjectById(projectId, userId);
+      if (project) {
+        const unreadCount = await projectsAdapter.getProjectUnreadCount(projectId, userId);
+        const members = await projectsAdapter.getProjectMembers(projectId);
+        project = { ...project, unreadCount, members };
+      }
+    } else {
+      const allProjects = await getProjects();
+      project = allProjects.find(p => p.id === projectId);
+    }
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    res.json({ success: true, project });
+  } catch (error) {
+    console.error('Get project error:', error);
+    res.status(500).json({ error: 'Failed to fetch project' });
+  }
+});
+
+/**
+ * Create a new project
+ * POST /api/projects
+ */
+app.post('/api/projects', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const {
+      name, description, organizationId, teamId, startDate, dueDate,
+      priority, projectType, serviceCategory, serviceTier, ensembleType,
+      tags, settings, members
+    } = req.body;
+
+    if (!name || name.trim().length < 3) {
+      return res.status(400).json({ error: 'Project name must be at least 3 characters' });
+    }
+
+    let newProject;
+
+    if (projectsAdapter) {
+      newProject = await projectsAdapter.createProject({
+        name,
+        description,
+        organizationId,
+        teamId,
+        startDate,
+        dueDate,
+        priority: priority || 'medium',
+        projectType: projectType || 'general',
+        serviceCategory: serviceCategory || 'general',
+        serviceTier: serviceTier || 'standard',
+        ensembleType: ensembleType || 'general',
+        tags,
+        settings
+      }, userId);
+
+      // Add additional members if specified
+      if (members && Array.isArray(members)) {
+        for (const memberId of members) {
+          await projectsAdapter.addProjectMember(newProject.id, memberId, 'contributor');
+        }
+      }
+
+      // Create default project conversation
+      await projectsAdapter.getOrCreateProjectConversation(newProject.id, userId);
+    } else {
+      // Fallback to file-based storage
+      const projects = await getProjects();
+      newProject = {
+        id: uuidv4(),
+        name,
+        description: description || '',
+        status: 'planning',
+        priority: priority || 'medium',
+        organizationId,
+        teamId,
+        createdBy: userId,
+        startDate: startDate || new Date().toISOString(),
+        dueDate,
+        progress: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        members: [userId, ...(members || [])],
+        tasks: [],
+        milestones: [],
+        files: [],
+        settings: settings || { isPrivate: false, allowComments: true, requireApproval: false }
+      };
+      projects.push(newProject);
+      await saveProjects(projects);
+    }
+
+    res.status(201).json({ success: true, project: newProject });
+  } catch (error) {
+    console.error('Create project error:', error);
+    res.status(500).json({ error: 'Failed to create project' });
+  }
+});
+
+/**
+ * Update a project
+ * PUT /api/projects/:projectId
+ */
+app.put('/api/projects/:projectId', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user.id;
+    const updates = req.body;
+
+    let updatedProject;
+
+    if (projectsAdapter) {
+      updatedProject = await projectsAdapter.updateProject(projectId, updates, userId);
+    } else {
+      const projects = await getProjects();
+      const index = projects.findIndex(p => p.id === projectId);
+      if (index === -1) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+      projects[index] = { ...projects[index], ...updates, updatedAt: new Date().toISOString() };
+      await saveProjects(projects);
+      updatedProject = projects[index];
+    }
+
+    if (!updatedProject) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    res.json({ success: true, project: updatedProject });
+  } catch (error) {
+    console.error('Update project error:', error);
+    res.status(500).json({ error: 'Failed to update project' });
+  }
+});
+
+/**
+ * Delete a project
+ * DELETE /api/projects/:projectId
+ */
+app.delete('/api/projects/:projectId', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user.id;
+
+    if (projectsAdapter) {
+      await projectsAdapter.deleteProject(projectId, userId);
+    } else {
+      const projects = await getProjects();
+      const index = projects.findIndex(p => p.id === projectId);
+      if (index === -1) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+      projects.splice(index, 1);
+      await saveProjects(projects);
+    }
+
+    res.json({ success: true, message: 'Project deleted successfully' });
+  } catch (error) {
+    console.error('Delete project error:', error);
+    res.status(500).json({ error: 'Failed to delete project' });
+  }
+});
+
+/**
+ * Get project activity/events
+ * GET /api/projects/:projectId/activity
+ */
+app.get('/api/projects/:projectId/activity', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { limit = 20, offset = 0 } = req.query;
+
+    let activity = [];
+
+    if (projectsAdapter) {
+      activity = await projectsAdapter.getProjectActivity(projectId, {
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+    }
+
+    res.json({ success: true, activity, total: activity.length });
+  } catch (error) {
+    console.error('Get project activity error:', error);
+    res.status(500).json({ error: 'Failed to fetch project activity' });
+  }
+});
+
+/**
+ * Get or create project conversation
+ * GET /api/projects/:projectId/conversation
+ */
+app.get('/api/projects/:projectId/conversation', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user.id;
+
+    if (!projectsAdapter) {
+      return res.status(501).json({ error: 'Requires database mode' });
+    }
+
+    const conversation = await projectsAdapter.getOrCreateProjectConversation(projectId, userId);
+
+    res.json({ success: true, conversation });
+  } catch (error) {
+    console.error('Get project conversation error:', error);
+    res.status(500).json({ error: 'Failed to fetch project conversation' });
+  }
+});
+
+/**
+ * Get project members
+ * GET /api/projects/:projectId/members
+ */
+app.get('/api/projects/:projectId/members', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    let members = [];
+
+    if (projectsAdapter) {
+      members = await projectsAdapter.getProjectMembers(projectId);
+    }
+
+    res.json({ success: true, members, total: members.length });
+  } catch (error) {
+    console.error('Get project members error:', error);
+    res.status(500).json({ error: 'Failed to fetch project members' });
+  }
+});
+
+/**
+ * Add member to project
+ * POST /api/projects/:projectId/members
+ */
+app.post('/api/projects/:projectId/members', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { userId: memberUserId, role = 'contributor' } = req.body;
+
+    if (!memberUserId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    if (projectsAdapter) {
+      await projectsAdapter.addProjectMember(projectId, memberUserId, role);
+    }
+
+    res.json({ success: true, message: 'Member added successfully' });
+  } catch (error) {
+    console.error('Add project member error:', error);
+    res.status(500).json({ error: 'Failed to add project member' });
+  }
+});
+
+// ==========================================================================
+// End Project Management API Endpoints
+// ==========================================================================
 
 // Get single conversation with messages
 app.get('/conversations/:conversationId', authenticateToken, async (req, res) => {
