@@ -2214,15 +2214,16 @@ app.get('/files/stats', authenticateToken, async (req, res) => {
   }
 });
 
-// Upload file(s)
+// Upload file(s) - optionally creates assets
 app.post('/files/upload', authenticateToken, fileUpload.array('files', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files uploaded' });
     }
 
-    const { projectId, organizationId } = req.body;
+    const { projectId, organizationId, createAsset: shouldCreateAsset } = req.body;
     const uploadedFiles = [];
+    const createdAssets = [];
     const errors = [];
 
     for (const file of req.files) {
@@ -2280,6 +2281,36 @@ app.post('/files/upload', authenticateToken, fileUpload.array('files', 10), asyn
 
         uploadedFiles.push(fileRecord);
 
+        // Optionally create asset from file
+        if (shouldCreateAsset === 'true' || shouldCreateAsset === true) {
+          try {
+            // Determine asset type from mime type
+            let assetType = 'file';
+            if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/') || file.mimetype.startsWith('audio/')) {
+              assetType = 'media';
+            } else if (file.mimetype.includes('pdf') || file.mimetype.includes('document') || file.mimetype.includes('word') || file.mimetype.includes('text')) {
+              assetType = 'document';
+            } else if (file.mimetype.includes('sketch') || file.mimetype.includes('figma') || file.mimetype.includes('photoshop') || file.mimetype.includes('illustrator')) {
+              assetType = 'design';
+            }
+
+            const asset = await assetsAdapter.createAsset({
+              name: file.originalname,
+              assetType,
+              fileId: fileRecord.id,
+              createdBy: req.user.id,
+              projectId,
+              organizationId
+            });
+
+            createdAssets.push(asset);
+            fileRecord.assetId = asset.id;
+          } catch (assetError) {
+            console.error('Asset creation error:', assetError);
+            // Non-fatal, file was still uploaded
+          }
+        }
+
         // Create notification for upload
         if (typeof createAndEmitNotification === 'function') {
           await createAndEmitNotification({
@@ -2304,6 +2335,7 @@ app.post('/files/upload', authenticateToken, fileUpload.array('files', 10), asyn
     res.json({
       success: true,
       files: uploadedFiles,
+      assets: createdAssets.length > 0 ? createdAssets : undefined,
       errors: errors.length > 0 ? errors : undefined
     });
   } catch (error) {
@@ -2553,6 +2585,563 @@ app.get('/files/storage/:storageKey(*)', authenticateToken, async (req, res) => 
   } catch (error) {
     console.error('Error serving file:', error);
     res.status(500).json({ error: 'Failed to serve file' });
+  }
+});
+
+// ========================================
+// ASSETS API
+// ========================================
+
+const assetsAdapter = require('./database/assets-adapter');
+
+// List assets with filters
+app.get('/assets', authenticateToken, async (req, res) => {
+  try {
+    const {
+      search,
+      type: assetType,
+      projectId,
+      organizationId,
+      status,
+      tags,
+      limit = 50,
+      offset = 0,
+      sortBy,
+      sortOrder
+    } = req.query;
+
+    const result = await assetsAdapter.listAssets(req.user.id, {
+      search,
+      assetType,
+      projectId,
+      organizationId,
+      status,
+      tags: tags ? tags.split(',') : undefined,
+      limit: parseInt(limit, 10),
+      offset: parseInt(offset, 10),
+      sortBy,
+      sortOrder
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error listing assets:', error);
+    res.status(500).json({ error: 'Failed to list assets' });
+  }
+});
+
+// Get asset stats
+app.get('/assets/stats', authenticateToken, async (req, res) => {
+  try {
+    const stats = await assetsAdapter.getStats(req.user.id);
+    res.json({ stats });
+  } catch (error) {
+    console.error('Error getting asset stats:', error);
+    res.status(500).json({ error: 'Failed to get stats' });
+  }
+});
+
+// Get popular tags
+app.get('/assets/tags/popular', authenticateToken, async (req, res) => {
+  try {
+    const { limit = 20 } = req.query;
+    const tags = await assetsAdapter.getPopularTags(req.user.id, parseInt(limit, 10));
+    res.json({ tags });
+  } catch (error) {
+    console.error('Error getting popular tags:', error);
+    res.status(500).json({ error: 'Failed to get tags' });
+  }
+});
+
+// Create new asset
+app.post('/assets', authenticateToken, async (req, res) => {
+  try {
+    const { name, description, assetType, fileId, projectId, organizationId } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const asset = await assetsAdapter.createAsset({
+      name,
+      description,
+      assetType,
+      fileId,
+      createdBy: req.user.id,
+      projectId,
+      organizationId
+    });
+
+    res.status(201).json({ asset });
+  } catch (error) {
+    console.error('Error creating asset:', error);
+    res.status(500).json({ error: 'Failed to create asset' });
+  }
+});
+
+// Create asset from existing file
+app.post('/assets/from-file/:fileId', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { name, description, assetType } = req.body;
+
+    // Get the file
+    const file = await filesAdapter.getFileById(fileId, req.user.id);
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Determine asset type if not provided
+    let type = assetType || 'file';
+    if (!assetType) {
+      if (file.mimeType?.startsWith('image/') || file.mimeType?.startsWith('video/') || file.mimeType?.startsWith('audio/')) {
+        type = 'media';
+      } else if (file.mimeType?.includes('pdf') || file.mimeType?.includes('document') || file.mimeType?.includes('word')) {
+        type = 'document';
+      }
+    }
+
+    const asset = await assetsAdapter.createAsset({
+      name: name || file.name,
+      description,
+      assetType: type,
+      fileId,
+      createdBy: req.user.id,
+      projectId: file.projectId,
+      organizationId: file.organizationId
+    });
+
+    res.status(201).json({ asset });
+  } catch (error) {
+    console.error('Error creating asset from file:', error);
+    res.status(500).json({ error: 'Failed to create asset from file' });
+  }
+});
+
+// Get asset by ID
+app.get('/assets/:assetId', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+    const { includeVersions, includeRelations } = req.query;
+
+    const asset = await assetsAdapter.getAssetById(assetId, req.user.id, {
+      includeVersions: includeVersions === 'true',
+      includeRelations: includeRelations === 'true'
+    });
+
+    if (!asset) {
+      return res.status(404).json({ error: 'Asset not found' });
+    }
+
+    res.json({ asset });
+  } catch (error) {
+    console.error('Error getting asset:', error);
+    res.status(500).json({ error: 'Failed to get asset' });
+  }
+});
+
+// Update asset
+app.patch('/assets/:assetId', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+    const updates = req.body;
+
+    const asset = await assetsAdapter.updateAsset(assetId, req.user.id, updates);
+
+    if (!asset) {
+      return res.status(404).json({ error: 'Asset not found or permission denied' });
+    }
+
+    res.json({ asset });
+  } catch (error) {
+    console.error('Error updating asset:', error);
+    res.status(500).json({ error: 'Failed to update asset' });
+  }
+});
+
+// Delete asset
+app.delete('/assets/:assetId', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+
+    const success = await assetsAdapter.deleteAsset(assetId, req.user.id);
+
+    if (!success) {
+      return res.status(404).json({ error: 'Asset not found or permission denied' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting asset:', error);
+    res.status(500).json({ error: 'Failed to delete asset' });
+  }
+});
+
+// ==================== ASSET VERSIONS ====================
+
+// Get all versions for asset
+app.get('/assets/:assetId/versions', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+
+    const versions = await assetsAdapter.getVersions(assetId);
+    res.json({ versions });
+  } catch (error) {
+    console.error('Error getting versions:', error);
+    res.status(500).json({ error: 'Failed to get versions' });
+  }
+});
+
+// Create new version
+app.post('/assets/:assetId/versions', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+    const { fileId, changeSummary } = req.body;
+
+    if (!fileId) {
+      return res.status(400).json({ error: 'File ID is required' });
+    }
+
+    const version = await assetsAdapter.createVersion(assetId, req.user.id, {
+      fileId,
+      changeSummary
+    });
+
+    // Create notification for new version
+    if (notificationsAdapter) {
+      try {
+        const asset = await assetsAdapter.getAssetById(assetId, req.user.id);
+        if (asset && asset.projectId) {
+          // Get project members to notify
+          const pool = require('./database/pool');
+          const membersResult = await pool.query(
+            `SELECT user_id FROM project_members WHERE project_id = $1 AND user_id != $2`,
+            [asset.projectId, req.user.id]
+          );
+
+          for (const member of membersResult.rows) {
+            await notificationsAdapter.createNotification({
+              userId: member.user_id,
+              type: 'asset_version',
+              title: 'New Asset Version',
+              message: `A new version of "${asset.name}" was uploaded`,
+              metadata: {
+                assetId,
+                versionNumber: version.versionNumber,
+                projectId: asset.projectId
+              }
+            });
+          }
+        }
+      } catch (notifyError) {
+        console.error('Error sending version notification:', notifyError);
+      }
+    }
+
+    res.status(201).json({ version });
+  } catch (error) {
+    console.error('Error creating version:', error);
+    res.status(500).json({ error: 'Failed to create version' });
+  }
+});
+
+// Get specific version
+app.get('/assets/:assetId/versions/:versionNumber', authenticateToken, async (req, res) => {
+  try {
+    const { assetId, versionNumber } = req.params;
+
+    const version = await assetsAdapter.getVersion(assetId, parseInt(versionNumber, 10));
+
+    if (!version) {
+      return res.status(404).json({ error: 'Version not found' });
+    }
+
+    res.json({ version });
+  } catch (error) {
+    console.error('Error getting version:', error);
+    res.status(500).json({ error: 'Failed to get version' });
+  }
+});
+
+// Revert to version
+app.post('/assets/:assetId/versions/:versionNumber/revert', authenticateToken, async (req, res) => {
+  try {
+    const { assetId, versionNumber } = req.params;
+
+    const asset = await assetsAdapter.revertToVersion(assetId, parseInt(versionNumber, 10), req.user.id);
+
+    res.json({ asset });
+  } catch (error) {
+    console.error('Error reverting to version:', error);
+    res.status(500).json({ error: 'Failed to revert' });
+  }
+});
+
+// ==================== ASSET RELATIONS ====================
+
+// Get relations for asset
+app.get('/assets/:assetId/relations', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+    const { direction, relationType } = req.query;
+
+    const relations = await assetsAdapter.getRelations(assetId, { direction, relationType });
+    res.json({ relations });
+  } catch (error) {
+    console.error('Error getting relations:', error);
+    res.status(500).json({ error: 'Failed to get relations' });
+  }
+});
+
+// Create relation
+app.post('/assets/:assetId/relations', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+    const { targetAssetId, relationType, description, metadata } = req.body;
+
+    if (!targetAssetId || !relationType) {
+      return res.status(400).json({ error: 'Target asset ID and relation type are required' });
+    }
+
+    const relation = await assetsAdapter.createRelation(
+      assetId,
+      targetAssetId,
+      relationType,
+      req.user.id,
+      { description, metadata }
+    );
+
+    res.status(201).json({ relation });
+  } catch (error) {
+    console.error('Error creating relation:', error);
+    res.status(500).json({ error: 'Failed to create relation' });
+  }
+});
+
+// Delete relation
+app.delete('/assets/relations/:relationId', authenticateToken, async (req, res) => {
+  try {
+    const { relationId } = req.params;
+
+    const success = await assetsAdapter.deleteRelation(relationId, req.user.id);
+
+    if (!success) {
+      return res.status(404).json({ error: 'Relation not found or permission denied' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting relation:', error);
+    res.status(500).json({ error: 'Failed to delete relation' });
+  }
+});
+
+// ==================== ASSET METADATA ====================
+
+// Get metadata for asset
+app.get('/assets/:assetId/metadata', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+    const { category } = req.query;
+
+    const metadata = await assetsAdapter.getMetadata(assetId, { category });
+    res.json({ metadata });
+  } catch (error) {
+    console.error('Error getting metadata:', error);
+    res.status(500).json({ error: 'Failed to get metadata' });
+  }
+});
+
+// Set metadata
+app.post('/assets/:assetId/metadata', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+    const { key, value, valueType, category } = req.body;
+
+    if (!key) {
+      return res.status(400).json({ error: 'Key is required' });
+    }
+
+    const metadata = await assetsAdapter.setMetadata(assetId, key, value, req.user.id, {
+      valueType,
+      category
+    });
+
+    res.json({ metadata });
+  } catch (error) {
+    console.error('Error setting metadata:', error);
+    res.status(500).json({ error: 'Failed to set metadata' });
+  }
+});
+
+// Delete metadata
+app.delete('/assets/:assetId/metadata/:key', authenticateToken, async (req, res) => {
+  try {
+    const { assetId, key } = req.params;
+
+    const success = await assetsAdapter.deleteMetadata(assetId, key);
+
+    if (!success) {
+      return res.status(404).json({ error: 'Metadata not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting metadata:', error);
+    res.status(500).json({ error: 'Failed to delete metadata' });
+  }
+});
+
+// ==================== ASSET TAGS ====================
+
+// Get tags for asset
+app.get('/assets/:assetId/tags', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+
+    const tags = await assetsAdapter.getTags(assetId);
+    res.json({ tags });
+  } catch (error) {
+    console.error('Error getting tags:', error);
+    res.status(500).json({ error: 'Failed to get tags' });
+  }
+});
+
+// Add tag
+app.post('/assets/:assetId/tags', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+    const { tag } = req.body;
+
+    if (!tag) {
+      return res.status(400).json({ error: 'Tag is required' });
+    }
+
+    const tagRecord = await assetsAdapter.addTag(assetId, tag, req.user.id);
+    res.status(201).json({ tag: tagRecord });
+  } catch (error) {
+    console.error('Error adding tag:', error);
+    res.status(500).json({ error: 'Failed to add tag' });
+  }
+});
+
+// Remove tag
+app.delete('/assets/:assetId/tags/:tag', authenticateToken, async (req, res) => {
+  try {
+    const { assetId, tag } = req.params;
+
+    const success = await assetsAdapter.removeTag(assetId, tag);
+
+    if (!success) {
+      return res.status(404).json({ error: 'Tag not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error removing tag:', error);
+    res.status(500).json({ error: 'Failed to remove tag' });
+  }
+});
+
+// ==================== ASSET COMMENTS ====================
+
+// Get comments for asset
+app.get('/assets/:assetId/comments', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+    const { versionId, includeReplies } = req.query;
+
+    const comments = await assetsAdapter.getComments(assetId, {
+      versionId,
+      includeReplies: includeReplies !== 'false'
+    });
+
+    res.json({ comments });
+  } catch (error) {
+    console.error('Error getting comments:', error);
+    res.status(500).json({ error: 'Failed to get comments' });
+  }
+});
+
+// Add comment
+app.post('/assets/:assetId/comments', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+    const { content, versionId, parentCommentId } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+
+    const comment = await assetsAdapter.addComment(assetId, req.user.id, {
+      content,
+      versionId,
+      parentCommentId
+    });
+
+    res.status(201).json({ comment });
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    res.status(500).json({ error: 'Failed to add comment' });
+  }
+});
+
+// Update comment
+app.patch('/assets/comments/:commentId', authenticateToken, async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+
+    const comment = await assetsAdapter.updateComment(commentId, req.user.id, content);
+
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found or permission denied' });
+    }
+
+    res.json({ comment });
+  } catch (error) {
+    console.error('Error updating comment:', error);
+    res.status(500).json({ error: 'Failed to update comment' });
+  }
+});
+
+// Delete comment
+app.delete('/assets/comments/:commentId', authenticateToken, async (req, res) => {
+  try {
+    const { commentId } = req.params;
+
+    const success = await assetsAdapter.deleteComment(commentId, req.user.id);
+
+    if (!success) {
+      return res.status(404).json({ error: 'Comment not found or permission denied' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting comment:', error);
+    res.status(500).json({ error: 'Failed to delete comment' });
+  }
+});
+
+// Resolve comment
+app.post('/assets/comments/:commentId/resolve', authenticateToken, async (req, res) => {
+  try {
+    const { commentId } = req.params;
+
+    const comment = await assetsAdapter.resolveComment(commentId, req.user.id);
+
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    res.json({ comment });
+  } catch (error) {
+    console.error('Error resolving comment:', error);
+    res.status(500).json({ error: 'Failed to resolve comment' });
   }
 });
 

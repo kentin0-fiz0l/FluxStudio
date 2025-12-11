@@ -41,6 +41,7 @@ import {
   List,
   Columns,
   Users,
+  Layers,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -62,6 +63,8 @@ import {
   Task,
 } from '@/hooks/useTasks';
 import { useTaskRealtime } from '@/hooks/useTaskRealtime';
+import { useAssets, AssetRecord } from '@/contexts/AssetsContext';
+import { AssetDetailDrawer } from '@/components/assets/AssetDetailDrawer';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -215,8 +218,32 @@ export const ProjectDetail = () => {
     overview: 'Overview',
     tasks: 'Tasks',
     files: 'Files',
+    assets: 'Assets',
     messages: 'Messages',
   };
+
+  // Assets state
+  const {
+    state: assetsState,
+    refreshAssets,
+    deleteAsset,
+    setSelectedAsset,
+  } = useAssets();
+  const [selectedAsset, setSelectedAssetLocal] = React.useState<AssetRecord | null>(null);
+  const [showAssetDrawer, setShowAssetDrawer] = React.useState(false);
+
+  // Filter assets for this project
+  const projectAssets = React.useMemo(
+    () => assetsState.assets.filter((a) => a.projectId === id),
+    [assetsState.assets, id]
+  );
+
+  // Load project assets when tab changes to assets
+  React.useEffect(() => {
+    if (activeTab === 'assets' && id) {
+      refreshAssets({ projectId: id });
+    }
+  }, [activeTab, id]);
 
   // ============================================================================
   // Data Fetching
@@ -529,6 +556,25 @@ export const ProjectDetail = () => {
               </TabsTrigger>
 
               <TabsTrigger
+                value="assets"
+                className={cn(
+                  'data-[state=active]:border-b-2 data-[state=active]:border-primary-600',
+                  'rounded-none border-b-2 border-transparent h-full px-4'
+                )}
+                role="tab"
+                aria-selected={activeTab === 'assets'}
+                aria-controls="assets-panel"
+                id="assets-tab"
+                aria-label={`Assets, ${projectAssets.length} items`}
+              >
+                <Layers className="h-4 w-4 mr-2" aria-hidden="true" />
+                Assets
+                <Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">
+                  {projectAssets.length}
+                </Badge>
+              </TabsTrigger>
+
+              <TabsTrigger
                 value="messages"
                 className={cn(
                   'data-[state=active]:border-b-2 data-[state=active]:border-primary-600',
@@ -687,6 +733,101 @@ export const ProjectDetail = () => {
               <ProjectFilesTab project={project} />
             </TabsContent>
 
+            {/* Assets Tab */}
+            <TabsContent
+              value="assets"
+              className="h-full overflow-y-auto p-6 mt-0"
+              role="tabpanel"
+              id="assets-panel"
+              aria-labelledby="assets-tab"
+              tabIndex={0}
+            >
+              <div role="status" aria-live="polite" className="sr-only">
+                {activeTab === 'assets' ? `Showing ${tabLabels.assets} tab` : ''}
+              </div>
+
+              {/* Assets Content */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-neutral-900">Project Assets</h2>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.location.href = '/assets'}
+                    aria-label="View all assets"
+                  >
+                    <Layers className="h-4 w-4 mr-2" />
+                    Manage All Assets
+                  </Button>
+                </div>
+
+                {assetsState.loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : projectAssets.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <Layers className="h-12 w-12 mx-auto text-neutral-400 mb-4" />
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">No assets yet</h3>
+                    <p className="text-neutral-600 mb-4">
+                      Create assets from your uploaded files to track versions and metadata.
+                    </p>
+                    <Button
+                      variant="primary"
+                      onClick={() => window.location.href = '/assets'}
+                    >
+                      Go to Assets
+                    </Button>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {projectAssets.map((asset) => (
+                      <div
+                        key={asset.id}
+                        className="group bg-white border border-neutral-200 rounded-lg overflow-hidden hover:shadow-lg hover:border-primary-300 transition-all cursor-pointer"
+                        onClick={() => {
+                          setSelectedAssetLocal(asset);
+                          setSelectedAsset(asset);
+                          setShowAssetDrawer(true);
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setSelectedAssetLocal(asset);
+                            setSelectedAsset(asset);
+                            setShowAssetDrawer(true);
+                          }
+                        }}
+                      >
+                        <div className="aspect-square bg-neutral-100 relative overflow-hidden">
+                          {asset.thumbnailUrl ? (
+                            <img
+                              src={asset.thumbnailUrl}
+                              alt={asset.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Layers className="w-12 h-12 text-neutral-300" />
+                            </div>
+                          )}
+                          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+                            v{asset.currentVersion}
+                          </div>
+                        </div>
+                        <div className="p-3">
+                          <h4 className="font-medium text-neutral-900 truncate">{asset.name}</h4>
+                          <p className="text-xs text-neutral-500 mt-1">
+                            {new Date(asset.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
             {/* Messages Tab */}
             <TabsContent
               value="messages"
@@ -715,6 +856,22 @@ export const ProjectDetail = () => {
         onDelete={handleTaskDelete}
         teamMembers={[]} // TODO: Get from project members
       />
+
+      {/* Asset Detail Drawer */}
+      {showAssetDrawer && selectedAsset && (
+        <AssetDetailDrawer
+          asset={selectedAsset}
+          onClose={() => {
+            setShowAssetDrawer(false);
+            setSelectedAssetLocal(null);
+          }}
+          onDelete={async (assetId) => {
+            await deleteAsset(assetId);
+            setShowAssetDrawer(false);
+            setSelectedAssetLocal(null);
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 };
