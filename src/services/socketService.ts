@@ -56,8 +56,8 @@ class SocketService {
    * Updated for unified backend with /messaging namespace
    */
   private connect() {
-    // Don't connect without auth token
-    const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+    // Don't connect without auth token (auth_token is the primary key used by AuthContext)
+    const authToken = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
     if (!authToken) {
       console.log('⚠️ No auth token found, skipping Socket.IO connection');
       return;
