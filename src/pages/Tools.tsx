@@ -1,319 +1,180 @@
 /**
  * Tools Page - External Tools & Applications
- * Zero external dependencies - inline styles only
+ *
+ * Follows the Flux Design Language pattern with DashboardLayout.
+ * Displays external tools and applications that integrate with FluxStudio.
  */
-import React from 'react';
 
-// Inline SVG icons
-const ArrowLeftIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M19 12H5M12 19l-7-7 7-7"/>
-  </svg>
-);
+import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { DashboardLayout } from '@/components/templates';
+import { Card, Button } from '@/components/ui';
+import { useAuth } from '../contexts/AuthContext';
+import {
+  Map,
+  ExternalLink,
+  Zap,
+  Star,
+  Wrench,
+  Sparkles
+} from 'lucide-react';
 
-const ExternalLinkIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
-  </svg>
-);
+function Tools() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-const MapIcon = () => (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
-    <line x1="9" y1="3" x2="9" y2="18"/>
-    <line x1="15" y1="6" x2="15" y2="21"/>
-  </svg>
-);
+  // Authentication guard - redirect to login if not authenticated
+  React.useEffect(() => {
+    if (!user) {
+      console.log('⚠️  User not authenticated, redirecting to login...');
+      navigate('/login', { replace: true });
+      return;
+    }
 
-const ZapIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-  </svg>
-);
+    document.title = 'Tools - FluxStudio';
+    console.log('=== TOOLS PAGE LOADING ===');
+    console.log('✅ User authenticated:', user.email);
+  }, [user, navigate]);
 
-const styles = {
-  page: {
-    minHeight: '100vh',
-    backgroundColor: '#f8fafc',
-    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  },
-  header: {
-    backgroundColor: 'white',
-    borderBottom: '1px solid #e2e8f0',
-    padding: '16px 24px',
-  },
-  backLink: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    color: '#64748b',
-    textDecoration: 'none',
-    fontSize: '14px',
-  },
-  container: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    padding: '48px 24px',
-  },
-  title: {
-    fontSize: '32px',
-    fontWeight: '700',
-    color: '#0f172a',
-    margin: '0 0 8px 0',
-  },
-  subtitle: {
-    fontSize: '16px',
-    color: '#64748b',
-    margin: '0 0 32px 0',
-  },
-  sectionTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#0f172a',
-    margin: '0 0 16px 0',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: '16px',
-    border: '1px solid #e2e8f0',
-    padding: '32px',
-    marginBottom: '24px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    position: 'relative' as const,
-  },
-  newBadge: {
-    position: 'absolute' as const,
-    top: '-12px',
-    right: '-12px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    padding: '4px 12px',
-    borderRadius: '999px',
-    fontSize: '12px',
-    fontWeight: '700',
-  },
-  cardContent: {
-    display: 'flex',
-    gap: '24px',
-    flexWrap: 'wrap' as const,
-  },
-  iconBox: {
-    width: '80px',
-    height: '80px',
-    borderRadius: '16px',
-    background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'white',
-    flexShrink: 0,
-  },
-  cardBody: {
-    flex: 1,
-    minWidth: '280px',
-  },
-  cardTitle: {
-    fontSize: '24px',
-    fontWeight: '700',
-    color: '#0f172a',
-    margin: '0 0 4px 0',
-  },
-  cardCategory: {
-    display: 'inline-block',
-    backgroundColor: '#f1f5f9',
-    color: '#64748b',
-    padding: '2px 10px',
-    borderRadius: '999px',
-    fontSize: '12px',
-    marginBottom: '12px',
-  },
-  cardDescription: {
-    color: '#475569',
-    fontSize: '15px',
-    lineHeight: '1.6',
-    margin: '0 0 16px 0',
-  },
-  featureList: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '8px',
-    marginBottom: '20px',
-  },
-  featureItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '14px',
-    color: '#334155',
-  },
-  featureIcon: {
-    color: '#3b82f6',
-  },
-  buttonRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    flexWrap: 'wrap' as const,
-  },
-  primaryButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '12px 24px',
-    background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '15px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-  },
-  linkText: {
-    color: '#64748b',
-    fontSize: '14px',
-    textDecoration: 'none',
-  },
-  comingSoonCard: {
-    background: 'linear-gradient(135deg, #eff6ff, #eef2ff)',
-    borderRadius: '16px',
-    border: '1px solid #bfdbfe',
-    padding: '24px',
-    display: 'flex',
-    gap: '16px',
-  },
-  comingSoonIcon: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '8px',
-    backgroundColor: '#dbeafe',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#2563eb',
-    flexShrink: 0,
-  },
-  comingSoonTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#1e3a8a',
-    margin: '0 0 8px 0',
-  },
-  comingSoonText: {
-    fontSize: '14px',
-    color: '#1d4ed8',
-    margin: '0 0 12px 0',
-  },
-  tagContainer: {
-    display: 'flex',
-    flexWrap: 'wrap' as const,
-    gap: '8px',
-  },
-  tag: {
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    color: '#1d4ed8',
-    padding: '4px 12px',
-    borderRadius: '999px',
-    fontSize: '13px',
-    fontWeight: '500',
-  },
-};
-
-export default function Tools() {
-  const handleLaunch = () => {
+  const handleLaunchMetMap = () => {
     window.open('https://metmap.art', '_blank', 'noopener,noreferrer');
   };
 
-  return (
-    <div style={styles.page}>
-      {/* Header */}
-      <div style={styles.header}>
-        <a href="/" style={styles.backLink}>
-          <ArrowLeftIcon />
-          Back to FluxStudio
-        </a>
-      </div>
+  // Don't render if not authenticated
+  if (!user) {
+    return null;
+  }
 
-      {/* Main Content */}
-      <div style={styles.container}>
-        <h1 style={styles.title}>Tools</h1>
-        <p style={styles.subtitle}>
-          Extend your FluxStudio workflow with powerful external tools and applications.
-        </p>
+  return (
+    <DashboardLayout
+      user={user || undefined}
+      breadcrumbs={[{ label: 'Tools' }]}
+      onLogout={logout}
+    >
+      <div className="p-4 md:p-6 space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-3">
+            <Wrench className="w-7 h-7 text-primary-600" aria-hidden="true" />
+            Tools
+          </h1>
+          <p className="text-neutral-600 dark:text-neutral-300 mt-1">
+            Extend your FluxStudio workflow with powerful external tools and applications.
+          </p>
+        </div>
 
         {/* Featured Tools Section */}
-        <h2 style={styles.sectionTitle}>
-          <span style={{ color: '#3b82f6' }}>★</span>
-          Featured Tools
-        </h2>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Star className="w-5 h-5 text-amber-500" aria-hidden="true" />
+            <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+              Featured Tools
+            </h2>
+          </div>
 
-        {/* MetMap Card */}
-        <div style={styles.card}>
-          <div style={styles.newBadge}>NEW</div>
-          <div style={styles.cardContent}>
-            <div style={styles.iconBox}>
-              <MapIcon />
+          {/* MetMap Card */}
+          <Card className="p-6 relative overflow-visible">
+            {/* NEW Badge */}
+            <div className="absolute -top-3 -right-3 bg-primary-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+              NEW
             </div>
-            <div style={styles.cardBody}>
-              <h3 style={styles.cardTitle}>MetMap</h3>
-              <span style={styles.cardCategory}>Productivity</span>
-              <p style={styles.cardDescription}>
-                Transform your meetings with AI-driven transcription, smart summaries,
-                and actionable insights. MetMap helps teams capture every important
-                detail and turn conversations into organized, searchable knowledge.
+
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Icon */}
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                <Map className="w-10 h-10 text-white" aria-hidden="true" />
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 space-y-4">
+                <div>
+                  <h3 className="text-xl font-bold text-neutral-900 dark:text-neutral-100">
+                    MetMap
+                  </h3>
+                  <span className="inline-block mt-1 px-3 py-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 text-xs rounded-full">
+                    Productivity
+                  </span>
+                </div>
+
+                <p className="text-neutral-600 dark:text-neutral-300">
+                  Transform your meetings with AI-driven transcription, smart summaries,
+                  and actionable insights. MetMap helps teams capture every important
+                  detail and turn conversations into organized, searchable knowledge.
+                </p>
+
+                {/* Features Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
+                    <Zap className="w-4 h-4 text-primary-600" aria-hidden="true" />
+                    AI Meeting Transcription
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
+                    <Zap className="w-4 h-4 text-primary-600" aria-hidden="true" />
+                    Smart Summaries
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
+                    <Zap className="w-4 h-4 text-primary-600" aria-hidden="true" />
+                    Action Item Extraction
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
+                    <Zap className="w-4 h-4 text-primary-600" aria-hidden="true" />
+                    Searchable Archives
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-4 pt-2">
+                  <Button
+                    onClick={handleLaunchMetMap}
+                    className="shadow-lg"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" aria-hidden="true" />
+                    Launch MetMap
+                  </Button>
+                  <a
+                    href="https://metmap.art"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-neutral-500 hover:text-primary-600 transition-colors"
+                  >
+                    metmap.art
+                  </a>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Coming Soon Section */}
+        <Card className="p-6 bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border-primary-200 dark:border-primary-800">
+          <div className="flex gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-6 h-6 text-primary-600 dark:text-primary-400" aria-hidden="true" />
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-primary-900 dark:text-primary-100">
+                More tools coming soon
+              </h3>
+              <p className="text-sm text-primary-700 dark:text-primary-300">
+                We're working on integrating more powerful tools to enhance your creative workflow.
               </p>
-              <div style={styles.featureList}>
-                <div style={styles.featureItem}>
-                  <span style={styles.featureIcon}><ZapIcon /></span>
-                  AI Meeting Transcription
-                </div>
-                <div style={styles.featureItem}>
-                  <span style={styles.featureIcon}><ZapIcon /></span>
-                  Smart Summaries
-                </div>
-                <div style={styles.featureItem}>
-                  <span style={styles.featureIcon}><ZapIcon /></span>
-                  Action Item Extraction
-                </div>
-                <div style={styles.featureItem}>
-                  <span style={styles.featureIcon}><ZapIcon /></span>
-                  Searchable Archives
-                </div>
-              </div>
-              <div style={styles.buttonRow}>
-                <button style={styles.primaryButton} onClick={handleLaunch}>
-                  <ExternalLinkIcon />
-                  Launch MetMap
-                </button>
-                <a href="https://metmap.art" target="_blank" rel="noreferrer" style={styles.linkText}>
-                  metmap.art
-                </a>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 bg-white/60 dark:bg-white/10 text-primary-700 dark:text-primary-300 text-sm rounded-full">
+                  AI Design Assistant
+                </span>
+                <span className="px-3 py-1 bg-white/60 dark:bg-white/10 text-primary-700 dark:text-primary-300 text-sm rounded-full">
+                  Asset Library
+                </span>
+                <span className="px-3 py-1 bg-white/60 dark:bg-white/10 text-primary-700 dark:text-primary-300 text-sm rounded-full">
+                  Analytics Dashboard
+                </span>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Coming Soon */}
-        <div style={styles.comingSoonCard}>
-          <div style={styles.comingSoonIcon}>
-            <ZapIcon />
-          </div>
-          <div>
-            <h3 style={styles.comingSoonTitle}>More tools coming soon</h3>
-            <p style={styles.comingSoonText}>
-              We're working on integrating more powerful tools to enhance your creative workflow.
-            </p>
-            <div style={styles.tagContainer}>
-              <span style={styles.tag}>AI Design Assistant</span>
-              <span style={styles.tag}>Asset Library</span>
-              <span style={styles.tag}>Analytics Dashboard</span>
-            </div>
-          </div>
-        </div>
+        </Card>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
+
+export default Tools;
