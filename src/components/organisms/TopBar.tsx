@@ -3,6 +3,7 @@
  *
  * Top navigation bar with breadcrumbs, search, notifications, and user menu.
  * Works in conjunction with NavigationSidebar for complete app navigation.
+ * Integrates with NotificationContext for real-time notification updates.
  *
  * @example
  * <TopBar
@@ -12,11 +13,12 @@
  */
 
 import * as React from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronRight, Bell, Menu, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronRight, Bell, Menu, X, Check, CheckCheck, Trash2 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { SearchBar } from '@/components/molecules';
 import { cn } from '@/lib/utils';
+import { useNotifications, Notification as NotificationType } from '@/contexts/NotificationContext';
 
 export interface Breadcrumb {
   label: string;
@@ -110,8 +112,8 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
       onSearch,
       recentSearches,
       showNotifications = true,
-      notifications = [],
-      unreadCount = 0,
+      notifications: propNotifications,
+      unreadCount: propUnreadCount,
       onNotificationClick,
       showMobileMenu = false,
       mobileMenuOpen = false,
@@ -123,6 +125,62 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
   ) => {
     const [notificationsOpen, setNotificationsOpen] = React.useState(false);
     const notificationRef = React.useRef<HTMLDivElement>(null);
+    const navigate = useNavigate();
+
+    // Get notifications from context (with fallback to props)
+    let contextNotifications: NotificationType[] = [];
+    let contextUnreadCount = 0;
+    let markAsRead: ((id: string) => Promise<void>) | undefined;
+    let markAllAsRead: (() => Promise<void>) | undefined;
+    let deleteNotification: ((id: string) => Promise<void>) | undefined;
+
+    try {
+      const notificationContext = useNotifications();
+      contextNotifications = notificationContext.state.notifications;
+      contextUnreadCount = notificationContext.state.unreadCount;
+      markAsRead = notificationContext.markAsRead;
+      markAllAsRead = notificationContext.markAllAsRead;
+      deleteNotification = notificationContext.deleteNotification;
+    } catch {
+      // Context not available, use props
+    }
+
+    // Use context values or fall back to props
+    const notifications = contextNotifications.length > 0 ? contextNotifications : (propNotifications || []);
+    const unreadCount = contextUnreadCount > 0 ? contextUnreadCount : (propUnreadCount || 0);
+
+    // Format relative time
+    const formatRelativeTime = (dateString: string) => {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString();
+    };
+
+    // Handle notification click
+    const handleNotificationClick = async (notification: NotificationType | Notification) => {
+      // Mark as read
+      if (markAsRead && 'isRead' in notification && !notification.isRead) {
+        await markAsRead(notification.id);
+      }
+
+      // Navigate to action URL if available
+      if ('actionUrl' in notification && notification.actionUrl) {
+        navigate(notification.actionUrl);
+        setNotificationsOpen(false);
+      } else if (onNotificationClick) {
+        onNotificationClick(notification as Notification);
+        setNotificationsOpen(false);
+      }
+    };
 
     // Close notifications dropdown when clicking outside
     React.useEffect(() => {
@@ -232,61 +290,103 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
 
                 {/* Notifications Dropdown */}
                 {notificationsOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white border border-neutral-200 rounded-lg shadow-dropdown overflow-hidden">
+                  <div
+                    className="absolute right-0 mt-2 w-96 bg-white border border-neutral-200 rounded-lg shadow-dropdown overflow-hidden"
+                    role="dialog"
+                    aria-label="Notifications"
+                  >
                     <div className="px-4 py-3 border-b border-neutral-200 flex items-center justify-between">
-                      <h3 className="font-semibold text-neutral-900">Notifications</h3>
-                      {unreadCount > 0 && (
-                        <Badge variant="error" size="sm">
-                          {unreadCount} new
-                        </Badge>
-                      )}
+                      <h3 className="font-semibold text-neutral-900" id="notifications-heading">Notifications</h3>
+                      <div className="flex items-center gap-2">
+                        {unreadCount > 0 && (
+                          <>
+                            <Badge variant="error" size="sm" aria-label={`${unreadCount} unread notifications`}>
+                              {unreadCount} new
+                            </Badge>
+                            {markAllAsRead && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => markAllAsRead()}
+                                className="text-xs text-neutral-500 hover:text-primary-600"
+                                aria-label="Mark all notifications as read"
+                              >
+                                <CheckCheck className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="max-h-96 overflow-y-auto">
+                    <div className="max-h-96 overflow-y-auto" role="list" aria-labelledby="notifications-heading">
                       {notifications.length > 0 ? (
                         <ul>
-                          {notifications.map((notification) => (
-                            <li key={notification.id}>
-                              <button
-                                onClick={() => {
-                                  onNotificationClick?.(notification);
-                                  setNotificationsOpen(false);
-                                }}
-                                className={cn(
-                                  'w-full px-4 py-3 text-left hover:bg-neutral-50 transition-colors border-b border-neutral-100 last:border-0',
-                                  !notification.read && 'bg-primary-50/50'
-                                )}
-                              >
-                                <div className="flex items-start gap-2">
-                                  {!notification.read && (
-                                    <div className="w-2 h-2 rounded-full bg-primary-600 mt-1.5 flex-shrink-0" />
+                          {notifications.slice(0, 10).map((notification) => {
+                            const isContextNotification = 'isRead' in notification;
+                            const isRead = isContextNotification ? notification.isRead : notification.read;
+                            const time = isContextNotification ? formatRelativeTime(notification.createdAt) : notification.time;
+
+                            return (
+                              <li key={notification.id} role="listitem">
+                                <div
+                                  className={cn(
+                                    'w-full px-4 py-3 text-left hover:bg-neutral-50 transition-colors border-b border-neutral-100 last:border-0 flex items-start gap-3',
+                                    !isRead && 'bg-primary-50/50'
                                   )}
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm text-neutral-900 truncate">
-                                      {notification.title}
-                                    </p>
-                                    <p className="text-sm text-neutral-600 line-clamp-2 mt-0.5">
-                                      {notification.message}
-                                    </p>
-                                    <p className="text-xs text-neutral-500 mt-1">
-                                      {notification.time}
-                                    </p>
-                                  </div>
+                                >
+                                  <button
+                                    onClick={() => handleNotificationClick(notification)}
+                                    className="flex-1 text-left min-w-0"
+                                    aria-label={`${notification.title}: ${notification.message}`}
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      {!isRead && (
+                                        <div className="w-2 h-2 rounded-full bg-primary-600 mt-1.5 flex-shrink-0" aria-hidden="true" />
+                                      )}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-sm text-neutral-900 truncate">
+                                          {notification.title}
+                                        </p>
+                                        <p className="text-sm text-neutral-600 line-clamp-2 mt-0.5">
+                                          {notification.message}
+                                        </p>
+                                        <p className="text-xs text-neutral-500 mt-1">
+                                          {time}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </button>
+                                  {isContextNotification && deleteNotification && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteNotification(notification.id);
+                                      }}
+                                      className="text-neutral-400 hover:text-error-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                      aria-label={`Delete notification: ${notification.title}`}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
                                 </div>
-                              </button>
-                            </li>
-                          ))}
+                              </li>
+                            );
+                          })}
                         </ul>
                       ) : (
                         <div className="px-4 py-8 text-center">
-                          <Bell className="h-8 w-8 text-neutral-300 mx-auto mb-2" />
+                          <Bell className="h-8 w-8 text-neutral-300 mx-auto mb-2" aria-hidden="true" />
                           <p className="text-sm text-neutral-500">No notifications</p>
+                          <p className="text-xs text-neutral-400 mt-1">You're all caught up!</p>
                         </div>
                       )}
                     </div>
 
-                    {notifications.length > 0 && (
-                      <div className="px-4 py-2 border-t border-neutral-200 bg-neutral-50">
+                    <div className="px-4 py-2 border-t border-neutral-200 bg-neutral-50">
+                      <Link to="/notifications" onClick={() => setNotificationsOpen(false)}>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -295,8 +395,8 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                         >
                           View All Notifications
                         </Button>
-                      </div>
-                    )}
+                      </Link>
+                    </div>
                   </div>
                 )}
               </div>

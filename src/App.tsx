@@ -7,6 +7,8 @@ import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { MessagingProvider } from './contexts/MessagingContext';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { ToastContainer } from './components/notifications/ToastContainer';
 import ErrorBoundary from './components/error/ErrorBoundary';
 import { performanceMonitoring } from './services/performanceMonitoring';
 import { apiService } from './services/apiService';
@@ -47,6 +49,7 @@ const { Component: FileNew } = lazyLoadWithRetry(() => import('./pages/FileNew')
 const { Component: TeamNew } = lazyLoadWithRetry(() => import('./pages/TeamNew'));
 const { Component: OrganizationNew } = lazyLoadWithRetry(() => import('./pages/OrganizationNew'));
 const { Component: Profile } = lazyLoadWithRetry(() => import('./pages/Profile'));
+const { Component: Notifications } = lazyLoadWithRetry(() => import('./pages/Notifications'));
 const { Component: OrganizationDashboard } = lazyLoadWithRetry(() => import('./components/OrganizationDashboard'));
 const { Component: TeamDashboard } = lazyLoadWithRetry(() => import('./components/TeamDashboard'));
 const { Component: ProjectDashboard } = lazyLoadWithRetry(() => import('./components/ProjectDashboard'));
@@ -88,10 +91,11 @@ function AuthenticatedRoutes() {
     <AuthProvider>
       <SocketProvider>
         <MessagingProvider>
-          <OrganizationProvider>
-            <WorkspaceProvider>
-              <Suspense fallback={<DefaultLoadingFallback />}>
-                <Routes>
+          <NotificationProvider>
+            <OrganizationProvider>
+              <WorkspaceProvider>
+                <Suspense fallback={<DefaultLoadingFallback />}>
+                  <Routes>
                   {/* Root route - redirects based on auth state */}
                   <Route path="/" element={<RootRedirect />} />
                   <Route path="/login" element={<Login />} />
@@ -116,6 +120,7 @@ function AuthenticatedRoutes() {
                   <Route path="/projects" element={<ProjectsNew />} />
                   <Route path="/projects/:id" element={<ProjectDetail />} />
                   <Route path="/messages" element={<MessagesNew />} />
+                  <Route path="/notifications" element={<Notifications />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/connectors" element={<Connectors />} />
@@ -162,10 +167,13 @@ function AuthenticatedRoutes() {
                   {/* FluxPrint Integration - 3D Printing */}
                   <Route path="/printing" element={<PrintingDashboard />} />
                   <Route path="/dashboard/printing" element={<PrintingDashboard />} />
-                </Routes>
-              </Suspense>
-            </WorkspaceProvider>
-          </OrganizationProvider>
+                  </Routes>
+                </Suspense>
+                {/* Global Toast Notifications */}
+                <ToastContainer />
+              </WorkspaceProvider>
+            </OrganizationProvider>
+          </NotificationProvider>
         </MessagingProvider>
       </SocketProvider>
     </AuthProvider>
