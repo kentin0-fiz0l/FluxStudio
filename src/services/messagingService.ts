@@ -46,11 +46,18 @@ class MessagingService {
    */
   private async apiRequest(endpoint: string, options: RequestInit = {}) {
     const url = `${this.apiBaseUrl}${endpoint}`;
+    // Check both possible token keys for compatibility
+    const authToken = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
+
+    if (!authToken) {
+      console.warn('[MessagingService] No auth token found in localStorage');
+    }
+
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+        Authorization: `Bearer ${authToken || ''}`,
         ...options.headers,
       },
       credentials: 'include',
