@@ -1761,6 +1761,97 @@ app.post('/notifications/read', authenticateToken, async (req, res) => {
   }
 });
 
+// Get unread notification count
+app.get('/notifications/unread-count', authenticateToken, async (req, res) => {
+  try {
+    let count = 0;
+    if (messagingAdapter) {
+      count = await messagingAdapter.getUnreadNotificationCount(req.user.id);
+    }
+    res.json({ success: true, count });
+  } catch (error) {
+    console.error('Unread notifications count error:', error);
+    res.status(500).json({ error: 'Failed to get unread count' });
+  }
+});
+
+// Create a new notification (internal use / admin)
+app.post('/notifications', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const { userId, type, title, message, data, priority, actionUrl, expiresAt } = req.body;
+
+    if (!userId || !type || !title) {
+      return res.status(400).json({ error: 'userId, type, and title are required' });
+    }
+
+    if (!messagingAdapter) {
+      return res.status(503).json({ error: 'Notification service unavailable' });
+    }
+
+    const notification = await messagingAdapter.createNotification({
+      userId,
+      type,
+      title,
+      message: message || '',
+      data: data || {},
+      priority: priority || 'medium',
+      actionUrl,
+      expiresAt
+    });
+
+    // Emit real-time notification via Socket.IO
+    if (messagingNamespace) {
+      messagingNamespace.to(`user:${userId}`).emit('notification:new', notification);
+    }
+
+    res.status(201).json({ success: true, notification });
+  } catch (error) {
+    console.error('Create notification error:', error);
+    res.status(500).json({ error: 'Failed to create notification' });
+  }
+});
+
+// Delete a notification
+app.delete('/notifications/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!messagingAdapter) {
+      return res.status(503).json({ error: 'Notification service unavailable' });
+    }
+
+    const deleted = await messagingAdapter.deleteNotification(id, req.user.id);
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete notification error:', error);
+    res.status(500).json({ error: 'Failed to delete notification' });
+  }
+});
+
+// Helper function to create and emit notifications
+async function createAndEmitNotification(notificationData) {
+  if (!messagingAdapter) return null;
+
+  try {
+    const notification = await messagingAdapter.createNotification(notificationData);
+
+    // Emit real-time notification via Socket.IO
+    if (messagingNamespace) {
+      messagingNamespace.to(`user:${notificationData.userId}`).emit('notification:new', notification);
+    }
+
+    return notification;
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    return null;
+  }
+}
+
 // ========================================
 // USER MANAGEMENT APIs (for messaging)
 // ========================================

@@ -304,6 +304,53 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
       socket.emit('users:online', onlineUsers);
     });
 
+    // ========================================
+    // NOTIFICATION EVENTS
+    // ========================================
+
+    // Subscribe to notifications (auto-joined to user room on connection)
+    socket.on('notifications:subscribe', async () => {
+      try {
+        if (messagingAdapter && messagingAdapter.getUnreadNotificationCount) {
+          const count = await messagingAdapter.getUnreadNotificationCount(socket.userId);
+          socket.emit('notifications:unread-count', { count });
+        }
+      } catch (error) {
+        console.error('Error getting unread notification count:', error);
+      }
+    });
+
+    // Mark notification as read
+    socket.on('notification:mark-read', async (notificationId) => {
+      try {
+        if (messagingAdapter && messagingAdapter.markNotificationAsRead) {
+          const notification = await messagingAdapter.markNotificationAsRead(notificationId, socket.userId);
+          if (notification) {
+            socket.emit('notification:updated', notification);
+            const count = await messagingAdapter.getUnreadNotificationCount(socket.userId);
+            socket.emit('notifications:unread-count', { count });
+          }
+        }
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+        socket.emit('error', { message: 'Failed to mark notification as read' });
+      }
+    });
+
+    // Mark all notifications as read
+    socket.on('notifications:mark-all-read', async () => {
+      try {
+        if (messagingAdapter && messagingAdapter.markAllNotificationsAsRead) {
+          await messagingAdapter.markAllNotificationsAsRead(socket.userId);
+          socket.emit('notifications:unread-count', { count: 0 });
+          socket.emit('notifications:all-marked-read');
+        }
+      } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+        socket.emit('error', { message: 'Failed to mark all notifications as read' });
+      }
+    });
+
     // Handle disconnect
     socket.on('disconnect', async () => {
       console.log(`💬 User disconnected from messaging: ${socket.userId}`);
