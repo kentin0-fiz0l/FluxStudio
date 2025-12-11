@@ -2038,6 +2038,490 @@ app.post('/presence/typing', authenticateToken, async (req, res) => {
   }
 });
 
+// ========================================
+// ADVANCED MESSAGING APIs
+// ========================================
+
+// Pin a message
+app.post('/conversations/:conversationId/messages/:messageId/pin', authenticateToken, async (req, res) => {
+  try {
+    const { conversationId, messageId } = req.params;
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ message: 'Pinning requires database mode' });
+    }
+
+    // Verify user is participant
+    const isParticipant = await messagingAdapter.isParticipant(conversationId, req.user.id);
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'Not a participant in this conversation' });
+    }
+
+    const result = await messagingAdapter.pinMessage(messageId, conversationId, req.user.id);
+    if (result) {
+      // Emit to conversation members
+      if (messagingNamespace) {
+        messagingNamespace.to(`conversation:${conversationId}`).emit('message:pinned', {
+          messageId,
+          conversationId,
+          pinnedBy: req.user.id
+        });
+      }
+      res.json({ success: true, pinned: result });
+    } else {
+      res.status(400).json({ error: 'Message already pinned or not found' });
+    }
+  } catch (error) {
+    console.error('Pin message error:', error);
+    res.status(500).json({ message: 'Failed to pin message' });
+  }
+});
+
+// Unpin a message
+app.delete('/conversations/:conversationId/messages/:messageId/pin', authenticateToken, async (req, res) => {
+  try {
+    const { conversationId, messageId } = req.params;
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ message: 'Unpinning requires database mode' });
+    }
+
+    const result = await messagingAdapter.unpinMessage(messageId, conversationId);
+    if (result) {
+      if (messagingNamespace) {
+        messagingNamespace.to(`conversation:${conversationId}`).emit('message:unpinned', {
+          messageId,
+          conversationId
+        });
+      }
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Pinned message not found' });
+    }
+  } catch (error) {
+    console.error('Unpin message error:', error);
+    res.status(500).json({ message: 'Failed to unpin message' });
+  }
+});
+
+// Get pinned messages
+app.get('/conversations/:conversationId/pinned', authenticateToken, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { limit = 20 } = req.query;
+
+    if (!messagingAdapter) {
+      return res.json({ success: true, pinnedMessages: [] });
+    }
+
+    const pinnedMessages = await messagingAdapter.getPinnedMessages(conversationId, parseInt(limit));
+    res.json({ success: true, pinnedMessages });
+  } catch (error) {
+    console.error('Get pinned messages error:', error);
+    res.status(500).json({ message: 'Failed to get pinned messages' });
+  }
+});
+
+// Mute conversation
+app.post('/conversations/:conversationId/mute', authenticateToken, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { duration } = req.body; // duration in hours, null = forever
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ message: 'Muting requires database mode' });
+    }
+
+    let mutedUntil = null;
+    if (duration) {
+      mutedUntil = new Date(Date.now() + duration * 60 * 60 * 1000);
+    }
+
+    const result = await messagingAdapter.muteConversation(conversationId, req.user.id, mutedUntil);
+    res.json({ success: result, mutedUntil });
+  } catch (error) {
+    console.error('Mute conversation error:', error);
+    res.status(500).json({ message: 'Failed to mute conversation' });
+  }
+});
+
+// Unmute conversation
+app.delete('/conversations/:conversationId/mute', authenticateToken, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ message: 'Unmuting requires database mode' });
+    }
+
+    const result = await messagingAdapter.unmuteConversation(conversationId, req.user.id);
+    res.json({ success: result });
+  } catch (error) {
+    console.error('Unmute conversation error:', error);
+    res.status(500).json({ message: 'Failed to unmute conversation' });
+  }
+});
+
+// Get mute status
+app.get('/conversations/:conversationId/mute', authenticateToken, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+
+    if (!messagingAdapter) {
+      return res.json({ success: true, isMuted: false });
+    }
+
+    const status = await messagingAdapter.getMuteStatus(conversationId, req.user.id);
+    res.json({ success: true, ...status });
+  } catch (error) {
+    console.error('Get mute status error:', error);
+    res.status(500).json({ message: 'Failed to get mute status' });
+  }
+});
+
+// Toggle reaction on a message
+app.post('/messages/:messageId/reactions', authenticateToken, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { reaction, conversationId } = req.body;
+
+    if (!reaction) {
+      return res.status(400).json({ error: 'Reaction emoji is required' });
+    }
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ message: 'Reactions require database mode' });
+    }
+
+    const result = await messagingAdapter.toggleReaction(messageId, req.user.id, reaction);
+
+    if (result) {
+      // Get updated reaction counts
+      const reactionCounts = await messagingAdapter.getReactionCounts(messageId);
+
+      // Emit to conversation members
+      if (messagingNamespace && conversationId) {
+        messagingNamespace.to(`conversation:${conversationId}`).emit('message:reaction', {
+          messageId,
+          reaction,
+          action: result.action,
+          userId: req.user.id,
+          reactionCounts
+        });
+      }
+
+      res.json({ success: true, ...result, reactionCounts });
+    } else {
+      res.status(500).json({ error: 'Failed to toggle reaction' });
+    }
+  } catch (error) {
+    console.error('Toggle reaction error:', error);
+    res.status(500).json({ message: 'Failed to toggle reaction' });
+  }
+});
+
+// Get reaction counts for a message
+app.get('/messages/:messageId/reactions', authenticateToken, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+
+    if (!messagingAdapter) {
+      return res.json({ success: true, reactions: [] });
+    }
+
+    const reactions = await messagingAdapter.getReactionCounts(messageId);
+    res.json({ success: true, reactions });
+  } catch (error) {
+    console.error('Get reactions error:', error);
+    res.status(500).json({ message: 'Failed to get reactions' });
+  }
+});
+
+// Edit a message
+app.patch('/messages/:messageId', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { content, conversationId } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: 'Message content is required' });
+    }
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ message: 'Editing requires database mode' });
+    }
+
+    const updatedMessage = await messagingAdapter.editMessage(messageId, req.user.id, content.trim());
+
+    if (updatedMessage) {
+      // Emit to conversation members
+      if (messagingNamespace && conversationId) {
+        messagingNamespace.to(`conversation:${conversationId}`).emit('message:edited', {
+          messageId,
+          content: updatedMessage.content,
+          editedAt: updatedMessage.editedAt,
+          isEdited: true
+        });
+      }
+
+      res.json({ success: true, message: updatedMessage });
+    } else {
+      res.status(404).json({ error: 'Message not found or you cannot edit this message' });
+    }
+  } catch (error) {
+    console.error('Edit message error:', error);
+    res.status(500).json({ message: 'Failed to edit message' });
+  }
+});
+
+// Delete a message
+app.delete('/messages/:messageId', authenticateToken, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { conversationId } = req.body;
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ message: 'Deletion requires database mode' });
+    }
+
+    const result = await messagingAdapter.deleteMessage(messageId);
+
+    if (result) {
+      // Emit to conversation members
+      if (messagingNamespace && conversationId) {
+        messagingNamespace.to(`conversation:${conversationId}`).emit('message:deleted', {
+          messageId,
+          deletedBy: req.user.id
+        });
+      }
+
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Message not found' });
+    }
+  } catch (error) {
+    console.error('Delete message error:', error);
+    res.status(500).json({ message: 'Failed to delete message' });
+  }
+});
+
+// Reply to a message
+app.post('/messages/:messageId/reply', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { content, conversationId, attachments } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: 'Message content is required' });
+    }
+
+    if (!conversationId) {
+      return res.status(400).json({ error: 'Conversation ID is required' });
+    }
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ message: 'Replies require database mode' });
+    }
+
+    // Verify user is participant
+    const isParticipant = await messagingAdapter.isParticipant(conversationId, req.user.id);
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'Not a participant in this conversation' });
+    }
+
+    const reply = await messagingAdapter.createReply({
+      conversationId,
+      authorId: req.user.id,
+      content: content.trim(),
+      replyToId: messageId,
+      attachments: attachments || []
+    });
+
+    // Emit to conversation members
+    if (messagingNamespace) {
+      messagingNamespace.to(`conversation:${conversationId}`).emit('message:new', {
+        ...reply,
+        author: {
+          id: req.user.id,
+          name: req.user.name || req.user.email,
+          avatar: req.user.avatar
+        }
+      });
+    }
+
+    res.status(201).json({ success: true, message: reply });
+  } catch (error) {
+    console.error('Reply message error:', error);
+    res.status(500).json({ message: 'Failed to send reply' });
+  }
+});
+
+// Get message with replies (thread)
+app.get('/messages/:messageId/thread', authenticateToken, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { limit = 50 } = req.query;
+
+    if (!messagingAdapter) {
+      return res.json({ success: true, message: null, replies: [] });
+    }
+
+    const thread = await messagingAdapter.getMessageWithReplies(messageId, parseInt(limit));
+    res.json({ success: true, ...thread });
+  } catch (error) {
+    console.error('Get thread error:', error);
+    res.status(500).json({ message: 'Failed to get thread' });
+  }
+});
+
+// Forward a message
+app.post('/messages/:messageId/forward', authenticateToken, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { toConversationId } = req.body;
+
+    if (!toConversationId) {
+      return res.status(400).json({ error: 'Target conversation ID is required' });
+    }
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ message: 'Forwarding requires database mode' });
+    }
+
+    // Verify user is participant in target conversation
+    const isParticipant = await messagingAdapter.isParticipant(toConversationId, req.user.id);
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'Not a participant in target conversation' });
+    }
+
+    const forwardedMessage = await messagingAdapter.forwardMessage(messageId, toConversationId, req.user.id);
+
+    if (forwardedMessage) {
+      // Emit to target conversation
+      if (messagingNamespace) {
+        messagingNamespace.to(`conversation:${toConversationId}`).emit('message:new', {
+          ...forwardedMessage,
+          author: {
+            id: req.user.id,
+            name: req.user.name || req.user.email,
+            avatar: req.user.avatar
+          }
+        });
+      }
+
+      res.status(201).json({ success: true, message: forwardedMessage });
+    } else {
+      res.status(404).json({ error: 'Original message not found' });
+    }
+  } catch (error) {
+    console.error('Forward message error:', error);
+    res.status(500).json({ message: 'Failed to forward message' });
+  }
+});
+
+// Mark specific message as read (delivery receipt)
+app.post('/messages/:messageId/read', authenticateToken, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { conversationId } = req.body;
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ message: 'Read receipts require database mode' });
+    }
+
+    const receipt = await messagingAdapter.markMessageRead(messageId, req.user.id);
+
+    if (receipt && conversationId) {
+      // Emit read receipt to conversation
+      if (messagingNamespace) {
+        messagingNamespace.to(`conversation:${conversationId}`).emit('message:read', {
+          messageId,
+          userId: req.user.id,
+          readAt: receipt.readAt
+        });
+      }
+    }
+
+    res.json({ success: true, receipt });
+  } catch (error) {
+    console.error('Mark message read error:', error);
+    res.status(500).json({ message: 'Failed to mark message as read' });
+  }
+});
+
+// Get message read receipts
+app.get('/messages/:messageId/receipts', authenticateToken, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+
+    if (!messagingAdapter) {
+      return res.json({ success: true, receipts: [] });
+    }
+
+    const receipts = await messagingAdapter.getMessageReceipts(messageId);
+    res.json({ success: true, receipts });
+  } catch (error) {
+    console.error('Get receipts error:', error);
+    res.status(500).json({ message: 'Failed to get receipts' });
+  }
+});
+
+// File upload for messages
+app.post('/messages/upload', authenticateToken, async (req, res) => {
+  try {
+    // Note: This is a placeholder - actual file upload would need multer or similar
+    // For now, we'll handle base64 encoded files in the request body
+    const { filename, content, mimeType, conversationId } = req.body;
+
+    if (!filename || !content) {
+      return res.status(400).json({ error: 'Filename and content are required' });
+    }
+
+    // Generate a unique filename
+    const timestamp = Date.now();
+    const uniqueFilename = `${timestamp}-${filename}`;
+    const uploadDir = path.join(__dirname, 'uploads', 'messages');
+
+    // Ensure upload directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    // Decode and save file
+    const buffer = Buffer.from(content, 'base64');
+    const filePath = path.join(uploadDir, uniqueFilename);
+    fs.writeFileSync(filePath, buffer);
+
+    // Return file URL
+    const fileUrl = `/uploads/messages/${uniqueFilename}`;
+    const fileSize = buffer.length;
+
+    // Determine file type category
+    let fileType = 'file';
+    if (mimeType) {
+      if (mimeType.startsWith('image/')) fileType = 'image';
+      else if (mimeType.startsWith('video/')) fileType = 'video';
+      else if (mimeType.startsWith('audio/')) fileType = 'audio';
+      else if (mimeType === 'application/pdf') fileType = 'document';
+    }
+
+    res.json({
+      success: true,
+      file: {
+        url: fileUrl,
+        filename: uniqueFilename,
+        originalFilename: filename,
+        mimeType,
+        fileType,
+        fileSize
+      }
+    });
+  } catch (error) {
+    console.error('File upload error:', error);
+    res.status(500).json({ message: 'Failed to upload file' });
+  }
+});
+
 // Create channel
 app.post('/channels', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
   const { name, teamId, description } = req.body;
