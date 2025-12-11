@@ -1,8 +1,8 @@
 /**
- * Tools Page - External Tools & Applications
+ * Tools Page - Flux Design Language
  *
- * Follows the Flux Design Language pattern with DashboardLayout.
- * Displays external tools and applications that integrate with FluxStudio.
+ * Internal hub for external tools and applications.
+ * Uses DashboardLayout for consistent FluxStudio experience.
  */
 
 import * as React from 'react';
@@ -13,11 +13,62 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   Map,
   ExternalLink,
-  Zap,
-  Star,
   Wrench,
-  Sparkles
+  Sparkles,
+  Star,
+  Palette,
+  FolderOpen,
+  BarChart3,
 } from 'lucide-react';
+
+interface Tool {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  status: 'active' | 'coming_soon';
+  category: string;
+  url?: string;
+}
+
+const tools: Tool[] = [
+  {
+    id: 'metmap',
+    name: 'MetMap',
+    description: 'Programmable tempo + chord timeline tool',
+    icon: <Map className="w-8 h-8" />,
+    status: 'active',
+    category: 'Music Production',
+    url: 'https://fluxstudio.art/metmap',
+  },
+];
+
+const comingSoonTools: Tool[] = [
+  {
+    id: 'ai-design',
+    name: 'AI Design Assistant',
+    description: 'Intelligent design suggestions and automation',
+    icon: <Sparkles className="w-8 h-8" />,
+    status: 'coming_soon',
+    category: 'Design',
+  },
+  {
+    id: 'asset-library',
+    name: 'Asset Library',
+    description: 'Centralized asset management and organization',
+    icon: <FolderOpen className="w-8 h-8" />,
+    status: 'coming_soon',
+    category: 'Resources',
+  },
+  {
+    id: 'analytics',
+    name: 'Analytics Dashboard',
+    description: 'Project insights and performance metrics',
+    icon: <BarChart3 className="w-8 h-8" />,
+    status: 'coming_soon',
+    category: 'Analytics',
+  },
+];
 
 function Tools() {
   const { user, logout } = useAuth();
@@ -36,8 +87,8 @@ function Tools() {
     console.log('✅ User authenticated:', user.email);
   }, [user, navigate]);
 
-  const handleLaunchMetMap = () => {
-    window.open('https://metmap.art', '_blank', 'noopener,noreferrer');
+  const handleLaunchTool = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // Don't render if not authenticated
@@ -72,103 +123,110 @@ function Tools() {
             </h2>
           </div>
 
-          {/* MetMap Card */}
-          <Card className="p-6 relative overflow-visible">
-            {/* NEW Badge */}
-            <div className="absolute -top-3 -right-3 bg-primary-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-              NEW
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-6">
-              {/* Icon */}
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
-                <Map className="w-10 h-10 text-white" aria-hidden="true" />
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 space-y-4">
-                <div>
-                  <h3 className="text-xl font-bold text-neutral-900 dark:text-neutral-100">
-                    MetMap
-                  </h3>
-                  <span className="inline-block mt-1 px-3 py-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 text-xs rounded-full">
-                    Productivity
-                  </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tools.map((tool) => (
+              <Card key={tool.id} className="relative group bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+                {/* NEW Badge */}
+                <div className="absolute -top-2 -right-2 bg-primary-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg">
+                  NEW
                 </div>
 
-                <p className="text-neutral-600 dark:text-neutral-300">
-                  Transform your meetings with AI-driven transcription, smart summaries,
-                  and actionable insights. MetMap helps teams capture every important
-                  detail and turn conversations into organized, searchable knowledge.
+                {/* Icon */}
+                <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/30 dark:to-indigo-900/30 rounded-xl mb-4">
+                  <div className="text-primary-600 dark:text-primary-400">
+                    {tool.icon}
+                  </div>
+                </div>
+
+                {/* Content */}
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-1">
+                  {tool.name}
+                </h3>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
+                  {tool.description}
                 </p>
 
-                {/* Features Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
-                    <Zap className="w-4 h-4 text-primary-600" aria-hidden="true" />
-                    AI Meeting Transcription
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
-                    <Zap className="w-4 h-4 text-primary-600" aria-hidden="true" />
-                    Smart Summaries
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
-                    <Zap className="w-4 h-4 text-primary-600" aria-hidden="true" />
-                    Action Item Extraction
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">
-                    <Zap className="w-4 h-4 text-primary-600" aria-hidden="true" />
-                    Searchable Archives
-                  </div>
+                {/* Category & Action */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-neutral-500 dark:text-neutral-500 font-medium">
+                    {tool.category}
+                  </span>
+                  {tool.url && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleLaunchTool(tool.url!)}
+                      className="shadow-sm"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-1.5" aria-hidden="true" />
+                      Launch
+                    </Button>
+                  )}
                 </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-4 pt-2">
-                  <Button
-                    onClick={handleLaunchMetMap}
-                    className="shadow-lg"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" aria-hidden="true" />
-                    Launch MetMap
-                  </Button>
-                  <a
-                    href="https://metmap.art"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-neutral-500 hover:text-primary-600 transition-colors"
-                  >
-                    metmap.art
-                  </a>
-                </div>
-              </div>
-            </div>
-          </Card>
+              </Card>
+            ))}
+          </div>
         </div>
 
         {/* Coming Soon Section */}
-        <Card className="p-6 bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border-primary-200 dark:border-primary-800">
-          <div className="flex gap-4">
-            <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-6 h-6 text-primary-600 dark:text-primary-400" aria-hidden="true" />
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary-500" aria-hidden="true" />
+            <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+              Coming Soon
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {comingSoonTools.map((tool) => (
+              <div
+                key={tool.id}
+                className="relative bg-neutral-50 dark:bg-neutral-800/50 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 opacity-60 cursor-not-allowed"
+              >
+                {/* Coming Soon Badge */}
+                <div className="absolute -top-2 -right-2 bg-neutral-400 dark:bg-neutral-600 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                  Soon
+                </div>
+
+                {/* Icon */}
+                <div className="flex items-center justify-center w-16 h-16 bg-neutral-100 dark:bg-neutral-700 rounded-xl mb-4">
+                  <div className="text-neutral-400 dark:text-neutral-500">
+                    {tool.icon}
+                  </div>
+                </div>
+
+                {/* Content */}
+                <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                  {tool.name}
+                </h3>
+                <p className="text-sm text-neutral-500 dark:text-neutral-500 mb-4">
+                  {tool.description}
+                </p>
+
+                {/* Category */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-neutral-400 dark:text-neutral-600 font-medium">
+                    {tool.category}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Info Card */}
+        <Card className="bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border-primary-200 dark:border-primary-800 p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center">
+              <Palette className="w-6 h-6 text-primary-600 dark:text-primary-400" aria-hidden="true" />
             </div>
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-primary-900 dark:text-primary-100">
-                More tools coming soon
+            <div>
+              <h3 className="text-lg font-semibold text-primary-900 dark:text-primary-100 mb-2">
+                Have a tool suggestion?
               </h3>
               <p className="text-sm text-primary-700 dark:text-primary-300">
-                We're working on integrating more powerful tools to enhance your creative workflow.
+                We're constantly expanding our toolkit. If you have ideas for tools that would
+                enhance your creative workflow, we'd love to hear from you.
               </p>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-1 bg-white/60 dark:bg-white/10 text-primary-700 dark:text-primary-300 text-sm rounded-full">
-                  AI Design Assistant
-                </span>
-                <span className="px-3 py-1 bg-white/60 dark:bg-white/10 text-primary-700 dark:text-primary-300 text-sm rounded-full">
-                  Asset Library
-                </span>
-                <span className="px-3 py-1 bg-white/60 dark:bg-white/10 text-primary-700 dark:text-primary-300 text-sm rounded-full">
-                  Analytics Dashboard
-                </span>
-              </div>
             </div>
           </div>
         </Card>
