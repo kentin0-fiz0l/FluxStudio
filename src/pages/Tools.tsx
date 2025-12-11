@@ -1,220 +1,315 @@
 /**
  * Tools Page - External Tools & Applications
- * Public page - no authentication required
+ * Zero external dependencies - inline styles only
  */
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { ExternalLink, Sparkles, Zap, ArrowLeft } from 'lucide-react';
 
-// Inline map icon to avoid any potential issues
-const MapIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
-    <line x1="9" y1="3" x2="9" y2="18" />
-    <line x1="15" y1="6" x2="15" y2="21" />
+// Inline SVG icons
+const ArrowLeftIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M19 12H5M12 19l-7-7 7-7"/>
   </svg>
 );
 
-interface Tool {
-  id: string;
-  name: string;
-  description: string;
-  longDescription: string;
-  url: string;
-  category: string;
-  features: string[];
-  isNew?: boolean;
-  isPrimary?: boolean;
-}
+const ExternalLinkIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
+  </svg>
+);
 
-const tools: Tool[] = [
-  {
-    id: 'metmap',
-    name: 'MetMap',
-    description: 'AI-powered meeting intelligence platform',
-    longDescription: 'Transform your meetings with AI-driven transcription, smart summaries, and actionable insights. MetMap helps teams capture every important detail and turn conversations into organized, searchable knowledge.',
-    url: 'https://metmap.art',
-    category: 'Productivity',
-    features: [
-      'AI Meeting Transcription',
-      'Smart Summaries',
-      'Action Item Extraction',
-      'Searchable Archives'
-    ],
-    isNew: true,
-    isPrimary: true,
+const MapIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+    <line x1="9" y1="3" x2="9" y2="18"/>
+    <line x1="15" y1="6" x2="15" y2="21"/>
+  </svg>
+);
+
+const ZapIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+  </svg>
+);
+
+const styles = {
+  page: {
+    minHeight: '100vh',
+    backgroundColor: '#f8fafc',
+    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
-];
+  header: {
+    backgroundColor: 'white',
+    borderBottom: '1px solid #e2e8f0',
+    padding: '16px 24px',
+  },
+  backLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    color: '#64748b',
+    textDecoration: 'none',
+    fontSize: '14px',
+  },
+  container: {
+    maxWidth: '900px',
+    margin: '0 auto',
+    padding: '48px 24px',
+  },
+  title: {
+    fontSize: '32px',
+    fontWeight: '700',
+    color: '#0f172a',
+    margin: '0 0 8px 0',
+  },
+  subtitle: {
+    fontSize: '16px',
+    color: '#64748b',
+    margin: '0 0 32px 0',
+  },
+  sectionTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#0f172a',
+    margin: '0 0 16px 0',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    border: '1px solid #e2e8f0',
+    padding: '32px',
+    marginBottom: '24px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    position: 'relative' as const,
+  },
+  newBadge: {
+    position: 'absolute' as const,
+    top: '-12px',
+    right: '-12px',
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    padding: '4px 12px',
+    borderRadius: '999px',
+    fontSize: '12px',
+    fontWeight: '700',
+  },
+  cardContent: {
+    display: 'flex',
+    gap: '24px',
+    flexWrap: 'wrap' as const,
+  },
+  iconBox: {
+    width: '80px',
+    height: '80px',
+    borderRadius: '16px',
+    background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'white',
+    flexShrink: 0,
+  },
+  cardBody: {
+    flex: 1,
+    minWidth: '280px',
+  },
+  cardTitle: {
+    fontSize: '24px',
+    fontWeight: '700',
+    color: '#0f172a',
+    margin: '0 0 4px 0',
+  },
+  cardCategory: {
+    display: 'inline-block',
+    backgroundColor: '#f1f5f9',
+    color: '#64748b',
+    padding: '2px 10px',
+    borderRadius: '999px',
+    fontSize: '12px',
+    marginBottom: '12px',
+  },
+  cardDescription: {
+    color: '#475569',
+    fontSize: '15px',
+    lineHeight: '1.6',
+    margin: '0 0 16px 0',
+  },
+  featureList: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '8px',
+    marginBottom: '20px',
+  },
+  featureItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '14px',
+    color: '#334155',
+  },
+  featureIcon: {
+    color: '#3b82f6',
+  },
+  buttonRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    flexWrap: 'wrap' as const,
+  },
+  primaryButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 24px',
+    background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '15px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+  },
+  linkText: {
+    color: '#64748b',
+    fontSize: '14px',
+    textDecoration: 'none',
+  },
+  comingSoonCard: {
+    background: 'linear-gradient(135deg, #eff6ff, #eef2ff)',
+    borderRadius: '16px',
+    border: '1px solid #bfdbfe',
+    padding: '24px',
+    display: 'flex',
+    gap: '16px',
+  },
+  comingSoonIcon: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '8px',
+    backgroundColor: '#dbeafe',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#2563eb',
+    flexShrink: 0,
+  },
+  comingSoonTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#1e3a8a',
+    margin: '0 0 8px 0',
+  },
+  comingSoonText: {
+    fontSize: '14px',
+    color: '#1d4ed8',
+    margin: '0 0 12px 0',
+  },
+  tagContainer: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: '8px',
+  },
+  tag: {
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    color: '#1d4ed8',
+    padding: '4px 12px',
+    borderRadius: '999px',
+    fontSize: '13px',
+    fontWeight: '500',
+  },
+};
 
-const ToolCard: React.FC<{ tool: Tool }> = ({ tool }) => {
+export default function Tools() {
   const handleLaunch = () => {
-    window.open(tool.url, '_blank', 'noopener,noreferrer');
+    window.open('https://metmap.art', '_blank', 'noopener,noreferrer');
   };
 
   return (
-    <div className={`relative group ${tool.isPrimary ? 'md:col-span-2' : ''}`}>
-      <div className={`
-        bg-white rounded-2xl border shadow-sm hover:shadow-lg transition-all duration-300
-        ${tool.isPrimary
-          ? 'border-blue-200 hover:border-blue-300'
-          : 'border-neutral-200 hover:border-neutral-300'
-        }
-      `}>
-        {/* New badge */}
-        {tool.isNew && (
-          <div className="absolute -top-3 -right-3 z-10">
-            <div className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs font-bold rounded-full shadow-lg">
-              <Sparkles className="w-3 h-3" />
-              NEW
+    <div style={styles.page}>
+      {/* Header */}
+      <div style={styles.header}>
+        <a href="/" style={styles.backLink}>
+          <ArrowLeftIcon />
+          Back to FluxStudio
+        </a>
+      </div>
+
+      {/* Main Content */}
+      <div style={styles.container}>
+        <h1 style={styles.title}>Tools</h1>
+        <p style={styles.subtitle}>
+          Extend your FluxStudio workflow with powerful external tools and applications.
+        </p>
+
+        {/* Featured Tools Section */}
+        <h2 style={styles.sectionTitle}>
+          <span style={{ color: '#3b82f6' }}>★</span>
+          Featured Tools
+        </h2>
+
+        {/* MetMap Card */}
+        <div style={styles.card}>
+          <div style={styles.newBadge}>NEW</div>
+          <div style={styles.cardContent}>
+            <div style={styles.iconBox}>
+              <MapIcon />
             </div>
-          </div>
-        )}
-
-        <div className={`p-6 ${tool.isPrimary ? 'md:p-8' : ''}`}>
-          <div className={`flex ${tool.isPrimary ? 'flex-col md:flex-row md:items-start gap-6' : 'flex-col'}`}>
-            {/* Icon */}
-            <div className={tool.isPrimary ? 'md:flex-shrink-0' : ''}>
-              <div className={`
-                flex items-center justify-center rounded-xl mb-4 md:mb-0
-                ${tool.isPrimary
-                  ? 'w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600'
-                  : 'w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-50'
-                }
-              `}>
-                <div className={tool.isPrimary ? 'text-white' : 'text-blue-600'}>
-                  <MapIcon />
-                </div>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className={`font-bold text-neutral-900 ${tool.isPrimary ? 'text-2xl' : 'text-lg'}`}>
-                  {tool.name}
-                </h3>
-                <span className="text-xs text-neutral-500 font-medium px-2 py-0.5 bg-neutral-100 rounded-full">
-                  {tool.category}
-                </span>
-              </div>
-
-              <p className={`text-neutral-600 mb-4 ${tool.isPrimary ? 'text-base' : 'text-sm'}`}>
-                {tool.isPrimary ? tool.longDescription : tool.description}
+            <div style={styles.cardBody}>
+              <h3 style={styles.cardTitle}>MetMap</h3>
+              <span style={styles.cardCategory}>Productivity</span>
+              <p style={styles.cardDescription}>
+                Transform your meetings with AI-driven transcription, smart summaries,
+                and actionable insights. MetMap helps teams capture every important
+                detail and turn conversations into organized, searchable knowledge.
               </p>
-
-              {/* Features list for primary tools */}
-              {tool.isPrimary && tool.features.length > 0 && (
-                <div className="mb-6">
-                  <div className="grid grid-cols-2 gap-2">
-                    {tool.features.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-2 text-sm text-neutral-700">
-                        <Zap className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                        <span>{feature}</span>
-                      </div>
-                    ))}
-                  </div>
+              <div style={styles.featureList}>
+                <div style={styles.featureItem}>
+                  <span style={styles.featureIcon}><ZapIcon /></span>
+                  AI Meeting Transcription
                 </div>
-              )}
-
-              {/* Action buttons */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <button
-                  onClick={handleLaunch}
-                  className={`
-                    flex items-center gap-2 font-medium rounded-lg transition-all duration-200
-                    ${tool.isPrimary
-                      ? 'px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg'
-                      : 'px-4 py-2 bg-blue-600 text-white hover:bg-blue-700'
-                    }
-                  `}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Launch {tool.name}
+                <div style={styles.featureItem}>
+                  <span style={styles.featureIcon}><ZapIcon /></span>
+                  Smart Summaries
+                </div>
+                <div style={styles.featureItem}>
+                  <span style={styles.featureIcon}><ZapIcon /></span>
+                  Action Item Extraction
+                </div>
+                <div style={styles.featureItem}>
+                  <span style={styles.featureIcon}><ZapIcon /></span>
+                  Searchable Archives
+                </div>
+              </div>
+              <div style={styles.buttonRow}>
+                <button style={styles.primaryButton} onClick={handleLaunch}>
+                  <ExternalLinkIcon />
+                  Launch MetMap
                 </button>
-                <a
-                  href={tool.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
-                >
-                  {tool.url.replace('https://', '')}
+                <a href="https://metmap.art" target="_blank" rel="noreferrer" style={styles.linkText}>
+                  metmap.art
                 </a>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-};
 
-export default function Tools() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100">
-      {/* Simple header with back link */}
-      <div className="bg-white border-b border-neutral-200">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to FluxStudio
-          </Link>
-        </div>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 md:py-12">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-neutral-900">
-            Tools
-          </h1>
-          <p className="text-neutral-600 mt-2">
-            Extend your FluxStudio workflow with powerful external tools and applications.
-          </p>
-        </div>
-
-        {/* Featured Tools */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-blue-500" />
-            Featured Tools
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {tools.filter(t => t.isPrimary).map((tool) => (
-              <ToolCard key={tool.id} tool={tool} />
-            ))}
+        {/* Coming Soon */}
+        <div style={styles.comingSoonCard}>
+          <div style={styles.comingSoonIcon}>
+            <ZapIcon />
           </div>
-        </div>
-
-        {/* Coming Soon Card */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0">
-              <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg">
-                <Zap className="w-5 h-5 text-blue-600" />
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                More tools coming soon
-              </h3>
-              <p className="text-blue-700 mb-4 text-sm">
-                We're working on integrating more powerful tools to enhance your creative workflow.
-                Stay tuned for AI design assistants, project management tools, and more.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-1 bg-white/60 text-blue-700 rounded-full text-sm font-medium">
-                  AI Design Assistant
-                </span>
-                <span className="px-3 py-1 bg-white/60 text-blue-700 rounded-full text-sm font-medium">
-                  Asset Library
-                </span>
-                <span className="px-3 py-1 bg-white/60 text-blue-700 rounded-full text-sm font-medium">
-                  Analytics Dashboard
-                </span>
-              </div>
+          <div>
+            <h3 style={styles.comingSoonTitle}>More tools coming soon</h3>
+            <p style={styles.comingSoonText}>
+              We're working on integrating more powerful tools to enhance your creative workflow.
+            </p>
+            <div style={styles.tagContainer}>
+              <span style={styles.tag}>AI Design Assistant</span>
+              <span style={styles.tag}>Asset Library</span>
+              <span style={styles.tag}>Analytics Dashboard</span>
             </div>
           </div>
         </div>
