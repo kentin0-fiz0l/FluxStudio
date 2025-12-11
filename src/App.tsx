@@ -19,7 +19,23 @@ import { Login } from './pages/Login';
 import Settings from './pages/Settings';
 import { MessagesNew } from './pages/MessagesNew';
 import OAuthCallback from './pages/OAuthCallback';
-import Tools from './pages/Tools';
+
+// Sanity check component - proves the route is working
+const VerySimpleToolsPage = () => (
+  <div
+    style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#020617',
+      color: 'white',
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+    }}
+  >
+    <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>Tools route reached ✅</h1>
+  </div>
+);
 
 // Lazy load non-critical pages and components
 const { Component: Home } = lazyLoadWithRetry(() => import('./pages/Home'));
@@ -181,7 +197,7 @@ export default function App() {
           <ThemeProvider>
             <Routes>
               {/* Public routes - rendered OUTSIDE provider tree for reliability */}
-              <Route path="/tools" element={<Tools />} />
+              <Route path="/tools" element={<VerySimpleToolsPage />} />
 
               {/* All other routes - with full provider tree */}
               <Route path="/*" element={<AuthenticatedRoutes />} />
