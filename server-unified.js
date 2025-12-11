@@ -1759,6 +1759,92 @@ app.post('/notifications/read', authenticateToken, async (req, res) => {
   }
 });
 
+// ========================================
+// USER MANAGEMENT APIs (for messaging)
+// ========================================
+
+// Get all users (for starting new conversations)
+app.get('/users', authenticateToken, async (req, res) => {
+  try {
+    const { search, limit = 50, excludeSelf = true } = req.query;
+
+    let users = [];
+    if (authAdapter) {
+      users = await authAdapter.getUsers();
+    }
+
+    // Filter out current user if requested
+    if (excludeSelf === 'true' || excludeSelf === true) {
+      users = users.filter(u => u.id !== req.user.id);
+    }
+
+    // Filter by search term if provided
+    if (search) {
+      const searchLower = search.toLowerCase();
+      users = users.filter(u =>
+        u.name?.toLowerCase().includes(searchLower) ||
+        u.email?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Limit results
+    users = users.slice(0, parseInt(limit));
+
+    // Transform to messaging-friendly format
+    const usersForMessaging = users.map(u => ({
+      id: u.id,
+      name: u.name || u.email?.split('@')[0] || 'Unknown',
+      email: u.email,
+      avatar: u.avatar || u.avatar_url,
+      userType: u.userType || u.user_type || 'client',
+      isOnline: false, // Would need presence tracking
+      lastSeen: u.lastLogin || u.last_login || null
+    }));
+
+    res.json({
+      success: true,
+      users: usersForMessaging,
+      total: usersForMessaging.length
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Get a specific user by ID
+app.get('/users/:userId', authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!authAdapter) {
+      return res.status(501).json({ error: 'Requires database mode' });
+    }
+
+    const user = await authAdapter.getUserById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name || user.email?.split('@')[0] || 'Unknown',
+        email: user.email,
+        avatar: user.avatar || user.avatar_url,
+        userType: user.userType || user.user_type || 'client',
+        isOnline: false,
+        lastSeen: user.lastLogin || user.last_login || null
+      }
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
 // Get single conversation with messages
 app.get('/conversations/:conversationId', authenticateToken, async (req, res) => {
   try {
