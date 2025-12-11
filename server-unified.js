@@ -1734,6 +1734,166 @@ app.get('/notifications', authenticateToken, async (req, res) => {
   }
 });
 
+// Mark notifications as read
+app.post('/notifications/read', authenticateToken, async (req, res) => {
+  try {
+    const { ids, all } = req.body;
+
+    if (!messagingAdapter) {
+      return res.json({ success: true, marked: [] });
+    }
+
+    let marked = [];
+    if (all === true) {
+      marked = await messagingAdapter.markAllNotificationsAsRead(req.user.id);
+    } else if (Array.isArray(ids) && ids.length > 0) {
+      marked = await messagingAdapter.markNotificationsByIds(ids, req.user.id);
+    } else {
+      return res.status(400).json({ error: 'Must provide either { ids: [...] } or { all: true }' });
+    }
+
+    res.json({ success: true, marked });
+  } catch (error) {
+    console.error('Mark notifications error:', error);
+    res.status(500).json({ error: 'Failed to mark notifications as read' });
+  }
+});
+
+// Get single conversation with messages
+app.get('/conversations/:conversationId', authenticateToken, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { limit = 50, before } = req.query;
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ error: 'Requires database mode' });
+    }
+
+    // Check if user is a participant
+    const isParticipant = await messagingAdapter.isParticipant(conversationId, req.user.id);
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'You are not a participant in this conversation' });
+    }
+
+    const conversation = await messagingAdapter.getConversationWithMessages(
+      conversationId,
+      req.user.id,
+      parseInt(limit),
+      0
+    );
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
+    res.json({ success: true, conversation });
+  } catch (error) {
+    console.error('Get conversation error:', error);
+    res.status(500).json({ error: 'Failed to fetch conversation' });
+  }
+});
+
+// Create new conversation
+app.post('/conversations', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const { participantIds, title, type = 'direct', description } = req.body;
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ error: 'Requires database mode' });
+    }
+
+    if (!participantIds || !Array.isArray(participantIds)) {
+      return res.status(400).json({ error: 'participantIds array is required' });
+    }
+
+    // Create conversation
+    const conversation = await messagingAdapter.createConversation({
+      name: title || null,
+      description: description || null,
+      type: type,
+      createdBy: req.user.id
+    });
+
+    // Add creator as owner
+    await messagingAdapter.addParticipant(conversation.id, req.user.id, 'owner');
+
+    // Add other participants
+    for (const participantId of participantIds) {
+      if (participantId !== req.user.id) {
+        await messagingAdapter.addParticipant(conversation.id, participantId, 'member');
+      }
+    }
+
+    // Get participants for response
+    const participants = await messagingAdapter.getParticipants(conversation.id);
+
+    performanceMonitor.incrementCounter('conversations_created');
+
+    res.status(201).json({
+      success: true,
+      conversation: {
+        ...conversation,
+        participants
+      }
+    });
+  } catch (error) {
+    console.error('Create conversation error:', error);
+    res.status(500).json({ error: 'Failed to create conversation' });
+  }
+});
+
+// Send message in conversation
+app.post('/conversations/:conversationId/messages', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { body, messageType = 'text' } = req.body;
+
+    if (!messagingAdapter) {
+      return res.status(501).json({ error: 'Requires database mode' });
+    }
+
+    if (!body || typeof body !== 'string' || body.trim().length === 0) {
+      return res.status(400).json({ error: 'Message body is required' });
+    }
+
+    // Verify user is a participant
+    const isParticipant = await messagingAdapter.isParticipant(conversationId, req.user.id);
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'You are not a participant in this conversation' });
+    }
+
+    // Create the message
+    const message = await messagingAdapter.createMessage({
+      conversationId,
+      authorId: req.user.id,
+      content: body.trim(),
+      messageType: messageType
+    });
+
+    // Update conversation activity
+    await messagingAdapter.updateConversationActivity(conversationId);
+
+    // Update sender's last_read_at
+    await messagingAdapter.markMessageAsRead(req.user.id, conversationId);
+
+    // Emit to Socket.IO for real-time updates
+    if (messagingNamespace) {
+      messagingNamespace.to(`conversation:${conversationId}`).emit('message:new', {
+        ...message,
+        authorName: req.user.name,
+        authorEmail: req.user.email
+      });
+    }
+
+    performanceMonitor.incrementCounter('messages_sent');
+
+    res.status(201).json({ success: true, message });
+  } catch (error) {
+    console.error('Send message error:', error);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
 // Get message thread
 app.get('/messages/:messageId/thread', authenticateToken, async (req, res) => {
   try {

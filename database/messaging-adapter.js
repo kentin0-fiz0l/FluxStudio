@@ -536,6 +536,193 @@ class MessagingAdapter {
     }
   }
 
+  // ========================================
+  // NOTIFICATIONS
+  // ========================================
+
+  async getNotifications(userId, limit = 20, offset = 0) {
+    try {
+      const result = await query(
+        `SELECT * FROM notifications
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT $2 OFFSET $3`,
+        [userId, limit, offset]
+      );
+      return result.rows.map(this.transformNotification);
+    } catch (error) {
+      console.error('Error getting notifications:', error);
+      return [];
+    }
+  }
+
+  async getUnreadNotificationCount(userId) {
+    try {
+      const result = await query(
+        `SELECT COUNT(*) as count FROM notifications
+         WHERE user_id = $1 AND is_read = false`,
+        [userId]
+      );
+      return parseInt(result.rows[0].count) || 0;
+    } catch (error) {
+      console.error('Error getting unread notification count:', error);
+      return 0;
+    }
+  }
+
+  async createNotification(notificationData) {
+    try {
+      const result = await query(
+        `INSERT INTO notifications (user_id, type, title, message, data, priority, action_url, expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        [
+          notificationData.userId,
+          notificationData.type,
+          notificationData.title,
+          notificationData.message,
+          JSON.stringify(notificationData.data || {}),
+          notificationData.priority || 'medium',
+          notificationData.actionUrl || null,
+          notificationData.expiresAt || null
+        ]
+      );
+      return this.transformNotification(result.rows[0]);
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      throw error;
+    }
+  }
+
+  async markNotificationAsRead(notificationId, userId) {
+    try {
+      const result = await query(
+        `UPDATE notifications SET is_read = true, read_at = NOW()
+         WHERE id = $1 AND user_id = $2 RETURNING *`,
+        [notificationId, userId]
+      );
+      return result.rows.length > 0 ? this.transformNotification(result.rows[0]) : null;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      return null;
+    }
+  }
+
+  async markAllNotificationsAsRead(userId) {
+    try {
+      const result = await query(
+        `UPDATE notifications SET is_read = true, read_at = NOW()
+         WHERE user_id = $1 AND is_read = false RETURNING *`,
+        [userId]
+      );
+      return result.rows.map(this.transformNotification);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      return [];
+    }
+  }
+
+  async markNotificationsByIds(notificationIds, userId) {
+    try {
+      const result = await query(
+        `UPDATE notifications SET is_read = true, read_at = NOW()
+         WHERE id = ANY($1) AND user_id = $2 RETURNING *`,
+        [notificationIds, userId]
+      );
+      return result.rows.map(this.transformNotification);
+    } catch (error) {
+      console.error('Error marking notifications by ids:', error);
+      return [];
+    }
+  }
+
+  async deleteNotification(notificationId, userId) {
+    try {
+      const result = await query(
+        `DELETE FROM notifications WHERE id = $1 AND user_id = $2`,
+        [notificationId, userId]
+      );
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      return false;
+    }
+  }
+
+  transformNotification(dbNotification) {
+    return {
+      id: dbNotification.id,
+      userId: dbNotification.user_id,
+      type: dbNotification.type,
+      title: dbNotification.title,
+      message: dbNotification.message,
+      data: dbNotification.data || {},
+      priority: dbNotification.priority,
+      isRead: dbNotification.is_read,
+      readAt: dbNotification.read_at,
+      actionUrl: dbNotification.action_url,
+      expiresAt: dbNotification.expires_at,
+      createdAt: dbNotification.created_at
+    };
+  }
+
+  // ========================================
+  // PARTICIPANT VERIFICATION
+  // ========================================
+
+  async isParticipant(conversationId, userId) {
+    try {
+      const result = await query(
+        `SELECT 1 FROM conversation_participants
+         WHERE conversation_id = $1 AND user_id = $2`,
+        [conversationId, userId]
+      );
+      return result.rows.length > 0;
+    } catch (error) {
+      console.error('Error checking participant:', error);
+      return false;
+    }
+  }
+
+  async getConversationWithMessages(conversationId, userId, messageLimit = 50, messageOffset = 0) {
+    try {
+      // First verify user is a participant
+      const isParticipant = await this.isParticipant(conversationId, userId);
+      if (!isParticipant) {
+        return null;
+      }
+
+      // Get conversation details
+      const convResult = await query(
+        `SELECT c.*, u.name as creator_name
+         FROM conversations c
+         LEFT JOIN users u ON c.created_by = u.id
+         WHERE c.id = $1`,
+        [conversationId]
+      );
+
+      if (convResult.rows.length === 0) {
+        return null;
+      }
+
+      const conversation = this.transformConversation(convResult.rows[0]);
+
+      // Get messages
+      const messages = await this.getMessages(conversationId, messageLimit, messageOffset, userId);
+
+      // Get participants
+      const participants = await this.getParticipants(conversationId);
+
+      return {
+        ...conversation,
+        messages,
+        participants
+      };
+    } catch (error) {
+      console.error('Error getting conversation with messages:', error);
+      return null;
+    }
+  }
+
   // Health check
   async healthCheck() {
     try {
