@@ -1857,7 +1857,7 @@ async function createAndEmitNotification(notificationData) {
 // ========================================
 
 const connectorsAdapter = require('./database/connectors-adapter');
-const oauthManager = require('./lib/oauth-manager');
+// oauthManager already imported at top of file
 
 // Get list of all connectors with status
 app.get('/connectors/list', authenticateToken, async (req, res) => {
@@ -2153,7 +2153,7 @@ app.get('/connectors/sync-jobs', authenticateToken, async (req, res) => {
 
 // Import files adapter and storage
 const filesAdapter = require('./database/files-adapter');
-const storage = require('./storage');
+const fileStorage = require('./storage');
 
 // Configure multer for file uploads
 const fileUploadStorage = multer.memoryStorage();
@@ -2229,7 +2229,7 @@ app.post('/files/upload', authenticateToken, fileUpload.array('files', 10), asyn
     for (const file of req.files) {
       try {
         // Save file to storage
-        const storageResult = await storage.saveFile({
+        const storageResult = await fileStorage.saveFile({
           buffer: file.buffer,
           mimeType: file.mimetype,
           userId: req.user.id,
@@ -2255,7 +2255,7 @@ app.post('/files/upload', authenticateToken, fileUpload.array('files', 10), asyn
         // Generate thumbnail for images (simple copy for MVP)
         if (file.mimetype.startsWith('image/')) {
           try {
-            const previewResult = await storage.savePreview({
+            const previewResult = await fileStorage.savePreview({
               buffer: file.buffer,
               mimeType: file.mimetype,
               fileId: fileRecord.id,
@@ -2390,7 +2390,7 @@ app.get('/files/:fileId/download', authenticateToken, async (req, res) => {
     }
 
     // Get file stream from storage
-    const stream = await storage.getFileStream(file.storageKey);
+    const stream = await fileStorage.getFileStream(file.storageKey);
 
     // Set headers
     res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
@@ -2467,7 +2467,7 @@ app.delete('/files/:fileId', authenticateToken, async (req, res) => {
     const previews = await filesAdapter.deletePreviewsForFile(fileId);
     for (const preview of previews) {
       try {
-        await storage.deleteFile(preview.storage_key);
+        await fileStorage.deleteFile(preview.storage_key);
       } catch (e) {
         console.error('Error deleting preview:', e);
       }
@@ -2478,7 +2478,7 @@ app.delete('/files/:fileId', authenticateToken, async (req, res) => {
 
     // Delete from storage (non-fatal if fails)
     try {
-      await storage.deleteFile(file.storageKey);
+      await fileStorage.deleteFile(file.storageKey);
     } catch (e) {
       console.error('Error deleting file from storage:', e);
     }
@@ -2554,13 +2554,13 @@ app.get('/files/storage/:storageKey(*)', authenticateToken, async (req, res) => 
     const storageKey = req.params.storageKey;
 
     // Check if file exists
-    const exists = await storage.exists(storageKey);
+    const exists = await fileStorage.exists(storageKey);
     if (!exists) {
       return res.status(404).json({ error: 'File not found' });
     }
 
     // Get file stream
-    const stream = await storage.getFileStream(storageKey);
+    const stream = await fileStorage.getFileStream(storageKey);
 
     // Try to determine mime type from extension
     const ext = storageKey.split('.').pop()?.toLowerCase();
