@@ -1,530 +1,996 @@
 /**
- * Files Page - Redesigned with Flux Design Language
+ * Files Page - FluxStudio
  *
- * Modern file management interface using the new component library.
+ * Full-featured file management dashboard with uploads, previews, and project linking.
+ *
+ * Features:
+ * - Real-time file listing from backend API
+ * - File uploads with drag-and-drop and progress tracking
+ * - Search, filter by type/source
+ * - Grid and list view modes
+ * - File actions (preview, rename, delete, link to project)
+ * - Integration with Connectors for imported files
+ *
+ * WCAG 2.1 Level A Compliant
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import * as React from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/templates';
-import { FileCard } from '../components/molecules';
-import { Button, Badge, Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui';
+import { Button, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, Input, Card, CardContent } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
-import { useFiles } from '../hooks/useFiles';
+import { useFiles, FileRecord, FileType, FileSource } from '../contexts/FilesContext';
+import { useProjects } from '../hooks/useProjects';
 import { toast } from '../lib/toast';
+import { cn, formatFileSize, formatRelativeTime } from '../lib/utils';
 import {
-  Folder,
-  FolderPlus,
   Upload,
   LayoutGrid,
   List as ListIcon,
-  Home,
+  Search,
+  Filter,
+  FolderOpen,
+  Image,
+  Video,
+  Music,
+  FileText,
+  File,
+  Archive,
+  Code,
+  Download,
+  Pencil,
+  Trash2,
+  Link2,
+  ExternalLink,
+  MoreVertical,
+  ChevronLeft,
   ChevronRight,
-  Clock,
-  Share2,
-  Star
+  Loader2,
+  X,
+  Cloud,
+  Github,
+  HardDrive,
+  RefreshCw,
+  AlertCircle,
+  Eye
 } from 'lucide-react';
 
 type ViewMode = 'grid' | 'list';
-type TabFilter = 'all' | 'recent' | 'shared' | 'starred';
 
-interface FileItem {
-  id: string;
-  name: string;
-  type: 'file' | 'folder';
-  size?: number;
-  mimeType?: string;
-  modifiedAt: Date;
-  owner?: string;
-  shared?: boolean;
-  starred?: boolean;
-  thumbnail?: string;
+// File type icons
+const fileTypeIcons: Record<string, React.ReactNode> = {
+  image: <Image className="h-5 w-5 text-blue-500" />,
+  video: <Video className="h-5 w-5 text-purple-500" />,
+  audio: <Music className="h-5 w-5 text-pink-500" />,
+  document: <FileText className="h-5 w-5 text-orange-500" />,
+  pdf: <FileText className="h-5 w-5 text-red-500" />,
+  text: <Code className="h-5 w-5 text-green-500" />,
+  code: <Code className="h-5 w-5 text-green-500" />,
+  archive: <Archive className="h-5 w-5 text-amber-500" />,
+  other: <File className="h-5 w-5 text-neutral-400" />
+};
+
+// Source icons
+const sourceIcons: Record<string, React.ReactNode> = {
+  upload: <Upload className="h-4 w-4" />,
+  connector: <Cloud className="h-4 w-4" />,
+  github: <Github className="h-4 w-4" />,
+  google_drive: <Cloud className="h-4 w-4" />,
+  dropbox: <Cloud className="h-4 w-4" />,
+  onedrive: <HardDrive className="h-4 w-4" />,
+  generated: <File className="h-4 w-4" />
+};
+
+// Type filter options
+const typeFilterOptions: { value: FileType | 'all'; label: string }[] = [
+  { value: 'all', label: 'All Types' },
+  { value: 'image', label: 'Images' },
+  { value: 'video', label: 'Videos' },
+  { value: 'audio', label: 'Audio' },
+  { value: 'document', label: 'Documents' },
+  { value: 'pdf', label: 'PDFs' },
+  { value: 'text', label: 'Text/Code' },
+  { value: 'archive', label: 'Archives' },
+  { value: 'other', label: 'Other' }
+];
+
+// Source filter options
+const sourceFilterOptions: { value: FileSource; label: string }[] = [
+  { value: 'all', label: 'All Sources' },
+  { value: 'upload', label: 'Uploads' },
+  { value: 'connector', label: 'Connectors' },
+  { value: 'generated', label: 'Generated' }
+];
+
+// File card component
+interface FileCardItemProps {
+  file: FileRecord;
+  view: ViewMode;
+  onPreview: (file: FileRecord) => void;
+  onDownload: (file: FileRecord) => void;
+  onRename: (file: FileRecord) => void;
+  onDelete: (file: FileRecord) => void;
+  onLinkProject: (file: FileRecord) => void;
 }
+
+const FileCardItem: React.FC<FileCardItemProps> = ({
+  file,
+  view,
+  onPreview,
+  onDownload,
+  onRename,
+  onDelete,
+  onLinkProject
+}) => {
+  const [showMenu, setShowMenu] = React.useState(false);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  // Close menu on click outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const icon = fileTypeIcons[file.fileType] || fileTypeIcons.other;
+  const sourceIcon = file.provider ? sourceIcons[file.provider] : sourceIcons[file.source];
+
+  if (view === 'grid') {
+    return (
+      <Card
+        className="group cursor-pointer hover:shadow-md transition-shadow"
+        onClick={() => onPreview(file)}
+      >
+        <CardContent className="p-4">
+          {/* Thumbnail or icon */}
+          <div className="aspect-video bg-neutral-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative">
+            {file.thumbnailUrl ? (
+              <img
+                src={file.thumbnailUrl}
+                alt={file.name}
+                className="w-full h-full object-cover"
+              />
+            ) : file.isImage && file.fileUrl ? (
+              <img
+                src={file.fileUrl}
+                alt={file.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="text-neutral-400 scale-150">
+                {icon}
+              </div>
+            )}
+
+            {/* Source badge */}
+            <div className="absolute top-2 left-2">
+              <Badge variant="default" size="sm" className="flex items-center gap-1 bg-white/90">
+                {sourceIcon}
+                <span className="capitalize">{file.provider || file.source}</span>
+              </Badge>
+            </div>
+
+            {/* Actions overlay */}
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="bg-white/90 hover:bg-white text-neutral-900"
+                onClick={(e) => { e.stopPropagation(); onPreview(file); }}
+                aria-label="Preview file"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="bg-white/90 hover:bg-white text-neutral-900"
+                onClick={(e) => { e.stopPropagation(); onDownload(file); }}
+                aria-label="Download file"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* File info */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-medium text-neutral-900 truncate" title={file.name}>
+                {file.name}
+              </h3>
+              <div className="flex items-center gap-2 text-xs text-neutral-500 mt-1">
+                <span>{formatFileSize(file.size)}</span>
+                <span>•</span>
+                <span>{formatRelativeTime(file.createdAt)}</span>
+              </div>
+              {file.projectName && (
+                <div className="text-xs text-primary-600 mt-1 truncate">
+                  Linked to: {file.projectName}
+                </div>
+              )}
+            </div>
+
+            {/* Menu button */}
+            <div className="relative" ref={menuRef}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+                aria-label="More options"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+
+              {showMenu && (
+                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-10">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onRename(file); setShowMenu(false); }}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2"
+                  >
+                    <Pencil className="h-4 w-4" /> Rename
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onLinkProject(file); setShowMenu(false); }}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2"
+                  >
+                    <Link2 className="h-4 w-4" /> {file.projectId ? 'Change Project' : 'Link to Project'}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDownload(file); setShowMenu(false); }}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" /> Download
+                  </button>
+                  <hr className="my-1" />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(file); setShowMenu(false); }}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" /> Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // List view
+  return (
+    <Card
+      className="group cursor-pointer hover:shadow-sm transition-shadow"
+      onClick={() => onPreview(file)}
+    >
+      <CardContent className="p-3">
+        <div className="flex items-center gap-4">
+          {/* Icon */}
+          <div className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center flex-shrink-0">
+            {icon}
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium text-neutral-900 truncate">{file.name}</h3>
+              <Badge variant="default" size="sm" className="flex items-center gap-1">
+                {sourceIcon}
+                <span className="capitalize hidden sm:inline">{file.provider || file.source}</span>
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
+              <span className="uppercase">{file.extension || file.fileType}</span>
+              <span>•</span>
+              <span>{formatFileSize(file.size)}</span>
+              <span>•</span>
+              <span>{formatRelativeTime(file.createdAt)}</span>
+              {file.projectName && (
+                <>
+                  <span>•</span>
+                  <span className="text-primary-600 truncate">{file.projectName}</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); onPreview(file); }}
+              aria-label="Preview"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); onDownload(file); }}
+              aria-label="Download"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); onRename(file); }}
+              aria-label="Rename"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); onDelete(file); }}
+              className="text-red-600"
+              aria-label="Delete"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 export function FileNew() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { files: backendFiles, loading } = useFiles();
+  const [searchParams] = useSearchParams();
+  const {
+    state,
+    refreshFiles,
+    uploadFiles,
+    renameFile,
+    deleteFile,
+    linkFileToProject,
+    setFilters,
+    setPage,
+    setSelectedFile
+  } = useFiles();
+  const { projects } = useProjects();
 
   // UI State
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [activeTab, setActiveTab] = useState<TabFilter>('all');
-  const [currentFolder, setCurrentFolder] = useState<string | null>(null);
-  const [breadcrumbs, setBreadcrumbs] = useState<Array<{id: string, name: string}>>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showNewFolder, setShowNewFolder] = useState(false);
-  const [showUpload, setShowUpload] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
+  const [viewMode, setViewMode] = React.useState<ViewMode>('grid');
+  const [showUploadDialog, setShowUploadDialog] = React.useState(false);
+  const [showRenameDialog, setShowRenameDialog] = React.useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+  const [showLinkDialog, setShowLinkDialog] = React.useState(false);
+  const [showPreviewDrawer, setShowPreviewDrawer] = React.useState(false);
+  const [selectedFileForAction, setSelectedFileForAction] = React.useState<FileRecord | null>(null);
+  const [newFileName, setNewFileName] = React.useState('');
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [localSearch, setLocalSearch] = React.useState('');
 
-  // LocalStorage key for persistence
-  const STORAGE_KEY = 'fluxstudio_files';
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const dropZoneRef = React.useRef<HTMLDivElement>(null);
 
-  // Load files from localStorage or use default mock data
-  const getInitialFiles = (): FileItem[] => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Convert date strings back to Date objects
-        return parsed.map((file: any) => ({
-          ...file,
-          modifiedAt: new Date(file.modifiedAt)
-        }));
+  // Handle URL params for filtering
+  React.useEffect(() => {
+    const projectId = searchParams.get('projectId');
+    const source = searchParams.get('source') as FileSource;
+
+    if (projectId || source) {
+      setFilters({
+        projectId: projectId || undefined,
+        source: source || 'all'
+      });
+    }
+  }, [searchParams, setFilters]);
+
+  // Debounced search
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch !== state.filters.search) {
+        setFilters({ search: localSearch });
       }
-    } catch (error) {
-      console.error('Failed to load files from localStorage:', error);
-      toast.error('Failed to load your files');
-    }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [localSearch, state.filters.search, setFilters]);
 
-    // Default mock data
-    return [
-      {
-        id: '1',
-        name: 'Design Assets',
-        type: 'folder',
-        modifiedAt: new Date('2024-10-08'),
-        owner: 'John Doe'
-      },
-      {
-        id: '2',
-        name: 'Project Files',
-        type: 'folder',
-        modifiedAt: new Date('2024-10-08'),
-        owner: 'John Doe',
-        starred: true
-      },
-      {
-        id: '3',
-        name: 'winter-show-script.pdf',
-        type: 'file',
-        size: 2048576,
-        mimeType: 'application/pdf',
-        modifiedAt: new Date('2024-10-07'),
-        owner: 'John Doe',
-        starred: true,
-        shared: true
-      },
-      {
-        id: '4',
-        name: 'design-mockup.png',
-        type: 'file',
-        size: 2097152,
-        mimeType: 'image/png',
-        modifiedAt: new Date('2024-10-08'),
-        owner: 'Jane Smith',
-        starred: true,
-        thumbnail: 'https://placeholders.dev/300x200'
-      },
-      {
-        id: '5',
-        name: 'demo-video.mp4',
-        type: 'file',
-        size: 15728640,
-        mimeType: 'video/mp4',
-        modifiedAt: new Date('2024-10-08'),
-        owner: 'John Doe'
-      },
-      {
-        id: '6',
-        name: 'background-music.mp3',
-        type: 'file',
-        size: 4194304,
-        mimeType: 'audio/mpeg',
-        modifiedAt: new Date('2024-10-08'),
-        owner: 'John Doe'
-      }
-    ];
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
   };
 
-  const [files, setFiles] = useState<FileItem[]>(getInitialFiles);
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.target === dropZoneRef.current) {
+      setIsDragging(false);
+    }
+  };
 
-  // Save files to localStorage whenever they change
-  useEffect(() => {
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      await handleUpload(files);
+    }
+  };
+
+  // Upload handler
+  const handleUpload = async (files: FileList | File[]) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
+      const uploaded = await uploadFiles(files);
+      toast.success(`Uploaded ${uploaded.length} file(s)`);
+      setShowUploadDialog(false);
     } catch (error) {
-      console.error('Failed to save files to localStorage:', error);
-      toast.error('Failed to save changes');
+      toast.error(error instanceof Error ? error.message : 'Upload failed');
     }
-  }, [files]);
+  };
 
-  // Tab options
-  const tabOptions = [
-    { value: 'all' as TabFilter, label: 'All Files', icon: Folder },
-    { value: 'recent' as TabFilter, label: 'Recent', icon: Clock },
-    { value: 'shared' as TabFilter, label: 'Shared', icon: Share2 },
-    { value: 'starred' as TabFilter, label: 'Starred', icon: Star }
-  ];
-
-  // Filter files based on active tab and search
-  const filteredFiles = useMemo(() => {
-    let result = files;
-
-    // Filter by tab
-    switch (activeTab) {
-      case 'recent':
-        result = files
-          .filter(f => f.type === 'file')
-          .sort((a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime())
-          .slice(0, 10);
-        break;
-      case 'shared':
-        result = files.filter(f => f.shared);
-        break;
-      case 'starred':
-        result = files.filter(f => f.starred);
-        break;
-      default:
-        result = files.filter(f => !currentFolder);  // Only show root items
+  // File input change handler
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      await handleUpload(e.target.files);
+      e.target.value = ''; // Reset input
     }
+  };
 
-    // Filter by search term
-    if (searchTerm) {
-      result = result.filter(f =>
-        f.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+  // Action handlers
+  const handlePreview = (file: FileRecord) => {
+    setSelectedFile(file);
+    setShowPreviewDrawer(true);
+  };
 
-    return result;
-  }, [files, activeTab, searchTerm, currentFolder]);
+  const handleDownload = (file: FileRecord) => {
+    window.open(`/api/files/${file.id}/download`, '_blank');
+  };
 
-  // Handlers
-  const handleCreateFolder = () => {
-    if (!newFolderName.trim()) {
-      toast.warning('Please enter a folder name');
-      return;
-    }
+  const handleRenameClick = (file: FileRecord) => {
+    setSelectedFileForAction(file);
+    setNewFileName(file.name);
+    setShowRenameDialog(true);
+  };
+
+  const handleRenameSubmit = async () => {
+    if (!selectedFileForAction || !newFileName.trim()) return;
 
     try {
-      const newFolder: FileItem = {
-        id: Date.now().toString(),
-        name: newFolderName,
-        type: 'folder',
-        modifiedAt: new Date(),
-        owner: user?.name || 'You'
-      };
-
-      setFiles(prev => [...prev, newFolder]);
-      setNewFolderName('');
-      setShowNewFolder(false);
-      toast.success(`Folder "${newFolderName}" created successfully`);
+      await renameFile(selectedFileForAction.id, newFileName.trim());
+      toast.success('File renamed');
+      setShowRenameDialog(false);
+      setSelectedFileForAction(null);
     } catch (error) {
-      console.error('Failed to create folder:', error);
-      toast.error('Failed to create folder. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Rename failed');
     }
   };
 
-  const handleFileClick = (file: FileItem) => {
-    if (file.type === 'folder') {
-      // Navigate into folder
-      setCurrentFolder(file.id);
-      setBreadcrumbs(prev => [...prev, { id: file.id, name: file.name }]);
-    } else {
-      // Open file preview
-      console.log('Open file:', file.name);
-    }
+  const handleDeleteClick = (file: FileRecord) => {
+    setSelectedFileForAction(file);
+    setShowDeleteDialog(true);
   };
 
-  const handleNavigateToBreadcrumb = (index: number) => {
-    const crumb = breadcrumbs[index];
-    setCurrentFolder(crumb.id);
-    setBreadcrumbs(prev => prev.slice(0, index + 1));
-  };
+  const handleDeleteConfirm = async () => {
+    if (!selectedFileForAction) return;
 
-  const handleNavigateToRoot = () => {
-    setCurrentFolder(null);
-    setBreadcrumbs([]);
-  };
-
-  const handleToggleStar = (fileId: string) => {
     try {
-      const file = files.find(f => f.id === fileId);
-      if (!file) return;
-
-      setFiles(prev =>
-        prev.map(f => f.id === fileId ? { ...f, starred: !f.starred } : f)
-      );
-
-      const action = file.starred ? 'removed from' : 'added to';
-      toast.success(`"${file.name}" ${action} starred items`);
+      await deleteFile(selectedFileForAction.id);
+      toast.success('File deleted');
+      setShowDeleteDialog(false);
+      setSelectedFileForAction(null);
     } catch (error) {
-      console.error('Failed to toggle star:', error);
-      toast.error('Failed to update starred status');
+      toast.error(error instanceof Error ? error.message : 'Delete failed');
     }
   };
 
-  const handleDeleteFile = (fileId: string) => {
+  const handleLinkProjectClick = (file: FileRecord) => {
+    setSelectedFileForAction(file);
+    setShowLinkDialog(true);
+  };
+
+  const handleLinkProject = async (projectId: string) => {
+    if (!selectedFileForAction) return;
+
     try {
-      const file = files.find(f => f.id === fileId);
-      if (!file) return;
-
-      setFiles(prev => prev.filter(item => item.id !== fileId));
-      toast.success(`"${file.name}" deleted successfully`);
+      await linkFileToProject(selectedFileForAction.id, projectId);
+      toast.success('File linked to project');
+      setShowLinkDialog(false);
+      setSelectedFileForAction(null);
     } catch (error) {
-      console.error('Failed to delete file:', error);
-      toast.error('Failed to delete file');
+      toast.error(error instanceof Error ? error.message : 'Link failed');
     }
   };
+
+  // Stats
+  const uploadingCount = Object.keys(state.uploadProgress).length;
+  const hasUploads = uploadingCount > 0;
 
   return (
     <DashboardLayout
-      user={user}
+      user={user ? { name: user.name || user.email, email: user.email } : undefined}
       breadcrumbs={[{ label: 'Files' }]}
-      onSearch={setSearchTerm}
       onLogout={logout}
     >
-      <div className="p-6 space-y-6">
+      <div
+        ref={dropZoneRef}
+        className={cn(
+          'p-6 min-h-full transition-colors',
+          isDragging && 'bg-primary-50 ring-2 ring-primary-500 ring-inset'
+        )}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {/* Drag overlay */}
+        {isDragging && (
+          <div className="fixed inset-0 bg-primary-500/10 z-50 flex items-center justify-center pointer-events-none">
+            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+              <Upload className="h-16 w-16 text-primary-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-neutral-900">Drop files to upload</h3>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-900 flex items-center gap-3">
-              <Folder className="w-8 h-8 text-primary-600" aria-hidden="true" />
+            <h1 className="text-2xl font-bold text-neutral-900 flex items-center gap-3">
+              <FolderOpen className="w-7 h-7 text-primary-600" aria-hidden="true" />
               Files
             </h1>
             <p className="text-neutral-600 mt-1">
-              Organize and share your files with your team
+              Uploads, imports, and generated assets in one place.
             </p>
           </div>
+
           <div className="flex items-center gap-3">
             <Button
-              variant="secondary"
-              onClick={() => setShowNewFolder(true)}
-              icon={<FolderPlus className="w-4 h-4" aria-hidden="true" />}
-              title="Create a new folder to organize your files"
+              variant="outline"
+              size="sm"
+              icon={<RefreshCw className={cn('h-4 w-4', state.loading && 'animate-spin')} />}
+              onClick={() => refreshFiles()}
+              disabled={state.loading}
             >
-              New Folder
+              Refresh
             </Button>
             <Button
-              onClick={() => setShowUpload(true)}
-              icon={<Upload className="w-4 h-4" aria-hidden="true" />}
-              title="Upload files from your computer"
+              icon={<Upload className="h-4 w-4" />}
+              onClick={() => setShowUploadDialog(true)}
             >
               Upload Files
             </Button>
           </div>
         </div>
 
-        {/* Breadcrumbs */}
-        {breadcrumbs.length > 0 && (
-          <div className="flex items-center gap-2 text-sm">
-            <button
-              onClick={handleNavigateToRoot}
-              className="flex items-center gap-1 text-primary-600 hover:text-primary-700 transition-colors"
-            >
-              <Home className="w-4 h-4" aria-hidden="true" />
-              <span>Home</span>
-            </button>
-            {breadcrumbs.map((crumb, index) => (
-              <div key={crumb.id} className="flex items-center gap-2">
-                <ChevronRight className="w-4 h-4 text-neutral-400" aria-hidden="true" />
-                <button
-                  onClick={() => handleNavigateToBreadcrumb(index)}
-                  className="text-primary-600 hover:text-primary-700 transition-colors"
-                >
-                  {crumb.name}
-                </button>
+        {/* Upload progress */}
+        {hasUploads && (
+          <div className="mb-4 p-4 bg-primary-50 border border-primary-200 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 text-primary-600 animate-spin" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-primary-900">
+                  Uploading {uploadingCount} file(s)...
+                </p>
+                {Object.entries(state.uploadProgress).map(([filename, progress]) => (
+                  <div key={filename} className="mt-2">
+                    <div className="flex items-center justify-between text-xs text-primary-700 mb-1">
+                      <span className="truncate">{filename}</span>
+                      <span>{progress}%</span>
+                    </div>
+                    <div className="h-1.5 bg-primary-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary-600 transition-all"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex items-center gap-4 border-b border-neutral-200 pb-px">
-          {tabOptions.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
-                className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
-                  activeTab === tab.value
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-neutral-600 hover:text-neutral-900'
-                }`}
-              >
-                <Icon className="w-4 h-4" aria-hidden="true" />
-                <span className="font-medium">{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Badge variant="default" size="md">
-              {filteredFiles.length} {filteredFiles.length === 1 ? 'item' : 'items'}
-            </Badge>
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+          {/* Search */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+            <input
+              type="text"
+              placeholder="Search files..."
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              aria-label="Search files"
+            />
           </div>
 
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 bg-neutral-100 rounded-lg p-1">
+          {/* Type filter */}
+          <select
+            value={state.filters.type}
+            onChange={(e) => setFilters({ type: e.target.value as FileType | 'all' })}
+            className="px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+            aria-label="Filter by type"
+          >
+            {typeFilterOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+
+          {/* Source filter */}
+          <select
+            value={state.filters.source}
+            onChange={(e) => setFilters({ source: e.target.value as FileSource })}
+            className="px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+            aria-label="Filter by source"
+          >
+            {sourceFilterOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+
+          {/* View toggle */}
+          <div className="flex rounded-lg border border-neutral-200 overflow-hidden">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'grid'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
+              className={cn(
+                'p-2',
+                viewMode === 'grid' ? 'bg-neutral-100' : 'bg-white hover:bg-neutral-50'
+              )}
               aria-label="Grid view"
-              title="Switch to grid view - See files as cards"
+              aria-pressed={viewMode === 'grid'}
             >
-              <LayoutGrid className="w-4 h-4" aria-hidden="true" />
+              <LayoutGrid className="h-4 w-4" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
+              className={cn(
+                'p-2',
+                viewMode === 'list' ? 'bg-neutral-100' : 'bg-white hover:bg-neutral-50'
+              )}
               aria-label="List view"
-              title="Switch to list view - See files in a compact list"
+              aria-pressed={viewMode === 'list'}
             >
-              <ListIcon className="w-4 h-4" aria-hidden="true" />
+              <ListIcon className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Files Grid/List */}
-        {loading ? (
-          <div className="text-center py-12">
+        {/* Stats bar */}
+        <div className="flex items-center gap-4 mb-4 text-sm text-neutral-600">
+          <span>{state.pagination.total} file(s)</span>
+          {state.filters.search && <span>matching "{state.filters.search}"</span>}
+          {state.filters.type !== 'all' && <span>• Type: {state.filters.type}</span>}
+          {state.filters.source !== 'all' && <span>• Source: {state.filters.source}</span>}
+        </div>
+
+        {/* Error */}
+        {state.error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+            <p className="text-sm text-red-700">{state.error}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => refreshFiles()}
+            >
+              Retry
+            </Button>
+          </div>
+        )}
+
+        {/* Content */}
+        {state.loading && state.files.length === 0 ? (
+          <div className="text-center py-16">
+            <Loader2 className="h-8 w-8 text-neutral-300 mx-auto mb-4 animate-spin" />
             <p className="text-neutral-600">Loading files...</p>
           </div>
-        ) : filteredFiles.length === 0 ? (
-          <div className="text-center py-12">
-            <Folder className="w-16 h-16 text-neutral-300 mx-auto mb-4" aria-hidden="true" />
+        ) : state.files.length === 0 ? (
+          <div className="text-center py-16">
+            <FolderOpen className="h-16 w-16 text-neutral-200 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-neutral-900 mb-2">No Files Found</h3>
-            <p className="text-neutral-600 mb-6">
-              {searchTerm
-                ? 'Try adjusting your search'
-                : 'Create a folder or upload files to get started'}
+            <p className="text-neutral-600 mb-6 max-w-md mx-auto">
+              {state.filters.search || state.filters.type !== 'all' || state.filters.source !== 'all'
+                ? 'Try adjusting your filters or search term.'
+                : 'Upload files or connect a service to get started.'}
             </p>
-            {!searchTerm && (
-              <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                onClick={() => setShowUploadDialog(true)}
+                icon={<Upload className="h-4 w-4" />}
+              >
+                Upload Files
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/connectors')}
+                icon={<Cloud className="h-4 w-4" />}
+              >
+                Connect a Service
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Files grid/list */}
+            <div className={cn(
+              viewMode === 'grid'
+                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'
+                : 'space-y-2'
+            )}>
+              {state.files.map((file) => (
+                <FileCardItem
+                  key={file.id}
+                  file={file}
+                  view={viewMode}
+                  onPreview={handlePreview}
+                  onDownload={handleDownload}
+                  onRename={handleRenameClick}
+                  onDelete={handleDeleteClick}
+                  onLinkProject={handleLinkProjectClick}
+                />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {state.pagination.totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8">
                 <Button
-                  variant="secondary"
-                  onClick={() => setShowNewFolder(true)}
-                  icon={<FolderPlus className="w-4 h-4" aria-hidden="true" />}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(state.pagination.page - 1)}
+                  disabled={state.pagination.page <= 1}
+                  icon={<ChevronLeft className="h-4 w-4" />}
                 >
-                  New Folder
+                  Previous
                 </Button>
+                <span className="text-sm text-neutral-600 px-4">
+                  Page {state.pagination.page} of {state.pagination.totalPages}
+                </span>
                 <Button
-                  onClick={() => setShowUpload(true)}
-                  icon={<Upload className="w-4 h-4" aria-hidden="true" />}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(state.pagination.page + 1)}
+                  disabled={state.pagination.page >= state.pagination.totalPages}
+                  icon={<ChevronRight className="h-4 w-4" />}
                 >
-                  Upload Files
+                  Next
                 </Button>
               </div>
             )}
-          </div>
-        ) : (
-          <div className={
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'
-              : 'space-y-2'
-          }>
-            {filteredFiles.map((file) => (
-              <FileCard
-                key={file.id}
-                file={file}
-                view={viewMode}
-                showActions
-                showSize={file.type === 'file'}
-                showModified
-                showOwner
-                onClick={() => handleFileClick(file)}
-                onDownload={(f) => {
-                  console.log('Download:', f.name);
-                  toast.info(`Downloading "${f.name}"...`);
-                }}
-                onShare={(f) => {
-                  console.log('Share:', f.name);
-                  toast.info(`Share options for "${f.name}" coming soon`);
-                }}
-                onDelete={(f) => handleDeleteFile(f.id)}
-              />
-            ))}
-          </div>
+          </>
         )}
-      </div>
 
-      {/* New Folder Dialog */}
-      <Dialog open={showNewFolder} onOpenChange={setShowNewFolder}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Folder</DialogTitle>
-          </DialogHeader>
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleFileInputChange}
+        />
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Folder Name
-              </label>
-              <input
-                type="text"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleCreateFolder()}
-                placeholder="Enter folder name"
-                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                autoFocus
-              />
-            </div>
+        {/* Upload Dialog */}
+        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload Files</DialogTitle>
+            </DialogHeader>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setShowNewFolder(false);
-                  setNewFolderName('');
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreateFolder}
-                disabled={!newFolderName.trim()}
-              >
-                Create Folder
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Upload Dialog */}
-      <Dialog open={showUpload} onOpenChange={setShowUpload}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Upload Files</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="border-2 border-dashed border-neutral-300 rounded-lg p-12 text-center hover:border-primary-500 transition-colors">
-              <Upload className="w-12 h-12 text-neutral-400 mx-auto mb-4" aria-hidden="true" />
-              <p className="text-neutral-600 mb-2">
+            <div
+              className={cn(
+                'border-2 border-dashed rounded-lg p-12 text-center transition-colors',
+                'border-neutral-300 hover:border-primary-500'
+              )}
+            >
+              <Upload className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
+              <p className="text-neutral-600 mb-4">
                 Drag and drop files here, or click to select
               </p>
-              <Button variant="secondary" size="sm">
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 Choose Files
               </Button>
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button
-                variant="ghost"
-                onClick={() => setShowUpload(false)}
-              >
+              <Button variant="ghost" onClick={() => setShowUploadDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setShowUpload(false)}>
-                Upload
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Rename Dialog */}
+        <Dialog open={showRenameDialog} onOpenChange={setShowRenameDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rename File</DialogTitle>
+            </DialogHeader>
+
+            <Input
+              label="New Name"
+              value={newFileName}
+              onChange={(e) => setNewFileName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit()}
+              autoFocus
+            />
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="ghost" onClick={() => setShowRenameDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleRenameSubmit} disabled={!newFileName.trim()}>
+                Rename
               </Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete File</DialogTitle>
+            </DialogHeader>
+
+            <p className="text-neutral-600">
+              Are you sure you want to delete "{selectedFileForAction?.name}"? This action cannot be undone.
+            </p>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="ghost" onClick={() => setShowDeleteDialog(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteConfirm}>
+                Delete
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Link to Project Dialog */}
+        <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Link2 className="h-5 w-5 text-primary-600" />
+                Link to Project
+              </DialogTitle>
+            </DialogHeader>
+
+            {selectedFileForAction && (
+              <p className="text-sm text-neutral-600 mb-4">
+                Select a project to link "{selectedFileForAction.name}" to:
+              </p>
+            )}
+
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {projects.length === 0 ? (
+                <p className="text-neutral-500 text-center py-4">No projects available</p>
+              ) : (
+                projects.map((project) => (
+                  <button
+                    key={project.id}
+                    onClick={() => handleLinkProject(project.id)}
+                    className={cn(
+                      'w-full p-3 text-left rounded-lg border transition-all',
+                      selectedFileForAction?.projectId === project.id
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50/50'
+                    )}
+                  >
+                    <p className="font-medium text-neutral-900">{project.name}</p>
+                    <p className="text-xs text-neutral-500">{project.status}</p>
+                  </button>
+                ))
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="ghost" onClick={() => setShowLinkDialog(false)}>
+                Cancel
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Preview Drawer - will be implemented as FilePreviewDrawer component */}
+        <Dialog open={showPreviewDrawer} onOpenChange={setShowPreviewDrawer}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{state.selectedFile?.name}</DialogTitle>
+            </DialogHeader>
+
+            {state.selectedFile && (
+              <div className="space-y-4">
+                {/* Preview area */}
+                <div className="aspect-video bg-neutral-100 rounded-lg flex items-center justify-center overflow-hidden">
+                  {state.selectedFile.isImage ? (
+                    <img
+                      src={state.selectedFile.fileUrl}
+                      alt={state.selectedFile.name}
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-6xl mb-4">
+                        {fileTypeIcons[state.selectedFile.fileType]}
+                      </div>
+                      <p className="text-neutral-500">
+                        Preview not available for {state.selectedFile.fileType} files
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* File details */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-neutral-500">Size:</span>
+                    <span className="ml-2 text-neutral-900">{formatFileSize(state.selectedFile.size)}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-500">Type:</span>
+                    <span className="ml-2 text-neutral-900">{state.selectedFile.mimeType}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-500">Source:</span>
+                    <span className="ml-2 text-neutral-900 capitalize">{state.selectedFile.provider || state.selectedFile.source}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-500">Created:</span>
+                    <span className="ml-2 text-neutral-900">{formatRelativeTime(state.selectedFile.createdAt)}</span>
+                  </div>
+                  {state.selectedFile.projectName && (
+                    <div className="col-span-2">
+                      <span className="text-neutral-500">Project:</span>
+                      <span className="ml-2 text-primary-600">{state.selectedFile.projectName}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    icon={<Download className="h-4 w-4" />}
+                    onClick={() => handleDownload(state.selectedFile!)}
+                  >
+                    Download
+                  </Button>
+                  <Button
+                    variant="outline"
+                    icon={<Link2 className="h-4 w-4" />}
+                    onClick={() => {
+                      setShowPreviewDrawer(false);
+                      handleLinkProjectClick(state.selectedFile!);
+                    }}
+                  >
+                    Link to Project
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
     </DashboardLayout>
   );
 }
+
+export default FileNew;
