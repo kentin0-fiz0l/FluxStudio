@@ -723,6 +723,593 @@ class MessagingAdapter {
     }
   }
 
+  // ========================================
+  // PINNED MESSAGES
+  // ========================================
+
+  async pinMessage(messageId, conversationId, userId) {
+    try {
+      const id = `pin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const result = await query(
+        `INSERT INTO pinned_messages (id, message_id, conversation_id, pinned_by)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (message_id, conversation_id) DO NOTHING
+         RETURNING *`,
+        [id, messageId, conversationId, userId]
+      );
+      return result.rows.length > 0 ? result.rows[0] : null;
+    } catch (error) {
+      console.error('Error pinning message:', error);
+      return null;
+    }
+  }
+
+  async unpinMessage(messageId, conversationId) {
+    try {
+      const result = await query(
+        `DELETE FROM pinned_messages WHERE message_id = $1 AND conversation_id = $2`,
+        [messageId, conversationId]
+      );
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error unpinning message:', error);
+      return false;
+    }
+  }
+
+  async getPinnedMessages(conversationId, limit = 20) {
+    try {
+      const result = await query(
+        `SELECT pm.*, m.content, m.author_id, m.created_at as message_created_at,
+                u.name as author_name, u.avatar_url as author_avatar,
+                pinner.name as pinned_by_name
+         FROM pinned_messages pm
+         JOIN messages m ON pm.message_id = m.id
+         LEFT JOIN users u ON m.author_id = u.id
+         LEFT JOIN users pinner ON pm.pinned_by = pinner.id
+         WHERE pm.conversation_id = $1
+         ORDER BY pm.pinned_at DESC
+         LIMIT $2`,
+        [conversationId, limit]
+      );
+      return result.rows;
+    } catch (error) {
+      console.error('Error getting pinned messages:', error);
+      return [];
+    }
+  }
+
+  // ========================================
+  // MUTE / NOTIFICATION SETTINGS
+  // ========================================
+
+  async muteConversation(conversationId, userId, mutedUntil = null) {
+    try {
+      const result = await query(
+        `UPDATE conversation_participants
+         SET is_muted = true, muted_until = $3, updated_at = NOW()
+         WHERE conversation_id = $1 AND user_id = $2
+         RETURNING *`,
+        [conversationId, userId, mutedUntil]
+      );
+      return result.rows.length > 0;
+    } catch (error) {
+      console.error('Error muting conversation:', error);
+      return false;
+    }
+  }
+
+  async unmuteConversation(conversationId, userId) {
+    try {
+      const result = await query(
+        `UPDATE conversation_participants
+         SET is_muted = false, muted_until = NULL, updated_at = NOW()
+         WHERE conversation_id = $1 AND user_id = $2
+         RETURNING *`,
+        [conversationId, userId]
+      );
+      return result.rows.length > 0;
+    } catch (error) {
+      console.error('Error unmuting conversation:', error);
+      return false;
+    }
+  }
+
+  async updateNotificationPreference(conversationId, userId, preference) {
+    try {
+      const result = await query(
+        `UPDATE conversation_participants
+         SET notification_preference = $3, updated_at = NOW()
+         WHERE conversation_id = $1 AND user_id = $2
+         RETURNING *`,
+        [conversationId, userId, preference]
+      );
+      return result.rows.length > 0;
+    } catch (error) {
+      console.error('Error updating notification preference:', error);
+      return false;
+    }
+  }
+
+  async getMuteStatus(conversationId, userId) {
+    try {
+      const result = await query(
+        `SELECT is_muted, muted_until, notification_preference
+         FROM conversation_participants
+         WHERE conversation_id = $1 AND user_id = $2`,
+        [conversationId, userId]
+      );
+      if (result.rows.length === 0) return null;
+      const row = result.rows[0];
+      // Check if mute has expired
+      if (row.is_muted && row.muted_until && new Date(row.muted_until) < new Date()) {
+        await this.unmuteConversation(conversationId, userId);
+        return { isMuted: false, mutedUntil: null, notificationPreference: row.notification_preference };
+      }
+      return {
+        isMuted: row.is_muted,
+        mutedUntil: row.muted_until,
+        notificationPreference: row.notification_preference
+      };
+    } catch (error) {
+      console.error('Error getting mute status:', error);
+      return null;
+    }
+  }
+
+  // ========================================
+  // LINK PREVIEWS
+  // ========================================
+
+  async getLinkPreview(url) {
+    try {
+      const result = await query(
+        `SELECT * FROM link_previews
+         WHERE url = $1 AND expires_at > NOW()`,
+        [url]
+      );
+      return result.rows.length > 0 ? this.transformLinkPreview(result.rows[0]) : null;
+    } catch (error) {
+      console.error('Error getting link preview:', error);
+      return null;
+    }
+  }
+
+  async saveLinkPreview(previewData) {
+    try {
+      const id = `lp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const result = await query(
+        `INSERT INTO link_previews (id, url, title, description, image_url, site_name, favicon_url, expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + INTERVAL '7 days')
+         ON CONFLICT (url) DO UPDATE SET
+           title = $3, description = $4, image_url = $5, site_name = $6, favicon_url = $7,
+           fetched_at = NOW(), expires_at = NOW() + INTERVAL '7 days', updated_at = NOW()
+         RETURNING *`,
+        [id, previewData.url, previewData.title, previewData.description,
+         previewData.imageUrl, previewData.siteName, previewData.faviconUrl]
+      );
+      return result.rows.length > 0 ? this.transformLinkPreview(result.rows[0]) : null;
+    } catch (error) {
+      console.error('Error saving link preview:', error);
+      return null;
+    }
+  }
+
+  async linkPreviewToMessage(messageId, linkPreviewId, position = 0) {
+    try {
+      const id = `mlp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      await query(
+        `INSERT INTO message_link_previews (id, message_id, link_preview_id, position)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (message_id, link_preview_id) DO NOTHING`,
+        [id, messageId, linkPreviewId, position]
+      );
+      return true;
+    } catch (error) {
+      console.error('Error linking preview to message:', error);
+      return false;
+    }
+  }
+
+  async getMessageLinkPreviews(messageId) {
+    try {
+      const result = await query(
+        `SELECT lp.* FROM link_previews lp
+         JOIN message_link_previews mlp ON lp.id = mlp.link_preview_id
+         WHERE mlp.message_id = $1
+         ORDER BY mlp.position`,
+        [messageId]
+      );
+      return result.rows.map(this.transformLinkPreview);
+    } catch (error) {
+      console.error('Error getting message link previews:', error);
+      return [];
+    }
+  }
+
+  transformLinkPreview(dbPreview) {
+    return {
+      id: dbPreview.id,
+      url: dbPreview.url,
+      title: dbPreview.title,
+      description: dbPreview.description,
+      imageUrl: dbPreview.image_url,
+      siteName: dbPreview.site_name,
+      faviconUrl: dbPreview.favicon_url,
+      fetchedAt: dbPreview.fetched_at,
+      expiresAt: dbPreview.expires_at
+    };
+  }
+
+  // ========================================
+  // REACTIONS WITH COUNTS
+  // ========================================
+
+  async getReactionCounts(messageId) {
+    try {
+      const result = await query(
+        `SELECT reaction, COUNT(*) as count,
+                array_agg(user_id) as user_ids,
+                array_agg(u.name) as user_names
+         FROM message_reactions mr
+         LEFT JOIN users u ON mr.user_id = u.id
+         WHERE mr.message_id = $1
+         GROUP BY reaction
+         ORDER BY count DESC`,
+        [messageId]
+      );
+      return result.rows.map(row => ({
+        reaction: row.reaction,
+        count: parseInt(row.count),
+        userIds: row.user_ids,
+        userNames: row.user_names
+      }));
+    } catch (error) {
+      console.error('Error getting reaction counts:', error);
+      return [];
+    }
+  }
+
+  async toggleReaction(messageId, userId, reaction) {
+    try {
+      // Check if reaction exists
+      const existing = await query(
+        `SELECT id FROM message_reactions WHERE message_id = $1 AND user_id = $2 AND reaction = $3`,
+        [messageId, userId, reaction]
+      );
+
+      if (existing.rows.length > 0) {
+        // Remove reaction
+        await this.removeReaction(messageId, userId, reaction);
+        return { action: 'removed', reaction };
+      } else {
+        // Add reaction
+        await this.addReaction(messageId, userId, reaction);
+        return { action: 'added', reaction };
+      }
+    } catch (error) {
+      console.error('Error toggling reaction:', error);
+      return null;
+    }
+  }
+
+  // ========================================
+  // DELIVERY RECEIPTS
+  // ========================================
+
+  async createDeliveryReceipt(messageId, userId, status = 'delivered') {
+    try {
+      const id = `rcpt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const result = await query(
+        `INSERT INTO message_receipts (id, message_id, user_id, status, delivered_at)
+         VALUES ($1, $2, $3, $4, NOW())
+         ON CONFLICT (message_id, user_id)
+         DO UPDATE SET status = $4, delivered_at = COALESCE(message_receipts.delivered_at, NOW()), updated_at = NOW()
+         RETURNING *`,
+        [id, messageId, userId, status]
+      );
+      return result.rows.length > 0 ? this.transformReceipt(result.rows[0]) : null;
+    } catch (error) {
+      console.error('Error creating delivery receipt:', error);
+      return null;
+    }
+  }
+
+  async markMessageRead(messageId, userId) {
+    try {
+      const id = `rcpt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const result = await query(
+        `INSERT INTO message_receipts (id, message_id, user_id, status, delivered_at, read_at)
+         VALUES ($1, $2, $3, 'read', NOW(), NOW())
+         ON CONFLICT (message_id, user_id)
+         DO UPDATE SET status = 'read', read_at = NOW(), updated_at = NOW()
+         RETURNING *`,
+        [id, messageId, userId]
+      );
+      return result.rows.length > 0 ? this.transformReceipt(result.rows[0]) : null;
+    } catch (error) {
+      console.error('Error marking message read:', error);
+      return null;
+    }
+  }
+
+  async getMessageReceipts(messageId) {
+    try {
+      const result = await query(
+        `SELECT mr.*, u.name as user_name, u.avatar_url as user_avatar
+         FROM message_receipts mr
+         LEFT JOIN users u ON mr.user_id = u.id
+         WHERE mr.message_id = $1
+         ORDER BY mr.delivered_at`,
+        [messageId]
+      );
+      return result.rows.map(this.transformReceipt);
+    } catch (error) {
+      console.error('Error getting message receipts:', error);
+      return [];
+    }
+  }
+
+  async getMessageDeliveryStatus(messageId, totalParticipants) {
+    try {
+      const result = await query(
+        `SELECT
+           COUNT(*) FILTER (WHERE status IN ('delivered', 'read')) as delivered_count,
+           COUNT(*) FILTER (WHERE status = 'read') as read_count
+         FROM message_receipts
+         WHERE message_id = $1`,
+        [messageId]
+      );
+      const row = result.rows[0];
+      const deliveredCount = parseInt(row.delivered_count) || 0;
+      const readCount = parseInt(row.read_count) || 0;
+
+      // Determine overall status
+      let status = 'sent';
+      if (readCount >= totalParticipants - 1) {
+        status = 'read';
+      } else if (deliveredCount >= totalParticipants - 1) {
+        status = 'delivered';
+      } else if (deliveredCount > 0) {
+        status = 'delivered';
+      }
+
+      return { status, deliveredCount, readCount, totalParticipants };
+    } catch (error) {
+      console.error('Error getting message delivery status:', error);
+      return { status: 'sent', deliveredCount: 0, readCount: 0, totalParticipants };
+    }
+  }
+
+  transformReceipt(dbReceipt) {
+    return {
+      id: dbReceipt.id,
+      messageId: dbReceipt.message_id,
+      userId: dbReceipt.user_id,
+      userName: dbReceipt.user_name,
+      userAvatar: dbReceipt.user_avatar,
+      status: dbReceipt.status,
+      deliveredAt: dbReceipt.delivered_at,
+      readAt: dbReceipt.read_at,
+      createdAt: dbReceipt.created_at
+    };
+  }
+
+  // ========================================
+  // MESSAGE EDITING
+  // ========================================
+
+  async editMessage(messageId, userId, newContent) {
+    try {
+      // First get the current message
+      const current = await query(
+        `SELECT content, edit_history FROM messages WHERE id = $1 AND author_id = $2`,
+        [messageId, userId]
+      );
+
+      if (current.rows.length === 0) {
+        return null; // Message not found or user doesn't own it
+      }
+
+      const oldContent = current.rows[0].content;
+      const editHistory = current.rows[0].edit_history || [];
+
+      // Add current content to edit history
+      editHistory.push({
+        content: oldContent,
+        editedAt: new Date().toISOString()
+      });
+
+      const result = await query(
+        `UPDATE messages
+         SET content = $2, is_edited = true, edited_at = NOW(), edit_history = $3, updated_at = NOW()
+         WHERE id = $1 AND author_id = $4
+         RETURNING *`,
+        [messageId, newContent, JSON.stringify(editHistory), userId]
+      );
+
+      return result.rows.length > 0 ? this.transformMessage(result.rows[0]) : null;
+    } catch (error) {
+      console.error('Error editing message:', error);
+      return null;
+    }
+  }
+
+  async getEditHistory(messageId) {
+    try {
+      const result = await query(
+        `SELECT edit_history FROM messages WHERE id = $1`,
+        [messageId]
+      );
+      return result.rows.length > 0 ? result.rows[0].edit_history || [] : [];
+    } catch (error) {
+      console.error('Error getting edit history:', error);
+      return [];
+    }
+  }
+
+  // ========================================
+  // REPLY / THREADING
+  // ========================================
+
+  async createReply(messageData) {
+    try {
+      const result = await query(
+        `INSERT INTO messages (conversation_id, author_id, content, message_type, reply_to_id, attachments, metadata)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [
+          messageData.conversationId,
+          messageData.authorId,
+          messageData.content,
+          messageData.messageType || 'text',
+          messageData.replyToId,
+          JSON.stringify(messageData.attachments || []),
+          JSON.stringify(messageData.metadata || {})
+        ]
+      );
+
+      const message = this.transformMessage(result.rows[0]);
+
+      // Update conversation activity
+      await this.updateConversationActivity(messageData.conversationId);
+
+      return message;
+    } catch (error) {
+      console.error('Error creating reply:', error);
+      throw error;
+    }
+  }
+
+  async getMessageWithReplies(messageId, limit = 50) {
+    try {
+      // Get the parent message
+      const parentResult = await query(
+        `SELECT m.*, u.name as author_name, u.avatar_url as author_avatar
+         FROM messages m
+         LEFT JOIN users u ON m.author_id = u.id
+         WHERE m.id = $1`,
+        [messageId]
+      );
+
+      if (parentResult.rows.length === 0) return null;
+
+      const parentMessage = this.transformMessage(parentResult.rows[0]);
+
+      // Get replies
+      const repliesResult = await query(
+        `SELECT m.*, u.name as author_name, u.avatar_url as author_avatar
+         FROM messages m
+         LEFT JOIN users u ON m.author_id = u.id
+         WHERE m.reply_to_id = $1
+         ORDER BY m.created_at ASC
+         LIMIT $2`,
+        [messageId, limit]
+      );
+
+      const replies = repliesResult.rows.map(this.transformMessage);
+
+      return {
+        message: parentMessage,
+        replies,
+        replyCount: replies.length
+      };
+    } catch (error) {
+      console.error('Error getting message with replies:', error);
+      return null;
+    }
+  }
+
+  // ========================================
+  // VOICE MESSAGES
+  // ========================================
+
+  async createVoiceMessage(messageId, voiceData) {
+    try {
+      const id = `vm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const result = await query(
+        `INSERT INTO voice_messages (id, message_id, duration_seconds, waveform, file_url, file_size)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [id, messageId, voiceData.durationSeconds, JSON.stringify(voiceData.waveform || []),
+         voiceData.fileUrl, voiceData.fileSize]
+      );
+      return result.rows.length > 0 ? this.transformVoiceMessage(result.rows[0]) : null;
+    } catch (error) {
+      console.error('Error creating voice message:', error);
+      return null;
+    }
+  }
+
+  async getVoiceMessage(messageId) {
+    try {
+      const result = await query(
+        `SELECT * FROM voice_messages WHERE message_id = $1`,
+        [messageId]
+      );
+      return result.rows.length > 0 ? this.transformVoiceMessage(result.rows[0]) : null;
+    } catch (error) {
+      console.error('Error getting voice message:', error);
+      return null;
+    }
+  }
+
+  transformVoiceMessage(dbVoice) {
+    return {
+      id: dbVoice.id,
+      messageId: dbVoice.message_id,
+      durationSeconds: dbVoice.duration_seconds,
+      waveform: dbVoice.waveform || [],
+      transcription: dbVoice.transcription,
+      transcriptionStatus: dbVoice.transcription_status,
+      fileUrl: dbVoice.file_url,
+      fileSize: dbVoice.file_size,
+      createdAt: dbVoice.created_at
+    };
+  }
+
+  // ========================================
+  // FORWARD MESSAGES
+  // ========================================
+
+  async forwardMessage(originalMessageId, toConversationId, forwardedByUserId) {
+    try {
+      // Get original message
+      const originalResult = await query(
+        `SELECT * FROM messages WHERE id = $1`,
+        [originalMessageId]
+      );
+
+      if (originalResult.rows.length === 0) return null;
+
+      const original = originalResult.rows[0];
+
+      // Create forwarded message
+      const result = await query(
+        `INSERT INTO messages (conversation_id, author_id, content, message_type, attachments, metadata, forwarded_from)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [
+          toConversationId,
+          forwardedByUserId,
+          original.content,
+          original.message_type,
+          original.attachments,
+          JSON.stringify({ ...original.metadata, forwarded: true }),
+          originalMessageId
+        ]
+      );
+
+      const forwardedMessage = this.transformMessage(result.rows[0]);
+
+      // Update conversation activity
+      await this.updateConversationActivity(toConversationId);
+
+      return forwardedMessage;
+    } catch (error) {
+      console.error('Error forwarding message:', error);
+      return null;
+    }
+  }
+
   // Health check
   async healthCheck() {
     try {
