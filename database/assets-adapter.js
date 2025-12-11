@@ -9,7 +9,7 @@
  * - Tags and comments
  */
 
-const pool = require('./pool');
+const { pool, query, transaction } = require('./config');
 
 // ==================== ASSETS ====================
 

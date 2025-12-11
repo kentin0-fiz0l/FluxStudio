@@ -2815,8 +2815,8 @@ app.post('/assets/:assetId/versions', authenticateToken, async (req, res) => {
         const asset = await assetsAdapter.getAssetById(assetId, req.user.id);
         if (asset && asset.projectId) {
           // Get project members to notify
-          const pool = require('./database/pool');
-          const membersResult = await pool.query(
+          const { query } = require('./database/config');
+          const membersResult = await query(
             `SELECT user_id FROM project_members WHERE project_id = $1 AND user_id != $2`,
             [asset.projectId, req.user.id]
           );
