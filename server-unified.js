@@ -2024,6 +2024,29 @@ app.post('/connectors/:provider/import', authenticateToken, validateInput.saniti
       organizationId
     });
 
+    // Also create entry in unified files table for consistent access
+    try {
+      await filesAdapter.createFromConnector({
+        userId: req.user.id,
+        organizationId,
+        projectId,
+        provider,
+        connectorFileId: importedFile.id,
+        name: importedFile.name,
+        mimeType: importedFile.mime_type || importedFile.mimeType,
+        sizeBytes: importedFile.size_bytes || importedFile.sizeBytes,
+        storageKey: `connector://${provider}/${fileId}`,
+        fileUrl: importedFile.local_path || importedFile.localPath,
+        metadata: {
+          providerFileId: fileId,
+          importedAt: new Date().toISOString()
+        }
+      });
+    } catch (unifiedFileError) {
+      console.error('Error creating unified file entry:', unifiedFileError);
+      // Non-fatal - connector file is still created
+    }
+
     // Create notification for import
     await createAndEmitNotification({
       userId: req.user.id,
@@ -2121,6 +2144,415 @@ app.get('/connectors/sync-jobs', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error getting sync jobs:', error);
     res.status(500).json({ error: 'Failed to get sync jobs' });
+  }
+});
+
+// ========================================
+// FILES API
+// ========================================
+
+// Import files adapter and storage
+const filesAdapter = require('./database/files-adapter');
+const storage = require('./storage');
+
+// Configure multer for file uploads
+const fileUploadStorage = multer.memoryStorage();
+const fileUpload = multer({
+  storage: fileUploadStorage,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB limit
+    files: 10
+  }
+});
+
+// List files
+app.get('/files', authenticateToken, async (req, res) => {
+  try {
+    const {
+      projectId,
+      type,
+      source,
+      search,
+      limit = 50,
+      offset = 0,
+      sort = 'created_at DESC'
+    } = req.query;
+
+    const result = await filesAdapter.listFiles({
+      userId: req.user.id,
+      projectId,
+      type,
+      source,
+      search,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      sort
+    });
+
+    res.json({
+      success: true,
+      files: result.items,
+      total: result.total,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalPages: result.totalPages
+    });
+  } catch (error) {
+    console.error('Error listing files:', error);
+    res.status(500).json({ error: 'Failed to list files' });
+  }
+});
+
+// Get file stats
+app.get('/files/stats', authenticateToken, async (req, res) => {
+  try {
+    const stats = await filesAdapter.getFileStats(req.user.id);
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error getting file stats:', error);
+    res.status(500).json({ error: 'Failed to get file stats' });
+  }
+});
+
+// Upload file(s)
+app.post('/files/upload', authenticateToken, fileUpload.array('files', 10), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+
+    const { projectId, organizationId } = req.body;
+    const uploadedFiles = [];
+    const errors = [];
+
+    for (const file of req.files) {
+      try {
+        // Save file to storage
+        const storageResult = await storage.saveFile({
+          buffer: file.buffer,
+          mimeType: file.mimetype,
+          userId: req.user.id,
+          originalName: file.originalname
+        });
+
+        // Create file record
+        const fileRecord = await filesAdapter.createFile({
+          userId: req.user.id,
+          organizationId,
+          projectId,
+          source: 'upload',
+          name: file.originalname,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          extension: storageResult.extension,
+          sizeBytes: storageResult.sizeBytes,
+          storageKey: storageResult.storageKey,
+          fileUrl: `/files/${storageResult.storageKey}`,
+          metadata: { hash: storageResult.hash }
+        });
+
+        // Generate thumbnail for images (simple copy for MVP)
+        if (file.mimetype.startsWith('image/')) {
+          try {
+            const previewResult = await storage.savePreview({
+              buffer: file.buffer,
+              mimeType: file.mimetype,
+              fileId: fileRecord.id,
+              previewType: 'thumbnail'
+            });
+
+            await filesAdapter.createPreview({
+              fileId: fileRecord.id,
+              previewType: 'thumbnail',
+              storageKey: previewResult.storageKey,
+              mimeType: file.mimetype,
+              sizeBytes: previewResult.sizeBytes,
+              status: 'completed'
+            });
+
+            // Update file with thumbnail URL
+            fileRecord.thumbnailUrl = `/files/${previewResult.storageKey}`;
+          } catch (previewError) {
+            console.error('Preview generation error:', previewError);
+            // Non-fatal, continue
+          }
+        }
+
+        uploadedFiles.push(fileRecord);
+
+        // Create notification for upload
+        if (typeof createAndEmitNotification === 'function') {
+          await createAndEmitNotification({
+            userId: req.user.id,
+            type: 'project_file_uploaded',
+            title: 'File Uploaded',
+            message: `Successfully uploaded "${file.originalname}"`,
+            priority: 'low',
+            actionUrl: '/files',
+            data: { fileId: fileRecord.id }
+          });
+        }
+      } catch (uploadError) {
+        console.error('Error uploading file:', file.originalname, uploadError);
+        errors.push({
+          filename: file.originalname,
+          error: uploadError.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      files: uploadedFiles,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (error) {
+    console.error('Error in file upload:', error);
+    res.status(500).json({ error: 'Failed to upload files' });
+  }
+});
+
+// Get single file metadata
+app.get('/files/:fileId', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    const file = await filesAdapter.getFileById(fileId, req.user.id);
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Get previews
+    const previews = await filesAdapter.getPreviewsForFile(fileId);
+
+    res.json({
+      success: true,
+      file: {
+        ...file,
+        previews: previews.map(p => ({
+          type: p.preview_type,
+          url: `/files/${p.storage_key}`,
+          width: p.width,
+          height: p.height,
+          pageNumber: p.page_number
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error getting file:', error);
+    res.status(500).json({ error: 'Failed to get file' });
+  }
+});
+
+// Download/serve file
+app.get('/files/:fileId/download', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { inline } = req.query;
+
+    const file = await filesAdapter.getFileById(fileId, req.user.id);
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Get file stream from storage
+    const stream = await storage.getFileStream(file.storageKey);
+
+    // Set headers
+    res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+    res.setHeader('Content-Length', file.size);
+
+    if (inline === 'true') {
+      res.setHeader('Content-Disposition', `inline; filename="${file.name}"`);
+    } else {
+      res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`);
+    }
+
+    // Pipe stream to response
+    stream.pipe(res);
+  } catch (error) {
+    console.error('Error downloading file:', error);
+    res.status(500).json({ error: 'Failed to download file' });
+  }
+});
+
+// Rename file
+app.post('/files/:fileId/rename', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const updatedFile = await filesAdapter.updateFileName(fileId, req.user.id, name.trim());
+
+    if (!updatedFile) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.json({ success: true, file: updatedFile });
+  } catch (error) {
+    console.error('Error renaming file:', error);
+    res.status(500).json({ error: 'Failed to rename file' });
+  }
+});
+
+// Update file
+app.put('/files/:fileId', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const updates = req.body;
+
+    const updatedFile = await filesAdapter.updateFile(fileId, req.user.id, updates);
+
+    if (!updatedFile) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.json({ success: true, file: updatedFile });
+  } catch (error) {
+    console.error('Error updating file:', error);
+    res.status(500).json({ error: 'Failed to update file' });
+  }
+});
+
+// Delete file
+app.delete('/files/:fileId', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    const file = await filesAdapter.getFileById(fileId, req.user.id);
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Delete previews first
+    const previews = await filesAdapter.deletePreviewsForFile(fileId);
+    for (const preview of previews) {
+      try {
+        await storage.deleteFile(preview.storage_key);
+      } catch (e) {
+        console.error('Error deleting preview:', e);
+      }
+    }
+
+    // Soft delete from database
+    await filesAdapter.deleteFile(fileId, req.user.id);
+
+    // Delete from storage (non-fatal if fails)
+    try {
+      await storage.deleteFile(file.storageKey);
+    } catch (e) {
+      console.error('Error deleting file from storage:', e);
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    res.status(500).json({ error: 'Failed to delete file' });
+  }
+});
+
+// Link file to project
+app.post('/files/:fileId/link', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { projectId } = req.body;
+
+    if (!projectId) {
+      return res.status(400).json({ error: 'projectId is required' });
+    }
+
+    const file = await filesAdapter.linkFileToProject({
+      fileId,
+      userId: req.user.id,
+      projectId
+    });
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Create notification
+    if (typeof createAndEmitNotification === 'function') {
+      await createAndEmitNotification({
+        userId: req.user.id,
+        type: 'project_file_uploaded',
+        title: 'File Linked to Project',
+        message: `"${file.name}" has been linked to your project`,
+        priority: 'low',
+        actionUrl: `/projects/${projectId}`,
+        data: { fileId: file.id, projectId }
+      });
+    }
+
+    res.json({ success: true, file });
+  } catch (error) {
+    console.error('Error linking file to project:', error);
+    res.status(500).json({ error: 'Failed to link file' });
+  }
+});
+
+// Unlink file from project
+app.post('/files/:fileId/unlink', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    const file = await filesAdapter.unlinkFileFromProject(fileId, req.user.id);
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.json({ success: true, file });
+  } catch (error) {
+    console.error('Error unlinking file from project:', error);
+    res.status(500).json({ error: 'Failed to unlink file' });
+  }
+});
+
+// Serve stored files (for file URLs)
+app.get('/files/storage/:storageKey(*)', authenticateToken, async (req, res) => {
+  try {
+    const storageKey = req.params.storageKey;
+
+    // Check if file exists
+    const exists = await storage.exists(storageKey);
+    if (!exists) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Get file stream
+    const stream = await storage.getFileStream(storageKey);
+
+    // Try to determine mime type from extension
+    const ext = storageKey.split('.').pop()?.toLowerCase();
+    const mimeTypes = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'webp': 'image/webp',
+      'svg': 'image/svg+xml',
+      'mp4': 'video/mp4',
+      'mp3': 'audio/mpeg',
+      'pdf': 'application/pdf',
+      'txt': 'text/plain',
+      'json': 'application/json'
+    };
+
+    res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'private, max-age=31536000');
+
+    stream.pipe(res);
+  } catch (error) {
+    console.error('Error serving file:', error);
+    res.status(500).json({ error: 'Failed to serve file' });
   }
 });
 
