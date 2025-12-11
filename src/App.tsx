@@ -19,6 +19,8 @@ import { Login } from './pages/Login';
 import Settings from './pages/Settings';
 import { MessagesNew } from './pages/MessagesNew';
 import OAuthCallback from './pages/OAuthCallback';
+
+// Tools page - completely self-contained, no context dependencies
 import Tools from './pages/Tools';
 
 // Lazy load non-critical pages and components
