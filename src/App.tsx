@@ -20,8 +20,8 @@ import Settings from './pages/Settings';
 import { MessagesNew } from './pages/MessagesNew';
 import OAuthCallback from './pages/OAuthCallback';
 
-// Tools page - uses DashboardLayout like other pages
-import Tools from './pages/Tools';
+// Tools page - uses DashboardLayout like other authenticated pages
+const { Component: Tools } = lazyLoadWithRetry(() => import('./pages/Tools'));
 
 // Lazy load non-critical pages and components
 const { Component: Home } = lazyLoadWithRetry(() => import('./pages/Home'));
@@ -101,6 +101,7 @@ function AuthenticatedRoutes() {
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/connectors" element={<Connectors />} />
+                  <Route path="/tools" element={<Tools />} />
 
                   {/* Legacy routes for backward compatibility */}
                   <Route path="/organization/legacy" element={<OrganizationPage />} />
@@ -182,10 +183,7 @@ export default function App() {
         <Router>
           <ThemeProvider>
             <Routes>
-              {/* Public route - Tools page doesn't need auth */}
-              <Route path="/tools" element={<Tools />} />
-
-              {/* All other routes go through providers */}
+              {/* All routes go through authenticated providers */}
               <Route path="/*" element={<AuthenticatedRoutes />} />
             </Routes>
           </ThemeProvider>
