@@ -19,6 +19,7 @@ import { Login } from './pages/Login';
 import Settings from './pages/Settings';
 import { MessagesNew } from './pages/MessagesNew';
 import OAuthCallback from './pages/OAuthCallback';
+import { useAuth } from './contexts/AuthContext';
 
 // Tools page - uses DashboardLayout like other authenticated pages
 const { Component: Tools } = lazyLoadWithRetry(() => import('./pages/Tools'));
@@ -64,6 +65,23 @@ const { Component: WorkspaceManager } = lazyLoadWithRetry(() => import('./compon
 // FluxPrint Integration - 3D Printing Dashboard
 const PrintingDashboard = React.lazy(() => import('./components/printing/PrintingDashboard'));
 
+// Root redirect component - redirects authenticated users to Projects
+function RootRedirect() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <DefaultLoadingFallback />;
+  }
+
+  // If authenticated, redirect to Projects (the primary hub)
+  if (user) {
+    return <Navigate to="/projects" replace />;
+  }
+
+  // If not authenticated, show the landing page
+  return <SimpleHomePage />;
+}
+
 // Authenticated app wrapper - contains all providers for authenticated routes
 function AuthenticatedRoutes() {
   return (
@@ -74,8 +92,8 @@ function AuthenticatedRoutes() {
             <WorkspaceProvider>
               <Suspense fallback={<DefaultLoadingFallback />}>
                 <Routes>
-                  {/* Critical pages - no suspense needed */}
-                  <Route path="/" element={<SimpleHomePage />} />
+                  {/* Root route - redirects based on auth state */}
+                  <Route path="/" element={<RootRedirect />} />
                   <Route path="/login" element={<Login />} />
 
                   {/* Lazy-loaded auth pages */}

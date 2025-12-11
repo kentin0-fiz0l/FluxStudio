@@ -19,8 +19,9 @@
  */
 
 import * as React from 'react';
-import { Calendar, Users, Clock, TrendingUp } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent, Badge } from '@/components/ui';
+import { Link } from 'react-router-dom';
+import { Calendar, Users, Clock, TrendingUp, Map, Pencil, FileAudio, Box, ArrowRight, Wrench } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
 import { Project } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
 
@@ -193,6 +194,95 @@ export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOvervi
             {/* Live region for progress updates */}
             <div role="status" aria-live="polite" className="sr-only">
               Project is {project.progress}% complete with {project.tasks?.filter((t) => t.status === 'completed').length || 0} of {project.tasks?.length || 0} tasks finished
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tools Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2" id="tools-heading">
+                <Wrench className="h-5 w-5 text-primary-600" aria-hidden="true" />
+                Tools
+              </CardTitle>
+              <Badge variant="outline" size="sm">
+                Available
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-neutral-600 mb-4">
+              Launch specialized tools to work on this project.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* MetMap Tool */}
+              <Link
+                to={`/tools?projectId=${project.id}&tool=metmap`}
+                className="group flex flex-col p-4 rounded-lg border border-neutral-200 hover:border-primary-300 hover:bg-primary-50/50 transition-all"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                    <Map className="h-5 w-5 text-white" aria-hidden="true" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-neutral-900 group-hover:text-primary-700">MetMap</h4>
+                    <p className="text-xs text-neutral-500">Visual Designer</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-neutral-400 group-hover:text-primary-600 transition-colors" aria-hidden="true" />
+                </div>
+                <p className="text-xs text-neutral-500 leading-relaxed">
+                  Create and edit visual formations and show designs
+                </p>
+              </Link>
+
+              {/* Drill Writer Tool (Coming Soon) */}
+              <div className="flex flex-col p-4 rounded-lg border border-neutral-200 bg-neutral-50/50 opacity-60 cursor-not-allowed">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                    <Pencil className="h-5 w-5 text-white" aria-hidden="true" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-neutral-700">Drill Writer</h4>
+                    <p className="text-xs text-neutral-400">Coming Soon</p>
+                  </div>
+                </div>
+                <p className="text-xs text-neutral-400 leading-relaxed">
+                  Write drill movements and coordinate charts
+                </p>
+              </div>
+
+              {/* Audio Sync Tool (Coming Soon) */}
+              <div className="flex flex-col p-4 rounded-lg border border-neutral-200 bg-neutral-50/50 opacity-60 cursor-not-allowed">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                    <FileAudio className="h-5 w-5 text-white" aria-hidden="true" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-neutral-700">Audio Sync</h4>
+                    <p className="text-xs text-neutral-400">Coming Soon</p>
+                  </div>
+                </div>
+                <p className="text-xs text-neutral-400 leading-relaxed">
+                  Sync movements and cues with audio tracks
+                </p>
+              </div>
+
+              {/* 3D Preview Tool (Coming Soon) */}
+              <div className="flex flex-col p-4 rounded-lg border border-neutral-200 bg-neutral-50/50 opacity-60 cursor-not-allowed">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
+                    <Box className="h-5 w-5 text-white" aria-hidden="true" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-neutral-700">3D Preview</h4>
+                    <p className="text-xs text-neutral-400">Coming Soon</p>
+                  </div>
+                </div>
+                <p className="text-xs text-neutral-400 leading-relaxed">
+                  Preview your show in 3D from any angle
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
