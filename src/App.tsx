@@ -10,6 +10,7 @@ import { MessagingProvider } from './contexts/MessagingContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ConnectorsProvider } from './contexts/ConnectorsContext';
 import { FilesProvider } from './contexts/FilesContext';
+import { AssetsProvider } from './contexts/AssetsContext';
 import { ToastContainer } from './components/notifications/ToastContainer';
 import ErrorBoundary from './components/error/ErrorBoundary';
 import { performanceMonitoring } from './services/performanceMonitoring';
@@ -48,6 +49,7 @@ const { Component: FilePage } = lazyLoadWithRetry(() => import('./pages/File'));
 const { Component: ProjectsNew } = lazyLoadWithRetry(() => import('./pages/ProjectsNew'));
 const { Component: ProjectDetail } = lazyLoadWithRetry(() => import('./pages/ProjectDetail'));
 const { Component: FileNew } = lazyLoadWithRetry(() => import('./pages/FileNew'));
+const { Component: Assets } = lazyLoadWithRetry(() => import('./pages/Assets'));
 const { Component: TeamNew } = lazyLoadWithRetry(() => import('./pages/TeamNew'));
 const { Component: OrganizationNew } = lazyLoadWithRetry(() => import('./pages/OrganizationNew'));
 const { Component: Profile } = lazyLoadWithRetry(() => import('./pages/Profile'));
@@ -98,6 +100,7 @@ function AuthenticatedRoutes() {
               <WorkspaceProvider>
                 <ConnectorsProvider>
                   <FilesProvider>
+                    <AssetsProvider>
                 <Suspense fallback={<DefaultLoadingFallback />}>
                   <Routes>
                   {/* Root route - redirects based on auth state */}
@@ -121,6 +124,7 @@ function AuthenticatedRoutes() {
                   <Route path="/organization" element={<OrganizationNew />} />
                   <Route path="/team" element={<TeamNew />} />
                   <Route path="/file" element={<FileNew />} />
+                  <Route path="/assets" element={<Assets />} />
                   <Route path="/projects" element={<ProjectsNew />} />
                   <Route path="/projects/:id" element={<ProjectDetail />} />
                   <Route path="/messages" element={<MessagesNew />} />
@@ -175,6 +179,7 @@ function AuthenticatedRoutes() {
                 </Suspense>
                 {/* Global Toast Notifications */}
                 <ToastContainer />
+                    </AssetsProvider>
                   </FilesProvider>
                 </ConnectorsProvider>
               </WorkspaceProvider>

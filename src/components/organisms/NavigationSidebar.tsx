@@ -27,6 +27,7 @@ import {
   LogOut,
   User,
   Wrench,
+  Layers,
 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -81,6 +82,7 @@ const createNavigationItems = (unreadCount: number): NavigationItem[] => [
   { label: 'Dashboard', icon: <Home className="h-5 w-5" aria-hidden="true" />, path: '/home' },
   { label: 'Projects', icon: <Briefcase className="h-5 w-5" aria-hidden="true" />, path: '/projects' },
   { label: 'Files', icon: <Folder className="h-5 w-5" aria-hidden="true" />, path: '/file' },
+  { label: 'Assets', icon: <Layers className="h-5 w-5" aria-hidden="true" />, path: '/assets' },
   { label: 'Team', icon: <Users className="h-5 w-5" aria-hidden="true" />, path: '/team' },
   { label: 'Organization', icon: <Building2 className="h-5 w-5" aria-hidden="true" />, path: '/organization' },
   { label: 'Messages', icon: <MessageSquare className="h-5 w-5" aria-hidden="true" />, path: '/messages', badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : undefined },
