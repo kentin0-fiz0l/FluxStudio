@@ -101,7 +101,6 @@ function AuthenticatedRoutes() {
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/connectors" element={<Connectors />} />
-                  <Route path="/tools" element={<Tools />} />
 
                   {/* Legacy routes for backward compatibility */}
                   <Route path="/organization/legacy" element={<OrganizationPage />} />
@@ -182,7 +181,13 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <Router>
           <ThemeProvider>
-            <AuthenticatedRoutes />
+            <Routes>
+              {/* Public route - Tools page doesn't need auth */}
+              <Route path="/tools" element={<Tools />} />
+
+              {/* All other routes go through providers */}
+              <Route path="/*" element={<AuthenticatedRoutes />} />
+            </Routes>
           </ThemeProvider>
         </Router>
       </QueryClientProvider>
