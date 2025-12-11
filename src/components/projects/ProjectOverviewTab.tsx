@@ -20,10 +20,11 @@
 
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Users, Clock, TrendingUp, Map, Pencil, FileAudio, Box, ArrowRight, Wrench } from 'lucide-react';
+import { Calendar, Users, Clock, TrendingUp, Map, Pencil, FileAudio, Box, ArrowRight, Wrench, MessageSquare, Send } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
 import { Project } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
+import { useMessaging } from '@/contexts/MessagingContext';
 
 export interface ProjectOverviewTabProps {
   project: Project;
@@ -32,6 +33,18 @@ export interface ProjectOverviewTabProps {
 
 export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOverviewTabProps>(
   ({ project, className }, ref) => {
+    // Get messaging context for project conversation
+    let projectConversation = null;
+    let unreadCount = 0;
+    try {
+      const { state } = useMessaging();
+      // Find conversation linked to this project
+      projectConversation = state.conversations.find(c => c.projectId === project.id);
+      unreadCount = projectConversation?.unreadCount || 0;
+    } catch {
+      // Context not available
+    }
+
     // Format date for display
     const formatDate = (dateString: string) => {
       const date = new Date(dateString);
@@ -195,6 +208,87 @@ export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOvervi
             <div role="status" aria-live="polite" className="sr-only">
               Project is {project.progress}% complete with {project.tasks?.filter((t) => t.status === 'completed').length || 0} of {project.tasks?.length || 0} tasks finished
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Project Conversation Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2" id="conversation-heading">
+                <MessageSquare className="h-5 w-5 text-primary-600" aria-hidden="true" />
+                Team Discussion
+              </CardTitle>
+              {unreadCount > 0 && (
+                <Badge variant="solidError" size="sm" aria-label={`${unreadCount} unread messages`}>
+                  {unreadCount > 99 ? '99+' : unreadCount} new
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-neutral-600 mb-4">
+              Communicate with your team about this project. All conversations are linked to this project for easy reference.
+            </p>
+
+            {/* Quick conversation preview */}
+            {projectConversation?.lastMessage && (
+              <div className="p-3 bg-neutral-50 rounded-lg mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0" aria-hidden="true">
+                    {(projectConversation.lastMessage as any)?.author?.name?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-neutral-900 truncate">
+                      {(projectConversation.lastMessage as any)?.author?.name || 'Team Member'}
+                    </p>
+                    <p className="text-sm text-neutral-600 truncate">
+                      {(projectConversation.lastMessage as any)?.content || 'No recent messages'}
+                    </p>
+                    <p className="text-xs text-neutral-400 mt-1">
+                      {(projectConversation.lastMessage as any)?.createdAt
+                        ? formatDate((projectConversation.lastMessage as any).createdAt)
+                        : ''}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex gap-3">
+              <Link
+                to={projectConversation ? `/messages?conversationId=${projectConversation.id}` : `/messages?projectId=${project.id}`}
+                className="flex-1"
+              >
+                <Button
+                  variant="outline"
+                  fullWidth
+                  icon={<MessageSquare className="h-4 w-4" aria-hidden="true" />}
+                  aria-label="Open project conversation"
+                >
+                  Open Conversation
+                </Button>
+              </Link>
+              <Link
+                to={projectConversation ? `/messages?conversationId=${projectConversation.id}&compose=true` : `/messages?projectId=${project.id}&compose=true`}
+              >
+                <Button
+                  variant="solid"
+                  icon={<Send className="h-4 w-4" aria-hidden="true" />}
+                  aria-label="Send a new message to project team"
+                >
+                  New Message
+                </Button>
+              </Link>
+            </div>
+
+            {/* Live region for new message notifications */}
+            {unreadCount > 0 && (
+              <div role="status" aria-live="polite" className="sr-only">
+                You have {unreadCount} unread message{unreadCount !== 1 ? 's' : ''} in this project's conversation
+              </div>
+            )}
           </CardContent>
         </Card>
 
