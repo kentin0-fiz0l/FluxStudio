@@ -19,6 +19,7 @@ import { Login } from './pages/Login';
 import Settings from './pages/Settings';
 import { MessagesNew } from './pages/MessagesNew';
 import OAuthCallback from './pages/OAuthCallback';
+import Tools from './pages/Tools';
 
 // Lazy load non-critical pages and components
 const { Component: Home } = lazyLoadWithRetry(() => import('./pages/Home'));
@@ -28,7 +29,6 @@ const { Component: EmailVerification } = lazyLoadWithRetry(() => import('./pages
 const { Component: WelcomeFlow } = lazyLoadWithRetry(() => import('./pages/WelcomeFlow'));
 const { Component: AdaptiveDashboard } = lazyLoadWithRetry(() => import('./components/AdaptiveDashboard'));
 const { Component: Connectors } = lazyLoadWithRetry(() => import('./pages/Connectors'));
-const { Component: Tools } = lazyLoadWithRetry(() => import('./pages/Tools'));
 
 // Legacy pages (original design)
 const { Component: MessagesPage } = lazyLoadWithRetry(() => import('./pages/MessagesPage'));
@@ -124,7 +124,22 @@ export default function App() {
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/connectors" element={<Connectors />} />
-                      <Route path="/tools" element={<Tools />} />
+                      <Route path="/tools" element={
+                        <ErrorBoundary
+                          isolateComponent
+                          fallback={
+                            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                              <div className="text-center">
+                                <h1 className="text-2xl font-bold text-gray-900 mb-2">Tools</h1>
+                                <p className="text-gray-600 mb-4">Unable to load the Tools page.</p>
+                                <a href="/" className="text-blue-600 hover:underline">Return to Home</a>
+                              </div>
+                            </div>
+                          }
+                        >
+                          <Tools />
+                        </ErrorBoundary>
+                      } />
 
                       {/* Legacy routes for backward compatibility */}
                       <Route path="/organization/legacy" element={<OrganizationPage />} />
