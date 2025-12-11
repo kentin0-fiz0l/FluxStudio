@@ -2549,11 +2549,11 @@ app.post('/files/:fileId/unlink', authenticateToken, async (req, res) => {
 });
 
 // Serve stored files (for file URLs)
-// Using wildcard route to capture full storage path (e.g., /files/storage/user123/2024/12/file.jpg)
-app.get('/files/storage/*', authenticateToken, async (req, res) => {
+// Using named wildcard route to capture full storage path (e.g., /files/storage/user123/2024/12/file.jpg)
+app.get('/files/storage/*storageKey', authenticateToken, async (req, res) => {
   try {
-    // Get the storage key from the wildcard path (everything after /files/storage/)
-    const storageKey = req.params[0];
+    // Get the storage key from the named wildcard parameter
+    const storageKey = req.params.storageKey;
 
     // Check if file exists
     const exists = await fileStorage.exists(storageKey);
