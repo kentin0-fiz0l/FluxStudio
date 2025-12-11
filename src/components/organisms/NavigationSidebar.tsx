@@ -3,6 +3,7 @@
  *
  * Main navigation sidebar for the FluxStudio application.
  * Supports collapsible state, nested navigation, and user profile.
+ * Includes real-time unread message counts from MessagingContext.
  *
  * @example
  * <NavigationSidebar
@@ -29,6 +30,7 @@ import {
 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { useMessaging } from '@/contexts/MessagingContext';
 
 export interface NavigationItem {
   label: string;
@@ -74,22 +76,26 @@ export interface NavigationSidebarProps {
   className?: string;
 }
 
-const defaultNavigationItems: NavigationItem[] = [
+// Create navigation items with dynamic unread count
+const createNavigationItems = (unreadCount: number): NavigationItem[] => [
   { label: 'Dashboard', icon: <Home className="h-5 w-5" aria-hidden="true" />, path: '/home' },
   { label: 'Projects', icon: <Briefcase className="h-5 w-5" aria-hidden="true" />, path: '/projects' },
   { label: 'Files', icon: <Folder className="h-5 w-5" aria-hidden="true" />, path: '/file' },
   { label: 'Team', icon: <Users className="h-5 w-5" aria-hidden="true" />, path: '/team' },
   { label: 'Organization', icon: <Building2 className="h-5 w-5" aria-hidden="true" />, path: '/organization' },
-  { label: 'Messages', icon: <MessageSquare className="h-5 w-5" aria-hidden="true" />, path: '/messages', badge: 3 },
+  { label: 'Messages', icon: <MessageSquare className="h-5 w-5" aria-hidden="true" />, path: '/messages', badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : undefined },
   { label: 'Tools', icon: <Wrench className="h-5 w-5" aria-hidden="true" />, path: '/tools' },
   { label: 'Settings', icon: <Settings className="h-5 w-5" aria-hidden="true" />, path: '/settings' },
 ];
+
+// Default items for when context is not available
+const defaultNavigationItems: NavigationItem[] = createNavigationItems(0);
 
 export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSidebarProps>(
   (
     {
       user,
-      items = defaultNavigationItems,
+      items,
       collapsed = false,
       onCollapseToggle,
       onLogout,
@@ -99,6 +105,18 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
   ) => {
     const location = useLocation();
     const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set());
+
+    // Get unread message counts from MessagingContext
+    let unreadCount = 0;
+    try {
+      const { state } = useMessaging();
+      unreadCount = state?.unreadCounts?.messages || 0;
+    } catch {
+      // Context not available, use default count
+    }
+
+    // Use provided items or create default with dynamic unread count
+    const navigationItems = items || createNavigationItems(unreadCount);
 
     // Check if path is active
     const isActive = (path: string) => {
@@ -156,8 +174,8 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
 
         {/* Navigation Items */}
         <nav className="flex-1 overflow-y-auto py-4 px-2">
-          <ul className="space-y-1">
-            {items.map((item) => {
+          <ul className="space-y-1" role="list" aria-label="Main navigation">
+            {navigationItems.map((item) => {
               const active = isActive(item.path);
               const expanded = expandedItems.has(item.label);
               const hasChildren = item.children && item.children.length > 0;
