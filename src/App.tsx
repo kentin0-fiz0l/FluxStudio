@@ -62,6 +62,95 @@ const { Component: WorkspaceManager } = lazyLoadWithRetry(() => import('./compon
 // FluxPrint Integration - 3D Printing Dashboard
 const PrintingDashboard = React.lazy(() => import('./components/printing/PrintingDashboard'));
 
+// Authenticated app wrapper - contains all providers for authenticated routes
+function AuthenticatedRoutes() {
+  return (
+    <AuthProvider>
+      <SocketProvider>
+        <MessagingProvider>
+          <OrganizationProvider>
+            <WorkspaceProvider>
+              <Suspense fallback={<DefaultLoadingFallback />}>
+                <Routes>
+                  {/* Critical pages - no suspense needed */}
+                  <Route path="/" element={<SimpleHomePage />} />
+                  <Route path="/login" element={<Login />} />
+
+                  {/* Lazy-loaded auth pages */}
+                  <Route path="/signup" element={<SignupWizard />} />
+                  <Route path="/signup/classic" element={<Signup />} />
+                  <Route path="/verify-email" element={<EmailVerification />} />
+                  <Route path="/welcome" element={<WelcomeFlow />} />
+
+                  {/* OAuth callback routes */}
+                  <Route path="/auth/callback/google" element={<OAuthCallback provider="google" />} />
+                  <Route path="/auth/callback/figma" element={<OAuthCallback provider="figma" />} />
+                  <Route path="/auth/callback/slack" element={<OAuthCallback provider="slack" />} />
+                  <Route path="/auth/callback/github" element={<OAuthCallback provider="github" />} />
+
+                  {/* Redesigned Page Routes (Flux Design Language) */}
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/organization" element={<OrganizationNew />} />
+                  <Route path="/team" element={<TeamNew />} />
+                  <Route path="/file" element={<FileNew />} />
+                  <Route path="/projects" element={<ProjectsNew />} />
+                  <Route path="/projects/:id" element={<ProjectDetail />} />
+                  <Route path="/messages" element={<MessagesNew />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/connectors" element={<Connectors />} />
+
+                  {/* Legacy routes for backward compatibility */}
+                  <Route path="/organization/legacy" element={<OrganizationPage />} />
+                  <Route path="/team/legacy" element={<TeamPage />} />
+                  <Route path="/file/legacy" element={<FilePage />} />
+                  <Route path="/messages/legacy" element={<MessagesPage />} />
+
+                  {/* Unified Dashboard - adapts to user role and context */}
+                  <Route path="/dashboard" element={<AdaptiveDashboard />} />
+                  <Route path="/dashboard/unified" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard/client" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard/designer" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard/admin" element={<Navigate to="/dashboard" replace />} />
+
+                  {/* Core Platform Features */}
+                  <Route path="/onboarding" element={<ClientOnboarding />} />
+                  <Route path="/dashboard/projects/:projectId/workflow" element={<ProjectWorkflow />} />
+                  <Route path="/dashboard/projects/:projectId/review" element={<DesignReviewWorkflow />} />
+                  <Route path="/dashboard/projects/:projectId/collaborate" element={<RealTimeCollaboration />} />
+                  <Route path="/dashboard/projects/:projectId/workspace" element={<WorkspaceManager />} />
+                  <Route path="/dashboard/portfolio" element={<PortfolioShowcase />} />
+                  <Route path="/dashboard/analytics" element={<BusinessDashboard />} />
+                  <Route path="/dashboard/team" element={<TeamManagement />} />
+
+                  {/* Messaging with redesigned interface */}
+                  <Route path="/dashboard/messages" element={<MessagesNew />} />
+
+                  {/* Organization Hierarchy Routes */}
+                  <Route path="/dashboard/organizations" element={<OrganizationDashboard />} />
+                  <Route path="/dashboard/organizations/create" element={<CreateOrganization />} />
+                  <Route path="/dashboard/organization/:organizationId" element={<OrganizationDashboard />} />
+                  <Route path="/dashboard/organization/:organizationId/team/:teamId" element={<TeamDashboard />} />
+                  <Route path="/dashboard/organization/:organizationId/team/:teamId/project/:projectId" element={<ProjectDashboard />} />
+                  <Route path="/dashboard/organization/:organizationId/project/:projectId" element={<ProjectDashboard />} />
+
+                  {/* Direct access routes */}
+                  <Route path="/dashboard/teams/:teamId" element={<TeamDashboard />} />
+                  <Route path="/dashboard/projects/:projectId" element={<ProjectDashboard />} />
+
+                  {/* FluxPrint Integration - 3D Printing */}
+                  <Route path="/printing" element={<PrintingDashboard />} />
+                  <Route path="/dashboard/printing" element={<PrintingDashboard />} />
+                </Routes>
+              </Suspense>
+            </WorkspaceProvider>
+          </OrganizationProvider>
+        </MessagingProvider>
+      </SocketProvider>
+    </AuthProvider>
+  );
+}
+
 export default function App() {
   // Initialize performance monitoring and CSRF token
   React.useEffect(() => {
@@ -90,107 +179,15 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <Router>
           <ThemeProvider>
-            <AuthProvider>
-              <SocketProvider>
-                <MessagingProvider>
-                  <OrganizationProvider>
-                    <WorkspaceProvider>
-                    <Suspense fallback={<DefaultLoadingFallback />}>
-                      <Routes>
-                      {/* Critical pages - no suspense needed */}
-                      <Route path="/" element={<SimpleHomePage />} />
-                      <Route path="/login" element={<Login />} />
+            <Routes>
+              {/* Public routes - rendered OUTSIDE provider tree for reliability */}
+              <Route path="/tools" element={<Tools />} />
 
-                      {/* Lazy-loaded auth pages */}
-                      <Route path="/signup" element={<SignupWizard />} />
-                      <Route path="/signup/classic" element={<Signup />} />
-                      <Route path="/verify-email" element={<EmailVerification />} />
-                      <Route path="/welcome" element={<WelcomeFlow />} />
-
-                      {/* OAuth callback routes */}
-                      <Route path="/auth/callback/google" element={<OAuthCallback provider="google" />} />
-                      <Route path="/auth/callback/figma" element={<OAuthCallback provider="figma" />} />
-                      <Route path="/auth/callback/slack" element={<OAuthCallback provider="slack" />} />
-                      <Route path="/auth/callback/github" element={<OAuthCallback provider="github" />} />
-
-                      {/* Redesigned Page Routes (Flux Design Language) */}
-                      <Route path="/home" element={<Home />} />
-                      <Route path="/organization" element={<OrganizationNew />} />
-                      <Route path="/team" element={<TeamNew />} />
-                      <Route path="/file" element={<FileNew />} />
-                      <Route path="/projects" element={<ProjectsNew />} />
-                      <Route path="/projects/:id" element={<ProjectDetail />} />
-                      <Route path="/messages" element={<MessagesNew />} />
-                      <Route path="/profile" element={<Profile />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/connectors" element={<Connectors />} />
-                      <Route path="/tools" element={
-                        <ErrorBoundary
-                          isolateComponent
-                          fallback={
-                            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-                              <div className="text-center">
-                                <h1 className="text-2xl font-bold text-gray-900 mb-2">Tools</h1>
-                                <p className="text-gray-600 mb-4">Unable to load the Tools page.</p>
-                                <a href="/" className="text-blue-600 hover:underline">Return to Home</a>
-                              </div>
-                            </div>
-                          }
-                        >
-                          <Tools />
-                        </ErrorBoundary>
-                      } />
-
-                      {/* Legacy routes for backward compatibility */}
-                      <Route path="/organization/legacy" element={<OrganizationPage />} />
-                      <Route path="/team/legacy" element={<TeamPage />} />
-                      <Route path="/file/legacy" element={<FilePage />} />
-                      <Route path="/messages/legacy" element={<MessagesPage />} />
-
-                      {/* Unified Dashboard - adapts to user role and context */}
-                      <Route path="/dashboard" element={<AdaptiveDashboard />} />
-                      <Route path="/dashboard/unified" element={<Navigate to="/dashboard" replace />} />
-                      <Route path="/dashboard/client" element={<Navigate to="/dashboard" replace />} />
-                      <Route path="/dashboard/designer" element={<Navigate to="/dashboard" replace />} />
-                      <Route path="/dashboard/admin" element={<Navigate to="/dashboard" replace />} />
-
-                      {/* Core Platform Features */}
-                      <Route path="/onboarding" element={<ClientOnboarding />} />
-                      <Route path="/dashboard/projects/:projectId/workflow" element={<ProjectWorkflow />} />
-                      <Route path="/dashboard/projects/:projectId/review" element={<DesignReviewWorkflow />} />
-                      <Route path="/dashboard/projects/:projectId/collaborate" element={<RealTimeCollaboration />} />
-                      <Route path="/dashboard/projects/:projectId/workspace" element={<WorkspaceManager />} />
-                      <Route path="/dashboard/portfolio" element={<PortfolioShowcase />} />
-                      <Route path="/dashboard/analytics" element={<BusinessDashboard />} />
-                      <Route path="/dashboard/team" element={<TeamManagement />} />
-
-                      {/* Messaging with redesigned interface */}
-                      <Route path="/dashboard/messages" element={<MessagesNew />} />
-
-                      {/* Organization Hierarchy Routes */}
-                      <Route path="/dashboard/organizations" element={<OrganizationDashboard />} />
-                      <Route path="/dashboard/organizations/create" element={<CreateOrganization />} />
-                      <Route path="/dashboard/organization/:organizationId" element={<OrganizationDashboard />} />
-                      <Route path="/dashboard/organization/:organizationId/team/:teamId" element={<TeamDashboard />} />
-                      <Route path="/dashboard/organization/:organizationId/team/:teamId/project/:projectId" element={<ProjectDashboard />} />
-                      <Route path="/dashboard/organization/:organizationId/project/:projectId" element={<ProjectDashboard />} />
-
-                      {/* Direct access routes */}
-                      <Route path="/dashboard/teams/:teamId" element={<TeamDashboard />} />
-                      <Route path="/dashboard/projects/:projectId" element={<ProjectDashboard />} />
-
-                      {/* FluxPrint Integration - 3D Printing */}
-                      <Route path="/printing" element={<PrintingDashboard />} />
-                      <Route path="/dashboard/printing" element={<PrintingDashboard />} />
-                      </Routes>
-                    </Suspense>
-                  </WorkspaceProvider>
-                </OrganizationProvider>
-              </MessagingProvider>
-            </SocketProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </Router>
+              {/* All other routes - with full provider tree */}
+              <Route path="/*" element={<AuthenticatedRoutes />} />
+            </Routes>
+          </ThemeProvider>
+        </Router>
       </QueryClientProvider>
     </ErrorBoundary>
   );
