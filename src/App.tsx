@@ -32,6 +32,7 @@ const { Component: Tools } = lazyLoadWithRetry(() => import('./pages/Tools'));
 const { Component: ToolsMetMap } = lazyLoadWithRetry(() => import('./pages/ToolsMetMap'));
 const { Component: ToolsFiles } = lazyLoadWithRetry(() => import('./pages/ToolsFiles'));
 const { Component: ToolsAssets } = lazyLoadWithRetry(() => import('./pages/ToolsAssets'));
+const { Component: DesignBoardPage } = lazyLoadWithRetry(() => import('./pages/DesignBoardPage'));
 
 // Lazy load non-critical pages and components
 const { Component: Home } = lazyLoadWithRetry(() => import('./pages/Home'));
@@ -132,6 +133,7 @@ function AuthenticatedRoutes() {
                   <Route path="/assets" element={<Assets />} />
                   <Route path="/projects" element={<ProjectsNew />} />
                   <Route path="/projects/:id" element={<ProjectDetail />} />
+                  <Route path="/boards/:boardId" element={<DesignBoardPage />} />
                   <Route path="/messages" element={<MessagesNew />} />
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/profile" element={<Profile />} />
