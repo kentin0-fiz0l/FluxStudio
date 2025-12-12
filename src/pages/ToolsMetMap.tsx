@@ -20,6 +20,24 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useMetMap, Song, Section, Chord } from '../contexts/MetMapContext';
 import { useNotification } from '../contexts/NotificationContext';
+import { MobilePlaybackControls } from '../components/metmap/MobilePlaybackControls';
+import { OfflineIndicator, NetworkStatusBadge } from '../components/pwa/OfflineIndicator';
+import { usePWA } from '../hooks/usePWA';
+
+// Hook for detecting mobile viewport
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < breakpoint : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [breakpoint]);
+
+  return isMobile;
+}
 
 // ==================== Helper Functions ====================
 
@@ -646,6 +664,8 @@ export default function ToolsMetMap() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { showNotification } = useNotification();
+  const isMobile = useIsMobile();
+  const { isOnline } = usePWA();
 
   const {
     songs,
@@ -672,16 +692,24 @@ export default function ToolsMetMap() {
     play,
     pause,
     stop,
+    seekToBar,
     loadStats
   } = useMetMap();
 
   // Local state
   const [showNewSongModal, setShowNewSongModal] = useState(false);
+  const [showSongList, setShowSongList] = useState(!isMobile);
   const [searchQuery, setSearchQuery] = useState('');
   const [tempoOverride, setTempoOverride] = useState<number | null>(null);
   const [useClick, setUseClick] = useState(true);
   const [countoffBars, setCountoffBars] = useState(0);
   const [showChords, setShowChords] = useState(false);
+
+  // Calculate total bars for mobile controls
+  const totalBars = useMemo(() =>
+    editedSections.reduce((sum, s) => sum + s.bars, 0),
+    [editedSections]
+  );
 
   // Load stats on mount
   useEffect(() => {
@@ -716,6 +744,10 @@ export default function ToolsMetMap() {
       if (!confirm('You have unsaved changes. Discard them?')) return;
     }
     navigate(`/tools/metmap?song=${song.id}`);
+    // Close sidebar on mobile after selection
+    if (isMobile) {
+      setShowSongList(false);
+    }
   };
 
   const handleDeleteSong = async () => {
@@ -737,9 +769,48 @@ export default function ToolsMetMap() {
 
   return (
     <DashboardLayout>
+      {/* Offline Indicator */}
+      <OfflineIndicator position="top" />
+
       <div className="h-full flex">
+        {/* Mobile header with sidebar toggle */}
+        {isMobile && (
+          <div className="absolute top-0 left-0 right-0 z-30 bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
+            <button
+              onClick={() => setShowSongList(!showSongList)}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              aria-label={showSongList ? 'Hide song list' : 'Show song list'}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <div className="font-medium text-gray-900">
+              {currentSong?.title || 'MetMap'}
+            </div>
+            <div className="flex items-center gap-2">
+              <NetworkStatusBadge />
+              <button
+                onClick={() => setShowNewSongModal(true)}
+                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                aria-label="New song"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Left sidebar - Song list */}
-        <div className="w-72 border-r border-gray-200 bg-white flex flex-col">
+        <div className={`${
+          isMobile
+            ? `fixed inset-y-0 left-0 z-40 w-72 transform transition-transform duration-300 ease-in-out ${
+                showSongList ? 'translate-x-0' : '-translate-x-full'
+              }`
+            : 'w-72'
+        } border-r border-gray-200 bg-white flex flex-col`}>
           {/* Header */}
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-3">
@@ -799,8 +870,17 @@ export default function ToolsMetMap() {
           </div>
         </div>
 
+        {/* Mobile sidebar backdrop */}
+        {isMobile && showSongList && (
+          <div
+            className="fixed inset-0 bg-black/40 z-30"
+            onClick={() => setShowSongList(false)}
+            aria-hidden="true"
+          />
+        )}
+
         {/* Main content */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className={`flex-1 flex flex-col min-w-0 ${isMobile ? 'pt-12' : ''}`}>
           {currentSongLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-gray-500">Loading song...</div>
@@ -912,26 +992,44 @@ export default function ToolsMetMap() {
                 )}
               </div>
 
-              {/* Playback controls */}
+              {/* Playback controls - responsive */}
               <div className="p-4 border-t border-gray-200 bg-white">
-                <PlaybackControls
-                  isPlaying={playback.isPlaying}
-                  isPaused={playback.isPaused}
-                  currentBar={playback.currentBar}
-                  currentBeat={playback.currentBeat}
-                  currentTempo={playback.currentTempo}
-                  countingOff={playback.countingOff}
-                  countoffBeatsRemaining={playback.countoffBeatsRemaining}
-                  onPlay={handlePlay}
-                  onPause={pause}
-                  onStop={stop}
-                  tempoOverride={tempoOverride}
-                  setTempoOverride={setTempoOverride}
-                  useClick={useClick}
-                  setUseClick={setUseClick}
-                  countoffBars={countoffBars}
-                  setCountoffBars={setCountoffBars}
-                />
+                {isMobile ? (
+                  <MobilePlaybackControls
+                    isPlaying={playback.isPlaying}
+                    isPaused={playback.isPaused}
+                    currentBar={playback.currentBar}
+                    currentBeat={playback.currentBeat}
+                    currentTempo={playback.currentTempo}
+                    totalBars={totalBars}
+                    countingOff={playback.countingOff}
+                    countoffBeatsRemaining={playback.countoffBeatsRemaining}
+                    onPlay={handlePlay}
+                    onPause={pause}
+                    onStop={stop}
+                    onSeekToBar={seekToBar}
+                    defaultTempo={currentSong?.bpmDefault || 120}
+                  />
+                ) : (
+                  <PlaybackControls
+                    isPlaying={playback.isPlaying}
+                    isPaused={playback.isPaused}
+                    currentBar={playback.currentBar}
+                    currentBeat={playback.currentBeat}
+                    currentTempo={playback.currentTempo}
+                    countingOff={playback.countingOff}
+                    countoffBeatsRemaining={playback.countoffBeatsRemaining}
+                    onPlay={handlePlay}
+                    onPause={pause}
+                    onStop={stop}
+                    tempoOverride={tempoOverride}
+                    setTempoOverride={setTempoOverride}
+                    useClick={useClick}
+                    setUseClick={setUseClick}
+                    countoffBars={countoffBars}
+                    setCountoffBars={setCountoffBars}
+                  />
+                )}
               </div>
             </>
           ) : (
