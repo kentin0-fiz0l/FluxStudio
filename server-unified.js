@@ -362,16 +362,62 @@ async function saveTeams(teams) {
 }
 
 async function getProjects() {
-  if (authAdapter) {
-    return await authAdapter.getProjects();
+  // Use projectsAdapter for database-backed project retrieval
+  // Note: This returns all projects without user scoping (legacy behavior)
+  // For user-scoped projects, use projectsAdapter.getProjects(userId) directly
+  if (projectsAdapter) {
+    try {
+      // Get all projects without user scoping for legacy compatibility
+      const result = await query(`
+        SELECT p.*,
+               o.name as organization_name,
+               o.slug as organization_slug,
+               u.name as manager_name,
+               u.email as manager_email,
+               t.name as team_name,
+               (SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) as member_count,
+               (SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id) as task_count,
+               (SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id AND tk.status = 'completed') as completed_task_count
+        FROM projects p
+        LEFT JOIN organizations o ON p.organization_id = o.id
+        LEFT JOIN users u ON p.manager_id = u.id
+        LEFT JOIN teams t ON p.team_id = t.id
+        WHERE p.status != 'cancelled'
+        ORDER BY p.updated_at DESC
+        LIMIT 100
+      `);
+      return result.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        description: row.description || '',
+        status: row.status,
+        priority: row.priority,
+        organizationId: row.organization_id,
+        organizationName: row.organization_name,
+        teamId: row.team_id,
+        teamName: row.team_name,
+        createdBy: row.manager_id,
+        managerName: row.manager_name,
+        startDate: row.start_date,
+        dueDate: row.due_date,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }));
+    } catch (error) {
+      console.error('Error getting projects from database:', error);
+      return [];
+    }
   }
   const data = fs.readFileSync(PROJECTS_FILE, 'utf8');
   return JSON.parse(data).projects;
 }
 
 async function saveProjects(projects) {
-  if (authAdapter) {
-    return await authAdapter.saveProjects(projects);
+  // In database mode, individual project operations handle persistence
+  // This function is only used for file-based fallback
+  if (projectsAdapter) {
+    console.warn('saveProjects() called in database mode - use individual project operations instead');
+    return true;
   }
   fs.writeFileSync(PROJECTS_FILE, JSON.stringify({ projects }, null, 2));
 }
