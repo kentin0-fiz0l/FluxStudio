@@ -2767,559 +2767,292 @@ app.get('/files/storage/*storageKey', authenticateToken, async (req, res) => {
 });
 
 // ========================================
-// ASSETS API
+// ASSETS API (Reusable Creative Elements)
 // ========================================
 
 const assetsAdapter = require('./database/assets-adapter');
+const { determineAssetKind } = require('./database/assets-adapter');
 
-// List assets with filters
-app.get('/assets', authenticateToken, async (req, res) => {
+// 1. GET /api/assets - List assets with filtering
+app.get('/api/assets', authenticateToken, async (req, res) => {
   try {
-    const {
-      search,
-      type: assetType,
-      projectId,
-      organizationId,
-      status,
-      tags,
-      limit = 50,
-      offset = 0,
-      sortBy,
-      sortOrder
-    } = req.query;
+    const { search, kind, status, limit = 50, offset = 0 } = req.query;
 
-    const result = await assetsAdapter.listAssets(req.user.id, {
+    const result = await assetsAdapter.listAssets({
+      ownerId: req.user.id,
       search,
-      assetType,
-      projectId,
-      organizationId,
-      status,
-      tags: tags ? tags.split(',') : undefined,
+      kind,
+      status: status || 'active',
       limit: parseInt(limit, 10),
-      offset: parseInt(offset, 10),
-      sortBy,
-      sortOrder
+      offset: parseInt(offset, 10)
     });
 
-    res.json(result);
+    res.json({
+      success: true,
+      assets: result.assets,
+      total: result.total
+    });
   } catch (error) {
     console.error('Error listing assets:', error);
-    res.status(500).json({ error: 'Failed to list assets' });
+    res.status(500).json({ success: false, error: 'Failed to list assets' });
   }
 });
 
 // Get asset stats
-app.get('/assets/stats', authenticateToken, async (req, res) => {
+app.get('/api/assets/stats', authenticateToken, async (req, res) => {
   try {
-    const stats = await assetsAdapter.getStats(req.user.id);
-    res.json({ stats });
+    const stats = await assetsAdapter.getAssetStats(req.user.id);
+    res.json({ success: true, stats });
   } catch (error) {
     console.error('Error getting asset stats:', error);
-    res.status(500).json({ error: 'Failed to get stats' });
+    res.status(500).json({ success: false, error: 'Failed to get stats' });
   }
 });
 
-// Get popular tags
-app.get('/assets/tags/popular', authenticateToken, async (req, res) => {
+// 2. POST /api/assets - Create asset from existing file
+app.post('/api/assets', authenticateToken, async (req, res) => {
   try {
-    const { limit = 20 } = req.query;
-    const tags = await assetsAdapter.getPopularTags(req.user.id, parseInt(limit, 10));
-    res.json({ tags });
-  } catch (error) {
-    console.error('Error getting popular tags:', error);
-    res.status(500).json({ error: 'Failed to get tags' });
-  }
-});
+    const { fileId, name, kind, description, tags } = req.body;
 
-// Create new asset
-app.post('/assets', authenticateToken, async (req, res) => {
-  try {
-    const { name, description, assetType, fileId, projectId, organizationId } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ error: 'Name is required' });
+    if (!fileId) {
+      return res.status(400).json({ success: false, error: 'fileId is required' });
     }
 
-    const asset = await assetsAdapter.createAsset({
-      name,
-      description,
-      assetType,
-      fileId,
-      createdBy: req.user.id,
-      projectId,
-      organizationId
-    });
-
-    res.status(201).json({ asset });
-  } catch (error) {
-    console.error('Error creating asset:', error);
-    res.status(500).json({ error: 'Failed to create asset' });
-  }
-});
-
-// Create asset from existing file
-app.post('/assets/from-file/:fileId', authenticateToken, async (req, res) => {
-  try {
-    const { fileId } = req.params;
-    const { name, description, assetType } = req.body;
-
-    // Get the file
+    // Get the file to inherit properties
     const file = await filesAdapter.getFileById(fileId, req.user.id);
     if (!file) {
-      return res.status(404).json({ error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found' });
     }
 
-    // Determine asset type if not provided
-    let type = assetType || 'file';
-    if (!assetType) {
-      if (file.mimeType?.startsWith('image/') || file.mimeType?.startsWith('video/') || file.mimeType?.startsWith('audio/')) {
-        type = 'media';
-      } else if (file.mimeType?.includes('pdf') || file.mimeType?.includes('document') || file.mimeType?.includes('word')) {
-        type = 'document';
-      }
-    }
+    // Infer kind from mime type if not provided
+    const assetKind = kind || determineAssetKind(file.mimeType);
 
+    // Create the asset
     const asset = await assetsAdapter.createAsset({
+      organizationId: file.organizationId,
+      ownerId: req.user.id,
       name: name || file.name,
-      description,
-      assetType: type,
-      fileId,
-      createdBy: req.user.id,
-      projectId: file.projectId,
-      organizationId: file.organizationId
+      kind: assetKind,
+      primaryFileId: fileId,
+      description: description || null,
+      tags: tags || []
     });
 
-    res.status(201).json({ asset });
+    // Create initial version (version 1)
+    await assetsAdapter.createAssetVersion({
+      assetId: asset.id,
+      fileId: fileId,
+      label: 'Initial version',
+      format: file.extension,
+      width: file.width || null,
+      height: file.height || null,
+      durationMs: file.duration || null
+    });
+
+    // Refetch asset with versions
+    const fullAsset = await assetsAdapter.getAssetById(asset.id);
+
+    res.status(201).json({ success: true, asset: fullAsset });
   } catch (error) {
-    console.error('Error creating asset from file:', error);
-    res.status(500).json({ error: 'Failed to create asset from file' });
+    console.error('Error creating asset:', error);
+    res.status(500).json({ success: false, error: 'Failed to create asset' });
   }
 });
 
-// Get asset by ID
-app.get('/assets/:assetId', authenticateToken, async (req, res) => {
+// 3. GET /api/assets/:assetId - Get detailed asset info
+app.get('/api/assets/:assetId', authenticateToken, async (req, res) => {
   try {
     const { assetId } = req.params;
-    const { includeVersions, includeRelations } = req.query;
 
-    const asset = await assetsAdapter.getAssetById(assetId, req.user.id, {
-      includeVersions: includeVersions === 'true',
-      includeRelations: includeRelations === 'true'
-    });
+    const asset = await assetsAdapter.getAssetById(assetId);
 
     if (!asset) {
-      return res.status(404).json({ error: 'Asset not found' });
+      return res.status(404).json({ success: false, error: 'Asset not found' });
     }
 
-    res.json({ asset });
+    res.json({ success: true, asset });
   } catch (error) {
     console.error('Error getting asset:', error);
-    res.status(500).json({ error: 'Failed to get asset' });
+    res.status(500).json({ success: false, error: 'Failed to get asset' });
   }
 });
 
-// Update asset
-app.patch('/assets/:assetId', authenticateToken, async (req, res) => {
+// 4. PATCH /api/assets/:assetId - Update asset metadata
+app.patch('/api/assets/:assetId', authenticateToken, async (req, res) => {
   try {
     const { assetId } = req.params;
-    const updates = req.body;
+    const { name, description, tags, status, kind } = req.body;
 
-    const asset = await assetsAdapter.updateAsset(assetId, req.user.id, updates);
+    const asset = await assetsAdapter.updateAssetMetadata(assetId, {
+      name,
+      description,
+      tags,
+      status,
+      kind
+    });
 
     if (!asset) {
-      return res.status(404).json({ error: 'Asset not found or permission denied' });
+      return res.status(404).json({ success: false, error: 'Asset not found' });
     }
 
-    res.json({ asset });
+    res.json({ success: true, asset });
   } catch (error) {
     console.error('Error updating asset:', error);
-    res.status(500).json({ error: 'Failed to update asset' });
+    res.status(500).json({ success: false, error: 'Failed to update asset' });
   }
 });
 
 // Delete asset
-app.delete('/assets/:assetId', authenticateToken, async (req, res) => {
+app.delete('/api/assets/:assetId', authenticateToken, async (req, res) => {
   try {
     const { assetId } = req.params;
 
-    const success = await assetsAdapter.deleteAsset(assetId, req.user.id);
+    const success = await assetsAdapter.deleteAsset(assetId);
 
     if (!success) {
-      return res.status(404).json({ error: 'Asset not found or permission denied' });
+      return res.status(404).json({ success: false, error: 'Asset not found' });
     }
 
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting asset:', error);
-    res.status(500).json({ error: 'Failed to delete asset' });
+    res.status(500).json({ success: false, error: 'Failed to delete asset' });
   }
 });
 
-// ==================== ASSET VERSIONS ====================
-
-// Get all versions for asset
-app.get('/assets/:assetId/versions', authenticateToken, async (req, res) => {
+// 5. POST /api/assets/:assetId/versions - Create new version
+app.post('/api/assets/:assetId/versions', authenticateToken, async (req, res) => {
   try {
     const { assetId } = req.params;
-
-    const versions = await assetsAdapter.getVersions(assetId);
-    res.json({ versions });
-  } catch (error) {
-    console.error('Error getting versions:', error);
-    res.status(500).json({ error: 'Failed to get versions' });
-  }
-});
-
-// Create new version
-app.post('/assets/:assetId/versions', authenticateToken, async (req, res) => {
-  try {
-    const { assetId } = req.params;
-    const { fileId, changeSummary } = req.body;
+    const { fileId, label, makePrimary } = req.body;
 
     if (!fileId) {
-      return res.status(400).json({ error: 'File ID is required' });
+      return res.status(400).json({ success: false, error: 'fileId is required' });
     }
 
-    const version = await assetsAdapter.createVersion(assetId, req.user.id, {
+    // Get file info for version metadata
+    const file = await filesAdapter.getFileById(fileId, req.user.id);
+    if (!file) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
+
+    const version = await assetsAdapter.createAssetVersion({
+      assetId,
       fileId,
-      changeSummary
+      label: label || null,
+      format: file.extension,
+      width: file.width || null,
+      height: file.height || null,
+      durationMs: file.duration || null
     });
 
-    // Create notification for new version
-    if (notificationsAdapter) {
-      try {
-        const asset = await assetsAdapter.getAssetById(assetId, req.user.id);
-        if (asset && asset.projectId) {
-          // Get project members to notify
-          const { query } = require('./database/config');
-          const membersResult = await query(
-            `SELECT user_id FROM project_members WHERE project_id = $1 AND user_id != $2`,
-            [asset.projectId, req.user.id]
-          );
-
-          for (const member of membersResult.rows) {
-            await notificationsAdapter.createNotification({
-              userId: member.user_id,
-              type: 'asset_version',
-              title: 'New Asset Version',
-              message: `A new version of "${asset.name}" was uploaded`,
-              metadata: {
-                assetId,
-                versionNumber: version.versionNumber,
-                projectId: asset.projectId
-              }
-            });
-          }
-        }
-      } catch (notifyError) {
-        console.error('Error sending version notification:', notifyError);
-      }
+    // Optionally update primary file
+    if (makePrimary) {
+      await assetsAdapter.setPrimaryAssetVersion(assetId, version.id);
     }
 
-    res.status(201).json({ version });
+    res.status(201).json({ success: true, version });
   } catch (error) {
     console.error('Error creating version:', error);
-    res.status(500).json({ error: 'Failed to create version' });
+    res.status(500).json({ success: false, error: 'Failed to create version' });
   }
 });
 
-// Get specific version
-app.get('/assets/:assetId/versions/:versionNumber', authenticateToken, async (req, res) => {
-  try {
-    const { assetId, versionNumber } = req.params;
-
-    const version = await assetsAdapter.getVersion(assetId, parseInt(versionNumber, 10));
-
-    if (!version) {
-      return res.status(404).json({ error: 'Version not found' });
-    }
-
-    res.json({ version });
-  } catch (error) {
-    console.error('Error getting version:', error);
-    res.status(500).json({ error: 'Failed to get version' });
-  }
-});
-
-// Revert to version
-app.post('/assets/:assetId/versions/:versionNumber/revert', authenticateToken, async (req, res) => {
-  try {
-    const { assetId, versionNumber } = req.params;
-
-    const asset = await assetsAdapter.revertToVersion(assetId, parseInt(versionNumber, 10), req.user.id);
-
-    res.json({ asset });
-  } catch (error) {
-    console.error('Error reverting to version:', error);
-    res.status(500).json({ error: 'Failed to revert' });
-  }
-});
-
-// ==================== ASSET RELATIONS ====================
-
-// Get relations for asset
-app.get('/assets/:assetId/relations', authenticateToken, async (req, res) => {
+// 6. POST /api/assets/:assetId/primary - Set primary version
+app.post('/api/assets/:assetId/primary', authenticateToken, async (req, res) => {
   try {
     const { assetId } = req.params;
-    const { direction, relationType } = req.query;
+    const { versionId } = req.body;
 
-    const relations = await assetsAdapter.getRelations(assetId, { direction, relationType });
-    res.json({ relations });
+    if (!versionId) {
+      return res.status(400).json({ success: false, error: 'versionId is required' });
+    }
+
+    await assetsAdapter.setPrimaryAssetVersion(assetId, versionId);
+
+    // Return updated asset
+    const asset = await assetsAdapter.getAssetById(assetId);
+    res.json({ success: true, asset });
   } catch (error) {
-    console.error('Error getting relations:', error);
-    res.status(500).json({ error: 'Failed to get relations' });
+    console.error('Error setting primary version:', error);
+    res.status(500).json({ success: false, error: error.message || 'Failed to set primary version' });
   }
 });
 
-// Create relation
-app.post('/assets/:assetId/relations', authenticateToken, async (req, res) => {
+// 7. GET /api/assets/:assetId/versions - Get versions list
+app.get('/api/assets/:assetId/versions', authenticateToken, async (req, res) => {
   try {
     const { assetId } = req.params;
-    const { targetAssetId, relationType, description, metadata } = req.body;
 
-    if (!targetAssetId || !relationType) {
-      return res.status(400).json({ error: 'Target asset ID and relation type are required' });
+    const versions = await assetsAdapter.getAssetVersions(assetId);
+    res.json({ success: true, versions });
+  } catch (error) {
+    console.error('Error getting versions:', error);
+    res.status(500).json({ success: false, error: 'Failed to get versions' });
+  }
+});
+
+// 8. GET /api/assets/:assetId/projects - Get projects using this asset
+app.get('/api/assets/:assetId/projects', authenticateToken, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+
+    const projects = await assetsAdapter.getAssetProjects(assetId);
+    res.json({ success: true, projects });
+  } catch (error) {
+    console.error('Error getting asset projects:', error);
+    res.status(500).json({ success: false, error: 'Failed to get projects' });
+  }
+});
+
+// 9. POST /api/projects/:projectId/assets - Attach asset to project
+app.post('/api/projects/:projectId/assets', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { assetId, role = 'reference', sortOrder = 0 } = req.body;
+
+    if (!assetId) {
+      return res.status(400).json({ success: false, error: 'assetId is required' });
     }
 
-    const relation = await assetsAdapter.createRelation(
+    await assetsAdapter.attachAssetToProject({
       assetId,
-      targetAssetId,
-      relationType,
-      req.user.id,
-      { description, metadata }
-    );
-
-    res.status(201).json({ relation });
-  } catch (error) {
-    console.error('Error creating relation:', error);
-    res.status(500).json({ error: 'Failed to create relation' });
-  }
-});
-
-// Delete relation
-app.delete('/assets/relations/:relationId', authenticateToken, async (req, res) => {
-  try {
-    const { relationId } = req.params;
-
-    const success = await assetsAdapter.deleteRelation(relationId, req.user.id);
-
-    if (!success) {
-      return res.status(404).json({ error: 'Relation not found or permission denied' });
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting relation:', error);
-    res.status(500).json({ error: 'Failed to delete relation' });
-  }
-});
-
-// ==================== ASSET METADATA ====================
-
-// Get metadata for asset
-app.get('/assets/:assetId/metadata', authenticateToken, async (req, res) => {
-  try {
-    const { assetId } = req.params;
-    const { category } = req.query;
-
-    const metadata = await assetsAdapter.getMetadata(assetId, { category });
-    res.json({ metadata });
-  } catch (error) {
-    console.error('Error getting metadata:', error);
-    res.status(500).json({ error: 'Failed to get metadata' });
-  }
-});
-
-// Set metadata
-app.post('/assets/:assetId/metadata', authenticateToken, async (req, res) => {
-  try {
-    const { assetId } = req.params;
-    const { key, value, valueType, category } = req.body;
-
-    if (!key) {
-      return res.status(400).json({ error: 'Key is required' });
-    }
-
-    const metadata = await assetsAdapter.setMetadata(assetId, key, value, req.user.id, {
-      valueType,
-      category
+      projectId,
+      role,
+      sortOrder
     });
 
-    res.json({ metadata });
+    res.json({ success: true, message: 'Asset attached to project' });
   } catch (error) {
-    console.error('Error setting metadata:', error);
-    res.status(500).json({ error: 'Failed to set metadata' });
+    console.error('Error attaching asset to project:', error);
+    res.status(500).json({ success: false, error: 'Failed to attach asset' });
   }
 });
 
-// Delete metadata
-app.delete('/assets/:assetId/metadata/:key', authenticateToken, async (req, res) => {
+// 10. DELETE /api/projects/:projectId/assets/:assetId - Detach asset from project
+app.delete('/api/projects/:projectId/assets/:assetId', authenticateToken, async (req, res) => {
   try {
-    const { assetId, key } = req.params;
+    const { projectId, assetId } = req.params;
 
-    const success = await assetsAdapter.deleteMetadata(assetId, key);
+    await assetsAdapter.detachAssetFromProject({ assetId, projectId });
 
-    if (!success) {
-      return res.status(404).json({ error: 'Metadata not found' });
-    }
-
-    res.json({ success: true });
+    res.json({ success: true, message: 'Asset detached from project' });
   } catch (error) {
-    console.error('Error deleting metadata:', error);
-    res.status(500).json({ error: 'Failed to delete metadata' });
+    console.error('Error detaching asset from project:', error);
+    res.status(500).json({ success: false, error: 'Failed to detach asset' });
   }
 });
 
-// ==================== ASSET TAGS ====================
-
-// Get tags for asset
-app.get('/assets/:assetId/tags', authenticateToken, async (req, res) => {
+// GET /api/projects/:projectId/assets - Get assets for a project
+app.get('/api/projects/:projectId/assets', authenticateToken, async (req, res) => {
   try {
-    const { assetId } = req.params;
+    const { projectId } = req.params;
 
-    const tags = await assetsAdapter.getTags(assetId);
-    res.json({ tags });
+    const assets = await assetsAdapter.getProjectAssets(projectId);
+    res.json({ success: true, assets });
   } catch (error) {
-    console.error('Error getting tags:', error);
-    res.status(500).json({ error: 'Failed to get tags' });
-  }
-});
-
-// Add tag
-app.post('/assets/:assetId/tags', authenticateToken, async (req, res) => {
-  try {
-    const { assetId } = req.params;
-    const { tag } = req.body;
-
-    if (!tag) {
-      return res.status(400).json({ error: 'Tag is required' });
-    }
-
-    const tagRecord = await assetsAdapter.addTag(assetId, tag, req.user.id);
-    res.status(201).json({ tag: tagRecord });
-  } catch (error) {
-    console.error('Error adding tag:', error);
-    res.status(500).json({ error: 'Failed to add tag' });
-  }
-});
-
-// Remove tag
-app.delete('/assets/:assetId/tags/:tag', authenticateToken, async (req, res) => {
-  try {
-    const { assetId, tag } = req.params;
-
-    const success = await assetsAdapter.removeTag(assetId, tag);
-
-    if (!success) {
-      return res.status(404).json({ error: 'Tag not found' });
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error removing tag:', error);
-    res.status(500).json({ error: 'Failed to remove tag' });
-  }
-});
-
-// ==================== ASSET COMMENTS ====================
-
-// Get comments for asset
-app.get('/assets/:assetId/comments', authenticateToken, async (req, res) => {
-  try {
-    const { assetId } = req.params;
-    const { versionId, includeReplies } = req.query;
-
-    const comments = await assetsAdapter.getComments(assetId, {
-      versionId,
-      includeReplies: includeReplies !== 'false'
-    });
-
-    res.json({ comments });
-  } catch (error) {
-    console.error('Error getting comments:', error);
-    res.status(500).json({ error: 'Failed to get comments' });
-  }
-});
-
-// Add comment
-app.post('/assets/:assetId/comments', authenticateToken, async (req, res) => {
-  try {
-    const { assetId } = req.params;
-    const { content, versionId, parentCommentId } = req.body;
-
-    if (!content) {
-      return res.status(400).json({ error: 'Content is required' });
-    }
-
-    const comment = await assetsAdapter.addComment(assetId, req.user.id, {
-      content,
-      versionId,
-      parentCommentId
-    });
-
-    res.status(201).json({ comment });
-  } catch (error) {
-    console.error('Error adding comment:', error);
-    res.status(500).json({ error: 'Failed to add comment' });
-  }
-});
-
-// Update comment
-app.patch('/assets/comments/:commentId', authenticateToken, async (req, res) => {
-  try {
-    const { commentId } = req.params;
-    const { content } = req.body;
-
-    if (!content) {
-      return res.status(400).json({ error: 'Content is required' });
-    }
-
-    const comment = await assetsAdapter.updateComment(commentId, req.user.id, content);
-
-    if (!comment) {
-      return res.status(404).json({ error: 'Comment not found or permission denied' });
-    }
-
-    res.json({ comment });
-  } catch (error) {
-    console.error('Error updating comment:', error);
-    res.status(500).json({ error: 'Failed to update comment' });
-  }
-});
-
-// Delete comment
-app.delete('/assets/comments/:commentId', authenticateToken, async (req, res) => {
-  try {
-    const { commentId } = req.params;
-
-    const success = await assetsAdapter.deleteComment(commentId, req.user.id);
-
-    if (!success) {
-      return res.status(404).json({ error: 'Comment not found or permission denied' });
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting comment:', error);
-    res.status(500).json({ error: 'Failed to delete comment' });
-  }
-});
-
-// Resolve comment
-app.post('/assets/comments/:commentId/resolve', authenticateToken, async (req, res) => {
-  try {
-    const { commentId } = req.params;
-
-    const comment = await assetsAdapter.resolveComment(commentId, req.user.id);
-
-    if (!comment) {
-      return res.status(404).json({ error: 'Comment not found' });
-    }
-
-    res.json({ comment });
-  } catch (error) {
-    console.error('Error resolving comment:', error);
-    res.status(500).json({ error: 'Failed to resolve comment' });
+    console.error('Error getting project assets:', error);
+    res.status(500).json({ success: false, error: 'Failed to get project assets' });
   }
 });
 
