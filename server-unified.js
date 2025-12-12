@@ -3148,6 +3148,316 @@ app.post('/assets/comments/:commentId/resolve', authenticateToken, async (req, r
 });
 
 // ========================================
+// METMAP API (Musical Timeline Tool)
+// ========================================
+
+const metmapAdapter = require('./database/metmap-adapter');
+
+// ----- Songs -----
+
+// Get all songs for user
+app.get('/api/metmap/songs', authenticateToken, async (req, res) => {
+  try {
+    const { projectId, search, limit, offset, orderBy, orderDir } = req.query;
+
+    const result = await metmapAdapter.getSongsForUser(req.user.id, {
+      projectId,
+      search,
+      limit: limit ? parseInt(limit) : 50,
+      offset: offset ? parseInt(offset) : 0,
+      orderBy,
+      orderDir
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error getting songs:', error);
+    res.status(500).json({ error: 'Failed to get songs' });
+  }
+});
+
+// Get MetMap stats for user
+app.get('/api/metmap/stats', authenticateToken, async (req, res) => {
+  try {
+    const stats = await metmapAdapter.getStatsForUser(req.user.id);
+    res.json(stats);
+  } catch (error) {
+    console.error('Error getting MetMap stats:', error);
+    res.status(500).json({ error: 'Failed to get stats' });
+  }
+});
+
+// Create a new song
+app.post('/api/metmap/songs', authenticateToken, async (req, res) => {
+  try {
+    const { title, description, projectId, bpmDefault, timeSignatureDefault } = req.body;
+
+    if (!title || title.trim().length === 0) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    const song = await metmapAdapter.createSong(req.user.id, {
+      title: title.trim(),
+      description,
+      projectId,
+      bpmDefault,
+      timeSignatureDefault
+    });
+
+    res.status(201).json({ song });
+  } catch (error) {
+    console.error('Error creating song:', error);
+    res.status(500).json({ error: 'Failed to create song' });
+  }
+});
+
+// Get a single song with sections and chords
+app.get('/api/metmap/songs/:songId', authenticateToken, async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const song = await metmapAdapter.getSongById(songId, req.user.id);
+
+    if (!song) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    res.json({ song });
+  } catch (error) {
+    console.error('Error getting song:', error);
+    res.status(500).json({ error: 'Failed to get song' });
+  }
+});
+
+// Update a song
+app.put('/api/metmap/songs/:songId', authenticateToken, async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const { title, description, projectId, bpmDefault, timeSignatureDefault } = req.body;
+
+    const song = await metmapAdapter.updateSong(songId, req.user.id, {
+      title,
+      description,
+      projectId,
+      bpmDefault,
+      timeSignatureDefault
+    });
+
+    if (!song) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    res.json({ song });
+  } catch (error) {
+    console.error('Error updating song:', error);
+    res.status(500).json({ error: 'Failed to update song' });
+  }
+});
+
+// Delete a song
+app.delete('/api/metmap/songs/:songId', authenticateToken, async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const success = await metmapAdapter.deleteSong(songId, req.user.id);
+
+    if (!success) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting song:', error);
+    res.status(500).json({ error: 'Failed to delete song' });
+  }
+});
+
+// ----- Sections -----
+
+// Get sections for a song
+app.get('/api/metmap/songs/:songId/sections', authenticateToken, async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const sections = await metmapAdapter.getSections(songId, req.user.id);
+
+    if (sections === null) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    res.json({ sections });
+  } catch (error) {
+    console.error('Error getting sections:', error);
+    res.status(500).json({ error: 'Failed to get sections' });
+  }
+});
+
+// Bulk upsert sections
+app.put('/api/metmap/songs/:songId/sections', authenticateToken, async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const { sections } = req.body;
+
+    if (!Array.isArray(sections)) {
+      return res.status(400).json({ error: 'Sections must be an array' });
+    }
+
+    const updatedSections = await metmapAdapter.upsertSections(songId, req.user.id, sections);
+
+    if (updatedSections === null) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    res.json({ sections: updatedSections });
+  } catch (error) {
+    console.error('Error upserting sections:', error);
+    res.status(500).json({ error: 'Failed to update sections' });
+  }
+});
+
+// Delete a section
+app.delete('/api/metmap/sections/:sectionId', authenticateToken, async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+    const success = await metmapAdapter.deleteSection(sectionId, req.user.id);
+
+    if (!success) {
+      return res.status(404).json({ error: 'Section not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting section:', error);
+    res.status(500).json({ error: 'Failed to delete section' });
+  }
+});
+
+// ----- Chords -----
+
+// Get all chords for a song
+app.get('/api/metmap/songs/:songId/chords', authenticateToken, async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const chords = await metmapAdapter.getChordsForSong(songId, req.user.id);
+
+    if (chords === null) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    res.json({ chords });
+  } catch (error) {
+    console.error('Error getting chords:', error);
+    res.status(500).json({ error: 'Failed to get chords' });
+  }
+});
+
+// Bulk upsert chords for a section
+app.put('/api/metmap/sections/:sectionId/chords', authenticateToken, async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+    const { chords } = req.body;
+
+    if (!Array.isArray(chords)) {
+      return res.status(400).json({ error: 'Chords must be an array' });
+    }
+
+    // Validate chords have symbols
+    for (const chord of chords) {
+      if (!chord.symbol || chord.symbol.trim().length === 0) {
+        return res.status(400).json({ error: 'Each chord must have a symbol' });
+      }
+    }
+
+    const updatedChords = await metmapAdapter.upsertChords(sectionId, req.user.id, chords);
+
+    if (updatedChords === null) {
+      return res.status(404).json({ error: 'Section not found' });
+    }
+
+    res.json({ chords: updatedChords });
+  } catch (error) {
+    console.error('Error upserting chords:', error);
+    res.status(500).json({ error: 'Failed to update chords' });
+  }
+});
+
+// Delete a chord
+app.delete('/api/metmap/chords/:chordId', authenticateToken, async (req, res) => {
+  try {
+    const { chordId } = req.params;
+    const success = await metmapAdapter.deleteChord(chordId, req.user.id);
+
+    if (!success) {
+      return res.status(404).json({ error: 'Chord not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting chord:', error);
+    res.status(500).json({ error: 'Failed to delete chord' });
+  }
+});
+
+// ----- Practice Sessions -----
+
+// Start a practice session
+app.post('/api/metmap/songs/:songId/practice', authenticateToken, async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const { settings } = req.body;
+
+    const session = await metmapAdapter.createPracticeSession(songId, req.user.id, settings || {});
+
+    if (!session) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    res.status(201).json({ session });
+  } catch (error) {
+    console.error('Error starting practice session:', error);
+    res.status(500).json({ error: 'Failed to start practice session' });
+  }
+});
+
+// End a practice session
+app.post('/api/metmap/practice/:sessionId/end', authenticateToken, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { notes } = req.body;
+
+    const session = await metmapAdapter.endPracticeSession(sessionId, req.user.id, notes);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Practice session not found' });
+    }
+
+    res.json({ session });
+  } catch (error) {
+    console.error('Error ending practice session:', error);
+    res.status(500).json({ error: 'Failed to end practice session' });
+  }
+});
+
+// Get practice history for a song
+app.get('/api/metmap/songs/:songId/practice-history', authenticateToken, async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const { limit, offset } = req.query;
+
+    const result = await metmapAdapter.getPracticeHistory(songId, req.user.id, {
+      limit: limit ? parseInt(limit) : 20,
+      offset: offset ? parseInt(offset) : 0
+    });
+
+    if (result === null) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error getting practice history:', error);
+    res.status(500).json({ error: 'Failed to get practice history' });
+  }
+});
+
+// ========================================
 // USER MANAGEMENT APIs (for messaging)
 // ========================================
 
