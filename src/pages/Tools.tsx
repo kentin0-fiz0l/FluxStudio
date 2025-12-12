@@ -22,6 +22,7 @@ import {
   FolderOpen,
   BarChart3,
   Music,
+  FileBox,
 } from 'lucide-react';
 
 interface Tool {
@@ -44,6 +45,15 @@ const tools: Tool[] = [
     status: 'active',
     category: 'Music Production',
     internalPath: '/tools/metmap',
+  },
+  {
+    id: 'files',
+    name: 'Files',
+    description: 'Upload, organize, and preview images, audio, PDFs, and more',
+    icon: <FileBox className="w-8 h-8" />,
+    status: 'active',
+    category: 'File Management',
+    internalPath: '/tools/files',
   },
 ];
 
