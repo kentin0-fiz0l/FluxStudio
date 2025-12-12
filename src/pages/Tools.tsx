@@ -10,15 +10,18 @@ import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Card, Button } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
+import { useMetMap } from '../contexts/MetMapContext';
 import {
   Map,
   ExternalLink,
+  ArrowRight,
   Wrench,
   Sparkles,
   Star,
   Palette,
   FolderOpen,
   BarChart3,
+  Music,
 } from 'lucide-react';
 
 interface Tool {
@@ -29,17 +32,18 @@ interface Tool {
   status: 'active' | 'coming_soon';
   category: string;
   url?: string;
+  internalPath?: string;
 }
 
 const tools: Tool[] = [
   {
     id: 'metmap',
     name: 'MetMap',
-    description: 'Programmable tempo + chord timeline tool',
-    icon: <Map className="w-8 h-8" />,
+    description: 'Programmable tempo + chord timeline tool for musicians',
+    icon: <Music className="w-8 h-8" />,
     status: 'active',
     category: 'Music Production',
-    url: 'https://fluxstudio.art/metmap',
+    internalPath: '/tools/metmap',
   },
 ];
 
@@ -73,22 +77,26 @@ const comingSoonTools: Tool[] = [
 function Tools() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { stats, loadStats } = useMetMap();
 
   // Authentication guard - redirect to login if not authenticated
   React.useEffect(() => {
     if (!user) {
-      console.log('⚠️  User not authenticated, redirecting to login...');
+      console.log('User not authenticated, redirecting to login...');
       navigate('/login', { replace: true });
       return;
     }
 
     document.title = 'Tools - FluxStudio';
-    console.log('=== TOOLS PAGE LOADING ===');
-    console.log('✅ User authenticated:', user.email);
-  }, [user, navigate]);
+    loadStats();
+  }, [user, navigate, loadStats]);
 
-  const handleLaunchTool = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
+  const handleLaunchTool = (tool: Tool) => {
+    if (tool.internalPath) {
+      navigate(tool.internalPath);
+    } else if (tool.url) {
+      window.open(tool.url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   // Don't render if not authenticated
@@ -125,7 +133,11 @@ function Tools() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tools.map((tool) => (
-              <Card key={tool.id} className="relative group bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+              <Card
+                key={tool.id}
+                className="relative group bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 shadow-sm hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600 transition-all duration-200 cursor-pointer"
+                onClick={() => handleLaunchTool(tool)}
+              >
                 {/* NEW Badge */}
                 <div className="absolute -top-2 -right-2 bg-primary-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg">
                   NEW
@@ -142,25 +154,43 @@ function Tools() {
                 <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-1">
                   {tool.name}
                 </h3>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
                   {tool.description}
                 </p>
+
+                {/* MetMap Stats */}
+                {tool.id === 'metmap' && stats && (
+                  <div className="flex gap-3 text-xs text-neutral-500 mb-3">
+                    <span>{stats.songCount} songs</span>
+                    <span>{stats.practiceCount} sessions</span>
+                  </div>
+                )}
 
                 {/* Category & Action */}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-neutral-500 dark:text-neutral-500 font-medium">
                     {tool.category}
                   </span>
-                  {tool.url && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleLaunchTool(tool.url!)}
-                      className="shadow-sm"
-                    >
-                      <ExternalLink className="w-4 h-4 mr-1.5" aria-hidden="true" />
-                      Launch
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLaunchTool(tool);
+                    }}
+                    className="shadow-sm"
+                  >
+                    {tool.internalPath ? (
+                      <>
+                        <ArrowRight className="w-4 h-4 mr-1.5" aria-hidden="true" />
+                        Open
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="w-4 h-4 mr-1.5" aria-hidden="true" />
+                        Launch
+                      </>
+                    )}
+                  </Button>
                 </div>
               </Card>
             ))}

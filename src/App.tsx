@@ -11,6 +11,7 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import { ConnectorsProvider } from './contexts/ConnectorsContext';
 import { FilesProvider } from './contexts/FilesContext';
 import { AssetsProvider } from './contexts/AssetsContext';
+import { MetMapProvider } from './contexts/MetMapContext';
 import { ToastContainer } from './components/notifications/ToastContainer';
 import ErrorBoundary from './components/error/ErrorBoundary';
 import { performanceMonitoring } from './services/performanceMonitoring';
@@ -28,6 +29,7 @@ import { useAuth } from './contexts/AuthContext';
 
 // Tools page - uses DashboardLayout like other authenticated pages
 const { Component: Tools } = lazyLoadWithRetry(() => import('./pages/Tools'));
+const { Component: ToolsMetMap } = lazyLoadWithRetry(() => import('./pages/ToolsMetMap'));
 
 // Lazy load non-critical pages and components
 const { Component: Home } = lazyLoadWithRetry(() => import('./pages/Home'));
@@ -101,6 +103,7 @@ function AuthenticatedRoutes() {
                 <ConnectorsProvider>
                   <FilesProvider>
                     <AssetsProvider>
+                      <MetMapProvider>
                 <Suspense fallback={<DefaultLoadingFallback />}>
                   <Routes>
                   {/* Root route - redirects based on auth state */}
@@ -133,6 +136,7 @@ function AuthenticatedRoutes() {
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/connectors" element={<Connectors />} />
                   <Route path="/tools" element={<Tools />} />
+                  <Route path="/tools/metmap" element={<ToolsMetMap />} />
 
                   {/* Legacy routes for backward compatibility */}
                   <Route path="/organization/legacy" element={<OrganizationPage />} />
@@ -179,6 +183,7 @@ function AuthenticatedRoutes() {
                 </Suspense>
                 {/* Global Toast Notifications */}
                 <ToastContainer />
+                      </MetMapProvider>
                     </AssetsProvider>
                   </FilesProvider>
                 </ConnectorsProvider>
