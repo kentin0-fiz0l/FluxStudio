@@ -633,6 +633,154 @@ class FilesAdapter {
       deletedAt: row.deleted_at
     };
   }
+
+  // ==================== Project Files Join Table Methods ====================
+
+  /**
+   * Attach a file to a project (via project_files join table)
+   *
+   * @param {Object} options
+   * @returns {boolean} Success
+   */
+  async attachFileToProject({ fileId, projectId, role = 'reference', addedBy, notes }) {
+    try {
+      const id = uuidv4();
+
+      await query(`
+        INSERT INTO project_files (id, project_id, file_id, role, added_by, notes, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        ON CONFLICT (project_id, file_id) DO UPDATE SET
+          role = EXCLUDED.role,
+          notes = COALESCE(EXCLUDED.notes, project_files.notes)
+      `, [id, projectId, fileId, role, addedBy || null, notes || null]);
+
+      return true;
+    } catch (error) {
+      console.error('Error attaching file to project:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Detach a file from a project (via project_files join table)
+   *
+   * @param {Object} options
+   * @returns {boolean} Success
+   */
+  async detachFileFromProject({ fileId, projectId }) {
+    try {
+      await query(
+        'DELETE FROM project_files WHERE file_id = $1 AND project_id = $2',
+        [fileId, projectId]
+      );
+      return true;
+    } catch (error) {
+      console.error('Error detaching file from project:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get files attached to a project (via project_files join table)
+   *
+   * @param {string} projectId
+   * @param {Object} options
+   * @returns {Object} { files, total, ... }
+   */
+  async getProjectFiles(projectId, { limit = 50, offset = 0 } = {}) {
+    try {
+      const result = await query(`
+        SELECT f.*,
+               u.name as uploader_name,
+               u.email as uploader_email,
+               pf.role as project_role,
+               pf.notes as project_notes,
+               pf.sort_order,
+               pf.created_at as attached_at
+        FROM files f
+        JOIN project_files pf ON f.id = pf.file_id
+        LEFT JOIN users u ON f.uploaded_by = u.id
+        WHERE pf.project_id = $1 AND f.deleted_at IS NULL
+        ORDER BY pf.sort_order ASC, pf.created_at DESC
+        LIMIT $2 OFFSET $3
+      `, [projectId, limit, offset]);
+
+      const countResult = await query(
+        'SELECT COUNT(*) as total FROM project_files pf JOIN files f ON pf.file_id = f.id WHERE pf.project_id = $1 AND f.deleted_at IS NULL',
+        [projectId]
+      );
+
+      const total = parseInt(countResult.rows[0]?.total || 0, 10);
+
+      return {
+        files: result.rows.map(row => ({
+          ...this._transformFile(row),
+          projectRole: row.project_role,
+          projectNotes: row.project_notes,
+          sortOrder: row.sort_order,
+          attachedAt: row.attached_at
+        })),
+        total,
+        limit,
+        offset,
+        hasMore: offset + result.rows.length < total
+      };
+    } catch (error) {
+      console.error('Error getting project files:', error);
+      return { files: [], total: 0, limit, offset, hasMore: false };
+    }
+  }
+
+  /**
+   * Get projects a file is attached to (via project_files join table)
+   *
+   * @param {string} fileId
+   * @returns {Array} Array of project info
+   */
+  async getFileProjects(fileId) {
+    try {
+      const result = await query(`
+        SELECT p.id, p.name, p.status, pf.role, pf.created_at as attached_at
+        FROM projects p
+        JOIN project_files pf ON p.id = pf.project_id
+        WHERE pf.file_id = $1
+        ORDER BY pf.created_at DESC
+      `, [fileId]);
+
+      return result.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        status: row.status,
+        role: row.role,
+        attachedAt: row.attached_at
+      }));
+    } catch (error) {
+      console.error('Error getting file projects:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Update file sort order within a project
+   *
+   * @param {string} projectId
+   * @param {Array} fileOrders - Array of { fileId, sortOrder }
+   * @returns {boolean} Success
+   */
+  async updateProjectFileSortOrder(projectId, fileOrders) {
+    try {
+      for (const { fileId, sortOrder } of fileOrders) {
+        await query(
+          'UPDATE project_files SET sort_order = $1 WHERE project_id = $2 AND file_id = $3',
+          [sortOrder, projectId, fileId]
+        );
+      }
+      return true;
+    } catch (error) {
+      console.error('Error updating file sort order:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance

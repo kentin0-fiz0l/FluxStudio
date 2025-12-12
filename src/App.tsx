@@ -30,6 +30,7 @@ import { useAuth } from './contexts/AuthContext';
 // Tools page - uses DashboardLayout like other authenticated pages
 const { Component: Tools } = lazyLoadWithRetry(() => import('./pages/Tools'));
 const { Component: ToolsMetMap } = lazyLoadWithRetry(() => import('./pages/ToolsMetMap'));
+const { Component: ToolsFiles } = lazyLoadWithRetry(() => import('./pages/ToolsFiles'));
 
 // Lazy load non-critical pages and components
 const { Component: Home } = lazyLoadWithRetry(() => import('./pages/Home'));
@@ -137,6 +138,7 @@ function AuthenticatedRoutes() {
                   <Route path="/connectors" element={<Connectors />} />
                   <Route path="/tools" element={<Tools />} />
                   <Route path="/tools/metmap" element={<ToolsMetMap />} />
+                  <Route path="/tools/files" element={<ToolsFiles />} />
 
                   {/* Legacy routes for backward compatibility */}
                   <Route path="/organization/legacy" element={<OrganizationPage />} />

@@ -2594,6 +2594,136 @@ app.post('/files/:fileId/unlink', authenticateToken, async (req, res) => {
   }
 });
 
+// ==================== Project Files Join Table Endpoints ====================
+
+// Get projects a file is attached to (via project_files join table)
+app.get('/api/files/:fileId/projects', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const projects = await filesAdapter.getFileProjects(fileId);
+    res.json({ success: true, projects });
+  } catch (error) {
+    console.error('Error getting file projects:', error);
+    res.status(500).json({ error: 'Failed to get file projects' });
+  }
+});
+
+// Attach file to project (via project_files join table - allows many-to-many)
+app.post('/api/files/:fileId/attach', authenticateToken, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { projectId, role = 'reference', notes } = req.body;
+
+    if (!projectId) {
+      return res.status(400).json({ error: 'projectId is required' });
+    }
+
+    // Verify file exists and user has access
+    const file = await filesAdapter.getFileById(fileId, req.user.id);
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Attach file to project
+    await filesAdapter.attachFileToProject({
+      fileId,
+      projectId,
+      role,
+      addedBy: req.user.id,
+      notes
+    });
+
+    res.json({ success: true, message: 'File attached to project' });
+  } catch (error) {
+    console.error('Error attaching file to project:', error);
+    res.status(500).json({ error: 'Failed to attach file to project' });
+  }
+});
+
+// Detach file from project (via project_files join table)
+app.delete('/api/files/:fileId/attach/:projectId', authenticateToken, async (req, res) => {
+  try {
+    const { fileId, projectId } = req.params;
+
+    await filesAdapter.detachFileFromProject({ fileId, projectId });
+
+    res.json({ success: true, message: 'File detached from project' });
+  } catch (error) {
+    console.error('Error detaching file from project:', error);
+    res.status(500).json({ error: 'Failed to detach file from project' });
+  }
+});
+
+// Get files attached to project (via project_files join table)
+app.get('/api/project-files/:projectId', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+
+    const result = await filesAdapter.getProjectFiles(projectId, {
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    res.json({
+      success: true,
+      files: result.files,
+      total: result.total,
+      hasMore: result.hasMore
+    });
+  } catch (error) {
+    console.error('Error getting project files:', error);
+    res.status(500).json({ error: 'Failed to get project files' });
+  }
+});
+
+// Attach existing file to project (alternative route matching REST conventions)
+app.post('/api/projects/:projectId/attach-file', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { fileId, role = 'reference', notes } = req.body;
+
+    if (!fileId) {
+      return res.status(400).json({ error: 'fileId is required' });
+    }
+
+    // Verify file exists
+    const file = await filesAdapter.getFileById(fileId, req.user.id);
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    await filesAdapter.attachFileToProject({
+      fileId,
+      projectId,
+      role,
+      addedBy: req.user.id,
+      notes
+    });
+
+    res.json({ success: true, message: 'File attached to project', file });
+  } catch (error) {
+    console.error('Error attaching file to project:', error);
+    res.status(500).json({ error: 'Failed to attach file to project' });
+  }
+});
+
+// Detach file from project (alternative route)
+app.delete('/api/projects/:projectId/files/:fileId/detach', authenticateToken, async (req, res) => {
+  try {
+    const { projectId, fileId } = req.params;
+
+    await filesAdapter.detachFileFromProject({ fileId, projectId });
+
+    res.json({ success: true, message: 'File detached from project' });
+  } catch (error) {
+    console.error('Error detaching file from project:', error);
+    res.status(500).json({ error: 'Failed to detach file from project' });
+  }
+});
+
+// ==================== End Project Files Endpoints ====================
+
 // Serve stored files (for file URLs)
 // Using named wildcard route to capture full storage path (e.g., /files/storage/user123/2024/12/file.jpg)
 app.get('/files/storage/*storageKey', authenticateToken, async (req, res) => {
