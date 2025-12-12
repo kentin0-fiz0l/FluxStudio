@@ -42,6 +42,8 @@ import {
   Columns,
   Users,
   Layers,
+  PenTool,
+  Plus,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -219,8 +221,24 @@ export const ProjectDetail = () => {
     tasks: 'Tasks',
     files: 'Files',
     assets: 'Assets',
+    boards: 'Boards',
     messages: 'Messages',
   };
+
+  // Boards state
+  interface DesignBoard {
+    id: string;
+    projectId: string;
+    name: string;
+    description?: string;
+    isArchived: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }
+  const [boards, setBoards] = React.useState<DesignBoard[]>([]);
+  const [boardsLoading, setBoardsLoading] = React.useState(false);
+  const [newBoardName, setNewBoardName] = React.useState('');
+  const [showNewBoardInput, setShowNewBoardInput] = React.useState(false);
 
   // Assets state
   const {
@@ -244,6 +262,57 @@ export const ProjectDetail = () => {
       refreshAssets({ projectId: id });
     }
   }, [activeTab, id]);
+
+  // Load project boards when tab changes to boards
+  React.useEffect(() => {
+    const fetchBoards = async () => {
+      if (activeTab !== 'boards' || !id) return;
+      setBoardsLoading(true);
+      try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`/api/projects/${id}/boards`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setBoards(data.boards);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching boards:', error);
+      } finally {
+        setBoardsLoading(false);
+      }
+    };
+    fetchBoards();
+  }, [activeTab, id]);
+
+  // Create new board
+  const handleCreateBoard = async () => {
+    if (!newBoardName.trim() || !id) return;
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/projects/${id}/boards`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: newBoardName.trim() }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.board) {
+          setBoards((prev) => [...prev, data.board]);
+          setNewBoardName('');
+          setShowNewBoardInput(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error creating board:', error);
+    }
+  };
 
   // ============================================================================
   // Data Fetching
@@ -575,6 +644,25 @@ export const ProjectDetail = () => {
               </TabsTrigger>
 
               <TabsTrigger
+                value="boards"
+                className={cn(
+                  'data-[state=active]:border-b-2 data-[state=active]:border-primary-600',
+                  'rounded-none border-b-2 border-transparent h-full px-4'
+                )}
+                role="tab"
+                aria-selected={activeTab === 'boards'}
+                aria-controls="boards-panel"
+                id="boards-tab"
+                aria-label={`Boards, ${boards.length} items`}
+              >
+                <PenTool className="h-4 w-4 mr-2" aria-hidden="true" />
+                Boards
+                <Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">
+                  {boards.length}
+                </Badge>
+              </TabsTrigger>
+
+              <TabsTrigger
                 value="messages"
                 className={cn(
                   'data-[state=active]:border-b-2 data-[state=active]:border-primary-600',
@@ -822,6 +910,99 @@ export const ProjectDetail = () => {
                           </p>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Boards Tab */}
+            <TabsContent
+              value="boards"
+              className="h-full overflow-y-auto p-6 mt-0"
+              role="tabpanel"
+              id="boards-panel"
+              aria-labelledby="boards-tab"
+              tabIndex={0}
+            >
+              <div role="status" aria-live="polite" className="sr-only">
+                {activeTab === 'boards' ? `Showing ${tabLabels.boards} tab` : ''}
+              </div>
+
+              {/* Boards Content */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-neutral-900">Design Boards</h2>
+                  {!showNewBoardInput ? (
+                    <Button
+                      variant="primary"
+                      onClick={() => setShowNewBoardInput(true)}
+                      aria-label="Create new board"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Board
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newBoardName}
+                        onChange={(e) => setNewBoardName(e.target.value)}
+                        placeholder="Board name..."
+                        className="px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        onKeyDown={(e) => e.key === 'Enter' && handleCreateBoard()}
+                        autoFocus
+                      />
+                      <Button variant="primary" onClick={handleCreateBoard}>
+                        Create
+                      </Button>
+                      <Button variant="ghost" onClick={() => { setShowNewBoardInput(false); setNewBoardName(''); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {boardsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : boards.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <PenTool className="h-12 w-12 mx-auto text-neutral-400 mb-4" />
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">No design boards yet</h3>
+                    <p className="text-neutral-600 mb-4">
+                      Create a board to start collaborating on 2D designs with your team.
+                    </p>
+                    <Button
+                      variant="primary"
+                      onClick={() => setShowNewBoardInput(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create First Board
+                    </Button>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {boards.map((board) => (
+                      <Card
+                        key={board.id}
+                        className="group overflow-hidden hover:shadow-lg hover:border-primary-300 transition-all cursor-pointer"
+                        onClick={() => navigate(`/boards/${board.id}`)}
+                      >
+                        <div className="aspect-video bg-gradient-to-br from-primary-50 to-indigo-50 flex items-center justify-center">
+                          <PenTool className="w-12 h-12 text-primary-400" />
+                        </div>
+                        <div className="p-4">
+                          <h4 className="font-medium text-neutral-900 truncate">{board.name}</h4>
+                          {board.description && (
+                            <p className="text-sm text-neutral-500 mt-1 line-clamp-2">{board.description}</p>
+                          )}
+                          <p className="text-xs text-neutral-400 mt-2">
+                            Updated {new Date(board.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </Card>
                     ))}
                   </div>
                 )}
