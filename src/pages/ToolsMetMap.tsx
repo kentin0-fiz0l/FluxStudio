@@ -1,0 +1,965 @@
+/**
+ * MetMap Page - FluxStudio
+ *
+ * Musical timeline tool for creating songs with sections, tempo changes,
+ * and chord progressions. Includes a programmable metronome.
+ *
+ * Features:
+ * - Song management with project linking
+ * - Section timeline with tempo ramps
+ * - Chord progression grid
+ * - Timer-based metronome playback
+ * - Practice session tracking
+ *
+ * WCAG 2.1 Level A Compliant
+ */
+
+import * as React from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import DashboardLayout from '../components/layout/DashboardLayout';
+import { useMetMap, Song, Section, Chord } from '../contexts/MetMapContext';
+import { useNotification } from '../contexts/NotificationContext';
+
+// ==================== Helper Functions ====================
+
+function formatDate(date: string): string {
+  return new Date(date).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+}
+
+// Common chord symbols for quick selection
+const COMMON_CHORDS = [
+  'C', 'Cm', 'C7', 'Cmaj7', 'Cm7',
+  'D', 'Dm', 'D7', 'Dmaj7', 'Dm7',
+  'E', 'Em', 'E7', 'Emaj7', 'Em7',
+  'F', 'Fm', 'F7', 'Fmaj7', 'Fm7',
+  'G', 'Gm', 'G7', 'Gmaj7', 'Gm7',
+  'A', 'Am', 'A7', 'Amaj7', 'Am7',
+  'B', 'Bm', 'B7', 'Bmaj7', 'Bm7'
+];
+
+const TIME_SIGNATURES = ['4/4', '3/4', '6/8', '2/4', '5/4', '7/8', '12/8'];
+
+// ==================== Components ====================
+
+// Song List Item
+function SongListItem({
+  song,
+  isSelected,
+  onClick
+}: {
+  song: Song;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      className={`p-3 border-b border-gray-100 cursor-pointer transition-colors ${
+        isSelected ? 'bg-indigo-50 border-l-4 border-l-indigo-500' : 'hover:bg-gray-50'
+      }`}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && onClick()}
+      aria-selected={isSelected}
+    >
+      <div className="font-medium text-gray-900 truncate">{song.title}</div>
+      <div className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+        <span>{song.bpmDefault} BPM</span>
+        <span className="text-gray-300">|</span>
+        <span>{song.timeSignatureDefault}</span>
+        {song.sectionCount > 0 && (
+          <>
+            <span className="text-gray-300">|</span>
+            <span>{song.sectionCount} sections</span>
+          </>
+        )}
+      </div>
+      {song.projectName && (
+        <div className="text-xs text-indigo-600 mt-1 truncate">{song.projectName}</div>
+      )}
+    </div>
+  );
+}
+
+// Section Editor Row
+function SectionRow({
+  section,
+  index,
+  isPlaying,
+  isCurrentSection,
+  onUpdate,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown
+}: {
+  section: Section;
+  index: number;
+  isPlaying: boolean;
+  isCurrentSection: boolean;
+  onUpdate: (changes: Partial<Section>) => void;
+  onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+}) {
+  const hasTempoRamp = section.tempoEnd && section.tempoEnd !== section.tempoStart;
+
+  return (
+    <div
+      className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+        isCurrentSection && isPlaying
+          ? 'bg-indigo-50 border-indigo-300 shadow-sm'
+          : 'bg-white border-gray-200 hover:border-gray-300'
+      }`}
+    >
+      {/* Reorder buttons */}
+      <div className="flex flex-col gap-1">
+        <button
+          onClick={onMoveUp}
+          disabled={!canMoveUp}
+          className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+          aria-label="Move section up"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
+        <button
+          onClick={onMoveDown}
+          disabled={!canMoveDown}
+          className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+          aria-label="Move section down"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Section name */}
+      <input
+        type="text"
+        value={section.name}
+        onChange={(e) => onUpdate({ name: e.target.value })}
+        className="w-32 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        aria-label="Section name"
+      />
+
+      {/* Bars */}
+      <div className="flex items-center gap-1">
+        <label className="text-xs text-gray-500">Bars:</label>
+        <input
+          type="number"
+          value={section.bars}
+          onChange={(e) => onUpdate({ bars: Math.max(1, parseInt(e.target.value) || 1) })}
+          className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          min="1"
+          aria-label="Number of bars"
+        />
+      </div>
+
+      {/* Time signature */}
+      <select
+        value={section.timeSignature}
+        onChange={(e) => onUpdate({ timeSignature: e.target.value })}
+        className="px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        aria-label="Time signature"
+      >
+        {TIME_SIGNATURES.map((ts) => (
+          <option key={ts} value={ts}>{ts}</option>
+        ))}
+      </select>
+
+      {/* Tempo */}
+      <div className="flex items-center gap-1">
+        <label className="text-xs text-gray-500">Tempo:</label>
+        <input
+          type="number"
+          value={section.tempoStart}
+          onChange={(e) => onUpdate({ tempoStart: Math.max(20, Math.min(300, parseInt(e.target.value) || 120)) })}
+          className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          min="20"
+          max="300"
+          aria-label="Starting tempo"
+        />
+      </div>
+
+      {/* Tempo ramp toggle */}
+      <button
+        onClick={() => {
+          if (hasTempoRamp) {
+            onUpdate({ tempoEnd: undefined, tempoCurve: undefined });
+          } else {
+            onUpdate({ tempoEnd: section.tempoStart, tempoCurve: 'linear' });
+          }
+        }}
+        className={`px-2 py-1 text-xs rounded ${
+          hasTempoRamp ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+        }`}
+        aria-label={hasTempoRamp ? 'Remove tempo ramp' : 'Add tempo ramp'}
+      >
+        {hasTempoRamp ? 'Ramp' : '+ Ramp'}
+      </button>
+
+      {/* Tempo ramp options */}
+      {hasTempoRamp && (
+        <>
+          <span className="text-gray-400">to</span>
+          <input
+            type="number"
+            value={section.tempoEnd || section.tempoStart}
+            onChange={(e) => onUpdate({ tempoEnd: Math.max(20, Math.min(300, parseInt(e.target.value) || section.tempoStart)) })}
+            className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            min="20"
+            max="300"
+            aria-label="Ending tempo"
+          />
+          <select
+            value={section.tempoCurve || 'linear'}
+            onChange={(e) => onUpdate({ tempoCurve: e.target.value as 'linear' | 'exponential' | 'step' })}
+            className="px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            aria-label="Tempo curve type"
+          >
+            <option value="linear">Linear</option>
+            <option value="exponential">Exponential</option>
+            <option value="step">Step</option>
+          </select>
+        </>
+      )}
+
+      {/* Bar range display */}
+      <div className="ml-auto text-xs text-gray-400">
+        Bars {section.startBar}-{section.startBar + section.bars - 1}
+      </div>
+
+      {/* Delete */}
+      <button
+        onClick={onRemove}
+        className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+        aria-label="Delete section"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// Chord Grid for a section
+function ChordGrid({
+  section,
+  sectionIndex,
+  chords,
+  onChordsChange
+}: {
+  section: Section;
+  sectionIndex: number;
+  chords: Chord[];
+  onChordsChange: (chords: Chord[]) => void;
+}) {
+  const [selectedCell, setSelectedCell] = useState<{ bar: number; beat: number } | null>(null);
+  const [editValue, setEditValue] = useState('');
+
+  const beatsPerBar = parseInt(section.timeSignature.split('/')[0]) || 4;
+
+  // Create a grid map of chords
+  const chordMap = useMemo(() => {
+    const map: Record<string, Chord> = {};
+    for (const chord of chords) {
+      map[`${chord.bar}-${chord.beat}`] = chord;
+    }
+    return map;
+  }, [chords]);
+
+  const handleCellClick = (bar: number, beat: number) => {
+    const key = `${bar}-${beat}`;
+    const existing = chordMap[key];
+    setSelectedCell({ bar, beat });
+    setEditValue(existing?.symbol || '');
+  };
+
+  const handleChordSet = (symbol: string) => {
+    if (!selectedCell) return;
+
+    const { bar, beat } = selectedCell;
+    const key = `${bar}-${beat}`;
+
+    if (!symbol.trim()) {
+      // Remove chord
+      onChordsChange(chords.filter(c => !(c.bar === bar && c.beat === beat)));
+    } else {
+      const existing = chordMap[key];
+      if (existing) {
+        // Update existing
+        onChordsChange(chords.map(c =>
+          c.bar === bar && c.beat === beat ? { ...c, symbol: symbol.trim() } : c
+        ));
+      } else {
+        // Add new
+        onChordsChange([...chords, {
+          bar,
+          beat,
+          symbol: symbol.trim(),
+          durationBeats: 1
+        }]);
+      }
+    }
+
+    setSelectedCell(null);
+    setEditValue('');
+  };
+
+  return (
+    <div className="mt-2">
+      <div className="text-xs text-gray-500 mb-1">{section.name} Chords</div>
+      <div className="flex flex-wrap gap-1">
+        {Array.from({ length: section.bars }, (_, barIndex) => (
+          <div key={barIndex} className="flex border border-gray-200 rounded overflow-hidden">
+            {Array.from({ length: beatsPerBar }, (_, beatIndex) => {
+              const bar = barIndex + 1;
+              const beat = beatIndex + 1;
+              const key = `${bar}-${beat}`;
+              const chord = chordMap[key];
+              const isSelected = selectedCell?.bar === bar && selectedCell?.beat === beat;
+
+              return (
+                <div
+                  key={beatIndex}
+                  onClick={() => handleCellClick(bar, beat)}
+                  className={`w-12 h-8 flex items-center justify-center text-xs cursor-pointer transition-colors ${
+                    isSelected
+                      ? 'bg-indigo-500 text-white'
+                      : chord
+                        ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                        : 'bg-gray-50 hover:bg-gray-100 text-gray-400'
+                  } ${beatIndex > 0 ? 'border-l border-gray-200' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Bar ${bar}, Beat ${beat}${chord ? `: ${chord.symbol}` : ''}`}
+                >
+                  {chord?.symbol || '-'}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Chord input modal */}
+      {selectedCell && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setSelectedCell(null)}>
+          <div className="bg-white rounded-lg shadow-xl p-4 w-80" onClick={(e) => e.stopPropagation()}>
+            <div className="text-sm font-medium mb-2">
+              Set chord at Bar {selectedCell.bar}, Beat {selectedCell.beat}
+            </div>
+            <input
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleChordSet(editValue);
+                if (e.key === 'Escape') setSelectedCell(null);
+              }}
+              placeholder="e.g., Cmaj7, Dm, G7"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
+              autoFocus
+            />
+            <div className="flex flex-wrap gap-1 mb-3">
+              {COMMON_CHORDS.slice(0, 14).map((symbol) => (
+                <button
+                  key={symbol}
+                  onClick={() => handleChordSet(symbol)}
+                  className="px-2 py-1 text-xs bg-gray-100 hover:bg-indigo-100 rounded transition-colors"
+                >
+                  {symbol}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleChordSet(editValue)}
+                className="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+              >
+                Set
+              </button>
+              <button
+                onClick={() => handleChordSet('')}
+                className="px-3 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => setSelectedCell(null)}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Playback Controls
+function PlaybackControls({
+  isPlaying,
+  isPaused,
+  currentBar,
+  currentBeat,
+  currentTempo,
+  countingOff,
+  countoffBeatsRemaining,
+  onPlay,
+  onPause,
+  onStop,
+  tempoOverride,
+  setTempoOverride,
+  useClick,
+  setUseClick,
+  countoffBars,
+  setCountoffBars
+}: {
+  isPlaying: boolean;
+  isPaused: boolean;
+  currentBar: number;
+  currentBeat: number;
+  currentTempo: number;
+  countingOff: boolean;
+  countoffBeatsRemaining: number;
+  onPlay: () => void;
+  onPause: () => void;
+  onStop: () => void;
+  tempoOverride: number | null;
+  setTempoOverride: (tempo: number | null) => void;
+  useClick: boolean;
+  setUseClick: (use: boolean) => void;
+  countoffBars: number;
+  setCountoffBars: (bars: number) => void;
+}) {
+  return (
+    <div className="bg-gray-900 rounded-lg p-4 text-white">
+      {/* Position display */}
+      <div className="text-center mb-4">
+        {countingOff ? (
+          <div className="text-4xl font-mono font-bold text-yellow-400">
+            Count: {countoffBeatsRemaining}
+          </div>
+        ) : (
+          <div className="text-4xl font-mono font-bold">
+            <span className="text-indigo-400">{currentBar}</span>
+            <span className="text-gray-500 mx-1">.</span>
+            <span className="text-white">{currentBeat}</span>
+          </div>
+        )}
+        <div className="text-sm text-gray-400 mt-1">
+          {currentTempo} BPM
+        </div>
+      </div>
+
+      {/* Main controls */}
+      <div className="flex items-center justify-center gap-3 mb-4">
+        <button
+          onClick={onStop}
+          className="p-3 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors"
+          aria-label="Stop"
+        >
+          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+            <rect x="6" y="6" width="12" height="12" />
+          </svg>
+        </button>
+
+        {isPlaying ? (
+          <button
+            onClick={onPause}
+            className="p-4 bg-yellow-500 hover:bg-yellow-400 rounded-full transition-colors"
+            aria-label="Pause"
+          >
+            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+              <rect x="6" y="4" width="4" height="16" />
+              <rect x="14" y="4" width="4" height="16" />
+            </svg>
+          </button>
+        ) : (
+          <button
+            onClick={onPlay}
+            className="p-4 bg-green-500 hover:bg-green-400 rounded-full transition-colors"
+            aria-label="Play"
+          >
+            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Options */}
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <label className="text-gray-400 text-xs">Tempo Override</label>
+          <div className="flex items-center gap-2 mt-1">
+            <input
+              type="checkbox"
+              checked={tempoOverride !== null}
+              onChange={(e) => setTempoOverride(e.target.checked ? currentTempo : null)}
+              className="rounded"
+            />
+            <input
+              type="number"
+              value={tempoOverride || currentTempo}
+              onChange={(e) => setTempoOverride(parseInt(e.target.value) || null)}
+              disabled={tempoOverride === null}
+              className="w-16 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white disabled:opacity-50"
+              min="20"
+              max="300"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-gray-400 text-xs">Count-off Bars</label>
+          <select
+            value={countoffBars}
+            onChange={(e) => setCountoffBars(parseInt(e.target.value))}
+            className="w-full mt-1 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-white"
+          >
+            <option value="0">None</option>
+            <option value="1">1 bar</option>
+            <option value="2">2 bars</option>
+            <option value="4">4 bars</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// New Song Modal
+function NewSongModal({
+  isOpen,
+  onClose,
+  onCreate
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreate: (data: Partial<Song>) => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [bpmDefault, setBpmDefault] = useState(120);
+  const [timeSignatureDefault, setTimeSignatureDefault] = useState('4/4');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    onCreate({ title: title.trim(), bpmDefault, timeSignatureDefault });
+    setTitle('');
+    setBpmDefault(120);
+    setTimeSignatureDefault('4/4');
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl p-6 w-96" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-lg font-semibold mb-4">New Song</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="My Song"
+              autoFocus
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Default BPM</label>
+              <input
+                type="number"
+                value={bpmDefault}
+                onChange={(e) => setBpmDefault(parseInt(e.target.value) || 120)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                min="20"
+                max="300"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Time Signature</label>
+              <select
+                value={timeSignatureDefault}
+                onChange={(e) => setTimeSignatureDefault(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                {TIME_SIGNATURES.map((ts) => (
+                  <option key={ts} value={ts}>{ts}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            >
+              Create
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ==================== Main Component ====================
+
+export default function ToolsMetMap() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { showNotification } = useNotification();
+
+  const {
+    songs,
+    songsLoading,
+    filters,
+    setFilters,
+    currentSong,
+    currentSongLoading,
+    editedSections,
+    hasUnsavedChanges,
+    playback,
+    stats,
+    createSong,
+    loadSong,
+    updateSong,
+    deleteSong,
+    closeSong,
+    addSection,
+    updateSection,
+    removeSection,
+    reorderSections,
+    updateSectionChords,
+    saveSections,
+    play,
+    pause,
+    stop,
+    loadStats
+  } = useMetMap();
+
+  // Local state
+  const [showNewSongModal, setShowNewSongModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [tempoOverride, setTempoOverride] = useState<number | null>(null);
+  const [useClick, setUseClick] = useState(true);
+  const [countoffBars, setCountoffBars] = useState(0);
+  const [showChords, setShowChords] = useState(false);
+
+  // Load stats on mount
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  // Handle URL-based song selection
+  useEffect(() => {
+    const songId = searchParams.get('song');
+    if (songId && (!currentSong || currentSong.id !== songId)) {
+      loadSong(songId);
+    }
+  }, [searchParams, currentSong, loadSong]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters({ search: searchQuery });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, setFilters]);
+
+  const handleCreateSong = async (data: Partial<Song>) => {
+    const song = await createSong(data);
+    if (song) {
+      navigate(`/tools/metmap?song=${song.id}`);
+    }
+  };
+
+  const handleSelectSong = (song: Song) => {
+    if (hasUnsavedChanges) {
+      if (!confirm('You have unsaved changes. Discard them?')) return;
+    }
+    navigate(`/tools/metmap?song=${song.id}`);
+  };
+
+  const handleDeleteSong = async () => {
+    if (!currentSong) return;
+    if (!confirm(`Delete "${currentSong.title}"? This cannot be undone.`)) return;
+
+    const success = await deleteSong(currentSong.id);
+    if (success) {
+      navigate('/tools/metmap');
+    }
+  };
+
+  const handlePlay = () => {
+    play({
+      tempoOverride: tempoOverride || undefined,
+      countoffBars
+    });
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="h-full flex">
+        {/* Left sidebar - Song list */}
+        <div className="w-72 border-r border-gray-200 bg-white flex flex-col">
+          {/* Header */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-900">MetMap</h2>
+              <button
+                onClick={() => setShowNewSongModal(true)}
+                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                aria-label="New song"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search songs..."
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          {/* Stats */}
+          {stats && (
+            <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500 flex gap-3">
+              <span>{stats.songCount} songs</span>
+              <span>{stats.practiceCount} sessions</span>
+              <span>{formatDuration(stats.totalPracticeMinutes)} practiced</span>
+            </div>
+          )}
+
+          {/* Song list */}
+          <div className="flex-1 overflow-y-auto">
+            {songsLoading && songs.length === 0 ? (
+              <div className="p-4 text-center text-gray-500">Loading...</div>
+            ) : songs.length === 0 ? (
+              <div className="p-4 text-center text-gray-500">
+                <div className="mb-2">No songs yet</div>
+                <button
+                  onClick={() => setShowNewSongModal(true)}
+                  className="text-indigo-600 hover:text-indigo-700"
+                >
+                  Create your first song
+                </button>
+              </div>
+            ) : (
+              songs.map((song) => (
+                <SongListItem
+                  key={song.id}
+                  song={song}
+                  isSelected={currentSong?.id === song.id}
+                  onClick={() => handleSelectSong(song)}
+                />
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {currentSongLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-gray-500">Loading song...</div>
+            </div>
+          ) : currentSong ? (
+            <>
+              {/* Song header */}
+              <div className="p-4 border-b border-gray-200 bg-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <input
+                      type="text"
+                      value={currentSong.title}
+                      onChange={(e) => updateSong(currentSong.id, { title: e.target.value })}
+                      className="text-xl font-semibold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded px-1 -ml-1"
+                    />
+                    <div className="text-sm text-gray-500 mt-1 flex items-center gap-3">
+                      <span>{currentSong.bpmDefault} BPM</span>
+                      <span>{currentSong.timeSignatureDefault}</span>
+                      <span>{currentSong.totalBars} bars total</span>
+                      {currentSong.projectName && (
+                        <span className="text-indigo-600">Project: {currentSong.projectName}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {hasUnsavedChanges && (
+                      <span className="text-xs text-orange-500">Unsaved changes</span>
+                    )}
+                    <button
+                      onClick={saveSections}
+                      disabled={!hasUnsavedChanges}
+                      className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Save Timeline
+                    </button>
+                    <button
+                      onClick={handleDeleteSong}
+                      className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                      aria-label="Delete song"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section timeline */}
+              <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-gray-700">Sections</h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowChords(!showChords)}
+                      className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                        showChords ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {showChords ? 'Hide' : 'Show'} Chords
+                    </button>
+                    <button
+                      onClick={() => addSection({})}
+                      className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                    >
+                      + Add Section
+                    </button>
+                  </div>
+                </div>
+
+                {editedSections.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <div className="mb-2">No sections yet</div>
+                    <button
+                      onClick={() => addSection({})}
+                      className="text-indigo-600 hover:text-indigo-700"
+                    >
+                      Add your first section
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {editedSections.map((section, index) => (
+                      <div key={section.id || index}>
+                        <SectionRow
+                          section={section}
+                          index={index}
+                          isPlaying={playback.isPlaying}
+                          isCurrentSection={playback.currentSectionIndex === index}
+                          onUpdate={(changes) => updateSection(index, changes)}
+                          onRemove={() => removeSection(index)}
+                          onMoveUp={() => reorderSections(index, index - 1)}
+                          onMoveDown={() => reorderSections(index, index + 1)}
+                          canMoveUp={index > 0}
+                          canMoveDown={index < editedSections.length - 1}
+                        />
+                        {showChords && (
+                          <ChordGrid
+                            section={section}
+                            sectionIndex={index}
+                            chords={section.chords || []}
+                            onChordsChange={(chords) => updateSectionChords(index, chords)}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Playback controls */}
+              <div className="p-4 border-t border-gray-200 bg-white">
+                <PlaybackControls
+                  isPlaying={playback.isPlaying}
+                  isPaused={playback.isPaused}
+                  currentBar={playback.currentBar}
+                  currentBeat={playback.currentBeat}
+                  currentTempo={playback.currentTempo}
+                  countingOff={playback.countingOff}
+                  countoffBeatsRemaining={playback.countoffBeatsRemaining}
+                  onPlay={handlePlay}
+                  onPause={pause}
+                  onStop={stop}
+                  tempoOverride={tempoOverride}
+                  setTempoOverride={setTempoOverride}
+                  useClick={useClick}
+                  setUseClick={setUseClick}
+                  countoffBars={countoffBars}
+                  setCountoffBars={setCountoffBars}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                </svg>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">Select or create a song</h3>
+                <p className="text-gray-500 mb-4">Choose a song from the list or create a new one</p>
+                <button
+                  onClick={() => setShowNewSongModal(true)}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                >
+                  Create New Song
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modals */}
+      <NewSongModal
+        isOpen={showNewSongModal}
+        onClose={() => setShowNewSongModal(false)}
+        onCreate={handleCreateSong}
+      />
+    </DashboardLayout>
+  );
+}
