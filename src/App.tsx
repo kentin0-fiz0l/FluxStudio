@@ -31,6 +31,7 @@ import { useAuth } from './contexts/AuthContext';
 const { Component: Tools } = lazyLoadWithRetry(() => import('./pages/Tools'));
 const { Component: ToolsMetMap } = lazyLoadWithRetry(() => import('./pages/ToolsMetMap'));
 const { Component: ToolsFiles } = lazyLoadWithRetry(() => import('./pages/ToolsFiles'));
+const { Component: ToolsAssets } = lazyLoadWithRetry(() => import('./pages/ToolsAssets'));
 
 // Lazy load non-critical pages and components
 const { Component: Home } = lazyLoadWithRetry(() => import('./pages/Home'));
@@ -139,6 +140,7 @@ function AuthenticatedRoutes() {
                   <Route path="/tools" element={<Tools />} />
                   <Route path="/tools/metmap" element={<ToolsMetMap />} />
                   <Route path="/tools/files" element={<ToolsFiles />} />
+                  <Route path="/tools/assets" element={<ToolsAssets />} />
 
                   {/* Legacy routes for backward compatibility */}
                   <Route path="/organization/legacy" element={<OrganizationPage />} />

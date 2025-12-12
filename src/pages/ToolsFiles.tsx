@@ -215,11 +215,13 @@ function UploadZone({
 function FileDetailPanel({
   file,
   onClose,
-  onDelete
+  onDelete,
+  onCreateAsset
 }: {
   file: FileItem;
   onClose: () => void;
   onDelete: (id: string) => void;
+  onCreateAsset: (file: FileItem) => void;
 }) {
   const isImage = file.mimeType.startsWith('image/');
   const isAudio = file.mimeType.startsWith('audio/');
@@ -298,6 +300,12 @@ function FileDetailPanel({
       </div>
 
       <div className="p-4 border-t border-gray-200 space-y-2">
+        <button
+          onClick={() => onCreateAsset(file)}
+          className="w-full px-4 py-2 text-center bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+        >
+          Create Asset from this File
+        </button>
         <a
           href={file.fileUrl}
           download={file.name}
@@ -425,6 +433,25 @@ export default function ToolsFiles() {
     }
   };
 
+  const handleCreateAsset = async (file: FileItem) => {
+    try {
+      const response = await apiService.post('/api/assets', {
+        fileId: file.id,
+        name: file.name
+      });
+      if (response.data.success) {
+        showNotification({ type: 'success', message: 'Asset created! Redirecting...' });
+        // Navigate to assets page
+        setTimeout(() => {
+          navigate('/tools/assets');
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error creating asset:', error);
+      showNotification({ type: 'error', message: 'Failed to create asset' });
+    }
+  };
+
   const totalPages = Math.ceil(total / pageSize);
 
   return (
@@ -545,6 +572,7 @@ export default function ToolsFiles() {
             file={selectedFile}
             onClose={() => setSelectedFile(null)}
             onDelete={handleDelete}
+            onCreateAsset={handleCreateAsset}
           />
         )}
       </div>

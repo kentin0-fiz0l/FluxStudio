@@ -23,6 +23,7 @@ import {
   BarChart3,
   Music,
   FileBox,
+  Package,
 } from 'lucide-react';
 
 interface Tool {
@@ -54,6 +55,15 @@ const tools: Tool[] = [
     status: 'active',
     category: 'File Management',
     internalPath: '/tools/files',
+  },
+  {
+    id: 'assets',
+    name: 'Assets',
+    description: 'Reusable, tagged, versioned creative elements for your projects',
+    icon: <Package className="w-8 h-8" />,
+    status: 'active',
+    category: 'Asset Management',
+    internalPath: '/tools/assets',
   },
 ];
 
