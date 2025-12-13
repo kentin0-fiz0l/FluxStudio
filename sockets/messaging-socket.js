@@ -423,6 +423,75 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     });
 
     // ========================================
+    // MESSAGE EDITING
+    // ========================================
+
+    // Edit a message
+    socket.on('conversation:message:edit', async (data, ack) => {
+      const { conversationId, messageId, content } = data || {};
+
+      if (!conversationId || !messageId || !content) {
+        if (ack) ack({ ok: false, error: 'Conversation ID, message ID, and content are required' });
+        return;
+      }
+
+      try {
+        // Verify user is a member of the conversation
+        const conversation = await messagingConversationsAdapter.getConversationById({
+          conversationId,
+          userId: socket.userId
+        });
+        if (!conversation) {
+          if (ack) ack({ ok: false, error: 'Not authorized to edit messages in this conversation' });
+          return;
+        }
+
+        // Edit the message (adapter verifies ownership)
+        const updatedMessage = await messagingConversationsAdapter.editMessage({
+          messageId,
+          userId: socket.userId,
+          content: content.trim()
+        });
+
+        if (!updatedMessage) {
+          if (ack) ack({ ok: false, error: 'Could not edit message - you may not be the author' });
+          return;
+        }
+
+        // Transform message for broadcast
+        const messagePayload = {
+          id: updatedMessage.id,
+          conversationId: updatedMessage.conversationId,
+          authorId: updatedMessage.userId,
+          content: updatedMessage.text,
+          replyToMessageId: updatedMessage.replyToMessageId || null,
+          assetId: updatedMessage.assetId || null,
+          projectId: updatedMessage.projectId || null,
+          isSystemMessage: updatedMessage.isSystemMessage || false,
+          createdAt: updatedMessage.createdAt,
+          updatedAt: new Date().toISOString(),
+          editedAt: updatedMessage.editedAt,
+          author: {
+            id: updatedMessage.userId,
+            email: null,
+            displayName: updatedMessage.userName || null
+          }
+        };
+
+        // Broadcast to all users in the conversation
+        namespace.to(`conversation:${conversationId}`).emit('conversation:message:edited', {
+          message: messagePayload
+        });
+
+        // Acknowledge success
+        if (ack) ack({ ok: true, message: messagePayload });
+      } catch (error) {
+        console.error('Error editing message:', error);
+        if (ack) ack({ ok: false, error: error.message || 'Failed to edit message' });
+      }
+    });
+
+    // ========================================
     // LEGACY CHANNEL-BASED EVENTS (BACKWARD COMPATIBILITY)
     // ========================================
 

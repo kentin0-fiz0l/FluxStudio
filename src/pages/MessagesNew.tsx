@@ -547,7 +547,12 @@ function MessageBubble({
   isGrouped = false,
   currentUserId,
   isPinned = false,
-  isHighlighted = false
+  isHighlighted = false,
+  isEditing = false,
+  editingDraft = '',
+  onChangeEditingDraft,
+  onSubmitEdit,
+  onCancelEdit
 }: {
   message: Message;
   onReply: () => void;
@@ -563,6 +568,11 @@ function MessageBubble({
   currentUserId?: string;
   isPinned?: boolean;
   isHighlighted?: boolean;
+  isEditing?: boolean;
+  editingDraft?: string;
+  onChangeEditingDraft?: (value: string) => void;
+  onSubmitEdit?: () => void;
+  onCancelEdit?: () => void;
 }) {
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -633,9 +643,48 @@ function MessageBubble({
               : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-bl-md'
           }`}
         >
-          {/* Text content */}
-          {message.content && (
-            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+          {/* Text content / Inline edit */}
+          {isEditing ? (
+            <div className="flex flex-col gap-2">
+              <textarea
+                className={`w-full text-sm bg-transparent border rounded-md px-2 py-1 resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/60 ${
+                  isOwn
+                    ? 'border-white/30 text-white placeholder-white/50'
+                    : 'border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100'
+                }`}
+                value={editingDraft}
+                onChange={(e) => onChangeEditingDraft?.(e.target.value)}
+                rows={Math.min(5, Math.max(1, editingDraft.split('\n').length))}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    onSubmitEdit?.();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    onCancelEdit?.();
+                  }
+                }}
+              />
+              <div className="flex justify-end gap-2 text-xs">
+                <button
+                  onClick={onCancelEdit}
+                  className={`hover:underline ${isOwn ? 'text-white/70' : 'text-neutral-500 dark:text-neutral-400'}`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={onSubmitEdit}
+                  className={`font-medium hover:underline ${isOwn ? 'text-white' : 'text-primary-600 dark:text-primary-400'}`}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          ) : (
+            message.content && (
+              <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+            )
           )}
 
           {/* Voice message */}
@@ -717,11 +766,13 @@ function MessageBubble({
               canReply
               canReact
               canPin
+              canEdit={isOwn}
               canDelete={isOwn}
               isPinned={isPinned}
               onReply={() => onReply()}
               onReact={() => setShowReactions(true)}
               onPinToggle={() => onPin()}
+              onEdit={isOwn ? () => onEdit() : undefined}
               onCopy={() => onCopy()}
               onDelete={isOwn ? () => onDelete() : undefined}
               align={isOwn ? 'start' : 'end'}
@@ -1155,7 +1206,8 @@ function MessagesNew() {
   const [showNewConversation, setShowNewConversation] = useState(false);
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [replyTo, setReplyTo] = useState<Message['replyTo'] | undefined>();
-  const [editingMessage, setEditingMessage] = useState<string | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingDraft, setEditingDraft] = useState<string>('');
   const [showPinnedMessages, setShowPinnedMessages] = useState(false);
   const [showConversationSettings, setShowConversationSettings] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -1333,7 +1385,8 @@ function MessagesNew() {
     timestamp: new Date(msg.createdAt),
     isCurrentUser: msg.authorId === user?.id,
     status: 'sent',
-    isEdited: false,
+    isEdited: !!msg.editedAt,
+    editedAt: msg.editedAt ? new Date(msg.editedAt) : undefined,
     isDeleted: false,
     replyTo: msg.replyToMessageId ? {
       id: msg.replyToMessageId,
@@ -1522,6 +1575,26 @@ function MessagesNew() {
     } catch (err) {
       console.error('Failed to copy message:', err);
     }
+  };
+
+  // Start editing a message
+  const handleStartEdit = (message: Message) => {
+    setEditingMessageId(message.id);
+    setEditingDraft(message.content || '');
+  };
+
+  // Submit edited message
+  const handleSubmitEdit = () => {
+    if (!editingMessageId || !editingDraft.trim()) return;
+    realtime.editMessage(editingMessageId, editingDraft.trim());
+    setEditingMessageId(null);
+    setEditingDraft('');
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingDraft('');
   };
 
   // Jump to original message (for reply threading)
@@ -1886,7 +1959,7 @@ function MessagesNew() {
                           <MessageBubble
                             message={enrichedMessage}
                             onReply={() => handleReply(message)}
-                            onEdit={() => setEditingMessage(message.id)}
+                            onEdit={() => handleStartEdit(message)}
                             onDelete={() => handleDeleteMessage(message.id)}
                             onPin={() => handlePinMessage(message.id)}
                             onCopy={() => handleCopyMessage(message.id)}
@@ -1906,6 +1979,11 @@ function MessagesNew() {
                             currentUserId={user?.id}
                             isPinned={realtime.pinnedMessageIds.includes(message.id)}
                             isHighlighted={highlightedMessageId === message.id}
+                            isEditing={editingMessageId === message.id}
+                            editingDraft={editingMessageId === message.id ? editingDraft : ''}
+                            onChangeEditingDraft={setEditingDraft}
+                            onSubmitEdit={handleSubmitEdit}
+                            onCancelEdit={handleCancelEdit}
                           />
                         </React.Fragment>
                       );

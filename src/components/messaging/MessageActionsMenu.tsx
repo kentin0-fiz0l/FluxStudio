@@ -12,6 +12,7 @@ import {
   Copy,
   Trash2,
   MoreHorizontal,
+  Pencil,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -27,11 +28,13 @@ export interface MessageActionsMenuProps {
   canReply?: boolean;
   canReact?: boolean;
   canPin?: boolean;
+  canEdit?: boolean;
   canDelete?: boolean;
   isPinned?: boolean;
   onReply?: (messageId: string) => void;
   onReact?: (messageId: string) => void;
   onPinToggle?: (messageId: string) => void;
+  onEdit?: (messageId: string) => void;
   onCopy?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   className?: string;
@@ -45,11 +48,13 @@ export function MessageActionsMenu({
   canReply = true,
   canReact = true,
   canPin = true,
+  canEdit = false,
   canDelete = false,
   isPinned = false,
   onReply,
   onReact,
   onPinToggle,
+  onEdit,
   onCopy,
   onDelete,
   className,
@@ -104,6 +109,14 @@ export function MessageActionsMenu({
                 Pin message
               </>
             )}
+          </DropdownMenuItem>
+        )}
+
+        {/* Edit */}
+        {canEdit && onEdit && (
+          <DropdownMenuItem onClick={() => onEdit(messageId)}>
+            <Pencil className="w-4 h-4 mr-2" />
+            Edit message
           </DropdownMenuItem>
         )}
 

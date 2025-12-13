@@ -41,6 +41,7 @@ interface UseConversationRealtimeOptions {
   autoConnect?: boolean;
   onNewMessage?: (data: { conversationId: string; message: ConversationMessage }) => void;
   onMessageDeleted?: (data: { conversationId: string; messageId: string }) => void;
+  onMessageEdited?: (data: { message: ConversationMessage }) => void;
   onTypingStart?: (data: TypingUser) => void;
   onTypingStop?: (data: { conversationId: string; userId: string }) => void;
   onReadReceipt?: (data: ReadReceipt) => void;
@@ -80,6 +81,9 @@ interface UseConversationRealtimeReturn {
   // Pin actions
   pinMessage: (messageId: string) => void;
   unpinMessage: (messageId: string) => void;
+
+  // Edit actions
+  editMessage: (messageId: string, content: string) => void;
 }
 
 export function useConversationRealtime(options: UseConversationRealtimeOptions = {}): UseConversationRealtimeReturn {
@@ -89,6 +93,7 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     autoConnect = true,
     onNewMessage,
     onMessageDeleted,
+    onMessageEdited,
     onTypingStart,
     onTypingStop,
     onReadReceipt,
@@ -288,6 +293,26 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     });
   }, []);
 
+  // Edit a message
+  const editMessage = useCallback((messageId: string, content: string) => {
+    if (!conversationId) return;
+
+    // Optimistically update local state
+    setMessages(prev => prev.map(msg =>
+      msg.id === messageId
+        ? { ...msg, content, editedAt: new Date().toISOString() }
+        : msg
+    ));
+
+    // Send to server
+    messagingSocketService.editMessage(conversationId, messageId, content, (response) => {
+      if (!response.ok) {
+        console.error('[useConversationRealtime] Failed to edit message:', response.error);
+        // Could revert optimistic update here if needed by refetching
+      }
+    });
+  }, [conversationId]);
+
   // Set up event listeners
   useEffect(() => {
     const unsubscribers: Array<() => void> = [];
@@ -430,6 +455,20 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
       })
     );
 
+    // Message edited
+    unsubscribers.push(
+      messagingSocketService.on('conversation:message:edited', (data: unknown) => {
+        const typedData = data as { message: ConversationMessage };
+        // Update the message in local state
+        setMessages(prev => prev.map(msg =>
+          msg.id === typedData.message.id
+            ? { ...msg, content: typedData.message.content, editedAt: typedData.message.editedAt }
+            : msg
+        ));
+        onMessageEdited?.(typedData);
+      })
+    );
+
     // Auto-connect if enabled
     if (autoConnect && user) {
       connect();
@@ -456,6 +495,7 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     onNotification,
     onReactionUpdated,
     onPinsUpdated,
+    onMessageEdited,
   ]);
 
   // Handle conversation ID changes
@@ -496,6 +536,9 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     // Pin actions
     pinMessage,
     unpinMessage,
+
+    // Edit actions
+    editMessage,
   };
 }
 
