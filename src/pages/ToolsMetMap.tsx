@@ -25,6 +25,15 @@ import { OfflineIndicator, NetworkStatusBadge } from '../components/pwa/OfflineI
 import { usePWA } from '../hooks/usePWA';
 import { ONBOARDING_STORAGE_KEYS } from '../hooks/useFirstTimeExperience';
 
+// New MetMap components
+import { TapTempo } from '../components/metmap/TapTempo';
+import { SectionTemplates, SectionTemplate } from '../components/metmap/SectionTemplates';
+import { VisualTimeline } from '../components/metmap/VisualTimeline';
+import { PracticeMode } from '../components/metmap/PracticeMode';
+import { ExportImport } from '../components/metmap/ExportImport';
+import { MetronomeControls, useMetronomeAudio, ClickSound } from '../components/metmap/MetronomeAudio';
+import { useMetMapKeyboardShortcuts, ShortcutsHelp } from '../hooks/useMetMapKeyboardShortcuts';
+
 // Hook for detecting mobile viewport
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(
@@ -566,6 +575,19 @@ function PlaybackControls({
           </select>
         </div>
       </div>
+
+      {/* Metronome click toggle */}
+      <div className="mt-3 pt-3 border-t border-gray-700">
+        <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={useClick}
+            onChange={(e) => setUseClick(e.target.checked)}
+            className="rounded border-gray-600 bg-gray-800 text-indigo-600"
+          />
+          Enable metronome click
+        </label>
+      </div>
     </div>
   );
 }
@@ -706,11 +728,40 @@ export default function ToolsMetMap() {
   const [countoffBars, setCountoffBars] = useState(0);
   const [showChords, setShowChords] = useState(false);
 
+  // New feature state
+  const [showVisualTimeline, setShowVisualTimeline] = useState(true);
+  const [practiceMode, setPracticeMode] = useState(false);
+  const [loopSection, setLoopSection] = useState<number | null>(null);
+  const [tempoPercent, setTempoPercent] = useState(100);
+  const [repetitionCount, setRepetitionCount] = useState(0);
+  const [clickSound, setClickSound] = useState<ClickSound>('classic');
+  const [clickVolume, setClickVolume] = useState(80);
+  const [accentFirstBeat, setAccentFirstBeat] = useState(true);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+
+  // Metronome audio hook
+  const { playClick } = useMetronomeAudio();
+
   // Calculate total bars for mobile controls
   const totalBars = useMemo(() =>
     editedSections.reduce((sum, s) => sum + s.bars, 0),
     [editedSections]
   );
+
+  // Play metronome click on beat change
+  useEffect(() => {
+    if (playback.isPlaying && useClick) {
+      const isAccent = accentFirstBeat && playback.currentBeat === 1;
+      playClick(isAccent, clickSound, clickVolume);
+    }
+  }, [playback.currentBeat, playback.isPlaying, useClick, playClick, clickSound, clickVolume, accentFirstBeat]);
+
+  // Track repetitions in practice mode
+  useEffect(() => {
+    if (practiceMode && playback.isPlaying && playback.currentBar === 1 && playback.currentBeat === 1) {
+      setRepetitionCount((prev) => prev + 1);
+    }
+  }, [practiceMode, playback.isPlaying, playback.currentBar, playback.currentBeat]);
 
   // Load stats on mount
   useEffect(() => {
@@ -771,11 +822,91 @@ export default function ToolsMetMap() {
   };
 
   const handlePlay = () => {
+    // Apply practice mode tempo percentage
+    const effectiveTempo = practiceMode && tempoPercent !== 100
+      ? Math.round((tempoOverride || currentSong?.bpmDefault || 120) * (tempoPercent / 100))
+      : tempoOverride || undefined;
+
     play({
-      tempoOverride: tempoOverride || undefined,
-      countoffBars
+      tempoOverride: effectiveTempo,
+      countoffBars,
+      loopSection: practiceMode ? loopSection : undefined
     });
   };
+
+  // Handle tap tempo
+  const handleTapTempo = (bpm: number) => {
+    setTempoOverride(bpm);
+  };
+
+  // Handle section template add
+  const handleAddSectionTemplate = (template: SectionTemplate) => {
+    addSection({
+      name: template.name,
+      bars: template.bars,
+      tempoStart: currentSong?.bpmDefault || 120,
+      timeSignature: currentSong?.timeSignatureDefault || '4/4'
+    });
+  };
+
+  // Handle import song
+  const handleImportSong = async (data: Partial<Song> & { sections?: Partial<Section>[] }) => {
+    const song = await createSong({
+      title: data.title || 'Imported Song',
+      bpmDefault: data.bpmDefault || 120,
+      timeSignatureDefault: data.timeSignatureDefault || '4/4'
+    });
+    if (song && data.sections) {
+      // Add sections from import
+      for (const sectionData of data.sections) {
+        addSection(sectionData);
+      }
+      navigate(`/tools/metmap?song=${song.id}`);
+    }
+  };
+
+  // Handle visual timeline section click
+  const handleTimelineSectionClick = (sectionIndex: number) => {
+    if (practiceMode) {
+      // In practice mode, clicking sets loop section
+      setLoopSection(loopSection === sectionIndex ? null : sectionIndex);
+    } else {
+      // Otherwise, seek to section start
+      const startBar = editedSections.slice(0, sectionIndex).reduce((sum, s) => sum + s.bars, 0) + 1;
+      seekToBar(startBar);
+    }
+  };
+
+  // Keyboard shortcuts
+  useMetMapKeyboardShortcuts({
+    onPlayPause: () => {
+      if (playback.isPlaying) {
+        pause();
+      } else {
+        handlePlay();
+      }
+    },
+    onStop: stop,
+    onNextSection: () => {
+      const nextIndex = Math.min(playback.currentSectionIndex + 1, editedSections.length - 1);
+      const startBar = editedSections.slice(0, nextIndex).reduce((sum, s) => sum + s.bars, 0) + 1;
+      seekToBar(startBar);
+    },
+    onPrevSection: () => {
+      const prevIndex = Math.max(playback.currentSectionIndex - 1, 0);
+      const startBar = editedSections.slice(0, prevIndex).reduce((sum, s) => sum + s.bars, 0) + 1;
+      seekToBar(startBar);
+    },
+    onTempoUp: () => {
+      setTempoOverride((prev) => Math.min(300, (prev || currentSong?.bpmDefault || 120) + 5));
+    },
+    onTempoDown: () => {
+      setTempoOverride((prev) => Math.max(20, (prev || currentSong?.bpmDefault || 120) - 5));
+    },
+    onToggleClick: () => setUseClick((prev) => !prev),
+    onSave: saveSections,
+    onNewSection: () => addSection({})
+  }, !!currentSong);
 
   return (
     <DashboardLayout>
@@ -931,12 +1062,28 @@ export default function ToolsMetMap() {
                     {hasUnsavedChanges && (
                       <span className="text-xs text-orange-500">Unsaved changes</span>
                     )}
+                    <TapTempo onTempoDetected={handleTapTempo} />
                     <button
                       onClick={saveSections}
                       disabled={!hasUnsavedChanges}
                       className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       Save Timeline
+                    </button>
+                    <ExportImport
+                      currentSong={currentSong}
+                      sections={editedSections}
+                      onImportSong={handleImportSong}
+                    />
+                    <button
+                      onClick={() => setShowShortcutsHelp(!showShortcutsHelp)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                      aria-label="Keyboard shortcuts"
+                      title="Keyboard shortcuts"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
                     </button>
                     <button
                       onClick={handleDeleteSong}
@@ -949,6 +1096,51 @@ export default function ToolsMetMap() {
                     </button>
                   </div>
                 </div>
+                {/* Keyboard shortcuts help */}
+                {showShortcutsHelp && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <ShortcutsHelp />
+                  </div>
+                )}
+              </div>
+
+              {/* Visual Timeline */}
+              {showVisualTimeline && editedSections.length > 0 && (
+                <div className="px-4 py-2 border-b border-gray-200 bg-white">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-gray-500 uppercase">Timeline</span>
+                    <button
+                      onClick={() => setShowVisualTimeline(false)}
+                      className="text-xs text-gray-400 hover:text-gray-600"
+                    >
+                      Hide
+                    </button>
+                  </div>
+                  <VisualTimeline
+                    sections={editedSections}
+                    currentBar={playback.currentBar}
+                    isPlaying={playback.isPlaying}
+                    onSectionClick={handleTimelineSectionClick}
+                    loopSection={practiceMode ? loopSection : null}
+                  />
+                </div>
+              )}
+
+              {/* Practice Mode */}
+              <div className="px-4 py-2 border-b border-gray-200 bg-white">
+                <PracticeMode
+                  sections={editedSections}
+                  loopSection={loopSection}
+                  onLoopSectionChange={setLoopSection}
+                  tempoPercent={tempoPercent}
+                  onTempoPercentChange={setTempoPercent}
+                  repetitionCount={repetitionCount}
+                  isActive={practiceMode}
+                  onToggleActive={() => {
+                    setPracticeMode(!practiceMode);
+                    if (!practiceMode) setRepetitionCount(0);
+                  }}
+                />
               </div>
 
               {/* Section timeline */}
@@ -964,12 +1156,18 @@ export default function ToolsMetMap() {
                     >
                       {showChords ? 'Hide' : 'Show'} Chords
                     </button>
-                    <button
-                      onClick={() => addSection({})}
-                      className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                    >
-                      + Add Section
-                    </button>
+                    {!showVisualTimeline && (
+                      <button
+                        onClick={() => setShowVisualTimeline(true)}
+                        className="px-3 py-1 text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+                      >
+                        Show Timeline
+                      </button>
+                    )}
+                    <SectionTemplates
+                      onAddSection={handleAddSectionTemplate}
+                      compact
+                    />
                   </div>
                 </div>
 
