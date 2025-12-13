@@ -453,6 +453,76 @@ class MessagingConversationsAdapter {
   }
 
   /**
+   * Search messages across conversations the user has access to
+   *
+   * @param {Object} params
+   * @param {string} params.userId - User performing the search (for membership check)
+   * @param {string} params.query - Search term (uses ILIKE for case-insensitive match)
+   * @param {string} [params.conversationId] - Optional: scope search to a single conversation
+   * @param {number} [params.limit=50] - Max results to return
+   * @param {number} [params.offset=0] - Offset for pagination
+   * @returns {Array} Array of messages with conversation info
+   */
+  async searchMessages({ userId, query: searchQuery, conversationId = null, limit = 50, offset = 0 }) {
+    if (!searchQuery || searchQuery.trim().length === 0) {
+      return [];
+    }
+
+    const searchPattern = `%${searchQuery.trim()}%`;
+    let queryText;
+    let params;
+
+    if (conversationId) {
+      // Scoped search: search within a specific conversation (with membership check)
+      queryText = `
+        SELECT
+          m.*,
+          u.name as user_name,
+          u.avatar_url as user_avatar,
+          c.name as conversation_name,
+          c.is_group as conversation_is_group
+        FROM messages m
+        INNER JOIN conversation_members cm
+          ON cm.conversation_id = m.conversation_id AND cm.user_id = $1
+        LEFT JOIN users u ON m.user_id = u.id
+        LEFT JOIN conversations c ON m.conversation_id = c.id
+        WHERE m.conversation_id = $2
+          AND LOWER(m.text) LIKE LOWER($3)
+        ORDER BY m.created_at DESC
+        LIMIT $4 OFFSET $5
+      `;
+      params = [userId, conversationId, searchPattern, limit, offset];
+    } else {
+      // Global search: search across all conversations the user is a member of
+      queryText = `
+        SELECT
+          m.*,
+          u.name as user_name,
+          u.avatar_url as user_avatar,
+          c.name as conversation_name,
+          c.is_group as conversation_is_group
+        FROM messages m
+        INNER JOIN conversation_members cm
+          ON cm.conversation_id = m.conversation_id AND cm.user_id = $1
+        LEFT JOIN users u ON m.user_id = u.id
+        LEFT JOIN conversations c ON m.conversation_id = c.id
+        WHERE LOWER(m.text) LIKE LOWER($2)
+        ORDER BY m.created_at DESC
+        LIMIT $3 OFFSET $4
+      `;
+      params = [userId, searchPattern, limit, offset];
+    }
+
+    const result = await query(queryText, params);
+
+    return result.rows.map(row => ({
+      ...this._transformMessage(row),
+      conversationName: row.conversation_name,
+      conversationIsGroup: row.conversation_is_group
+    }));
+  }
+
+  /**
    * Delete a message (hard delete, restricted to author)
    *
    * @param {Object} params
