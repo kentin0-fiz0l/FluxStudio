@@ -8,6 +8,7 @@
 
 const jwt = require('jsonwebtoken');
 const messagingConversationsAdapter = require('../database/messaging-conversations-adapter');
+const notificationService = require('../services/notification-service');
 
 module.exports = (namespace, createMessage, getMessages, getChannels, messagingAdapter, JWT_SECRET) => {
   // Store active connections
@@ -111,7 +112,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Send message to a conversation
     socket.on('conversation:message:send', async (data) => {
-      const { conversationId, text, replyToMessageId, assetId, projectId } = data;
+      const { conversationId, text, replyToMessageId, assetId, projectId, threadRootMessageId } = data;
 
       // Require conversationId and either text or assetId
       if (!conversationId || (!text && !assetId)) {
@@ -127,12 +128,17 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
           return;
         }
 
+        // Get sender info for notifications
+        const senderInfo = await messagingConversationsAdapter.getUserById?.(socket.userId) || {};
+        const senderName = senderInfo.name || socket.userEmail?.split('@')[0] || 'Someone';
+
         // Create the message using the new adapter
         let newMessage = await messagingConversationsAdapter.createMessage({
           conversationId,
           userId: socket.userId,
           text: text || '',
           replyToMessageId: replyToMessageId || null,
+          threadRootMessageId: threadRootMessageId || null,
           assetId: assetId || null,
           projectId: projectId || null,
           isSystemMessage: false
@@ -161,6 +167,46 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
             });
           }
         });
+
+        // === Process and emit notifications ===
+        try {
+          // Get reply/thread context if needed
+          let replyToMessage = null;
+          let threadRootMessage = null;
+
+          if (replyToMessageId) {
+            replyToMessage = await messagingConversationsAdapter.getMessageById?.(replyToMessageId);
+          }
+
+          // If message has a thread root, get that message
+          const effectiveThreadRoot = newMessage.threadRootMessageId || threadRootMessageId;
+          if (effectiveThreadRoot) {
+            threadRootMessage = await messagingConversationsAdapter.getMessageById?.(effectiveThreadRoot);
+          }
+
+          // Create notifications
+          const notifications = await notificationService.processMessageNotifications({
+            message: { ...newMessage, content: text || '' },
+            conversationId,
+            senderId: socket.userId,
+            senderName,
+            replyToMessage,
+            threadRootMessage,
+            conversationMembers: members
+          });
+
+          // Emit notification events to recipients
+          for (const notification of notifications) {
+            namespace.to(`user:${notification.userId}`).emit('notification:new', notification);
+
+            // Also emit unread count update
+            const unreadCount = await messagingConversationsAdapter.getUnreadNotificationCount({ userId: notification.userId });
+            namespace.to(`user:${notification.userId}`).emit('notifications:unread-count', { count: unreadCount });
+          }
+        } catch (notifError) {
+          // Don't fail the message send if notifications fail
+          console.error('Error processing message notifications:', notifError);
+        }
       } catch (error) {
         console.error('Error sending conversation message:', error);
         socket.emit('error', { message: 'Failed to send message' });
