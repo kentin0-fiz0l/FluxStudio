@@ -88,6 +88,8 @@ import {
 } from 'lucide-react';
 import { MessageActionsMenu } from '../components/messaging/MessageActionsMenu';
 import { InlineReplyPreview } from '../components/messaging/InlineReplyPreview';
+import { MessageSearchPanel } from '../components/messaging/MessageSearchPanel';
+import { MessageSearchResult } from '../hooks/useMessageSearch';
 
 // Types
 interface MessageUser {
@@ -1217,6 +1219,7 @@ function MessagesNew() {
   const [showPinnedMessages, setShowPinnedMessages] = useState(false);
   const [showConversationSettings, setShowConversationSettings] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [showMessageSearch, setShowMessageSearch] = useState(false);
 
   // User search state for new conversations
   const [availableUsers, setAvailableUsers] = useState<MessageUser[]>([]);
@@ -1492,6 +1495,23 @@ function MessagesNew() {
     }
   }, [selectedConversationId, messages, realtime]);
 
+  // Keyboard shortcut for search (Ctrl+F / Cmd+F)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only activate when we have a conversation selected
+      if (!selectedConversationId) return;
+
+      // Ctrl+F or Cmd+F to open search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowMessageSearch(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedConversationId]);
+
   // ========================================
   // MESSAGE HANDLERS (WebSocket based)
   // ========================================
@@ -1621,6 +1641,22 @@ function MessagesNew() {
       setHighlightedMessageId(prev => (prev === messageId ? null : prev));
     }, 2000);
   }, []);
+
+  // Handle search result click - switch conversation if needed, then jump to message
+  const handleSearchResultClick = useCallback((result: MessageSearchResult) => {
+    // If it's a different conversation, switch to it first
+    if (result.conversationId !== selectedConversationId) {
+      setSelectedConversationId(result.conversationId);
+      setShowMobileChat(true);
+      // Wait for messages to load, then jump
+      setTimeout(() => {
+        handleJumpToMessage(result.id);
+      }, 500);
+    } else {
+      handleJumpToMessage(result.id);
+    }
+    setShowMessageSearch(false);
+  }, [selectedConversationId, handleJumpToMessage]);
 
   const handleDeleteMessage = async (messageId: string) => {
     if (!selectedConversationId) return;
@@ -1902,6 +1938,13 @@ function MessagesNew() {
                 </div>
 
                 <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setShowMessageSearch(!showMessageSearch)}
+                    className={`p-2 rounded-lg transition-colors ${showMessageSearch ? 'bg-primary-100 dark:bg-primary-900/30' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
+                    title="Search messages (Ctrl+F)"
+                  >
+                    <Search className={`w-5 h-5 ${showMessageSearch ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'}`} />
+                  </button>
                   <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="Voice call">
                     <Phone className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
                   </button>
@@ -1937,6 +1980,15 @@ function MessagesNew() {
                     }
                     setShowPinnedMessages(false);
                   }}
+                />
+              )}
+
+              {/* Message Search Panel */}
+              {showMessageSearch && (
+                <MessageSearchPanel
+                  conversationId={selectedConversationId}
+                  onResultClick={handleSearchResultClick}
+                  onClose={() => setShowMessageSearch(false)}
                 />
               )}
 

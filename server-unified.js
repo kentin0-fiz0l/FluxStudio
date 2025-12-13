@@ -3899,6 +3899,45 @@ app.patch('/api/messages/:messageId', authenticateToken, async (req, res) => {
   }
 });
 
+// ----- Message Search -----
+
+// 10i. GET /api/messages/search - Search messages across conversations
+app.get('/api/messages/search', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const searchQuery = req.query.q;
+    const conversationId = req.query.conversationId || null;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const offset = parseInt(req.query.offset, 10) || 0;
+
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        error: 'Search query must be at least 2 characters'
+      });
+    }
+
+    const results = await messagingConversationsAdapter.searchMessages({
+      userId,
+      query: searchQuery,
+      conversationId,
+      limit,
+      offset
+    });
+
+    return res.json({
+      success: true,
+      results,
+      query: searchQuery.trim(),
+      conversationId,
+      pagination: { limit, offset }
+    });
+  } catch (error) {
+    console.error('Error searching messages:', error);
+    return res.status(500).json({ success: false, error: 'Failed to search messages' });
+  }
+});
+
 // ----- Notifications -----
 
 // 11. GET /api/notifications - List notifications for current user
