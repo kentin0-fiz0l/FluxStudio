@@ -895,46 +895,37 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     });
 
     // ========================================
-    // NOTIFICATION EVENTS (ENHANCED)
+    // NOTIFICATION EVENTS (ENHANCED v2)
     // ========================================
 
     // Subscribe to notifications (auto-joined to user room on connection)
     socket.on('notifications:subscribe', async () => {
       try {
-        // Try the new adapter first, fall back to old adapter
-        let count = 0;
-        try {
-          count = await messagingConversationsAdapter.getUnreadNotificationCount(socket.userId);
-        } catch {
-          if (messagingAdapter && messagingAdapter.getUnreadNotificationCount) {
-            count = await messagingAdapter.getUnreadNotificationCount(socket.userId);
-          }
-        }
+        const count = await messagingConversationsAdapter.getUnreadNotificationCount({
+          userId: socket.userId
+        });
         socket.emit('notifications:unread-count', { count });
       } catch (error) {
         console.error('Error getting unread notification count:', error);
+        socket.emit('notifications:unread-count', { count: 0 });
       }
     });
 
     // Mark notification as read
     socket.on('notification:mark-read', async (notificationId) => {
       try {
-        // Try the new adapter first
-        let notification = null;
-        let count = 0;
-
-        try {
-          notification = await messagingConversationsAdapter.markNotificationRead(notificationId, socket.userId);
-          count = await messagingConversationsAdapter.getUnreadNotificationCount(socket.userId);
-        } catch {
-          if (messagingAdapter && messagingAdapter.markNotificationAsRead) {
-            notification = await messagingAdapter.markNotificationAsRead(notificationId, socket.userId);
-            count = await messagingAdapter.getUnreadNotificationCount(socket.userId);
-          }
-        }
+        const notification = await messagingConversationsAdapter.markNotificationRead({
+          notificationId,
+          userId: socket.userId
+        });
 
         if (notification) {
-          socket.emit('notification:updated', notification);
+          socket.emit('notification:read', notification);
+
+          // Send updated unread count
+          const count = await messagingConversationsAdapter.getUnreadNotificationCount({
+            userId: socket.userId
+          });
           socket.emit('notifications:unread-count', { count });
         }
       } catch (error) {
@@ -946,17 +937,12 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     // Mark all notifications as read
     socket.on('notifications:mark-all-read', async () => {
       try {
-        // Try the new adapter first
-        try {
-          await messagingConversationsAdapter.markAllNotificationsRead(socket.userId);
-        } catch {
-          if (messagingAdapter && messagingAdapter.markAllNotificationsAsRead) {
-            await messagingAdapter.markAllNotificationsAsRead(socket.userId);
-          }
-        }
+        const updatedCount = await messagingConversationsAdapter.markAllNotificationsRead({
+          userId: socket.userId
+        });
 
         socket.emit('notifications:unread-count', { count: 0 });
-        socket.emit('notifications:all-marked-read');
+        socket.emit('notifications:all-read', { updatedCount });
       } catch (error) {
         console.error('Error marking all notifications as read:', error);
         socket.emit('error', { message: 'Failed to mark all notifications as read' });
