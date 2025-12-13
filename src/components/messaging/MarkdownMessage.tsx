@@ -18,13 +18,6 @@ interface MarkdownMessageProps {
   className?: string;
 }
 
-// Escape HTML to prevent XSS
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 // Parse and render markdown to React elements
 function parseMarkdown(text: string): React.ReactNode[] {
   if (!text) return [];

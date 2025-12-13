@@ -560,7 +560,8 @@ function MessageBubble({
   editingDraft = '',
   onChangeEditingDraft,
   onSubmitEdit,
-  onCancelEdit
+  onCancelEdit,
+  readBy = []
 }: {
   message: Message;
   onReply: () => void;
@@ -582,6 +583,7 @@ function MessageBubble({
   onChangeEditingDraft?: (value: string) => void;
   onSubmitEdit?: () => void;
   onCancelEdit?: () => void;
+  readBy?: { id: string; name: string; avatar?: string }[];
 }) {
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -748,6 +750,39 @@ function MessageBubble({
                 currentUserId={currentUserId}
               />
             ))}
+          </div>
+        )}
+
+        {/* Read receipt avatars */}
+        {isOwn && readBy.length > 0 && (
+          <div className={`flex items-center gap-0.5 mt-1 ${isOwn ? 'justify-end' : ''}`}>
+            <span className="text-[10px] text-neutral-400 mr-1">Seen by</span>
+            <div className="flex -space-x-1.5">
+              {readBy.slice(0, 5).map((reader) => (
+                <div
+                  key={reader.id}
+                  className="w-4 h-4 rounded-full border border-white dark:border-neutral-900 overflow-hidden"
+                  title={reader.name}
+                >
+                  {reader.avatar ? (
+                    <img src={reader.avatar} alt={reader.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                      <span className="text-[8px] font-medium text-primary-600 dark:text-primary-400">
+                        {reader.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {readBy.length > 5 && (
+                <div className="w-4 h-4 rounded-full border border-white dark:border-neutral-900 bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
+                  <span className="text-[8px] font-medium text-neutral-600 dark:text-neutral-300">
+                    +{readBy.length - 5}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -970,6 +1005,16 @@ function EmojiPicker({ onSelect, onClose }: { onSelect: (emoji: string) => void;
 }
 
 // Message Input Component
+// Pending attachment type for MessageInput
+interface PendingAttachment {
+  id: string;
+  file: File;
+  preview?: string;
+  uploading?: boolean;
+  progress?: number;
+  error?: string;
+}
+
 function MessageInput({
   value,
   onChange,
@@ -978,7 +1023,9 @@ function MessageInput({
   replyTo,
   onClearReply,
   disabled,
-  placeholder = 'Type a message...'
+  placeholder = 'Type a message...',
+  pendingAttachments = [],
+  onRemoveAttachment
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -988,6 +1035,8 @@ function MessageInput({
   onClearReply?: () => void;
   disabled?: boolean;
   placeholder?: string;
+  pendingAttachments?: PendingAttachment[];
+  onRemoveAttachment?: (id: string) => void;
 }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -1006,6 +1055,36 @@ function MessageInput({
     textareaRef.current?.focus();
   };
 
+  // Insert formatting markers around selected text or at cursor
+  const insertFormatting = (prefix: string, suffix: string = prefix) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = value.substring(start, end);
+
+    const newValue = value.substring(0, start) + prefix + selectedText + suffix + value.substring(end);
+    onChange(newValue);
+
+    // Move cursor after formatting
+    setTimeout(() => {
+      textarea.focus();
+      if (selectedText) {
+        textarea.setSelectionRange(start + prefix.length, end + prefix.length);
+      } else {
+        textarea.setSelectionRange(start + prefix.length, start + prefix.length);
+      }
+    }, 0);
+  };
+
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
@@ -1013,6 +1092,8 @@ function MessageInput({
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
     }
   }, [value]);
+
+  const hasContent = value.trim() || pendingAttachments.length > 0;
 
   return (
     <div className="p-4 border-t border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
@@ -1022,6 +1103,98 @@ function MessageInput({
           <ReplyPreview replyTo={replyTo} onClear={onClearReply} />
         </div>
       )}
+
+      {/* Pending attachments preview */}
+      {pendingAttachments.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {pendingAttachments.map((attachment) => (
+            <div
+              key={attachment.id}
+              className="relative group flex items-center gap-2 px-3 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700"
+            >
+              {/* Preview or icon */}
+              {attachment.preview ? (
+                <img
+                  src={attachment.preview}
+                  alt={attachment.file.name}
+                  className="w-10 h-10 object-cover rounded"
+                />
+              ) : (
+                <div className="w-10 h-10 flex items-center justify-center bg-neutral-200 dark:bg-neutral-700 rounded">
+                  <File className="w-5 h-5 text-neutral-500" />
+                </div>
+              )}
+
+              {/* File info */}
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300 truncate max-w-[120px]">
+                  {attachment.file.name}
+                </span>
+                <span className="text-[10px] text-neutral-500">
+                  {formatFileSize(attachment.file.size)}
+                </span>
+              </div>
+
+              {/* Upload progress */}
+              {attachment.uploading && (
+                <div className="absolute inset-0 bg-black/30 rounded-lg flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                </div>
+              )}
+
+              {/* Remove button */}
+              <button
+                onClick={() => onRemoveAttachment?.(attachment.id)}
+                className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                title="Remove"
+              >
+                <X className="w-3 h-3" />
+              </button>
+
+              {/* Error indicator */}
+              {attachment.error && (
+                <div className="absolute inset-0 bg-red-500/20 rounded-lg flex items-center justify-center">
+                  <AlertCircle className="w-5 h-5 text-red-500" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Formatting toolbar */}
+      <div className="flex items-center gap-1 mb-2">
+        <button
+          onClick={() => insertFormatting('**')}
+          className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          title="Bold (Ctrl+B)"
+        >
+          <span className="text-sm font-bold text-neutral-600 dark:text-neutral-400">B</span>
+        </button>
+        <button
+          onClick={() => insertFormatting('_')}
+          className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          title="Italic (Ctrl+I)"
+        >
+          <span className="text-sm italic text-neutral-600 dark:text-neutral-400">I</span>
+        </button>
+        <button
+          onClick={() => insertFormatting('`')}
+          className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          title="Code"
+        >
+          <span className="text-sm font-mono text-neutral-600 dark:text-neutral-400">{'<>'}</span>
+        </button>
+        <button
+          onClick={() => insertFormatting('[', '](url)')}
+          className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          title="Link"
+        >
+          <Link2 className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
+        </button>
+        <div className="flex-1" />
+        <span className="text-[10px] text-neutral-400">Markdown supported</span>
+      </div>
 
       <div className="flex items-end gap-2">
         {/* Attach button */}
@@ -1066,7 +1239,7 @@ function MessageInput({
         </div>
 
         {/* Voice message button (when empty) or Send button */}
-        {value.trim() ? (
+        {hasContent ? (
           <button
             onClick={onSend}
             disabled={disabled}
@@ -1235,6 +1408,16 @@ function MessagesNew() {
   const [isThreadPanelOpen, setIsThreadPanelOpen] = useState(false);
   const [threadMessages, setThreadMessages] = useState<Message[]>([]);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
+
+  // Pending attachments state
+  const [pendingAttachments, setPendingAttachments] = useState<{
+    id: string;
+    file: File;
+    preview?: string;
+    uploading?: boolean;
+    progress?: number;
+    error?: string;
+  }[]>([]);
 
   // Typing debounce state
   const lastTypingSentRef = useRef<number>(0);
@@ -1817,20 +2000,42 @@ function MessagesNew() {
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0 || !selectedConversationId) return;
+    if (!files || files.length === 0) return;
 
-    for (const file of Array.from(files)) {
-      try {
-        // TODO: Implement file upload via REST API
-        console.log('Upload file:', file.name, 'to conversation:', selectedConversationId);
-        // For now, just send a message mentioning the file
-        realtime.sendMessage(`Shared a file: ${file.name}`);
-      } catch (error) {
-        console.error('Failed to upload file:', error);
+    const newAttachments = Array.from(files).map(file => {
+      const id = `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      let preview: string | undefined;
+
+      // Generate preview for images
+      if (file.type.startsWith('image/')) {
+        preview = URL.createObjectURL(file);
       }
-    }
+
+      return { id, file, preview, uploading: false, progress: 0 };
+    });
+
+    setPendingAttachments(prev => [...prev, ...newAttachments]);
+
     // Clear the input
     e.target.value = '';
+  };
+
+  const handleRemoveAttachment = (id: string) => {
+    setPendingAttachments(prev => {
+      const attachment = prev.find(a => a.id === id);
+      // Revoke object URL to free memory
+      if (attachment?.preview) {
+        URL.revokeObjectURL(attachment.preview);
+      }
+      return prev.filter(a => a.id !== id);
+    });
+  };
+
+  const handleClearAllAttachments = () => {
+    pendingAttachments.forEach(a => {
+      if (a.preview) URL.revokeObjectURL(a.preview);
+    });
+    setPendingAttachments([]);
   };
 
   const handleConversationClick = (conversation: Conversation) => {
@@ -2198,6 +2403,8 @@ function MessagesNew() {
                   replyTo={replyTo}
                   onClearReply={() => setReplyTo(undefined)}
                   disabled={isSending || !realtime.isConnected}
+                  pendingAttachments={pendingAttachments}
+                  onRemoveAttachment={handleRemoveAttachment}
                 />
               </div>
             </>
