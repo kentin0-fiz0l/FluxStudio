@@ -58,73 +58,20 @@
         output: {
           manualChunks: (id) => {
             // Vendor chunks - Split by library for better caching
+            // IMPORTANT: Keep React with main vendor to avoid createContext errors
             if (id.includes('node_modules')) {
-              // Socket.io - completely independent
+              // Socket.io - completely independent, no React dependency
               if (id.includes('socket.io')) {
                 return 'vendor-socket';
               }
 
-              // React core - stable, rarely changes
-              if (id.includes('react-dom') || id.includes('react/')) {
-                return 'vendor-react';
-              }
-
-              // Recharts - large charting library
+              // Recharts - large charting library (lazy loaded anyway)
               if (id.includes('recharts') || id.includes('d3-')) {
                 return 'vendor-charts';
               }
 
-              // Radix UI - UI primitives
-              if (id.includes('@radix-ui')) {
-                return 'vendor-radix';
-              }
-
-              // TanStack Query - data fetching
-              if (id.includes('@tanstack')) {
-                return 'vendor-tanstack';
-              }
-
-              // Lucide icons - large icon set
-              if (id.includes('lucide-react')) {
-                return 'vendor-icons';
-              }
-
-              // React Router - routing
-              if (id.includes('react-router') || id.includes('@remix-run/router')) {
-                return 'vendor-router';
-              }
-
-              // Date/time libs
-              if (id.includes('date-fns') || id.includes('react-day-picker')) {
-                return 'vendor-dates';
-              }
-
-              // Form handling
-              if (id.includes('react-hook-form') || id.includes('@hookform')) {
-                return 'vendor-forms';
-              }
-
-              // Editor/markdown
-              if (id.includes('marked') || id.includes('highlight.js') || id.includes('prism')) {
-                return 'vendor-editor';
-              }
-
-              // UI utilities (cmdk, vaul, sonner, embla)
-              if (id.includes('cmdk') || id.includes('vaul') || id.includes('sonner') || id.includes('embla')) {
-                return 'vendor-ui-extras';
-              }
-
-              // Zod validation
-              if (id.includes('zod')) {
-                return 'vendor-zod';
-              }
-
-              // CSS-in-JS utilities
-              if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
-                return 'vendor-css';
-              }
-
-              // Everything else goes into vendor bundle
+              // Everything else (including React) goes into vendor bundle
+              // This prevents createContext errors from chunk loading order issues
               return 'vendor';
             }
 
