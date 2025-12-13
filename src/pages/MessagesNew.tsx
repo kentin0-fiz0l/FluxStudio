@@ -86,6 +86,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { MessageActionsMenu } from '../components/messaging/MessageActionsMenu';
+import { InlineReplyPreview } from '../components/messaging/InlineReplyPreview';
 
 // Types
 interface MessageUser {
@@ -541,10 +542,12 @@ function MessageBubble({
   onForward,
   onReact,
   onCopy,
+  onJumpToMessage,
   showAvatar = true,
   isGrouped = false,
   currentUserId,
-  isPinned = false
+  isPinned = false,
+  isHighlighted = false
 }: {
   message: Message;
   onReply: () => void;
@@ -554,10 +557,12 @@ function MessageBubble({
   onForward: () => void;
   onReact: (emoji: string) => void;
   onCopy: () => void;
+  onJumpToMessage?: (messageId: string) => void;
   showAvatar?: boolean;
   isGrouped?: boolean;
   currentUserId?: string;
   isPinned?: boolean;
+  isHighlighted?: boolean;
 }) {
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -577,7 +582,7 @@ function MessageBubble({
   return (
     <div
       data-message-id={message.id}
-      className={`relative group flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${isGrouped ? 'py-0.5' : 'py-1'} transition-all`}
+      className={`relative group flex ${isOwn ? 'justify-end' : 'justify-start'} px-4 ${isGrouped ? 'py-0.5' : 'py-1'} transition-all ${isHighlighted ? 'ring-2 ring-primary-500 ring-offset-2 rounded-xl' : ''}`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => { setShowActions(false); setShowReactions(false); }}
     >
@@ -591,10 +596,17 @@ function MessageBubble({
 
       {/* Message Content */}
       <div className={`max-w-[70%] ${isGrouped && !isOwn ? 'ml-12' : ''}`}>
-        {/* Reply preview */}
-        {message.replyTo && (
+        {/* Reply preview - shows quoted original message */}
+        {message.replyTo && message.replyTo.content && (
           <div className="mb-1">
-            <ReplyPreview replyTo={message.replyTo} />
+            <InlineReplyPreview
+              messageId={message.replyTo.id}
+              authorName={message.replyTo.author.name || 'Unknown'}
+              text={message.replyTo.content}
+              isPinned={message.replyTo.author.id ? false : false}
+              onJumpToMessage={onJumpToMessage}
+              isOwnMessage={isOwn}
+            />
           </div>
         )}
 
@@ -1351,6 +1363,15 @@ function MessagesNew() {
     [realtime.messages, transformRealtimeMessage]
   );
 
+  // Message lookup map for finding parent messages (used for reply threading)
+  const messageById = useMemo(
+    () => new Map(messages.map(m => [m.id, m])),
+    [messages]
+  );
+
+  // Highlighted message state (for jump-to-original animation)
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+
   // Pinned messages derived from real-time state
   const pinnedMessages = useMemo(() =>
     messages.filter(m => realtime.pinnedMessageIds.includes(m.id)),
@@ -1502,6 +1523,25 @@ function MessagesNew() {
       console.error('Failed to copy message:', err);
     }
   };
+
+  // Jump to original message (for reply threading)
+  const handleJumpToMessage = useCallback((messageId: string) => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const el = container.querySelector<HTMLElement>(
+      `[data-message-id="${messageId}"]`
+    );
+    if (!el) return;
+
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightedMessageId(messageId);
+
+    // Clear highlight after a short timeout
+    setTimeout(() => {
+      setHighlightedMessageId(prev => (prev === messageId ? null : prev));
+    }, 2000);
+  }, []);
 
   const handleDeleteMessage = async (messageId: string) => {
     if (!selectedConversationId) return;
@@ -1823,16 +1863,34 @@ function MessagesNew() {
                         prevMessage.author.id === message.author.id &&
                         message.timestamp.getTime() - prevMessage.timestamp.getTime() < 60000;
 
+                      // Look up parent message for reply threading
+                      const parentMessage = message.replyTo?.id
+                        ? messageById.get(message.replyTo.id)
+                        : undefined;
+
+                      // Enrich message with parent data if available
+                      const enrichedMessage = parentMessage && message.replyTo
+                        ? {
+                            ...message,
+                            replyTo: {
+                              id: parentMessage.id,
+                              content: parentMessage.content,
+                              author: parentMessage.author,
+                            },
+                          }
+                        : message;
+
                       return (
                         <React.Fragment key={message.id}>
                           {showDateSeparator && <DateSeparator date={message.timestamp} />}
                           <MessageBubble
-                            message={message}
+                            message={enrichedMessage}
                             onReply={() => handleReply(message)}
                             onEdit={() => setEditingMessage(message.id)}
                             onDelete={() => handleDeleteMessage(message.id)}
                             onPin={() => handlePinMessage(message.id)}
                             onCopy={() => handleCopyMessage(message.id)}
+                            onJumpToMessage={handleJumpToMessage}
                             onForward={() => {
                               // For now, show a simple forward prompt
                               // Could be enhanced with a modal to select conversation
@@ -1847,6 +1905,7 @@ function MessagesNew() {
                             isGrouped={isGrouped}
                             currentUserId={user?.id}
                             isPinned={realtime.pinnedMessageIds.includes(message.id)}
+                            isHighlighted={highlightedMessageId === message.id}
                           />
                         </React.Fragment>
                       );
