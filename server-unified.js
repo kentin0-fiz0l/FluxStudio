@@ -3756,6 +3756,97 @@ app.get('/api/messages/:messageId/reactions', authenticateToken, async (req, res
   }
 });
 
+// ----- Message Pins -----
+
+// 10e. GET /api/conversations/:id/pins - List pinned messages for a conversation
+app.get('/api/conversations/:id/pins', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id: conversationId } = req.params;
+
+    // Verify conversation membership
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+    if (!conversation) {
+      return res.status(404).json({ success: false, error: 'Conversation not found or not a member' });
+    }
+
+    const pins = await messagingConversationsAdapter.listPinnedMessages({ conversationId, limit: 20 });
+    return res.json({ success: true, pins });
+  } catch (error) {
+    console.error('Error listing pins:', error);
+    return res.status(500).json({ success: false, error: 'Failed to list pinned messages' });
+  }
+});
+
+// 10f. POST /api/messages/:messageId/pin - Pin a message
+app.post('/api/messages/:messageId/pin', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { messageId } = req.params;
+
+    // Check if message exists
+    const message = await messagingConversationsAdapter.getMessageById({ messageId });
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+
+    // Verify conversation membership
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId: message.conversationId,
+      userId
+    });
+    if (!conversation) {
+      return res.status(403).json({ success: false, error: 'Not authorized to pin messages in this conversation' });
+    }
+
+    const pins = await messagingConversationsAdapter.pinMessage({ messageId, userId });
+    return res.json({
+      success: true,
+      conversationId: message.conversationId,
+      pins
+    });
+  } catch (error) {
+    console.error('Error pinning message:', error);
+    return res.status(500).json({ success: false, error: 'Failed to pin message' });
+  }
+});
+
+// 10g. DELETE /api/messages/:messageId/pin - Unpin a message
+app.delete('/api/messages/:messageId/pin', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { messageId } = req.params;
+
+    // Check if message exists
+    const message = await messagingConversationsAdapter.getMessageById({ messageId });
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+
+    // Verify conversation membership
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId: message.conversationId,
+      userId
+    });
+    if (!conversation) {
+      return res.status(403).json({ success: false, error: 'Not authorized to unpin messages in this conversation' });
+    }
+
+    const pins = await messagingConversationsAdapter.unpinMessage({ messageId });
+    return res.json({
+      success: true,
+      conversationId: message.conversationId,
+      pins
+    });
+  } catch (error) {
+    console.error('Error unpinning message:', error);
+    return res.status(500).json({ success: false, error: 'Failed to unpin message' });
+  }
+});
+
 // ----- Notifications -----
 
 // 11. GET /api/notifications - List notifications for current user

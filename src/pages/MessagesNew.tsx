@@ -1141,9 +1141,6 @@ function MessagesNew() {
   const [selectedUsers, setSelectedUsers] = useState<MessageUser[]>([]);
   const [newConversationName, setNewConversationName] = useState('');
 
-  // Pinned messages state
-  const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
-
   // Typing debounce
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -1318,10 +1315,10 @@ function MessagesNew() {
     } : undefined,
     attachments: [],
     reactions: msg.reactions || [],
-    isPinned: false,
+    isPinned: realtime.pinnedMessageIds.includes(msg.id),
     isForwarded: false,
     isSystemMessage: msg.isSystemMessage,
-  }), [user?.id]);
+  }), [user?.id, realtime.pinnedMessageIds]);
 
   // Transformed data for UI
   const conversations: Conversation[] = useMemo(() =>
@@ -1337,6 +1334,12 @@ function MessagesNew() {
   const messages: Message[] = useMemo(() =>
     realtime.messages.map(transformRealtimeMessage),
     [realtime.messages, transformRealtimeMessage]
+  );
+
+  // Pinned messages derived from real-time state
+  const pinnedMessages = useMemo(() =>
+    messages.filter(m => realtime.pinnedMessageIds.includes(m.id)),
+    [messages, realtime.pinnedMessageIds]
   );
 
   // Filter conversations
@@ -1448,8 +1451,8 @@ function MessagesNew() {
 
   const handleReact = async (messageId: string, emoji: string) => {
     // Find the message to check if user has already reacted
-    const message = displayedMessages.find(m => m.id === messageId);
-    const reactions = message?.reactions || [];
+    const msg = messages.find(m => m.id === messageId);
+    const reactions = msg?.reactions || [];
     const existingReaction = reactions.find(r => r.emoji === emoji);
     const hasUserReacted = existingReaction?.userIds?.includes(user?.id || '') || false;
 
@@ -1461,8 +1464,13 @@ function MessagesNew() {
   };
 
   const handlePinMessage = async (messageId: string) => {
-    // TODO: Implement pinning via REST API
-    console.log('Pin:', messageId);
+    // Check if message is already pinned
+    const isPinned = realtime.pinnedMessageIds.includes(messageId);
+    if (isPinned) {
+      realtime.unpinMessage(messageId);
+    } else {
+      realtime.pinMessage(messageId);
+    }
   };
 
   const handleDeleteMessage = async (messageId: string) => {
