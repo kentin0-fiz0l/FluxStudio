@@ -56,6 +56,7 @@ interface UseConversationRealtimeOptions {
   onNotification?: (notification: Notification) => void;
   onReactionUpdated?: (data: ReactionUpdate) => void;
   onPinsUpdated?: (data: ConversationPinsUpdatedPayload) => void;
+  onThreadSummaryUpdate?: (data: ThreadSummary & { conversationId: string }) => void;
 }
 
 interface UseConversationRealtimeReturn {
@@ -111,6 +112,7 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     onNotification,
     onReactionUpdated,
     onPinsUpdated,
+    onThreadSummaryUpdate,
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
@@ -512,6 +514,30 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
       })
     );
 
+    // Thread summary update (when a new reply is added to a thread)
+    unsubscribers.push(
+      messagingSocketService.on('conversation:thread:summary:update', (data: unknown) => {
+        const typedData = data as {
+          conversationId: string;
+          threadRootMessageId: string;
+          replyCount: number;
+          lastReplyAt: string;
+        };
+        // Update the root message with new thread summary
+        setMessages(prev => prev.map(msg =>
+          msg.id === typedData.threadRootMessageId
+            ? { ...msg, threadReplyCount: typedData.replyCount, threadLastReplyAt: typedData.lastReplyAt }
+            : msg
+        ));
+        onThreadSummaryUpdate?.({
+          conversationId: typedData.conversationId,
+          threadRootMessageId: typedData.threadRootMessageId,
+          replyCount: typedData.replyCount,
+          lastReplyAt: typedData.lastReplyAt,
+        });
+      })
+    );
+
     // Auto-connect if enabled
     if (autoConnect && user) {
       connect();
@@ -539,6 +565,7 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     onReactionUpdated,
     onPinsUpdated,
     onMessageEdited,
+    onThreadSummaryUpdate,
   ]);
 
   // Handle conversation ID changes

@@ -177,6 +177,7 @@ interface Message {
   };
   threadReplyCount?: number;
   threadRootMessageId?: string | null;
+  threadLastReplyAt?: Date;
 }
 
 interface Conversation {
@@ -262,6 +263,22 @@ const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const formatRelativeTime = (date: Date): string => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 60) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay === 1) return 'yesterday';
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
 
 const getDateSeparator = (date: Date) => {
@@ -873,6 +890,31 @@ function MessageBubble({
           </div>
         )}
 
+        {/* Thread replies pill with hover preview */}
+        {(message.threadReplyCount || 0) > 0 && onOpenThread && (
+          <div className="relative group/thread">
+            <button
+              onClick={onOpenThread}
+              className={`flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                isOwn
+                  ? 'bg-white/20 hover:bg-white/30 text-white'
+                  : 'bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 text-primary-600 dark:text-primary-400'
+              }`}
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>{message.threadReplyCount} {message.threadReplyCount === 1 ? 'reply' : 'replies'}</span>
+            </button>
+            {/* Hover preview tooltip (desktop only) */}
+            {message.threadLastReplyAt && (
+              <div className={`absolute bottom-full mb-1 ${isOwn ? 'right-0' : 'left-0'} hidden group-hover/thread:block pointer-events-none z-20`}>
+                <div className="px-2 py-1 bg-neutral-900 dark:bg-neutral-700 text-white text-[10px] rounded shadow-lg whitespace-nowrap">
+                  Last reply · {formatRelativeTime(message.threadLastReplyAt)}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Quick actions bar */}
         {showActions && (
           <div
@@ -1465,10 +1507,23 @@ function MessagesNew() {
     });
   }, [selectedConversationId]);
 
+  // Handle thread summary updates - highlight root message when thread panel is closed
+  const handleThreadSummaryUpdate = useCallback((data: { threadRootMessageId: string }) => {
+    // Only highlight if thread panel is closed or it's a different thread
+    if (!isThreadPanelOpen || activeThreadRootId !== data.threadRootMessageId) {
+      setThreadHighlightId(data.threadRootMessageId);
+      // Clear highlight after 2 seconds
+      setTimeout(() => {
+        setThreadHighlightId(prev => prev === data.threadRootMessageId ? null : prev);
+      }, 2000);
+    }
+  }, [isThreadPanelOpen, activeThreadRootId]);
+
   const realtime = useConversationRealtime({
     conversationId: selectedConversationId || undefined,
     autoConnect: true,
     onNewMessage: handleNewMessage,
+    onThreadSummaryUpdate: handleThreadSummaryUpdate,
   });
 
   // ========================================
@@ -1495,6 +1550,7 @@ function MessagesNew() {
   const [isThreadPanelOpen, setIsThreadPanelOpen] = useState(false);
   const [threadMessages, setThreadMessages] = useState<Message[]>([]);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
+  const [threadHighlightId, setThreadHighlightId] = useState<string | null>(null);
 
   // Pending attachments state
   const [pendingAttachments, setPendingAttachments] = useState<{
@@ -1732,6 +1788,7 @@ function MessagesNew() {
       isSystemMessage: msg.isSystemMessage,
       threadReplyCount: msg.threadReplyCount,
       threadRootMessageId: msg.threadRootMessageId,
+      threadLastReplyAt: msg.threadLastReplyAt ? new Date(msg.threadLastReplyAt) : undefined,
     };
   }, [user?.id, realtime.pinnedMessageIds]);
 
@@ -2565,7 +2622,7 @@ function MessagesNew() {
                             isGrouped={isGrouped}
                             currentUserId={user?.id}
                             isPinned={realtime.pinnedMessageIds.includes(message.id)}
-                            isHighlighted={highlightedMessageId === message.id}
+                            isHighlighted={highlightedMessageId === message.id || threadHighlightId === message.id}
                             isEditing={editingMessageId === message.id}
                             editingDraft={editingMessageId === message.id ? editingDraft : ''}
                             onChangeEditingDraft={setEditingDraft}
