@@ -160,19 +160,38 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
       }
     });
 
-    // Typing indicator for conversations
-    socket.on('conversation:typing:start', (conversationId) => {
-      socket.to(`conversation:${conversationId}`).emit('conversation:user-typing', {
-        conversationId,
-        userId: socket.userId,
-        userEmail: socket.userEmail
-      });
+    // Typing indicator for conversations (enhanced with user info)
+    socket.on('conversation:typing:start', async (conversationId) => {
+      try {
+        // Get user info for the typing indicator
+        const userInfo = await messagingConversationsAdapter.getUserById?.(socket.userId) || {};
+        socket.to(`conversation:${conversationId}`).emit('conversation:user-typing', {
+          conversationId,
+          userId: socket.userId,
+          userEmail: socket.userEmail,
+          userName: userInfo.name || socket.userEmail?.split('@')[0] || 'User',
+          avatarUrl: userInfo.avatar_url || null,
+          isTyping: true
+        });
+      } catch (error) {
+        console.error('Error sending typing indicator:', error);
+        // Fall back to basic info
+        socket.to(`conversation:${conversationId}`).emit('conversation:user-typing', {
+          conversationId,
+          userId: socket.userId,
+          userEmail: socket.userEmail,
+          userName: socket.userEmail?.split('@')[0] || 'User',
+          avatarUrl: null,
+          isTyping: true
+        });
+      }
     });
 
     socket.on('conversation:typing:stop', (conversationId) => {
       socket.to(`conversation:${conversationId}`).emit('conversation:user-stopped-typing', {
         conversationId,
-        userId: socket.userId
+        userId: socket.userId,
+        isTyping: false
       });
     });
 

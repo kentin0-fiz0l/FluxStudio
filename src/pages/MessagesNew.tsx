@@ -90,6 +90,8 @@ import { MessageActionsMenu } from '../components/messaging/MessageActionsMenu';
 import { InlineReplyPreview } from '../components/messaging/InlineReplyPreview';
 import { MessageSearchPanel } from '../components/messaging/MessageSearchPanel';
 import { MessageSearchResult } from '../hooks/useMessageSearch';
+import { MarkdownMessage } from '../components/messaging/MarkdownMessage';
+import { ThreadPanel } from '../components/messaging/ThreadPanel';
 
 // Types
 interface MessageUser {
@@ -152,6 +154,8 @@ interface Message {
     waveform: number[];
     url: string;
   };
+  threadReplyCount?: number;
+  threadRootMessageId?: string | null;
 }
 
 interface Conversation {
@@ -546,6 +550,7 @@ function MessageBubble({
   onReact,
   onCopy,
   onJumpToMessage,
+  onOpenThread,
   showAvatar = true,
   isGrouped = false,
   currentUserId,
@@ -566,6 +571,7 @@ function MessageBubble({
   onReact: (emoji: string) => void;
   onCopy: () => void;
   onJumpToMessage?: (messageId: string) => void;
+  onOpenThread?: () => void;
   showAvatar?: boolean;
   isGrouped?: boolean;
   currentUserId?: string;
@@ -686,7 +692,7 @@ function MessageBubble({
             </div>
           ) : (
             message.content && (
-              <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+              <MarkdownMessage text={message.content} className="text-sm" />
             )
           )}
 
@@ -772,7 +778,9 @@ function MessageBubble({
               canEdit={isOwn}
               canForward
               canDelete={isOwn}
+              canOpenThread={!!onOpenThread}
               isPinned={isPinned}
+              hasReplies={(message.threadReplyCount || 0) > 0}
               onReply={() => onReply()}
               onReact={() => setShowReactions(true)}
               onPinToggle={() => onPin()}
@@ -780,6 +788,7 @@ function MessageBubble({
               onForward={() => onForward()}
               onCopy={() => onCopy()}
               onDelete={isOwn ? () => onDelete() : undefined}
+              onOpenThread={onOpenThread}
               align={isOwn ? 'start' : 'end'}
               side="top"
             />
@@ -1221,6 +1230,16 @@ function MessagesNew() {
   const [isSending, setIsSending] = useState(false);
   const [showMessageSearch, setShowMessageSearch] = useState(false);
 
+  // Thread panel state
+  const [activeThreadRootId, setActiveThreadRootId] = useState<string | null>(null);
+  const [isThreadPanelOpen, setIsThreadPanelOpen] = useState(false);
+  const [threadMessages, setThreadMessages] = useState<Message[]>([]);
+  const [isLoadingThread, setIsLoadingThread] = useState(false);
+
+  // Typing debounce state
+  const lastTypingSentRef = useRef<number>(0);
+  const isTypingRef = useRef<boolean>(false);
+
   // User search state for new conversations
   const [availableUsers, setAvailableUsers] = useState<MessageUser[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -1536,23 +1555,41 @@ function MessagesNew() {
     }
   };
 
-  // Handle typing indicator
+  // Handle typing indicator with debouncing (max 1 event per second)
   const handleInputChange = (value: string) => {
     setNewMessage(value);
 
-    // Start typing indicator
+    // Start typing indicator with debouncing
     if (value.trim()) {
-      realtime.startTyping();
+      const now = Date.now();
+      // Only send typing event at most once per second
+      if (now - lastTypingSentRef.current > 1000) {
+        realtime.startTyping();
+        lastTypingSentRef.current = now;
+        isTypingRef.current = true;
+      }
+
       // Clear previous timeout
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      // Stop typing after 2 seconds of no input
+
+      // Stop typing after 5 seconds of no input
       typingTimeoutRef.current = setTimeout(() => {
-        realtime.stopTyping();
-      }, 2000);
+        if (isTypingRef.current) {
+          realtime.stopTyping();
+          isTypingRef.current = false;
+        }
+      }, 5000);
     } else {
-      realtime.stopTyping();
+      // Text cleared - stop typing immediately
+      if (isTypingRef.current) {
+        realtime.stopTyping();
+        isTypingRef.current = false;
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     }
   };
 
@@ -1690,6 +1727,84 @@ function MessagesNew() {
     setForwardSourceMessage(null);
     setForwardTargetConversationId(null);
   };
+
+  // ========================================
+  // THREAD HANDLERS
+  // ========================================
+
+  // Open thread panel and load thread messages
+  const handleOpenThread = useCallback(async (messageId: string) => {
+    if (!selectedConversationId) return;
+
+    setActiveThreadRootId(messageId);
+    setIsThreadPanelOpen(true);
+    setIsLoadingThread(true);
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(
+        `/api/conversations/${selectedConversationId}/threads/${messageId}/messages`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        // Transform to Message format
+        const transformedMessages = (data.messages || []).map((m: any) => ({
+          id: m.id,
+          content: m.text,
+          timestamp: new Date(m.createdAt),
+          author: {
+            id: m.userId,
+            name: m.userName || 'Unknown',
+            initials: (m.userName || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+          },
+          status: 'delivered' as const,
+        }));
+        setThreadMessages(transformedMessages);
+      }
+    } catch (error) {
+      console.error('Failed to load thread messages:', error);
+    } finally {
+      setIsLoadingThread(false);
+    }
+  }, [selectedConversationId]);
+
+  // Close thread panel
+  const handleCloseThread = useCallback(() => {
+    setIsThreadPanelOpen(false);
+    setActiveThreadRootId(null);
+    setThreadMessages([]);
+  }, []);
+
+  // Reply to thread
+  const handleThreadReply = useCallback(async (text: string) => {
+    if (!selectedConversationId || !activeThreadRootId) return;
+
+    // Send message with thread root reference
+    realtime.sendMessage(text, {
+      replyToMessageId: activeThreadRootId,
+    });
+
+    // Optimistically add to thread messages
+    const newMessage: Message = {
+      id: `temp-${Date.now()}`,
+      content: text,
+      timestamp: new Date(),
+      author: {
+        id: user?.id || '',
+        name: user?.name || user?.email?.split('@')[0] || 'You',
+        initials: (user?.name || user?.email || 'Y').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+      },
+      status: 'sending',
+    };
+    setThreadMessages(prev => [...prev, newMessage]);
+  }, [selectedConversationId, activeThreadRootId, realtime, user]);
 
   // Legacy handler - direct forward without modal
   const handleForwardMessage = async (messageId: string, toConversationId: string) => {
@@ -2048,6 +2163,7 @@ function MessagesNew() {
                             onJumpToMessage={handleJumpToMessage}
                             onForward={() => handleStartForward(message)}
                             onReact={(emoji) => handleReact(message.id, emoji)}
+                            onOpenThread={() => handleOpenThread(message.id)}
                             isGrouped={isGrouped}
                             currentUserId={user?.id}
                             isPinned={realtime.pinnedMessageIds.includes(message.id)}
@@ -2062,9 +2178,9 @@ function MessagesNew() {
                       );
                     })}
 
-                    {/* Typing indicator - from real-time hook */}
+                    {/* Typing indicator - from real-time hook (uses userName for better display) */}
                     {realtime.typingUsers.length > 0 && (
-                      <TypingIndicator users={realtime.typingUsers.map(u => u.userEmail)} />
+                      <TypingIndicator users={realtime.typingUsers.map(u => u.userName || u.userEmail?.split('@')[0] || 'Someone')} />
                     )}
 
                     <div ref={messagesEndRef} />
@@ -2089,6 +2205,33 @@ function MessagesNew() {
             <EmptyMessagesState onStartConversation={() => setShowNewConversation(true)} />
           )}
         </Card>
+
+        {/* Thread Panel */}
+        {isThreadPanelOpen && activeThreadRootId && selectedConversation && (
+          <ThreadPanel
+            conversationId={selectedConversation.id}
+            rootMessage={{
+              id: activeThreadRootId,
+              userId: messages.find(m => m.id === activeThreadRootId)?.author.id || '',
+              conversationId: selectedConversation.id,
+              text: messages.find(m => m.id === activeThreadRootId)?.content || '',
+              userName: messages.find(m => m.id === activeThreadRootId)?.author.name,
+              createdAt: messages.find(m => m.id === activeThreadRootId)?.timestamp.toISOString() || new Date().toISOString(),
+            }}
+            messages={threadMessages.map(m => ({
+              id: m.id,
+              userId: m.author.id,
+              conversationId: selectedConversation.id,
+              text: m.content,
+              userName: m.author.name,
+              createdAt: m.timestamp.toISOString(),
+            }))}
+            isLoading={isLoadingThread}
+            onClose={handleCloseThread}
+            onReply={handleThreadReply}
+            currentUserId={user?.id}
+          />
+        )}
       </div>
 
       {/* New Conversation Dialog */}

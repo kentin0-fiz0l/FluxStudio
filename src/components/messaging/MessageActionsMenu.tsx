@@ -14,6 +14,7 @@ import {
   MoreHorizontal,
   Pencil,
   Forward,
+  MessageCircle,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -32,7 +33,9 @@ export interface MessageActionsMenuProps {
   canEdit?: boolean;
   canForward?: boolean;
   canDelete?: boolean;
+  canOpenThread?: boolean;
   isPinned?: boolean;
+  hasReplies?: boolean;
   onReply?: (messageId: string) => void;
   onReact?: (messageId: string) => void;
   onPinToggle?: (messageId: string) => void;
@@ -40,6 +43,7 @@ export interface MessageActionsMenuProps {
   onForward?: (messageId: string) => void;
   onCopy?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
+  onOpenThread?: (messageId: string) => void;
   className?: string;
   /** Position of the menu relative to the message */
   align?: 'start' | 'center' | 'end';
@@ -54,7 +58,9 @@ export function MessageActionsMenu({
   canEdit = false,
   canForward = true,
   canDelete = false,
+  canOpenThread = true,
   isPinned = false,
+  hasReplies = false,
   onReply,
   onReact,
   onPinToggle,
@@ -62,6 +68,7 @@ export function MessageActionsMenu({
   onForward,
   onCopy,
   onDelete,
+  onOpenThread,
   className,
   align = 'end',
   side = 'top',
@@ -89,6 +96,14 @@ export function MessageActionsMenu({
           <DropdownMenuItem onClick={() => onReply(messageId)}>
             <Reply className="w-4 h-4 mr-2" />
             Reply
+          </DropdownMenuItem>
+        )}
+
+        {/* Open Thread */}
+        {canOpenThread && onOpenThread && (
+          <DropdownMenuItem onClick={() => onOpenThread(messageId)}>
+            <MessageCircle className="w-4 h-4 mr-2" />
+            {hasReplies ? 'View thread' : 'Start thread'}
           </DropdownMenuItem>
         )}
 
