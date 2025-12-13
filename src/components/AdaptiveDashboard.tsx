@@ -13,10 +13,14 @@ import { EnhancedCommandPalette } from './EnhancedCommandPalette';
 import { IntegratedActivityFeed } from './IntegratedActivityFeed';
 import { SmartTemplates } from './workflows/SmartTemplates';
 import { AIWorkflowAssistant } from './workflows/AIWorkflowAssistant';
+import { GettingStartedCard } from './common/GettingStartedCard';
+import { useFirstTimeExperience } from '../hooks/useFirstTimeExperience';
+import { useProjects } from '../hooks/useProjects';
+import { useMessaging } from '../hooks/useMessaging';
+import { useFiles } from '../hooks/useFiles';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { ScrollArea } from './ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import {
   Sparkles,
@@ -38,6 +42,31 @@ export function AdaptiveDashboard() {
   const { user } = useAuth();
   const { state, actions } = useWorkspace();
   const navigate = useNavigate();
+
+  // Data hooks for first-time experience detection
+  const { projects } = useProjects();
+  const { conversations } = useMessaging();
+  const { files } = useFiles();
+
+  // First-time experience hook
+  const {
+    isFirstTime,
+    steps,
+    completedCount,
+    totalSteps,
+    dismiss,
+    markStepComplete,
+    updateData,
+  } = useFirstTimeExperience();
+
+  // Update first-time experience data when data loads
+  useEffect(() => {
+    updateData({
+      projectCount: projects?.length ?? 0,
+      conversationCount: conversations?.length ?? 0,
+      fileCount: files?.length ?? 0,
+    });
+  }, [projects, conversations, files, updateData]);
 
   // Adaptive layout based on current context and user role
   const getDashboardLayout = () => {
@@ -203,6 +232,17 @@ export function AdaptiveDashboard() {
             </Button>
           </div>
         </div>
+
+        {/* Getting Started Card (First-time users only) */}
+        {isFirstTime && (
+          <GettingStartedCard
+            steps={steps}
+            completedCount={completedCount}
+            totalSteps={totalSteps}
+            onDismiss={dismiss}
+            onStepComplete={markStepComplete}
+          />
+        )}
 
         {/* Contextual Overview Cards */}
         {contextualCards.length > 0 && (

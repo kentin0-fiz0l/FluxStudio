@@ -23,6 +23,7 @@ import { useNotification } from '../contexts/NotificationContext';
 import { MobilePlaybackControls } from '../components/metmap/MobilePlaybackControls';
 import { OfflineIndicator, NetworkStatusBadge } from '../components/pwa/OfflineIndicator';
 import { usePWA } from '../hooks/usePWA';
+import { ONBOARDING_STORAGE_KEYS } from '../hooks/useFirstTimeExperience';
 
 // Hook for detecting mobile viewport
 function useIsMobile(breakpoint = 768) {
@@ -715,6 +716,15 @@ export default function ToolsMetMap() {
   useEffect(() => {
     loadStats();
   }, [loadStats]);
+
+  // Mark MetMap as visited for onboarding (first-time experience)
+  useEffect(() => {
+    try {
+      localStorage.setItem(ONBOARDING_STORAGE_KEYS.metmapVisited, 'true');
+    } catch {
+      // localStorage not available
+    }
+  }, []);
 
   // Handle URL-based song selection
   useEffect(() => {
