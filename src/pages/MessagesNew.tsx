@@ -2707,6 +2707,8 @@ function MessagesNew() {
                   description={emptyStateConfigs.messages.description}
                   primaryCtaLabel={emptyStateConfigs.messages.primaryCtaLabel}
                   onPrimaryCta={() => setShowCreateModal(true)}
+                  secondaryCtaLabel="Go to Projects"
+                  onSecondaryCta={() => navigate('/projects')}
                   learnMoreItems={emptyStateConfigs.messages.learnMoreItems as unknown as string[]}
                   size="sm"
                 />

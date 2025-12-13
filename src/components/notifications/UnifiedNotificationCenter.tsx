@@ -120,6 +120,24 @@ export function UnifiedNotificationCenter() {
     // Context not available - show empty state
   }
 
+  // Group notifications by intent
+  const getNotificationGroup = (type: NotificationType): 'replies' | 'mentions' | 'files' | 'other' => {
+    switch (type) {
+      case 'reply':
+      case 'thread_reply':
+      case 'message_reply':
+        return 'replies';
+      case 'mention':
+      case 'message_mention':
+        return 'mentions';
+      case 'file_shared':
+      case 'project_file_uploaded':
+        return 'files';
+      default:
+        return 'other';
+    }
+  };
+
   // Filter notifications
   const filteredNotifications = useMemo(() => {
     let filtered = notifications;
@@ -136,11 +154,36 @@ export function UnifiedNotificationCenter() {
     ).slice(0, 20); // Limit to 20
   }, [notifications, filter]);
 
+  // Group filtered notifications by intent
+  const groupedNotifications = useMemo(() => {
+    const groups: Record<'replies' | 'mentions' | 'files' | 'other', Notification[]> = {
+      replies: [],
+      mentions: [],
+      files: [],
+      other: [],
+    };
+
+    filteredNotifications.forEach(n => {
+      const group = getNotificationGroup(n.type);
+      groups[group].push(n);
+    });
+
+    return groups;
+  }, [filteredNotifications]);
+
   const mentionCount = notifications.filter(
     n => (n.type === 'mention' || n.type === 'message_mention') && !n.isRead
   ).length;
 
-  // Handle notification click with deep linking
+  // Group labels for display
+  const groupLabels: Record<string, string> = {
+    mentions: 'Mentions',
+    replies: 'Replies',
+    files: 'Files',
+    other: 'Other',
+  };
+
+  // Handle notification click with deep linking + highlight
   const handleNotificationClick = async (notification: Notification) => {
     // Mark as read
     if (!notification.isRead && markAsRead) {
@@ -161,6 +204,12 @@ export function UnifiedNotificationCenter() {
         targetUrl += targetUrl.includes('?') ? '&' : '?';
         targetUrl += `thread=${notification.threadRootMessageId}`;
       }
+    }
+
+    // Add highlight param for visual feedback on target
+    if (targetUrl && notification.messageId) {
+      targetUrl += targetUrl.includes('?') ? '&' : '?';
+      targetUrl += `highlight=${notification.messageId}`;
     }
 
     if (targetUrl) {
@@ -307,82 +356,103 @@ export function UnifiedNotificationCenter() {
                     </div>
                   ) : (
                     <div className="p-2">
-                      {filteredNotifications.map(notification => {
-                        const Icon = getNotificationIcon(notification.type);
-                        const colorClass = getTypeColor(notification.type);
-                        const isNavigable = !!(notification.actionUrl || notification.conversationId);
+                      {/* Render grouped notifications */}
+                      {(['mentions', 'replies', 'files', 'other'] as const).map(groupKey => {
+                        const groupNotifications = groupedNotifications[groupKey];
+                        if (groupNotifications.length === 0) return null;
 
                         return (
-                          <div
-                            key={notification.id}
-                            className={cn(
-                              "p-3 rounded-lg mb-2 transition-all",
-                              notification.isRead
-                                ? "bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                : "bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30",
-                              isNavigable && "cursor-pointer"
-                            )}
-                            onClick={() => handleNotificationClick(notification)}
-                            role={isNavigable ? "button" : undefined}
-                            tabIndex={isNavigable ? 0 : undefined}
-                            onKeyDown={(e) => {
-                              if (isNavigable && e.key === 'Enter') {
-                                handleNotificationClick(notification);
-                              }
-                            }}
-                          >
-                            <div className="flex gap-3">
-                              {/* Actor avatar or type icon */}
-                              {notification.actor ? (
-                                <Avatar className="h-8 w-8 flex-shrink-0">
-                                  {notification.actor.avatarUrl && (
-                                    <AvatarImage src={notification.actor.avatarUrl} />
-                                  )}
-                                  <AvatarFallback className="text-xs">
-                                    {notification.actor.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
-                                  </AvatarFallback>
-                                </Avatar>
-                              ) : (
-                                <div className={cn(
-                                  "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                                  colorClass
-                                )}>
-                                  <Icon className="h-4 w-4" />
-                                </div>
-                              )}
-
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1 min-w-0">
-                                    <p className={cn(
-                                      "text-sm leading-tight",
-                                      notification.isRead ? "text-gray-900 dark:text-gray-100" : "font-medium text-gray-900 dark:text-white"
-                                    )}>
-                                      {notification.title}
-                                    </p>
-                                    {(notification.body || notification.message) && (
-                                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-2">
-                                        {notification.body || notification.message}
-                                      </p>
-                                    )}
-                                  </div>
-                                  {!notification.isRead && (
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5" />
-                                  )}
-                                </div>
-
-                                <div className="flex items-center gap-2 mt-1.5">
-                                  <span className="text-xs text-gray-500 dark:text-gray-500">
-                                    {formatTimeAgo(notification.createdAt)}
-                                  </span>
-                                  {notification.actor && (
-                                    <span className="text-xs text-gray-500 dark:text-gray-500">
-                                      by {notification.actor.name}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                          <div key={groupKey} className="mb-3 last:mb-0">
+                            {/* Group header */}
+                            <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
+                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                {groupLabels[groupKey]}
+                              </span>
+                              <span className="text-xs text-gray-400 dark:text-gray-500">
+                                ({groupNotifications.length})
+                              </span>
                             </div>
+
+                            {/* Group items */}
+                            {groupNotifications.map(notification => {
+                              const Icon = getNotificationIcon(notification.type);
+                              const colorClass = getTypeColor(notification.type);
+                              const isNavigable = !!(notification.actionUrl || notification.conversationId);
+
+                              return (
+                                <div
+                                  key={notification.id}
+                                  className={cn(
+                                    "p-3 rounded-lg mb-2 transition-all",
+                                    notification.isRead
+                                      ? "bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                      : "bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30",
+                                    isNavigable && "cursor-pointer"
+                                  )}
+                                  onClick={() => handleNotificationClick(notification)}
+                                  role={isNavigable ? "button" : undefined}
+                                  tabIndex={isNavigable ? 0 : undefined}
+                                  onKeyDown={(e) => {
+                                    if (isNavigable && e.key === 'Enter') {
+                                      handleNotificationClick(notification);
+                                    }
+                                  }}
+                                >
+                                  <div className="flex gap-3">
+                                    {/* Actor avatar or type icon */}
+                                    {notification.actor ? (
+                                      <Avatar className="h-8 w-8 flex-shrink-0">
+                                        {notification.actor.avatarUrl && (
+                                          <AvatarImage src={notification.actor.avatarUrl} />
+                                        )}
+                                        <AvatarFallback className="text-xs">
+                                          {notification.actor.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                    ) : (
+                                      <div className={cn(
+                                        "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+                                        colorClass
+                                      )}>
+                                        <Icon className="h-4 w-4" />
+                                      </div>
+                                    )}
+
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1 min-w-0">
+                                          <p className={cn(
+                                            "text-sm leading-tight",
+                                            notification.isRead ? "text-gray-900 dark:text-gray-100" : "font-medium text-gray-900 dark:text-white"
+                                          )}>
+                                            {notification.title}
+                                          </p>
+                                          {(notification.body || notification.message) && (
+                                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-2">
+                                              {notification.body || notification.message}
+                                            </p>
+                                          )}
+                                        </div>
+                                        {!notification.isRead && (
+                                          <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5" />
+                                        )}
+                                      </div>
+
+                                      <div className="flex items-center gap-2 mt-1.5">
+                                        <span className="text-xs text-gray-500 dark:text-gray-500">
+                                          {formatTimeAgo(notification.createdAt)}
+                                        </span>
+                                        {notification.actor && (
+                                          <span className="text-xs text-gray-500 dark:text-gray-500">
+                                            by {notification.actor.name}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         );
                       })}
