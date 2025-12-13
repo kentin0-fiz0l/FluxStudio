@@ -13,6 +13,7 @@ import {
   ConversationMessage,
   Conversation,
   Notification,
+  MessageReactionSummary,
 } from '../services/messagingSocketService';
 
 interface TypingUser {
@@ -27,6 +28,12 @@ interface ReadReceipt {
   messageId: string;
 }
 
+interface ReactionUpdate {
+  messageId: string;
+  reactions: MessageReactionSummary[];
+  updatedBy: string;
+}
+
 interface UseConversationRealtimeOptions {
   conversationId?: string;
   autoConnect?: boolean;
@@ -36,6 +43,7 @@ interface UseConversationRealtimeOptions {
   onTypingStop?: (data: { conversationId: string; userId: string }) => void;
   onReadReceipt?: (data: ReadReceipt) => void;
   onNotification?: (notification: Notification) => void;
+  onReactionUpdated?: (data: ReactionUpdate) => void;
 }
 
 interface UseConversationRealtimeReturn {
@@ -60,6 +68,10 @@ interface UseConversationRealtimeReturn {
   subscribeToNotifications: () => void;
   markNotificationRead: (notificationId: string) => void;
   markAllNotificationsRead: () => void;
+
+  // Reaction actions
+  addReaction: (messageId: string, emoji: string) => void;
+  removeReaction: (messageId: string, emoji: string) => void;
 }
 
 export function useConversationRealtime(options: UseConversationRealtimeOptions = {}): UseConversationRealtimeReturn {
@@ -73,6 +85,7 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     onTypingStop,
     onReadReceipt,
     onNotification,
+    onReactionUpdated,
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
@@ -160,6 +173,77 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
   const markAllNotificationsRead = useCallback(() => {
     messagingSocketService.markAllNotificationsRead();
   }, []);
+
+  // Add reaction to a message
+  const addReaction = useCallback((messageId: string, emoji: string) => {
+    // Optimistically update local state
+    setMessages(prev => prev.map(m => {
+      if (m.id !== messageId) return m;
+      const reactions = m.reactions || [];
+      const existingReaction = reactions.find(r => r.emoji === emoji);
+      const userId = user?.id || '';
+
+      if (existingReaction) {
+        // Already have this emoji - add user if not already there
+        if (!existingReaction.userIds.includes(userId)) {
+          return {
+            ...m,
+            reactions: reactions.map(r =>
+              r.emoji === emoji
+                ? { ...r, count: r.count + 1, userIds: [...r.userIds, userId] }
+                : r
+            )
+          };
+        }
+        return m;
+      } else {
+        // New emoji
+        return {
+          ...m,
+          reactions: [...reactions, { emoji, count: 1, userIds: [userId] }]
+        };
+      }
+    }));
+
+    // Send to server
+    messagingSocketService.addReaction(messageId, emoji, (response) => {
+      if (!response.ok) {
+        console.error('[useConversationRealtime] Failed to add reaction:', response.error);
+        // Could revert optimistic update here if needed
+      }
+    });
+  }, [user?.id]);
+
+  // Remove reaction from a message
+  const removeReaction = useCallback((messageId: string, emoji: string) => {
+    // Optimistically update local state
+    setMessages(prev => prev.map(m => {
+      if (m.id !== messageId) return m;
+      const reactions = m.reactions || [];
+      const userId = user?.id || '';
+
+      return {
+        ...m,
+        reactions: reactions
+          .map(r => {
+            if (r.emoji !== emoji) return r;
+            const newUserIds = r.userIds.filter(id => id !== userId);
+            return newUserIds.length > 0
+              ? { ...r, count: newUserIds.length, userIds: newUserIds }
+              : null;
+          })
+          .filter((r): r is MessageReactionSummary => r !== null)
+      };
+    }));
+
+    // Send to server
+    messagingSocketService.removeReaction(messageId, emoji, (response) => {
+      if (!response.ok) {
+        console.error('[useConversationRealtime] Failed to remove reaction:', response.error);
+        // Could revert optimistic update here if needed
+      }
+    });
+  }, [user?.id]);
 
   // Set up event listeners
   useEffect(() => {
@@ -265,6 +349,20 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
       })
     );
 
+    // Reactions updated
+    unsubscribers.push(
+      messagingSocketService.on('conversation:reaction:updated', (data: unknown) => {
+        const typedData = data as ReactionUpdate;
+        // Update local messages state with new reactions
+        setMessages(prev => prev.map(m =>
+          m.id === typedData.messageId
+            ? { ...m, reactions: typedData.reactions }
+            : m
+        ));
+        onReactionUpdated?.(typedData);
+      })
+    );
+
     // Notifications
     unsubscribers.push(
       messagingSocketService.on('notification:new', (notification: unknown) => {
@@ -303,6 +401,7 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     onTypingStop,
     onReadReceipt,
     onNotification,
+    onReactionUpdated,
   ]);
 
   // Handle conversation ID changes
@@ -334,6 +433,10 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     subscribeToNotifications,
     markNotificationRead,
     markAllNotificationsRead,
+
+    // Reaction actions
+    addReaction,
+    removeReaction,
   };
 }
 

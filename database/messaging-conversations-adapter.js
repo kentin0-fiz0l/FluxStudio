@@ -405,9 +405,10 @@ class MessagingConversationsAdapter {
    * @param {string} params.conversationId
    * @param {number} [params.limit=50]
    * @param {string} [params.before] - Message ID to fetch messages before
+   * @param {boolean} [params.includeReactions=true] - Include reactions with messages
    * @returns {Array} Array of messages, ordered by created_at DESC
    */
-  async listMessages({ conversationId, limit = 50, before = null }) {
+  async listMessages({ conversationId, limit = 50, before = null, includeReactions = true }) {
     let queryText;
     let params;
 
@@ -435,7 +436,20 @@ class MessagingConversationsAdapter {
     }
 
     const result = await query(queryText, params);
-    return result.rows.map(row => this._transformMessage(row));
+    const messages = result.rows.map(row => this._transformMessage(row));
+
+    // Fetch reactions for all messages if requested
+    if (includeReactions && messages.length > 0) {
+      const messageIds = messages.map(m => m.id);
+      const reactionsMap = await this.listReactionsForMessages({ messageIds });
+
+      // Attach reactions to each message
+      for (const message of messages) {
+        message.reactions = reactionsMap[message.id] || [];
+      }
+    }
+
+    return messages;
   }
 
   /**
@@ -486,6 +500,154 @@ class MessagingConversationsAdapter {
       conversationId: row.conversation_id,
       unreadCount: parseInt(row.unread_count, 10) || 0
     }));
+  }
+
+  // ==================== Reaction Methods ====================
+
+  /**
+   * Get a message by ID (helper for reactions and other operations)
+   *
+   * @param {Object} params
+   * @param {string} params.messageId
+   * @returns {Object|null} Message with basic fields
+   */
+  async getMessageById({ messageId }) {
+    const result = await query(`
+      SELECT m.*, u.name as user_name, u.avatar_url as user_avatar
+      FROM messages m
+      LEFT JOIN users u ON m.user_id = u.id
+      WHERE m.id = $1
+    `, [messageId]);
+
+    if (result.rows.length === 0) return null;
+    return this._transformMessage(result.rows[0]);
+  }
+
+  /**
+   * Add a reaction to a message
+   *
+   * @param {Object} params
+   * @param {string} params.messageId
+   * @param {string} params.userId
+   * @param {string} params.emoji
+   * @returns {Object} Aggregated reactions for the message
+   */
+  async addReaction({ messageId, userId, emoji }) {
+    const id = uuidv4();
+
+    // First get the message to get conversationId and projectId
+    const message = await this.getMessageById({ messageId });
+    if (!message) {
+      throw new Error('Message not found');
+    }
+
+    try {
+      // Upsert reaction (ignore if already exists)
+      await query(`
+        INSERT INTO message_reactions (id, message_id, user_id, emoji, conversation_id, project_id, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        ON CONFLICT (message_id, user_id, emoji) DO NOTHING
+      `, [id, messageId, userId, emoji, message.conversationId, message.projectId]);
+
+      // Return aggregated reactions
+      return await this.listReactionsForMessage({ messageId });
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove a reaction from a message
+   *
+   * @param {Object} params
+   * @param {string} params.messageId
+   * @param {string} params.userId
+   * @param {string} params.emoji
+   * @returns {Object} Aggregated reactions for the message
+   */
+  async removeReaction({ messageId, userId, emoji }) {
+    try {
+      await query(`
+        DELETE FROM message_reactions
+        WHERE message_id = $1 AND user_id = $2 AND emoji = $3
+      `, [messageId, userId, emoji]);
+
+      // Return aggregated reactions
+      return await this.listReactionsForMessage({ messageId });
+    } catch (error) {
+      console.error('Error removing reaction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * List aggregated reactions for a message
+   *
+   * @param {Object} params
+   * @param {string} params.messageId
+   * @returns {Object} { messageId, reactions: [{ emoji, count, userIds }] }
+   */
+  async listReactionsForMessage({ messageId }) {
+    const result = await query(`
+      SELECT
+        emoji,
+        COUNT(*) as count,
+        array_agg(user_id ORDER BY created_at ASC) as user_ids
+      FROM message_reactions
+      WHERE message_id = $1
+      GROUP BY emoji
+      ORDER BY count DESC, emoji ASC
+    `, [messageId]);
+
+    return {
+      messageId,
+      reactions: result.rows.map(row => ({
+        emoji: row.emoji,
+        count: parseInt(row.count, 10),
+        userIds: row.user_ids || []
+      }))
+    };
+  }
+
+  /**
+   * List reactions for multiple messages (batch query for efficiency)
+   *
+   * @param {Object} params
+   * @param {string[]} params.messageIds
+   * @returns {Object} Map of messageId -> reactions array
+   */
+  async listReactionsForMessages({ messageIds }) {
+    if (!messageIds || messageIds.length === 0) {
+      return {};
+    }
+
+    const result = await query(`
+      SELECT
+        message_id,
+        emoji,
+        COUNT(*) as count,
+        array_agg(user_id ORDER BY created_at ASC) as user_ids
+      FROM message_reactions
+      WHERE message_id = ANY($1)
+      GROUP BY message_id, emoji
+      ORDER BY message_id, count DESC, emoji ASC
+    `, [messageIds]);
+
+    // Group by messageId
+    const reactionsMap = {};
+    for (const row of result.rows) {
+      if (!reactionsMap[row.message_id]) {
+        reactionsMap[row.message_id] = [];
+      }
+      reactionsMap[row.message_id].push({
+        emoji: row.emoji,
+        count: parseInt(row.count, 10),
+        userIds: row.user_ids || []
+      });
+    }
+
+    return reactionsMap;
   }
 
   // ==================== Notification Methods ====================

@@ -229,6 +229,104 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
       }
     });
 
+    // Add reaction to a message
+    socket.on('conversation:reaction:add', async (data, ack) => {
+      const { messageId, emoji } = data;
+
+      if (!messageId || !emoji) {
+        if (ack) ack({ ok: false, error: 'Message ID and emoji are required' });
+        return;
+      }
+
+      try {
+        // Get the message to verify conversation membership
+        const message = await messagingConversationsAdapter.getMessageById({ messageId });
+        if (!message) {
+          if (ack) ack({ ok: false, error: 'Message not found' });
+          return;
+        }
+
+        // Verify user is a member of the conversation
+        const conversation = await messagingConversationsAdapter.getConversationById({
+          conversationId: message.conversationId,
+          userId: socket.userId
+        });
+        if (!conversation) {
+          if (ack) ack({ ok: false, error: 'Not authorized to react to this message' });
+          return;
+        }
+
+        // Add the reaction
+        const result = await messagingConversationsAdapter.addReaction({
+          messageId,
+          userId: socket.userId,
+          emoji
+        });
+
+        // Broadcast to all users in the conversation
+        namespace.to(`conversation:${message.conversationId}`).emit('conversation:reaction:updated', {
+          messageId,
+          reactions: result.reactions,
+          updatedBy: socket.userId
+        });
+
+        // Acknowledge success
+        if (ack) ack({ ok: true, reactions: result.reactions });
+      } catch (error) {
+        console.error('Error adding reaction:', error);
+        if (ack) ack({ ok: false, error: 'Failed to add reaction' });
+      }
+    });
+
+    // Remove reaction from a message
+    socket.on('conversation:reaction:remove', async (data, ack) => {
+      const { messageId, emoji } = data;
+
+      if (!messageId || !emoji) {
+        if (ack) ack({ ok: false, error: 'Message ID and emoji are required' });
+        return;
+      }
+
+      try {
+        // Get the message to verify conversation membership
+        const message = await messagingConversationsAdapter.getMessageById({ messageId });
+        if (!message) {
+          if (ack) ack({ ok: false, error: 'Message not found' });
+          return;
+        }
+
+        // Verify user is a member of the conversation
+        const conversation = await messagingConversationsAdapter.getConversationById({
+          conversationId: message.conversationId,
+          userId: socket.userId
+        });
+        if (!conversation) {
+          if (ack) ack({ ok: false, error: 'Not authorized to remove reaction from this message' });
+          return;
+        }
+
+        // Remove the reaction (users can only remove their own reactions)
+        const result = await messagingConversationsAdapter.removeReaction({
+          messageId,
+          userId: socket.userId,
+          emoji
+        });
+
+        // Broadcast to all users in the conversation
+        namespace.to(`conversation:${message.conversationId}`).emit('conversation:reaction:updated', {
+          messageId,
+          reactions: result.reactions,
+          updatedBy: socket.userId
+        });
+
+        // Acknowledge success
+        if (ack) ack({ ok: true, reactions: result.reactions });
+      } catch (error) {
+        console.error('Error removing reaction:', error);
+        if (ack) ack({ ok: false, error: 'Failed to remove reaction' });
+      }
+    });
+
     // ========================================
     // LEGACY CHANNEL-BASED EVENTS (BACKWARD COMPATIBILITY)
     // ========================================

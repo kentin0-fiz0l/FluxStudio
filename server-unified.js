@@ -3632,6 +3632,130 @@ app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// ----- Message Reactions -----
+
+// 10b. POST /api/messages/:messageId/reactions - Add a reaction
+app.post('/api/messages/:messageId/reactions', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { messageId } = req.params;
+    const { emoji } = req.body;
+
+    // Validate emoji
+    if (!emoji || typeof emoji !== 'string' || emoji.length > 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid emoji. Must be a non-empty string up to 10 characters.'
+      });
+    }
+
+    // Check if message exists and user has access
+    const message = await messagingConversationsAdapter.getMessageById({ messageId });
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+
+    // Verify user is a member of the conversation
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId: message.conversationId,
+      userId
+    });
+    if (!conversation) {
+      return res.status(403).json({ success: false, error: 'Not authorized to react to this message' });
+    }
+
+    const result = await messagingConversationsAdapter.addReaction({
+      messageId,
+      userId,
+      emoji
+    });
+
+    res.json({
+      success: true,
+      messageId: result.messageId,
+      reactions: result.reactions
+    });
+  } catch (error) {
+    console.error('Error adding reaction:', error);
+    res.status(500).json({ success: false, error: 'Failed to add reaction' });
+  }
+});
+
+// 10c. DELETE /api/messages/:messageId/reactions/:emoji - Remove a reaction
+app.delete('/api/messages/:messageId/reactions/:emoji', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { messageId, emoji } = req.params;
+
+    // Decode emoji from URL
+    const decodedEmoji = decodeURIComponent(emoji);
+
+    // Check if message exists
+    const message = await messagingConversationsAdapter.getMessageById({ messageId });
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+
+    // Verify user is a member of the conversation
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId: message.conversationId,
+      userId
+    });
+    if (!conversation) {
+      return res.status(403).json({ success: false, error: 'Not authorized to remove reaction from this message' });
+    }
+
+    const result = await messagingConversationsAdapter.removeReaction({
+      messageId,
+      userId,
+      emoji: decodedEmoji
+    });
+
+    res.json({
+      success: true,
+      messageId: result.messageId,
+      reactions: result.reactions
+    });
+  } catch (error) {
+    console.error('Error removing reaction:', error);
+    res.status(500).json({ success: false, error: 'Failed to remove reaction' });
+  }
+});
+
+// 10d. GET /api/messages/:messageId/reactions - List reactions for a message
+app.get('/api/messages/:messageId/reactions', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { messageId } = req.params;
+
+    // Check if message exists
+    const message = await messagingConversationsAdapter.getMessageById({ messageId });
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+
+    // Verify user is a member of the conversation
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId: message.conversationId,
+      userId
+    });
+    if (!conversation) {
+      return res.status(403).json({ success: false, error: 'Not authorized to view reactions for this message' });
+    }
+
+    const result = await messagingConversationsAdapter.listReactionsForMessage({ messageId });
+
+    res.json({
+      success: true,
+      messageId: result.messageId,
+      reactions: result.reactions
+    });
+  } catch (error) {
+    console.error('Error listing reactions:', error);
+    res.status(500).json({ success: false, error: 'Failed to list reactions' });
+  }
+});
+
 // ----- Notifications -----
 
 // 11. GET /api/notifications - List notifications for current user
