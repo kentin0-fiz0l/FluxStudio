@@ -23,6 +23,7 @@ export interface ConversationMessage {
   createdAt: string;
   updatedAt: string;
   editedAt?: string;
+  originalMessageId?: string;
   reactions?: MessageReactionSummary[];
   author?: {
     id: string;
@@ -321,6 +322,20 @@ class MessagingSocketService {
   ): void {
     if (!this.socket?.connected) return;
     this.socket.emit('conversation:message:edit', { conversationId, messageId, content }, callback);
+  }
+
+  // ========================================
+  // MESSAGE FORWARDING
+  // ========================================
+
+  forwardMessage(
+    sourceConversationId: string,
+    targetConversationId: string,
+    messageId: string,
+    callback?: (response: { ok: boolean; message?: ConversationMessage; error?: string }) => void
+  ): void {
+    if (!this.socket?.connected) return;
+    this.socket.emit('conversation:message:forward', { sourceConversationId, targetConversationId, messageId }, callback);
   }
 
   // ========================================

@@ -492,6 +492,88 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     });
 
     // ========================================
+    // MESSAGE FORWARDING
+    // ========================================
+
+    // Forward a message to another conversation
+    socket.on('conversation:message:forward', async (data, ack) => {
+      const { sourceConversationId, targetConversationId, messageId } = data || {};
+
+      if (!sourceConversationId || !targetConversationId || !messageId) {
+        if (ack) ack({ ok: false, error: 'Source conversation ID, target conversation ID, and message ID are required' });
+        return;
+      }
+
+      // Prevent forwarding to the same conversation
+      if (sourceConversationId === targetConversationId) {
+        if (ack) ack({ ok: false, error: 'Cannot forward a message to the same conversation' });
+        return;
+      }
+
+      try {
+        // Forward the message using the adapter (which verifies membership in both conversations)
+        const forwardedMessage = await messagingConversationsAdapter.forwardMessage({
+          messageId,
+          sourceConversationId,
+          targetConversationId,
+          userId: socket.userId
+        });
+
+        if (!forwardedMessage) {
+          if (ack) ack({ ok: false, error: 'Message not found or not authorized to forward' });
+          return;
+        }
+
+        // Transform message for broadcast
+        const messagePayload = {
+          id: forwardedMessage.id,
+          conversationId: forwardedMessage.conversationId,
+          authorId: forwardedMessage.userId,
+          content: forwardedMessage.text,
+          replyToMessageId: forwardedMessage.replyToMessageId || null,
+          assetId: forwardedMessage.assetId || null,
+          projectId: forwardedMessage.projectId || null,
+          isSystemMessage: forwardedMessage.isSystemMessage || false,
+          originalMessageId: forwardedMessage.originalMessageId || null,
+          createdAt: forwardedMessage.createdAt,
+          author: {
+            id: forwardedMessage.userId,
+            email: socket.userEmail,
+            displayName: forwardedMessage.userName || null
+          }
+        };
+
+        // Broadcast to all users in the target conversation (reuse message:new event)
+        namespace.to(`conversation:${targetConversationId}`).emit('conversation:message:new', {
+          conversationId: targetConversationId,
+          message: messagePayload
+        });
+
+        // Also notify members in target conversation via their user rooms
+        const targetConversation = await messagingConversationsAdapter.getConversationById({
+          conversationId: targetConversationId,
+          userId: socket.userId
+        });
+        const members = targetConversation?.members || [];
+        members.forEach(member => {
+          if (member.userId !== socket.userId) {
+            namespace.to(`user:${member.userId}`).emit('conversation:message:notify', {
+              conversationId: targetConversationId,
+              message: messagePayload,
+              senderEmail: socket.userEmail
+            });
+          }
+        });
+
+        // Acknowledge success
+        if (ack) ack({ ok: true, message: messagePayload });
+      } catch (error) {
+        console.error('Error forwarding message:', error);
+        if (ack) ack({ ok: false, error: error.message || 'Failed to forward message' });
+      }
+    });
+
+    // ========================================
     // LEGACY CHANNEL-BASED EVENTS (BACKWARD COMPATIBILITY)
     // ========================================
 

@@ -13,6 +13,7 @@ import {
   Trash2,
   MoreHorizontal,
   Pencil,
+  Forward,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -29,12 +30,14 @@ export interface MessageActionsMenuProps {
   canReact?: boolean;
   canPin?: boolean;
   canEdit?: boolean;
+  canForward?: boolean;
   canDelete?: boolean;
   isPinned?: boolean;
   onReply?: (messageId: string) => void;
   onReact?: (messageId: string) => void;
   onPinToggle?: (messageId: string) => void;
   onEdit?: (messageId: string) => void;
+  onForward?: (messageId: string) => void;
   onCopy?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   className?: string;
@@ -49,12 +52,14 @@ export function MessageActionsMenu({
   canReact = true,
   canPin = true,
   canEdit = false,
+  canForward = true,
   canDelete = false,
   isPinned = false,
   onReply,
   onReact,
   onPinToggle,
   onEdit,
+  onForward,
   onCopy,
   onDelete,
   className,
@@ -117,6 +122,14 @@ export function MessageActionsMenu({
           <DropdownMenuItem onClick={() => onEdit(messageId)}>
             <Pencil className="w-4 h-4 mr-2" />
             Edit message
+          </DropdownMenuItem>
+        )}
+
+        {/* Forward */}
+        {canForward && onForward && (
+          <DropdownMenuItem onClick={() => onForward(messageId)}>
+            <Forward className="w-4 h-4 mr-2" />
+            Forward
           </DropdownMenuItem>
         )}
 
