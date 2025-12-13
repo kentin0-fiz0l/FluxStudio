@@ -26,7 +26,8 @@ import { DashboardLayout } from '@/components/templates';
 import { ChatMessage, UserCard } from '@/components/molecules';
 import { Button, Card, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
-import { useMessaging } from '../hooks/useMessaging';
+import { useConversationRealtime } from '../hooks/useConversationRealtime';
+import { messagingSocketService, ConversationMessage } from '../services/messagingSocketService';
 import {
   Send,
   Paperclip,
@@ -131,6 +132,7 @@ interface Message {
   isEdited?: boolean;
   editedAt?: Date;
   isDeleted?: boolean;
+  isSystemMessage?: boolean;
   replyTo?: {
     id: string;
     content: string;
@@ -164,6 +166,30 @@ interface Conversation {
 }
 
 type ConversationFilter = 'all' | 'unread' | 'archived' | 'starred' | 'muted';
+
+// API response type for conversations
+interface ConversationSummary {
+  id: string;
+  organizationId: string | null;
+  name: string | null;
+  isGroup: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastMessageAt: string | null;
+  lastMessagePreview: string | null;
+  unreadCount: number;
+  members?: Array<{
+    id: string;
+    conversationId: string;
+    userId: string;
+    role: string;
+    user?: {
+      id: string;
+      email: string;
+      name?: string;
+    };
+  }>;
+}
 
 // Emoji data
 const EMOJI_CATEGORIES = {
@@ -1045,20 +1071,46 @@ function MessagesNew() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Messaging hook
-  const {
-    conversations: backendConversations,
-    activeConversation,
-    conversationMessages,
-    sendMessage,
-    setActiveConversation,
-    createConversation,
-    isLoading,
-    error: messagingError,
-    refresh
-  } = useMessaging();
+  // ========================================
+  // CONVERSATION STATE (REST API based)
+  // ========================================
+  const [conversationSummaries, setConversationSummaries] = useState<ConversationSummary[]>([]);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [conversationError, setConversationError] = useState<string | null>(null);
 
-  // Local state
+  // ========================================
+  // REAL-TIME MESSAGING HOOK
+  // ========================================
+  const handleNewMessage = useCallback((data: { conversationId: string; message: ConversationMessage }) => {
+    // Update conversation list with new message preview
+    setConversationSummaries(prev => {
+      const existing = prev.find(c => c.id === data.conversationId);
+      if (!existing) return prev;
+
+      const isActive = data.conversationId === selectedConversationId;
+      const updated: ConversationSummary = {
+        ...existing,
+        lastMessageAt: data.message.createdAt,
+        lastMessagePreview: data.message.content?.slice(0, 100) || '',
+        unreadCount: isActive ? 0 : (existing.unreadCount || 0) + 1,
+      };
+
+      // Move to top
+      const others = prev.filter(c => c.id !== data.conversationId);
+      return [updated, ...others];
+    });
+  }, [selectedConversationId]);
+
+  const realtime = useConversationRealtime({
+    conversationId: selectedConversationId || undefined,
+    autoConnect: true,
+    onNewMessage: handleNewMessage,
+  });
+
+  // ========================================
+  // LOCAL UI STATE
+  // ========================================
   const [newMessage, setNewMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<ConversationFilter>('all');
@@ -1069,7 +1121,6 @@ function MessagesNew() {
   const [showPinnedMessages, setShowPinnedMessages] = useState(false);
   const [showConversationSettings, setShowConversationSettings] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // User search state for new conversations
   const [availableUsers, setAvailableUsers] = useState<MessageUser[]>([]);
@@ -1081,34 +1132,94 @@ function MessagesNew() {
   // Pinned messages state
   const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
 
+  // Typing debounce
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Import messaging service for API calls
-  const messagingServiceRef = useRef<typeof import('../services/messagingService').messagingService | null>(null);
+  // ========================================
+  // FETCH CONVERSATIONS FROM REST API
+  // ========================================
+  const loadConversations = useCallback(async () => {
+    if (!user) return;
 
-  // Load messaging service
+    setIsLoadingConversations(true);
+    setConversationError(null);
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch('/api/conversations?limit=50&offset=0', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to load conversations: ${res.status}`);
+      }
+
+      const data = await res.json();
+      const list = (data.conversations || []) as ConversationSummary[];
+
+      // Sort by lastMessageAt (newest first)
+      list.sort((a, b) => {
+        const ta = a.lastMessageAt ? Date.parse(a.lastMessageAt) : 0;
+        const tb = b.lastMessageAt ? Date.parse(b.lastMessageAt) : 0;
+        return tb - ta;
+      });
+
+      setConversationSummaries(list);
+
+      // Auto-select first conversation if none selected
+      if (!selectedConversationId && list.length > 0) {
+        setSelectedConversationId(list[0].id);
+      }
+    } catch (err) {
+      console.error('Error loading conversations:', err);
+      setConversationError(err instanceof Error ? err.message : 'Failed to load conversations');
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  }, [user, selectedConversationId]);
+
+  // Load conversations on mount
   useEffect(() => {
-    import('../services/messagingService').then(module => {
-      messagingServiceRef.current = module.messagingService;
-    });
-  }, []);
+    loadConversations();
+  }, [loadConversations]);
 
-  // Fetch users when new conversation dialog opens
+  // ========================================
+  // FETCH USERS FOR NEW CONVERSATION
+  // ========================================
   useEffect(() => {
     if (showNewConversation) {
       fetchUsers();
     }
   }, [showNewConversation]);
 
-  // Fetch users with search
   const fetchUsers = async (search?: string) => {
     setLoadingUsers(true);
     try {
-      if (messagingServiceRef.current) {
-        const users = await messagingServiceRef.current.getUsers(search);
-        setAvailableUsers(users);
+      const token = localStorage.getItem('auth_token');
+      const url = search ? `/api/users?search=${encodeURIComponent(search)}` : '/api/users';
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const users = (data.users || data || []).map((u: any) => ({
+          id: u.id,
+          name: u.name || u.email?.split('@')[0] || 'Unknown',
+          avatar: u.avatar,
+          initials: getInitials(u.name || u.email?.split('@')[0] || 'U'),
+          isOnline: u.isOnline || false,
+        }));
+        setAvailableUsers(users.filter((u: MessageUser) => u.id !== user?.id));
       }
     } catch (error) {
       console.error('Failed to fetch users:', error);
@@ -1129,121 +1240,92 @@ function MessagesNew() {
     return () => clearTimeout(timeout);
   }, [userSearchTerm, showNewConversation]);
 
-  // Fetch pinned messages when conversation changes
-  useEffect(() => {
-    if (activeConversation && messagingServiceRef.current) {
-      messagingServiceRef.current.getPinnedMessages(activeConversation.id)
-        .then(pinned => {
-          const transformed = pinned.map((p: any) => ({
-            id: p.message_id,
-            content: p.content,
-            author: {
-              id: p.author_id,
-              name: p.author_name || 'Unknown',
-              initials: getInitials(p.author_name || 'U'),
-              avatar: p.author_avatar
-            },
-            timestamp: new Date(p.message_created_at),
-            isCurrentUser: p.author_id === user?.id,
-            isPinned: true
-          }));
-          setPinnedMessages(transformed);
-        })
-        .catch(() => setPinnedMessages([]));
-    }
-  }, [activeConversation, user?.id]);
+  // ========================================
+  // TRANSFORM DATA FOR UI
+  // ========================================
 
-  // Transform backend conversations to local format
-  const transformConversation = (conv: any): Conversation => {
-    const participants = conv.participants || [];
-    const otherParticipant = participants.find((p: any) => p?.id !== user?.id) || participants[0];
+  // Transform ConversationSummary to Conversation for UI
+  const transformSummaryToConversation = useCallback((summary: ConversationSummary): Conversation => {
+    const members = summary.members || [];
+    const otherMember = members.find(m => m.userId !== user?.id) || members[0];
+    const otherUser = otherMember?.user;
 
     return {
-      id: conv.id,
-      title: conv.name || otherParticipant?.name || 'Unknown',
-      type: conv.type === 'direct' ? 'direct' : conv.type === 'group' ? 'group' : 'channel',
-      participant: otherParticipant ? {
-        id: otherParticipant.id,
-        name: otherParticipant.name || 'Unknown',
-        initials: getInitials(otherParticipant.name || 'U'),
-        avatar: otherParticipant.avatar,
-        isOnline: otherParticipant.isOnline || false
-      } : { id: '', name: 'Unknown', initials: 'U' },
-      participants: participants.map((p: any) => ({
-        id: p?.id || '',
-        name: p?.name || 'Unknown',
-        initials: getInitials(p?.name || 'U'),
-        avatar: p?.avatar,
-        isOnline: p?.isOnline || false
+      id: summary.id,
+      title: summary.name || otherUser?.name || otherUser?.email?.split('@')[0] || 'Conversation',
+      type: summary.isGroup ? 'group' : 'direct',
+      participant: {
+        id: otherUser?.id || otherMember?.userId || '',
+        name: otherUser?.name || otherUser?.email?.split('@')[0] || 'Unknown',
+        initials: getInitials(otherUser?.name || otherUser?.email?.split('@')[0] || 'U'),
+        isOnline: false,
+      },
+      participants: members.map(m => ({
+        id: m.user?.id || m.userId,
+        name: m.user?.name || m.user?.email?.split('@')[0] || 'Unknown',
+        initials: getInitials(m.user?.name || m.user?.email?.split('@')[0] || 'U'),
+        isOnline: false,
       })),
-      lastMessage: conv.lastMessage ? {
-        id: conv.lastMessage.id,
-        content: conv.lastMessage.content,
-        author: {
-          id: conv.lastMessage.author?.id || conv.lastMessage.authorId,
-          name: conv.lastMessage.author?.name || 'Unknown',
-          initials: getInitials(conv.lastMessage.author?.name || 'U')
-        },
-        timestamp: new Date(conv.lastMessage.createdAt || conv.lastMessage.timestamp),
-        isCurrentUser: conv.lastMessage.author?.id === user?.id || conv.lastMessage.authorId === user?.id
+      lastMessage: summary.lastMessagePreview ? {
+        id: '',
+        content: summary.lastMessagePreview,
+        author: { id: '', name: '', initials: '' },
+        timestamp: summary.lastMessageAt ? new Date(summary.lastMessageAt) : new Date(),
+        isCurrentUser: false,
       } : undefined,
-      unreadCount: conv.unreadCount || 0,
-      isPinned: conv.metadata?.isPinned || false,
-      isArchived: conv.metadata?.isArchived || false,
-      isMuted: conv.metadata?.isMuted || false,
-      isTyping: false,
-      typingUsers: []
+      unreadCount: summary.unreadCount || 0,
+      isPinned: false,
+      isArchived: false,
+      isMuted: false,
+      isTyping: realtime.typingUsers.some(t => t.conversationId === summary.id),
+      typingUsers: realtime.typingUsers
+        .filter(t => t.conversationId === summary.id)
+        .map(t => t.userEmail),
     };
-  };
+  }, [user?.id, realtime.typingUsers]);
 
-  // Transform backend messages to local format
-  const transformMessage = (msg: any): Message => ({
+  // Transform ConversationMessage to Message for UI
+  const transformRealtimeMessage = useCallback((msg: ConversationMessage): Message => ({
     id: msg.id,
     content: msg.content,
     author: {
-      id: msg.author?.id || msg.authorId,
-      name: msg.author?.name || 'Unknown',
-      initials: getInitials(msg.author?.name || 'U'),
-      avatar: msg.author?.avatar,
-      isOnline: msg.author?.isOnline || false
+      id: msg.authorId,
+      name: msg.author?.displayName || msg.author?.email?.split('@')[0] || 'Unknown',
+      initials: getInitials(msg.author?.displayName || msg.author?.email?.split('@')[0] || 'U'),
+      isOnline: false,
     },
-    timestamp: new Date(msg.createdAt || msg.timestamp),
-    isCurrentUser: msg.author?.id === user?.id || msg.authorId === user?.id,
-    status: msg.status || 'sent',
-    isEdited: msg.isEdited || false,
-    editedAt: msg.editedAt ? new Date(msg.editedAt) : undefined,
-    isDeleted: msg.isDeleted || !!msg.deletedAt,
-    replyTo: msg.replyTo ? {
-      id: msg.replyTo.id,
-      content: msg.replyTo.content,
-      author: {
-        id: msg.replyTo.author?.id,
-        name: msg.replyTo.author?.name || 'Unknown',
-        initials: getInitials(msg.replyTo.author?.name || 'U')
-      }
+    timestamp: new Date(msg.createdAt),
+    isCurrentUser: msg.authorId === user?.id,
+    status: 'sent',
+    isEdited: false,
+    isDeleted: false,
+    replyTo: msg.replyToMessageId ? {
+      id: msg.replyToMessageId,
+      content: '',
+      author: { id: '', name: '', initials: '' },
     } : undefined,
-    attachments: (msg.attachments || []).map((a: any) => ({
-      id: a.id,
-      name: a.name || a.filename,
-      url: a.url,
-      type: a.type || 'file',
-      size: a.size || 0,
-      mimeType: a.mimeType
-    })),
-    reactions: (msg.reactions || []).map((r: any) => ({
-      reaction: r.reaction,
-      count: r.count || 1,
-      userNames: r.userNames || [],
-      hasReacted: r.userIds?.includes(user?.id) || false
-    })),
-    isPinned: msg.isPinned || false,
-    isForwarded: msg.isForwarded || !!msg.forwardedFrom
-  });
+    attachments: [],
+    reactions: [],
+    isPinned: false,
+    isForwarded: false,
+    isSystemMessage: msg.isSystemMessage,
+  }), [user?.id]);
 
-  // Use only real backend data
-  const conversations: Conversation[] = backendConversations.map(transformConversation);
-  const selectedConversation = activeConversation ? transformConversation(activeConversation) : null;
-  const messages: Message[] = conversationMessages.map(transformMessage);
+  // Transformed data for UI
+  const conversations: Conversation[] = useMemo(() =>
+    conversationSummaries.map(transformSummaryToConversation),
+    [conversationSummaries, transformSummaryToConversation]
+  );
+
+  const selectedConversation = useMemo(() => {
+    const summary = conversationSummaries.find(c => c.id === selectedConversationId);
+    return summary ? transformSummaryToConversation(summary) : null;
+  }, [conversationSummaries, selectedConversationId, transformSummaryToConversation]);
+
+  const messages: Message[] = useMemo(() =>
+    realtime.messages.map(transformRealtimeMessage),
+    [realtime.messages, transformRealtimeMessage]
+  );
 
   // Filter conversations
   const filteredConversations = useMemo(() => {
@@ -1285,37 +1367,62 @@ function MessagesNew() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Pull to refresh
-  const handlePullToRefresh = async () => {
-    setIsRefreshing(true);
-    await refresh();
-    setIsRefreshing(false);
-  };
+  // Mark as read when viewing latest messages
+  useEffect(() => {
+    if (!selectedConversationId || !messages.length) return;
+    const latest = messages[messages.length - 1];
+    if (latest) {
+      realtime.markAsRead(latest.id);
+      // Zero out unread count locally
+      setConversationSummaries(prev =>
+        prev.map(c =>
+          c.id === selectedConversationId ? { ...c, unreadCount: 0 } : c
+        )
+      );
+    }
+  }, [selectedConversationId, messages, realtime]);
 
-  // Message handlers
+  // ========================================
+  // MESSAGE HANDLERS (WebSocket based)
+  // ========================================
+
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation || isSending) return;
+    if (!newMessage.trim() || !selectedConversationId || isSending) return;
 
     setIsSending(true);
     try {
-      // If replying, use the reply API
-      if (replyTo && messagingServiceRef.current) {
-        await messagingServiceRef.current.replyToMessage(
-          replyTo.id,
-          selectedConversation.id,
-          newMessage.trim()
-        );
-      } else {
-        await sendMessage(selectedConversation.id, { content: newMessage.trim() });
-      }
+      // Send via WebSocket
+      realtime.sendMessage(newMessage.trim(), {
+        replyToMessageId: replyTo?.id,
+      });
       setNewMessage('');
       setReplyTo(undefined);
-      // Refresh to get new messages
-      await refresh();
+      // Stop typing indicator
+      realtime.stopTyping();
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
       setIsSending(false);
+    }
+  };
+
+  // Handle typing indicator
+  const handleInputChange = (value: string) => {
+    setNewMessage(value);
+
+    // Start typing indicator
+    if (value.trim()) {
+      realtime.startTyping();
+      // Clear previous timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      // Stop typing after 2 seconds of no input
+      typingTimeoutRef.current = setTimeout(() => {
+        realtime.stopTyping();
+      }, 2000);
+    } else {
+      realtime.stopTyping();
     }
   };
 
@@ -1328,66 +1435,27 @@ function MessagesNew() {
   };
 
   const handleReact = async (messageId: string, emoji: string) => {
-    if (!selectedConversation || !messagingServiceRef.current) return;
-
-    try {
-      await messagingServiceRef.current.toggleReaction(messageId, selectedConversation.id, emoji);
-      // Refresh to update reactions
-      await refresh();
-    } catch (error) {
-      console.error('Failed to toggle reaction:', error);
-    }
+    // TODO: Implement reactions via REST API
+    console.log('React:', messageId, emoji);
   };
 
   const handlePinMessage = async (messageId: string) => {
-    if (!selectedConversation || !messagingServiceRef.current) return;
-
-    try {
-      const message = messages.find(m => m.id === messageId);
-      if (message?.isPinned) {
-        await messagingServiceRef.current.unpinMessage(selectedConversation.id, messageId);
-      } else {
-        await messagingServiceRef.current.pinMessage(selectedConversation.id, messageId);
-      }
-      // Refresh pinned messages
-      const pinned = await messagingServiceRef.current.getPinnedMessages(selectedConversation.id);
-      setPinnedMessages(pinned.map((p: any) => ({
-        id: p.message_id,
-        content: p.content,
-        author: {
-          id: p.author_id,
-          name: p.author_name || 'Unknown',
-          initials: getInitials(p.author_name || 'U'),
-          avatar: p.author_avatar
-        },
-        timestamp: new Date(p.message_created_at),
-        isCurrentUser: p.author_id === user?.id,
-        isPinned: true
-      })));
-    } catch (error) {
-      console.error('Failed to pin/unpin message:', error);
-    }
+    // TODO: Implement pinning via REST API
+    console.log('Pin:', messageId);
   };
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (!selectedConversation || !messagingServiceRef.current) return;
-
+    if (!selectedConversationId) return;
     try {
-      await messagingServiceRef.current.deleteMessage(messageId);
-      await refresh();
+      realtime.deleteMessage(messageId);
     } catch (error) {
       console.error('Failed to delete message:', error);
     }
   };
 
   const handleForwardMessage = async (messageId: string, toConversationId: string) => {
-    if (!messagingServiceRef.current) return;
-
-    try {
-      await messagingServiceRef.current.forwardMessage(messageId, toConversationId);
-    } catch (error) {
-      console.error('Failed to forward message:', error);
-    }
+    // TODO: Implement forwarding via REST API
+    console.log('Forward:', messageId, 'to', toConversationId);
   };
 
   const handleAttach = () => {
@@ -1396,18 +1464,14 @@ function MessagesNew() {
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0 || !selectedConversation || !messagingServiceRef.current) return;
+    if (!files || files.length === 0 || !selectedConversationId) return;
 
     for (const file of Array.from(files)) {
       try {
-        const uploadedFile = await messagingServiceRef.current.uploadMessageFile(file, selectedConversation.id);
-        if (uploadedFile) {
-          // Send message with attachment
-          await sendMessage(selectedConversation.id, {
-            content: `Shared a file: ${file.name}`,
-            attachments: [file]
-          });
-        }
+        // TODO: Implement file upload via REST API
+        console.log('Upload file:', file.name, 'to conversation:', selectedConversationId);
+        // For now, just send a message mentioning the file
+        realtime.sendMessage(`Shared a file: ${file.name}`);
       } catch (error) {
         console.error('Failed to upload file:', error);
       }
@@ -1417,32 +1481,51 @@ function MessagesNew() {
   };
 
   const handleConversationClick = (conversation: Conversation) => {
-    setActiveConversation(conversation.id);
+    setSelectedConversationId(conversation.id);
     setShowMobileChat(true);
   };
 
-  // Create new conversation
+  // Create new conversation via REST API
   const handleCreateConversation = async () => {
     if (selectedUsers.length === 0) return;
 
     try {
       const isGroup = selectedUsers.length > 1;
-      const name = isGroup ? newConversationName || `Group with ${selectedUsers.map(u => u.name).join(', ')}` : undefined;
+      const name = isGroup ? newConversationName || `Group with ${selectedUsers.map(u => u.name).join(', ')}` : null;
 
-      const conversationId = await createConversation({
-        type: isGroup ? 'team' : 'direct',
-        name: name || selectedUsers[0].name,
-        participants: selectedUsers.map(u => u.id)
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          isGroup,
+          memberIds: selectedUsers.map(u => u.id),
+        }),
       });
+
+      if (!res.ok) {
+        throw new Error('Failed to create conversation');
+      }
+
+      const data = await res.json();
+      const conversationId = data.conversation?.id;
 
       // Close dialog and open new conversation
       setShowNewConversation(false);
       setSelectedUsers([]);
       setNewConversationName('');
       setUserSearchTerm('');
-      setActiveConversation(conversationId);
-      setShowMobileChat(true);
-      await refresh();
+
+      if (conversationId) {
+        setSelectedConversationId(conversationId);
+        setShowMobileChat(true);
+        // Refresh conversation list
+        await loadConversations();
+      }
     } catch (error) {
       console.error('Failed to create conversation:', error);
     }
@@ -1479,20 +1562,30 @@ function MessagesNew() {
       />
 
       {/* Error Banner */}
-      {messagingError && (
+      {conversationError && (
         <div className="mx-4 mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
               <div>
                 <p className="text-sm font-medium text-red-900 dark:text-red-100">Connection Error</p>
-                <p className="text-xs text-red-700 dark:text-red-300">{messagingError}</p>
+                <p className="text-xs text-red-700 dark:text-red-300">{conversationError}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={refresh}>
+            <Button variant="ghost" size="sm" onClick={loadConversations}>
               <RefreshCw className="w-4 h-4 mr-1" />
               Retry
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Connection status indicator */}
+      {!realtime.isConnected && selectedConversationId && (
+        <div className="mx-4 mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Connecting to real-time messaging...
           </div>
         </div>
       )}
@@ -1551,7 +1644,7 @@ function MessagesNew() {
 
           {/* Conversation List */}
           <div className="flex-1 overflow-y-auto">
-            {isLoading && conversations.length === 0 ? (
+            {isLoadingConversations && conversations.length === 0 ? (
               <div className="flex items-center justify-center h-32">
                 <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
               </div>
@@ -1697,9 +1790,9 @@ function MessagesNew() {
                       );
                     })}
 
-                    {/* Typing indicator */}
-                    {selectedConversation.isTyping && selectedConversation.typingUsers && (
-                      <TypingIndicator users={selectedConversation.typingUsers} />
+                    {/* Typing indicator - from real-time hook */}
+                    {realtime.typingUsers.length > 0 && (
+                      <TypingIndicator users={realtime.typingUsers.map(u => u.userEmail)} />
                     )}
 
                     <div ref={messagesEndRef} />
@@ -1707,15 +1800,15 @@ function MessagesNew() {
                 )}
               </div>
 
-              {/* Message Input */}
+              {/* Message Input - with typing indicators */}
               <MessageInput
                 value={newMessage}
-                onChange={setNewMessage}
+                onChange={handleInputChange}
                 onSend={handleSendMessage}
                 onAttach={handleAttach}
                 replyTo={replyTo}
                 onClearReply={() => setReplyTo(undefined)}
-                disabled={isSending}
+                disabled={isSending || !realtime.isConnected}
               />
             </>
           ) : (
