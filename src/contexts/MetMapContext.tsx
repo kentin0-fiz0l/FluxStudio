@@ -661,7 +661,7 @@ export function MetMapProvider({ children }: { children: React.ReactNode }) {
     return { bar: barCount, beat: 1 };
   }, [getBeatsPerBar]);
 
-  const play = useCallback((options?: { tempoOverride?: number; countoffBars?: number }) => {
+  const play = useCallback((options?: { tempoOverride?: number; countoffBars?: number; loopSection?: number | null }) => {
     if (state.editedSections.length === 0) {
       showNotification({ type: 'warning', title: 'No Sections', message: 'Add sections to play' });
       return;
@@ -669,17 +669,37 @@ export function MetMapProvider({ children }: { children: React.ReactNode }) {
 
     // Stop existing playback
     if (playbackIntervalRef.current) {
-      clearInterval(playbackIntervalRef.current);
+      clearTimeout(playbackIntervalRef.current);
     }
 
     const tempoOverride = options?.tempoOverride;
     const countoffBars = options?.countoffBars || 0;
+    const loopSectionIndex = options?.loopSection ?? null;
+
+    // Calculate loop boundaries if looping a section
+    let loopStartBeat = 0;
+    let loopEndBeat = calculateTotalBeats(state.editedSections);
+
+    if (loopSectionIndex !== null && loopSectionIndex >= 0 && loopSectionIndex < state.editedSections.length) {
+      // Calculate start beat of loop section
+      for (let i = 0; i < loopSectionIndex; i++) {
+        const section = state.editedSections[i];
+        const beatsPerBar = getBeatsPerBar(section.timeSignature);
+        loopStartBeat += section.bars * beatsPerBar;
+      }
+      // Calculate end beat of loop section
+      const loopSection = state.editedSections[loopSectionIndex];
+      const loopBeatsPerBar = getBeatsPerBar(loopSection.timeSignature);
+      loopEndBeat = loopStartBeat + loopSection.bars * loopBeatsPerBar;
+    }
+
     const beatsPerBar = getBeatsPerBar(state.editedSections[0]?.timeSignature || '4/4');
     const countoffBeats = countoffBars * beatsPerBar;
 
+    // If looping, start at loop start; otherwise use current position or beginning
     let globalBeat = state.playback.isPaused
       ? calculateGlobalBeat(state.editedSections, state.playback.currentBar, state.playback.currentBeat)
-      : 0;
+      : (loopSectionIndex !== null ? loopStartBeat : 0);
 
     let countoffRemaining = state.playback.isPaused ? 0 : countoffBeats;
 
@@ -727,9 +747,11 @@ export function MetMapProvider({ children }: { children: React.ReactNode }) {
 
         globalBeat++;
 
-        // Check if we've reached the end
-        const totalBeats = calculateTotalBeats(state.editedSections);
-        if (globalBeat >= totalBeats) {
+        // Check if we've reached the end of loop or song
+        if (loopSectionIndex !== null && globalBeat >= loopEndBeat) {
+          // Loop back to start of section
+          globalBeat = loopStartBeat;
+        } else if (globalBeat >= calculateTotalBeats(state.editedSections)) {
           stop();
           return;
         }
