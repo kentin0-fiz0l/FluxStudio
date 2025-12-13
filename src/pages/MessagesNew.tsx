@@ -85,6 +85,7 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
+import { MessageActionsMenu } from '../components/messaging/MessageActionsMenu';
 
 // Types
 interface MessageUser {
@@ -539,9 +540,11 @@ function MessageBubble({
   onPin,
   onForward,
   onReact,
+  onCopy,
   showAvatar = true,
   isGrouped = false,
-  currentUserId
+  currentUserId,
+  isPinned = false
 }: {
   message: Message;
   onReply: () => void;
@@ -550,9 +553,11 @@ function MessageBubble({
   onPin: () => void;
   onForward: () => void;
   onReact: (emoji: string) => void;
+  onCopy: () => void;
   showAvatar?: boolean;
   isGrouped?: boolean;
   currentUserId?: string;
+  isPinned?: boolean;
 }) {
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -655,7 +660,7 @@ function MessageBubble({
           </div>
 
           {/* Pinned badge */}
-          {message.isPinned && (
+          {isPinned && (
             <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-accent-500 flex items-center justify-center">
               <Pin className="w-3 h-3 text-white" />
             </div>
@@ -695,12 +700,21 @@ function MessageBubble({
             >
               <Reply className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
             </button>
-            <button
-              className="p-1.5 rounded-full bg-white dark:bg-neutral-800 shadow-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
-              title="More"
-            >
-              <MoreHorizontal className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-            </button>
+            <MessageActionsMenu
+              messageId={message.id}
+              canReply
+              canReact
+              canPin
+              canDelete={isOwn}
+              isPinned={isPinned}
+              onReply={() => onReply()}
+              onReact={() => setShowReactions(true)}
+              onPinToggle={() => onPin()}
+              onCopy={() => onCopy()}
+              onDelete={isOwn ? () => onDelete() : undefined}
+              align={isOwn ? 'start' : 'end'}
+              side="top"
+            />
           </div>
         )}
 
@@ -1147,6 +1161,7 @@ function MessagesNew() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
 
   // ========================================
   // FETCH CONVERSATIONS FROM REST API
@@ -1447,6 +1462,10 @@ function MessagesNew() {
       content: message.content,
       author: message.author
     });
+    // Scroll composer into view
+    setTimeout(() => {
+      composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
   };
 
   const handleReact = async (messageId: string, emoji: string) => {
@@ -1470,6 +1489,17 @@ function MessagesNew() {
       realtime.unpinMessage(messageId);
     } else {
       realtime.pinMessage(messageId);
+    }
+  };
+
+  const handleCopyMessage = async (messageId: string) => {
+    const msg = messages.find(m => m.id === messageId);
+    if (!msg?.content) return;
+    try {
+      await navigator.clipboard.writeText(msg.content);
+      // Could add a toast notification here
+    } catch (err) {
+      console.error('Failed to copy message:', err);
     }
   };
 
@@ -1802,6 +1832,7 @@ function MessagesNew() {
                             onEdit={() => setEditingMessage(message.id)}
                             onDelete={() => handleDeleteMessage(message.id)}
                             onPin={() => handlePinMessage(message.id)}
+                            onCopy={() => handleCopyMessage(message.id)}
                             onForward={() => {
                               // For now, show a simple forward prompt
                               // Could be enhanced with a modal to select conversation
@@ -1815,6 +1846,7 @@ function MessagesNew() {
                             onReact={(emoji) => handleReact(message.id, emoji)}
                             isGrouped={isGrouped}
                             currentUserId={user?.id}
+                            isPinned={realtime.pinnedMessageIds.includes(message.id)}
                           />
                         </React.Fragment>
                       );
@@ -1831,15 +1863,17 @@ function MessagesNew() {
               </div>
 
               {/* Message Input - with typing indicators */}
-              <MessageInput
-                value={newMessage}
-                onChange={handleInputChange}
-                onSend={handleSendMessage}
-                onAttach={handleAttach}
-                replyTo={replyTo}
-                onClearReply={() => setReplyTo(undefined)}
-                disabled={isSending || !realtime.isConnected}
-              />
+              <div ref={composerRef}>
+                <MessageInput
+                  value={newMessage}
+                  onChange={handleInputChange}
+                  onSend={handleSendMessage}
+                  onAttach={handleAttach}
+                  replyTo={replyTo}
+                  onClearReply={() => setReplyTo(undefined)}
+                  disabled={isSending || !realtime.isConnected}
+                />
+              </div>
             </>
           ) : (
             <EmptyMessagesState onStartConversation={() => setShowNewConversation(true)} />
