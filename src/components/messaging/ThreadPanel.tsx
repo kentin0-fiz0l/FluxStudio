@@ -9,8 +9,8 @@
  * - Responsive: sidebar on desktop, modal on mobile
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Send, MessageCircle, Loader2, ArrowLeft, Paperclip, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Send, MessageCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { MarkdownMessage } from './MarkdownMessage';
 
@@ -71,7 +71,7 @@ function ThreadMessageBubble({
   isCurrentUser: boolean;
   isRoot?: boolean;
 }) {
-  const name = message.userName || 'Unknown User';
+  const name = message.userName || (isCurrentUser ? 'You' : 'Unknown User');
 
   return (
     <div
@@ -208,7 +208,6 @@ function ThreadComposer({
 
 // Main ThreadPanel
 export function ThreadPanel({
-  conversationId,
   rootMessage,
   messages,
   isLoading = false,
