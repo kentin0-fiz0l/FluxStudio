@@ -665,3 +665,4 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     </div>
   );
 };
+export default TeamManagement;

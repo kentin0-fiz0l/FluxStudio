@@ -754,3 +754,4 @@ function AnnotationPanel({
     </motion.div>
   );
 }
+export default DesignReviewWorkflow;

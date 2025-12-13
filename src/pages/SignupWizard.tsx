@@ -571,3 +571,5 @@ export function SignupWizard() {
     </div>
   );
 }
+
+export default SignupWizard;

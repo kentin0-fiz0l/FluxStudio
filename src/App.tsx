@@ -47,7 +47,6 @@ const { Component: Connectors } = lazyLoadWithRetry(() => import('./pages/Connec
 const { Component: MessagesPage } = lazyLoadWithRetry(() => import('./pages/MessagesPage'));
 const { Component: OrganizationPage } = lazyLoadWithRetry(() => import('./pages/Organization'));
 const { Component: TeamPage } = lazyLoadWithRetry(() => import('./pages/Team'));
-const { Component: ProjectsOld } = lazyLoadWithRetry(() => import('./pages/Projects'));
 const { Component: FilePage } = lazyLoadWithRetry(() => import('./pages/File'));
 
 // Redesigned pages (Flux Design Language)
@@ -66,22 +65,23 @@ const { Component: CreateOrganization } = lazyLoadWithRetry(() => import('./page
 
 // Lazy load comprehensive platform components
 const { Component: ClientOnboarding } = lazyLoadWithRetry(() => import('./components/onboarding/ClientOnboarding'));
-const { Component: ProjectWorkflow } = lazyLoadWithRetry(() => import('./components/project/ProjectWorkflow'));
-const { Component: DesignReviewWorkflow } = lazyLoadWithRetry(() => import('./components/review/DesignReviewWorkflow'));
-const { Component: PortfolioShowcase } = lazyLoadWithRetry(() => import('./components/portfolio/PortfolioShowcase'));
-const { Component: BusinessDashboard } = lazyLoadWithRetry(() => import('./components/analytics/BusinessDashboard'));
-const { Component: TeamManagement } = lazyLoadWithRetry(() => import('./components/team/TeamManagement'));
-const { Component: RealTimeCollaboration } = lazyLoadWithRetry(() => import('./components/collaboration/RealTimeCollaboration'));
-const { Component: WorkspaceManager } = lazyLoadWithRetry(() => import('./components/workspace/WorkspaceManager'));
+// TODO: These components need wrapper components to be used as route elements
+// const { Component: ProjectWorkflow } = lazyLoadWithRetry(() => import('./components/project/ProjectWorkflow'));
+// const { Component: DesignReviewWorkflow } = lazyLoadWithRetry(() => import('./components/review/DesignReviewWorkflow'));
+// const { Component: PortfolioShowcase } = lazyLoadWithRetry(() => import('./components/portfolio/PortfolioShowcase'));
+// const { Component: BusinessDashboard } = lazyLoadWithRetry(() => import('./components/analytics/BusinessDashboard'));
+// const { Component: TeamManagement } = lazyLoadWithRetry(() => import('./components/team/TeamManagement'));
+// const { Component: RealTimeCollaboration } = lazyLoadWithRetry(() => import('./components/collaboration/RealTimeCollaboration'));
+// const { Component: WorkspaceManager } = lazyLoadWithRetry(() => import('./components/workspace/WorkspaceManager'));
 
 // FluxPrint Integration - 3D Printing Dashboard
 const PrintingDashboard = React.lazy(() => import('./components/printing/PrintingDashboard'));
 
 // Root redirect component - redirects authenticated users to Projects
 function RootRedirect() {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  if (loading) {
+  if (isLoading) {
     return <DefaultLoadingFallback />;
   }
 
@@ -159,6 +159,7 @@ function AuthenticatedRoutes() {
 
                   {/* Core Platform Features */}
                   <Route path="/onboarding" element={<ClientOnboarding />} />
+                  {/* TODO: These routes need wrapper components to extract route params and fetch data
                   <Route path="/dashboard/projects/:projectId/workflow" element={<ProjectWorkflow />} />
                   <Route path="/dashboard/projects/:projectId/review" element={<DesignReviewWorkflow />} />
                   <Route path="/dashboard/projects/:projectId/collaborate" element={<RealTimeCollaboration />} />
@@ -166,6 +167,7 @@ function AuthenticatedRoutes() {
                   <Route path="/dashboard/portfolio" element={<PortfolioShowcase />} />
                   <Route path="/dashboard/analytics" element={<BusinessDashboard />} />
                   <Route path="/dashboard/team" element={<TeamManagement />} />
+                  */}
 
                   {/* Messaging with redesigned interface */}
                   <Route path="/dashboard/messages" element={<MessagesNew />} />

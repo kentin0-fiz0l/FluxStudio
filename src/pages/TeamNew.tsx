@@ -561,3 +561,5 @@ export function TeamNew() {
     </DashboardLayout>
   );
 }
+
+export default TeamNew;

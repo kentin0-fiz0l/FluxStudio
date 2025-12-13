@@ -398,3 +398,4 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
     </div>
   );
 }
+export default TeamDashboard;

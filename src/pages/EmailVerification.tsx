@@ -185,3 +185,5 @@ export function EmailVerification() {
     </div>
   );
 }
+
+export default EmailVerification;

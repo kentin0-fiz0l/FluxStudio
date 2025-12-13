@@ -212,3 +212,5 @@ export function WelcomeFlow() {
     </div>
   );
 }
+
+export default WelcomeFlow;

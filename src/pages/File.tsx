@@ -6,3 +6,5 @@
  */
 
 export { FileNew as File } from './FileNew';
+import { FileNew } from './FileNew';
+export default FileNew;

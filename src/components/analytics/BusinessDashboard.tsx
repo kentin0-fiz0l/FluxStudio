@@ -681,3 +681,4 @@ export function BusinessDashboard({
     </div>
   );
 }
+export default BusinessDashboard;
