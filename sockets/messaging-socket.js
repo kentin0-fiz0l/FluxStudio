@@ -327,6 +327,101 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
       }
     });
 
+    // Pin a message
+    socket.on('conversation:pin', async (data, ack) => {
+      const { messageId } = data || {};
+
+      if (!messageId) {
+        if (ack) ack({ ok: false, error: 'Message ID is required' });
+        return;
+      }
+
+      try {
+        // Get the message to verify conversation membership
+        const message = await messagingConversationsAdapter.getMessageById({ messageId });
+        if (!message) {
+          if (ack) ack({ ok: false, error: 'Message not found' });
+          return;
+        }
+
+        // Verify user is a member of the conversation
+        const conversation = await messagingConversationsAdapter.getConversationById({
+          conversationId: message.conversationId,
+          userId: socket.userId
+        });
+        if (!conversation) {
+          if (ack) ack({ ok: false, error: 'Not authorized to pin messages in this conversation' });
+          return;
+        }
+
+        // Pin the message
+        const pins = await messagingConversationsAdapter.pinMessage({
+          messageId,
+          userId: socket.userId
+        });
+
+        // Broadcast to all users in the conversation
+        const payload = {
+          conversationId: message.conversationId,
+          pins,
+          updatedBy: socket.userId
+        };
+        namespace.to(`conversation:${message.conversationId}`).emit('conversation:pins:updated', payload);
+
+        // Acknowledge success
+        if (ack) ack({ ok: true, pins });
+      } catch (error) {
+        console.error('Error pinning message:', error);
+        if (ack) ack({ ok: false, error: 'Failed to pin message' });
+      }
+    });
+
+    // Unpin a message
+    socket.on('conversation:unpin', async (data, ack) => {
+      const { messageId } = data || {};
+
+      if (!messageId) {
+        if (ack) ack({ ok: false, error: 'Message ID is required' });
+        return;
+      }
+
+      try {
+        // Get the message to verify conversation membership
+        const message = await messagingConversationsAdapter.getMessageById({ messageId });
+        if (!message) {
+          if (ack) ack({ ok: false, error: 'Message not found' });
+          return;
+        }
+
+        // Verify user is a member of the conversation
+        const conversation = await messagingConversationsAdapter.getConversationById({
+          conversationId: message.conversationId,
+          userId: socket.userId
+        });
+        if (!conversation) {
+          if (ack) ack({ ok: false, error: 'Not authorized to unpin messages in this conversation' });
+          return;
+        }
+
+        // Unpin the message
+        const pins = await messagingConversationsAdapter.unpinMessage({ messageId });
+
+        // Broadcast to all users in the conversation
+        const payload = {
+          conversationId: message.conversationId,
+          pins,
+          updatedBy: socket.userId
+        };
+        namespace.to(`conversation:${message.conversationId}`).emit('conversation:pins:updated', payload);
+
+        // Acknowledge success
+        if (ack) ack({ ok: true, pins });
+      } catch (error) {
+        console.error('Error unpinning message:', error);
+        if (ack) ack({ ok: false, error: 'Failed to unpin message' });
+      }
+    });
+
     // ========================================
     // LEGACY CHANNEL-BASED EVENTS (BACKWARD COMPATIBILITY)
     // ========================================

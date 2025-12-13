@@ -14,6 +14,8 @@ import {
   Conversation,
   Notification,
   MessageReactionSummary,
+  PinnedMessage,
+  ConversationPinsUpdatedPayload,
 } from '../services/messagingSocketService';
 
 interface TypingUser {
@@ -44,6 +46,7 @@ interface UseConversationRealtimeOptions {
   onReadReceipt?: (data: ReadReceipt) => void;
   onNotification?: (notification: Notification) => void;
   onReactionUpdated?: (data: ReactionUpdate) => void;
+  onPinsUpdated?: (data: ConversationPinsUpdatedPayload) => void;
 }
 
 interface UseConversationRealtimeReturn {
@@ -54,6 +57,7 @@ interface UseConversationRealtimeReturn {
   messages: ConversationMessage[];
   typingUsers: TypingUser[];
   unreadCount: number;
+  pinnedMessageIds: string[];
 
   // Actions
   connect: () => void;
@@ -72,6 +76,10 @@ interface UseConversationRealtimeReturn {
   // Reaction actions
   addReaction: (messageId: string, emoji: string) => void;
   removeReaction: (messageId: string, emoji: string) => void;
+
+  // Pin actions
+  pinMessage: (messageId: string) => void;
+  unpinMessage: (messageId: string) => void;
 }
 
 export function useConversationRealtime(options: UseConversationRealtimeOptions = {}): UseConversationRealtimeReturn {
@@ -86,12 +94,14 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     onReadReceipt,
     onNotification,
     onReactionUpdated,
+    onPinsUpdated,
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
 
   const currentConversationId = useRef<string | null>(null);
   const typingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -245,6 +255,39 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     });
   }, [user?.id]);
 
+  // Pin a message
+  const pinMessage = useCallback((messageId: string) => {
+    // Optimistically update local state
+    setPinnedMessageIds(prev => {
+      if (prev.includes(messageId)) return prev;
+      return [...prev, messageId];
+    });
+
+    // Send to server
+    messagingSocketService.pinMessage(messageId, (response) => {
+      if (!response.ok) {
+        console.error('[useConversationRealtime] Failed to pin message:', response.error);
+        // Revert optimistic update
+        setPinnedMessageIds(prev => prev.filter(id => id !== messageId));
+      }
+    });
+  }, []);
+
+  // Unpin a message
+  const unpinMessage = useCallback((messageId: string) => {
+    // Optimistically update local state
+    setPinnedMessageIds(prev => prev.filter(id => id !== messageId));
+
+    // Send to server
+    messagingSocketService.unpinMessage(messageId, (response) => {
+      if (!response.ok) {
+        console.error('[useConversationRealtime] Failed to unpin message:', response.error);
+        // Revert optimistic update
+        setPinnedMessageIds(prev => [...prev, messageId]);
+      }
+    });
+  }, []);
+
   // Set up event listeners
   useEffect(() => {
     const unsubscribers: Array<() => void> = [];
@@ -377,6 +420,16 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
       })
     );
 
+    // Pins updated
+    unsubscribers.push(
+      messagingSocketService.on('conversation:pins:updated', (data: unknown) => {
+        const typedData = data as ConversationPinsUpdatedPayload;
+        // Update pinned message IDs from the full pins list
+        setPinnedMessageIds(typedData.pins.map(p => p.message.id));
+        onPinsUpdated?.(typedData);
+      })
+    );
+
     // Auto-connect if enabled
     if (autoConnect && user) {
       connect();
@@ -402,6 +455,7 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     onReadReceipt,
     onNotification,
     onReactionUpdated,
+    onPinsUpdated,
   ]);
 
   // Handle conversation ID changes
@@ -419,6 +473,7 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     messages,
     typingUsers,
     unreadCount,
+    pinnedMessageIds,
 
     // Actions
     connect,
@@ -437,6 +492,10 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     // Reaction actions
     addReaction,
     removeReaction,
+
+    // Pin actions
+    pinMessage,
+    unpinMessage,
   };
 }
 

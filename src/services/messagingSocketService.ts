@@ -67,6 +67,19 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface PinnedMessage {
+  pinId: string;
+  pinnedBy: string;
+  pinnedAt: string;
+  message: ConversationMessage;
+}
+
+export interface ConversationPinsUpdatedPayload {
+  conversationId: string;
+  pins: PinnedMessage[];
+  updatedBy: string;
+}
+
 type EventCallback = (...args: unknown[]) => void;
 
 class MessagingSocketService {
@@ -175,6 +188,11 @@ class MessagingSocketService {
       this.emit('conversation:reaction:updated', data);
     });
 
+    // Pin events
+    this.socket.on('conversation:pins:updated', (data: ConversationPinsUpdatedPayload) => {
+      this.emit('conversation:pins:updated', data);
+    });
+
     // Notification events
     this.socket.on('notification:new', (notification: Notification) => {
       this.emit('notification:new', notification);
@@ -263,6 +281,26 @@ class MessagingSocketService {
   ): void {
     if (!this.socket?.connected) return;
     this.socket.emit('conversation:reaction:remove', { messageId, emoji }, callback);
+  }
+
+  // ========================================
+  // PINS
+  // ========================================
+
+  pinMessage(
+    messageId: string,
+    callback?: (response: { ok: boolean; pins?: PinnedMessage[]; error?: string }) => void
+  ): void {
+    if (!this.socket?.connected) return;
+    this.socket.emit('conversation:pin', { messageId }, callback);
+  }
+
+  unpinMessage(
+    messageId: string,
+    callback?: (response: { ok: boolean; pins?: PinnedMessage[]; error?: string }) => void
+  ): void {
+    if (!this.socket?.connected) return;
+    this.socket.emit('conversation:unpin', { messageId }, callback);
   }
 
   // ========================================
