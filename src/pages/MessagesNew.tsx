@@ -1155,6 +1155,7 @@ function MessageInput({
   onChange,
   onSend,
   onAttach,
+  onFileDrop,
   replyTo,
   onClearReply,
   disabled,
@@ -1166,6 +1167,7 @@ function MessageInput({
   onChange: (value: string) => void;
   onSend: () => void;
   onAttach: () => void;
+  onFileDrop?: (files: FileList) => void;
   replyTo?: Message['replyTo'];
   onClearReply?: () => void;
   disabled?: boolean;
@@ -1175,12 +1177,38 @@ function MessageInput({
 }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Send on Enter (without shift)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSend();
+      return;
+    }
+
+    // Keyboard shortcuts for formatting (Cmd/Ctrl + key)
+    if (e.metaKey || e.ctrlKey) {
+      switch (e.key.toLowerCase()) {
+        case 'b':
+          e.preventDefault();
+          insertFormatting('**');
+          break;
+        case 'i':
+          e.preventDefault();
+          insertFormatting('_');
+          break;
+        case 'k':
+          e.preventDefault();
+          insertFormatting('[', '](url)');
+          break;
+        case '`':
+          e.preventDefault();
+          insertFormatting('`');
+          break;
+      }
     }
   };
 
@@ -1213,6 +1241,35 @@ function MessageInput({
     }, 0);
   };
 
+  // Drag & drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDraggingOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set dragging false if we're leaving the drop zone entirely
+    if (!dropZoneRef.current?.contains(e.relatedTarget as Node)) {
+      setIsDraggingOver(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && onFileDrop) {
+      onFileDrop(files);
+    }
+  };
+
   // Format file size
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -1231,7 +1288,25 @@ function MessageInput({
   const hasContent = value.trim() || pendingAttachments.length > 0;
 
   return (
-    <div className="p-4 border-t border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
+    <div
+      ref={dropZoneRef}
+      className={`relative p-4 border-t border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 transition-colors ${
+        isDraggingOver ? 'bg-primary-50 dark:bg-primary-900/20' : ''
+      }`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag overlay */}
+      {isDraggingOver && (
+        <div className="absolute inset-0 flex items-center justify-center bg-primary-100/80 dark:bg-primary-900/50 border-2 border-dashed border-primary-400 dark:border-primary-600 rounded-lg z-10 pointer-events-none">
+          <div className="text-primary-600 dark:text-primary-400 font-medium flex items-center gap-2">
+            <Paperclip className="w-5 h-5" />
+            Drop files to attach
+          </div>
+        </div>
+      )}
+
       {/* Reply preview */}
       {replyTo && (
         <div className="mb-3">
@@ -1316,14 +1391,14 @@ function MessageInput({
         <button
           onClick={() => insertFormatting('`')}
           className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-          title="Code"
+          title="Code (Ctrl+`)"
         >
           <span className="text-sm font-mono text-neutral-600 dark:text-neutral-400">{'<>'}</span>
         </button>
         <button
           onClick={() => insertFormatting('[', '](url)')}
           className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-          title="Link"
+          title="Link (Ctrl+K)"
         >
           <Link2 className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
         </button>
@@ -2340,6 +2415,67 @@ function MessagesNew() {
     e.target.value = '';
   };
 
+  // Handle dropped files (for drag & drop support)
+  const handleFileDrop = async (files: FileList) => {
+    if (!selectedConversationId) return;
+
+    const token = localStorage.getItem('auth_token');
+
+    for (const file of Array.from(files)) {
+      const attachmentId = `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      let preview: string | undefined;
+
+      // Generate preview for images
+      if (file.type.startsWith('image/')) {
+        preview = URL.createObjectURL(file);
+      }
+
+      // Add to pending with uploading state
+      setPendingAttachments(prev => [...prev, {
+        id: attachmentId,
+        file,
+        preview,
+        uploading: true,
+        progress: 0
+      }]);
+
+      // Upload file
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`/api/conversations/${selectedConversationId}/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const data = await response.json();
+
+        // Update attachment with assetId and completed state
+        setPendingAttachments(prev => prev.map(a =>
+          a.id === attachmentId
+            ? { ...a, uploading: false, assetId: data.asset.id, asset: data.asset }
+            : a
+        ));
+      } catch (error) {
+        console.error('Failed to upload dropped file:', error);
+        // Mark as error
+        setPendingAttachments(prev => prev.map(a =>
+          a.id === attachmentId
+            ? { ...a, uploading: false, error: 'Upload failed' }
+            : a
+        ));
+      }
+    }
+  };
+
   const handleRemoveAttachment = (id: string) => {
     setPendingAttachments(prev => {
       const attachment = prev.find(a => a.id === id);
@@ -2720,6 +2856,7 @@ function MessagesNew() {
                   onChange={handleInputChange}
                   onSend={handleSendMessage}
                   onAttach={handleAttach}
+                  onFileDrop={handleFileDrop}
                   replyTo={replyTo}
                   onClearReply={() => setReplyTo(undefined)}
                   disabled={isSending || !realtime.isConnected}
