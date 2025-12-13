@@ -14,10 +14,12 @@
 import * as React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FileUp } from 'lucide-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/apiService';
+import { EmptyState, emptyStateConfigs } from '../components/common/EmptyState';
 
 // Types
 interface FileItem {
@@ -511,23 +513,24 @@ export default function ToolsFiles() {
             {loading ? (
               <div className="text-center py-12 text-gray-500">Loading...</div>
             ) : files.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-4xl mb-3">📂</div>
-                <div className="text-gray-700 font-medium mb-1">No files yet</div>
-                <div className="text-sm text-gray-500">
-                  {searchQuery || typeFilter !== 'all'
-                    ? 'Try adjusting your search or filters'
-                    : 'Upload your first file to get started'}
+              searchQuery || typeFilter !== 'all' ? (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-3">📂</div>
+                  <div className="text-gray-700 font-medium mb-1">No files found</div>
+                  <div className="text-sm text-gray-500">
+                    Try adjusting your search or filters
+                  </div>
                 </div>
-                {!searchQuery && typeFilter === 'all' && (
-                  <button
-                    onClick={() => setShowUpload(true)}
-                    className="mt-4 px-4 py-2 text-indigo-600 hover:text-indigo-700"
-                  >
-                    Upload files
-                  </button>
-                )}
-              </div>
+              ) : (
+                <EmptyState
+                  icon={FileUp}
+                  title={emptyStateConfigs.files.title}
+                  description={emptyStateConfigs.files.description}
+                  primaryCtaLabel={emptyStateConfigs.files.primaryCtaLabel}
+                  onPrimaryCta={() => setShowUpload(true)}
+                  learnMoreItems={emptyStateConfigs.files.learnMoreItems as unknown as string[]}
+                />
+              )
             ) : (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">

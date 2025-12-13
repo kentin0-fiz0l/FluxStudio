@@ -29,8 +29,10 @@ import {
   Target,
   X,
   Link2,
-  FileText
+  FileText,
+  FolderOpen
 } from 'lucide-react';
+import { EmptyState, emptyStateConfigs } from '../components/common/EmptyState';
 
 type ViewMode = 'grid' | 'list';
 type StatusFilter = 'all' | Project['status'];
@@ -390,22 +392,22 @@ export function ProjectsNew() {
             <p className="text-error-600">Error loading projects: {error}</p>
           </div>
         ) : filteredProjects.length === 0 ? (
-          <div className="text-center py-12">
-            <Target className="w-16 h-16 text-neutral-300 mx-auto mb-4" aria-hidden="true" />
-            <h3 className="text-xl font-semibold text-neutral-900 mb-2">No Projects Found</h3>
-            <p className="text-neutral-600 mb-6">
-              {searchTerm || statusFilter !== 'all'
-                ? 'Try adjusting your search or filters'
-                : 'Create your first project to get started'}
-            </p>
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              icon={<Plus className="w-4 h-4" aria-hidden="true" />}
-              aria-label="Create your first project"
-            >
-              Create Project
-            </Button>
-          </div>
+          searchTerm || statusFilter !== 'all' ? (
+            <div className="text-center py-12">
+              <Target className="w-16 h-16 text-neutral-300 mx-auto mb-4" aria-hidden="true" />
+              <h3 className="text-xl font-semibold text-neutral-900 mb-2">No Projects Found</h3>
+              <p className="text-neutral-600 mb-6">Try adjusting your search or filters</p>
+            </div>
+          ) : (
+            <EmptyState
+              icon={FolderOpen}
+              title={emptyStateConfigs.projects.title}
+              description={emptyStateConfigs.projects.description}
+              primaryCtaLabel={emptyStateConfigs.projects.primaryCtaLabel}
+              onPrimaryCta={() => setShowCreateModal(true)}
+              learnMoreItems={emptyStateConfigs.projects.learnMoreItems as unknown as string[]}
+            />
+          )
         ) : (
           <div
             ref={projectListRef}

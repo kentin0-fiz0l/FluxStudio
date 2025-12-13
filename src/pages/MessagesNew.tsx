@@ -92,6 +92,7 @@ import { MessageSearchPanel } from '../components/messaging/MessageSearchPanel';
 import { MessageSearchResult } from '../hooks/useMessageSearch';
 import { MarkdownMessage } from '../components/messaging/MarkdownMessage';
 import { ThreadPanel } from '../components/messaging/ThreadPanel';
+import { EmptyState, emptyStateConfigs } from '../components/common/EmptyState';
 
 // Types
 interface MessageUser {
@@ -2692,12 +2693,24 @@ function MessagesNew() {
                 <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
               </div>
             ) : filteredConversations.length === 0 ? (
-              <div className="p-8 text-center">
-                <MessageCircle className="w-12 h-12 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" />
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  {searchTerm ? 'No conversations match your search' : 'No conversations yet'}
-                </p>
-              </div>
+              searchTerm ? (
+                <div className="p-8 text-center">
+                  <MessageCircle className="w-12 h-12 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" />
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                    No conversations match your search
+                  </p>
+                </div>
+              ) : (
+                <EmptyState
+                  icon={MessageCircle}
+                  title={emptyStateConfigs.messages.title}
+                  description={emptyStateConfigs.messages.description}
+                  primaryCtaLabel={emptyStateConfigs.messages.primaryCtaLabel}
+                  onPrimaryCta={() => setShowCreateModal(true)}
+                  learnMoreItems={emptyStateConfigs.messages.learnMoreItems as unknown as string[]}
+                  size="sm"
+                />
+              )
             ) : (
               filteredConversations.map((conversation) => (
                 <ConversationItem
