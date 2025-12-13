@@ -18,8 +18,14 @@ import { X, Bell, MessageSquare, Briefcase, Building2, AlertCircle, Info, AlertT
 import { useNotifications, Notification, NotificationType } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
 
-// Notification type icons
+// Notification type icons (v2 messaging types + legacy)
 const typeIcons: Record<NotificationType, React.ReactNode> = {
+  // v2 messaging types
+  mention: <MessageSquare className="h-5 w-5" />,
+  reply: <MessageSquare className="h-5 w-5" />,
+  thread_reply: <MessageSquare className="h-5 w-5" />,
+  file_shared: <Briefcase className="h-5 w-5" />,
+  // Legacy types
   message_mention: <MessageSquare className="h-5 w-5" />,
   message_reply: <MessageSquare className="h-5 w-5" />,
   project_member_added: <Briefcase className="h-5 w-5" />,
@@ -32,8 +38,14 @@ const typeIcons: Record<NotificationType, React.ReactNode> = {
   error: <XCircle className="h-5 w-5" />,
 };
 
-// Notification type colors
+// Notification type colors (v2 messaging types + legacy)
 const typeColors: Record<NotificationType, { bg: string; icon: string; border: string }> = {
+  // v2 messaging types
+  mention: { bg: 'bg-purple-50', icon: 'text-purple-600', border: 'border-purple-200' },
+  reply: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-200' },
+  thread_reply: { bg: 'bg-indigo-50', icon: 'text-indigo-600', border: 'border-indigo-200' },
+  file_shared: { bg: 'bg-green-50', icon: 'text-green-600', border: 'border-green-200' },
+  // Legacy types
   message_mention: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-200' },
   message_reply: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-200' },
   project_member_added: { bg: 'bg-green-50', icon: 'text-green-600', border: 'border-green-200' },
@@ -55,6 +67,7 @@ interface ToastItemProps {
 const ToastItem: React.FC<ToastItemProps> = ({ notification, onDismiss, onNavigate }) => {
   const [isExiting, setIsExiting] = React.useState(false);
   const colors = typeColors[notification.type] || typeColors.info;
+  const isNavigable = !!(notification.actionUrl || notification.conversationId);
 
   const handleDismiss = () => {
     setIsExiting(true);
@@ -62,7 +75,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ notification, onDismiss, onNaviga
   };
 
   const handleClick = () => {
-    if (notification.actionUrl) {
+    if (isNavigable) {
       onNavigate();
     }
   };
@@ -71,7 +84,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ notification, onDismiss, onNaviga
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       handleDismiss();
-    } else if (e.key === 'Enter' && notification.actionUrl) {
+    } else if (e.key === 'Enter' && isNavigable) {
       onNavigate();
     }
   };
@@ -86,7 +99,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ notification, onDismiss, onNaviga
         colors.bg,
         colors.border,
         isExiting ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100',
-        notification.actionUrl && 'cursor-pointer hover:shadow-xl'
+        isNavigable && 'cursor-pointer hover:shadow-xl'
       )}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
@@ -103,9 +116,9 @@ const ToastItem: React.FC<ToastItemProps> = ({ notification, onDismiss, onNaviga
           {notification.title}
         </p>
         <p className="text-sm text-neutral-600 line-clamp-2 mt-0.5">
-          {notification.message}
+          {notification.body || notification.message}
         </p>
-        {notification.actionUrl && (
+        {(notification.actionUrl || notification.conversationId) && (
           <p className="text-xs text-primary-600 mt-1">Click to view</p>
         )}
       </div>
@@ -150,8 +163,28 @@ export const ToastContainer: React.FC = () => {
     if (dismissToast) {
       dismissToast(notification.id);
     }
-    if (notification.actionUrl) {
-      navigate(notification.actionUrl);
+
+    // Build navigation URL for v2 messaging notifications
+    let targetUrl = notification.actionUrl;
+
+    if (!targetUrl && notification.conversationId) {
+      // Deep link to conversation
+      targetUrl = `/messages/${notification.conversationId}`;
+
+      // Add message anchor if available
+      if (notification.messageId) {
+        targetUrl += `?message=${notification.messageId}`;
+      }
+
+      // Add thread param if it's a thread notification
+      if (notification.threadRootMessageId) {
+        targetUrl += targetUrl.includes('?') ? '&' : '?';
+        targetUrl += `thread=${notification.threadRootMessageId}`;
+      }
+    }
+
+    if (targetUrl) {
+      navigate(targetUrl);
     }
   };
 

@@ -17,8 +17,13 @@ import * as React from 'react';
 import { useAuth } from './AuthContext';
 import { getApiUrl } from '@/utils/apiHelpers';
 
-// Notification types
+// Notification types (v2 - messaging focused)
 export type NotificationType =
+  | 'mention'
+  | 'reply'
+  | 'thread_reply'
+  | 'file_shared'
+  // Legacy types for backwards compatibility
   | 'message_mention'
   | 'message_reply'
   | 'project_member_added'
@@ -32,19 +37,37 @@ export type NotificationType =
 
 export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
 
+export interface NotificationActor {
+  id: string;
+  name: string;
+  email?: string;
+  avatarUrl?: string;
+}
+
 export interface Notification {
   id: string;
   userId: string;
   type: NotificationType;
   title: string;
-  message: string;
-  data: Record<string, any>;
-  priority: NotificationPriority;
+  body?: string;
+  message?: string; // Legacy field
+  data?: Record<string, any>;
+  metadata?: Record<string, any>;
+  priority?: NotificationPriority;
   isRead: boolean;
   readAt: string | null;
-  actionUrl: string | null;
-  expiresAt: string | null;
   createdAt: string;
+  // v2 fields for messaging
+  actorUserId?: string;
+  actor?: NotificationActor;
+  conversationId?: string;
+  messageId?: string;
+  threadRootMessageId?: string;
+  assetId?: string;
+  // Legacy
+  actionUrl?: string | null;
+  expiresAt?: string | null;
+  entityId?: string;
 }
 
 export interface NotificationState {
@@ -162,6 +185,10 @@ export interface NotificationContextValue {
   deleteNotification: (notificationId: string) => Promise<void>;
   dismissToast: (notificationId: string) => void;
   clearToasts: () => void;
+  // Convenience methods for adding notifications/toasts
+  addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead' | 'readAt' | 'userId'>) => void;
+  addToast: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead' | 'readAt' | 'userId'>) => void;
+  showNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead' | 'readAt' | 'userId'>) => void;
 }
 
 const NotificationContext = React.createContext<NotificationContextValue | null>(null);
@@ -218,30 +245,44 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [user]);
 
-  // Mark notification as read
+  // Mark notification as read (v2 endpoint)
   const markAsRead = React.useCallback(async (notificationId: string) => {
+    // Optimistic update
+    const notification = state.notifications.find(n => n.id === notificationId);
+    if (notification && !notification.isRead) {
+      dispatch({
+        type: 'UPDATE_NOTIFICATION',
+        payload: { ...notification, isRead: true, readAt: new Date().toISOString() },
+      });
+    }
+
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl('/notifications/read'), {
+      const response = await fetch(getApiUrl(`/notifications/${notificationId}/read`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ids: [notificationId] }),
       });
 
-      if (response.ok) {
-        const notification = state.notifications.find(n => n.id === notificationId);
+      if (!response.ok) {
+        // Revert optimistic update on failure
         if (notification) {
           dispatch({
             type: 'UPDATE_NOTIFICATION',
-            payload: { ...notification, isRead: true, readAt: new Date().toISOString() },
+            payload: notification,
           });
         }
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);
+      // Revert optimistic update
+      if (notification) {
+        dispatch({
+          type: 'UPDATE_NOTIFICATION',
+          payload: notification,
+        });
+      }
     }
   }, [state.notifications]);
 
@@ -293,6 +334,34 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const clearToasts = React.useCallback(() => {
     dispatch({ type: 'CLEAR_TOASTS' });
   }, []);
+
+  // Add a notification manually (for local/client-side notifications)
+  const addNotification = React.useCallback((notificationData: Omit<Notification, 'id' | 'createdAt' | 'isRead' | 'readAt' | 'userId'>) => {
+    const notification: Notification = {
+      ...notificationData,
+      id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      userId: user?.id || '',
+      createdAt: new Date().toISOString(),
+      isRead: false,
+      readAt: null,
+    };
+    dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
+    dispatch({ type: 'ADD_TOAST', payload: notification });
+
+    // Announce to screen readers
+    if (announcerRef.current) {
+      announcerRef.current.textContent = `New notification: ${notification.title}. ${notification.body || notification.message || ''}`;
+    }
+
+    // Auto-dismiss toast after 5 seconds
+    setTimeout(() => {
+      dispatch({ type: 'REMOVE_TOAST', payload: notification.id });
+    }, 5000);
+  }, [user]);
+
+  // Aliases for addNotification (for backward compatibility)
+  const addToast = addNotification;
+  const showNotification = addNotification;
 
   // Handle new notification (from WebSocket or internal)
   const handleNewNotification = React.useCallback((notification: Notification) => {
@@ -379,6 +448,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     deleteNotification,
     dismissToast,
     clearToasts,
+    addNotification,
+    addToast,
+    showNotification,
   };
 
   return (
@@ -403,5 +475,8 @@ export function useNotifications() {
   }
   return context;
 }
+
+// Alias for backward compatibility
+export const useNotification = useNotifications;
 
 export default NotificationContext;
