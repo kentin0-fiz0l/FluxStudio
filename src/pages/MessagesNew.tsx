@@ -335,13 +335,19 @@ function MessageStatusIcon({ status }: { status?: Message['status'] }) {
   }
 }
 
-// Typing Indicator
+// Typing Indicator - collapses when > 3 users
 function TypingIndicator({ users }: { users: string[] }) {
-  const text = users.length === 1
-    ? `${users[0]} is typing...`
-    : users.length === 2
-    ? `${users[0]} and ${users[1]} are typing...`
-    : `${users[0]} and ${users.length - 1} others are typing...`;
+  let text: string;
+  if (users.length === 1) {
+    text = `${users[0]} is typing...`;
+  } else if (users.length === 2) {
+    text = `${users[0]} and ${users[1]} are typing...`;
+  } else if (users.length === 3) {
+    text = `${users[0]}, ${users[1]}, and ${users[2]} are typing...`;
+  } else {
+    // > 3 users: show first 2 + count
+    text = `${users[0]}, ${users[1]}, + ${users.length - 2} others are typing...`;
+  }
 
   return (
     <div className="flex items-center gap-2 px-4 py-2 text-sm text-neutral-500 dark:text-neutral-400">
@@ -1552,6 +1558,10 @@ function MessagesNew() {
   const [isLoadingThread, setIsLoadingThread] = useState(false);
   const [threadHighlightId, setThreadHighlightId] = useState<string | null>(null);
 
+  // Read receipts state
+  const [readReceiptsEnabled, setReadReceiptsEnabled] = useState(true);
+  const lastReadMessageIdRef = useRef<string | null>(null);
+
   // Pending attachments state
   const [pendingAttachments, setPendingAttachments] = useState<{
     id: string;
@@ -1863,20 +1873,80 @@ function MessagesNew() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Mark as read when viewing latest messages
+  // Mark messages as read when they scroll into view (IntersectionObserver)
   useEffect(() => {
-    if (!selectedConversationId || !messages.length) return;
-    const latest = messages[messages.length - 1];
-    if (latest) {
-      realtime.markAsRead(latest.id);
-      // Zero out unread count locally
-      setConversationSummaries(prev =>
-        prev.map(c =>
-          c.id === selectedConversationId ? { ...c, unreadCount: 0 } : c
-        )
-      );
-    }
-  }, [selectedConversationId, messages, realtime]);
+    if (!selectedConversationId || !messages.length || !readReceiptsEnabled) return;
+    if (!messagesContainerRef.current) return;
+
+    const container = messagesContainerRef.current;
+    const observedMessages = new Map<Element, string>();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Find the most recent visible message
+        let mostRecentVisibleId: string | null = null;
+        let mostRecentVisibleIndex = -1;
+
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const messageId = observedMessages.get(entry.target);
+            if (messageId) {
+              const messageIndex = messages.findIndex(m => m.id === messageId);
+              if (messageIndex > mostRecentVisibleIndex) {
+                mostRecentVisibleIndex = messageIndex;
+                mostRecentVisibleId = messageId;
+              }
+            }
+          }
+        });
+
+        // Mark the most recent visible message as read
+        if (mostRecentVisibleId && mostRecentVisibleId !== lastReadMessageIdRef.current) {
+          // Check if this message is newer than the last read message
+          const currentIndex = messages.findIndex(m => m.id === mostRecentVisibleId);
+          const lastReadIndex = lastReadMessageIdRef.current
+            ? messages.findIndex(m => m.id === lastReadMessageIdRef.current)
+            : -1;
+
+          if (currentIndex > lastReadIndex) {
+            lastReadMessageIdRef.current = mostRecentVisibleId;
+            realtime.markAsRead(mostRecentVisibleId);
+
+            // Zero out unread count locally
+            setConversationSummaries(prev =>
+              prev.map(c =>
+                c.id === selectedConversationId ? { ...c, unreadCount: 0 } : c
+              )
+            );
+          }
+        }
+      },
+      {
+        root: container,
+        rootMargin: '0px',
+        threshold: 0.5, // Message is considered visible when 50% in view
+      }
+    );
+
+    // Observe all message elements
+    const messageElements = container.querySelectorAll('[data-message-id]');
+    messageElements.forEach((element) => {
+      const messageId = element.getAttribute('data-message-id');
+      if (messageId) {
+        observedMessages.set(element, messageId);
+        observer.observe(element);
+      }
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [selectedConversationId, messages, realtime, readReceiptsEnabled]);
+
+  // Reset last read message when conversation changes
+  useEffect(() => {
+    lastReadMessageIdRef.current = null;
+  }, [selectedConversationId]);
 
   // Keyboard shortcut for search (Ctrl+F / Cmd+F)
   useEffect(() => {
