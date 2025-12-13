@@ -6,3 +6,5 @@
  */
 
 export { TeamNew as Team } from './TeamNew';
+import { TeamNew } from './TeamNew';
+export default TeamNew;

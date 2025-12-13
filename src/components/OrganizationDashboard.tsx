@@ -465,3 +465,4 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
     </div>
   );
 }
+export default OrganizationDashboard;

@@ -912,3 +912,4 @@ function ReviewStep({ formData, updateFormData }: { formData: OnboardingData; up
     </div>
   );
 }
+export default ClientOnboarding;

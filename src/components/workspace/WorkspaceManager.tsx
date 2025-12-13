@@ -797,3 +797,4 @@ export const WorkspaceManager: React.FC<WorkspaceManagerProps> = ({
     </div>
   );
 };
+export default WorkspaceManager;

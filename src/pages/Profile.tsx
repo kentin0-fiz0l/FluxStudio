@@ -247,3 +247,5 @@ export function Profile() {
     </DashboardLayout>
   );
 }
+
+export default Profile;

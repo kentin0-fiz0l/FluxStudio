@@ -351,3 +351,4 @@ export function Home() {
     </DashboardLayout>
   );
 }
+export default Home;

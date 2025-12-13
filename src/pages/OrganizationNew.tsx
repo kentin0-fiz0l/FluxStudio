@@ -470,3 +470,5 @@ export function OrganizationNew() {
     </DashboardLayout>
   );
 }
+
+export default OrganizationNew;

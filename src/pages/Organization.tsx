@@ -6,3 +6,5 @@
  */
 
 export { OrganizationNew as Organization } from './OrganizationNew';
+import { OrganizationNew } from './OrganizationNew';
+export default OrganizationNew;

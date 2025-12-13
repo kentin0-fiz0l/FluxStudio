@@ -6,3 +6,5 @@
  */
 
 export { ProjectsNew as Projects } from './ProjectsNew';
+import { ProjectsNew } from './ProjectsNew';
+export default ProjectsNew;

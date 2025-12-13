@@ -538,3 +538,4 @@ export const RealTimeCollaboration: React.FC<RealTimeCollaborationProps> = ({
     </div>
   );
 };
+export default RealTimeCollaboration;

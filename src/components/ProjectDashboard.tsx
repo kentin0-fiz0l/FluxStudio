@@ -540,3 +540,4 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
     </div>
   );
 }
+export default ProjectDashboard;

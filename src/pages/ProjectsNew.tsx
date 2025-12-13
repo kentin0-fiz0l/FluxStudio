@@ -681,3 +681,5 @@ export function ProjectsNew() {
     </DashboardLayout>
   );
 }
+
+export default ProjectsNew;

@@ -57,15 +57,74 @@
       rollupOptions: {
         output: {
           manualChunks: (id) => {
-            // Vendor chunks - Core libraries
+            // Vendor chunks - Split by library for better caching
             if (id.includes('node_modules')) {
               // Socket.io - completely independent
               if (id.includes('socket.io')) {
                 return 'vendor-socket';
               }
 
-              // Everything else goes into ONE big vendor bundle
-              // This prevents circular dependency issues
+              // React core - stable, rarely changes
+              if (id.includes('react-dom') || id.includes('react/')) {
+                return 'vendor-react';
+              }
+
+              // Recharts - large charting library
+              if (id.includes('recharts') || id.includes('d3-')) {
+                return 'vendor-charts';
+              }
+
+              // Radix UI - UI primitives
+              if (id.includes('@radix-ui')) {
+                return 'vendor-radix';
+              }
+
+              // TanStack Query - data fetching
+              if (id.includes('@tanstack')) {
+                return 'vendor-tanstack';
+              }
+
+              // Lucide icons - large icon set
+              if (id.includes('lucide-react')) {
+                return 'vendor-icons';
+              }
+
+              // React Router - routing
+              if (id.includes('react-router') || id.includes('@remix-run/router')) {
+                return 'vendor-router';
+              }
+
+              // Date/time libs
+              if (id.includes('date-fns') || id.includes('react-day-picker')) {
+                return 'vendor-dates';
+              }
+
+              // Form handling
+              if (id.includes('react-hook-form') || id.includes('@hookform')) {
+                return 'vendor-forms';
+              }
+
+              // Editor/markdown
+              if (id.includes('marked') || id.includes('highlight.js') || id.includes('prism')) {
+                return 'vendor-editor';
+              }
+
+              // UI utilities (cmdk, vaul, sonner, embla)
+              if (id.includes('cmdk') || id.includes('vaul') || id.includes('sonner') || id.includes('embla')) {
+                return 'vendor-ui-extras';
+              }
+
+              // Zod validation
+              if (id.includes('zod')) {
+                return 'vendor-zod';
+              }
+
+              // CSS-in-JS utilities
+              if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
+                return 'vendor-css';
+              }
+
+              // Everything else goes into vendor bundle
               return 'vendor';
             }
 
