@@ -4238,22 +4238,44 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
   }
 });
 
-// 12. PATCH /api/notifications/:id/read - Mark notification as read
+// 12. PATCH/POST /api/notifications/:id/read - Mark notification as read
 app.patch('/api/notifications/:id/read', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const notificationId = req.params.id;
 
-    const updated = await messagingConversationsAdapter.markNotificationRead({
+    const notification = await messagingConversationsAdapter.markNotificationRead({
       notificationId,
       userId
     });
 
-    if (!updated) {
+    if (!notification) {
       return res.status(404).json({ success: false, error: 'Notification not found' });
     }
 
-    res.json({ success: true, updated: true });
+    res.json({ success: true, notification });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({ success: false, error: 'Failed to mark notification as read' });
+  }
+});
+
+// POST version for easier frontend integration
+app.post('/api/notifications/:id/read', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const notificationId = req.params.id;
+
+    const notification = await messagingConversationsAdapter.markNotificationRead({
+      notificationId,
+      userId
+    });
+
+    if (!notification) {
+      return res.status(404).json({ success: false, error: 'Notification not found' });
+    }
+
+    res.json({ success: true, notification });
   } catch (error) {
     console.error('Error marking notification as read:', error);
     res.status(500).json({ success: false, error: 'Failed to mark notification as read' });
