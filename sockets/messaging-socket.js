@@ -3,10 +3,11 @@
  * Extracted from server-messaging.js for unified backend consolidation
  *
  * Namespace: /messaging
- * Purpose: Real-time messaging, typing indicators, user presence
+ * Purpose: Real-time messaging, typing indicators, user presence, conversations
  */
 
 const jwt = require('jsonwebtoken');
+const messagingConversationsAdapter = require('../database/messaging-conversations-adapter');
 
 module.exports = (namespace, createMessage, getMessages, getChannels, messagingAdapter, JWT_SECRET) => {
   // Store active connections
@@ -58,6 +59,179 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
     // Join user to their personal room
     socket.join(`user:${socket.userId}`);
+
+    // ========================================
+    // CONVERSATION-BASED EVENTS (NEW)
+    // ========================================
+
+    // Join a conversation room
+    socket.on('conversation:join', async (conversationId) => {
+      try {
+        // Verify user is a member of the conversation
+        const conversation = await messagingConversationsAdapter.getConversationById(conversationId, socket.userId);
+        if (!conversation) {
+          socket.emit('error', { message: 'Conversation not found or access denied' });
+          return;
+        }
+
+        socket.join(`conversation:${conversationId}`);
+        console.log(`User ${socket.userId} joined conversation ${conversationId}`);
+
+        // Send recent messages for the conversation
+        const messagesResult = await messagingConversationsAdapter.listMessages(conversationId, { limit: 50 });
+        socket.emit('conversation:messages', {
+          conversationId,
+          messages: messagesResult.messages,
+          hasMore: messagesResult.hasMore
+        });
+
+        // Notify other members that user joined
+        socket.to(`conversation:${conversationId}`).emit('conversation:user-joined', {
+          conversationId,
+          userId: socket.userId,
+          userEmail: socket.userEmail
+        });
+      } catch (error) {
+        console.error('Error joining conversation:', error);
+        socket.emit('error', { message: 'Failed to join conversation' });
+      }
+    });
+
+    // Leave a conversation room
+    socket.on('conversation:leave', (conversationId) => {
+      socket.leave(`conversation:${conversationId}`);
+      console.log(`User ${socket.userId} left conversation ${conversationId}`);
+
+      // Notify other members that user left
+      socket.to(`conversation:${conversationId}`).emit('conversation:user-left', {
+        conversationId,
+        userId: socket.userId
+      });
+    });
+
+    // Send message to a conversation
+    socket.on('conversation:message:send', async (data) => {
+      const { conversationId, text, replyToMessageId, assetId, projectId } = data;
+
+      if (!conversationId || !text) {
+        socket.emit('error', { message: 'Conversation ID and text are required' });
+        return;
+      }
+
+      try {
+        // Verify user is a member of the conversation
+        const conversation = await messagingConversationsAdapter.getConversationById(conversationId, socket.userId);
+        if (!conversation) {
+          socket.emit('error', { message: 'Conversation not found or access denied' });
+          return;
+        }
+
+        // Create the message using the new adapter
+        const newMessage = await messagingConversationsAdapter.createMessage({
+          conversationId,
+          authorId: socket.userId,
+          content: text,
+          replyToMessageId: replyToMessageId || null,
+          assetId: assetId || null,
+          projectId: projectId || null,
+          isSystemMessage: false
+        });
+
+        // Emit to all users in the conversation
+        namespace.to(`conversation:${conversationId}`).emit('conversation:message:new', {
+          conversationId,
+          message: newMessage
+        });
+
+        // Also notify members via their user rooms (for unread badge updates)
+        const members = conversation.members || [];
+        members.forEach(member => {
+          if (member.userId !== socket.userId) {
+            namespace.to(`user:${member.userId}`).emit('conversation:message:notify', {
+              conversationId,
+              message: newMessage,
+              senderEmail: socket.userEmail
+            });
+          }
+        });
+      } catch (error) {
+        console.error('Error sending conversation message:', error);
+        socket.emit('error', { message: 'Failed to send message' });
+      }
+    });
+
+    // Typing indicator for conversations
+    socket.on('conversation:typing:start', (conversationId) => {
+      socket.to(`conversation:${conversationId}`).emit('conversation:user-typing', {
+        conversationId,
+        userId: socket.userId,
+        userEmail: socket.userEmail
+      });
+    });
+
+    socket.on('conversation:typing:stop', (conversationId) => {
+      socket.to(`conversation:${conversationId}`).emit('conversation:user-stopped-typing', {
+        conversationId,
+        userId: socket.userId
+      });
+    });
+
+    // Mark conversation as read up to a specific message
+    socket.on('conversation:read', async (data) => {
+      const { conversationId, messageId } = data;
+
+      if (!conversationId || !messageId) {
+        socket.emit('error', { message: 'Conversation ID and message ID are required' });
+        return;
+      }
+
+      try {
+        await messagingConversationsAdapter.setLastRead(conversationId, socket.userId, messageId);
+
+        // Notify other members about the read receipt
+        socket.to(`conversation:${conversationId}`).emit('conversation:read-receipt', {
+          conversationId,
+          userId: socket.userId,
+          messageId
+        });
+
+        // Confirm to the user
+        socket.emit('conversation:read:confirmed', { conversationId, messageId });
+      } catch (error) {
+        console.error('Error marking conversation as read:', error);
+        socket.emit('error', { message: 'Failed to mark as read' });
+      }
+    });
+
+    // Delete message from conversation
+    socket.on('conversation:message:delete', async (data) => {
+      const { conversationId, messageId } = data;
+
+      if (!conversationId || !messageId) {
+        socket.emit('error', { message: 'Conversation ID and message ID are required' });
+        return;
+      }
+
+      try {
+        const deleted = await messagingConversationsAdapter.deleteMessage(messageId, socket.userId);
+        if (deleted) {
+          namespace.to(`conversation:${conversationId}`).emit('conversation:message:deleted', {
+            conversationId,
+            messageId,
+            deletedBy: socket.userId
+          });
+        } else {
+          socket.emit('error', { message: 'Message not found or unauthorized' });
+        }
+      } catch (error) {
+        console.error('Error deleting message:', error);
+        socket.emit('error', { message: 'Failed to delete message' });
+      }
+    });
+
+    // ========================================
+    // LEGACY CHANNEL-BASED EVENTS (BACKWARD COMPATIBILITY)
+    // ========================================
 
     // Join team channels
     socket.on('channel:join', async (channelId) => {
@@ -215,7 +389,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
       }
     });
 
-    // Typing indicators
+    // Typing indicators (legacy channel-based)
     socket.on('typing:start', (channelId) => {
       socket.to(`channel:${channelId}`).emit('user:typing', {
         userId: socket.userId,
@@ -305,16 +479,22 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     });
 
     // ========================================
-    // NOTIFICATION EVENTS
+    // NOTIFICATION EVENTS (ENHANCED)
     // ========================================
 
     // Subscribe to notifications (auto-joined to user room on connection)
     socket.on('notifications:subscribe', async () => {
       try {
-        if (messagingAdapter && messagingAdapter.getUnreadNotificationCount) {
-          const count = await messagingAdapter.getUnreadNotificationCount(socket.userId);
-          socket.emit('notifications:unread-count', { count });
+        // Try the new adapter first, fall back to old adapter
+        let count = 0;
+        try {
+          count = await messagingConversationsAdapter.getUnreadNotificationCount(socket.userId);
+        } catch {
+          if (messagingAdapter && messagingAdapter.getUnreadNotificationCount) {
+            count = await messagingAdapter.getUnreadNotificationCount(socket.userId);
+          }
         }
+        socket.emit('notifications:unread-count', { count });
       } catch (error) {
         console.error('Error getting unread notification count:', error);
       }
@@ -323,13 +503,23 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     // Mark notification as read
     socket.on('notification:mark-read', async (notificationId) => {
       try {
-        if (messagingAdapter && messagingAdapter.markNotificationAsRead) {
-          const notification = await messagingAdapter.markNotificationAsRead(notificationId, socket.userId);
-          if (notification) {
-            socket.emit('notification:updated', notification);
-            const count = await messagingAdapter.getUnreadNotificationCount(socket.userId);
-            socket.emit('notifications:unread-count', { count });
+        // Try the new adapter first
+        let notification = null;
+        let count = 0;
+
+        try {
+          notification = await messagingConversationsAdapter.markNotificationRead(notificationId, socket.userId);
+          count = await messagingConversationsAdapter.getUnreadNotificationCount(socket.userId);
+        } catch {
+          if (messagingAdapter && messagingAdapter.markNotificationAsRead) {
+            notification = await messagingAdapter.markNotificationAsRead(notificationId, socket.userId);
+            count = await messagingAdapter.getUnreadNotificationCount(socket.userId);
           }
+        }
+
+        if (notification) {
+          socket.emit('notification:updated', notification);
+          socket.emit('notifications:unread-count', { count });
         }
       } catch (error) {
         console.error('Error marking notification as read:', error);
@@ -340,11 +530,17 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     // Mark all notifications as read
     socket.on('notifications:mark-all-read', async () => {
       try {
-        if (messagingAdapter && messagingAdapter.markAllNotificationsAsRead) {
-          await messagingAdapter.markAllNotificationsAsRead(socket.userId);
-          socket.emit('notifications:unread-count', { count: 0 });
-          socket.emit('notifications:all-marked-read');
+        // Try the new adapter first
+        try {
+          await messagingConversationsAdapter.markAllNotificationsRead(socket.userId);
+        } catch {
+          if (messagingAdapter && messagingAdapter.markAllNotificationsAsRead) {
+            await messagingAdapter.markAllNotificationsAsRead(socket.userId);
+          }
         }
+
+        socket.emit('notifications:unread-count', { count: 0 });
+        socket.emit('notifications:all-marked-read');
       } catch (error) {
         console.error('Error marking all notifications as read:', error);
         socket.emit('error', { message: 'Failed to mark all notifications as read' });
@@ -385,4 +581,38 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
       });
     });
   });
+
+  // ========================================
+  // HELPER: Send notification to user
+  // ========================================
+  namespace.sendNotificationToUser = async (userId, notification) => {
+    try {
+      const created = await messagingConversationsAdapter.createNotification({
+        userId,
+        type: notification.type,
+        entityId: notification.entityId || null,
+        title: notification.title,
+        body: notification.body || null
+      });
+
+      // Emit to user's room
+      namespace.to(`user:${userId}`).emit('notification:new', created);
+
+      // Update unread count
+      const count = await messagingConversationsAdapter.getUnreadNotificationCount(userId);
+      namespace.to(`user:${userId}`).emit('notifications:unread-count', { count });
+
+      return created;
+    } catch (error) {
+      console.error('Error sending notification to user:', error);
+      return null;
+    }
+  };
+
+  // ========================================
+  // HELPER: Broadcast message to conversation members
+  // ========================================
+  namespace.broadcastToConversation = (conversationId, event, data) => {
+    namespace.to(`conversation:${conversationId}`).emit(event, data);
+  };
 };
