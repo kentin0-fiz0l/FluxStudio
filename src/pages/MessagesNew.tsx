@@ -595,6 +595,7 @@ function MessageBubble({
   onCopy,
   onJumpToMessage,
   onOpenThread,
+  onViewInFiles,
   showAvatar = true,
   isGrouped = false,
   currentUserId,
@@ -617,6 +618,7 @@ function MessageBubble({
   onCopy: () => void;
   onJumpToMessage?: (messageId: string) => void;
   onOpenThread?: () => void;
+  onViewInFiles?: (assetId: string) => void;
   showAvatar?: boolean;
   isGrouped?: boolean;
   currentUserId?: string;
@@ -747,40 +749,51 @@ function MessageBubble({
             <VoiceMessagePlayer voiceMessage={message.voiceMessage} />
           )}
 
-          {/* Asset attachment (from backend) */}
+          {/* Asset attachment (from backend) - click to view in Files app */}
           {message.asset && message.asset.file && (
             <div className="mt-2">
               {message.asset.kind === 'image' ? (
-                <a
-                  href={message.asset.file.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
-                >
-                  <img
-                    src={message.asset.file.thumbnailUrl || message.asset.file.url}
-                    alt={message.asset.name}
-                    className="max-w-full max-h-64 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
-                    onError={(e) => {
-                      // Fallback to original URL if thumbnail fails
-                      const target = e.target as HTMLImageElement;
-                      if (target.src !== message.asset?.file.url) {
-                        target.src = message.asset?.file.url || '';
-                      }
-                    }}
-                  />
-                </a>
+                <div className="relative group/asset">
+                  <button
+                    onClick={() => onViewInFiles?.(message.asset!.id)}
+                    className="block text-left"
+                    title="View in Files"
+                  >
+                    <img
+                      src={message.asset.file.thumbnailUrl || message.asset.file.url}
+                      alt={message.asset.name}
+                      className="max-w-full max-h-64 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                      onError={(e) => {
+                        // Fallback to original URL if thumbnail fails
+                        const target = e.target as HTMLImageElement;
+                        if (target.src !== message.asset?.file.url) {
+                          target.src = message.asset?.file.url || '';
+                        }
+                      }}
+                    />
+                  </button>
+                  {/* Download button overlay */}
+                  <a
+                    href={message.asset.file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={message.asset.file.originalName || message.asset.name}
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover/asset:opacity-100 transition-opacity"
+                    title="Download"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
+                </div>
               ) : (
-                <a
-                  href={message.asset.file.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download={message.asset.file.originalName}
-                  className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                <div
+                  onClick={() => onViewInFiles?.(message.asset!.id)}
+                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                     isOwn
                       ? 'bg-white/10 border-white/20 hover:bg-white/20'
                       : 'bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700'
                   }`}
+                  title="View in Files"
                 >
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                     isOwn ? 'bg-white/20' : 'bg-neutral-200 dark:bg-neutral-700'
@@ -807,8 +820,18 @@ function MessageBubble({
                         : `${(message.asset.file.sizeBytes / (1024 * 1024)).toFixed(1)} MB`}
                     </p>
                   </div>
-                  <Download className={`w-4 h-4 ${isOwn ? 'text-white/70' : 'text-neutral-400'}`} />
-                </a>
+                  <a
+                    href={message.asset.file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={message.asset.file.originalName}
+                    className={`p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors`}
+                    title="Download"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Download className={`w-4 h-4 ${isOwn ? 'text-white/70' : 'text-neutral-400'}`} />
+                  </a>
+                </div>
               )}
             </div>
           )}
@@ -2476,6 +2499,12 @@ function MessagesNew() {
     }
   };
 
+  // Handle viewing attachment in Files app
+  const handleViewInFiles = useCallback((assetId: string) => {
+    // Navigate to Assets page with the asset selected
+    navigate(`/assets?highlight=${assetId}`);
+  }, [navigate]);
+
   const handleRemoveAttachment = (id: string) => {
     setPendingAttachments(prev => {
       const attachment = prev.find(a => a.id === id);
@@ -2825,6 +2854,7 @@ function MessagesNew() {
                             onForward={() => handleStartForward(message)}
                             onReact={(emoji) => handleReact(message.id, emoji)}
                             onOpenThread={() => handleOpenThread(message.id)}
+                            onViewInFiles={handleViewInFiles}
                             isGrouped={isGrouped}
                             currentUserId={user?.id}
                             isPinned={realtime.pinnedMessageIds.includes(message.id)}
