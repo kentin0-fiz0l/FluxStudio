@@ -22,6 +22,7 @@ export interface ConversationMessage {
   isSystemMessage: boolean;
   createdAt: string;
   updatedAt: string;
+  editedAt?: string;
   reactions?: MessageReactionSummary[];
   author?: {
     id: string;
@@ -193,6 +194,11 @@ class MessagingSocketService {
       this.emit('conversation:pins:updated', data);
     });
 
+    // Message edit events
+    this.socket.on('conversation:message:edited', (data: { message: ConversationMessage }) => {
+      this.emit('conversation:message:edited', data);
+    });
+
     // Notification events
     this.socket.on('notification:new', (notification: Notification) => {
       this.emit('notification:new', notification);
@@ -301,6 +307,20 @@ class MessagingSocketService {
   ): void {
     if (!this.socket?.connected) return;
     this.socket.emit('conversation:unpin', { messageId }, callback);
+  }
+
+  // ========================================
+  // MESSAGE EDITING
+  // ========================================
+
+  editMessage(
+    conversationId: string,
+    messageId: string,
+    content: string,
+    callback?: (response: { ok: boolean; message?: ConversationMessage; error?: string }) => void
+  ): void {
+    if (!this.socket?.connected) return;
+    this.socket.emit('conversation:message:edit', { conversationId, messageId, content }, callback);
   }
 
   // ========================================

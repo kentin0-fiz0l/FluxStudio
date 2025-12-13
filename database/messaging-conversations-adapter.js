@@ -749,6 +749,44 @@ class MessagingConversationsAdapter {
     return result.rows.length > 0;
   }
 
+  // ==================== Message Edit Methods ====================
+
+  /**
+   * Edit a message (only the author can edit their own messages)
+   *
+   * @param {Object} params
+   * @param {string} params.messageId
+   * @param {string} params.userId - Must be the message author
+   * @param {string} params.content - New message content
+   * @returns {Object|null} Updated message or null if not found/unauthorized
+   */
+  async editMessage({ messageId, userId, content }) {
+    // First verify the message exists and belongs to this user
+    const message = await this.getMessageById({ messageId });
+    if (!message) {
+      return null;
+    }
+
+    if (message.userId !== userId) {
+      throw new Error('Unauthorized: You can only edit your own messages');
+    }
+
+    // Update the message content and set edited_at timestamp
+    const result = await query(`
+      UPDATE messages
+      SET text = $1, edited_at = NOW()
+      WHERE id = $2 AND user_id = $3
+      RETURNING *
+    `, [content, messageId, userId]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    // Fetch the full message with user info
+    return this.getMessageById({ messageId });
+  }
+
   // ==================== Notification Methods ====================
 
   /**
@@ -899,6 +937,7 @@ class MessagingConversationsAdapter {
       projectId: row.project_id,
       isSystemMessage: row.is_system_message,
       createdAt: row.created_at,
+      editedAt: row.edited_at || null,
       // Optional user info from JOIN
       userName: row.user_name || null,
       userAvatar: row.user_avatar || null

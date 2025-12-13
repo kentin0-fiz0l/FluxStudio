@@ -3847,6 +3847,58 @@ app.delete('/api/messages/:messageId/pin', authenticateToken, async (req, res) =
   }
 });
 
+// ----- Message Editing -----
+
+// 10h. PATCH /api/messages/:messageId - Edit a message
+app.patch('/api/messages/:messageId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { messageId } = req.params;
+    const { content } = req.body;
+
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({ success: false, error: 'Content is required' });
+    }
+
+    // Get the message to check ownership and conversation membership
+    const message = await messagingConversationsAdapter.getMessageById({ messageId });
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+
+    // Verify conversation membership
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId: message.conversationId,
+      userId
+    });
+    if (!conversation) {
+      return res.status(403).json({ success: false, error: 'Not authorized to edit messages in this conversation' });
+    }
+
+    // Edit the message (adapter will verify ownership)
+    const updated = await messagingConversationsAdapter.editMessage({
+      messageId,
+      userId,
+      content: content.trim()
+    });
+
+    if (!updated) {
+      return res.status(403).json({ success: false, error: 'Could not edit message - you may not be the author' });
+    }
+
+    return res.json({
+      success: true,
+      message: updated
+    });
+  } catch (error) {
+    console.error('Error editing message:', error);
+    if (error.message && error.message.includes('Unauthorized')) {
+      return res.status(403).json({ success: false, error: error.message });
+    }
+    return res.status(500).json({ success: false, error: 'Failed to edit message' });
+  }
+});
+
 // ----- Notifications -----
 
 // 11. GET /api/notifications - List notifications for current user
