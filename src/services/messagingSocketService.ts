@@ -11,18 +11,43 @@ export interface MessageReactionSummary {
   userIds: string[];
 }
 
+export interface MessageAssetFile {
+  id: string;
+  name: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  url: string;
+  thumbnailUrl?: string;
+  storageKey?: string;
+}
+
+export interface MessageAsset {
+  id: string;
+  name: string;
+  kind: 'image' | 'video' | 'audio' | 'pdf' | 'document' | 'other';
+  ownerId: string;
+  organizationId?: string;
+  description?: string;
+  createdAt: string;
+  file: MessageAssetFile;
+}
+
 export interface ConversationMessage {
   id: string;
   conversationId: string;
-  authorId: string;
-  content: string;
+  authorId?: string;
+  userId?: string;
+  content?: string;
+  text?: string;
   replyToMessageId?: string;
   threadRootMessageId?: string;
   assetId?: string;
+  asset?: MessageAsset | null;
   projectId?: string;
   isSystemMessage: boolean;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   editedAt?: string;
   originalMessageId?: string;
   reactions?: MessageReactionSummary[];
@@ -31,6 +56,8 @@ export interface ConversationMessage {
     email: string;
     displayName?: string;
   };
+  userName?: string;
+  userAvatar?: string;
   // Thread summary (when applicable)
   threadReplyCount?: number;
   threadLastReplyAt?: string;

@@ -17,7 +17,7 @@
  */
 
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useAssets, AssetRecord, AssetType } from '../contexts/AssetsContext';
 import { useFiles } from '../contexts/FilesContext';
@@ -212,6 +212,7 @@ function StatCard({ label, value, icon }: { label: string; value: number | strin
 
 export default function Assets() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     state: { assets, loading, error, filters, pagination, stats, popularTags },
     refreshAssets,
@@ -221,7 +222,8 @@ export default function Assets() {
     setPage,
     setSelectedAsset,
     createAssetFromFile,
-    deleteAsset
+    deleteAsset,
+    getAssetById
   } = useAssets();
   const { state: filesState } = useFiles();
   const { addNotification } = useNotifications();
@@ -234,6 +236,24 @@ export default function Assets() {
   const [creating, setCreating] = React.useState(false);
   const [showDetailDrawer, setShowDetailDrawer] = React.useState(false);
   const [detailAsset, setDetailAsset] = React.useState<AssetRecord | null>(null);
+
+  // Handle highlight parameter from URL (e.g., from messaging attachments)
+  React.useEffect(() => {
+    const highlightId = searchParams.get('highlight');
+    if (highlightId) {
+      // Fetch the asset and show in detail drawer
+      (async () => {
+        const asset = await getAssetById(highlightId);
+        if (asset) {
+          setDetailAsset(asset);
+          setShowDetailDrawer(true);
+        }
+        // Clear the highlight param from URL
+        searchParams.delete('highlight');
+        setSearchParams(searchParams, { replace: true });
+      })();
+    }
+  }, [searchParams, setSearchParams, getAssetById]);
 
   // Debounced search
   React.useEffect(() => {

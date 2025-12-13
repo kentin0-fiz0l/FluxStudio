@@ -128,6 +128,26 @@ interface ReactionCount {
   userIds: string[];
 }
 
+interface MessageAsset {
+  id: string;
+  name: string;
+  kind: 'image' | 'video' | 'audio' | 'pdf' | 'document' | 'other';
+  ownerId?: string;
+  organizationId?: string;
+  description?: string;
+  createdAt?: string;
+  file: {
+    id: string;
+    name: string;
+    originalName: string;
+    mimeType: string;
+    sizeBytes: number;
+    url: string;
+    thumbnailUrl?: string;
+    storageKey?: string;
+  };
+}
+
 interface Message {
   id: string;
   content: string;
@@ -145,6 +165,7 @@ interface Message {
     author: MessageUser;
   };
   attachments?: MessageAttachment[];
+  asset?: MessageAsset | null;
   linkPreviews?: LinkPreview[];
   reactions?: ReactionCount[];
   isPinned?: boolean;
@@ -156,6 +177,7 @@ interface Message {
   };
   threadReplyCount?: number;
   threadRootMessageId?: string | null;
+  threadLastReplyAt?: Date;
 }
 
 interface Conversation {
@@ -243,6 +265,22 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const formatRelativeTime = (date: Date): string => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 60) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay === 1) return 'yesterday';
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
+
 const getDateSeparator = (date: Date) => {
   const today = new Date();
   const yesterday = new Date(today);
@@ -297,13 +335,19 @@ function MessageStatusIcon({ status }: { status?: Message['status'] }) {
   }
 }
 
-// Typing Indicator
+// Typing Indicator - collapses when > 3 users
 function TypingIndicator({ users }: { users: string[] }) {
-  const text = users.length === 1
-    ? `${users[0]} is typing...`
-    : users.length === 2
-    ? `${users[0]} and ${users[1]} are typing...`
-    : `${users[0]} and ${users.length - 1} others are typing...`;
+  let text: string;
+  if (users.length === 1) {
+    text = `${users[0]} is typing...`;
+  } else if (users.length === 2) {
+    text = `${users[0]} and ${users[1]} are typing...`;
+  } else if (users.length === 3) {
+    text = `${users[0]}, ${users[1]}, and ${users[2]} are typing...`;
+  } else {
+    // > 3 users: show first 2 + count
+    text = `${users[0]}, ${users[1]}, + ${users.length - 2} others are typing...`;
+  }
 
   return (
     <div className="flex items-center gap-2 px-4 py-2 text-sm text-neutral-500 dark:text-neutral-400">
@@ -551,6 +595,7 @@ function MessageBubble({
   onCopy,
   onJumpToMessage,
   onOpenThread,
+  onViewInFiles,
   showAvatar = true,
   isGrouped = false,
   currentUserId,
@@ -573,6 +618,7 @@ function MessageBubble({
   onCopy: () => void;
   onJumpToMessage?: (messageId: string) => void;
   onOpenThread?: () => void;
+  onViewInFiles?: (assetId: string) => void;
   showAvatar?: boolean;
   isGrouped?: boolean;
   currentUserId?: string;
@@ -703,7 +749,94 @@ function MessageBubble({
             <VoiceMessagePlayer voiceMessage={message.voiceMessage} />
           )}
 
-          {/* Attachments */}
+          {/* Asset attachment (from backend) - click to view in Files app */}
+          {message.asset && message.asset.file && (
+            <div className="mt-2">
+              {message.asset.kind === 'image' ? (
+                <div className="relative group/asset">
+                  <button
+                    onClick={() => onViewInFiles?.(message.asset!.id)}
+                    className="block text-left"
+                    title="View in Files"
+                  >
+                    <img
+                      src={message.asset.file.thumbnailUrl || message.asset.file.url}
+                      alt={message.asset.name}
+                      className="max-w-full max-h-64 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                      onError={(e) => {
+                        // Fallback to original URL if thumbnail fails
+                        const target = e.target as HTMLImageElement;
+                        if (target.src !== message.asset?.file.url) {
+                          target.src = message.asset?.file.url || '';
+                        }
+                      }}
+                    />
+                  </button>
+                  {/* Download button overlay */}
+                  <a
+                    href={message.asset.file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={message.asset.file.originalName || message.asset.name}
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover/asset:opacity-100 transition-opacity"
+                    title="Download"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
+                </div>
+              ) : (
+                <div
+                  onClick={() => onViewInFiles?.(message.asset!.id)}
+                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    isOwn
+                      ? 'bg-white/10 border-white/20 hover:bg-white/20'
+                      : 'bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                  }`}
+                  title="View in Files"
+                >
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    isOwn ? 'bg-white/20' : 'bg-neutral-200 dark:bg-neutral-700'
+                  }`}>
+                    {message.asset.kind === 'pdf' ? (
+                      <File className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-red-500'}`} />
+                    ) : message.asset.kind === 'video' ? (
+                      <Play className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-blue-500'}`} />
+                    ) : message.asset.kind === 'audio' ? (
+                      <Volume2 className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-green-500'}`} />
+                    ) : (
+                      <File className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-neutral-500'}`} />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium truncate ${isOwn ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>
+                      {message.asset.file.originalName || message.asset.name}
+                    </p>
+                    <p className={`text-xs ${isOwn ? 'text-white/70' : 'text-neutral-500 dark:text-neutral-400'}`}>
+                      {message.asset.file.sizeBytes < 1024
+                        ? `${message.asset.file.sizeBytes} B`
+                        : message.asset.file.sizeBytes < 1024 * 1024
+                        ? `${(message.asset.file.sizeBytes / 1024).toFixed(1)} KB`
+                        : `${(message.asset.file.sizeBytes / (1024 * 1024)).toFixed(1)} MB`}
+                    </p>
+                  </div>
+                  <a
+                    href={message.asset.file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={message.asset.file.originalName}
+                    className={`p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors`}
+                    title="Download"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Download className={`w-4 h-4 ${isOwn ? 'text-white/70' : 'text-neutral-400'}`} />
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Legacy Attachments */}
           {message.attachments?.map((attachment) => (
             <AttachmentPreview
               key={attachment.id}
@@ -783,6 +916,31 @@ function MessageBubble({
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Thread replies pill with hover preview */}
+        {(message.threadReplyCount || 0) > 0 && onOpenThread && (
+          <div className="relative group/thread">
+            <button
+              onClick={onOpenThread}
+              className={`flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                isOwn
+                  ? 'bg-white/20 hover:bg-white/30 text-white'
+                  : 'bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 text-primary-600 dark:text-primary-400'
+              }`}
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>{message.threadReplyCount} {message.threadReplyCount === 1 ? 'reply' : 'replies'}</span>
+            </button>
+            {/* Hover preview tooltip (desktop only) */}
+            {message.threadLastReplyAt && (
+              <div className={`absolute bottom-full mb-1 ${isOwn ? 'right-0' : 'left-0'} hidden group-hover/thread:block pointer-events-none z-20`}>
+                <div className="px-2 py-1 bg-neutral-900 dark:bg-neutral-700 text-white text-[10px] rounded shadow-lg whitespace-nowrap">
+                  Last reply · {formatRelativeTime(message.threadLastReplyAt)}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1020,6 +1178,7 @@ function MessageInput({
   onChange,
   onSend,
   onAttach,
+  onFileDrop,
   replyTo,
   onClearReply,
   disabled,
@@ -1031,6 +1190,7 @@ function MessageInput({
   onChange: (value: string) => void;
   onSend: () => void;
   onAttach: () => void;
+  onFileDrop?: (files: FileList) => void;
   replyTo?: Message['replyTo'];
   onClearReply?: () => void;
   disabled?: boolean;
@@ -1040,12 +1200,38 @@ function MessageInput({
 }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Send on Enter (without shift)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSend();
+      return;
+    }
+
+    // Keyboard shortcuts for formatting (Cmd/Ctrl + key)
+    if (e.metaKey || e.ctrlKey) {
+      switch (e.key.toLowerCase()) {
+        case 'b':
+          e.preventDefault();
+          insertFormatting('**');
+          break;
+        case 'i':
+          e.preventDefault();
+          insertFormatting('_');
+          break;
+        case 'k':
+          e.preventDefault();
+          insertFormatting('[', '](url)');
+          break;
+        case '`':
+          e.preventDefault();
+          insertFormatting('`');
+          break;
+      }
     }
   };
 
@@ -1078,6 +1264,35 @@ function MessageInput({
     }, 0);
   };
 
+  // Drag & drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDraggingOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set dragging false if we're leaving the drop zone entirely
+    if (!dropZoneRef.current?.contains(e.relatedTarget as Node)) {
+      setIsDraggingOver(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && onFileDrop) {
+      onFileDrop(files);
+    }
+  };
+
   // Format file size
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -1096,7 +1311,25 @@ function MessageInput({
   const hasContent = value.trim() || pendingAttachments.length > 0;
 
   return (
-    <div className="p-4 border-t border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
+    <div
+      ref={dropZoneRef}
+      className={`relative p-4 border-t border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 transition-colors ${
+        isDraggingOver ? 'bg-primary-50 dark:bg-primary-900/20' : ''
+      }`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag overlay */}
+      {isDraggingOver && (
+        <div className="absolute inset-0 flex items-center justify-center bg-primary-100/80 dark:bg-primary-900/50 border-2 border-dashed border-primary-400 dark:border-primary-600 rounded-lg z-10 pointer-events-none">
+          <div className="text-primary-600 dark:text-primary-400 font-medium flex items-center gap-2">
+            <Paperclip className="w-5 h-5" />
+            Drop files to attach
+          </div>
+        </div>
+      )}
+
       {/* Reply preview */}
       {replyTo && (
         <div className="mb-3">
@@ -1181,14 +1414,14 @@ function MessageInput({
         <button
           onClick={() => insertFormatting('`')}
           className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-          title="Code"
+          title="Code (Ctrl+`)"
         >
           <span className="text-sm font-mono text-neutral-600 dark:text-neutral-400">{'<>'}</span>
         </button>
         <button
           onClick={() => insertFormatting('[', '](url)')}
           className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-          title="Link"
+          title="Link (Ctrl+K)"
         >
           <Link2 className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
         </button>
@@ -1378,10 +1611,23 @@ function MessagesNew() {
     });
   }, [selectedConversationId]);
 
+  // Handle thread summary updates - highlight root message when thread panel is closed
+  const handleThreadSummaryUpdate = useCallback((data: { threadRootMessageId: string }) => {
+    // Only highlight if thread panel is closed or it's a different thread
+    if (!isThreadPanelOpen || activeThreadRootId !== data.threadRootMessageId) {
+      setThreadHighlightId(data.threadRootMessageId);
+      // Clear highlight after 2 seconds
+      setTimeout(() => {
+        setThreadHighlightId(prev => prev === data.threadRootMessageId ? null : prev);
+      }, 2000);
+    }
+  }, [isThreadPanelOpen, activeThreadRootId]);
+
   const realtime = useConversationRealtime({
     conversationId: selectedConversationId || undefined,
     autoConnect: true,
     onNewMessage: handleNewMessage,
+    onThreadSummaryUpdate: handleThreadSummaryUpdate,
   });
 
   // ========================================
@@ -1408,6 +1654,11 @@ function MessagesNew() {
   const [isThreadPanelOpen, setIsThreadPanelOpen] = useState(false);
   const [threadMessages, setThreadMessages] = useState<Message[]>([]);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
+  const [threadHighlightId, setThreadHighlightId] = useState<string | null>(null);
+
+  // Read receipts state
+  const [readReceiptsEnabled, setReadReceiptsEnabled] = useState(true);
+  const lastReadMessageIdRef = useRef<string | null>(null);
 
   // Pending attachments state
   const [pendingAttachments, setPendingAttachments] = useState<{
@@ -1417,6 +1668,21 @@ function MessagesNew() {
     uploading?: boolean;
     progress?: number;
     error?: string;
+    assetId?: string;
+    asset?: {
+      id: string;
+      name: string;
+      kind: string;
+      file: {
+        id: string;
+        name: string;
+        originalName: string;
+        mimeType: string;
+        sizeBytes: number;
+        url: string;
+        thumbnailUrl?: string;
+      };
+    };
   }[]>([]);
 
   // Typing debounce state
@@ -1584,32 +1850,55 @@ function MessagesNew() {
   }, [user?.id, realtime.typingUsers]);
 
   // Transform ConversationMessage to Message for UI
-  const transformRealtimeMessage = useCallback((msg: ConversationMessage): Message => ({
-    id: msg.id,
-    content: msg.content,
-    author: {
-      id: msg.authorId,
-      name: msg.author?.displayName || msg.author?.email?.split('@')[0] || 'Unknown',
-      initials: getInitials(msg.author?.displayName || msg.author?.email?.split('@')[0] || 'U'),
-      isOnline: false,
-    },
-    timestamp: new Date(msg.createdAt),
-    isCurrentUser: msg.authorId === user?.id,
-    status: 'sent',
-    isEdited: !!msg.editedAt,
-    editedAt: msg.editedAt ? new Date(msg.editedAt) : undefined,
-    isDeleted: false,
-    replyTo: msg.replyToMessageId ? {
-      id: msg.replyToMessageId,
-      content: '',
-      author: { id: '', name: '', initials: '' },
-    } : undefined,
-    attachments: [],
-    reactions: msg.reactions || [],
-    isPinned: realtime.pinnedMessageIds.includes(msg.id),
-    isForwarded: false,
-    isSystemMessage: msg.isSystemMessage,
-  }), [user?.id, realtime.pinnedMessageIds]);
+  const transformRealtimeMessage = useCallback((msg: ConversationMessage): Message => {
+    // Get user ID from different possible fields
+    const authorId = msg.authorId || msg.userId || '';
+    // Get content from different possible fields
+    const content = msg.content || msg.text || '';
+    // Get author name from different possible sources
+    const authorName = msg.author?.displayName || msg.author?.email?.split('@')[0] || msg.userName || 'Unknown';
+
+    return {
+      id: msg.id,
+      content,
+      author: {
+        id: authorId,
+        name: authorName,
+        initials: getInitials(authorName || 'U'),
+        isOnline: false,
+        avatar: msg.userAvatar,
+      },
+      timestamp: new Date(msg.createdAt),
+      isCurrentUser: authorId === user?.id,
+      status: 'sent',
+      isEdited: !!msg.editedAt,
+      editedAt: msg.editedAt ? new Date(msg.editedAt) : undefined,
+      isDeleted: false,
+      replyTo: msg.replyToMessageId ? {
+        id: msg.replyToMessageId,
+        content: '',
+        author: { id: '', name: '', initials: '' },
+      } : undefined,
+      attachments: [],
+      asset: msg.asset ? {
+        id: msg.asset.id,
+        name: msg.asset.name,
+        kind: msg.asset.kind,
+        ownerId: msg.asset.ownerId,
+        organizationId: msg.asset.organizationId,
+        description: msg.asset.description,
+        createdAt: msg.asset.createdAt,
+        file: msg.asset.file,
+      } : undefined,
+      reactions: msg.reactions || [],
+      isPinned: realtime.pinnedMessageIds.includes(msg.id),
+      isForwarded: false,
+      isSystemMessage: msg.isSystemMessage,
+      threadReplyCount: msg.threadReplyCount,
+      threadRootMessageId: msg.threadRootMessageId,
+      threadLastReplyAt: msg.threadLastReplyAt ? new Date(msg.threadLastReplyAt) : undefined,
+    };
+  }, [user?.id, realtime.pinnedMessageIds]);
 
   // Transformed data for UI
   const conversations: Conversation[] = useMemo(() =>
@@ -1682,20 +1971,80 @@ function MessagesNew() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Mark as read when viewing latest messages
+  // Mark messages as read when they scroll into view (IntersectionObserver)
   useEffect(() => {
-    if (!selectedConversationId || !messages.length) return;
-    const latest = messages[messages.length - 1];
-    if (latest) {
-      realtime.markAsRead(latest.id);
-      // Zero out unread count locally
-      setConversationSummaries(prev =>
-        prev.map(c =>
-          c.id === selectedConversationId ? { ...c, unreadCount: 0 } : c
-        )
-      );
-    }
-  }, [selectedConversationId, messages, realtime]);
+    if (!selectedConversationId || !messages.length || !readReceiptsEnabled) return;
+    if (!messagesContainerRef.current) return;
+
+    const container = messagesContainerRef.current;
+    const observedMessages = new Map<Element, string>();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Find the most recent visible message
+        let mostRecentVisibleId: string | null = null;
+        let mostRecentVisibleIndex = -1;
+
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const messageId = observedMessages.get(entry.target);
+            if (messageId) {
+              const messageIndex = messages.findIndex(m => m.id === messageId);
+              if (messageIndex > mostRecentVisibleIndex) {
+                mostRecentVisibleIndex = messageIndex;
+                mostRecentVisibleId = messageId;
+              }
+            }
+          }
+        });
+
+        // Mark the most recent visible message as read
+        if (mostRecentVisibleId && mostRecentVisibleId !== lastReadMessageIdRef.current) {
+          // Check if this message is newer than the last read message
+          const currentIndex = messages.findIndex(m => m.id === mostRecentVisibleId);
+          const lastReadIndex = lastReadMessageIdRef.current
+            ? messages.findIndex(m => m.id === lastReadMessageIdRef.current)
+            : -1;
+
+          if (currentIndex > lastReadIndex) {
+            lastReadMessageIdRef.current = mostRecentVisibleId;
+            realtime.markAsRead(mostRecentVisibleId);
+
+            // Zero out unread count locally
+            setConversationSummaries(prev =>
+              prev.map(c =>
+                c.id === selectedConversationId ? { ...c, unreadCount: 0 } : c
+              )
+            );
+          }
+        }
+      },
+      {
+        root: container,
+        rootMargin: '0px',
+        threshold: 0.5, // Message is considered visible when 50% in view
+      }
+    );
+
+    // Observe all message elements
+    const messageElements = container.querySelectorAll('[data-message-id]');
+    messageElements.forEach((element) => {
+      const messageId = element.getAttribute('data-message-id');
+      if (messageId) {
+        observedMessages.set(element, messageId);
+        observer.observe(element);
+      }
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [selectedConversationId, messages, realtime, readReceiptsEnabled]);
+
+  // Reset last read message when conversation changes
+  useEffect(() => {
+    lastReadMessageIdRef.current = null;
+  }, [selectedConversationId]);
 
   // Keyboard shortcut for search (Ctrl+F / Cmd+F)
   useEffect(() => {
@@ -1719,16 +2068,43 @@ function MessagesNew() {
   // ========================================
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversationId || isSending) return;
+    // Get uploaded attachments (those with assetId and no error)
+    const uploadedAttachments = pendingAttachments.filter(a => a.assetId && !a.error && !a.uploading);
+    const hasText = newMessage.trim().length > 0;
+    const hasAttachments = uploadedAttachments.length > 0;
+
+    // Need either text or attachments
+    if ((!hasText && !hasAttachments) || !selectedConversationId || isSending) return;
 
     setIsSending(true);
     try {
-      // Send via WebSocket
-      realtime.sendMessage(newMessage.trim(), {
-        replyToMessageId: replyTo?.id,
-      });
+      // Send attachments first (one message per attachment)
+      for (let i = 0; i < uploadedAttachments.length; i++) {
+        const attachment = uploadedAttachments[i];
+        // For the first attachment, include any text
+        const messageText = (i === 0 && hasText) ? newMessage.trim() : '';
+
+        realtime.sendMessage(messageText, {
+          replyToMessageId: i === 0 ? replyTo?.id : undefined,
+          assetId: attachment.assetId,
+        });
+      }
+
+      // If we have text but no attachments, send text-only message
+      if (hasText && !hasAttachments) {
+        realtime.sendMessage(newMessage.trim(), {
+          replyToMessageId: replyTo?.id,
+        });
+      }
+
+      // Clear state
       setNewMessage('');
       setReplyTo(undefined);
+      // Clean up pending attachments (revoke object URLs)
+      pendingAttachments.forEach(a => {
+        if (a.preview) URL.revokeObjectURL(a.preview);
+      });
+      setPendingAttachments([]);
       // Stop typing indicator
       realtime.stopTyping();
     } catch (error) {
@@ -2000,10 +2376,12 @@ function MessagesNew() {
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || !selectedConversationId) return;
 
-    const newAttachments = Array.from(files).map(file => {
-      const id = `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const token = localStorage.getItem('auth_token');
+
+    for (const file of Array.from(files)) {
+      const attachmentId = `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       let preview: string | undefined;
 
       // Generate preview for images
@@ -2011,14 +2389,121 @@ function MessagesNew() {
         preview = URL.createObjectURL(file);
       }
 
-      return { id, file, preview, uploading: false, progress: 0 };
-    });
+      // Add to pending with uploading state
+      setPendingAttachments(prev => [...prev, {
+        id: attachmentId,
+        file,
+        preview,
+        uploading: true,
+        progress: 0
+      }]);
 
-    setPendingAttachments(prev => [...prev, ...newAttachments]);
+      // Upload file
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`/api/conversations/${selectedConversationId}/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const data = await response.json();
+
+        // Update attachment with assetId and completed state
+        setPendingAttachments(prev => prev.map(a =>
+          a.id === attachmentId
+            ? { ...a, uploading: false, assetId: data.asset.id, asset: data.asset }
+            : a
+        ));
+      } catch (error) {
+        console.error('Failed to upload file:', error);
+        // Mark as error
+        setPendingAttachments(prev => prev.map(a =>
+          a.id === attachmentId
+            ? { ...a, uploading: false, error: 'Upload failed' }
+            : a
+        ));
+      }
+    }
 
     // Clear the input
     e.target.value = '';
   };
+
+  // Handle dropped files (for drag & drop support)
+  const handleFileDrop = async (files: FileList) => {
+    if (!selectedConversationId) return;
+
+    const token = localStorage.getItem('auth_token');
+
+    for (const file of Array.from(files)) {
+      const attachmentId = `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      let preview: string | undefined;
+
+      // Generate preview for images
+      if (file.type.startsWith('image/')) {
+        preview = URL.createObjectURL(file);
+      }
+
+      // Add to pending with uploading state
+      setPendingAttachments(prev => [...prev, {
+        id: attachmentId,
+        file,
+        preview,
+        uploading: true,
+        progress: 0
+      }]);
+
+      // Upload file
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`/api/conversations/${selectedConversationId}/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const data = await response.json();
+
+        // Update attachment with assetId and completed state
+        setPendingAttachments(prev => prev.map(a =>
+          a.id === attachmentId
+            ? { ...a, uploading: false, assetId: data.asset.id, asset: data.asset }
+            : a
+        ));
+      } catch (error) {
+        console.error('Failed to upload dropped file:', error);
+        // Mark as error
+        setPendingAttachments(prev => prev.map(a =>
+          a.id === attachmentId
+            ? { ...a, uploading: false, error: 'Upload failed' }
+            : a
+        ));
+      }
+    }
+  };
+
+  // Handle viewing attachment in Files app
+  const handleViewInFiles = useCallback((assetId: string) => {
+    // Navigate to Assets page with the asset selected
+    navigate(`/assets?highlight=${assetId}`);
+  }, [navigate]);
 
   const handleRemoveAttachment = (id: string) => {
     setPendingAttachments(prev => {
@@ -2369,10 +2854,11 @@ function MessagesNew() {
                             onForward={() => handleStartForward(message)}
                             onReact={(emoji) => handleReact(message.id, emoji)}
                             onOpenThread={() => handleOpenThread(message.id)}
+                            onViewInFiles={handleViewInFiles}
                             isGrouped={isGrouped}
                             currentUserId={user?.id}
                             isPinned={realtime.pinnedMessageIds.includes(message.id)}
-                            isHighlighted={highlightedMessageId === message.id}
+                            isHighlighted={highlightedMessageId === message.id || threadHighlightId === message.id}
                             isEditing={editingMessageId === message.id}
                             editingDraft={editingMessageId === message.id ? editingDraft : ''}
                             onChangeEditingDraft={setEditingDraft}
@@ -2400,6 +2886,7 @@ function MessagesNew() {
                   onChange={handleInputChange}
                   onSend={handleSendMessage}
                   onAttach={handleAttach}
+                  onFileDrop={handleFileDrop}
                   replyTo={replyTo}
                   onClearReply={() => setReplyTo(undefined)}
                   disabled={isSending || !realtime.isConnected}

@@ -113,8 +113,9 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     socket.on('conversation:message:send', async (data) => {
       const { conversationId, text, replyToMessageId, assetId, projectId } = data;
 
-      if (!conversationId || !text) {
-        socket.emit('error', { message: 'Conversation ID and text are required' });
+      // Require conversationId and either text or assetId
+      if (!conversationId || (!text && !assetId)) {
+        socket.emit('error', { message: 'Conversation ID and either text or asset are required' });
         return;
       }
 
@@ -127,15 +128,21 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         }
 
         // Create the message using the new adapter
-        const newMessage = await messagingConversationsAdapter.createMessage({
+        let newMessage = await messagingConversationsAdapter.createMessage({
           conversationId,
-          authorId: socket.userId,
-          content: text,
+          userId: socket.userId,
+          text: text || '',
           replyToMessageId: replyToMessageId || null,
           assetId: assetId || null,
           projectId: projectId || null,
           isSystemMessage: false
         });
+
+        // Hydrate asset info if message has attachment
+        if (assetId) {
+          const asset = await messagingConversationsAdapter.getAssetById(assetId);
+          newMessage = { ...newMessage, asset };
+        }
 
         // Emit to all users in the conversation
         namespace.to(`conversation:${conversationId}`).emit('conversation:message:new', {

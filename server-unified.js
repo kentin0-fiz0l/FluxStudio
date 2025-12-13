@@ -3554,11 +3554,14 @@ app.get('/api/conversations/:id/messages', authenticateToken, async (req, res) =
     }
 
     // Messages are returned in DESC order by created_at
-    const messages = await messagingConversationsAdapter.listMessages({
+    let messages = await messagingConversationsAdapter.listMessages({
       conversationId,
       limit,
       before
     });
+
+    // Hydrate messages with asset info
+    messages = await messagingConversationsAdapter.hydrateMessagesWithAssets(messages);
 
     res.json({
       success: true,
@@ -3568,6 +3571,126 @@ app.get('/api/conversations/:id/messages', authenticateToken, async (req, res) =
   } catch (error) {
     console.error('Error listing messages:', error);
     res.status(500).json({ success: false, error: 'Failed to list messages' });
+  }
+});
+
+// 8b. POST /api/conversations/:id/upload - Upload a file for a conversation and create an asset
+app.post('/api/conversations/:id/upload', authenticateToken, fileUpload.single('file'), async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No file uploaded' });
+    }
+
+    // Verify user is a member of the conversation
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    const file = req.file;
+
+    // Save file to storage
+    const storageResult = await fileStorage.saveFile({
+      buffer: file.buffer,
+      mimeType: file.mimetype,
+      userId: userId,
+      originalName: file.originalname
+    });
+
+    // Create file record with conversation association
+    const fileRecord = await filesAdapter.createFile({
+      userId: userId,
+      organizationId: conversation.organizationId || null,
+      projectId: null,
+      source: 'chat',
+      name: file.originalname,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      extension: storageResult.extension,
+      sizeBytes: storageResult.sizeBytes,
+      storageKey: storageResult.storageKey,
+      fileUrl: `/files/${storageResult.storageKey}`,
+      metadata: {
+        hash: storageResult.hash,
+        conversationId: conversationId
+      }
+    });
+
+    // Generate thumbnail for images
+    let thumbnailUrl = null;
+    if (file.mimetype.startsWith('image/')) {
+      try {
+        const previewResult = await fileStorage.savePreview({
+          buffer: file.buffer,
+          mimeType: file.mimetype,
+          fileId: fileRecord.id,
+          previewType: 'thumbnail'
+        });
+
+        await filesAdapter.createPreview({
+          fileId: fileRecord.id,
+          previewType: 'thumbnail',
+          storageKey: previewResult.storageKey,
+          mimeType: file.mimetype,
+          sizeBytes: previewResult.sizeBytes,
+          status: 'completed'
+        });
+
+        thumbnailUrl = `/files/${previewResult.storageKey}`;
+      } catch (previewError) {
+        console.error('Preview generation error:', previewError);
+      }
+    }
+
+    // Determine asset kind from mime type
+    let assetKind = 'other';
+    if (file.mimetype.startsWith('image/')) assetKind = 'image';
+    else if (file.mimetype.startsWith('video/')) assetKind = 'video';
+    else if (file.mimetype.startsWith('audio/')) assetKind = 'audio';
+    else if (file.mimetype === 'application/pdf') assetKind = 'pdf';
+    else if (file.mimetype.startsWith('text/') || file.mimetype.includes('document') || file.mimetype.includes('word')) assetKind = 'document';
+
+    // Create asset from file
+    const asset = await assetsAdapter.createAsset({
+      organizationId: conversation.organizationId || null,
+      ownerId: userId,
+      name: file.originalname,
+      kind: assetKind,
+      primaryFileId: fileRecord.id,
+      description: `Shared in conversation`,
+      tags: ['chat-attachment']
+    });
+
+    res.status(201).json({
+      success: true,
+      asset: {
+        id: asset.id,
+        name: asset.name,
+        kind: asset.kind,
+        ownerId: userId,
+        createdAt: asset.createdAt,
+        file: {
+          id: fileRecord.id,
+          name: fileRecord.name,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          sizeBytes: storageResult.sizeBytes,
+          url: fileRecord.fileUrl,
+          thumbnailUrl: thumbnailUrl,
+          storageKey: storageResult.storageKey
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading conversation file:', error);
+    res.status(500).json({ success: false, error: 'Failed to upload file' });
   }
 });
 
@@ -3593,7 +3716,7 @@ app.post('/api/conversations/:id/messages', authenticateToken, async (req, res) 
       return res.status(404).json({ success: false, error: 'Conversation not found' });
     }
 
-    const message = await messagingConversationsAdapter.createMessage({
+    let message = await messagingConversationsAdapter.createMessage({
       conversationId,
       userId,
       text: text || '',
@@ -3602,6 +3725,12 @@ app.post('/api/conversations/:id/messages', authenticateToken, async (req, res) 
       projectId: projectId || null,
       isSystemMessage: !!isSystemMessage
     });
+
+    // If message has asset, hydrate it
+    if (assetId) {
+      const asset = await messagingConversationsAdapter.getAssetById(assetId);
+      message = { ...message, asset };
+    }
 
     res.status(201).json({ success: true, message });
   } catch (error) {
