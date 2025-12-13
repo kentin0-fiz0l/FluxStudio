@@ -206,6 +206,9 @@ function ThreadComposer({
   );
 }
 
+// localStorage key for thread hint dismissal
+const THREAD_HINT_DISMISSED_KEY = 'fx_thread_hint_dismissed_v1';
+
 // Main ThreadPanel
 export function ThreadPanel({
   rootMessage,
@@ -217,6 +220,21 @@ export function ThreadPanel({
   className,
 }: ThreadPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showFirstTimeHint, setShowFirstTimeHint] = useState(false);
+
+  // Check if this is the first time opening a thread
+  useEffect(() => {
+    const dismissed = localStorage.getItem(THREAD_HINT_DISMISSED_KEY);
+    if (!dismissed) {
+      setShowFirstTimeHint(true);
+    }
+  }, []);
+
+  // Dismiss the hint
+  const dismissHint = () => {
+    localStorage.setItem(THREAD_HINT_DISMISSED_KEY, 'true');
+    setShowFirstTimeHint(false);
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -255,6 +273,29 @@ export function ThreadPanel({
           <X className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
         </button>
       </div>
+
+      {/* First-time thread hint */}
+      {showFirstTimeHint && (
+        <div className="mx-3 mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-indigo-900 dark:text-indigo-100">
+                Threads keep conversations focused
+              </p>
+              <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-0.5">
+                Reply here to continue this specific discussion without cluttering the main conversation.
+              </p>
+            </div>
+            <button
+              onClick={dismissHint}
+              className="p-1 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 rounded transition-colors"
+              aria-label="Dismiss hint"
+            >
+              <X className="w-4 h-4 text-indigo-500" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Root Message */}
       <div className="p-3 border-b border-neutral-200 dark:border-neutral-700">
