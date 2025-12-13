@@ -128,6 +128,26 @@ interface ReactionCount {
   userIds: string[];
 }
 
+interface MessageAsset {
+  id: string;
+  name: string;
+  kind: 'image' | 'video' | 'audio' | 'pdf' | 'document' | 'other';
+  ownerId?: string;
+  organizationId?: string;
+  description?: string;
+  createdAt?: string;
+  file: {
+    id: string;
+    name: string;
+    originalName: string;
+    mimeType: string;
+    sizeBytes: number;
+    url: string;
+    thumbnailUrl?: string;
+    storageKey?: string;
+  };
+}
+
 interface Message {
   id: string;
   content: string;
@@ -145,6 +165,7 @@ interface Message {
     author: MessageUser;
   };
   attachments?: MessageAttachment[];
+  asset?: MessageAsset | null;
   linkPreviews?: LinkPreview[];
   reactions?: ReactionCount[];
   isPinned?: boolean;
@@ -703,7 +724,73 @@ function MessageBubble({
             <VoiceMessagePlayer voiceMessage={message.voiceMessage} />
           )}
 
-          {/* Attachments */}
+          {/* Asset attachment (from backend) */}
+          {message.asset && message.asset.file && (
+            <div className="mt-2">
+              {message.asset.kind === 'image' ? (
+                <a
+                  href={message.asset.file.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <img
+                    src={message.asset.file.thumbnailUrl || message.asset.file.url}
+                    alt={message.asset.name}
+                    className="max-w-full max-h-64 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                    onError={(e) => {
+                      // Fallback to original URL if thumbnail fails
+                      const target = e.target as HTMLImageElement;
+                      if (target.src !== message.asset?.file.url) {
+                        target.src = message.asset?.file.url || '';
+                      }
+                    }}
+                  />
+                </a>
+              ) : (
+                <a
+                  href={message.asset.file.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={message.asset.file.originalName}
+                  className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                    isOwn
+                      ? 'bg-white/10 border-white/20 hover:bg-white/20'
+                      : 'bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    isOwn ? 'bg-white/20' : 'bg-neutral-200 dark:bg-neutral-700'
+                  }`}>
+                    {message.asset.kind === 'pdf' ? (
+                      <File className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-red-500'}`} />
+                    ) : message.asset.kind === 'video' ? (
+                      <Play className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-blue-500'}`} />
+                    ) : message.asset.kind === 'audio' ? (
+                      <Volume2 className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-green-500'}`} />
+                    ) : (
+                      <File className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-neutral-500'}`} />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium truncate ${isOwn ? 'text-white' : 'text-neutral-900 dark:text-neutral-100'}`}>
+                      {message.asset.file.originalName || message.asset.name}
+                    </p>
+                    <p className={`text-xs ${isOwn ? 'text-white/70' : 'text-neutral-500 dark:text-neutral-400'}`}>
+                      {message.asset.file.sizeBytes < 1024
+                        ? `${message.asset.file.sizeBytes} B`
+                        : message.asset.file.sizeBytes < 1024 * 1024
+                        ? `${(message.asset.file.sizeBytes / 1024).toFixed(1)} KB`
+                        : `${(message.asset.file.sizeBytes / (1024 * 1024)).toFixed(1)} MB`}
+                    </p>
+                  </div>
+                  <Download className={`w-4 h-4 ${isOwn ? 'text-white/70' : 'text-neutral-400'}`} />
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Legacy Attachments */}
           {message.attachments?.map((attachment) => (
             <AttachmentPreview
               key={attachment.id}
@@ -1417,6 +1504,21 @@ function MessagesNew() {
     uploading?: boolean;
     progress?: number;
     error?: string;
+    assetId?: string;
+    asset?: {
+      id: string;
+      name: string;
+      kind: string;
+      file: {
+        id: string;
+        name: string;
+        originalName: string;
+        mimeType: string;
+        sizeBytes: number;
+        url: string;
+        thumbnailUrl?: string;
+      };
+    };
   }[]>([]);
 
   // Typing debounce state
@@ -1584,32 +1686,54 @@ function MessagesNew() {
   }, [user?.id, realtime.typingUsers]);
 
   // Transform ConversationMessage to Message for UI
-  const transformRealtimeMessage = useCallback((msg: ConversationMessage): Message => ({
-    id: msg.id,
-    content: msg.content,
-    author: {
-      id: msg.authorId,
-      name: msg.author?.displayName || msg.author?.email?.split('@')[0] || 'Unknown',
-      initials: getInitials(msg.author?.displayName || msg.author?.email?.split('@')[0] || 'U'),
-      isOnline: false,
-    },
-    timestamp: new Date(msg.createdAt),
-    isCurrentUser: msg.authorId === user?.id,
-    status: 'sent',
-    isEdited: !!msg.editedAt,
-    editedAt: msg.editedAt ? new Date(msg.editedAt) : undefined,
-    isDeleted: false,
-    replyTo: msg.replyToMessageId ? {
-      id: msg.replyToMessageId,
-      content: '',
-      author: { id: '', name: '', initials: '' },
-    } : undefined,
-    attachments: [],
-    reactions: msg.reactions || [],
-    isPinned: realtime.pinnedMessageIds.includes(msg.id),
-    isForwarded: false,
-    isSystemMessage: msg.isSystemMessage,
-  }), [user?.id, realtime.pinnedMessageIds]);
+  const transformRealtimeMessage = useCallback((msg: ConversationMessage): Message => {
+    // Get user ID from different possible fields
+    const authorId = msg.authorId || msg.userId || '';
+    // Get content from different possible fields
+    const content = msg.content || msg.text || '';
+    // Get author name from different possible sources
+    const authorName = msg.author?.displayName || msg.author?.email?.split('@')[0] || msg.userName || 'Unknown';
+
+    return {
+      id: msg.id,
+      content,
+      author: {
+        id: authorId,
+        name: authorName,
+        initials: getInitials(authorName || 'U'),
+        isOnline: false,
+        avatar: msg.userAvatar,
+      },
+      timestamp: new Date(msg.createdAt),
+      isCurrentUser: authorId === user?.id,
+      status: 'sent',
+      isEdited: !!msg.editedAt,
+      editedAt: msg.editedAt ? new Date(msg.editedAt) : undefined,
+      isDeleted: false,
+      replyTo: msg.replyToMessageId ? {
+        id: msg.replyToMessageId,
+        content: '',
+        author: { id: '', name: '', initials: '' },
+      } : undefined,
+      attachments: [],
+      asset: msg.asset ? {
+        id: msg.asset.id,
+        name: msg.asset.name,
+        kind: msg.asset.kind,
+        ownerId: msg.asset.ownerId,
+        organizationId: msg.asset.organizationId,
+        description: msg.asset.description,
+        createdAt: msg.asset.createdAt,
+        file: msg.asset.file,
+      } : undefined,
+      reactions: msg.reactions || [],
+      isPinned: realtime.pinnedMessageIds.includes(msg.id),
+      isForwarded: false,
+      isSystemMessage: msg.isSystemMessage,
+      threadReplyCount: msg.threadReplyCount,
+      threadRootMessageId: msg.threadRootMessageId,
+    };
+  }, [user?.id, realtime.pinnedMessageIds]);
 
   // Transformed data for UI
   const conversations: Conversation[] = useMemo(() =>
@@ -1719,16 +1843,43 @@ function MessagesNew() {
   // ========================================
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversationId || isSending) return;
+    // Get uploaded attachments (those with assetId and no error)
+    const uploadedAttachments = pendingAttachments.filter(a => a.assetId && !a.error && !a.uploading);
+    const hasText = newMessage.trim().length > 0;
+    const hasAttachments = uploadedAttachments.length > 0;
+
+    // Need either text or attachments
+    if ((!hasText && !hasAttachments) || !selectedConversationId || isSending) return;
 
     setIsSending(true);
     try {
-      // Send via WebSocket
-      realtime.sendMessage(newMessage.trim(), {
-        replyToMessageId: replyTo?.id,
-      });
+      // Send attachments first (one message per attachment)
+      for (let i = 0; i < uploadedAttachments.length; i++) {
+        const attachment = uploadedAttachments[i];
+        // For the first attachment, include any text
+        const messageText = (i === 0 && hasText) ? newMessage.trim() : '';
+
+        realtime.sendMessage(messageText, {
+          replyToMessageId: i === 0 ? replyTo?.id : undefined,
+          assetId: attachment.assetId,
+        });
+      }
+
+      // If we have text but no attachments, send text-only message
+      if (hasText && !hasAttachments) {
+        realtime.sendMessage(newMessage.trim(), {
+          replyToMessageId: replyTo?.id,
+        });
+      }
+
+      // Clear state
       setNewMessage('');
       setReplyTo(undefined);
+      // Clean up pending attachments (revoke object URLs)
+      pendingAttachments.forEach(a => {
+        if (a.preview) URL.revokeObjectURL(a.preview);
+      });
+      setPendingAttachments([]);
       // Stop typing indicator
       realtime.stopTyping();
     } catch (error) {
@@ -2000,10 +2151,12 @@ function MessagesNew() {
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || !selectedConversationId) return;
 
-    const newAttachments = Array.from(files).map(file => {
-      const id = `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const token = localStorage.getItem('auth_token');
+
+    for (const file of Array.from(files)) {
+      const attachmentId = `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       let preview: string | undefined;
 
       // Generate preview for images
@@ -2011,10 +2164,50 @@ function MessagesNew() {
         preview = URL.createObjectURL(file);
       }
 
-      return { id, file, preview, uploading: false, progress: 0 };
-    });
+      // Add to pending with uploading state
+      setPendingAttachments(prev => [...prev, {
+        id: attachmentId,
+        file,
+        preview,
+        uploading: true,
+        progress: 0
+      }]);
 
-    setPendingAttachments(prev => [...prev, ...newAttachments]);
+      // Upload file
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`/api/conversations/${selectedConversationId}/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const data = await response.json();
+
+        // Update attachment with assetId and completed state
+        setPendingAttachments(prev => prev.map(a =>
+          a.id === attachmentId
+            ? { ...a, uploading: false, assetId: data.asset.id, asset: data.asset }
+            : a
+        ));
+      } catch (error) {
+        console.error('Failed to upload file:', error);
+        // Mark as error
+        setPendingAttachments(prev => prev.map(a =>
+          a.id === attachmentId
+            ? { ...a, uploading: false, error: 'Upload failed' }
+            : a
+        ));
+      }
+    }
 
     // Clear the input
     e.target.value = '';
