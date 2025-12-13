@@ -369,37 +369,60 @@ async function getProjects() {
   // For user-scoped projects, use projectsAdapter.getProjects(userId) directly
   if (projectsAdapter) {
     try {
-      // Get all projects without user scoping for legacy compatibility
-      const result = await query(`
-        SELECT p.*,
-               o.name as organization_name,
-               o.slug as organization_slug,
-               u.name as manager_name,
-               u.email as manager_email,
-               t.name as team_name,
-               (SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) as member_count,
-               (SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id) as task_count,
-               (SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id AND tk.status = 'completed') as completed_task_count
-        FROM projects p
-        LEFT JOIN organizations o ON p.organization_id = o.id
-        LEFT JOIN users u ON p.manager_id = u.id
-        LEFT JOIN teams t ON p.team_id = t.id
-        WHERE p.status != 'cancelled'
-        ORDER BY p.updated_at DESC
-        LIMIT 100
+      // First check if organization_id column exists to handle inconsistent schema
+      const columnCheck = await query(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'projects' AND column_name = 'organization_id'
       `);
+      const hasOrgColumn = columnCheck.rows.length > 0;
+
+      let result;
+      if (hasOrgColumn) {
+        // Full query with organization join
+        result = await query(`
+          SELECT p.*,
+                 o.name as organization_name,
+                 o.slug as organization_slug,
+                 u.name as manager_name,
+                 u.email as manager_email,
+                 t.name as team_name,
+                 (SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) as member_count,
+                 (SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id) as task_count,
+                 (SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id AND tk.status = 'completed') as completed_task_count
+          FROM projects p
+          LEFT JOIN organizations o ON p.organization_id = o.id
+          LEFT JOIN users u ON p.manager_id = u.id
+          LEFT JOIN teams t ON p.team_id = t.id
+          WHERE p.status != 'cancelled'
+          ORDER BY p.updated_at DESC
+          LIMIT 100
+        `);
+      } else {
+        // Simplified query without organization join
+        result = await query(`
+          SELECT p.*,
+                 u.name as manager_name,
+                 u.email as manager_email
+          FROM projects p
+          LEFT JOIN users u ON p.manager_id = u.id
+          WHERE p.status IS NULL OR p.status != 'cancelled'
+          ORDER BY p.updated_at DESC NULLS LAST
+          LIMIT 100
+        `);
+      }
+
       return result.rows.map(row => ({
         id: row.id,
         name: row.name,
         description: row.description || '',
-        status: row.status,
-        priority: row.priority,
-        organizationId: row.organization_id,
-        organizationName: row.organization_name,
-        teamId: row.team_id,
-        teamName: row.team_name,
-        createdBy: row.manager_id,
-        managerName: row.manager_name,
+        status: row.status || 'planning',
+        priority: row.priority || 'medium',
+        organizationId: row.organization_id || null,
+        organizationName: row.organization_name || null,
+        teamId: row.team_id || null,
+        teamName: row.team_name || null,
+        createdBy: row.manager_id || row.created_by,
+        managerName: row.manager_name || null,
         startDate: row.start_date,
         dueDate: row.due_date,
         createdAt: row.created_at,
