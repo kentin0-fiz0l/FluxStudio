@@ -2775,6 +2775,7 @@ app.get('/files/storage/*storageKey', authenticateToken, async (req, res) => {
 const assetsAdapter = require('./database/assets-adapter');
 const { determineAssetKind } = require('./database/assets-adapter');
 const designBoardsAdapter = require('./database/design-boards-adapter');
+const messagingConversationsAdapter = require('./database/messaging-conversations-adapter');
 
 // 1. GET /api/assets - List assets with filtering
 app.get('/api/assets', authenticateToken, async (req, res) => {
@@ -3351,6 +3352,361 @@ app.get('/api/projects/:projectId/boards/stats', authenticateToken, async (req, 
   } catch (error) {
     console.error('Error getting board stats:', error);
     res.status(500).json({ success: false, error: 'Failed to get board stats' });
+  }
+});
+
+// ========================================
+// CONVERSATIONS & NOTIFICATIONS API
+// ========================================
+
+// ----- Conversations -----
+
+// 1. GET /api/conversations - List conversations for current user
+app.get('/api/conversations', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const offset = parseInt(req.query.offset, 10) || 0;
+
+    const conversations = await messagingConversationsAdapter.getConversationsForUser({
+      userId,
+      limit,
+      offset
+    });
+
+    res.json({
+      success: true,
+      conversations,
+      pagination: { limit, offset }
+    });
+  } catch (error) {
+    console.error('Error listing conversations:', error);
+    res.status(500).json({ success: false, error: 'Failed to list conversations' });
+  }
+});
+
+// 2. POST /api/conversations - Create a new conversation
+app.post('/api/conversations', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { name, isGroup, memberUserIds, organizationId } = req.body;
+
+    // Validate memberUserIds is an array
+    if (memberUserIds && !Array.isArray(memberUserIds)) {
+      return res.status(400).json({ success: false, error: 'memberUserIds must be an array' });
+    }
+
+    // For groups, name is typically required
+    if (isGroup && !name) {
+      return res.status(400).json({ success: false, error: 'Group conversations require a name' });
+    }
+
+    const conversation = await messagingConversationsAdapter.createConversation({
+      organizationId: organizationId || null,
+      name: name || null,
+      isGroup: !!isGroup,
+      creatorUserId: userId,
+      memberUserIds: memberUserIds || []
+    });
+
+    res.status(201).json({ success: true, conversation });
+  } catch (error) {
+    console.error('Error creating conversation:', error);
+    res.status(500).json({ success: false, error: 'Failed to create conversation' });
+  }
+});
+
+// 3. GET /api/conversations/:id - Get conversation details
+app.get('/api/conversations/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    res.json({ success: true, conversation });
+  } catch (error) {
+    console.error('Error getting conversation:', error);
+    res.status(500).json({ success: false, error: 'Failed to get conversation' });
+  }
+});
+
+// 4. PATCH /api/conversations/:id - Update conversation metadata
+app.patch('/api/conversations/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+    const { name, isGroup } = req.body;
+
+    // Verify user is a member first
+    const existing = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    const updated = await messagingConversationsAdapter.updateConversation({
+      conversationId,
+      name,
+      isGroup
+    });
+
+    res.json({ success: true, conversation: updated });
+  } catch (error) {
+    console.error('Error updating conversation:', error);
+    res.status(500).json({ success: false, error: 'Failed to update conversation' });
+  }
+});
+
+// 5. POST /api/conversations/:id/members - Add a member
+app.post('/api/conversations/:id/members', authenticateToken, async (req, res) => {
+  try {
+    const conversationId = req.params.id;
+    const { userId: memberUserId, role } = req.body;
+
+    if (!memberUserId) {
+      return res.status(400).json({ success: false, error: 'userId is required' });
+    }
+
+    const member = await messagingConversationsAdapter.addMember({
+      conversationId,
+      userId: memberUserId,
+      role: role || 'member'
+    });
+
+    res.status(201).json({ success: true, member });
+  } catch (error) {
+    console.error('Error adding member:', error);
+    res.status(500).json({ success: false, error: 'Failed to add member' });
+  }
+});
+
+// 6. DELETE /api/conversations/:id/members/:userId - Remove a member
+app.delete('/api/conversations/:id/members/:userId', authenticateToken, async (req, res) => {
+  try {
+    const conversationId = req.params.id;
+    const memberUserId = req.params.userId;
+
+    const removed = await messagingConversationsAdapter.removeMember({
+      conversationId,
+      userId: memberUserId
+    });
+
+    res.json({ success: true, removed });
+  } catch (error) {
+    console.error('Error removing member:', error);
+    res.status(500).json({ success: false, error: 'Failed to remove member' });
+  }
+});
+
+// 7. POST /api/conversations/:id/read - Update last-read message
+app.post('/api/conversations/:id/read', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+    const { messageId } = req.body;
+
+    if (!messageId) {
+      return res.status(400).json({ success: false, error: 'messageId is required' });
+    }
+
+    const updated = await messagingConversationsAdapter.setLastRead({
+      conversationId,
+      userId,
+      messageId
+    });
+
+    res.json({ success: true, updated });
+  } catch (error) {
+    console.error('Error updating last read:', error);
+    res.status(500).json({ success: false, error: 'Failed to update last read' });
+  }
+});
+
+// ----- Messages -----
+
+// 8. GET /api/conversations/:id/messages - List messages in a conversation
+app.get('/api/conversations/:id/messages', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const before = req.query.before || null;
+
+    // Verify user is a member first
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    // Messages are returned in DESC order by created_at
+    const messages = await messagingConversationsAdapter.listMessages({
+      conversationId,
+      limit,
+      before
+    });
+
+    res.json({
+      success: true,
+      messages,
+      pagination: { limit, before }
+    });
+  } catch (error) {
+    console.error('Error listing messages:', error);
+    res.status(500).json({ success: false, error: 'Failed to list messages' });
+  }
+});
+
+// 9. POST /api/conversations/:id/messages - Create a message
+app.post('/api/conversations/:id/messages', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+    const { text, assetId, replyToMessageId, projectId, isSystemMessage } = req.body;
+
+    // Require text or assetId
+    if (!text && !assetId) {
+      return res.status(400).json({ success: false, error: 'Either text or assetId is required' });
+    }
+
+    // Verify user is a member first
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    const message = await messagingConversationsAdapter.createMessage({
+      conversationId,
+      userId,
+      text: text || '',
+      assetId: assetId || null,
+      replyToMessageId: replyToMessageId || null,
+      projectId: projectId || null,
+      isSystemMessage: !!isSystemMessage
+    });
+
+    res.status(201).json({ success: true, message });
+  } catch (error) {
+    console.error('Error creating message:', error);
+    res.status(500).json({ success: false, error: 'Failed to create message' });
+  }
+});
+
+// 10. DELETE /api/messages/:id - Delete a message (author only)
+app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const messageId = req.params.id;
+
+    const deleted = await messagingConversationsAdapter.deleteMessage({
+      messageId,
+      userId
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, error: 'Message not found or not authorized' });
+    }
+
+    res.json({ success: true, deleted: true });
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete message' });
+  }
+});
+
+// ----- Notifications -----
+
+// 11. GET /api/notifications - List notifications for current user
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const onlyUnread = req.query.onlyUnread === 'true' || req.query.onlyUnread === '1';
+
+    const notifications = await messagingConversationsAdapter.listNotifications({
+      userId,
+      limit,
+      offset,
+      onlyUnread
+    });
+
+    res.json({
+      success: true,
+      notifications,
+      pagination: { limit, offset }
+    });
+  } catch (error) {
+    console.error('Error listing notifications:', error);
+    res.status(500).json({ success: false, error: 'Failed to list notifications' });
+  }
+});
+
+// 12. PATCH /api/notifications/:id/read - Mark notification as read
+app.patch('/api/notifications/:id/read', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const notificationId = req.params.id;
+
+    const updated = await messagingConversationsAdapter.markNotificationRead({
+      notificationId,
+      userId
+    });
+
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'Notification not found' });
+    }
+
+    res.json({ success: true, updated: true });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({ success: false, error: 'Failed to mark notification as read' });
+  }
+});
+
+// 13. POST /api/notifications/read-all - Mark all notifications as read
+app.post('/api/notifications/read-all', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const count = await messagingConversationsAdapter.markAllNotificationsRead({ userId });
+
+    res.json({ success: true, updatedCount: count });
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
+    res.status(500).json({ success: false, error: 'Failed to mark all notifications as read' });
+  }
+});
+
+// 14. GET /api/notifications/unread-count - Get unread notification count
+app.get('/api/notifications/unread-count', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const count = await messagingConversationsAdapter.getUnreadNotificationCount({ userId });
+
+    res.json({ success: true, count });
+  } catch (error) {
+    console.error('Error getting unread notification count:', error);
+    res.status(500).json({ success: false, error: 'Failed to get unread count' });
   }
 });
 
