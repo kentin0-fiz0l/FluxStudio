@@ -528,6 +528,8 @@ export default function ToolsFiles() {
                   description={emptyStateConfigs.files.description}
                   primaryCtaLabel={emptyStateConfigs.files.primaryCtaLabel}
                   onPrimaryCta={() => setShowUpload(true)}
+                  secondaryCtaLabel="Go to Projects"
+                  onSecondaryCta={() => navigate('/projects')}
                   learnMoreItems={emptyStateConfigs.files.learnMoreItems as unknown as string[]}
                 />
               )

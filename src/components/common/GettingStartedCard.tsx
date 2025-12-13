@@ -90,6 +90,10 @@ export function GettingStartedCard({
             <CardDescription className="mt-1 text-neutral-600 dark:text-neutral-400">
               Your creative workspace for ideas, conversations, and tools — all in one place.
             </CardDescription>
+            {/* Project-first framing */}
+            <p className="mt-2 text-xs text-primary-600 dark:text-primary-400 font-medium">
+              Projects are the home for everything you create in FluxStudio.
+            </p>
           </div>
         </div>
 

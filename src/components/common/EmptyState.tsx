@@ -170,7 +170,7 @@ export function EmptyState({
   );
 }
 
-// Pre-configured empty states with Creative Studio copy
+// Pre-configured empty states with Creative Studio copy + project-first framing
 export const emptyStateConfigs = {
   projects: {
     title: 'No projects yet.',
@@ -186,8 +186,12 @@ export const emptyStateConfigs = {
   messages: {
     title: 'No conversations yet.',
     description:
+      'Conversations live inside projects. Start a conversation from a project to keep context together.',
+    secondaryDescription:
       'Start a conversation to brainstorm, give feedback, or plan next steps — everything stays connected to your work.',
     primaryCtaLabel: 'New Conversation',
+    secondaryCtaLabel: 'Go to Projects',
+    secondaryCtaHref: '/projects',
     learnMoreItems: [
       'Keep context close',
       'Share with collaborators',
@@ -197,8 +201,12 @@ export const emptyStateConfigs = {
   files: {
     title: 'No files here yet.',
     description:
+      'Files uploaded to projects stay connected to conversations and tools.',
+    secondaryDescription:
       'Upload references, drafts, audio, or exports so your work and discussions stay in sync.',
     primaryCtaLabel: 'Upload File',
+    secondaryCtaLabel: 'Go to Projects',
+    secondaryCtaHref: '/projects',
     learnMoreItems: [
       'Keep context close',
       'Share with collaborators',

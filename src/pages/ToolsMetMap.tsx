@@ -823,7 +823,7 @@ export default function ToolsMetMap() {
         } border-r border-gray-200 bg-white flex flex-col`}>
           {/* Header */}
           <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2">
               <h2 className="text-lg font-semibold text-gray-900">MetMap</h2>
               <button
                 onClick={() => setShowNewSongModal(true)}
@@ -835,6 +835,17 @@ export default function ToolsMetMap() {
                 </svg>
               </button>
             </div>
+            {/* Use-case anchoring copy */}
+            <p className="text-xs text-gray-500 mb-3">
+              Rehearse tempo + meter changes and map chord progressions — great for complex pieces.
+            </p>
+            {/* Project bridge link */}
+            <a
+              href="/projects"
+              className="inline-block text-xs text-indigo-600 hover:text-indigo-700 mb-3"
+            >
+              Organize this work in a project →
+            </a>
             <input
               type="text"
               value={searchQuery}
