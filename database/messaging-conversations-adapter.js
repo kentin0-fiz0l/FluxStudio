@@ -787,6 +787,78 @@ class MessagingConversationsAdapter {
     return this.getMessageById({ messageId });
   }
 
+  // ==================== Message Forward Methods ====================
+
+  /**
+   * Forward a message to another conversation.
+   *
+   * - Only allowed if user is a member of BOTH source and target conversations
+   * - Copies content; sets original_message_id on the new row
+   *
+   * @param {Object} params
+   * @param {string} params.messageId - ID of the message to forward
+   * @param {string} params.sourceConversationId - Source conversation ID
+   * @param {string} params.targetConversationId - Target conversation ID
+   * @param {string} params.userId - User doing the forwarding
+   * @returns {Object|null} The newly created forwarded message, or null if failed
+   */
+  async forwardMessage({ messageId, sourceConversationId, targetConversationId, userId }) {
+    // 1. Fetch the original message (ensure it belongs to sourceConversationId)
+    const original = await this.getMessageById({ messageId });
+    if (!original || original.conversationId !== sourceConversationId) {
+      return null;
+    }
+
+    // 2. Verify user membership in BOTH conversations
+    const [sourceConv, targetConv] = await Promise.all([
+      this.getConversationById({ conversationId: sourceConversationId, userId }),
+      this.getConversationById({ conversationId: targetConversationId, userId }),
+    ]);
+    if (!sourceConv || !targetConv) {
+      return null;
+    }
+
+    // 3. Insert a new message in target conversation
+    const newMessageId = uuidv4();
+
+    return await transaction(async (client) => {
+      const result = await client.query(`
+        INSERT INTO messages (
+          id, conversation_id, project_id, user_id,
+          text, asset_id, is_system_message, original_message_id, created_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, FALSE, $7, NOW())
+        RETURNING *
+      `, [
+        newMessageId,
+        targetConversationId,
+        original.projectId || null,
+        userId,
+        original.text,
+        original.assetId || null,
+        original.id
+      ]);
+
+      if (!result.rows[0]) return null;
+
+      // Update target conversation's updated_at
+      await client.query(`
+        UPDATE conversations SET updated_at = NOW() WHERE id = $1
+      `, [targetConversationId]);
+
+      // Update sender's last_read_message_id in target conversation
+      await client.query(`
+        UPDATE conversation_members
+        SET last_read_message_id = $1
+        WHERE conversation_id = $2 AND user_id = $3
+      `, [newMessageId, targetConversationId, userId]);
+
+      // Transform and return with user info
+      const row = result.rows[0];
+      return this._transformMessage(row);
+    });
+  }
+
   // ==================== Notification Methods ====================
 
   /**
@@ -938,6 +1010,7 @@ class MessagingConversationsAdapter {
       isSystemMessage: row.is_system_message,
       createdAt: row.created_at,
       editedAt: row.edited_at || null,
+      originalMessageId: row.original_message_id || null,
       // Optional user info from JOIN
       userName: row.user_name || null,
       userAvatar: row.user_avatar || null

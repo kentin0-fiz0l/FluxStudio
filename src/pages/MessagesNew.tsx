@@ -83,7 +83,8 @@ import {
   Settings,
   Info,
   AlertCircle,
-  Loader2
+  Loader2,
+  Check
 } from 'lucide-react';
 import { MessageActionsMenu } from '../components/messaging/MessageActionsMenu';
 import { InlineReplyPreview } from '../components/messaging/InlineReplyPreview';
@@ -767,12 +768,14 @@ function MessageBubble({
               canReact
               canPin
               canEdit={isOwn}
+              canForward
               canDelete={isOwn}
               isPinned={isPinned}
               onReply={() => onReply()}
               onReact={() => setShowReactions(true)}
               onPinToggle={() => onPin()}
               onEdit={isOwn ? () => onEdit() : undefined}
+              onForward={() => onForward()}
               onCopy={() => onCopy()}
               onDelete={isOwn ? () => onDelete() : undefined}
               align={isOwn ? 'start' : 'end'}
@@ -1208,6 +1211,9 @@ function MessagesNew() {
   const [replyTo, setReplyTo] = useState<Message['replyTo'] | undefined>();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState<string>('');
+  const [forwardSourceMessage, setForwardSourceMessage] = useState<Message | null>(null);
+  const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
+  const [forwardTargetConversationId, setForwardTargetConversationId] = useState<string | null>(null);
   const [showPinnedMessages, setShowPinnedMessages] = useState(false);
   const [showConversationSettings, setShowConversationSettings] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -1625,9 +1631,33 @@ function MessagesNew() {
     }
   };
 
+  // Start forward flow - open modal
+  const handleStartForward = (message: Message) => {
+    setForwardSourceMessage(message);
+    setForwardTargetConversationId(null);
+    setIsForwardModalOpen(true);
+  };
+
+  // Confirm forward - send to selected conversation
+  const handleConfirmForward = () => {
+    if (!forwardSourceMessage || !forwardTargetConversationId) return;
+
+    realtime.forwardMessage(forwardTargetConversationId, forwardSourceMessage.id);
+    setIsForwardModalOpen(false);
+    setForwardSourceMessage(null);
+    setForwardTargetConversationId(null);
+  };
+
+  // Close forward modal
+  const handleCancelForward = () => {
+    setIsForwardModalOpen(false);
+    setForwardSourceMessage(null);
+    setForwardTargetConversationId(null);
+  };
+
+  // Legacy handler - direct forward without modal
   const handleForwardMessage = async (messageId: string, toConversationId: string) => {
-    // TODO: Implement forwarding via REST API
-    console.log('Forward:', messageId, 'to', toConversationId);
+    realtime.forwardMessage(toConversationId, messageId);
   };
 
   const handleAttach = () => {
@@ -1964,16 +1994,7 @@ function MessagesNew() {
                             onPin={() => handlePinMessage(message.id)}
                             onCopy={() => handleCopyMessage(message.id)}
                             onJumpToMessage={handleJumpToMessage}
-                            onForward={() => {
-                              // For now, show a simple forward prompt
-                              // Could be enhanced with a modal to select conversation
-                              if (conversations.length > 0) {
-                                const targetConv = conversations.find(c => c.id !== selectedConversation?.id);
-                                if (targetConv) {
-                                  handleForwardMessage(message.id, targetConv.id);
-                                }
-                              }
-                            }}
+                            onForward={() => handleStartForward(message)}
                             onReact={(emoji) => handleReact(message.id, emoji)}
                             isGrouped={isGrouped}
                             currentUserId={user?.id}
@@ -2160,6 +2181,86 @@ function MessagesNew() {
                 )}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Forward Message Modal */}
+      <Dialog open={isForwardModalOpen} onOpenChange={setIsForwardModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Forward message</DialogTitle>
+            <DialogDescription>
+              Select a conversation to forward this message to.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Message preview */}
+          {forwardSourceMessage?.content && (
+            <div className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg mb-4">
+              <p className="text-xs text-neutral-500 mb-1">Message preview:</p>
+              <p className="text-sm text-neutral-700 dark:text-neutral-300 line-clamp-3">
+                {forwardSourceMessage.content}
+              </p>
+            </div>
+          )}
+
+          {/* Conversation list */}
+          <div className="max-h-64 overflow-y-auto space-y-1">
+            {conversations
+              .filter(c => c.id !== selectedConversation?.id)
+              .map(conv => (
+                <button
+                  key={conv.id}
+                  onClick={() => setForwardTargetConversationId(conv.id)}
+                  className={cn(
+                    'w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left',
+                    forwardTargetConversationId === conv.id
+                      ? 'bg-primary-100 dark:bg-primary-900 border border-primary-300'
+                      : 'hover:bg-neutral-100 dark:hover:bg-neutral-700 border border-transparent'
+                  )}
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-300 font-medium">
+                    {conv.isGroup ? (
+                      <Users className="w-5 h-5" />
+                    ) : (
+                      conv.participants[0]?.initials || '?'
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
+                      {conv.name}
+                    </p>
+                    {conv.lastMessage && (
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                        {conv.lastMessage.content}
+                      </p>
+                    )}
+                  </div>
+                  {forwardTargetConversationId === conv.id && (
+                    <Check className="w-5 h-5 text-primary-600" />
+                  )}
+                </button>
+              ))}
+
+            {conversations.filter(c => c.id !== selectedConversation?.id).length === 0 && (
+              <p className="text-center text-sm text-neutral-500 py-4">
+                No other conversations available
+              </p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="ghost" onClick={handleCancelForward}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!forwardTargetConversationId}
+              onClick={handleConfirmForward}
+            >
+              Forward
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

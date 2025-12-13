@@ -84,6 +84,9 @@ interface UseConversationRealtimeReturn {
 
   // Edit actions
   editMessage: (messageId: string, content: string) => void;
+
+  // Forward actions
+  forwardMessage: (targetConversationId: string, messageId: string) => void;
 }
 
 export function useConversationRealtime(options: UseConversationRealtimeOptions = {}): UseConversationRealtimeReturn {
@@ -309,6 +312,18 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
       if (!response.ok) {
         console.error('[useConversationRealtime] Failed to edit message:', response.error);
         // Could revert optimistic update here if needed by refetching
+      }
+    });
+  }, [conversationId]);
+
+  // Forward a message to another conversation
+  const forwardMessage = useCallback((targetConversationId: string, messageId: string) => {
+    if (!conversationId) return;
+
+    // Send to server - no optimistic update needed since target conversation handles the new message
+    messagingSocketService.forwardMessage(conversationId, targetConversationId, messageId, (response) => {
+      if (!response.ok) {
+        console.error('[useConversationRealtime] Failed to forward message:', response.error);
       }
     });
   }, [conversationId]);
@@ -539,6 +554,9 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
 
     // Edit actions
     editMessage,
+
+    // Forward actions
+    forwardMessage,
   };
 }
 
