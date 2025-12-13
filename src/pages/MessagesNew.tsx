@@ -116,10 +116,9 @@ interface LinkPreview {
 }
 
 interface ReactionCount {
-  reaction: string;
+  emoji: string;
   count: number;
-  userNames: string[];
-  hasReacted: boolean;
+  userIds: string[];
 }
 
 interface Message {
@@ -481,18 +480,28 @@ function VoiceMessagePlayer({ voiceMessage }: { voiceMessage: Message['voiceMess
 }
 
 // Reaction Badge
-function ReactionBadge({ reaction, onClick }: { reaction: ReactionCount; onClick: () => void }) {
+function ReactionBadge({
+  reaction,
+  onClick,
+  currentUserId
+}: {
+  reaction: ReactionCount;
+  onClick: () => void;
+  currentUserId?: string;
+}) {
+  const hasReacted = currentUserId ? reaction.userIds.includes(currentUserId) : false;
+
   return (
     <button
       onClick={onClick}
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors ${
-        reaction.hasReacted
+        hasReacted
           ? 'bg-primary-100 dark:bg-primary-900/30 border border-primary-300 dark:border-primary-700'
           : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700'
       }`}
-      title={reaction.userNames.join(', ')}
+      title={`${reaction.count} reaction${reaction.count !== 1 ? 's' : ''}`}
     >
-      <span>{reaction.reaction}</span>
+      <span>{reaction.emoji}</span>
       <span className="text-neutral-600 dark:text-neutral-400">{reaction.count}</span>
     </button>
   );
@@ -531,7 +540,8 @@ function MessageBubble({
   onForward,
   onReact,
   showAvatar = true,
-  isGrouped = false
+  isGrouped = false,
+  currentUserId
 }: {
   message: Message;
   onReply: () => void;
@@ -542,6 +552,7 @@ function MessageBubble({
   onReact: (emoji: string) => void;
   showAvatar?: boolean;
   isGrouped?: boolean;
+  currentUserId?: string;
 }) {
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -656,9 +667,10 @@ function MessageBubble({
           <div className="flex flex-wrap gap-1 mt-1 ml-1">
             {message.reactions.map((reaction) => (
               <ReactionBadge
-                key={reaction.reaction}
+                key={reaction.emoji}
                 reaction={reaction}
-                onClick={() => onReact(reaction.reaction)}
+                onClick={() => onReact(reaction.emoji)}
+                currentUserId={currentUserId}
               />
             ))}
           </div>
@@ -1305,7 +1317,7 @@ function MessagesNew() {
       author: { id: '', name: '', initials: '' },
     } : undefined,
     attachments: [],
-    reactions: [],
+    reactions: msg.reactions || [],
     isPinned: false,
     isForwarded: false,
     isSystemMessage: msg.isSystemMessage,
@@ -1435,8 +1447,17 @@ function MessagesNew() {
   };
 
   const handleReact = async (messageId: string, emoji: string) => {
-    // TODO: Implement reactions via REST API
-    console.log('React:', messageId, emoji);
+    // Find the message to check if user has already reacted
+    const message = displayedMessages.find(m => m.id === messageId);
+    const reactions = message?.reactions || [];
+    const existingReaction = reactions.find(r => r.emoji === emoji);
+    const hasUserReacted = existingReaction?.userIds?.includes(user?.id || '') || false;
+
+    if (hasUserReacted) {
+      realtime.removeReaction(messageId, emoji);
+    } else {
+      realtime.addReaction(messageId, emoji);
+    }
   };
 
   const handlePinMessage = async (messageId: string) => {
@@ -1785,6 +1806,7 @@ function MessagesNew() {
                             }}
                             onReact={(emoji) => handleReact(message.id, emoji)}
                             isGrouped={isGrouped}
+                            currentUserId={user?.id}
                           />
                         </React.Fragment>
                       );

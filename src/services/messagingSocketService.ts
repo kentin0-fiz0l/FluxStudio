@@ -5,6 +5,12 @@
 
 import { io, Socket } from 'socket.io-client';
 
+export interface MessageReactionSummary {
+  emoji: string;
+  count: number;
+  userIds: string[];
+}
+
 export interface ConversationMessage {
   id: string;
   conversationId: string;
@@ -16,6 +22,7 @@ export interface ConversationMessage {
   isSystemMessage: boolean;
   createdAt: string;
   updatedAt: string;
+  reactions?: MessageReactionSummary[];
   author?: {
     id: string;
     email: string;
@@ -163,6 +170,11 @@ class MessagingSocketService {
       this.emit('conversation:read:confirmed', data);
     });
 
+    // Reaction events
+    this.socket.on('conversation:reaction:updated', (data: { messageId: string; reactions: MessageReactionSummary[]; updatedBy: string }) => {
+      this.emit('conversation:reaction:updated', data);
+    });
+
     // Notification events
     this.socket.on('notification:new', (notification: Notification) => {
       this.emit('notification:new', notification);
@@ -229,6 +241,28 @@ class MessagingSocketService {
   deleteMessage(conversationId: string, messageId: string): void {
     if (!this.socket?.connected) return;
     this.socket.emit('conversation:message:delete', { conversationId, messageId });
+  }
+
+  // ========================================
+  // REACTIONS
+  // ========================================
+
+  addReaction(
+    messageId: string,
+    emoji: string,
+    callback?: (response: { ok: boolean; reactions?: MessageReactionSummary[]; error?: string }) => void
+  ): void {
+    if (!this.socket?.connected) return;
+    this.socket.emit('conversation:reaction:add', { messageId, emoji }, callback);
+  }
+
+  removeReaction(
+    messageId: string,
+    emoji: string,
+    callback?: (response: { ok: boolean; reactions?: MessageReactionSummary[]; error?: string }) => void
+  ): void {
+    if (!this.socket?.connected) return;
+    this.socket.emit('conversation:reaction:remove', { messageId, emoji }, callback);
   }
 
   // ========================================
