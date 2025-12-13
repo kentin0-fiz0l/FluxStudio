@@ -21,7 +21,15 @@ import {
 interface TypingUser {
   userId: string;
   userEmail: string;
+  userName?: string;
+  avatarUrl?: string | null;
   conversationId: string;
+}
+
+interface ThreadSummary {
+  threadRootMessageId: string;
+  replyCount: number;
+  lastReplyAt?: string;
 }
 
 interface ReadReceipt {
@@ -386,17 +394,37 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
       })
     );
 
-    // Typing indicators
+    // Typing indicators (enhanced with user info)
     unsubscribers.push(
       messagingSocketService.on('conversation:user-typing', (data: unknown) => {
-        const typedData = data as { conversationId: string; userId: string; userEmail: string };
+        const typedData = data as {
+          conversationId: string;
+          userId: string;
+          userEmail: string;
+          userName?: string;
+          avatarUrl?: string | null;
+          isTyping: boolean;
+        };
         setTypingUsers(prev => {
+          // Don't add if already in list
           if (prev.some(u => u.userId === typedData.userId)) return prev;
-          return [...prev, typedData];
+          return [...prev, {
+            userId: typedData.userId,
+            userEmail: typedData.userEmail,
+            userName: typedData.userName || typedData.userEmail?.split('@')[0],
+            avatarUrl: typedData.avatarUrl,
+            conversationId: typedData.conversationId
+          }];
         });
-        onTypingStart?.(typedData);
+        onTypingStart?.({
+          userId: typedData.userId,
+          userEmail: typedData.userEmail,
+          userName: typedData.userName,
+          avatarUrl: typedData.avatarUrl,
+          conversationId: typedData.conversationId
+        });
 
-        // Auto-remove after 3 seconds if no stop event
+        // Auto-remove after 5 seconds if no stop event
         const timeoutKey = `${typedData.conversationId}:${typedData.userId}`;
         const existingTimeout = typingTimeouts.current.get(timeoutKey);
         if (existingTimeout) clearTimeout(existingTimeout);
@@ -404,7 +432,7 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
         typingTimeouts.current.set(timeoutKey, setTimeout(() => {
           setTypingUsers(prev => prev.filter(u => u.userId !== typedData.userId));
           typingTimeouts.current.delete(timeoutKey);
-        }, 3000));
+        }, 5000));
       })
     );
 

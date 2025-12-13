@@ -17,6 +17,7 @@ export interface ConversationMessage {
   authorId: string;
   content: string;
   replyToMessageId?: string;
+  threadRootMessageId?: string;
   assetId?: string;
   projectId?: string;
   isSystemMessage: boolean;
@@ -30,6 +31,9 @@ export interface ConversationMessage {
     email: string;
     displayName?: string;
   };
+  // Thread summary (when applicable)
+  threadReplyCount?: number;
+  threadLastReplyAt?: string;
 }
 
 export interface Conversation {
@@ -167,13 +171,42 @@ class MessagingSocketService {
       this.emit('conversation:message:deleted', data);
     });
 
-    // Typing events
-    this.socket.on('conversation:user-typing', (data: { conversationId: string; userId: string; userEmail: string }) => {
+    // Typing events (enhanced with user info)
+    this.socket.on('conversation:user-typing', (data: {
+      conversationId: string;
+      userId: string;
+      userEmail: string;
+      userName?: string;
+      avatarUrl?: string | null;
+      isTyping: boolean;
+    }) => {
       this.emit('conversation:user-typing', data);
     });
 
-    this.socket.on('conversation:user-stopped-typing', (data: { conversationId: string; userId: string }) => {
+    this.socket.on('conversation:user-stopped-typing', (data: {
+      conversationId: string;
+      userId: string;
+      isTyping: boolean;
+    }) => {
       this.emit('conversation:user-stopped-typing', data);
+    });
+
+    // Thread events
+    this.socket.on('conversation:thread:message:new', (data: {
+      conversationId: string;
+      threadRootMessageId: string;
+      message: ConversationMessage;
+    }) => {
+      this.emit('conversation:thread:message:new', data);
+    });
+
+    this.socket.on('conversation:thread:summary:update', (data: {
+      conversationId: string;
+      threadRootMessageId: string;
+      replyCount: number;
+      lastReplyAt: string;
+    }) => {
+      this.emit('conversation:thread:summary:update', data);
     });
 
     // Read receipt events

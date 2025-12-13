@@ -357,19 +357,34 @@ class MessagingConversationsAdapter {
     text,
     assetId = null,
     replyToMessageId = null,
+    threadRootMessageId = null,
     projectId = null,
     isSystemMessage = false
   }) {
     const messageId = uuidv4();
+
+    // If replying to a message, determine the thread root
+    let effectiveThreadRoot = threadRootMessageId;
+    if (replyToMessageId && !threadRootMessageId) {
+      // Check if the parent message is in a thread
+      const parentResult = await query(`
+        SELECT id, thread_root_message_id FROM messages WHERE id = $1
+      `, [replyToMessageId]);
+      if (parentResult.rows.length > 0) {
+        const parent = parentResult.rows[0];
+        // If parent is in a thread, use its root; otherwise parent becomes the root
+        effectiveThreadRoot = parent.thread_root_message_id || parent.id;
+      }
+    }
 
     return await transaction(async (client) => {
       // Insert message
       const msgResult = await client.query(`
         INSERT INTO messages (
           id, user_id, conversation_id, text, asset_id,
-          reply_to_message_id, project_id, is_system_message, created_at
+          reply_to_message_id, thread_root_message_id, project_id, is_system_message, created_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
         RETURNING *
       `, [
         messageId,
@@ -378,6 +393,7 @@ class MessagingConversationsAdapter {
         text,
         assetId,
         replyToMessageId,
+        effectiveThreadRoot,
         projectId,
         isSystemMessage
       ]);
@@ -1041,6 +1057,194 @@ class MessagingConversationsAdapter {
     return parseInt(result.rows[0].count, 10) || 0;
   }
 
+  // ==================== User Helpers ====================
+
+  /**
+   * Get user by ID (for typing indicators, etc.)
+   *
+   * @param {string} userId
+   * @returns {Object|null} User object with id, name, email, avatar_url
+   */
+  async getUserById(userId) {
+    if (!userId) return null;
+    const result = await query(`
+      SELECT id, name, email, avatar_url
+      FROM users
+      WHERE id = $1
+    `, [userId]);
+    return result.rows[0] || null;
+  }
+
+  // ==================== Read State Helpers ====================
+
+  /**
+   * Get read states for all members of a conversation
+   *
+   * @param {Object} params
+   * @param {string} params.conversationId
+   * @returns {Array} Array of { userId, userName, avatarUrl, lastReadMessageId }
+   */
+  async getConversationReadStates({ conversationId }) {
+    const result = await query(`
+      SELECT
+        cm.user_id,
+        cm.last_read_message_id,
+        u.name as user_name,
+        u.avatar_url
+      FROM conversation_members cm
+      LEFT JOIN users u ON cm.user_id = u.id
+      WHERE cm.conversation_id = $1
+    `, [conversationId]);
+
+    return result.rows.map(row => ({
+      userId: row.user_id,
+      userName: row.user_name,
+      avatarUrl: row.avatar_url,
+      lastReadMessageId: row.last_read_message_id
+    }));
+  }
+
+  /**
+   * Update the last read message for a user in a conversation
+   * (enhanced version of setLastRead with timestamp)
+   *
+   * @param {Object} params
+   * @param {string} params.conversationId
+   * @param {string} params.userId
+   * @param {string} params.messageId
+   * @returns {Object} Updated read state
+   */
+  async updateReadState({ conversationId, userId, messageId }) {
+    const result = await query(`
+      UPDATE conversation_members
+      SET last_read_message_id = $1
+      WHERE conversation_id = $2 AND user_id = $3
+      RETURNING *
+    `, [messageId, conversationId, userId]);
+
+    if (result.rows.length === 0) return null;
+
+    // Get user info
+    const userResult = await query(`
+      SELECT name, avatar_url FROM users WHERE id = $1
+    `, [userId]);
+    const userInfo = userResult.rows[0] || {};
+
+    return {
+      userId,
+      userName: userInfo.name,
+      avatarUrl: userInfo.avatar_url,
+      lastReadMessageId: messageId,
+      conversationId
+    };
+  }
+
+  // ==================== Thread Helpers ====================
+
+  /**
+   * List messages in a thread
+   *
+   * @param {Object} params
+   * @param {string} params.conversationId
+   * @param {string} params.threadRootMessageId
+   * @param {string} params.userId - For membership verification
+   * @param {number} [params.limit=50]
+   * @returns {Object} { rootMessage, messages, replyCount }
+   */
+  async listThreadMessages({ conversationId, threadRootMessageId, userId, limit = 50 }) {
+    // Verify membership
+    const memberCheck = await query(`
+      SELECT 1 FROM conversation_members
+      WHERE conversation_id = $1 AND user_id = $2
+    `, [conversationId, userId]);
+    if (memberCheck.rows.length === 0) return null;
+
+    // Get root message
+    const rootResult = await query(`
+      SELECT m.*, u.name as user_name, u.avatar_url as user_avatar
+      FROM messages m
+      LEFT JOIN users u ON m.user_id = u.id
+      WHERE m.id = $1 AND m.conversation_id = $2
+    `, [threadRootMessageId, conversationId]);
+
+    if (rootResult.rows.length === 0) return null;
+    const rootMessage = this._transformMessage(rootResult.rows[0]);
+
+    // Get thread replies
+    const repliesResult = await query(`
+      SELECT m.*, u.name as user_name, u.avatar_url as user_avatar
+      FROM messages m
+      LEFT JOIN users u ON m.user_id = u.id
+      WHERE m.conversation_id = $1
+        AND (m.thread_root_message_id = $2 OR m.reply_to_message_id = $2)
+        AND m.id != $2
+      ORDER BY m.created_at ASC
+      LIMIT $3
+    `, [conversationId, threadRootMessageId, limit]);
+
+    const messages = repliesResult.rows.map(row => this._transformMessage(row));
+
+    // Get reply count
+    const countResult = await query(`
+      SELECT COUNT(*) as count
+      FROM messages
+      WHERE conversation_id = $1
+        AND (thread_root_message_id = $2 OR reply_to_message_id = $2)
+        AND id != $2
+    `, [conversationId, threadRootMessageId]);
+
+    return {
+      rootMessage,
+      messages,
+      replyCount: parseInt(countResult.rows[0].count, 10) || 0
+    };
+  }
+
+  /**
+   * Get thread summary for a message
+   *
+   * @param {Object} params
+   * @param {string} params.conversationId
+   * @param {string} params.threadRootMessageId
+   * @returns {Object} { replyCount, lastReplyAt, participants }
+   */
+  async getThreadSummary({ conversationId, threadRootMessageId }) {
+    const result = await query(`
+      SELECT
+        COUNT(*) as reply_count,
+        MAX(m.created_at) as last_reply_at,
+        ARRAY_AGG(DISTINCT m.user_id) as participant_ids
+      FROM messages m
+      WHERE m.conversation_id = $1
+        AND (m.thread_root_message_id = $2 OR m.reply_to_message_id = $2)
+        AND m.id != $2
+    `, [conversationId, threadRootMessageId]);
+
+    const row = result.rows[0];
+    const participantIds = row.participant_ids?.filter(id => id) || [];
+
+    // Get participant info
+    let participants = [];
+    if (participantIds.length > 0) {
+      const usersResult = await query(`
+        SELECT id, name, avatar_url
+        FROM users
+        WHERE id = ANY($1)
+      `, [participantIds]);
+      participants = usersResult.rows.map(u => ({
+        userId: u.id,
+        userName: u.name,
+        avatarUrl: u.avatar_url
+      }));
+    }
+
+    return {
+      replyCount: parseInt(row.reply_count, 10) || 0,
+      lastReplyAt: row.last_reply_at,
+      participants
+    };
+  }
+
   // ==================== Transform Helpers ====================
 
   _transformConversation(row) {
@@ -1076,6 +1280,7 @@ class MessagingConversationsAdapter {
       text: row.text,
       assetId: row.asset_id,
       replyToMessageId: row.reply_to_message_id,
+      threadRootMessageId: row.thread_root_message_id || null,
       projectId: row.project_id,
       isSystemMessage: row.is_system_message,
       createdAt: row.created_at,

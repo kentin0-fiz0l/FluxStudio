@@ -3938,6 +3938,149 @@ app.get('/api/messages/search', authenticateToken, async (req, res) => {
   }
 });
 
+// ----- Read Receipts -----
+
+// 10j. GET /api/conversations/:conversationId/read-states - Get read states for all members
+app.get('/api/conversations/:conversationId/read-states', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { conversationId } = req.params;
+
+    // Verify membership
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+    if (!conversation) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    const readStates = await messagingConversationsAdapter.getConversationReadStates({ conversationId });
+
+    return res.json({
+      success: true,
+      readStates,
+      conversationId
+    });
+  } catch (error) {
+    console.error('Error fetching read states:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch read states' });
+  }
+});
+
+// 10k. POST /api/conversations/:conversationId/read - Mark conversation as read
+app.post('/api/conversations/:conversationId/read', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { conversationId } = req.params;
+    const { lastReadMessageId } = req.body;
+
+    if (!lastReadMessageId) {
+      return res.status(400).json({ success: false, error: 'lastReadMessageId is required' });
+    }
+
+    // Verify membership
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+    if (!conversation) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    const readState = await messagingConversationsAdapter.updateReadState({
+      conversationId,
+      userId,
+      messageId: lastReadMessageId
+    });
+
+    // Broadcast read receipt via WebSocket
+    if (messagingNamespace) {
+      messagingNamespace.to(`conversation:${conversationId}`).emit('conversation:read-receipt', {
+        conversationId,
+        userId,
+        userName: readState?.userName,
+        avatarUrl: readState?.avatarUrl,
+        lastReadMessageId
+      });
+    }
+
+    return res.json({
+      success: true,
+      readState
+    });
+  } catch (error) {
+    console.error('Error marking conversation as read:', error);
+    return res.status(500).json({ success: false, error: 'Failed to mark as read' });
+  }
+});
+
+// ----- Threads -----
+
+// 10l. GET /api/conversations/:conversationId/threads/:threadRootMessageId/messages
+app.get('/api/conversations/:conversationId/threads/:threadRootMessageId/messages', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { conversationId, threadRootMessageId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+
+    const result = await messagingConversationsAdapter.listThreadMessages({
+      conversationId,
+      threadRootMessageId,
+      userId,
+      limit
+    });
+
+    if (!result) {
+      return res.status(404).json({ success: false, error: 'Thread not found or access denied' });
+    }
+
+    return res.json({
+      success: true,
+      rootMessage: result.rootMessage,
+      messages: result.messages,
+      replyCount: result.replyCount,
+      conversationId,
+      threadRootMessageId
+    });
+  } catch (error) {
+    console.error('Error fetching thread messages:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch thread messages' });
+  }
+});
+
+// 10m. GET /api/conversations/:conversationId/threads/:threadRootMessageId/summary
+app.get('/api/conversations/:conversationId/threads/:threadRootMessageId/summary', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { conversationId, threadRootMessageId } = req.params;
+
+    // Verify membership
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+    if (!conversation) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    const summary = await messagingConversationsAdapter.getThreadSummary({
+      conversationId,
+      threadRootMessageId
+    });
+
+    return res.json({
+      success: true,
+      summary,
+      conversationId,
+      threadRootMessageId
+    });
+  } catch (error) {
+    console.error('Error fetching thread summary:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch thread summary' });
+  }
+});
+
 // ----- Notifications -----
 
 // 11. GET /api/notifications - List notifications for current user
