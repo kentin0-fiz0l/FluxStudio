@@ -18,6 +18,7 @@ import { performanceMonitoring } from './services/performanceMonitoring';
 import { apiService } from './services/apiService';
 import { lazyLoadWithRetry, DefaultLoadingFallback } from './utils/lazyLoad';
 import { queryClient } from './lib/queryClient';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Critical pages - loaded immediately
 import { SimpleHomePage } from './pages/SimpleHomePage';
@@ -125,40 +126,40 @@ function AuthenticatedRoutes() {
                   <Route path="/auth/callback/slack" element={<OAuthCallback provider="slack" />} />
                   <Route path="/auth/callback/github" element={<OAuthCallback provider="github" />} />
 
-                  {/* Redesigned Page Routes (Flux Design Language) */}
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/organization" element={<OrganizationNew />} />
-                  <Route path="/team" element={<TeamNew />} />
-                  <Route path="/file" element={<FileNew />} />
-                  <Route path="/assets" element={<Assets />} />
-                  <Route path="/projects" element={<ProjectsNew />} />
-                  <Route path="/projects/:id" element={<ProjectDetail />} />
-                  <Route path="/boards/:boardId" element={<DesignBoardPage />} />
-                  <Route path="/messages" element={<MessagesNew />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/connectors" element={<Connectors />} />
-                  <Route path="/tools" element={<Tools />} />
-                  <Route path="/tools/metmap" element={<ToolsMetMap />} />
-                  <Route path="/tools/files" element={<ToolsFiles />} />
-                  <Route path="/tools/assets" element={<ToolsAssets />} />
+                  {/* Redesigned Page Routes (Flux Design Language) - Protected */}
+                  <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                  <Route path="/organization" element={<ProtectedRoute><OrganizationNew /></ProtectedRoute>} />
+                  <Route path="/team" element={<ProtectedRoute><TeamNew /></ProtectedRoute>} />
+                  <Route path="/file" element={<ProtectedRoute><FileNew /></ProtectedRoute>} />
+                  <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
+                  <Route path="/projects" element={<ProtectedRoute><ProjectsNew /></ProtectedRoute>} />
+                  <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
+                  <Route path="/boards/:boardId" element={<ProtectedRoute><DesignBoardPage /></ProtectedRoute>} />
+                  <Route path="/messages" element={<ProtectedRoute><MessagesNew /></ProtectedRoute>} />
+                  <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                  <Route path="/connectors" element={<ProtectedRoute><Connectors /></ProtectedRoute>} />
+                  <Route path="/tools" element={<ProtectedRoute><Tools /></ProtectedRoute>} />
+                  <Route path="/tools/metmap" element={<ProtectedRoute><ToolsMetMap /></ProtectedRoute>} />
+                  <Route path="/tools/files" element={<ProtectedRoute><ToolsFiles /></ProtectedRoute>} />
+                  <Route path="/tools/assets" element={<ProtectedRoute><ToolsAssets /></ProtectedRoute>} />
 
-                  {/* Legacy routes for backward compatibility */}
-                  <Route path="/organization/legacy" element={<OrganizationPage />} />
-                  <Route path="/team/legacy" element={<TeamPage />} />
-                  <Route path="/file/legacy" element={<FilePage />} />
-                  <Route path="/messages/legacy" element={<MessagesPage />} />
+                  {/* Legacy routes for backward compatibility - Protected */}
+                  <Route path="/organization/legacy" element={<ProtectedRoute><OrganizationPage /></ProtectedRoute>} />
+                  <Route path="/team/legacy" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
+                  <Route path="/file/legacy" element={<ProtectedRoute><FilePage /></ProtectedRoute>} />
+                  <Route path="/messages/legacy" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
 
-                  {/* Unified Dashboard - adapts to user role and context */}
-                  <Route path="/dashboard" element={<AdaptiveDashboard />} />
-                  <Route path="/dashboard/unified" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/dashboard/client" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/dashboard/designer" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/dashboard/admin" element={<Navigate to="/dashboard" replace />} />
+                  {/* Unified Dashboard - adapts to user role and context - Protected */}
+                  <Route path="/dashboard" element={<ProtectedRoute><AdaptiveDashboard /></ProtectedRoute>} />
+                  <Route path="/dashboard/unified" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
+                  <Route path="/dashboard/client" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
+                  <Route path="/dashboard/designer" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
+                  <Route path="/dashboard/admin" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
 
-                  {/* Core Platform Features */}
-                  <Route path="/onboarding" element={<ClientOnboarding />} />
+                  {/* Core Platform Features - Protected */}
+                  <Route path="/onboarding" element={<ProtectedRoute><ClientOnboarding /></ProtectedRoute>} />
                   {/* TODO: These routes need wrapper components to extract route params and fetch data
                   <Route path="/dashboard/projects/:projectId/workflow" element={<ProjectWorkflow />} />
                   <Route path="/dashboard/projects/:projectId/review" element={<DesignReviewWorkflow />} />
@@ -169,24 +170,24 @@ function AuthenticatedRoutes() {
                   <Route path="/dashboard/team" element={<TeamManagement />} />
                   */}
 
-                  {/* Messaging with redesigned interface */}
-                  <Route path="/dashboard/messages" element={<MessagesNew />} />
+                  {/* Messaging with redesigned interface - Protected */}
+                  <Route path="/dashboard/messages" element={<ProtectedRoute><MessagesNew /></ProtectedRoute>} />
 
-                  {/* Organization Hierarchy Routes */}
-                  <Route path="/dashboard/organizations" element={<OrganizationDashboard />} />
-                  <Route path="/dashboard/organizations/create" element={<CreateOrganization />} />
-                  <Route path="/dashboard/organization/:organizationId" element={<OrganizationDashboard />} />
-                  <Route path="/dashboard/organization/:organizationId/team/:teamId" element={<TeamDashboard />} />
-                  <Route path="/dashboard/organization/:organizationId/team/:teamId/project/:projectId" element={<ProjectDashboard />} />
-                  <Route path="/dashboard/organization/:organizationId/project/:projectId" element={<ProjectDashboard />} />
+                  {/* Organization Hierarchy Routes - Protected */}
+                  <Route path="/dashboard/organizations" element={<ProtectedRoute><OrganizationDashboard /></ProtectedRoute>} />
+                  <Route path="/dashboard/organizations/create" element={<ProtectedRoute><CreateOrganization /></ProtectedRoute>} />
+                  <Route path="/dashboard/organization/:organizationId" element={<ProtectedRoute><OrganizationDashboard /></ProtectedRoute>} />
+                  <Route path="/dashboard/organization/:organizationId/team/:teamId" element={<ProtectedRoute><TeamDashboard /></ProtectedRoute>} />
+                  <Route path="/dashboard/organization/:organizationId/team/:teamId/project/:projectId" element={<ProtectedRoute><ProjectDashboard /></ProtectedRoute>} />
+                  <Route path="/dashboard/organization/:organizationId/project/:projectId" element={<ProtectedRoute><ProjectDashboard /></ProtectedRoute>} />
 
-                  {/* Direct access routes */}
-                  <Route path="/dashboard/teams/:teamId" element={<TeamDashboard />} />
-                  <Route path="/dashboard/projects/:projectId" element={<ProjectDashboard />} />
+                  {/* Direct access routes - Protected */}
+                  <Route path="/dashboard/teams/:teamId" element={<ProtectedRoute><TeamDashboard /></ProtectedRoute>} />
+                  <Route path="/dashboard/projects/:projectId" element={<ProtectedRoute><ProjectDashboard /></ProtectedRoute>} />
 
-                  {/* FluxPrint Integration - 3D Printing */}
-                  <Route path="/printing" element={<PrintingDashboard />} />
-                  <Route path="/dashboard/printing" element={<PrintingDashboard />} />
+                  {/* FluxPrint Integration - 3D Printing - Protected */}
+                  <Route path="/printing" element={<ProtectedRoute><PrintingDashboard /></ProtectedRoute>} />
+                  <Route path="/dashboard/printing" element={<ProtectedRoute><PrintingDashboard /></ProtectedRoute>} />
                   </Routes>
                 </Suspense>
                 {/* Global Toast Notifications */}
