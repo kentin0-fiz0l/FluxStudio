@@ -948,60 +948,83 @@ class MessagingConversationsAdapter {
   // ==================== Notification Methods ====================
 
   /**
-   * Create a notification for a user
+   * Create a notification for a user (v2 with enhanced fields)
    *
    * @param {Object} params
-   * @param {string} params.userId
-   * @param {string} params.type - Notification type (e.g., 'message', 'mention', 'task_assigned')
-   * @param {string} [params.entityId] - Related entity ID
-   * @param {string} params.title
-   * @param {string} [params.body]
+   * @param {string} params.userId - Recipient user ID
+   * @param {string} params.type - Notification type: 'mention' | 'reply' | 'thread_reply' | 'file_shared'
+   * @param {string} params.title - Short notification title
+   * @param {string} [params.body] - Optional longer description
+   * @param {string} [params.actorUserId] - User who triggered the notification
+   * @param {string} [params.conversationId] - For deep linking to conversation
+   * @param {string} [params.messageId] - For deep linking to message
+   * @param {string} [params.threadRootMessageId] - For opening thread panel
+   * @param {string} [params.assetId] - For file_shared notifications
+   * @param {Object} [params.metadata] - Additional metadata
+   * @param {string} [params.entityId] - Legacy: related entity ID
    * @returns {Object} Created notification
    */
-  async createNotification({ userId, type, entityId = null, title, body = null }) {
+  async createNotification({
+    userId,
+    type,
+    title,
+    body = null,
+    actorUserId = null,
+    conversationId = null,
+    messageId = null,
+    threadRootMessageId = null,
+    assetId = null,
+    metadata = {},
+    entityId = null
+  }) {
     const id = uuidv4();
 
     const result = await query(`
-      INSERT INTO notifications (id, user_id, type, entity_id, title, body, is_read, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, FALSE, NOW())
+      INSERT INTO notifications (
+        id, user_id, type, entity_id, title, body, is_read, created_at,
+        actor_user_id, conversation_id, message_id, thread_root_message_id, asset_id, metadata_json
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, FALSE, NOW(), $7, $8, $9, $10, $11, $12)
       RETURNING *
-    `, [id, userId, type, entityId, title, body]);
+    `, [
+      id, userId, type, entityId, title, body,
+      actorUserId, conversationId, messageId, threadRootMessageId, assetId,
+      JSON.stringify(metadata)
+    ]);
 
     return this._transformNotification(result.rows[0]);
   }
 
   /**
-   * List notifications for a user
+   * List notifications for a user with actor info
    *
    * @param {Object} params
    * @param {string} params.userId
-   * @param {number} [params.limit=50]
+   * @param {number} [params.limit=20]
    * @param {number} [params.offset=0]
    * @param {boolean} [params.onlyUnread=false]
-   * @returns {Array} Array of notifications
+   * @returns {Array} Array of notifications with actor details
    */
-  async listNotifications({ userId, limit = 50, offset = 0, onlyUnread = false }) {
-    let queryText;
-    let params;
+  async listNotifications({ userId, limit = 20, offset = 0, onlyUnread = false }) {
+    const whereClause = onlyUnread
+      ? 'WHERE n.user_id = $1 AND n.is_read = FALSE'
+      : 'WHERE n.user_id = $1';
 
-    if (onlyUnread) {
-      queryText = `
-        SELECT * FROM notifications
-        WHERE user_id = $1 AND is_read = FALSE
-        ORDER BY created_at DESC
-        LIMIT $2 OFFSET $3
-      `;
-    } else {
-      queryText = `
-        SELECT * FROM notifications
-        WHERE user_id = $1
-        ORDER BY created_at DESC
-        LIMIT $2 OFFSET $3
-      `;
-    }
+    const queryText = `
+      SELECT
+        n.*,
+        u.id as actor_id,
+        u.name as actor_name,
+        u.email as actor_email,
+        u.avatar_url as actor_avatar
+      FROM notifications n
+      LEFT JOIN users u ON n.actor_user_id = u.id
+      ${whereClause}
+      ORDER BY n.created_at DESC
+      LIMIT $2 OFFSET $3
+    `;
 
-    params = [userId, limit, offset];
-    const result = await query(queryText, params);
+    const result = await query(queryText, [userId, limit, offset]);
     return result.rows.map(row => this._transformNotification(row));
   }
 
@@ -1011,16 +1034,17 @@ class MessagingConversationsAdapter {
    * @param {Object} params
    * @param {string} params.notificationId
    * @param {string} params.userId - Must own the notification
-   * @returns {boolean} True if updated
+   * @returns {Object|null} Updated notification or null if not found
    */
   async markNotificationRead({ notificationId, userId }) {
     const result = await query(`
       UPDATE notifications
-      SET is_read = TRUE
+      SET is_read = TRUE, read_at = NOW()
       WHERE id = $1 AND user_id = $2
+      RETURNING *
     `, [notificationId, userId]);
 
-    return result.rowCount > 0;
+    return result.rows[0] ? this._transformNotification(result.rows[0]) : null;
   }
 
   /**
@@ -1033,7 +1057,7 @@ class MessagingConversationsAdapter {
   async markAllNotificationsRead({ userId }) {
     const result = await query(`
       UPDATE notifications
-      SET is_read = TRUE
+      SET is_read = TRUE, read_at = NOW()
       WHERE user_id = $1 AND is_read = FALSE
     `, [userId]);
 
@@ -1424,7 +1448,7 @@ class MessagingConversationsAdapter {
 
   _transformNotification(row) {
     if (!row) return null;
-    return {
+    const notification = {
       id: row.id,
       userId: row.user_id,
       type: row.type,
@@ -1432,8 +1456,28 @@ class MessagingConversationsAdapter {
       title: row.title,
       body: row.body,
       isRead: row.is_read,
-      createdAt: row.created_at
+      readAt: row.read_at,
+      createdAt: row.created_at,
+      // New v2 fields
+      actorUserId: row.actor_user_id,
+      conversationId: row.conversation_id,
+      messageId: row.message_id,
+      threadRootMessageId: row.thread_root_message_id,
+      assetId: row.asset_id,
+      metadata: row.metadata_json || {}
     };
+
+    // Include actor details if joined from users table
+    if (row.actor_id) {
+      notification.actor = {
+        id: row.actor_id,
+        name: row.actor_name,
+        email: row.actor_email,
+        avatarUrl: row.actor_avatar
+      };
+    }
+
+    return notification;
   }
 }
 
