@@ -184,8 +184,18 @@ function SectionRow({
         type="text"
         value={section.name}
         onChange={(e) => onUpdate({ name: e.target.value })}
+        onBlur={(e) => {
+          // Ensure section name is never empty
+          const trimmed = e.target.value.trim();
+          if (!trimmed) {
+            onUpdate({ name: `Section ${index + 1}` });
+          } else if (trimmed !== e.target.value) {
+            onUpdate({ name: trimmed });
+          }
+        }}
         className="w-32 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
         aria-label="Section name"
+        maxLength={50}
       />
 
       {/* Bars */}
@@ -194,9 +204,21 @@ function SectionRow({
         <input
           type="number"
           value={section.bars}
-          onChange={(e) => onUpdate({ bars: Math.max(1, parseInt(e.target.value) || 1) })}
+          onChange={(e) => {
+            const val = parseInt(e.target.value);
+            if (!isNaN(val)) {
+              onUpdate({ bars: Math.max(1, Math.min(999, val)) });
+            }
+          }}
+          onBlur={(e) => {
+            const val = parseInt(e.target.value);
+            if (isNaN(val) || val < 1) {
+              onUpdate({ bars: 4 }); // Default to 4 bars
+            }
+          }}
           className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
           min="1"
+          max="999"
           aria-label="Number of bars"
         />
       </div>
@@ -219,7 +241,18 @@ function SectionRow({
         <input
           type="number"
           value={section.tempoStart}
-          onChange={(e) => onUpdate({ tempoStart: Math.max(20, Math.min(300, parseInt(e.target.value) || 120)) })}
+          onChange={(e) => {
+            const val = parseInt(e.target.value);
+            if (!isNaN(val)) {
+              onUpdate({ tempoStart: Math.max(20, Math.min(300, val)) });
+            }
+          }}
+          onBlur={(e) => {
+            const val = parseInt(e.target.value);
+            if (isNaN(val) || val < 20 || val > 300) {
+              onUpdate({ tempoStart: 120 }); // Default to 120 BPM
+            }
+          }}
           className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
           min="20"
           max="300"
@@ -251,7 +284,18 @@ function SectionRow({
           <input
             type="number"
             value={section.tempoEnd || section.tempoStart}
-            onChange={(e) => onUpdate({ tempoEnd: Math.max(20, Math.min(300, parseInt(e.target.value) || section.tempoStart)) })}
+            onChange={(e) => {
+              const val = parseInt(e.target.value);
+              if (!isNaN(val)) {
+                onUpdate({ tempoEnd: Math.max(20, Math.min(300, val)) });
+              }
+            }}
+            onBlur={(e) => {
+              const val = parseInt(e.target.value);
+              if (isNaN(val) || val < 20 || val > 300) {
+                onUpdate({ tempoEnd: section.tempoStart }); // Default to start tempo
+              }
+            }}
             className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             min="20"
             max="300"
