@@ -17,6 +17,7 @@ import { AssetsProvider } from './contexts/AssetsContext';
 import { MetMapProvider } from './contexts/MetMapContext';
 import { ToastContainer } from './components/notifications/ToastContainer';
 import { ProjectContextBar } from './components/projects/ProjectContextBar';
+import { MomentumCapture } from './components/momentum/MomentumCapture';
 import { QuickActions, useQuickActions } from './components/pulse/QuickActions';
 import ErrorBoundary, {
   FilesErrorBoundary,
@@ -137,6 +138,8 @@ function AuthenticatedRoutes() {
                       <MetMapProvider>
                 {/* Project Context Bar - shows when a project is focused */}
                 <ProjectContextBar />
+                {/* Work Momentum - passive context capture */}
+                <MomentumCapture />
                 {/* Global Quick Actions - Cmd/Ctrl+K to open */}
                 <GlobalQuickActions>
                 <Suspense fallback={<DefaultLoadingFallback />}>
