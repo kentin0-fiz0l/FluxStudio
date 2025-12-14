@@ -72,6 +72,149 @@ const priorityVariants: Record<NotificationPriority, string> = {
 };
 
 type FilterType = 'all' | 'unread' | 'read';
+type GroupType = 'none' | 'intent';
+
+// Intent groups for notification grouping
+const intentGroups: Record<string, { label: string; types: NotificationType[] }> = {
+  mentions: {
+    label: 'Mentions',
+    types: ['message_mention'],
+  },
+  replies: {
+    label: 'Replies',
+    types: ['message_reply'],
+  },
+  files: {
+    label: 'Files',
+    types: ['project_file_uploaded'],
+  },
+  projects: {
+    label: 'Projects',
+    types: ['project_member_added', 'project_status_changed'],
+  },
+  other: {
+    label: 'Other',
+    types: ['organization_alert', 'system', 'info', 'warning', 'error'],
+  },
+};
+
+// Get intent group for a notification type
+function getIntentGroup(type: NotificationType): string {
+  for (const [groupKey, group] of Object.entries(intentGroups)) {
+    if (group.types.includes(type)) {
+      return groupKey;
+    }
+  }
+  return 'other';
+}
+
+// Notification Item Component
+function NotificationItem({
+  notification,
+  typeColors,
+  typeIcons,
+  priorityVariants,
+  formatRelativeTime,
+  onNotificationClick,
+  onMarkAsRead,
+  onDelete,
+}: {
+  notification: Notification;
+  typeColors: Record<NotificationType, string>;
+  typeIcons: Record<NotificationType, React.ReactNode>;
+  priorityVariants: Record<NotificationPriority, string>;
+  formatRelativeTime: (date: string) => string;
+  onNotificationClick: (notification: Notification) => void;
+  onMarkAsRead: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <li
+      className={cn(
+        'border-b border-neutral-100 last:border-0 transition-colors',
+        !notification.isRead && 'bg-primary-50/30'
+      )}
+    >
+      <div className="flex items-start gap-4 p-4 hover:bg-neutral-50">
+        {/* Icon */}
+        <div
+          className={cn(
+            'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
+            typeColors[notification.type] || 'bg-neutral-100 text-neutral-600'
+          )}
+          aria-hidden="true"
+        >
+          {typeIcons[notification.type] || <Bell className="h-5 w-5" />}
+        </div>
+
+        {/* Content */}
+        <button
+          onClick={() => onNotificationClick(notification)}
+          className="flex-1 text-left min-w-0"
+          aria-label={`${notification.title}: ${notification.message}. ${!notification.isRead ? 'Unread.' : ''} ${formatRelativeTime(notification.createdAt)}`}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2">
+              {!notification.isRead && (
+                <div className="w-2 h-2 rounded-full bg-primary-600 flex-shrink-0" aria-label="Unread" />
+              )}
+              <h3 className="font-medium text-neutral-900">
+                {notification.title}
+              </h3>
+              {notification.priority === 'high' || notification.priority === 'urgent' ? (
+                <Badge variant={priorityVariants[notification.priority] as any} size="sm">
+                  {notification.priority}
+                </Badge>
+              ) : null}
+            </div>
+            <span className="text-xs text-neutral-500 whitespace-nowrap flex-shrink-0">
+              {formatRelativeTime(notification.createdAt)}
+            </span>
+          </div>
+          <p className="text-sm text-neutral-600 mt-1 line-clamp-2">
+            {notification.message}
+          </p>
+          {notification.actionUrl && (
+            <div className="flex items-center gap-1 text-sm text-primary-600 mt-2">
+              <span>View details</span>
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </div>
+          )}
+        </button>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {!notification.isRead && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMarkAsRead(notification.id);
+              }}
+              className="text-neutral-400 hover:text-primary-600"
+              aria-label={`Mark "${notification.title}" as read`}
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(notification.id);
+            }}
+            className="text-neutral-400 hover:text-error-600"
+            aria-label={`Delete notification: ${notification.title}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </li>
+  );
+}
 
 export default function Notifications() {
   const { user } = useAuth();
@@ -86,6 +229,7 @@ export default function Notifications() {
 
   const [filter, setFilter] = React.useState<FilterType>('all');
   const [selectedType, setSelectedType] = React.useState<NotificationType | 'all'>('all');
+  const [groupBy, setGroupBy] = React.useState<GroupType>('intent');
 
   // Format relative time
   const formatRelativeTime = (dateString: string) => {
@@ -137,6 +281,33 @@ export default function Notifications() {
     const types = new Set(state.notifications.map(n => n.type));
     return Array.from(types);
   }, [state.notifications]);
+
+  // Group notifications by intent
+  const groupedNotifications = React.useMemo(() => {
+    if (groupBy !== 'intent') return null;
+
+    const groups: Record<string, Notification[]> = {
+      mentions: [],
+      replies: [],
+      files: [],
+      projects: [],
+      other: [],
+    };
+
+    filteredNotifications.forEach((notification) => {
+      const group = getIntentGroup(notification.type);
+      groups[group].push(notification);
+    });
+
+    // Return only non-empty groups in order
+    return ['mentions', 'replies', 'files', 'projects', 'other']
+      .filter((key) => groups[key].length > 0)
+      .map((key) => ({
+        key,
+        label: intentGroups[key].label,
+        notifications: groups[key],
+      }));
+  }, [filteredNotifications, groupBy]);
 
   return (
     <DashboardLayout
@@ -227,6 +398,37 @@ export default function Notifications() {
                 </div>
               )}
 
+              {/* Group toggle */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-neutral-600">Group:</span>
+                <div className="flex rounded-lg border border-neutral-200 overflow-hidden" role="group" aria-label="Group notifications">
+                  <button
+                    onClick={() => setGroupBy('none')}
+                    className={cn(
+                      'px-3 py-1.5 text-sm font-medium transition-colors',
+                      groupBy === 'none'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-white text-neutral-600 hover:bg-neutral-50'
+                    )}
+                    aria-pressed={groupBy === 'none'}
+                  >
+                    None
+                  </button>
+                  <button
+                    onClick={() => setGroupBy('intent')}
+                    className={cn(
+                      'px-3 py-1.5 text-sm font-medium transition-colors',
+                      groupBy === 'intent'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-white text-neutral-600 hover:bg-neutral-50'
+                    )}
+                    aria-pressed={groupBy === 'intent'}
+                  >
+                    By Type
+                  </button>
+                </div>
+              </div>
+
               {/* Results count */}
               <span className="text-sm text-neutral-500 ml-auto">
                 {filteredNotifications.length} notification{filteredNotifications.length !== 1 ? 's' : ''}
@@ -244,95 +446,56 @@ export default function Notifications() {
                 <p className="text-sm text-neutral-500">Loading notifications...</p>
               </div>
             ) : filteredNotifications.length > 0 ? (
-              <ul role="list" aria-labelledby="notifications-page-heading">
-                {filteredNotifications.map((notification) => (
-                  <li
-                    key={notification.id}
-                    className={cn(
-                      'border-b border-neutral-100 last:border-0 transition-colors',
-                      !notification.isRead && 'bg-primary-50/30'
-                    )}
-                  >
-                    <div className="flex items-start gap-4 p-4 hover:bg-neutral-50">
-                      {/* Icon */}
-                      <div
-                        className={cn(
-                          'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
-                          typeColors[notification.type] || 'bg-neutral-100 text-neutral-600'
-                        )}
-                        aria-hidden="true"
-                      >
-                        {typeIcons[notification.type] || <Bell className="h-5 w-5" />}
+              groupBy === 'intent' && groupedNotifications ? (
+                // Grouped view
+                <div>
+                  {groupedNotifications.map((group) => (
+                    <div key={group.key}>
+                      {/* Group header */}
+                      <div className="px-4 py-2 bg-neutral-50 border-b border-neutral-100 sticky top-0">
+                        <h3 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                          {group.label}
+                          <Badge variant="default" size="sm">
+                            {group.notifications.length}
+                          </Badge>
+                        </h3>
                       </div>
-
-                      {/* Content */}
-                      <button
-                        onClick={() => handleNotificationClick(notification)}
-                        className="flex-1 text-left min-w-0"
-                        aria-label={`${notification.title}: ${notification.message}. ${!notification.isRead ? 'Unread.' : ''} ${formatRelativeTime(notification.createdAt)}`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            {!notification.isRead && (
-                              <div className="w-2 h-2 rounded-full bg-primary-600 flex-shrink-0" aria-label="Unread" />
-                            )}
-                            <h3 className="font-medium text-neutral-900">
-                              {notification.title}
-                            </h3>
-                            {notification.priority === 'high' || notification.priority === 'urgent' ? (
-                              <Badge variant={priorityVariants[notification.priority] as any} size="sm">
-                                {notification.priority}
-                              </Badge>
-                            ) : null}
-                          </div>
-                          <span className="text-xs text-neutral-500 whitespace-nowrap flex-shrink-0">
-                            {formatRelativeTime(notification.createdAt)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-neutral-600 mt-1 line-clamp-2">
-                          {notification.message}
-                        </p>
-                        {notification.actionUrl && (
-                          <div className="flex items-center gap-1 text-sm text-primary-600 mt-2">
-                            <span>View details</span>
-                            <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                          </div>
-                        )}
-                      </button>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {!notification.isRead && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              markAsRead(notification.id);
-                            }}
-                            className="text-neutral-400 hover:text-primary-600"
-                            aria-label={`Mark "${notification.title}" as read`}
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteNotification(notification.id);
-                          }}
-                          className="text-neutral-400 hover:text-error-600"
-                          aria-label={`Delete notification: ${notification.title}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <ul role="list">
+                        {group.notifications.map((notification) => (
+                          <NotificationItem
+                            key={notification.id}
+                            notification={notification}
+                            typeColors={typeColors}
+                            typeIcons={typeIcons}
+                            priorityVariants={priorityVariants}
+                            formatRelativeTime={formatRelativeTime}
+                            onNotificationClick={handleNotificationClick}
+                            onMarkAsRead={markAsRead}
+                            onDelete={deleteNotification}
+                          />
+                        ))}
+                      </ul>
                     </div>
-                  </li>
-                ))}
-              </ul>
+                  ))}
+                </div>
+              ) : (
+                // Ungrouped view
+                <ul role="list" aria-labelledby="notifications-page-heading">
+                  {filteredNotifications.map((notification) => (
+                    <NotificationItem
+                      key={notification.id}
+                      notification={notification}
+                      typeColors={typeColors}
+                      typeIcons={typeIcons}
+                      priorityVariants={priorityVariants}
+                      formatRelativeTime={formatRelativeTime}
+                      onNotificationClick={handleNotificationClick}
+                      onMarkAsRead={markAsRead}
+                      onDelete={deleteNotification}
+                    />
+                  ))}
+                </ul>
+              )
             ) : (
               <div className="p-12 text-center">
                 <Bell className="h-12 w-12 text-neutral-200 mx-auto mb-4" aria-hidden="true" />
