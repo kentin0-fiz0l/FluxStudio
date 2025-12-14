@@ -1,7 +1,7 @@
 /**
  * useProjectPulse - Real-time activity and attention data for focused project
  *
- * Aggregates data from multiple sources to provide:
+ * Fetches data from pulse API endpoints:
  * - Activity stream (recent events in project)
  * - Attention items (things needing user action)
  * - Unseen count (for badge indicator)
@@ -12,53 +12,55 @@
 
 import * as React from 'react';
 import { useActiveProject } from '@/contexts/ActiveProjectContext';
-import { useSession } from '@/contexts/SessionContext';
-import { useNotifications, Notification } from '@/contexts/NotificationContext';
-import { useTasks, Task } from '@/hooks/useTasks';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Activity item types
-export type ActivityType =
-  | 'message'
-  | 'task_created'
-  | 'task_completed'
-  | 'task_assigned'
-  | 'file_uploaded'
-  | 'member_joined'
-  | 'comment'
-  | 'mention';
-
+// Activity item from API
 export interface ActivityItem {
   id: string;
-  type: ActivityType;
-  title: string;
-  description?: string;
-  timestamp: Date;
-  actorName?: string;
-  actorAvatar?: string;
-  actionUrl?: string;
   projectId: string;
-  isNew?: boolean; // Since last seen
+  type: string;
+  actorUserId: string | null;
+  title: string;
+  entity: {
+    conversationId?: string;
+    messageId?: string;
+    fileId?: string;
+    assetId?: string;
+    boardId?: string;
+    notificationId?: string;
+  };
+  createdAt: string;
+  deepLink: string;
+  preview?: string;
+  isNew?: boolean;
 }
 
+// Attention item from API
 export interface AttentionItem {
   id: string;
-  type: 'mention' | 'assigned_task' | 'reply' | 'approval';
+  projectId: string;
+  reason: 'mention' | 'reply' | 'task_assigned';
   title: string;
   description?: string;
-  timestamp: Date;
+  entity: {
+    conversationId?: string;
+    messageId?: string;
+    taskId?: string;
+    notificationId?: string;
+  };
+  createdAt: string;
+  deepLink: string;
+  status: 'open' | 'resolved';
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  actionUrl?: string;
-  projectId: string;
 }
 
+// Team member presence
 export interface TeamMember {
-  id: string;
-  name: string;
+  userId: string;
+  userName: string;
   avatar?: string;
+  joinedAt: string;
   isOnline: boolean;
-  lastActivity?: string;
-  currentView?: string;
 }
 
 export interface ProjectPulseState {
@@ -76,6 +78,8 @@ export interface ProjectPulseState {
   error: string | null;
   /** Whether pulse is available (project is focused) */
   isAvailable: boolean;
+  /** Last seen timestamp */
+  lastSeenAt: string | null;
 }
 
 export interface UseProjectPulseReturn extends ProjectPulseState {
@@ -84,153 +88,139 @@ export interface UseProjectPulseReturn extends ProjectPulseState {
   /** Mark all items as seen */
   markAllSeen: () => void;
   /** Get attention items by type */
-  getAttentionByType: (type: AttentionItem['type']) => AttentionItem[];
+  getAttentionByType: (reason: AttentionItem['reason']) => AttentionItem[];
+}
+
+// API helper
+async function fetchPulseEndpoint<T>(
+  projectId: string,
+  endpoint: string,
+  options?: { method?: string; body?: unknown }
+): Promise<T> {
+  const token = localStorage.getItem('auth_token');
+  const response = await fetch(`/api/projects/${projectId}/pulse/${endpoint}`, {
+    method: options?.method || 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: options?.body ? JSON.stringify(options.body) : undefined,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Pulse API error: ${response.status}`);
+  }
+
+  return response.json();
 }
 
 export function useProjectPulse(): UseProjectPulseReturn {
   const { activeProject, hasFocus } = useActiveProject();
-  const { session, markAsSeen, getTimeSinceLastSeen } = useSession();
-  const { state: notificationState } = useNotifications();
-  const { tasks } = useTasks(activeProject?.id);
   const { user } = useAuth();
 
+  const [activityStream, setActivityStream] = React.useState<ActivityItem[]>([]);
+  const [attentionItems, setAttentionItems] = React.useState<AttentionItem[]>([]);
+  const [teamMembers, setTeamMembers] = React.useState<TeamMember[]>([]);
+  const [unseenCount, setUnseenCount] = React.useState(0);
+  const [lastSeenAt, setLastSeenAt] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  // Build activity stream from notifications
-  const activityStream = React.useMemo((): ActivityItem[] => {
-    if (!hasFocus || !activeProject) return [];
+  const projectId = activeProject?.id;
 
-    const lastSeenTime = session.lastSeenTimestamp
-      ? new Date(session.lastSeenTimestamp)
-      : null;
-
-    // Convert notifications to activity items
-    const activities: ActivityItem[] = notificationState.notifications
-      .filter((n) => n.projectId === activeProject.id)
-      .slice(0, 20) // Limit to recent 20
-      .map((notification): ActivityItem => {
-        const timestamp = new Date(notification.createdAt);
-        return {
-          id: notification.id,
-          type: mapNotificationToActivityType(notification.type),
-          title: notification.title,
-          description: notification.message,
-          timestamp,
-          actionUrl: notification.actionUrl || undefined,
-          projectId: activeProject.id,
-          isNew: lastSeenTime ? timestamp > lastSeenTime : true,
-        };
-      });
-
-    // Sort by timestamp descending
-    return activities.sort(
-      (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-    );
-  }, [hasFocus, activeProject, notificationState.notifications, session.lastSeenTimestamp]);
-
-  // Build attention items from notifications and tasks
-  const attentionItems = React.useMemo((): AttentionItem[] => {
-    if (!hasFocus || !activeProject || !user) return [];
-
-    const items: AttentionItem[] = [];
-
-    // Add unread notifications that need attention (mentions, replies)
-    notificationState.notifications
-      .filter(
-        (n) =>
-          n.projectId === activeProject.id &&
-          !n.isRead &&
-          (n.type === 'message_mention' || n.type === 'message_reply')
-      )
-      .forEach((notification) => {
-        items.push({
-          id: notification.id,
-          type: notification.type === 'message_mention' ? 'mention' : 'reply',
-          title: notification.title,
-          description: notification.message,
-          timestamp: new Date(notification.createdAt),
-          priority: notification.priority || 'medium',
-          actionUrl: notification.actionUrl || undefined,
-          projectId: activeProject.id,
-        });
-      });
-
-    // Add assigned tasks that are not completed
-    if (tasks) {
-      tasks
-        .filter(
-          (task) =>
-            task.assigneeId === user.id &&
-            task.status !== 'done' &&
-            task.status !== 'completed'
-        )
-        .forEach((task) => {
-          items.push({
-            id: `task-${task.id}`,
-            type: 'assigned_task',
-            title: task.title,
-            description: task.description || undefined,
-            timestamp: new Date(task.createdAt),
-            priority: mapTaskPriorityToAttention(task.priority),
-            actionUrl: `/projects/${activeProject.id}?tab=tasks`,
-            projectId: activeProject.id,
-          });
-        });
+  // Fetch all pulse data
+  const fetchPulseData = React.useCallback(async () => {
+    if (!projectId || !hasFocus || !user) {
+      setActivityStream([]);
+      setAttentionItems([]);
+      setTeamMembers([]);
+      setUnseenCount(0);
+      return;
     }
 
-    // Sort by priority then timestamp
-    return items.sort((a, b) => {
-      const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-      const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-      if (priorityDiff !== 0) return priorityDiff;
-      return b.timestamp.getTime() - a.timestamp.getTime();
-    });
-  }, [hasFocus, activeProject, notificationState.notifications, tasks, user]);
-
-  // Calculate unseen count
-  const unseenCount = React.useMemo(() => {
-    if (!hasFocus || !activeProject) return 0;
-
-    const lastSeenTime = session.lastSeenTimestamp
-      ? new Date(session.lastSeenTimestamp)
-      : null;
-
-    if (!lastSeenTime) {
-      // Never seen = count unread notifications for this project
-      return notificationState.notifications.filter(
-        (n) => n.projectId === activeProject.id && !n.isRead
-      ).length;
-    }
-
-    // Count items newer than last seen
-    return notificationState.notifications.filter(
-      (n) =>
-        n.projectId === activeProject.id &&
-        new Date(n.createdAt) > lastSeenTime
-    ).length;
-  }, [hasFocus, activeProject, notificationState.notifications, session.lastSeenTimestamp]);
-
-  // Team members (placeholder - will integrate with socket presence)
-  const teamMembers = React.useMemo((): TeamMember[] => {
-    // TODO: Integrate with actual presence data from SocketContext
-    return [];
-  }, []);
-
-  const refresh = React.useCallback(() => {
-    // For now, data is reactive via contexts
-    // Future: trigger API refresh
     setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 300);
-  }, []);
+    setError(null);
 
-  const markAllSeen = React.useCallback(() => {
-    markAsSeen();
-  }, [markAsSeen]);
+    try {
+      // Fetch all endpoints in parallel
+      const [activityRes, attentionRes, unseenRes, presenceRes] = await Promise.all([
+        fetchPulseEndpoint<{ success: boolean; data: ActivityItem[] }>(
+          projectId,
+          'activity?limit=50'
+        ),
+        fetchPulseEndpoint<{ success: boolean; data: AttentionItem[] }>(
+          projectId,
+          'attention?limit=50'
+        ),
+        fetchPulseEndpoint<{ success: boolean; count: number; lastSeenAt: string | null }>(
+          projectId,
+          'unseen-count'
+        ),
+        fetchPulseEndpoint<{ success: boolean; data: TeamMember[] }>(
+          projectId,
+          'presence'
+        ),
+      ]);
 
+      if (activityRes.success) {
+        setActivityStream(activityRes.data);
+      }
+      if (attentionRes.success) {
+        setAttentionItems(attentionRes.data);
+      }
+      if (unseenRes.success) {
+        setUnseenCount(unseenRes.count);
+        setLastSeenAt(unseenRes.lastSeenAt);
+      }
+      if (presenceRes.success) {
+        setTeamMembers(presenceRes.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch pulse data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load pulse data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [projectId, hasFocus, user]);
+
+  // Initial fetch when project changes
+  React.useEffect(() => {
+    fetchPulseData();
+  }, [fetchPulseData]);
+
+  // Refresh function
+  const refresh = React.useCallback(() => {
+    fetchPulseData();
+  }, [fetchPulseData]);
+
+  // Mark all as seen
+  const markAllSeen = React.useCallback(async () => {
+    if (!projectId) return;
+
+    try {
+      const response = await fetchPulseEndpoint<{ success: boolean; lastSeenAt: string }>(
+        projectId,
+        'mark-seen',
+        { method: 'POST', body: {} }
+      );
+
+      if (response.success) {
+        setUnseenCount(0);
+        setLastSeenAt(response.lastSeenAt);
+        // Update activity items to no longer be "new"
+        setActivityStream((prev) =>
+          prev.map((item) => ({ ...item, isNew: false }))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to mark pulse as seen:', err);
+    }
+  }, [projectId]);
+
+  // Get attention by type
   const getAttentionByType = React.useCallback(
-    (type: AttentionItem['type']): AttentionItem[] => {
-      return attentionItems.filter((item) => item.type === type);
+    (reason: AttentionItem['reason']): AttentionItem[] => {
+      return attentionItems.filter((item) => item.reason === reason);
     },
     [attentionItems]
   );
@@ -240,6 +230,7 @@ export function useProjectPulse(): UseProjectPulseReturn {
     attentionItems,
     teamMembers,
     unseenCount,
+    lastSeenAt,
     isLoading,
     error,
     isAvailable: hasFocus && !!activeProject,
@@ -247,43 +238,6 @@ export function useProjectPulse(): UseProjectPulseReturn {
     markAllSeen,
     getAttentionByType,
   };
-}
-
-// Helper: Map notification type to activity type
-function mapNotificationToActivityType(
-  notificationType: Notification['type']
-): ActivityType {
-  switch (notificationType) {
-    case 'message_mention':
-      return 'mention';
-    case 'message_reply':
-      return 'message';
-    case 'project_member_added':
-      return 'member_joined';
-    case 'project_file_uploaded':
-      return 'file_uploaded';
-    case 'project_status_changed':
-      return 'task_completed';
-    default:
-      return 'comment';
-  }
-}
-
-// Helper: Map task priority to attention priority
-function mapTaskPriorityToAttention(
-  taskPriority?: string
-): AttentionItem['priority'] {
-  switch (taskPriority) {
-    case 'urgent':
-    case 'critical':
-      return 'urgent';
-    case 'high':
-      return 'high';
-    case 'low':
-      return 'low';
-    default:
-      return 'medium';
-  }
 }
 
 export default useProjectPulse;
