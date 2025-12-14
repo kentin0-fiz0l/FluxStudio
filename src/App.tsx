@@ -8,11 +8,13 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { MessagingProvider } from './contexts/MessagingContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { ActiveProjectProvider } from './contexts/ActiveProjectContext';
 import { ConnectorsProvider } from './contexts/ConnectorsContext';
 import { FilesProvider } from './contexts/FilesContext';
 import { AssetsProvider } from './contexts/AssetsContext';
 import { MetMapProvider } from './contexts/MetMapContext';
 import { ToastContainer } from './components/notifications/ToastContainer';
+import { ProjectContextBar } from './components/projects/ProjectContextBar';
 import ErrorBoundary, {
   FilesErrorBoundary,
   ToolsErrorBoundary,
@@ -107,12 +109,15 @@ function AuthenticatedRoutes() {
       <SocketProvider>
         <MessagingProvider>
           <NotificationProvider>
+            <ActiveProjectProvider>
             <OrganizationProvider>
               <WorkspaceProvider>
                 <ConnectorsProvider>
                   <FilesProvider>
                     <AssetsProvider>
                       <MetMapProvider>
+                {/* Project Context Bar - shows when a project is focused */}
+                <ProjectContextBar />
                 <Suspense fallback={<DefaultLoadingFallback />}>
                   <Routes>
                   {/* Root route - redirects based on auth state */}
@@ -203,6 +208,7 @@ function AuthenticatedRoutes() {
                 </ConnectorsProvider>
               </WorkspaceProvider>
             </OrganizationProvider>
+          </ActiveProjectProvider>
           </NotificationProvider>
         </MessagingProvider>
       </SocketProvider>
