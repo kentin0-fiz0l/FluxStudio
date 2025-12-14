@@ -10,8 +10,30 @@ region: nyc
 # Database ID: 49f4dc39-3d91-4bce-aa7a-7784c8e32a66
 
 # Ingress Rules (Path-based routing)
+# Note: Order matters! More specific paths should come first.
 ingress:
   rules:
+    # Socket.IO WebSocket route (must be before /api to catch /api/socket.io)
+    - component:
+        name: unified-backend
+      match:
+        path:
+          prefix: /socket.io
+      cors:
+        allow_origins:
+          - exact: https://fluxstudio.art
+          - exact: https://www.fluxstudio.art
+        allow_methods:
+          - GET
+          - POST
+          - OPTIONS
+        allow_headers:
+          - Content-Type
+          - Authorization
+          - Upgrade
+          - Connection
+        allow_credentials: true
+    # Main API routes (includes Socket.IO at /api/socket.io)
     - component:
         name: unified-backend
       match:
@@ -31,6 +53,8 @@ ingress:
         allow_headers:
           - Content-Type
           - Authorization
+          - Upgrade
+          - Connection
         allow_credentials: true
 # TEMPORARILY DISABLED - Collaboration service commented out
 #    - component:
@@ -43,6 +67,7 @@ ingress:
 #      match:
 #        path:
 #          prefix: /mcp
+    # Frontend (catch-all, must be last)
     - component:
         name: frontend
       match:
