@@ -1751,6 +1751,129 @@ app.put('/api/projects/:projectId/milestones/:milestoneId', (req, res) => {
   });
 });
 
+// ======================
+// PROJECT PULSE ENDPOINTS
+// Real-time activity feed, attention items, and presence
+// ======================
+
+// Helper: Build activity item from notification
+function buildActivityItem(notification, projectId) {
+  const typeToDeepLink = {
+    'message_mention': `/messages?conversationId=${notification.conversationId || ''}`,
+    'message_reply': `/messages?conversationId=${notification.conversationId || ''}`,
+    'project_member_added': `/projects/${projectId}?tab=team`,
+    'project_file_uploaded': `/file`,
+    'file_shared': `/file`,
+    'project_status_changed': `/projects/${projectId}`,
+    'task_assigned': `/projects/${projectId}?tab=tasks`,
+    'comment_reply': `/messages?conversationId=${notification.conversationId || ''}`,
+    'default': `/projects/${projectId}`
+  };
+
+  const typeLabels = {
+    'message_mention': 'You were mentioned',
+    'message_reply': 'New reply',
+    'project_member_added': 'Member joined',
+    'project_file_uploaded': 'File uploaded',
+    'file_shared': 'File shared',
+    'project_status_changed': 'Project updated',
+    'task_assigned': 'Task assigned',
+    'comment_reply': 'New reply',
+    'default': 'Update'
+  };
+
+  return {
+    id: notification.id,
+    projectId: projectId,
+    type: notification.type || 'notification_created',
+    actorUserId: notification.data?.mentionedBy || notification.data?.sharedBy || null,
+    title: typeLabels[notification.type] || typeLabels['default'],
+    entity: {
+      conversationId: notification.conversationId || notification.data?.conversationId,
+      messageId: notification.messageId || notification.data?.messageId,
+      fileId: notification.data?.fileId,
+      assetId: notification.data?.assetId,
+      notificationId: notification.id
+    },
+    createdAt: notification.createdAt,
+    deepLink: typeToDeepLink[notification.type] || typeToDeepLink['default'],
+    preview: notification.message?.slice(0, 120)
+  };
+}
+
+// GET /api/projects/:id/pulse/activity - Get activity stream for project
+app.get('/api/projects/:id/pulse/activity', (req, res) => {
+  const token = req.headers.authorization;
+  const user = getUserFromToken(token);
+
+  if (!user) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+
+  const projectId = req.params.id;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+  const cursor = req.query.cursor; // timestamp for pagination
+
+  // Check project access
+  const project = mockProjects.get(projectId);
+  if (!project) {
+    return res.status(404).json({ success: false, message: 'Project not found' });
+  }
+
+  // Filter notifications for this project
+  let projectNotifications = notifications.filter(n => {
+    // Match by projectId in notification data or infer from context
+    const notifProjectId = n.data?.projectId || n.projectId;
+    if (notifProjectId === projectId) return true;
+    // Also include notifications for project members about project-related events
+    if (project.members?.includes(n.userId)) {
+      const projectTypes = ['project_member_added', 'project_file_uploaded', 'project_status_changed', 'task_assigned', 'file_shared'];
+      return projectTypes.includes(n.type);
+    }
+    return false;
+  });
+
+  // Apply cursor-based pagination
+  if (cursor) {
+    const cursorTime = new Date(cursor).getTime();
+    projectNotifications = projectNotifications.filter(n =>
+      new Date(n.createdAt).getTime() < cursorTime
+    );
+  }
+
+  // Sort by createdAt descending and limit
+  projectNotifications.sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  projectNotifications = projectNotifications.slice(0, limit);
+
+  // Get user's pulse state for "new" markers
+  const userPulseState = getPulseState(user.id, projectId);
+  const lastSeenAt = userPulseState?.lastSeenAt ? new Date(userPulseState.lastSeenAt) : null;
+
+  // Build activity items
+  const activityItems = projectNotifications.map(n => {
+    const item = buildActivityItem(n, projectId);
+    item.isNew = lastSeenAt ? new Date(item.createdAt) > lastSeenAt : true;
+    return item;
+  });
+
+  // Build next cursor
+  const nextCursor = activityItems.length === limit && activityItems.length > 0
+    ? activityItems[activityItems.length - 1].createdAt
+    : null;
+
+  res.json({
+    success: true,
+    data: activityItems,
+    pagination: {
+      limit,
+      cursor: nextCursor,
+      hasMore: !!nextCursor
+    }
+  });
+});
+
 // Users endpoints
 app.get('/api/users/me', (req, res) => {
   const token = req.headers.authorization;
