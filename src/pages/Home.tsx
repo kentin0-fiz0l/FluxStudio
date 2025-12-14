@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/templates';
 import { ProjectCard, UserCard, SearchBar } from '../components/molecules';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Badge, EmptyState } from '../components/ui';
 import { Logo3D } from '../components/Logo3D';
+import { GettingStartedCard } from '../components/common/GettingStartedCard';
+import { useFirstTimeExperience } from '../hooks/useFirstTimeExperience';
+import { useProjects } from '../hooks/useProjects';
 import {
   Briefcase,
   Folder,
@@ -35,8 +38,40 @@ export function Home() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Mock data for demonstration
-  const recentProjects = [
+  // Get real project data for first-time detection
+  const { projects, loading: projectsLoading } = useProjects();
+
+  // First-time experience hook
+  const {
+    isFirstTime,
+    isDismissed,
+    steps,
+    markStepComplete,
+    dismiss,
+    completedCount,
+    totalSteps,
+    updateData,
+  } = useFirstTimeExperience();
+
+  // Update first-time experience data when projects load
+  useEffect(() => {
+    if (!projectsLoading) {
+      updateData({ projectCount: projects.length });
+    }
+  }, [projects.length, projectsLoading, updateData]);
+
+  // Use real projects if available, otherwise show mock data for demo
+  const recentProjects = projects.length > 0 ? projects.slice(0, 3).map(p => ({
+    id: p.id,
+    name: p.name,
+    description: p.description || '',
+    status: 'active' as const,
+    progress: p.progress || 0,
+    dueDate: p.dueDate ? new Date(p.dueDate) : undefined,
+    teamSize: p.members?.length || 1,
+    teamAvatars: [],
+    tags: p.tags || []
+  })) : [
     {
       id: '1',
       name: 'Summer Show 2024',
@@ -250,6 +285,17 @@ export function Home() {
 
           {/* Sidebar */}
           <div className="space-y-4">
+            {/* First-Time Onboarding Card */}
+            {(isFirstTime || (!isDismissed && completedCount < totalSteps)) && (
+              <GettingStartedCard
+                steps={steps}
+                completedCount={completedCount}
+                totalSteps={totalSteps}
+                onDismiss={dismiss}
+                onStepComplete={markStepComplete}
+              />
+            )}
+
             {/* Recent Activity */}
             <Card>
               <CardHeader>
@@ -276,40 +322,42 @@ export function Home() {
               </CardContent>
             </Card>
 
-            {/* Getting Started */}
-            <Card variant="outlined">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-primary-600" aria-hidden="true" />
-                  Getting Started
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Link
-                    to="/organization"
-                    className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 transition-colors"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary-600" />
-                    Set up your organization
-                  </Link>
-                  <Link
-                    to="/team"
-                    className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 transition-colors"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary-600" />
-                    Invite team members
-                  </Link>
-                  <Link
-                    to="/projects"
-                    className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 transition-colors"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary-600" />
-                    Create your first project
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Quick Links (shown when onboarding is dismissed) */}
+            {isDismissed && (
+              <Card variant="outlined">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-primary-600" aria-hidden="true" />
+                    Quick Links
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <Link
+                      to="/projects"
+                      className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 transition-colors"
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary-600" />
+                      View all projects
+                    </Link>
+                    <Link
+                      to="/messages"
+                      className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 transition-colors"
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary-600" />
+                      Messages
+                    </Link>
+                    <Link
+                      to="/tools/metmap"
+                      className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 transition-colors"
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary-600" />
+                      Open MetMap
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Upcoming Deadlines */}
             <Card variant="elevated">

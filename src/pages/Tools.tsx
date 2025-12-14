@@ -41,7 +41,7 @@ const tools: Tool[] = [
   {
     id: 'metmap',
     name: 'MetMap',
-    description: 'Programmable tempo + chord timeline tool for musicians',
+    description: 'Rehearse tempo changes, meter shifts, and map chord progressions for practice. Perfect for complex pieces.',
     icon: <Music className="w-8 h-8" />,
     status: 'active',
     category: 'Music Production',
@@ -50,7 +50,7 @@ const tools: Tool[] = [
   {
     id: 'files',
     name: 'Files',
-    description: 'Upload, organize, and preview images, audio, PDFs, and more',
+    description: 'Upload references, drafts, audio, or exports. Files stay connected to your project conversations.',
     icon: <FileBox className="w-8 h-8" />,
     status: 'active',
     category: 'File Management',
@@ -59,7 +59,7 @@ const tools: Tool[] = [
   {
     id: 'assets',
     name: 'Assets',
-    description: 'Reusable, tagged, versioned creative elements for your projects',
+    description: 'Create reusable, tagged, versioned creative elements to share across your projects.',
     icon: <Package className="w-8 h-8" />,
     status: 'active',
     category: 'Asset Management',
@@ -131,15 +131,22 @@ function Tools() {
       onLogout={logout}
     >
       <div className="p-4 md:p-6 space-y-6">
-        {/* Header */}
+        {/* Header with project-first framing */}
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-3">
             <Wrench className="w-7 h-7 text-primary-600" aria-hidden="true" />
             Tools
           </h1>
           <p className="text-neutral-600 dark:text-neutral-300 mt-1">
-            Extend your FluxStudio workflow with powerful external tools and applications.
+            Specialized tools that enhance your creative workflow — organize your work inside projects.
           </p>
+          {/* Project bridge */}
+          <a
+            href="/projects"
+            className="inline-block text-sm text-primary-600 hover:text-primary-700 mt-2"
+          >
+            ← Back to Projects
+          </a>
         </div>
 
         {/* Featured Tools Section */}
