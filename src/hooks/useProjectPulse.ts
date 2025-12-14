@@ -13,7 +13,7 @@
 import * as React from 'react';
 import { useActiveProject } from '@/contexts/ActiveProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProjectPresence, PresenceMember } from './useProjectPresence';
+import { useProjectPresence, PresenceMember, PulseEvent } from './useProjectPresence';
 
 // Activity item from API
 export interface ActivityItem {
@@ -122,7 +122,7 @@ async function fetchPulseEndpoint<T>(
 export function useProjectPulse(): UseProjectPulseReturn {
   const { activeProject, hasFocus } = useActiveProject();
   const { user } = useAuth();
-  const { members: presenceMembers, isConnected: presenceConnected } = useProjectPresence();
+  const { members: presenceMembers, isConnected: presenceConnected, onPulseEvent } = useProjectPresence();
 
   const [activityStream, setActivityStream] = React.useState<ActivityItem[]>([]);
   const [attentionItems, setAttentionItems] = React.useState<AttentionItem[]>([]);
@@ -199,6 +199,47 @@ export function useProjectPulse(): UseProjectPulseReturn {
   React.useEffect(() => {
     fetchPulseData();
   }, [fetchPulseData]);
+
+  // Subscribe to real-time pulse events
+  React.useEffect(() => {
+    if (!projectId || !hasFocus) return;
+
+    const unsubscribe = onPulseEvent((event: PulseEvent) => {
+      // Only process events for this project
+      if (event.projectId !== projectId) return;
+
+      if (event.type === 'activity') {
+        // Add new activity to the top of the stream
+        const newActivity = event.event as ActivityItem;
+        setActivityStream((prev) => {
+          // Avoid duplicates
+          if (prev.some((item) => item.id === newActivity.id)) {
+            return prev;
+          }
+          // Mark as new and prepend
+          return [{ ...newActivity, isNew: true }, ...prev].slice(0, 50);
+        });
+        // Increment unseen count
+        setUnseenCount((prev) => prev + 1);
+      }
+
+      if (event.type === 'attention') {
+        // Add new attention item to the top
+        const newAttention = event.event as AttentionItem;
+        setAttentionItems((prev) => {
+          // Avoid duplicates
+          if (prev.some((item) => item.id === newAttention.id)) {
+            return prev;
+          }
+          return [newAttention, ...prev].slice(0, 50);
+        });
+        // Increment unseen count
+        setUnseenCount((prev) => prev + 1);
+      }
+    });
+
+    return unsubscribe;
+  }, [projectId, hasFocus, onPulseEvent]);
 
   // Refresh function
   const refresh = React.useCallback(() => {

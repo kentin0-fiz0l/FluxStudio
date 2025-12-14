@@ -214,6 +214,7 @@ function createNotification(type, userId, data) {
     title: getNotificationTitle(type, data),
     message: getNotificationMessage(type, data),
     data,
+    projectId: data.projectId || null, // Track project for pulse
     isRead: false,
     isSnoozed: false,
     priority: data.priority || 'medium',
@@ -226,6 +227,18 @@ function createNotification(type, userId, data) {
 
   // Send real-time notification if user is online
   io.to(`user:${userId}`).emit('notification:new', notification);
+
+  // Emit pulse event to project room for real-time activity updates
+  if (data.projectId) {
+    const pulseEvent = buildActivityItem(notification, data.projectId);
+    pulseEvent.isNew = true;
+    io.to(`project:${data.projectId}`).emit('pulse:event', {
+      projectId: data.projectId,
+      event: pulseEvent,
+      type: 'activity',
+      timestamp: notification.createdAt
+    });
+  }
 
   return notification;
 }
