@@ -472,4 +472,115 @@ export function CollaborationErrorBoundary({ children }: { children: ReactNode }
   );
 }
 
+// Page-level error boundaries for route isolation
+export function FilesErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      onError={(error) => {
+        console.error('Files page error:', error);
+      }}
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-orange-100 mx-auto mb-4 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-orange-600" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Files Unavailable</h3>
+              <p className="text-gray-600 mb-4">
+                We're having trouble loading your files. Please try again.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={() => window.location.reload()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reload
+                </Button>
+                <Button variant="outline" onClick={() => window.location.href = '/projects'}>
+                  <Home className="h-4 w-4 mr-2" />
+                  Projects
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+export function ToolsErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      onError={(error) => {
+        console.error('Tools page error:', error);
+      }}
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-purple-100 mx-auto mb-4 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-purple-600" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Tools Unavailable</h3>
+              <p className="text-gray-600 mb-4">
+                We're having trouble loading this tool. Please try again.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={() => window.location.reload()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reload
+                </Button>
+                <Button variant="outline" onClick={() => window.location.href = '/tools'}>
+                  All Tools
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+export function ProjectsErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      onError={(error) => {
+        console.error('Projects page error:', error);
+      }}
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-blue-100 mx-auto mb-4 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Projects Unavailable</h3>
+              <p className="text-gray-600 mb-4">
+                We're having trouble loading your projects. Please try again.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={() => window.location.reload()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reload
+                </Button>
+                <Button variant="outline" onClick={() => window.location.href = '/'}>
+                  <Home className="h-4 w-4 mr-2" />
+                  Home
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
 export default ErrorBoundary;

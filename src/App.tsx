@@ -13,7 +13,12 @@ import { FilesProvider } from './contexts/FilesContext';
 import { AssetsProvider } from './contexts/AssetsContext';
 import { MetMapProvider } from './contexts/MetMapContext';
 import { ToastContainer } from './components/notifications/ToastContainer';
-import ErrorBoundary from './components/error/ErrorBoundary';
+import ErrorBoundary, {
+  FilesErrorBoundary,
+  ToolsErrorBoundary,
+  ProjectsErrorBoundary,
+  MessagingErrorBoundary,
+} from './components/error/ErrorBoundary';
 import { performanceMonitoring } from './services/performanceMonitoring';
 import { apiService } from './services/apiService';
 import { lazyLoadWithRetry, DefaultLoadingFallback } from './utils/lazyLoad';
@@ -126,24 +131,24 @@ function AuthenticatedRoutes() {
                   <Route path="/auth/callback/slack" element={<OAuthCallback provider="slack" />} />
                   <Route path="/auth/callback/github" element={<OAuthCallback provider="github" />} />
 
-                  {/* Redesigned Page Routes (Flux Design Language) - Protected */}
+                  {/* Redesigned Page Routes (Flux Design Language) - Protected with Error Boundaries */}
                   <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
                   <Route path="/organization" element={<ProtectedRoute><OrganizationNew /></ProtectedRoute>} />
                   <Route path="/team" element={<ProtectedRoute><TeamNew /></ProtectedRoute>} />
-                  <Route path="/file" element={<ProtectedRoute><FileNew /></ProtectedRoute>} />
-                  <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
-                  <Route path="/projects" element={<ProtectedRoute><ProjectsNew /></ProtectedRoute>} />
-                  <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
+                  <Route path="/file" element={<ProtectedRoute><FilesErrorBoundary><FileNew /></FilesErrorBoundary></ProtectedRoute>} />
+                  <Route path="/assets" element={<ProtectedRoute><FilesErrorBoundary><Assets /></FilesErrorBoundary></ProtectedRoute>} />
+                  <Route path="/projects" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectsNew /></ProjectsErrorBoundary></ProtectedRoute>} />
+                  <Route path="/projects/:id" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectDetail /></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/boards/:boardId" element={<ProtectedRoute><DesignBoardPage /></ProtectedRoute>} />
-                  <Route path="/messages" element={<ProtectedRoute><MessagesNew /></ProtectedRoute>} />
+                  <Route path="/messages" element={<ProtectedRoute><MessagingErrorBoundary><MessagesNew /></MessagingErrorBoundary></ProtectedRoute>} />
                   <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                   <Route path="/connectors" element={<ProtectedRoute><Connectors /></ProtectedRoute>} />
-                  <Route path="/tools" element={<ProtectedRoute><Tools /></ProtectedRoute>} />
-                  <Route path="/tools/metmap" element={<ProtectedRoute><ToolsMetMap /></ProtectedRoute>} />
-                  <Route path="/tools/files" element={<ProtectedRoute><ToolsFiles /></ProtectedRoute>} />
-                  <Route path="/tools/assets" element={<ProtectedRoute><ToolsAssets /></ProtectedRoute>} />
+                  <Route path="/tools" element={<ProtectedRoute><ToolsErrorBoundary><Tools /></ToolsErrorBoundary></ProtectedRoute>} />
+                  <Route path="/tools/metmap" element={<ProtectedRoute><ToolsErrorBoundary><ToolsMetMap /></ToolsErrorBoundary></ProtectedRoute>} />
+                  <Route path="/tools/files" element={<ProtectedRoute><ToolsErrorBoundary><ToolsFiles /></ToolsErrorBoundary></ProtectedRoute>} />
+                  <Route path="/tools/assets" element={<ProtectedRoute><ToolsErrorBoundary><ToolsAssets /></ToolsErrorBoundary></ProtectedRoute>} />
 
                   {/* Legacy routes for backward compatibility - Protected */}
                   <Route path="/organization/legacy" element={<ProtectedRoute><OrganizationPage /></ProtectedRoute>} />
