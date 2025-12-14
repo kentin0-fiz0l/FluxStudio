@@ -1,7 +1,7 @@
 # Project Context UX Follow-ups
 
 **Date:** 2025-12-14
-**Status:** Planning
+**Status:** ✅ IMPLEMENTED
 **Priority:** P1 for project-first UX alignment
 
 ---
@@ -10,204 +10,162 @@
 
 FluxStudio's core principle is **"Projects are the home for everything."**
 
-Currently, several key screens lack visible project context:
-- **Messages** — Conversations don't show which project they belong to
-- **Notifications** — Project-related notifications don't display project name
-- **ProjectDetail tabs** — No count badges showing items per tab
+Previously, several key screens lacked visible project context:
+- **Messages** — Conversations didn't show which project they belong to
+- **Notifications** — Project-related notifications didn't display project name
+- **ProjectDetail tabs** — Tab count badges needed API backing
 
-This creates cognitive friction where users must remember which project context they're working in.
-
----
-
-## UX Motivation
-
-| Screen | Current State | Desired State |
-|--------|--------------|---------------|
-| Messages list | Shows conversation title only | Shows project badge + title |
-| Notification item | Shows action type only | Shows project name for project-scoped events |
-| ProjectDetail tabs | Text labels only | Labels with count badges (e.g., "Files (12)") |
+**All three have now been implemented.**
 
 ---
 
-## Backend Data Requirements
+## UX Implementation Summary
 
-### 1. Conversation Project Badge
+| Screen | Implementation | Status |
+|--------|---------------|--------|
+| Messages list | Project badge on conversation rows | ✅ Done |
+| Notification item | Project badge + "Project Only" filter | ✅ Done |
+| ProjectDetail tabs | Count badges from `/api/projects/:id/counts` | ✅ Done |
 
-**Frontend Need:**
-Display project name on conversation cards in `/messages`
+---
 
-**Current API Response (`GET /api/conversations`):**
+## Backend Changes Implemented
+
+### 1. Database Migration (045_project_context_everywhere.sql)
+
+```sql
+-- Conversations: Add project context
+ALTER TABLE conversations ADD COLUMN project_id TEXT REFERENCES projects(id);
+CREATE INDEX idx_conversations_project ON conversations(project_id);
+
+-- Notifications: Add project context
+ALTER TABLE notifications ADD COLUMN project_id TEXT;
+ALTER TABLE notifications ADD COLUMN project_name TEXT;
+CREATE INDEX idx_notifications_project ON notifications(project_id);
+```
+
+### 2. Conversations API
+
+**`GET /api/conversations`** now returns:
 ```typescript
 interface ConversationSummary {
   id: string;
   organizationId: string | null;
+  projectId: string | null;      // ✅ NEW
+  projectName: string | null;    // ✅ NEW
   name: string | null;
   isGroup: boolean;
-  lastMessageAt: string | null;
-  lastMessagePreview: string | null;
-  unreadCount: number;
-  members?: Array<...>;
-  // ❌ Missing: projectId, projectName
+  // ... other fields
 }
 ```
 
-**Required Change:**
+**`POST /api/conversations`** now accepts:
 ```typescript
-interface ConversationSummary {
-  // ... existing fields
-  projectId?: string | null;      // NEW: Optional project link
-  projectName?: string | null;    // NEW: Denormalized for display
+{
+  name?: string;
+  isGroup?: boolean;
+  memberUserIds?: string[];
+  organizationId?: string;
+  projectId?: string;  // ✅ NEW: Link conversation to project
 }
 ```
 
-**Backend Work:**
-- Add `projectId` foreign key to `conversations` table (nullable)
-- Join project name in conversations list query
-- Return in API response
+### 3. Notifications API
 
-**Risks:**
-- N+1 query if not properly joined
-- Migration needed for existing conversations (default: null)
-
----
-
-### 2. Notification Project Context
-
-**Frontend Need:**
-Display project name on project-scoped notifications
-
-**Current API Response (`GET /api/notifications`):**
-```typescript
-interface Notification {
-  id: string;
-  type: NotificationType; // e.g., 'project_file_uploaded'
-  title: string;
-  body?: string;
-  entityId?: string;      // Generic entity reference
-  actionUrl?: string;
-  // ❌ Missing: projectId, projectName for project-scoped types
-}
-```
-
-**Required Change:**
+**`GET /api/notifications`** now returns:
 ```typescript
 interface Notification {
   // ... existing fields
-  projectId?: string | null;      // NEW: For project-scoped notifications
-  projectName?: string | null;    // NEW: Denormalized for display
+  projectId: string | null;      // ✅ NEW
+  projectName: string | null;    // ✅ NEW
 }
 ```
 
-**Backend Work:**
-- Store `projectId` when creating project-scoped notifications
-- Denormalize `projectName` at creation time (avoids joins)
-- Types that need project context:
-  - `project_member_added`
-  - `project_status_changed`
-  - `project_file_uploaded`
-  - `message_mention` (if conversation is project-scoped)
-  - `message_reply` (if conversation is project-scoped)
+**Notification Service** updated to accept and store `projectId`/`projectName` when creating notifications for project-scoped conversations.
 
-**Risks:**
-- Denormalized name becomes stale if project renamed (acceptable trade-off)
-- Existing notifications won't have project context (migration optional)
+### 4. Project Counts Endpoint (NEW)
 
----
+**`GET /api/projects/:projectId/counts`**
 
-### 3. ProjectDetail Tab Count Badges
-
-**Frontend Need:**
-Show item counts on tab labels: "Tasks (5)", "Files (12)", "Messages (3 unread)"
-
-**Data Sources:**
-
-| Tab | Count Source | Current Availability |
-|-----|--------------|----------------------|
-| Tasks | `useTasksQuery(projectId)` | ✅ Available (client-side) |
-| Files | Project files API | ❌ Needs count endpoint or derive from list |
-| Assets | `assetsState.assets.filter(a => a.projectId === id)` | ✅ Available (client-side) |
-| Boards | `boards.length` | ✅ Available (client-side) |
-| Messages | Unread count for project conversations | ❌ Needs aggregation |
-
-**Option A: Client-Side Derivation (No Backend Change)**
+**Response:**
 ```typescript
-// Files count - fetch list length
-const filesCount = projectFiles?.length ?? undefined;
-
-// Tasks count - already available
-const tasksCount = tasks?.length ?? undefined;
-
-// Assets count - already available
-const assetsCount = projectAssets?.length ?? undefined;
-```
-
-**Option B: Lightweight Counts Endpoint (Recommended)**
-```
-GET /api/projects/:id/counts
-Response: {
-  tasks: number;
-  files: number;
-  assets: number;
-  boards: number;
-  unreadMessages: number;
+{
+  success: true,
+  counts: {
+    messages: number,  // Conversations linked to project
+    files: number,     // Files in project
+    assets: number,    // Active assets in project
+    boards: number     // Design boards in project
+  }
 }
 ```
 
-**Recommended Approach:**
-- Start with Option A (client-side) for immediate progress
-- Add Option B endpoint if performance becomes an issue
+**Authorization:** Requires authentication + project membership.
 
 ---
 
-## Implementation Phases
+## Frontend Changes Implemented
 
-### Phase 1: Frontend Scaffolding (No Backend)
-- [x] Add optional `projectId`/`projectName` to TypeScript interfaces
-- [x] Add null-safe rendering for project badges
-- [x] Add tab count badge component that accepts `undefined | number`
+### Messages Page (`src/pages/MessagesNew.tsx`)
+- Added `ProjectBadge` component with link to project
+- Updated `ConversationItem` to display project badge when `projectName` exists
+- Project badges are clickable (navigate to `/projects/:id`)
 
-### Phase 2: Backend — Conversations Project Link
-- [ ] Add `projectId` column to conversations table
-- [ ] Update conversation creation to accept projectId
-- [ ] Update list endpoint to include project context
-- [ ] Frontend: Remove placeholder, wire up real data
+### Notifications Page (`src/pages/Notifications.tsx`)
+- Added `NotificationProjectBadge` component
+- Added "Project Only" filter dropdown
+- Project badges are clickable
 
-### Phase 3: Backend — Notification Project Context
-- [ ] Store projectId/projectName on notification creation
-- [ ] Update notification types to include project context
-- [ ] Frontend: Display project badge on notification items
+### ProjectDetail Page (`src/pages/ProjectDetail.tsx`)
+- Added `useProjectCounts` hook to fetch from `/api/projects/:id/counts`
+- Messages tab now shows count from API instead of hardcoded 0
 
-### Phase 4: Tab Count Badges
-- [ ] Implement client-side counts (Phase 1)
-- [ ] Add counts endpoint if needed (Phase 2)
-
----
-
-## Rollout Order
-
-1. **Tab Count Badges** — Lowest risk, no backend needed
-2. **Notification Project Context** — Medium risk, additive change
-3. **Conversation Project Badge** — Higher risk, schema change needed
+### New Hook (`src/hooks/useProjectCounts.ts`)
+```typescript
+export function useProjectCounts(projectId: string | undefined) {
+  // Returns: { counts, loading, error, refetch }
+}
+```
 
 ---
 
-## Open Questions
+## Answers to Open Questions
 
-1. Should conversations without a project show "Personal" or no badge?
-2. Should project context be clickable (navigate to project)?
-3. What happens to project context if a project is deleted?
+1. **Conversations without project:** Show no badge (implicit "Personal")
+2. **Project context clickable:** Yes, navigates to `/projects/:id`
+3. **Project deletion:** `ON DELETE SET NULL` preserves conversation, badge disappears
 
 ---
 
-## Related Files
+## Files Modified
+
+**Backend:**
+- `database/migrations/045_project_context_everywhere.sql` — Schema changes
+- `database/messaging-conversations-adapter.js` — Query updates
+- `services/notification-service.js` — Project context passing
+- `server-unified.js` — New counts endpoint + conversation creation update
 
 **Frontend:**
-- `src/pages/MessagesNew.tsx` — ConversationSummary interface
-- `src/pages/Notifications.tsx` — Notification rendering
-- `src/pages/ProjectDetail.tsx` — Tab component
-- `src/contexts/NotificationContext.tsx` — Notification interface
+- `src/pages/MessagesNew.tsx` — Project badge on conversations
+- `src/pages/Notifications.tsx` — Project badge + filter
+- `src/pages/ProjectDetail.tsx` — Wired up counts hook
+- `src/hooks/useProjectCounts.ts` — NEW: Fetch project counts
 
-**Backend (to be modified):**
-- Conversations API endpoint
-- Notifications API endpoint
-- Project counts endpoint (new)
+---
+
+## Manual Test Plan
+
+### Messages Page (`/messages`)
+1. Create a conversation with `projectId` set
+2. Verify project badge appears on conversation row
+3. Click badge → navigates to project
+
+### Notifications Page (`/notifications`)
+1. Generate notification for project-scoped conversation (mention, reply)
+2. Verify project badge appears on notification
+3. Test "Project Only" filter
+
+### ProjectDetail Page (`/projects/:id`)
+1. Navigate to project detail
+2. Verify Messages tab shows count from API
+3. Count should reflect conversations linked to project

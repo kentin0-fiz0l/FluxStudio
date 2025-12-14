@@ -12,7 +12,7 @@
  */
 
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Bell,
   CheckCheck,
@@ -28,6 +28,7 @@ import {
   XCircle,
   Check,
   ChevronRight,
+  FolderOpen,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
@@ -73,6 +74,7 @@ const priorityVariants: Record<NotificationPriority, string> = {
 
 type FilterType = 'all' | 'unread' | 'read';
 type GroupType = 'none' | 'intent';
+type ProjectScopeFilter = 'all' | 'project_only';
 
 // Intent groups for notification grouping
 const intentGroups: Record<string, { label: string; types: NotificationType[] }> = {
@@ -108,6 +110,21 @@ function getIntentGroup(type: NotificationType): string {
   return 'other';
 }
 
+// Project Badge for Notification
+function NotificationProjectBadge({ projectId, projectName }: { projectId: string; projectName: string }) {
+  return (
+    <Link
+      to={`/projects/${projectId}`}
+      onClick={(e) => e.stopPropagation()}
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-accent-100 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 hover:bg-accent-200 dark:hover:bg-accent-900/50 transition-colors truncate max-w-[140px]"
+      title={`Project: ${projectName}`}
+    >
+      <FolderOpen className="w-2.5 h-2.5 flex-shrink-0" />
+      <span className="truncate">{projectName}</span>
+    </Link>
+  );
+}
+
 // Notification Item Component
 function NotificationItem({
   notification,
@@ -131,11 +148,11 @@ function NotificationItem({
   return (
     <li
       className={cn(
-        'border-b border-neutral-100 last:border-0 transition-colors',
-        !notification.isRead && 'bg-primary-50/30'
+        'border-b border-neutral-100 dark:border-neutral-800 last:border-0 transition-colors',
+        !notification.isRead && 'bg-primary-50/30 dark:bg-primary-900/10'
       )}
     >
-      <div className="flex items-start gap-4 p-4 hover:bg-neutral-50">
+      <div className="flex items-start gap-4 p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
         {/* Icon */}
         <div
           className={cn(
@@ -154,11 +171,11 @@ function NotificationItem({
           aria-label={`${notification.title}: ${notification.message}. ${!notification.isRead ? 'Unread.' : ''} ${formatRelativeTime(notification.createdAt)}`}
         >
           <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {!notification.isRead && (
                 <div className="w-2 h-2 rounded-full bg-primary-600 flex-shrink-0" aria-label="Unread" />
               )}
-              <h3 className="font-medium text-neutral-900">
+              <h3 className="font-medium text-neutral-900 dark:text-neutral-100">
                 {notification.title}
               </h3>
               {notification.priority === 'high' || notification.priority === 'urgent' ? (
@@ -167,15 +184,21 @@ function NotificationItem({
                 </Badge>
               ) : null}
             </div>
-            <span className="text-xs text-neutral-500 whitespace-nowrap flex-shrink-0">
+            <span className="text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap flex-shrink-0">
               {formatRelativeTime(notification.createdAt)}
             </span>
           </div>
-          <p className="text-sm text-neutral-600 mt-1 line-clamp-2">
+          {/* Project context badge */}
+          {notification.projectId && notification.projectName && (
+            <div className="mt-1">
+              <NotificationProjectBadge projectId={notification.projectId} projectName={notification.projectName} />
+            </div>
+          )}
+          <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1 line-clamp-2">
             {notification.message}
           </p>
           {notification.actionUrl && (
-            <div className="flex items-center gap-1 text-sm text-primary-600 mt-2">
+            <div className="flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 mt-2">
               <span>View details</span>
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </div>
@@ -230,6 +253,7 @@ export default function Notifications() {
   const [filter, setFilter] = React.useState<FilterType>('all');
   const [selectedType, setSelectedType] = React.useState<NotificationType | 'all'>('all');
   const [groupBy, setGroupBy] = React.useState<GroupType>('intent');
+  const [projectScope, setProjectScope] = React.useState<ProjectScopeFilter>('all');
 
   // Format relative time
   const formatRelativeTime = (dateString: string) => {
@@ -263,8 +287,13 @@ export default function Notifications() {
       filtered = filtered.filter(n => n.type === selectedType);
     }
 
+    // Filter by project scope
+    if (projectScope === 'project_only') {
+      filtered = filtered.filter(n => n.projectId != null);
+    }
+
     return filtered;
-  }, [state.notifications, filter, selectedType]);
+  }, [state.notifications, filter, selectedType, projectScope]);
 
   // Handle notification click
   const handleNotificationClick = async (notification: Notification) => {
@@ -385,7 +414,7 @@ export default function Notifications() {
                   <select
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value as NotificationType | 'all')}
-                    className="text-sm border border-neutral-200 rounded-lg px-3 py-1.5 bg-white"
+                    className="text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-1.5 bg-white dark:bg-neutral-800 dark:text-neutral-200"
                     aria-label="Filter by notification type"
                   >
                     <option value="all">All Types</option>
@@ -397,6 +426,20 @@ export default function Notifications() {
                   </select>
                 </div>
               )}
+
+              {/* Project scope filter */}
+              <div className="flex items-center gap-2">
+                <FolderOpen className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+                <select
+                  value={projectScope}
+                  onChange={(e) => setProjectScope(e.target.value as ProjectScopeFilter)}
+                  className="text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-1.5 bg-white dark:bg-neutral-800 dark:text-neutral-200"
+                  aria-label="Filter by project scope"
+                >
+                  <option value="all">All Projects</option>
+                  <option value="project_only">Project Only</option>
+                </select>
+              </div>
 
               {/* Group toggle */}
               <div className="flex items-center gap-2">

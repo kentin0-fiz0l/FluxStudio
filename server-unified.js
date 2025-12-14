@@ -3412,7 +3412,7 @@ app.get('/api/conversations', authenticateToken, async (req, res) => {
 app.post('/api/conversations', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { name, isGroup, memberUserIds, organizationId } = req.body;
+    const { name, isGroup, memberUserIds, organizationId, projectId } = req.body;
 
     // Validate memberUserIds is an array
     if (memberUserIds && !Array.isArray(memberUserIds)) {
@@ -3426,6 +3426,7 @@ app.post('/api/conversations', authenticateToken, async (req, res) => {
 
     const conversation = await messagingConversationsAdapter.createConversation({
       organizationId: organizationId || null,
+      projectId: projectId || null,
       name: name || null,
       isGroup: !!isGroup,
       creatorUserId: userId,
@@ -5221,6 +5222,85 @@ app.post('/api/projects/:projectId/members', authenticateToken, validateInput.sa
   } catch (error) {
     console.error('Add project member error:', error);
     res.status(500).json({ error: 'Failed to add project member' });
+  }
+});
+
+/**
+ * Get project counts for tab badges
+ * GET /api/projects/:projectId/counts
+ *
+ * Returns aggregate counts for project content:
+ * - messages: number of conversations linked to this project
+ * - files: number of files in the project
+ * - assets: number of active assets in the project
+ * - boards: number of design boards in the project
+ */
+app.get('/api/projects/:projectId/counts', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user.id;
+
+    // Verify project membership (authorization check)
+    if (projectsAdapter) {
+      const project = await projectsAdapter.getProjectById(projectId);
+      if (!project) {
+        return res.status(404).json({ success: false, error: 'Project not found' });
+      }
+      // Check if user is a member
+      const members = await projectsAdapter.getProjectMembers(projectId);
+      const isMember = members.some(m => m.userId === userId || m.user_id === userId);
+      if (!isMember) {
+        return res.status(403).json({ success: false, error: 'Not a project member' });
+      }
+    }
+
+    // Get counts using efficient database aggregations
+    const { query: dbQuery } = require('./database/config');
+
+    // Messages count (conversations linked to this project)
+    const messagesResult = await dbQuery(`
+      SELECT COUNT(DISTINCT c.id) as count
+      FROM conversations c
+      WHERE c.project_id = $1
+    `, [projectId]);
+    const messagesCount = parseInt(messagesResult.rows[0]?.count || 0, 10);
+
+    // Files count
+    const filesResult = await dbQuery(`
+      SELECT COUNT(*) as count
+      FROM files f
+      WHERE f.project_id = $1 AND f.deleted_at IS NULL
+    `, [projectId]);
+    const filesCount = parseInt(filesResult.rows[0]?.count || 0, 10);
+
+    // Assets count
+    const assetsResult = await dbQuery(`
+      SELECT COUNT(*) as count
+      FROM assets a
+      WHERE a.project_id = $1 AND a.status = 'active'
+    `, [projectId]);
+    const assetsCount = parseInt(assetsResult.rows[0]?.count || 0, 10);
+
+    // Boards count
+    const boardsResult = await dbQuery(`
+      SELECT COUNT(*) as count
+      FROM design_boards db
+      WHERE db.project_id = $1 AND db.is_archived = FALSE
+    `, [projectId]);
+    const boardsCount = parseInt(boardsResult.rows[0]?.count || 0, 10);
+
+    res.json({
+      success: true,
+      counts: {
+        messages: messagesCount,
+        files: filesCount,
+        assets: assetsCount,
+        boards: boardsCount
+      }
+    });
+  } catch (error) {
+    console.error('Get project counts error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch project counts' });
   }
 });
 
