@@ -21,7 +21,7 @@
 
 import * as React from 'react';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { ChatMessage, UserCard } from '@/components/molecules';
 import { Button, Card, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
@@ -84,7 +84,7 @@ import {
   Info,
   AlertCircle,
   Loader2,
-  Check
+  FolderOpen
 } from 'lucide-react';
 import { MessageActionsMenu } from '../components/messaging/MessageActionsMenu';
 import { InlineReplyPreview } from '../components/messaging/InlineReplyPreview';
@@ -194,6 +194,9 @@ interface Conversation {
   isMuted?: boolean;
   isTyping?: boolean;
   typingUsers?: string[];
+  // Project context for project-scoped conversations
+  projectId?: string | null;
+  projectName?: string | null;
 }
 
 type ConversationFilter = 'all' | 'unread' | 'archived' | 'starred' | 'muted';
@@ -1014,6 +1017,21 @@ function MessageBubble({
   );
 }
 
+// Project Badge Component
+function ProjectBadge({ projectId, projectName }: { projectId: string; projectName: string }) {
+  return (
+    <Link
+      to={`/projects/${projectId}`}
+      onClick={(e) => e.stopPropagation()}
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-accent-100 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 hover:bg-accent-200 dark:hover:bg-accent-900/50 transition-colors truncate max-w-[120px]"
+      title={`Project: ${projectName}`}
+    >
+      <FolderOpen className="w-2.5 h-2.5 flex-shrink-0" />
+      <span className="truncate">{projectName}</span>
+    </Link>
+  );
+}
+
 // Conversation List Item
 function ConversationItem({
   conversation,
@@ -1036,18 +1054,18 @@ function ConversationItem({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-0.5">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <h3 className="font-medium text-neutral-900 dark:text-neutral-100 text-sm truncate">
                 {conversation.title}
               </h3>
               {conversation.isPinned && (
-                <Pin className="w-3 h-3 text-accent-500" />
+                <Pin className="w-3 h-3 text-accent-500 flex-shrink-0" />
               )}
               {conversation.isMuted && (
-                <BellOff className="w-3 h-3 text-neutral-400" />
+                <BellOff className="w-3 h-3 text-neutral-400 flex-shrink-0" />
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-xs text-neutral-500 dark:text-neutral-400">
                 {conversation.lastMessage && formatTime(conversation.lastMessage.timestamp)}
               </span>
@@ -1058,6 +1076,13 @@ function ConversationItem({
               )}
             </div>
           </div>
+
+          {/* Project badge row - only shown if conversation has project context */}
+          {conversation.projectId && conversation.projectName && (
+            <div className="mb-1">
+              <ProjectBadge projectId={conversation.projectId} projectName={conversation.projectName} />
+            </div>
+          )}
 
           {conversation.isTyping ? (
             <div className="flex items-center gap-1">
@@ -1870,6 +1895,9 @@ function MessagesNew() {
       typingUsers: realtime.typingUsers
         .filter(t => t.conversationId === summary.id)
         .map(t => t.userEmail),
+      // Project context
+      projectId: summary.projectId || null,
+      projectName: summary.projectName || null,
     };
   }, [user?.id, realtime.typingUsers]);
 
