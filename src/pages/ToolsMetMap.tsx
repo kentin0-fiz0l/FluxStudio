@@ -16,14 +16,14 @@
 
 import * as React from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useMetMap, Song, Section, Chord } from '../contexts/MetMapContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { MobilePlaybackControls } from '../components/metmap/MobilePlaybackControls';
 import { OfflineIndicator, NetworkStatusBadge } from '../components/pwa/OfflineIndicator';
 import { usePWA } from '../hooks/usePWA';
-import { ONBOARDING_STORAGE_KEYS } from '../hooks/useFirstTimeExperience';
+import { ONBOARDING_STORAGE_KEYS, useFirstTimeExperience } from '../hooks/useFirstTimeExperience';
 
 // New MetMap components
 import { TapTempo } from '../components/metmap/TapTempo';
@@ -733,6 +733,16 @@ export default function ToolsMetMap() {
   const { showNotification } = useNotification();
   const isMobile = useIsMobile();
   const { isOnline } = usePWA();
+  const { markStepComplete } = useFirstTimeExperience({
+    projectCount: 0,
+    conversationCount: 0,
+    fileCount: 0,
+  });
+
+  // Auto-complete MetMap onboarding step on first visit
+  useEffect(() => {
+    markStepComplete('metmap');
+  }, [markStepComplete]);
 
   const {
     songs,
@@ -956,6 +966,20 @@ export default function ToolsMetMap() {
     <DashboardLayout>
       {/* Offline Indicator */}
       <OfflineIndicator position="top" />
+
+      {/* Breadcrumb Navigation */}
+      <div className="px-4 py-2 bg-white border-b border-gray-100">
+        <nav className="flex items-center gap-2 text-sm" aria-label="Breadcrumb">
+          <Link
+            to="/tools"
+            className="text-indigo-600 hover:text-indigo-700 transition-colors"
+          >
+            Tools
+          </Link>
+          <span className="text-gray-400">/</span>
+          <span className="text-gray-700 font-medium">MetMap</span>
+        </nav>
+      </div>
 
       <div className="h-full flex">
         {/* Mobile header with sidebar toggle */}
