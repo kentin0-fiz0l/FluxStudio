@@ -6156,6 +6156,11 @@ app.get('/integrations', authenticateToken, async (req, res) => {
     const integrations = await oauthManager.getUserIntegrations(req.user.id);
     res.json({ integrations });
   } catch (error) {
+    // Handle missing table gracefully (migrations not run)
+    if (error.code === '42P01' || error.message?.includes('does not exist')) {
+      console.warn('OAuth integrations table does not exist - returning empty array');
+      return res.json({ integrations: [] });
+    }
     console.error('Get integrations error:', error);
     res.status(500).json({ message: 'Error retrieving integrations' });
   }
