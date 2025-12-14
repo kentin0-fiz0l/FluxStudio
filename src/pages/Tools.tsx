@@ -8,9 +8,10 @@
 import * as React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
-import { Card, Button } from '@/components/ui';
+import { Card, Button, Badge } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useMetMap } from '../contexts/MetMapContext';
+import { useActiveProject } from '../contexts/ActiveProjectContext';
 import {
   Map,
   ExternalLink,
@@ -24,6 +25,11 @@ import {
   Music,
   FileBox,
   Package,
+  Target,
+  MessageSquare,
+  CheckSquare,
+  PenTool,
+  Layers,
 } from 'lucide-react';
 
 interface Tool {
@@ -98,6 +104,7 @@ function Tools() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { stats, loadStats } = useMetMap();
+  const { activeProject, hasFocus } = useActiveProject();
 
   // Authentication guard - redirect to login if not authenticated
   React.useEffect(() => {
@@ -148,6 +155,75 @@ function Tools() {
             ← Back to Projects
           </Link>
         </div>
+
+        {/* Project Quick Actions - shows when a project is focused */}
+        {hasFocus && activeProject && (
+          <Card className="bg-primary-50 dark:bg-primary-950/30 border-primary-200 dark:border-primary-800 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Target className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true" />
+              <h2 className="text-lg font-semibold text-primary-900 dark:text-primary-100">
+                Quick Actions for {activeProject.name}
+              </h2>
+              <Badge variant="info" size="sm">Focused</Badge>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/projects/${activeProject.id}`)}
+                className="bg-white dark:bg-neutral-900"
+              >
+                <FolderOpen className="w-4 h-4 mr-1.5" aria-hidden="true" />
+                Overview
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/projects/${activeProject.id}?tab=tasks`)}
+                className="bg-white dark:bg-neutral-900"
+              >
+                <CheckSquare className="w-4 h-4 mr-1.5" aria-hidden="true" />
+                Tasks
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/projects/${activeProject.id}?tab=messages`)}
+                className="bg-white dark:bg-neutral-900"
+              >
+                <MessageSquare className="w-4 h-4 mr-1.5" aria-hidden="true" />
+                Messages
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/projects/${activeProject.id}?tab=files`)}
+                className="bg-white dark:bg-neutral-900"
+              >
+                <FileBox className="w-4 h-4 mr-1.5" aria-hidden="true" />
+                Files
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/projects/${activeProject.id}?tab=assets`)}
+                className="bg-white dark:bg-neutral-900"
+              >
+                <Layers className="w-4 h-4 mr-1.5" aria-hidden="true" />
+                Assets
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/projects/${activeProject.id}?tab=boards`)}
+                className="bg-white dark:bg-neutral-900"
+              >
+                <PenTool className="w-4 h-4 mr-1.5" aria-hidden="true" />
+                Boards
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* Featured Tools Section */}
         <div className="space-y-4">

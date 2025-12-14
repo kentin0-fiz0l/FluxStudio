@@ -26,6 +26,7 @@ import { DashboardLayout } from '@/components/templates';
 import { ChatMessage, UserCard } from '@/components/molecules';
 import { Button, Card, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveProject } from '../contexts/ActiveProjectContext';
 import { useConversationRealtime } from '../hooks/useConversationRealtime';
 import { messagingSocketService, ConversationMessage } from '../services/messagingSocketService';
 import {
@@ -1608,6 +1609,7 @@ function PinnedMessagesPanel({
 // Main Messages Component
 function MessagesNew() {
   const { user, logout } = useAuth();
+  const { activeProject, hasFocus } = useActiveProject();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -1983,9 +1985,14 @@ function MessagesNew() {
     [messages, realtime.pinnedMessageIds]
   );
 
-  // Filter conversations
+  // Filter conversations (with active project scoping)
   const filteredConversations = useMemo(() => {
     let result = [...conversations];
+
+    // Apply active project filter when a project is focused
+    if (hasFocus && activeProject) {
+      result = result.filter(c => c.projectId === activeProject.id);
+    }
 
     switch (filter) {
       case 'unread':
@@ -2016,7 +2023,7 @@ function MessagesNew() {
       const bTime = b.lastMessage?.timestamp.getTime() || 0;
       return bTime - aTime;
     });
-  }, [conversations, filter, searchTerm]);
+  }, [conversations, filter, searchTerm, hasFocus, activeProject]);
 
   // Auto-scroll to bottom
   useEffect(() => {

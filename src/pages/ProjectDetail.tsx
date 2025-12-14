@@ -44,6 +44,7 @@ import {
   Layers,
   PenTool,
   Plus,
+  Target,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -68,7 +69,9 @@ import { useTaskRealtime } from '@/hooks/useTaskRealtime';
 import { useAssets, AssetRecord } from '@/contexts/AssetsContext';
 import { AssetDetailDrawer } from '@/components/assets/AssetDetailDrawer';
 import { useProjectCounts } from '@/hooks/useProjectCounts';
+import { useActiveProject } from '@/contexts/ActiveProjectContext';
 import { cn } from '@/lib/utils';
+import { toast } from '@/lib/toast';
 
 // ============================================================================
 // Type Definitions
@@ -193,6 +196,7 @@ export const ProjectDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { projects, loading: projectsLoading } = useProjects();
+  const { setActiveProject, isProjectFocused } = useActiveProject();
 
   // ============================================================================
   // State Management
@@ -545,6 +549,23 @@ export const ProjectDetail = () => {
             <div className="flex items-center gap-2 flex-shrink-0" role="group" aria-label="Project actions">
               {/* Presence Indicators (only show on tasks tab) */}
               {activeTab === 'tasks' && <PresenceIndicators users={onlineUsers} />}
+
+              {/* Focus on Project button */}
+              <Button
+                variant={isProjectFocused(id || '') ? 'primary' : 'outline'}
+                size="sm"
+                icon={<Target className="h-4 w-4" />}
+                onClick={() => {
+                  if (project) {
+                    setActiveProject({ id: project.id, name: project.name });
+                    toast.success(`Now focused on "${project.name}"`);
+                  }
+                }}
+                aria-pressed={isProjectFocused(id || '')}
+                aria-label={isProjectFocused(id || '') ? 'Project is focused' : 'Focus on this project'}
+              >
+                {isProjectFocused(id || '') ? 'Focused' : 'Focus'}
+              </Button>
 
               <Button
                 variant="outline"
