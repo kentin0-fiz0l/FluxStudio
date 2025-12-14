@@ -5133,6 +5133,62 @@ io.on('connection', (socket) => {
     });
   });
 
+  // ======================
+  // PROJECT PRESENCE (Real Pulse)
+  // ======================
+
+  // Join project room for presence tracking
+  socket.on('project:join', (projectId, userData) => {
+    const { userId, userName } = userData || {};
+    if (!projectId || !userId) return;
+
+    socket.join(`project:${projectId}`);
+
+    // Track presence
+    addUserToProjectPresence(projectId, socket.id, userId, userName);
+
+    // Get updated presence list
+    const presenceList = getProjectPresenceList(projectId);
+
+    // Notify all in project room (including sender) of updated presence
+    io.to(`project:${projectId}`).emit('project:presence', {
+      projectId,
+      presence: presenceList,
+      event: 'join',
+      userId,
+      userName,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log(`User ${userName || userId} joined project ${projectId}, ${presenceList.length} online`);
+  });
+
+  // Leave project room
+  socket.on('project:leave', (projectId, userData) => {
+    const { userId, userName } = userData || {};
+    if (!projectId) return;
+
+    socket.leave(`project:${projectId}`);
+
+    // Remove presence
+    removeUserFromProjectPresence(projectId, socket.id);
+
+    // Get updated presence list
+    const presenceList = getProjectPresenceList(projectId);
+
+    // Notify others in project room
+    socket.to(`project:${projectId}`).emit('project:presence', {
+      projectId,
+      presence: presenceList,
+      event: 'leave',
+      userId,
+      userName,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log(`User ${userName || userId} left project ${projectId}, ${presenceList.length} online`);
+  });
+
   // Real-time message sending
   socket.on('message:send', (messageData) => {
     const {
@@ -5351,6 +5407,25 @@ io.on('connection', (socket) => {
       }
 
       console.log(`User ${name} (${userId}) disconnected`);
+    }
+
+    // Clean up project presence
+    for (const [projectId, presenceMap] of projectPresence.entries()) {
+      if (presenceMap.has(socket.id)) {
+        const userData = presenceMap.get(socket.id);
+        presenceMap.delete(socket.id);
+
+        // Notify project room of updated presence
+        const presenceList = getProjectPresenceList(projectId);
+        socket.to(`project:${projectId}`).emit('project:presence', {
+          projectId,
+          presence: presenceList,
+          event: 'disconnect',
+          userId: userData?.userId,
+          userName: userData?.userName,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
 
     console.log('User disconnected:', socket.id);

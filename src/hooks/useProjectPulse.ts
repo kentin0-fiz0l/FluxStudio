@@ -13,6 +13,7 @@
 import * as React from 'react';
 import { useActiveProject } from '@/contexts/ActiveProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProjectPresence, PresenceMember } from './useProjectPresence';
 
 // Activity item from API
 export interface ActivityItem {
@@ -54,13 +55,17 @@ export interface AttentionItem {
   priority: 'low' | 'medium' | 'high' | 'urgent';
 }
 
-// Team member presence
+// Team member presence (compatible with PresenceMember)
 export interface TeamMember {
+  id: string;
   userId: string;
+  name: string;
   userName: string;
   avatar?: string;
-  joinedAt: string;
+  joinedAt?: string;
   isOnline: boolean;
+  lastActivity?: string;
+  currentView?: string;
 }
 
 export interface ProjectPulseState {
@@ -117,10 +122,10 @@ async function fetchPulseEndpoint<T>(
 export function useProjectPulse(): UseProjectPulseReturn {
   const { activeProject, hasFocus } = useActiveProject();
   const { user } = useAuth();
+  const { members: presenceMembers, isConnected: presenceConnected } = useProjectPresence();
 
   const [activityStream, setActivityStream] = React.useState<ActivityItem[]>([]);
   const [attentionItems, setAttentionItems] = React.useState<AttentionItem[]>([]);
-  const [teamMembers, setTeamMembers] = React.useState<TeamMember[]>([]);
   const [unseenCount, setUnseenCount] = React.useState(0);
   const [lastSeenAt, setLastSeenAt] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -128,12 +133,25 @@ export function useProjectPulse(): UseProjectPulseReturn {
 
   const projectId = activeProject?.id;
 
-  // Fetch all pulse data
+  // Convert presence members to TeamMember format
+  const teamMembers = React.useMemo((): TeamMember[] => {
+    return presenceMembers.map((m) => ({
+      id: m.userId,
+      userId: m.userId,
+      name: m.userName,
+      userName: m.userName,
+      avatar: m.avatar,
+      joinedAt: m.joinedAt,
+      isOnline: m.isOnline,
+    }));
+  }, [presenceMembers]);
+
+  // Fetch pulse data (activity, attention, unseen count)
+  // Note: Team presence is handled via socket in useProjectPresence
   const fetchPulseData = React.useCallback(async () => {
     if (!projectId || !hasFocus || !user) {
       setActivityStream([]);
       setAttentionItems([]);
-      setTeamMembers([]);
       setUnseenCount(0);
       return;
     }
@@ -142,8 +160,9 @@ export function useProjectPulse(): UseProjectPulseReturn {
     setError(null);
 
     try {
-      // Fetch all endpoints in parallel
-      const [activityRes, attentionRes, unseenRes, presenceRes] = await Promise.all([
+      // Fetch activity, attention, and unseen count in parallel
+      // Presence is handled by socket (useProjectPresence)
+      const [activityRes, attentionRes, unseenRes] = await Promise.all([
         fetchPulseEndpoint<{ success: boolean; data: ActivityItem[] }>(
           projectId,
           'activity?limit=50'
@@ -156,10 +175,6 @@ export function useProjectPulse(): UseProjectPulseReturn {
           projectId,
           'unseen-count'
         ),
-        fetchPulseEndpoint<{ success: boolean; data: TeamMember[] }>(
-          projectId,
-          'presence'
-        ),
       ]);
 
       if (activityRes.success) {
@@ -171,9 +186,6 @@ export function useProjectPulse(): UseProjectPulseReturn {
       if (unseenRes.success) {
         setUnseenCount(unseenRes.count);
         setLastSeenAt(unseenRes.lastSeenAt);
-      }
-      if (presenceRes.success) {
-        setTeamMembers(presenceRes.data);
       }
     } catch (err) {
       console.error('Failed to fetch pulse data:', err);
