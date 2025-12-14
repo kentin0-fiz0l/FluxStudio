@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button, Card } from '@/components/ui';
 import { Switch } from '@/components/ui/switch';
@@ -69,6 +69,12 @@ function Settings() {
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Header */}
         <div>
+          <Link
+            to="/projects"
+            className="inline-block text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 mb-2"
+          >
+            ← Back to Projects
+          </Link>
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Settings</h1>
           <p className="text-neutral-600 dark:text-neutral-300 mt-1">
             Manage your application preferences and account settings
