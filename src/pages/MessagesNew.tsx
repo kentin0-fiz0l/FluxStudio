@@ -21,7 +21,7 @@
 
 import * as React from 'react';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { ChatMessage, UserCard } from '@/components/molecules';
 import { Button, Card, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
@@ -1580,6 +1580,7 @@ function PinnedMessagesPanel({
 function MessagesNew() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // ========================================
   // CONVERSATION STATE (REST API based)
@@ -1656,6 +1657,24 @@ function MessagesNew() {
   const [threadMessages, setThreadMessages] = useState<Message[]>([]);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
   const [threadHighlightId, setThreadHighlightId] = useState<string | null>(null);
+
+  // Thread micro-hint (shown for first-time users)
+  const THREAD_MICRO_HINT_KEY = 'fx_message_thread_hint_dismissed_v1';
+  const [showThreadHint, setShowThreadHint] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(THREAD_MICRO_HINT_KEY) !== 'true';
+    } catch {
+      return true;
+    }
+  });
+  const dismissThreadHint = useCallback(() => {
+    setShowThreadHint(false);
+    try {
+      localStorage.setItem(THREAD_MICRO_HINT_KEY, 'true');
+    } catch {
+      // localStorage not available
+    }
+  }, []);
 
   // Read receipts state
   const [readReceiptsEnabled, setReadReceiptsEnabled] = useState(true);
@@ -2064,6 +2083,22 @@ function MessagesNew() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedConversationId]);
 
+  // Handle deep-link highlight from URL (e.g., ?highlight=<messageId>)
+  useEffect(() => {
+    const highlightParam = searchParams.get('highlight');
+    if (!highlightParam || messages.length === 0) return;
+
+    // Wait a short delay for the DOM to render
+    const timer = setTimeout(() => {
+      handleJumpToMessage(highlightParam);
+      // Clear the highlight param from URL to prevent re-highlighting on refresh
+      searchParams.delete('highlight');
+      setSearchParams(searchParams, { replace: true });
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchParams, setSearchParams, messages.length, handleJumpToMessage]);
+
   // ========================================
   // MESSAGE HANDLERS (WebSocket based)
   // ========================================
@@ -2232,6 +2267,10 @@ function MessagesNew() {
 
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     setHighlightedMessageId(messageId);
+
+    // Add pulse animation
+    el.classList.add('animate-pulse');
+    setTimeout(() => el.classList.remove('animate-pulse'), 2000);
 
     // Clear highlight after a short timeout
     setTimeout(() => {
@@ -2810,6 +2849,27 @@ function MessagesNew() {
                   onResultClick={handleSearchResultClick}
                   onClose={() => setShowMessageSearch(false)}
                 />
+              )}
+
+              {/* Thread micro-hint for first-time users */}
+              {showThreadHint && messages.length > 0 && (
+                <div className="mx-4 mt-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <p className="text-sm text-indigo-900 dark:text-indigo-100">
+                        <span className="font-medium">Threads keep replies organized.</span>
+                        {' '}Click the reply icon on any message to start a focused thread.
+                      </p>
+                    </div>
+                    <button
+                      onClick={dismissThreadHint}
+                      className="p-1 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 rounded transition-colors flex-shrink-0"
+                      aria-label="Dismiss hint"
+                    >
+                      <X className="w-4 h-4 text-indigo-500" />
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* Messages */}
