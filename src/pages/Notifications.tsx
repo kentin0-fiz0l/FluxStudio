@@ -34,6 +34,7 @@ import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications, Notification, NotificationType, NotificationPriority } from '@/contexts/NotificationContext';
+import { useActiveProject } from '@/contexts/ActiveProjectContext';
 import { cn } from '@/lib/utils';
 
 // Notification type icons
@@ -242,6 +243,7 @@ function NotificationItem({
 export default function Notifications() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { activeProject, hasFocus } = useActiveProject();
   const {
     state,
     fetchNotifications,
@@ -271,9 +273,14 @@ export default function Notifications() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  // Filter notifications
+  // Filter notifications (with active project scoping)
   const filteredNotifications = React.useMemo(() => {
     let filtered = [...state.notifications];
+
+    // Apply active project filter when a project is focused
+    if (hasFocus && activeProject) {
+      filtered = filtered.filter(n => n.projectId === activeProject.id);
+    }
 
     // Filter by read status
     if (filter === 'unread') {
@@ -287,13 +294,13 @@ export default function Notifications() {
       filtered = filtered.filter(n => n.type === selectedType);
     }
 
-    // Filter by project scope
-    if (projectScope === 'project_only') {
+    // Filter by project scope (only when not focused on a specific project)
+    if (!hasFocus && projectScope === 'project_only') {
       filtered = filtered.filter(n => n.projectId != null);
     }
 
     return filtered;
-  }, [state.notifications, filter, selectedType, projectScope]);
+  }, [state.notifications, filter, selectedType, projectScope, hasFocus, activeProject]);
 
   // Handle notification click
   const handleNotificationClick = async (notification: Notification) => {
