@@ -67,6 +67,7 @@ import {
 import { useTaskRealtime } from '@/hooks/useTaskRealtime';
 import { useAssets, AssetRecord } from '@/contexts/AssetsContext';
 import { AssetDetailDrawer } from '@/components/assets/AssetDetailDrawer';
+import { useProjectCounts } from '@/hooks/useProjectCounts';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -198,7 +199,9 @@ export const ProjectDetail = () => {
   // ============================================================================
 
   const [activeTab, setActiveTab] = React.useState('overview');
-  const [unreadCount] = React.useState(0); // TODO: Wire up to messaging context
+  // Fetch project counts from API for tab badges
+  const { counts: projectCounts } = useProjectCounts(id);
+  const messagesCount = projectCounts?.messages ?? 0;
 
   // Task view state
   const [viewMode, setViewMode] = React.useState<ViewMode>(() => {
@@ -672,16 +675,13 @@ export const ProjectDetail = () => {
                 aria-selected={activeTab === 'messages'}
                 aria-controls="messages-panel"
                 id="messages-tab"
-                aria-label={unreadCount > 0 ? `Messages, ${unreadCount} unread` : 'Messages'}
+                aria-label={`Messages, ${messagesCount} conversations`}
               >
                 <MessageSquare className="h-4 w-4 mr-2" aria-hidden="true" />
                 Messages
-                {unreadCount > 0 && (
-                  <Badge variant="solidError" size="sm" className="ml-2">
-                    <span className="sr-only">{unreadCount} unread</span>
-                    <span aria-hidden="true">{unreadCount}</span>
-                  </Badge>
-                )}
+                <Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">
+                  {messagesCount}
+                </Badge>
               </TabsTrigger>
             </TabsList>
           </Tabs>
