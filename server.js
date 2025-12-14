@@ -103,6 +103,72 @@ let notifications = [];
 let onlineUsers = new Map();
 let typingUsers = new Map();
 
+// ======================
+// PULSE STATE (per user per project last-seen tracking)
+// ======================
+let pulseState = new Map(); // key: `${userId}:${projectId}`, value: { lastSeenAt, updatedAt }
+let projectPresence = new Map(); // key: projectId, value: Map<socketId, { userId, userName, joinedAt }>
+
+// Pulse state helpers
+function getPulseStateKey(userId, projectId) {
+  return `${userId}:${projectId}`;
+}
+
+function getPulseState(userId, projectId) {
+  const key = getPulseStateKey(userId, projectId);
+  return pulseState.get(key) || null;
+}
+
+function setPulseState(userId, projectId, lastSeenAt = new Date().toISOString()) {
+  const key = getPulseStateKey(userId, projectId);
+  const now = new Date().toISOString();
+  pulseState.set(key, {
+    userId,
+    projectId,
+    lastSeenAt,
+    updatedAt: now
+  });
+  return pulseState.get(key);
+}
+
+// Project presence helpers
+function getProjectPresence(projectId) {
+  return projectPresence.get(projectId) || new Map();
+}
+
+function addUserToProjectPresence(projectId, socketId, userId, userName) {
+  if (!projectPresence.has(projectId)) {
+    projectPresence.set(projectId, new Map());
+  }
+  projectPresence.get(projectId).set(socketId, {
+    userId,
+    userName,
+    joinedAt: new Date().toISOString()
+  });
+}
+
+function removeUserFromProjectPresence(projectId, socketId) {
+  const presence = projectPresence.get(projectId);
+  if (presence) {
+    presence.delete(socketId);
+    if (presence.size === 0) {
+      projectPresence.delete(projectId);
+    }
+  }
+}
+
+function getProjectPresenceList(projectId) {
+  const presence = getProjectPresence(projectId);
+  // Dedupe by userId (same user might have multiple tabs)
+  const userMap = new Map();
+  presence.forEach((data) => {
+    if (!userMap.has(data.userId)) {
+      userMap.set(data.userId, data);
+    }
+  });
+  return Array.from(userMap.values());
+}
+
 // File storage
 const mockFiles = new Map();
 mockFiles.set('file-1', {
