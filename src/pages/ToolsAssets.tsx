@@ -15,11 +15,13 @@
 
 import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/apiService';
+import { EmptyState } from '../components/common/EmptyState';
+import { Package, ArrowRight } from 'lucide-react';
 
 // Types
 interface AssetVersion {
@@ -579,6 +581,12 @@ export default function ToolsAssets() {
           <div className="p-4 border-b border-gray-200 bg-white">
             <div className="flex items-center justify-between mb-4">
               <div>
+                <Link
+                  to="/tools"
+                  className="inline-block text-sm text-indigo-600 hover:text-indigo-700 mb-2"
+                >
+                  ← Back to Tools
+                </Link>
                 <h1 className="text-xl font-semibold text-gray-900">Assets</h1>
                 {stats && (
                   <p className="text-sm text-gray-500 mt-1">{statsLine}</p>
@@ -614,23 +622,33 @@ export default function ToolsAssets() {
             {loading ? (
               <div className="text-center py-12 text-gray-500">Loading...</div>
             ) : assets.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-4xl mb-3">{'\u{1F4E6}'}</div>
-                <div className="text-gray-700 font-medium mb-1">No assets yet</div>
-                <div className="text-sm text-gray-500">
-                  {searchQuery || kindFilter !== 'all'
-                    ? 'Try adjusting your search or filters'
-                    : 'Convert Files into reusable Assets to get started.'}
-                </div>
-                {!searchQuery && kindFilter === 'all' && (
-                  <button
-                    onClick={() => navigate('/tools/files')}
-                    className="mt-4 px-4 py-2 text-indigo-600 hover:text-indigo-700"
-                  >
-                    Go to Files
-                  </button>
-                )}
-              </div>
+              <EmptyState
+                icon={<Package className="w-12 h-12" />}
+                title={searchQuery || kindFilter !== 'all' ? 'No matching assets' : 'Create your first asset'}
+                description={
+                  searchQuery || kindFilter !== 'all'
+                    ? 'Try adjusting your search or filters to find what you\'re looking for.'
+                    : 'Assets are reusable creative elements — images, audio, video, or documents — that you can tag, version, and share across projects.'
+                }
+                primaryCta={
+                  !searchQuery && kindFilter === 'all'
+                    ? {
+                        label: 'Go to Files',
+                        onClick: () => navigate('/tools/files'),
+                        icon: <ArrowRight className="w-4 h-4" />,
+                      }
+                    : undefined
+                }
+                secondaryCta={
+                  !searchQuery && kindFilter === 'all'
+                    ? {
+                        label: 'Back to Tools',
+                        onClick: () => navigate('/tools'),
+                      }
+                    : undefined
+                }
+                className="py-12"
+              />
             ) : (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">

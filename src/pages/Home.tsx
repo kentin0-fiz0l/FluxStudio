@@ -21,21 +21,18 @@ import {
   Target
 } from 'lucide-react';
 
-// Optional auth hook that doesn't throw if context is missing
-function useOptionalAuth() {
-  try {
-    // Try to import and use auth context
-    const { useAuth } = require('../contexts/AuthContext');
-    return useAuth();
-  } catch {
-    // Return null user if auth context is not available
-    return { user: null, login: () => {}, logout: () => {}, isLoading: false };
-  }
-}
+import { useAuth } from '../contexts/AuthContext';
 
 export function Home() {
-  const { user, logout } = useOptionalAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Authentication guard - redirect to login if not authenticated
+  React.useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, navigate]);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Get real project data for first-time detection
@@ -159,7 +156,7 @@ export function Home() {
             <Card
               interactive
               className="cursor-pointer"
-              onClick={() => navigate('/projects')}
+              onClick={() => navigate('/projects/new')}
             >
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
@@ -178,7 +175,7 @@ export function Home() {
             <Card
               interactive
               className="cursor-pointer"
-              onClick={() => navigate('/file')}
+              onClick={() => navigate('/tools/files')}
             >
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">

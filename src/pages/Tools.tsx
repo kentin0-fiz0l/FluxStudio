@@ -6,7 +6,7 @@
  */
 
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Card, Button } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
@@ -141,12 +141,12 @@ function Tools() {
             Specialized tools that enhance your creative workflow — organize your work inside projects.
           </p>
           {/* Project bridge */}
-          <a
-            href="/projects"
+          <Link
+            to="/projects"
             className="inline-block text-sm text-primary-600 hover:text-primary-700 mt-2"
           >
             ← Back to Projects
-          </a>
+          </Link>
         </div>
 
         {/* Featured Tools Section */}
