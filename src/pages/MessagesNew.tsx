@@ -94,6 +94,7 @@ import { MessageSearchResult } from '../hooks/useMessageSearch';
 import { MarkdownMessage } from '../components/messaging/MarkdownMessage';
 import { ThreadPanel } from '../components/messaging/ThreadPanel';
 import { EmptyState, emptyStateConfigs } from '../components/common/EmptyState';
+import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
 
 // Types
 interface MessageUser {
@@ -1612,6 +1613,7 @@ function MessagesNew() {
   const { activeProject, hasFocus } = useActiveProject();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { reportConversation } = useReportEntityFocus();
 
   // ========================================
   // CONVERSATION STATE (REST API based)
@@ -2605,6 +2607,8 @@ function MessagesNew() {
   const handleConversationClick = (conversation: Conversation) => {
     setSelectedConversationId(conversation.id);
     setShowMobileChat(true);
+    // Report to Work Momentum
+    reportConversation(conversation.id);
   };
 
   // Create new conversation via REST API
