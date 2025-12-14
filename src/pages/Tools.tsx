@@ -162,12 +162,20 @@ function Tools() {
             {tools.map((tool) => (
               <Card
                 key={tool.id}
-                className="relative group bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 shadow-sm hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600 transition-all duration-200 cursor-pointer"
+                className={`relative group bg-white dark:bg-neutral-800 rounded-2xl border p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
+                  tool.id === 'metmap'
+                    ? 'border-primary-300 dark:border-primary-600 ring-1 ring-primary-200 dark:ring-primary-700'
+                    : 'border-neutral-200 dark:border-neutral-700 hover:border-primary-300 dark:hover:border-primary-600'
+                }`}
                 onClick={() => handleLaunchTool(tool)}
               >
-                {/* NEW Badge */}
-                <div className="absolute -top-2 -right-2 bg-primary-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg">
-                  NEW
+                {/* Badge - Featured for MetMap, NEW for others */}
+                <div className={`absolute -top-2 -right-2 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg ${
+                  tool.id === 'metmap'
+                    ? 'bg-gradient-to-r from-primary-600 to-indigo-600'
+                    : 'bg-primary-600'
+                }`}>
+                  {tool.id === 'metmap' ? 'FEATURED' : 'NEW'}
                 </div>
 
                 {/* Icon */}
