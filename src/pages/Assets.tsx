@@ -23,6 +23,7 @@ import { useAssets, AssetRecord, AssetType } from '../contexts/AssetsContext';
 import { useFiles } from '../contexts/FilesContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { AssetDetailDrawer } from '../components/assets/AssetDetailDrawer';
+import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
 
 // Asset type icons and labels
 const assetTypeConfig: Record<AssetType, { icon: string; label: string; color: string }> = {
@@ -227,6 +228,7 @@ export default function Assets() {
   } = useAssets();
   const { state: filesState } = useFiles();
   const { addNotification } = useNotifications();
+  const { reportAsset } = useReportEntityFocus();
 
   // Local state
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
@@ -303,6 +305,8 @@ export default function Assets() {
     setDetailAsset(asset);
     setSelectedAsset(asset);
     setShowDetailDrawer(true);
+    // Report to Work Momentum
+    reportAsset(asset.id);
   };
 
   // Handle delete

@@ -21,6 +21,7 @@ import { Button, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, Input,
 import { useAuth } from '../contexts/AuthContext';
 import { useFiles, FileRecord, FileType, FileSource } from '../contexts/FilesContext';
 import { useProjects } from '../hooks/useProjects';
+import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
 import { toast } from '../lib/toast';
 import { cn, formatFileSize, formatRelativeTime } from '../lib/utils';
 import {
@@ -358,6 +359,7 @@ export function FileNew() {
     setSelectedFile
   } = useFiles();
   const { projects } = useProjects();
+  const { reportFile } = useReportEntityFocus();
 
   // UI State
   const [viewMode, setViewMode] = React.useState<ViewMode>('grid');
@@ -451,6 +453,8 @@ export function FileNew() {
   const handlePreview = (file: FileRecord) => {
     setSelectedFile(file);
     setShowPreviewDrawer(true);
+    // Report to Work Momentum
+    reportFile(file.id);
   };
 
   const handleDownload = (file: FileRecord) => {

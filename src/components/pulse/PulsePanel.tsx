@@ -27,6 +27,7 @@ import { useActiveProject } from '@/contexts/ActiveProjectContext';
 import { ActivityStream } from './ActivityStream';
 import { AttentionInbox } from './AttentionInbox';
 import { TeamHeartbeat } from './TeamHeartbeat';
+import { ResumeCard } from '@/components/momentum/ResumeCard';
 
 export interface PulsePanelProps {
   /** Whether the panel is open */
@@ -168,6 +169,9 @@ export function PulsePanel({
           <ChevronRight className="h-4 w-4 flex-shrink-0" />
         </button>
       )}
+
+      {/* Resume Card - Work Momentum */}
+      <ResumeCard onResume={onClose} />
 
       {/* Tabs */}
       <div className="flex border-b border-neutral-200 dark:border-neutral-800">

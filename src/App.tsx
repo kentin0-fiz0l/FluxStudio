@@ -10,12 +10,14 @@ import { MessagingProvider } from './contexts/MessagingContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ActiveProjectProvider } from './contexts/ActiveProjectContext';
 import { SessionProvider } from './contexts/SessionContext';
+import { WorkingContextProvider } from './contexts/WorkingContext';
 import { ConnectorsProvider } from './contexts/ConnectorsContext';
 import { FilesProvider } from './contexts/FilesContext';
 import { AssetsProvider } from './contexts/AssetsContext';
 import { MetMapProvider } from './contexts/MetMapContext';
 import { ToastContainer } from './components/notifications/ToastContainer';
 import { ProjectContextBar } from './components/projects/ProjectContextBar';
+import { MomentumCapture } from './components/momentum/MomentumCapture';
 import { QuickActions, useQuickActions } from './components/pulse/QuickActions';
 import ErrorBoundary, {
   FilesErrorBoundary,
@@ -127,6 +129,7 @@ function AuthenticatedRoutes() {
           <NotificationProvider>
             <ActiveProjectProvider>
             <SessionProvider>
+            <WorkingContextProvider>
             <OrganizationProvider>
               <WorkspaceProvider>
                 <ConnectorsProvider>
@@ -135,6 +138,8 @@ function AuthenticatedRoutes() {
                       <MetMapProvider>
                 {/* Project Context Bar - shows when a project is focused */}
                 <ProjectContextBar />
+                {/* Work Momentum - passive context capture */}
+                <MomentumCapture />
                 {/* Global Quick Actions - Cmd/Ctrl+K to open */}
                 <GlobalQuickActions>
                 <Suspense fallback={<DefaultLoadingFallback />}>
@@ -228,6 +233,7 @@ function AuthenticatedRoutes() {
                 </ConnectorsProvider>
               </WorkspaceProvider>
             </OrganizationProvider>
+            </WorkingContextProvider>
             </SessionProvider>
           </ActiveProjectProvider>
           </NotificationProvider>
