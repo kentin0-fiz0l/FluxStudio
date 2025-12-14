@@ -215,24 +215,45 @@ This document captures UX testing results across all FluxStudio routes, identify
 
 ---
 
-## Top 5 Improvements to Implement
+## Improvements Implemented
 
-Based on Impact × Effort scoring:
+### Round 1 - Top 5 by Impact × Effort
 
-1. **I1: Add proper auth guard to Home** (Score: 9)
-   - Ensure Home.tsx redirects unauthenticated users like other pages
+| ID | Issue | Status | File(s) Changed |
+|----|-------|--------|-----------------|
+| I1 | Home uses optional auth | **FIXED** | `Home.tsx` - Added proper auth guard with redirect |
+| I2 | "Start New Project" → /projects not /projects/new | **FIXED** | `Home.tsx` - Updated to `/projects/new` |
+| I3 | "Browse Files" → /file (inconsistent) | **FIXED** | `Home.tsx` - Updated to `/tools/files` |
+| I10 | Tools "Back to Projects" causes page reload | **FIXED** | `Tools.tsx` - Changed `<a href>` to `<Link>` |
+| I15 | Assets uses generic empty state | **FIXED** | `ToolsAssets.tsx` - Uses `EmptyState` component |
 
-2. **I2: Fix "Start New Project" navigation** (Score: 7)
-   - Navigate to `/projects/new` or show create modal directly
+### Round 1 - Bonus Fixes
 
-3. **I8: Add empty state for Notifications** (Score: 7)
-   - Use EmptyState component with bell icon and friendly message
+| ID | Issue | Status | File(s) Changed |
+|----|-------|--------|-----------------|
+| I14 | Files page missing "Back to Tools" | **FIXED** | `ToolsFiles.tsx` - Added breadcrumb link |
+| I16 | Assets missing "Back to Tools" | **FIXED** | `ToolsAssets.tsx` - Added breadcrumb link |
 
-4. **I10: Fix Tools "Back to Projects" link** (Score: 7)
-   - Use React Router `<Link>` instead of `<a href>`
+### Round 2 - Additional Improvements
 
-5. **I15: Add themed empty state for Assets** (Score: 7)
-   - Create asset-specific empty state with "Create your first asset" message
+| ID | Issue | Status | File(s) Changed |
+|----|-------|--------|-----------------|
+| I13 | MetMap missing breadcrumbs | **FIXED** | `ToolsMetMap.tsx` - Added "Tools > MetMap" breadcrumb |
+| I12 | MetMap visit doesn't auto-complete onboarding | **FIXED** | `ToolsMetMap.tsx` - Auto-marks step complete on visit |
+
+### Not Implemented (Future Work)
+
+| ID | Issue | Reason |
+|----|-------|--------|
+| I8 | No empty state for notifications | Already has good empty state (lines 500-510) |
+| I9 | No "Mark all read" bulk action | Already exists in header (lines 341-351) |
+| I4 | ProjectDetail uses generic spinner | Medium effort, lower priority |
+| I5 | No "project not found" handling | Requires backend coordination |
+| I6 | Messages missing loading skeleton | Medium effort, UX enhancement |
+| I7 | Thread count not on conversation cards | Feature enhancement |
+| I17 | No unsaved changes warning in Settings | High effort |
+| I18 | Settings tabs not URL-based | Low priority |
+| I19 | No loading state for profile save | Low priority |
 
 ---
 
