@@ -8,11 +8,15 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { MessagingProvider } from './contexts/MessagingContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { ActiveProjectProvider } from './contexts/ActiveProjectContext';
+import { SessionProvider } from './contexts/SessionContext';
 import { ConnectorsProvider } from './contexts/ConnectorsContext';
 import { FilesProvider } from './contexts/FilesContext';
 import { AssetsProvider } from './contexts/AssetsContext';
 import { MetMapProvider } from './contexts/MetMapContext';
 import { ToastContainer } from './components/notifications/ToastContainer';
+import { ProjectContextBar } from './components/projects/ProjectContextBar';
+import { QuickActions, useQuickActions } from './components/pulse/QuickActions';
 import ErrorBoundary, {
   FilesErrorBoundary,
   ToolsErrorBoundary,
@@ -100,6 +104,20 @@ function RootRedirect() {
   return <SimpleHomePage />;
 }
 
+// Global Quick Actions wrapper - provides keyboard shortcut handler
+function GlobalQuickActions({ children }: { children: React.ReactNode }) {
+  const quickActions = useQuickActions();
+  return (
+    <>
+      {children}
+      <QuickActions
+        isOpen={quickActions.isOpen}
+        onClose={quickActions.close}
+      />
+    </>
+  );
+}
+
 // Authenticated app wrapper - contains all providers for authenticated routes
 function AuthenticatedRoutes() {
   return (
@@ -107,12 +125,18 @@ function AuthenticatedRoutes() {
       <SocketProvider>
         <MessagingProvider>
           <NotificationProvider>
+            <ActiveProjectProvider>
+            <SessionProvider>
             <OrganizationProvider>
               <WorkspaceProvider>
                 <ConnectorsProvider>
                   <FilesProvider>
                     <AssetsProvider>
                       <MetMapProvider>
+                {/* Project Context Bar - shows when a project is focused */}
+                <ProjectContextBar />
+                {/* Global Quick Actions - Cmd/Ctrl+K to open */}
+                <GlobalQuickActions>
                 <Suspense fallback={<DefaultLoadingFallback />}>
                   <Routes>
                   {/* Root route - redirects based on auth state */}
@@ -195,6 +219,7 @@ function AuthenticatedRoutes() {
                   <Route path="/dashboard/printing" element={<ProtectedRoute><PrintingDashboard /></ProtectedRoute>} />
                   </Routes>
                 </Suspense>
+                </GlobalQuickActions>
                 {/* Global Toast Notifications */}
                 <ToastContainer />
                       </MetMapProvider>
@@ -203,6 +228,8 @@ function AuthenticatedRoutes() {
                 </ConnectorsProvider>
               </WorkspaceProvider>
             </OrganizationProvider>
+            </SessionProvider>
+          </ActiveProjectProvider>
           </NotificationProvider>
         </MessagingProvider>
       </SocketProvider>

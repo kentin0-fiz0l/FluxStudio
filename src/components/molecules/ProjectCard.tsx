@@ -12,7 +12,7 @@
  */
 
 import * as React from 'react';
-import { Calendar, Users, MoreVertical, ExternalLink } from 'lucide-react';
+import { Calendar, Users, MoreVertical, ExternalLink, Target } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Badge, Button } from '@/components/ui';
 import { cn, formatRelativeTime } from '@/lib/utils';
 
@@ -77,6 +77,16 @@ export interface ProjectCardProps {
   onMoreOptions?: (project: ProjectCardProject) => void;
 
   /**
+   * Focus callback for "Project Focus Mode"
+   */
+  onFocus?: (project: ProjectCardProject) => void;
+
+  /**
+   * Whether this project is currently focused
+   */
+  isFocused?: boolean;
+
+  /**
    * Custom className
    */
   className?: string;
@@ -99,6 +109,8 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
       onEdit,
       onView,
       onMoreOptions,
+      onFocus,
+      isFocused = false,
       className,
       variant = 'default',
     },
@@ -263,7 +275,7 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
         )}
 
         {/* Actions */}
-        {showActions && (onEdit || onView) && (
+        {showActions && (onEdit || onView || onFocus) && (
           <CardFooter className="pt-4 gap-2">
             {onView && (
               <Button
@@ -277,6 +289,22 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
                 fullWidth={variant === 'compact'}
               >
                 View
+              </Button>
+            )}
+            {onFocus && (
+              <Button
+                variant={isFocused ? 'primary' : 'outline'}
+                size="sm"
+                icon={<Target className="h-4 w-4" />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFocus(project);
+                }}
+                fullWidth={variant === 'compact'}
+                aria-pressed={isFocused}
+                aria-label={isFocused ? 'Currently focused project' : 'Focus on this project'}
+              >
+                {isFocused ? 'Focused' : 'Focus'}
               </Button>
             )}
             {onEdit && (
