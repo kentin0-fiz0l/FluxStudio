@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button, Card } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
@@ -44,6 +44,12 @@ export function Profile() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
+            <Link
+              to="/projects"
+              className="inline-block text-sm text-primary-600 hover:text-primary-700 mb-2"
+            >
+              ← Back to Projects
+            </Link>
             <h1 className="text-2xl font-bold text-neutral-900">Profile</h1>
             <p className="text-neutral-600 mt-1">
               Manage your account information and preferences
