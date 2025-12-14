@@ -20,6 +20,7 @@ import { useProjects, Project } from '../hooks/useProjects';
 import { useTeams } from '../hooks/useTeams';
 import { useOrganizations } from '../hooks/useOrganizations';
 import { useConnectors } from '../contexts/ConnectorsContext';
+import { useActiveProject } from '../contexts/ActiveProjectContext';
 import { toast } from '../lib/toast';
 import {
   Plus,
@@ -44,6 +45,7 @@ export function ProjectsNew() {
   const { projects, loading, error, createProject } = useProjects();
   const { teams } = useTeams();
   const { currentOrganization } = useOrganizations();
+  const { activeProject, setActiveProject, isProjectFocused } = useActiveProject();
 
   // Try to get connectors context for file linking
   let linkFileToProject: ((fileId: string, projectId: string) => Promise<void>) | undefined;
@@ -247,6 +249,11 @@ export function ProjectsNew() {
     console.log('Edit project:', project.id);
   };
 
+  const handleProjectFocus = (project: Project) => {
+    setActiveProject({ id: project.id, name: project.name });
+    toast.success(`Now focused on "${project.name}"`);
+  };
+
   return (
     <DashboardLayout
       user={user}
@@ -433,6 +440,8 @@ export function ProjectsNew() {
                 showTags
                 onView={() => handleProjectView(project)}
                 onEdit={() => handleProjectEdit(project)}
+                onFocus={() => handleProjectFocus(project)}
+                isFocused={isProjectFocused(project.id)}
               />
             ))}
           </div>
