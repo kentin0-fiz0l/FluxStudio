@@ -13,7 +13,7 @@
 
 import * as React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { FileUp } from 'lucide-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useNotification } from '../contexts/NotificationContext';
@@ -463,6 +463,12 @@ export default function ToolsFiles() {
           <div className="p-4 border-b border-gray-200 bg-white">
             <div className="flex items-center justify-between mb-4">
               <div>
+                <Link
+                  to="/tools"
+                  className="inline-block text-sm text-indigo-600 hover:text-indigo-700 mb-2"
+                >
+                  ← Back to Tools
+                </Link>
                 <h1 className="text-xl font-semibold text-gray-900">Files</h1>
                 {stats && (
                   <p className="text-sm text-gray-500 mt-1">
