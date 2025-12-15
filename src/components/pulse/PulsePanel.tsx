@@ -19,11 +19,16 @@ import {
   Users,
   ChevronRight,
   Check,
+  CheckCheck,
+  WifiOff,
+  Clock,
+  MessageSquare,
 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { useProjectPulse } from '@/hooks/useProjectPulse';
 import { useActiveProject } from '@/contexts/ActiveProjectContext';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ActivityStream } from './ActivityStream';
 import { AttentionInbox } from './AttentionInbox';
 import { TeamHeartbeat } from './TeamHeartbeat';
@@ -56,18 +61,31 @@ export function PulsePanel({
   position = 'right',
 }: PulsePanelProps) {
   const navigate = useNavigate();
-  const { activeProject } = useActiveProject();
+  const { activeProject, hasFocus } = useActiveProject();
   const {
     activityStream,
     attentionItems,
     teamMembers,
     unseenCount,
     isLoading,
+    isConnected,
     refresh,
     markAllSeen,
   } = useProjectPulse();
 
   const [activeTab, setActiveTab] = React.useState<TabId>('attention');
+
+  // Keyboard shortcut: Escape to close
+  useKeyboardShortcuts({
+    shortcuts: [
+      {
+        key: 'Escape',
+        action: onClose,
+        description: 'Close Pulse panel',
+      },
+    ],
+    enabled: isOpen,
+  });
 
   // Mark as seen when opening
   React.useEffect(() => {
@@ -127,8 +145,31 @@ export function PulsePanel({
               {unseenCount} new
             </Badge>
           )}
+          {/* Connection status indicator */}
+          {!isConnected && (
+            <span
+              className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400"
+              title="Offline - real-time updates paused"
+            >
+              <WifiOff className="h-3 w-3" />
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
+          {/* Mark as Seen button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={markAllSeen}
+            disabled={unseenCount === 0}
+            aria-label="Mark all as seen"
+            title="Mark all as seen"
+            className={cn(
+              unseenCount === 0 && 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            <CheckCheck className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -144,7 +185,8 @@ export function PulsePanel({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            aria-label="Close pulse panel"
+            aria-label="Close pulse panel (Esc)"
+            title="Close (Esc)"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -208,28 +250,76 @@ export function PulsePanel({
 
       {/* Tab content */}
       <div className="flex-1 overflow-y-auto">
-        {activeTab === 'attention' && (
-          <AttentionInbox items={attentionItems} onItemClick={handleItemClick} />
-        )}
-        {activeTab === 'activity' && (
-          <ActivityStream
-            items={activityStream}
-            onItemClick={handleItemClick}
-            maxItems={15}
-          />
-        )}
-        {activeTab === 'team' && <TeamHeartbeat members={teamMembers} />}
-      </div>
-
-      {/* Footer */}
-      {attentionItems.length === 0 && activeTab === 'attention' && (
-        <div className="px-4 py-3 border-t border-neutral-200 dark:border-neutral-800">
-          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-            <Check className="h-4 w-4" />
-            <span>All caught up!</span>
+        {/* No project focused - empty state */}
+        {!hasFocus && (
+          <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
+            <Activity className="h-12 w-12 text-neutral-300 dark:text-neutral-600 mb-4" />
+            <p className="text-neutral-600 dark:text-neutral-400 text-sm">
+              Pick a project to see its Pulse
+            </p>
+            <p className="text-neutral-500 dark:text-neutral-500 text-xs mt-1">
+              Focus on a project to see activity, attention items, and team presence
+            </p>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Attention tab */}
+        {hasFocus && activeTab === 'attention' && (
+          attentionItems.length > 0 ? (
+            <AttentionInbox items={attentionItems} onItemClick={handleItemClick} />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
+              <Check className="h-10 w-10 text-green-500 dark:text-green-400 mb-3" />
+              <p className="text-neutral-700 dark:text-neutral-300 font-medium">
+                All caught up!
+              </p>
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
+                No items need your attention right now
+              </p>
+            </div>
+          )
+        )}
+
+        {/* Activity tab */}
+        {hasFocus && activeTab === 'activity' && (
+          activityStream.length > 0 ? (
+            <ActivityStream
+              items={activityStream}
+              onItemClick={handleItemClick}
+              maxItems={15}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
+              <Clock className="h-10 w-10 text-neutral-300 dark:text-neutral-600 mb-3" />
+              <p className="text-neutral-600 dark:text-neutral-400 text-sm">
+                No recent activity
+              </p>
+              <p className="text-neutral-500 dark:text-neutral-500 text-xs mt-1">
+                Activity will appear here as your team works
+              </p>
+            </div>
+          )
+        )}
+
+        {/* Team tab */}
+        {hasFocus && activeTab === 'team' && (
+          teamMembers.length > 0 ? (
+            <TeamHeartbeat members={teamMembers} />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
+              <Users className="h-10 w-10 text-neutral-300 dark:text-neutral-600 mb-3" />
+              <p className="text-neutral-600 dark:text-neutral-400 text-sm">
+                No team members online
+              </p>
+              <p className="text-neutral-500 dark:text-neutral-500 text-xs mt-1">
+                {isConnected
+                  ? 'Team presence appears when others focus on this project'
+                  : 'Connect to see who is working on this project'}
+              </p>
+            </div>
+          )
+        )}
+      </div>
     </div>
   );
 
