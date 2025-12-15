@@ -20,9 +20,10 @@ import {
   AtSign,
   MessageCircle,
   Clock,
+  Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ActivityItem, ActivityType } from '@/hooks/useProjectPulse';
+import { ActivityItem } from '@/hooks/useProjectPulse';
 
 export interface ActivityStreamProps {
   /** Activity items to display */
@@ -38,30 +39,54 @@ export interface ActivityStreamProps {
 }
 
 // Icon mapping for activity types
-const activityIcons: Record<ActivityType, React.ReactNode> = {
-  message: <MessageSquare className="h-4 w-4" />,
-  task_created: <CheckSquare className="h-4 w-4" />,
-  task_completed: <CheckSquare className="h-4 w-4" />,
-  task_assigned: <CheckSquare className="h-4 w-4" />,
-  file_uploaded: <FileUp className="h-4 w-4" />,
-  member_joined: <UserPlus className="h-4 w-4" />,
-  comment: <MessageCircle className="h-4 w-4" />,
-  mention: <AtSign className="h-4 w-4" />,
-};
+function getActivityIcon(type: string): React.ReactNode {
+  const iconMap: Record<string, React.ReactNode> = {
+    message_sent: <MessageSquare className="h-4 w-4" />,
+    message_mention: <AtSign className="h-4 w-4" />,
+    message_reply: <MessageCircle className="h-4 w-4" />,
+    mention: <AtSign className="h-4 w-4" />,
+    reply: <MessageCircle className="h-4 w-4" />,
+    file_uploaded: <FileUp className="h-4 w-4" />,
+    project_file_uploaded: <FileUp className="h-4 w-4" />,
+    asset_created: <FileUp className="h-4 w-4" />,
+    board_updated: <CheckSquare className="h-4 w-4" />,
+    task_assigned: <CheckSquare className="h-4 w-4" />,
+    task_created: <CheckSquare className="h-4 w-4" />,
+    task_completed: <CheckSquare className="h-4 w-4" />,
+    project_member_added: <UserPlus className="h-4 w-4" />,
+    member_joined: <UserPlus className="h-4 w-4" />,
+    project_status_changed: <Bell className="h-4 w-4" />,
+    notification_created: <Bell className="h-4 w-4" />,
+    file_shared: <FileUp className="h-4 w-4" />,
+    comment_reply: <MessageCircle className="h-4 w-4" />,
+  };
+  return iconMap[type] || <Bell className="h-4 w-4" />;
+}
 
 // Color mapping for activity types
-const activityColors: Record<ActivityType, string> = {
-  message: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-  task_created: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
-  task_completed: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
-  task_assigned: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-  file_uploaded: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
-  member_joined: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
-  comment: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400',
-  mention: 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400',
-};
+function getActivityColor(type: string): string {
+  const colorMap: Record<string, string> = {
+    message_sent: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+    message_mention: 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400',
+    message_reply: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+    mention: 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400',
+    reply: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+    file_uploaded: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+    project_file_uploaded: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+    asset_created: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
+    board_updated: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+    task_assigned: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
+    task_created: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+    task_completed: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
+    project_member_added: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
+    member_joined: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
+    file_shared: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+  };
+  return colorMap[type] || 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400';
+}
 
-function formatRelativeTime(date: Date): string {
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffSec = Math.floor(diffMs / 1000);
@@ -96,10 +121,10 @@ function ActivityItemRow({
       <div
         className={cn(
           'flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center',
-          activityColors[item.type]
+          getActivityColor(item.type)
         )}
       >
-        {activityIcons[item.type]}
+        {getActivityIcon(item.type)}
       </div>
 
       {/* Content */}
@@ -116,27 +141,22 @@ function ActivityItemRow({
           </div>
           <span className="text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            {formatRelativeTime(item.timestamp)}
+            {formatRelativeTime(item.createdAt)}
           </span>
         </div>
-        {item.description && (
+        {item.preview && (
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-0.5 line-clamp-2">
-            {item.description}
-          </p>
-        )}
-        {item.actorName && (
-          <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">
-            by {item.actorName}
+            {item.preview}
           </p>
         )}
       </div>
     </div>
   );
 
-  if (item.actionUrl) {
+  if (item.deepLink) {
     return (
       <Link
-        to={item.actionUrl}
+        to={item.deepLink}
         onClick={onClick}
         className="block"
       >

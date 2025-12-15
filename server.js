@@ -103,6 +103,72 @@ let notifications = [];
 let onlineUsers = new Map();
 let typingUsers = new Map();
 
+// ======================
+// PULSE STATE (per user per project last-seen tracking)
+// ======================
+let pulseState = new Map(); // key: `${userId}:${projectId}`, value: { lastSeenAt, updatedAt }
+let projectPresence = new Map(); // key: projectId, value: Map<socketId, { userId, userName, joinedAt }>
+
+// Pulse state helpers
+function getPulseStateKey(userId, projectId) {
+  return `${userId}:${projectId}`;
+}
+
+function getPulseState(userId, projectId) {
+  const key = getPulseStateKey(userId, projectId);
+  return pulseState.get(key) || null;
+}
+
+function setPulseState(userId, projectId, lastSeenAt = new Date().toISOString()) {
+  const key = getPulseStateKey(userId, projectId);
+  const now = new Date().toISOString();
+  pulseState.set(key, {
+    userId,
+    projectId,
+    lastSeenAt,
+    updatedAt: now
+  });
+  return pulseState.get(key);
+}
+
+// Project presence helpers
+function getProjectPresence(projectId) {
+  return projectPresence.get(projectId) || new Map();
+}
+
+function addUserToProjectPresence(projectId, socketId, userId, userName) {
+  if (!projectPresence.has(projectId)) {
+    projectPresence.set(projectId, new Map());
+  }
+  projectPresence.get(projectId).set(socketId, {
+    userId,
+    userName,
+    joinedAt: new Date().toISOString()
+  });
+}
+
+function removeUserFromProjectPresence(projectId, socketId) {
+  const presence = projectPresence.get(projectId);
+  if (presence) {
+    presence.delete(socketId);
+    if (presence.size === 0) {
+      projectPresence.delete(projectId);
+    }
+  }
+}
+
+function getProjectPresenceList(projectId) {
+  const presence = getProjectPresence(projectId);
+  // Dedupe by userId (same user might have multiple tabs)
+  const userMap = new Map();
+  presence.forEach((data) => {
+    if (!userMap.has(data.userId)) {
+      userMap.set(data.userId, data);
+    }
+  });
+  return Array.from(userMap.values());
+}
+
 // File storage
 const mockFiles = new Map();
 mockFiles.set('file-1', {
@@ -148,6 +214,7 @@ function createNotification(type, userId, data) {
     title: getNotificationTitle(type, data),
     message: getNotificationMessage(type, data),
     data,
+    projectId: data.projectId || null, // Track project for pulse
     isRead: false,
     isSnoozed: false,
     priority: data.priority || 'medium',
@@ -160,6 +227,18 @@ function createNotification(type, userId, data) {
 
   // Send real-time notification if user is online
   io.to(`user:${userId}`).emit('notification:new', notification);
+
+  // Emit pulse event to project room for real-time activity updates
+  if (data.projectId) {
+    const pulseEvent = buildActivityItem(notification, data.projectId);
+    pulseEvent.isNew = true;
+    io.to(`project:${data.projectId}`).emit('pulse:event', {
+      projectId: data.projectId,
+      event: pulseEvent,
+      type: 'activity',
+      timestamp: notification.createdAt
+    });
+  }
 
   return notification;
 }
@@ -1682,6 +1761,362 @@ app.put('/api/projects/:projectId/milestones/:milestoneId', (req, res) => {
     success: true,
     milestone: updatedMilestone,
     message: 'Milestone updated successfully'
+  });
+});
+
+// ======================
+// PROJECT PULSE ENDPOINTS
+// Real-time activity feed, attention items, and presence
+// ======================
+
+// Helper: Build activity item from notification
+function buildActivityItem(notification, projectId) {
+  const typeToDeepLink = {
+    'message_mention': `/messages?conversationId=${notification.conversationId || ''}`,
+    'message_reply': `/messages?conversationId=${notification.conversationId || ''}`,
+    'project_member_added': `/projects/${projectId}?tab=team`,
+    'project_file_uploaded': `/file`,
+    'file_shared': `/file`,
+    'project_status_changed': `/projects/${projectId}`,
+    'task_assigned': `/projects/${projectId}?tab=tasks`,
+    'comment_reply': `/messages?conversationId=${notification.conversationId || ''}`,
+    'default': `/projects/${projectId}`
+  };
+
+  const typeLabels = {
+    'message_mention': 'You were mentioned',
+    'message_reply': 'New reply',
+    'project_member_added': 'Member joined',
+    'project_file_uploaded': 'File uploaded',
+    'file_shared': 'File shared',
+    'project_status_changed': 'Project updated',
+    'task_assigned': 'Task assigned',
+    'comment_reply': 'New reply',
+    'default': 'Update'
+  };
+
+  return {
+    id: notification.id,
+    projectId: projectId,
+    type: notification.type || 'notification_created',
+    actorUserId: notification.data?.mentionedBy || notification.data?.sharedBy || null,
+    title: typeLabels[notification.type] || typeLabels['default'],
+    entity: {
+      conversationId: notification.conversationId || notification.data?.conversationId,
+      messageId: notification.messageId || notification.data?.messageId,
+      fileId: notification.data?.fileId,
+      assetId: notification.data?.assetId,
+      notificationId: notification.id
+    },
+    createdAt: notification.createdAt,
+    deepLink: typeToDeepLink[notification.type] || typeToDeepLink['default'],
+    preview: notification.message?.slice(0, 120)
+  };
+}
+
+// GET /api/projects/:id/pulse/activity - Get activity stream for project
+app.get('/api/projects/:id/pulse/activity', (req, res) => {
+  const token = req.headers.authorization;
+  const user = getUserFromToken(token);
+
+  if (!user) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+
+  const projectId = req.params.id;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+  const cursor = req.query.cursor; // timestamp for pagination
+
+  // Check project access
+  const project = mockProjects.get(projectId);
+  if (!project) {
+    return res.status(404).json({ success: false, message: 'Project not found' });
+  }
+
+  // Filter notifications for this project
+  let projectNotifications = notifications.filter(n => {
+    // Match by projectId in notification data or infer from context
+    const notifProjectId = n.data?.projectId || n.projectId;
+    if (notifProjectId === projectId) return true;
+    // Also include notifications for project members about project-related events
+    if (project.members?.includes(n.userId)) {
+      const projectTypes = ['project_member_added', 'project_file_uploaded', 'project_status_changed', 'task_assigned', 'file_shared'];
+      return projectTypes.includes(n.type);
+    }
+    return false;
+  });
+
+  // Apply cursor-based pagination
+  if (cursor) {
+    const cursorTime = new Date(cursor).getTime();
+    projectNotifications = projectNotifications.filter(n =>
+      new Date(n.createdAt).getTime() < cursorTime
+    );
+  }
+
+  // Sort by createdAt descending and limit
+  projectNotifications.sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  projectNotifications = projectNotifications.slice(0, limit);
+
+  // Get user's pulse state for "new" markers
+  const userPulseState = getPulseState(user.id, projectId);
+  const lastSeenAt = userPulseState?.lastSeenAt ? new Date(userPulseState.lastSeenAt) : null;
+
+  // Build activity items
+  const activityItems = projectNotifications.map(n => {
+    const item = buildActivityItem(n, projectId);
+    item.isNew = lastSeenAt ? new Date(item.createdAt) > lastSeenAt : true;
+    return item;
+  });
+
+  // Build next cursor
+  const nextCursor = activityItems.length === limit && activityItems.length > 0
+    ? activityItems[activityItems.length - 1].createdAt
+    : null;
+
+  res.json({
+    success: true,
+    data: activityItems,
+    pagination: {
+      limit,
+      cursor: nextCursor,
+      hasMore: !!nextCursor
+    }
+  });
+});
+
+// GET /api/projects/:id/pulse/attention - Get items needing user attention
+app.get('/api/projects/:id/pulse/attention', (req, res) => {
+  const token = req.headers.authorization;
+  const user = getUserFromToken(token);
+
+  if (!user) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+
+  const projectId = req.params.id;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+
+  // Check project access
+  const project = mockProjects.get(projectId);
+  if (!project) {
+    return res.status(404).json({ success: false, message: 'Project not found' });
+  }
+
+  const attentionItems = [];
+
+  // 1. Mentions in this project (unread)
+  const mentionNotifications = notifications.filter(n =>
+    n.userId === user.id &&
+    !n.isRead &&
+    n.type === 'message_mention' &&
+    (n.data?.projectId === projectId || n.projectId === projectId)
+  );
+
+  mentionNotifications.forEach(n => {
+    attentionItems.push({
+      id: n.id,
+      projectId: projectId,
+      reason: 'mention',
+      title: n.title || 'You were mentioned',
+      description: n.message?.slice(0, 120),
+      entity: {
+        conversationId: n.conversationId || n.data?.conversationId,
+        messageId: n.messageId || n.data?.messageId,
+        notificationId: n.id
+      },
+      createdAt: n.createdAt,
+      deepLink: `/messages?conversationId=${n.conversationId || n.data?.conversationId || ''}`,
+      status: 'open',
+      priority: n.priority || 'medium'
+    });
+  });
+
+  // 2. Replies to user (unread)
+  const replyNotifications = notifications.filter(n =>
+    n.userId === user.id &&
+    !n.isRead &&
+    (n.type === 'message_reply' || n.type === 'comment_reply') &&
+    (n.data?.projectId === projectId || n.projectId === projectId)
+  );
+
+  replyNotifications.forEach(n => {
+    attentionItems.push({
+      id: n.id,
+      projectId: projectId,
+      reason: 'reply',
+      title: n.title || 'New reply',
+      description: n.message?.slice(0, 120),
+      entity: {
+        conversationId: n.conversationId || n.data?.conversationId,
+        messageId: n.messageId || n.data?.messageId,
+        notificationId: n.id
+      },
+      createdAt: n.createdAt,
+      deepLink: `/messages?conversationId=${n.conversationId || n.data?.conversationId || ''}`,
+      status: 'open',
+      priority: n.priority || 'medium'
+    });
+  });
+
+  // 3. Assigned tasks (not completed) - if tasks exist in project
+  if (project.tasks) {
+    const assignedTasks = project.tasks.filter(t =>
+      t.assignedTo === user.id &&
+      t.status !== 'completed' &&
+      t.status !== 'done'
+    );
+
+    assignedTasks.forEach(t => {
+      attentionItems.push({
+        id: `task-${t.id}`,
+        projectId: projectId,
+        reason: 'task_assigned',
+        title: t.title,
+        description: t.description?.slice(0, 120),
+        entity: {
+          taskId: t.id
+        },
+        createdAt: t.createdAt,
+        deepLink: `/projects/${projectId}?tab=tasks`,
+        status: 'open',
+        priority: t.priority || 'medium'
+      });
+    });
+  }
+
+  // Sort by priority then by createdAt
+  const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+  attentionItems.sort((a, b) => {
+    const pDiff = (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
+    if (pDiff !== 0) return pDiff;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  res.json({
+    success: true,
+    data: attentionItems.slice(0, limit),
+    total: attentionItems.length
+  });
+});
+
+// GET /api/projects/:id/pulse/unseen-count - Get count of unseen items
+app.get('/api/projects/:id/pulse/unseen-count', (req, res) => {
+  const token = req.headers.authorization;
+  const user = getUserFromToken(token);
+
+  if (!user) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+
+  const projectId = req.params.id;
+
+  // Check project access
+  const project = mockProjects.get(projectId);
+  if (!project) {
+    return res.status(404).json({ success: false, message: 'Project not found' });
+  }
+
+  // Get user's pulse state
+  const userPulseState = getPulseState(user.id, projectId);
+  const lastSeenAt = userPulseState?.lastSeenAt ? new Date(userPulseState.lastSeenAt) : null;
+
+  // Count notifications newer than lastSeenAt
+  let unseenCount = 0;
+
+  // Filter project notifications
+  const projectNotifications = notifications.filter(n => {
+    const notifProjectId = n.data?.projectId || n.projectId;
+    if (notifProjectId === projectId) return true;
+    if (project.members?.includes(n.userId)) {
+      const projectTypes = ['project_member_added', 'project_file_uploaded', 'project_status_changed', 'task_assigned', 'file_shared'];
+      return projectTypes.includes(n.type);
+    }
+    return false;
+  });
+
+  if (lastSeenAt) {
+    unseenCount = projectNotifications.filter(n =>
+      new Date(n.createdAt) > lastSeenAt
+    ).length;
+  } else {
+    // Never seen = count all unread
+    unseenCount = projectNotifications.filter(n => !n.isRead).length;
+  }
+
+  res.json({
+    success: true,
+    count: unseenCount,
+    lastSeenAt: userPulseState?.lastSeenAt || null
+  });
+});
+
+// POST /api/projects/:id/pulse/mark-seen - Mark pulse as seen
+app.post('/api/projects/:id/pulse/mark-seen', (req, res) => {
+  const token = req.headers.authorization;
+  const user = getUserFromToken(token);
+
+  if (!user) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+
+  const projectId = req.params.id;
+  const { seenAt } = req.body;
+
+  // Check project access
+  const project = mockProjects.get(projectId);
+  if (!project) {
+    return res.status(404).json({ success: false, message: 'Project not found' });
+  }
+
+  // Update pulse state
+  const timestamp = seenAt || new Date().toISOString();
+  const state = setPulseState(user.id, projectId, timestamp);
+
+  res.json({
+    success: true,
+    lastSeenAt: state.lastSeenAt
+  });
+});
+
+// GET /api/projects/:id/pulse/presence - Get who's online in the project
+app.get('/api/projects/:id/pulse/presence', (req, res) => {
+  const token = req.headers.authorization;
+  const user = getUserFromToken(token);
+
+  if (!user) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+
+  const projectId = req.params.id;
+
+  // Check project access
+  const project = mockProjects.get(projectId);
+  if (!project) {
+    return res.status(404).json({ success: false, message: 'Project not found' });
+  }
+
+  // Get presence list
+  const presenceList = getProjectPresenceList(projectId);
+
+  // Enrich with user data
+  const enrichedPresence = presenceList.map(p => {
+    const userData = mockUsers[p.userId];
+    return {
+      userId: p.userId,
+      userName: p.userName || userData?.name || 'Unknown',
+      avatar: userData?.avatar,
+      joinedAt: p.joinedAt,
+      isOnline: true
+    };
+  });
+
+  res.json({
+    success: true,
+    data: enrichedPresence,
+    count: enrichedPresence.length
   });
 });
 
@@ -4711,6 +5146,62 @@ io.on('connection', (socket) => {
     });
   });
 
+  // ======================
+  // PROJECT PRESENCE (Real Pulse)
+  // ======================
+
+  // Join project room for presence tracking
+  socket.on('project:join', (projectId, userData) => {
+    const { userId, userName } = userData || {};
+    if (!projectId || !userId) return;
+
+    socket.join(`project:${projectId}`);
+
+    // Track presence
+    addUserToProjectPresence(projectId, socket.id, userId, userName);
+
+    // Get updated presence list
+    const presenceList = getProjectPresenceList(projectId);
+
+    // Notify all in project room (including sender) of updated presence
+    io.to(`project:${projectId}`).emit('project:presence', {
+      projectId,
+      presence: presenceList,
+      event: 'join',
+      userId,
+      userName,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log(`User ${userName || userId} joined project ${projectId}, ${presenceList.length} online`);
+  });
+
+  // Leave project room
+  socket.on('project:leave', (projectId, userData) => {
+    const { userId, userName } = userData || {};
+    if (!projectId) return;
+
+    socket.leave(`project:${projectId}`);
+
+    // Remove presence
+    removeUserFromProjectPresence(projectId, socket.id);
+
+    // Get updated presence list
+    const presenceList = getProjectPresenceList(projectId);
+
+    // Notify others in project room
+    socket.to(`project:${projectId}`).emit('project:presence', {
+      projectId,
+      presence: presenceList,
+      event: 'leave',
+      userId,
+      userName,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log(`User ${userName || userId} left project ${projectId}, ${presenceList.length} online`);
+  });
+
   // Real-time message sending
   socket.on('message:send', (messageData) => {
     const {
@@ -4929,6 +5420,25 @@ io.on('connection', (socket) => {
       }
 
       console.log(`User ${name} (${userId}) disconnected`);
+    }
+
+    // Clean up project presence
+    for (const [projectId, presenceMap] of projectPresence.entries()) {
+      if (presenceMap.has(socket.id)) {
+        const userData = presenceMap.get(socket.id);
+        presenceMap.delete(socket.id);
+
+        // Notify project room of updated presence
+        const presenceList = getProjectPresenceList(projectId);
+        socket.to(`project:${projectId}`).emit('project:presence', {
+          projectId,
+          presence: presenceList,
+          event: 'disconnect',
+          userId: userData?.userId,
+          userName: userData?.userName,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
 
     console.log('User disconnected:', socket.id);
