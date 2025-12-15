@@ -114,11 +114,8 @@ export function ActiveProjectProvider({ children }: { children: React.ReactNode 
     [activeProject, setActiveProject, clearActiveProject, isProjectFocused, hasFocus]
   );
 
-  // Avoid flash of wrong state during hydration
-  if (!isHydrated) {
-    return null;
-  }
-
+  // Always render provider with current value - hydration happens in background
+  // This prevents "must be used within provider" errors during initial render
   return (
     <ActiveProjectContext.Provider value={value}>
       {children}
