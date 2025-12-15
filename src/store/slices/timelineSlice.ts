@@ -702,8 +702,10 @@ export const usePlayback = () => {
   const pause = useStore((state) => state.timeline.pause);
   const stop = useStore((state) => state.timeline.stop);
   const seek = useStore((state) => state.timeline.seek);
+  const setPlaybackRate = useStore((state) => state.timeline.setPlaybackRate);
+  const toggleLoop = useStore((state) => state.timeline.toggleLoop);
 
-  return { ...playback, play, pause, stop, seek };
+  return { ...playback, play, pause, stop, seek, setPlaybackRate, toggleLoop };
 };
 
 export const useTimelineProject = () => {
@@ -717,9 +719,11 @@ export const useTimelineSelection = () => {
 export const useTimelineView = () => {
   const view = useStore((state) => state.timeline.view);
   const setZoom = useStore((state) => state.timeline.setZoom);
+  const zoomIn = useStore((state) => state.timeline.zoomIn);
+  const zoomOut = useStore((state) => state.timeline.zoomOut);
   const scroll = useStore((state) => state.timeline.scroll);
 
-  return { ...view, setZoom, scroll };
+  return { ...view, setZoom, zoomIn, zoomOut, scroll };
 };
 
 export const useClip = (clipId: string) => {

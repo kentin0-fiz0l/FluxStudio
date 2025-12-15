@@ -321,10 +321,16 @@ function isAPIRequest(url) {
          API_ENDPOINTS.some(endpoint => url.pathname.startsWith(endpoint));
 }
 
-// Background sync for form submissions when back online
+// Background sync for form submissions and pending actions
 self.addEventListener('sync', (event) => {
+  console.log('[SW] Background sync:', event.tag);
+
   if (event.tag === 'contact-form') {
     event.waitUntil(syncContactForm());
+  }
+
+  if (event.tag === 'sync-pending-actions') {
+    event.waitUntil(syncPendingActions());
   }
 });
 
@@ -332,7 +338,7 @@ async function syncContactForm() {
   // Handle cached form submissions when back online
   const cache = await caches.open('flux-forms');
   const requests = await cache.keys();
-  
+
   for (const request of requests) {
     try {
       const formData = await cache.match(request);
@@ -347,6 +353,143 @@ async function syncContactForm() {
       console.log('Form sync failed:', error);
     }
   }
+}
+
+// Sync pending actions from IndexedDB
+async function syncPendingActions() {
+  try {
+    const db = await openFluxDatabase();
+    const tx = db.transaction('pendingActions', 'readonly');
+    const store = tx.objectStore('pendingActions');
+    const actions = await getAllFromStore(store);
+
+    console.log('[SW] Syncing', actions.length, 'pending actions');
+
+    for (const action of actions) {
+      try {
+        const response = await fetch(action.endpoint, {
+          method: action.method || 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${action.token}`,
+          },
+          body: JSON.stringify(action.payload),
+        });
+
+        if (response.ok) {
+          // Remove from pending queue
+          const deleteTx = db.transaction('pendingActions', 'readwrite');
+          const deleteStore = deleteTx.objectStore('pendingActions');
+          deleteStore.delete(action.id);
+          console.log('[SW] Synced action:', action.id);
+        }
+      } catch (error) {
+        console.error('[SW] Failed to sync action:', action.id, error);
+      }
+    }
+
+    // Notify clients of sync completion
+    const allClients = await self.clients.matchAll();
+    allClients.forEach((client) => {
+      client.postMessage({
+        type: 'SYNC_COMPLETE',
+        syncedCount: actions.length,
+      });
+    });
+  } catch (error) {
+    console.error('[SW] Background sync failed:', error);
+  }
+}
+
+// IndexedDB helpers
+function openFluxDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('fluxstudio-offline', 1);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+
+      if (!db.objectStoreNames.contains('pendingActions')) {
+        db.createObjectStore('pendingActions', { keyPath: 'id' });
+      }
+
+      if (!db.objectStoreNames.contains('cachedData')) {
+        const store = db.createObjectStore('cachedData', { keyPath: 'key' });
+        store.createIndex('timestamp', 'timestamp');
+      }
+    };
+  });
+}
+
+function getAllFromStore(store) {
+  return new Promise((resolve, reject) => {
+    const request = store.getAll();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+// Message handling for client communication
+self.addEventListener('message', (event) => {
+  console.log('[SW] Message received:', event.data?.type);
+
+  switch (event.data?.type) {
+    case 'SKIP_WAITING':
+      self.skipWaiting();
+      break;
+
+    case 'CACHE_URLS':
+      event.waitUntil(
+        caches.open(CACHE_NAME)
+          .then((cache) => cache.addAll(event.data.urls))
+      );
+      break;
+
+    case 'CLEAR_CACHE':
+      event.waitUntil(
+        caches.keys().then((keys) =>
+          Promise.all(keys.map((key) => caches.delete(key)))
+        )
+      );
+      break;
+
+    case 'GET_CACHE_SIZE':
+      event.waitUntil(
+        getCacheSize().then((size) => {
+          event.ports[0].postMessage({ size });
+        })
+      );
+      break;
+
+    case 'TRIGGER_SYNC':
+      if ('sync' in self.registration) {
+        self.registration.sync.register('sync-pending-actions');
+      }
+      break;
+  }
+});
+
+async function getCacheSize() {
+  let totalSize = 0;
+  const cacheNames = await caches.keys();
+
+  for (const name of cacheNames) {
+    const cache = await caches.open(name);
+    const keys = await cache.keys();
+
+    for (const request of keys) {
+      const response = await cache.match(request);
+      if (response) {
+        const blob = await response.blob();
+        totalSize += blob.size;
+      }
+    }
+  }
+
+  return totalSize;
 }
 
 // Push notifications (for future use)

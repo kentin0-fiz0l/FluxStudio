@@ -79,6 +79,8 @@ export type {
   CollaborationState,
 } from './slices/collaborationSlice';
 export type {
+  TrackType,
+  ClipType,
   Track,
   Clip,
   Marker,
