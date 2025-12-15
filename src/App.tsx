@@ -55,11 +55,8 @@ const { Component: WelcomeFlow } = lazyLoadWithRetry(() => import('./pages/Welco
 const { Component: AdaptiveDashboard } = lazyLoadWithRetry(() => import('./components/AdaptiveDashboard'));
 const { Component: Connectors } = lazyLoadWithRetry(() => import('./pages/Connectors'));
 
-// Legacy pages (original design)
-const { Component: MessagesPage } = lazyLoadWithRetry(() => import('./pages/MessagesPage'));
-const { Component: OrganizationPage } = lazyLoadWithRetry(() => import('./pages/Organization'));
-const { Component: TeamPage } = lazyLoadWithRetry(() => import('./pages/Team'));
-const { Component: FilePage } = lazyLoadWithRetry(() => import('./pages/File'));
+// Legacy pages removed - redirects handle backwards compatibility
+// These imports are no longer needed as legacy routes now redirect to new pages
 
 // Redesigned pages (Flux Design Language)
 const { Component: ProjectsNew } = lazyLoadWithRetry(() => import('./pages/ProjectsNew'));
@@ -179,11 +176,11 @@ function AuthenticatedRoutes() {
                   <Route path="/tools/files" element={<ProtectedRoute><ToolsErrorBoundary><ToolsFiles /></ToolsErrorBoundary></ProtectedRoute>} />
                   <Route path="/tools/assets" element={<ProtectedRoute><ToolsErrorBoundary><ToolsAssets /></ToolsErrorBoundary></ProtectedRoute>} />
 
-                  {/* Legacy routes for backward compatibility - Protected */}
-                  <Route path="/organization/legacy" element={<ProtectedRoute><OrganizationPage /></ProtectedRoute>} />
-                  <Route path="/team/legacy" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
-                  <Route path="/file/legacy" element={<ProtectedRoute><FilePage /></ProtectedRoute>} />
-                  <Route path="/messages/legacy" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+                  {/* Legacy routes - redirecting to new pages */}
+                  <Route path="/organization/legacy" element={<Navigate to="/organization" replace />} />
+                  <Route path="/team/legacy" element={<Navigate to="/team" replace />} />
+                  <Route path="/file/legacy" element={<Navigate to="/file" replace />} />
+                  <Route path="/messages/legacy" element={<Navigate to="/messages" replace />} />
 
                   {/* Unified Dashboard - adapts to user role and context - Protected */}
                   <Route path="/dashboard" element={<ProtectedRoute><AdaptiveDashboard /></ProtectedRoute>} />
@@ -204,8 +201,8 @@ function AuthenticatedRoutes() {
                   <Route path="/dashboard/team" element={<TeamManagement />} />
                   */}
 
-                  {/* Messaging with redesigned interface - Protected */}
-                  <Route path="/dashboard/messages" element={<ProtectedRoute><MessagesNew /></ProtectedRoute>} />
+                  {/* Messaging redirect - consolidate to /messages */}
+                  <Route path="/dashboard/messages" element={<Navigate to="/messages" replace />} />
 
                   {/* Organization Hierarchy Routes - Protected */}
                   <Route path="/dashboard/organizations" element={<ProtectedRoute><OrganizationDashboard /></ProtectedRoute>} />

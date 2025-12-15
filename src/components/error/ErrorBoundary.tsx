@@ -1,6 +1,8 @@
 /**
  * Comprehensive Error Boundary System
  * Handles errors gracefully with recovery options
+ *
+ * Integrated with observability layer for error tracking and correlation.
  */
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
@@ -20,6 +22,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { observability } from '../../services/observability';
 
 interface Props {
   children: ReactNode;
@@ -79,13 +82,20 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private logError = (error: Error, errorInfo: ErrorInfo) => {
-    // In production, send to error tracking service
+    // Log to console
     console.error('Error Boundary caught an error:', error, errorInfo);
 
-    // Send to monitoring service (e.g., Sentry, LogRocket)
-    if (process.env.NODE_ENV === 'production') {
-      // Example: Sentry.captureException(error, { extra: errorInfo });
-    }
+    // Send to observability layer for tracking and correlation
+    observability.errors.captureFromBoundary(error, {
+      componentStack: errorInfo.componentStack ?? undefined,
+    });
+
+    // Mark in session for replay correlation
+    observability.session.mark('error_boundary_triggered', {
+      errorName: error.name,
+      errorMessage: error.message,
+      url: window.location.href,
+    });
   };
 
   private handleRetry = () => {

@@ -517,8 +517,17 @@ class UserTestLogger {
    * Generate JSON export of all test data
    */
   generateJsonExport(): string {
+    // Get session info for correlation
+    const sessionId = sessionStorage.getItem('fluxstudio.session_id') || 'unknown';
+    const sessionStart = sessionStorage.getItem('fluxstudio.session_start');
+
     return JSON.stringify({
       exportedAt: new Date().toISOString(),
+      session: {
+        id: sessionId,
+        startedAt: sessionStart,
+        durationMs: sessionStart ? Date.now() - new Date(sessionStart).getTime() : null,
+      },
       tester: this.getTesterInfo(),
       tasks: this.getTaskOutcomes(),
       feedback: this.getFeedback(),
@@ -527,6 +536,69 @@ class UserTestLogger {
       hesitations: this.getHesitationEvents(),
       frictionAnalysis: this.analyzeFrictionPatterns(),
     }, null, 2);
+  }
+
+  /**
+   * Export for specific analytics platform
+   */
+  exportForPlatform(platform: 'segment' | 'mixpanel' | 'amplitude' | 'json'): string {
+    const events = this.getEvents();
+    const sessionId = sessionStorage.getItem('fluxstudio.session_id') || 'unknown';
+    const tester = this.getTesterInfo();
+
+    switch (platform) {
+      case 'segment':
+        return JSON.stringify(events.map(e => ({
+          type: 'track',
+          event: e.eventName,
+          properties: e.metadata,
+          timestamp: e.timestamp,
+          userId: e.userId,
+          anonymousId: sessionId,
+          context: {
+            traits: tester ? {
+              name: tester.name,
+              role: tester.role,
+              experienceLevel: tester.experienceLevel,
+            } : {},
+          },
+        })), null, 2);
+
+      case 'mixpanel':
+        return JSON.stringify(events.map(e => ({
+          event: e.eventName,
+          properties: {
+            ...e.metadata,
+            time: new Date(e.timestamp).getTime(),
+            distinct_id: e.userId || sessionId,
+            $insert_id: `${sessionId}_${e.timestamp}`,
+          },
+        })), null, 2);
+
+      case 'amplitude':
+        return JSON.stringify(events.map(e => ({
+          event_type: e.eventName,
+          event_properties: e.metadata,
+          time: new Date(e.timestamp).getTime(),
+          user_id: e.userId,
+          session_id: parseInt(sessionId.split('_')[1]) || Date.now(),
+          user_properties: tester ? {
+            tester_name: tester.name,
+            tester_role: tester.role,
+            experience_level: tester.experienceLevel,
+          } : {},
+        })), null, 2);
+
+      default:
+        return this.generateJsonExport();
+    }
+  }
+
+  /**
+   * Get session ID for correlation
+   */
+  getSessionId(): string {
+    return sessionStorage.getItem('fluxstudio.session_id') || 'unknown';
   }
 
   /**
