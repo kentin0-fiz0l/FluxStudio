@@ -107,7 +107,8 @@ src/hooks/
 | App.tsx | Provides SessionProvider and QuickActions |
 | NotificationContext | Source for activity stream and attention items |
 | useTasks | Source for assigned task attention items |
-| SocketContext | Future: real-time presence data |
+| SocketContext | Real-time presence and pulse event subscriptions |
+| useProjectPresence | Project-scoped presence via unified socket |
 
 ## Usage
 
@@ -138,15 +139,28 @@ Session memory is automatic:
 const {
   activityStream,      // ActivityItem[]
   attentionItems,      // AttentionItem[]
-  teamMembers,         // TeamMember[]
+  teamMembers,         // TeamMember[] (from socket presence)
   unseenCount,         // number
   isLoading,           // boolean
   error,               // string | null
   isAvailable,         // boolean (true when project focused)
+  isConnected,         // boolean (socket connection status)
   refresh,             // () => void
   markAllSeen,         // () => void
   getAttentionByType,  // (type) => AttentionItem[]
 } = useProjectPulse();
+```
+
+### useProjectPresence Hook
+
+```typescript
+const {
+  members,             // ProjectPresenceMember[] (online team members)
+  isConnected,         // boolean (socket connection status)
+  onlineCount,         // number (count of online members)
+  latestPulseEvent,    // PulseEvent | null (most recent event)
+  onPulseEvent,        // (callback) => unsubscribe (subscribe to events)
+} = useProjectPresence();
 ```
 
 ### useSession Hook
@@ -174,14 +188,159 @@ const {
 } = useQuickActions();
 ```
 
+## Socket Unification
+
+### Single Socket Connection
+
+Project Pulse uses the unified `socketService` singleton instead of creating duplicate socket.io connections. This ensures:
+
+- Single WebSocket connection per client
+- Consistent connection state across all features
+- Proper cleanup on disconnect/reconnect
+- No memory leaks from accumulated listeners
+
+### Architecture
+
+```
+socketService (singleton)
+├── Messaging namespace (/messaging)
+├── Project presence (project:join, project:leave, project:presence)
+└── Pulse events (pulse:event)
+
+SocketContext (React context)
+├── isConnected state
+├── joinProject() / leaveProject()
+├── onProjectPresence() callback
+└── onPulseEvent() callback
+
+useProjectPresence (hook)
+├── Uses socketService directly
+├── Joins/leaves room on project focus change
+├── Tracks presence members
+└── Forwards pulse events
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/services/socketService.ts` | Socket singleton with project presence methods |
+| `src/contexts/SocketContext.tsx` | React context exposing socket capabilities |
+| `src/hooks/useProjectPresence.ts` | Project-scoped presence tracking |
+| `src/hooks/useProjectPulse.ts` | Aggregates pulse data including presence |
+
+## Socket Unification & UX Polish Test Plan
+
+### Test 1: Single Socket Verification
+
+**Steps:**
+1. Open browser DevTools → Network → WS filter
+2. Log in to FluxStudio
+3. Navigate to different pages
+4. Focus on a project
+
+**Expected:**
+- Only ONE WebSocket connection to `/messaging` namespace
+- No additional socket connections when focusing project
+- Connection persists across navigation
+
+### Test 2: Project Presence Join/Leave
+
+**Steps:**
+1. Focus on Project A
+2. Check console for "🎯 Joined project: {id}"
+3. Switch focus to Project B
+4. Check console for "👋 Left project: {oldId}" and "🎯 Joined project: {newId}"
+5. Clear project focus
+
+**Expected:**
+- Join logged when focusing
+- Leave + Join logged when switching
+- Leave logged when clearing focus
+
+### Test 3: Offline State Display
+
+**Steps:**
+1. Focus on a project
+2. Open DevTools → Network → Offline mode
+3. Observe PulseIndicator
+4. Open PulsePanel
+
+**Expected:**
+- PulseIndicator shows amber wifi icon (bottom-right)
+- PulseIndicator has reduced opacity
+- PulsePanel header shows connection warning
+- Team tab shows "Connect to see who is working..."
+
+### Test 4: Keyboard Shortcuts
+
+**Steps:**
+1. Focus on a project
+2. Press `Cmd/Ctrl+Shift+P`
+3. Panel opens
+4. Press `Escape`
+
+**Expected:**
+- `Cmd/Ctrl+Shift+P` toggles PulsePanel
+- `Escape` closes panel when open
+- Shortcuts don't fire in input fields
+
+### Test 5: Empty States
+
+**Steps:**
+1. Focus on a project with no activity
+2. Open PulsePanel
+3. Check each tab: Attention, Activity, Team
+
+**Expected:**
+- Attention tab: "All caught up!" with green checkmark
+- Activity tab: "No recent activity" with clock icon
+- Team tab: "No team members online" with context message
+
+### Test 6: Mark as Seen Button
+
+**Steps:**
+1. Create some notifications for a project
+2. Focus on that project
+3. Open PulsePanel
+4. Observe header buttons
+
+**Expected:**
+- CheckCheck icon button visible when unseenCount > 0
+- Button is clickable and marks all as seen
+- Button becomes disabled (opacity-50) when count is 0
+
+### Test 7: Memory Leak Prevention
+
+**Steps:**
+1. Open/close PulsePanel 10 times rapidly
+2. Switch between projects 10 times
+3. Check DevTools → Memory → Event Listeners
+
+**Expected:**
+- No accumulation of socket event listeners
+- Memory usage stays stable
+- No console errors about leaked listeners
+
+### Test 8: Focus Clear Resets Pulse
+
+**Steps:**
+1. Focus on a project with activity
+2. Open PulsePanel, see items
+3. Click "Exit Focus" in ProjectContextBar
+4. (Optional) Try to open Pulse without focus
+
+**Expected:**
+- PulsePanel closes automatically or shows empty state
+- Activity/Attention/Team lists are cleared
+- PulseIndicator hidden when no focus
+
 ## Future Enhancements
 
 1. **Backend Activity Endpoint**: Dedicated API for aggregated activity
-2. **Real-time Updates**: WebSocket push for live activity stream
-3. **Team Presence Integration**: Full integration with SocketContext
-4. **Keyboard Shortcuts**: Additional shortcuts for common actions
-5. **Notification Preferences**: Per-project notification settings
-6. **Cross-project View**: "All my attention items" across projects
+2. **Notification Preferences**: Per-project notification settings
+3. **Cross-project View**: "All my attention items" across projects
+4. **Rich Presence**: Show which tab/view each team member is viewing
 
 ## Relationship to Other Features
 
