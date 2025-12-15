@@ -4,7 +4,7 @@
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { socketService } from '../services/socketService';
+import { socketService, ProjectPresenceMember, PulseEvent } from '../services/socketService';
 import { useAuth } from './AuthContext';
 import { Message, MessageUser, UserPresence, TypingIndicator } from '../types/messaging';
 
@@ -47,6 +47,18 @@ interface SocketContextType {
   onUserPresenceChanged: (callback: (user: UserPresence) => void) => () => void;
   onTypingChanged: (callback: (data: { conversationId: string; userId: string; isTyping: boolean }) => void) => () => void;
   onMentionReceived: (callback: (notification: any) => void) => () => void;
+
+  // Project presence
+  joinProject: (projectId: string) => void;
+  leaveProject: (projectId: string) => void;
+  onProjectPresence: (callback: (data: {
+    projectId: string;
+    presence: ProjectPresenceMember[];
+    event: 'join' | 'leave';
+    userId?: string;
+    userName?: string;
+  }) => void) => () => void;
+  onPulseEvent: (callback: (event: PulseEvent) => void) => () => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -284,6 +296,35 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     return () => socketService.off('notification:mention', callback);
   }, []);
 
+  // Project presence management
+  const joinProject = useCallback((projectId: string) => {
+    if (!user) return;
+    const userName = user.name || user.userEmail?.split('@')[0] || 'Unknown';
+    socketService.joinProject(projectId, { userName });
+  }, [user]);
+
+  const leaveProject = useCallback((projectId: string) => {
+    if (!user) return;
+    const userName = user.name || user.userEmail?.split('@')[0] || 'Unknown';
+    socketService.leaveProject(projectId, { userName });
+  }, [user]);
+
+  const onProjectPresence = useCallback((callback: (data: {
+    projectId: string;
+    presence: ProjectPresenceMember[];
+    event: 'join' | 'leave';
+    userId?: string;
+    userName?: string;
+  }) => void) => {
+    socketService.on('project:presence', callback);
+    return () => socketService.off('project:presence', callback);
+  }, []);
+
+  const onPulseEvent = useCallback((callback: (event: PulseEvent) => void) => {
+    socketService.on('pulse:event', callback);
+    return () => socketService.off('pulse:event', callback);
+  }, []);
+
   const contextValue: SocketContextType = {
     // Connection state
     isConnected,
@@ -314,7 +355,13 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     onMessageReceived,
     onUserPresenceChanged,
     onTypingChanged,
-    onMentionReceived
+    onMentionReceived,
+
+    // Project presence
+    joinProject,
+    leaveProject,
+    onProjectPresence,
+    onPulseEvent
   };
 
   return (

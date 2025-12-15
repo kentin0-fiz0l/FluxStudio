@@ -6,6 +6,23 @@
 import { io, Socket } from 'socket.io-client';
 import { MessageUser, Message, TypingIndicator, UserPresence } from '../types/messaging';
 
+// Project presence member
+export interface ProjectPresenceMember {
+  userId: string;
+  userName: string;
+  avatar?: string;
+  joinedAt: string;
+  isOnline: boolean;
+}
+
+// Pulse event from server
+export interface PulseEvent {
+  projectId: string;
+  event: unknown;
+  type: 'activity' | 'attention';
+  timestamp: string;
+}
+
 export interface SocketEvents {
   // Connection events
   connect: () => void;
@@ -35,6 +52,18 @@ export interface SocketEvents {
     priority: string;
     timestamp: Date;
   }) => void;
+
+  // Project presence events
+  'project:presence': (data: {
+    projectId: string;
+    presence: ProjectPresenceMember[];
+    event: 'join' | 'leave';
+    userId?: string;
+    userName?: string;
+  }) => void;
+
+  // Pulse real-time events
+  'pulse:event': (event: PulseEvent) => void;
 }
 
 class SocketService {
@@ -190,6 +219,16 @@ class SocketService {
     this.socket.on('notification:mention', (notification) => {
       this.emit('notification:mention', notification);
     });
+
+    // Project presence events
+    this.socket.on('project:presence', (data) => {
+      this.emit('project:presence', data);
+    });
+
+    // Pulse real-time events
+    this.socket.on('pulse:event', (event) => {
+      this.emit('pulse:event', event);
+    });
   }
 
   /**
@@ -261,6 +300,32 @@ class SocketService {
 
     this.socket.emit('conversation:leave', conversationId, this.currentUserId);
     console.log(`🚪 Left conversation: ${conversationId}`);
+  }
+
+  /**
+   * Join a project room for presence tracking
+   */
+  joinProject(projectId: string, userData?: { userName?: string }) {
+    if (!this.socket || !this.currentUserId) return;
+
+    this.socket.emit('project:join', projectId, {
+      userId: this.currentUserId,
+      userName: userData?.userName || 'Unknown',
+    });
+    console.log(`🎯 Joined project: ${projectId}`);
+  }
+
+  /**
+   * Leave a project room
+   */
+  leaveProject(projectId: string, userData?: { userName?: string }) {
+    if (!this.socket || !this.currentUserId) return;
+
+    this.socket.emit('project:leave', projectId, {
+      userId: this.currentUserId,
+      userName: userData?.userName || 'Unknown',
+    });
+    console.log(`👋 Left project: ${projectId}`);
   }
 
   /**

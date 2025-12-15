@@ -19,6 +19,8 @@ import { Button, Badge } from '@/components/ui';
 import { SearchBar } from '@/components/molecules';
 import { cn } from '@/lib/utils';
 import { useNotifications, Notification as NotificationType } from '@/contexts/NotificationContext';
+import { UserTestPill, UserTestPanel } from '@/components/usertest';
+import { useUserTestMode } from '@/hooks/useUserTestMode';
 
 export interface Breadcrumb {
   label: string;
@@ -124,8 +126,10 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
     ref
   ) => {
     const [notificationsOpen, setNotificationsOpen] = React.useState(false);
+    const [userTestPanelOpen, setUserTestPanelOpen] = React.useState(false);
     const notificationRef = React.useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+    const { isEnabled: isUserTestEnabled } = useUserTestMode();
 
     // Get notifications from context (with fallback to props)
     let contextNotifications: NotificationType[] = [];
@@ -264,8 +268,13 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
             </div>
           )}
 
-          {/* Right Section: Notifications + User */}
+          {/* Right Section: User Test + Notifications + User */}
           <div className="flex items-center gap-2">
+            {/* User Test Pill */}
+            {isUserTestEnabled && (
+              <UserTestPill onClick={() => setUserTestPanelOpen(true)} />
+            )}
+
             {/* Notifications */}
             {showNotifications && (
               <div className="relative" ref={notificationRef}>
@@ -432,6 +441,14 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
               size="sm"
             />
           </div>
+        )}
+
+        {/* User Test Panel */}
+        {isUserTestEnabled && (
+          <UserTestPanel
+            isOpen={userTestPanelOpen}
+            onClose={() => setUserTestPanelOpen(false)}
+          />
         )}
       </div>
     );

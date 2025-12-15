@@ -5,7 +5,7 @@
  * - Activity stream (recent events in project)
  * - Attention items (things needing user action)
  * - Unseen count (for badge indicator)
- * - Team presence (who's active)
+ * - Team presence (who's active via socket)
  *
  * Part of Project Pulse: "Here's what's happening and what needs you."
  */
@@ -13,7 +13,7 @@
 import * as React from 'react';
 import { useActiveProject } from '@/contexts/ActiveProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProjectPresence, PresenceMember, PulseEvent } from './useProjectPresence';
+import { useProjectPresence, ProjectPresenceMember, PulseEvent } from '@/hooks/useProjectPresence';
 
 // Activity item from API
 export interface ActivityItem {
@@ -55,7 +55,7 @@ export interface AttentionItem {
   priority: 'low' | 'medium' | 'high' | 'urgent';
 }
 
-// Team member presence (compatible with PresenceMember)
+// Team member presence (compatible with ProjectPresenceMember)
 export interface TeamMember {
   id: string;
   userId: string;
@@ -83,6 +83,8 @@ export interface ProjectPulseState {
   error: string | null;
   /** Whether pulse is available (project is focused) */
   isAvailable: boolean;
+  /** Whether socket is connected */
+  isConnected: boolean;
   /** Last seen timestamp */
   lastSeenAt: string | null;
 }
@@ -122,7 +124,9 @@ async function fetchPulseEndpoint<T>(
 export function useProjectPulse(): UseProjectPulseReturn {
   const { activeProject, hasFocus } = useActiveProject();
   const { user } = useAuth();
-  const { members: presenceMembers, isConnected: presenceConnected, onPulseEvent } = useProjectPresence();
+
+  // Get presence from unified socket
+  const { members: presenceMembers, isConnected, onPulseEvent } = useProjectPresence();
 
   const [activityStream, setActivityStream] = React.useState<ActivityItem[]>([]);
   const [attentionItems, setAttentionItems] = React.useState<AttentionItem[]>([]);
@@ -287,6 +291,7 @@ export function useProjectPulse(): UseProjectPulseReturn {
     isLoading,
     error,
     isAvailable: hasFocus && !!activeProject,
+    isConnected,
     refresh,
     markAllSeen,
     getAttentionByType,

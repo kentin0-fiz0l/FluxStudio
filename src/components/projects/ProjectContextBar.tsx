@@ -19,6 +19,7 @@ import { Link } from 'react-router-dom';
 import { Target, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { useActiveProject } from '@/contexts/ActiveProjectContext';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { PulseIndicator } from '@/components/pulse/PulseIndicator';
 import { PulsePanel } from '@/components/pulse/PulsePanel';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,27 @@ export interface ProjectContextBarProps {
 export function ProjectContextBar({ className }: ProjectContextBarProps) {
   const { activeProject, clearActiveProject, hasFocus } = useActiveProject();
   const [isPulseOpen, setIsPulseOpen] = React.useState(false);
+
+  // Keyboard shortcut: Cmd/Ctrl+Shift+P to toggle Pulse
+  useKeyboardShortcuts({
+    shortcuts: [
+      {
+        key: 'p',
+        metaKey: true,
+        shiftKey: true,
+        action: () => setIsPulseOpen((prev) => !prev),
+        description: 'Toggle Project Pulse',
+      },
+      {
+        key: 'p',
+        ctrlKey: true,
+        shiftKey: true,
+        action: () => setIsPulseOpen((prev) => !prev),
+        description: 'Toggle Project Pulse',
+      },
+    ],
+    enabled: hasFocus,
+  });
 
   // Don't render if no project is focused
   if (!hasFocus || !activeProject) {
