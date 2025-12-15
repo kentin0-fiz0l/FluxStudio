@@ -24,8 +24,6 @@ class NotificationService {
    * @param {Object} [params.replyToMessage] - The message being replied to (if any)
    * @param {Object} [params.threadRootMessage] - The thread root message (if any)
    * @param {Array} [params.conversationMembers] - Array of { userId } for all members
-   * @param {string} [params.projectId] - Project ID for project-scoped conversations
-   * @param {string} [params.projectName] - Project name for display
    * @returns {Array} Array of created notifications
    */
   async processMessageNotifications({
@@ -35,9 +33,7 @@ class NotificationService {
     senderName,
     replyToMessage = null,
     threadRootMessage = null,
-    conversationMembers = [],
-    projectId = null,
-    projectName = null
+    conversationMembers = []
   }) {
     const notifications = [];
     const notifiedUserIds = new Set(); // Track to avoid duplicates
@@ -53,9 +49,7 @@ class NotificationService {
         senderId,
         senderName,
         notifiedUserIds,
-        conversationMembers,
-        projectId,
-        projectName
+        conversationMembers
       });
       notifications.push(...mentionedNotifications);
     }
@@ -67,9 +61,7 @@ class NotificationService {
         conversationId,
         senderId,
         senderName,
-        replyToMessage,
-        projectId,
-        projectName
+        replyToMessage
       });
       if (replyNotification) {
         notifications.push(replyNotification);
@@ -84,9 +76,7 @@ class NotificationService {
         conversationId,
         senderId,
         senderName,
-        threadRootMessage,
-        projectId,
-        projectName
+        threadRootMessage
       });
       if (threadNotification) {
         notifications.push(threadNotification);
@@ -102,9 +92,7 @@ class NotificationService {
         senderId,
         senderName,
         notifiedUserIds,
-        conversationMembers,
-        projectId,
-        projectName
+        conversationMembers
       });
       notifications.push(...fileNotifications);
     }
@@ -124,9 +112,7 @@ class NotificationService {
     senderId,
     senderName,
     notifiedUserIds,
-    conversationMembers,
-    projectId = null,
-    projectName = null
+    conversationMembers
   }) {
     const notifications = [];
 
@@ -163,9 +149,7 @@ class NotificationService {
             conversationId,
             messageId: message.id,
             threadRootMessageId: message.threadRootMessageId || null,
-            assetId: message.assetId || null,
-            projectId,
-            projectName
+            assetId: message.assetId || null
           });
 
           notifications.push(notification);
@@ -186,9 +170,7 @@ class NotificationService {
     conversationId,
     senderId,
     senderName,
-    replyToMessage,
-    projectId = null,
-    projectName = null
+    replyToMessage
   }) {
     if (!replyToMessage.authorId || replyToMessage.authorId === senderId) {
       return null;
@@ -203,9 +185,7 @@ class NotificationService {
       conversationId,
       messageId: message.id,
       threadRootMessageId: null, // Direct reply, not thread
-      assetId: message.assetId || null,
-      projectId,
-      projectName
+      assetId: message.assetId || null
     });
   }
 
@@ -217,9 +197,7 @@ class NotificationService {
     conversationId,
     senderId,
     senderName,
-    threadRootMessage,
-    projectId = null,
-    projectName = null
+    threadRootMessage
   }) {
     if (!threadRootMessage.authorId || threadRootMessage.authorId === senderId) {
       return null;
@@ -234,9 +212,7 @@ class NotificationService {
       conversationId,
       messageId: message.id,
       threadRootMessageId: threadRootMessage.id,
-      assetId: message.assetId || null,
-      projectId,
-      projectName
+      assetId: message.assetId || null
     });
   }
 
@@ -251,9 +227,7 @@ class NotificationService {
     senderId,
     senderName,
     notifiedUserIds,
-    conversationMembers,
-    projectId = null,
-    projectName = null
+    conversationMembers
   }) {
     const notifications = [];
 
@@ -284,9 +258,7 @@ class NotificationService {
         conversationId,
         messageId: message.id,
         threadRootMessageId: message.threadRootMessageId || null,
-        assetId: message.assetId,
-        projectId,
-        projectName
+        assetId: message.assetId
       });
 
       notifications.push(notification);

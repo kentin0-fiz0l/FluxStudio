@@ -13,7 +13,7 @@
  */
 
 import * as React from 'react';
-import { Activity, Bell, Loader2, WifiOff } from 'lucide-react';
+import { Activity, Bell } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { useProjectPulse } from '@/hooks/useProjectPulse';
@@ -35,7 +35,7 @@ export function PulseIndicator({
   className,
   variant = 'badge',
 }: PulseIndicatorProps) {
-  const { unseenCount, isAvailable, attentionItems, isLoading, isConnected } = useProjectPulse();
+  const { unseenCount, isAvailable, attentionItems } = useProjectPulse();
   const [shouldAnimate, setShouldAnimate] = React.useState(false);
 
   // Trigger animation when count increases
@@ -110,17 +110,12 @@ export function PulseIndicator({
             : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400',
           isOpen && 'ring-2 ring-primary-500 ring-offset-2',
           shouldAnimate && 'animate-pulse',
-          !isConnected && 'opacity-75',
           className
         )}
         aria-label={ariaLabel}
         aria-pressed={isOpen}
       >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-        ) : (
-          <Activity className="h-4 w-4" aria-hidden="true" />
-        )}
+        <Activity className="h-4 w-4" aria-hidden="true" />
         {hasUnseen ? (
           <>
             <span>{displayCount} new</span>
@@ -130,15 +125,6 @@ export function PulseIndicator({
           </>
         ) : (
           <span>Pulse</span>
-        )}
-        {/* Offline indicator */}
-        {!isConnected && (
-          <span
-            className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-amber-500"
-            title="Offline - real-time updates paused"
-          >
-            <WifiOff className="h-2 w-2 text-white" />
-          </span>
         )}
       </button>
     );
