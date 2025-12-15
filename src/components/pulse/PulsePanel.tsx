@@ -29,10 +29,62 @@ import { cn } from '@/lib/utils';
 import { useProjectPulse } from '@/hooks/useProjectPulse';
 import { useActiveProject } from '@/contexts/ActiveProjectContext';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useClarityState, ClarityState } from '@/hooks/useClarityState';
 import { ActivityStream } from './ActivityStream';
 import { AttentionInbox } from './AttentionInbox';
 import { TeamHeartbeat } from './TeamHeartbeat';
 import { ResumeCard } from '@/components/momentum/ResumeCard';
+
+// Tone-aware copy based on clarity state
+interface ToneCopy {
+  headerTitle: string;
+  attentionLabel: string;
+  activityLabel: string;
+  teamLabel: string;
+  emptyAttentionTitle: string;
+  emptyAttentionSubtitle: string;
+  emptyActivityTitle: string;
+  emptyActivitySubtitle: string;
+}
+
+function getToneCopy(clarity: ClarityState): ToneCopy {
+  switch (clarity) {
+    case 'blocked':
+      return {
+        headerTitle: 'Need a hand?',
+        attentionLabel: "Let's figure this out",
+        activityLabel: "Here's what's happening",
+        teamLabel: 'Team',
+        emptyAttentionTitle: 'Nothing urgent here',
+        emptyAttentionSubtitle: 'If you\'re stuck, try asking in chat or checking recent activity',
+        emptyActivityTitle: 'Quiet moment',
+        emptyActivitySubtitle: 'Sometimes stepping back helps - activity will appear as it happens',
+      };
+    case 'uncertain':
+      return {
+        headerTitle: 'Project Pulse',
+        attentionLabel: 'These might help',
+        activityLabel: "Here's what's happening",
+        teamLabel: 'Team',
+        emptyAttentionTitle: 'All clear',
+        emptyAttentionSubtitle: 'No items need your attention - you\'re doing great',
+        emptyActivityTitle: 'No recent activity',
+        emptyActivitySubtitle: 'Activity will appear here as your team works',
+      };
+    case 'confident':
+    default:
+      return {
+        headerTitle: 'Project Pulse',
+        attentionLabel: 'Needs Attention',
+        activityLabel: 'Activity',
+        teamLabel: 'Team',
+        emptyAttentionTitle: 'All caught up!',
+        emptyAttentionSubtitle: 'No items need your attention right now',
+        emptyActivityTitle: 'No recent activity',
+        emptyActivitySubtitle: 'Activity will appear here as your team works',
+      };
+  }
+}
 
 export interface PulsePanelProps {
   /** Whether the panel is open */
@@ -76,6 +128,10 @@ export function PulsePanel({
 
   const [activeTab, setActiveTab] = React.useState<TabId>('attention');
 
+  // Clarity-aware tone (only active in test mode)
+  const { clarity } = useClarityState();
+  const tone = getToneCopy(clarity);
+
   // Keyboard shortcut: Escape to close
   useKeyboardShortcuts({
     shortcuts: [
@@ -102,19 +158,19 @@ export function PulsePanel({
   const tabs: Tab[] = [
     {
       id: 'attention',
-      label: 'Needs Attention',
+      label: tone.attentionLabel,
       icon: <Inbox className="h-4 w-4" />,
       badge: attentionItems.length,
     },
     {
       id: 'activity',
-      label: 'Activity',
+      label: tone.activityLabel,
       icon: <Activity className="h-4 w-4" />,
       badge: unseenCount > 0 ? unseenCount : undefined,
     },
     {
       id: 'team',
-      label: 'Team',
+      label: tone.teamLabel,
       icon: <Users className="h-4 w-4" />,
       badge: teamMembers.filter((m) => m.isOnline).length || undefined,
     },
@@ -139,7 +195,7 @@ export function PulsePanel({
         <div className="flex items-center gap-2">
           <Activity className="h-5 w-5 text-primary-600 dark:text-primary-400" />
           <h2 className="font-semibold text-neutral-900 dark:text-neutral-100">
-            Project Pulse
+            {tone.headerTitle}
           </h2>
           {unseenCount > 0 && (
             <Badge variant="info" size="sm">
@@ -290,10 +346,10 @@ export function PulsePanel({
             <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
               <Check className="h-10 w-10 text-green-500 dark:text-green-400 mb-3" />
               <p className="text-neutral-700 dark:text-neutral-300 font-medium">
-                All caught up!
+                {tone.emptyAttentionTitle}
               </p>
               <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
-                No items need your attention right now
+                {tone.emptyAttentionSubtitle}
               </p>
             </div>
           )
@@ -311,10 +367,10 @@ export function PulsePanel({
             <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
               <Clock className="h-10 w-10 text-neutral-300 dark:text-neutral-600 mb-3" />
               <p className="text-neutral-600 dark:text-neutral-400 text-sm">
-                No recent activity
+                {tone.emptyActivityTitle}
               </p>
               <p className="text-neutral-500 dark:text-neutral-500 text-xs mt-1">
-                Activity will appear here as your team works
+                {tone.emptyActivitySubtitle}
               </p>
             </div>
           )

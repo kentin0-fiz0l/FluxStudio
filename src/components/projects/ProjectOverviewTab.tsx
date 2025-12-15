@@ -20,11 +20,14 @@
 
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Users, Clock, TrendingUp, Map, Pencil, FileAudio, Box, ArrowRight, Wrench, MessageSquare, Send } from 'lucide-react';
+import { Calendar, Users, Clock, TrendingUp, Map, Pencil, FileAudio, Box, ArrowRight, Wrench, MessageSquare, Send, Copy, Check } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
 import { Project } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
 import { useMessaging } from '@/contexts/MessagingContext';
+import { useUserTestMode } from '@/hooks/useUserTestMode';
+import { useClarityState } from '@/hooks/useClarityState';
+import { buildClarityAwareSummary, getReframingPrompt } from '@/services/clarityAwareSummary';
 
 export interface ProjectOverviewTabProps {
   project: Project;
@@ -44,6 +47,39 @@ export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOvervi
     } catch {
       // Context not available
     }
+
+    // Clarity-aware summary (test mode only)
+    const { isEnabled: isTestMode } = useUserTestMode();
+    const { clarity } = useClarityState({ enabled: isTestMode });
+    const [copiedPrompt, setCopiedPrompt] = React.useState(false);
+
+    // Build clarity-aware summary when test mode is enabled
+    const summaryResult = React.useMemo(() => {
+      if (!isTestMode) {
+        return {
+          summary: project.description || 'No description provided.',
+          variant: 'baseline' as const,
+          wasModified: false,
+        };
+      }
+      return buildClarityAwareSummary({
+        clarity,
+        baselineSummary: project.description || '',
+        projectName: project.name,
+        focusedProjectId: project.id,
+      });
+    }, [isTestMode, clarity, project.description, project.name, project.id]);
+
+    // Handle copy reframing prompt (blocked state only)
+    const handleCopyReframingPrompt = React.useCallback(async () => {
+      try {
+        await navigator.clipboard.writeText(getReframingPrompt());
+        setCopiedPrompt(true);
+        setTimeout(() => setCopiedPrompt(false), 2000);
+      } catch {
+        // Clipboard not available
+      }
+    }, []);
 
     // Format date for display
     const formatDate = (dateString: string) => {
@@ -73,12 +109,47 @@ export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOvervi
         {/* Project Description */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg" id="project-description-heading">Project Description</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg" id="project-description-heading">Project Description</CardTitle>
+              {/* Show reframing prompt button only in test mode when blocked */}
+              {isTestMode && clarity === 'blocked' && (
+                <button
+                  onClick={handleCopyReframingPrompt}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2 py-1 rounded text-xs',
+                    'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100',
+                    'dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-800',
+                    'transition-colors'
+                  )}
+                  title="Copy a prompt to help clarify project intent"
+                  aria-label="Copy reframing prompt"
+                >
+                  {copiedPrompt ? (
+                    <>
+                      <Check className="h-3 w-3 text-green-500" />
+                      <span className="text-green-600 dark:text-green-400">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3" />
+                      <span>Copy prompt</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-neutral-700 leading-relaxed" aria-labelledby="project-description-heading">
-              {project.description || 'No description provided.'}
+            <p className="text-neutral-700 dark:text-neutral-300 leading-relaxed" aria-labelledby="project-description-heading">
+              {summaryResult.summary}
             </p>
+            {/* Subtle indicator when summary was reframed (test mode only) */}
+            {isTestMode && summaryResult.wasModified && (
+              <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-500 italic">
+                {summaryResult.variant === 'intent_first' && '(Reframed for orientation)'}
+                {summaryResult.variant === 'reframe_blocked' && '(Reframed for clarity)'}
+              </p>
+            )}
           </CardContent>
         </Card>
 
