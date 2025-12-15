@@ -25,7 +25,6 @@ class MessagingConversationsAdapter {
    *
    * @param {Object} params
    * @param {string} [params.organizationId] - Organization scope
-   * @param {string} [params.projectId] - Optional project scope for project-linked conversations
    * @param {string} [params.name] - Conversation name (for groups)
    * @param {boolean} [params.isGroup=false] - Group vs DM
    * @param {string} params.creatorUserId - User creating the conversation
@@ -34,7 +33,6 @@ class MessagingConversationsAdapter {
    */
   async createConversation({
     organizationId = null,
-    projectId = null,
     name = null,
     isGroup = false,
     creatorUserId,
@@ -45,10 +43,10 @@ class MessagingConversationsAdapter {
     return await transaction(async (client) => {
       // Insert conversation
       const convResult = await client.query(`
-        INSERT INTO conversations (id, organization_id, project_id, name, is_group, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        INSERT INTO conversations (id, organization_id, name, is_group, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, NOW(), NOW())
         RETURNING *
-      `, [conversationId, organizationId, projectId, name, isGroup]);
+      `, [conversationId, organizationId, name, isGroup]);
 
       const conversation = this._transformConversation(convResult.rows[0]);
 
@@ -112,12 +110,10 @@ class MessagingConversationsAdapter {
         SELECT
           c.id,
           c.organization_id,
-          c.project_id,
           c.name,
           c.is_group,
           c.created_at,
           c.updated_at,
-          p.name as project_name,
           uc.last_read_message_id,
           uc.member_since,
           MAX(m.created_at) as last_message_at,
@@ -141,9 +137,8 @@ class MessagingConversationsAdapter {
         FROM conversations c
         INNER JOIN user_convs uc ON c.id = uc.conversation_id
         LEFT JOIN messages m ON m.conversation_id = c.id
-        LEFT JOIN projects p ON c.project_id = p.id
-        GROUP BY c.id, c.organization_id, c.project_id, c.name, c.is_group, c.created_at, c.updated_at,
-                 p.name, uc.last_read_message_id, uc.member_since
+        GROUP BY c.id, c.organization_id, c.name, c.is_group, c.created_at, c.updated_at,
+                 uc.last_read_message_id, uc.member_since
       )
       SELECT *
       FROM conv_stats
@@ -154,8 +149,6 @@ class MessagingConversationsAdapter {
     return result.rows.map(row => ({
       id: row.id,
       organizationId: row.organization_id,
-      projectId: row.project_id || null,
-      projectName: row.project_name || null,
       name: row.name,
       isGroup: row.is_group,
       createdAt: row.created_at,
@@ -186,12 +179,9 @@ class MessagingConversationsAdapter {
       return null; // User is not a member
     }
 
-    // Get conversation with project name
+    // Get conversation
     const convResult = await query(`
-      SELECT c.*, p.name as project_name
-      FROM conversations c
-      LEFT JOIN projects p ON c.project_id = p.id
-      WHERE c.id = $1
+      SELECT * FROM conversations WHERE id = $1
     `, [conversationId]);
 
     if (convResult.rows.length === 0) {
@@ -970,8 +960,6 @@ class MessagingConversationsAdapter {
    * @param {string} [params.messageId] - For deep linking to message
    * @param {string} [params.threadRootMessageId] - For opening thread panel
    * @param {string} [params.assetId] - For file_shared notifications
-   * @param {string} [params.projectId] - For project-scoped notifications
-   * @param {string} [params.projectName] - Denormalized project name for display
    * @param {Object} [params.metadata] - Additional metadata
    * @param {string} [params.entityId] - Legacy: related entity ID
    * @returns {Object} Created notification
@@ -986,8 +974,6 @@ class MessagingConversationsAdapter {
     messageId = null,
     threadRootMessageId = null,
     assetId = null,
-    projectId = null,
-    projectName = null,
     metadata = {},
     entityId = null
   }) {
@@ -996,15 +982,14 @@ class MessagingConversationsAdapter {
     const result = await query(`
       INSERT INTO notifications (
         id, user_id, type, entity_id, title, body, is_read, created_at,
-        actor_user_id, conversation_id, message_id, thread_root_message_id, asset_id,
-        project_id, project_name, metadata_json
+        actor_user_id, conversation_id, message_id, thread_root_message_id, asset_id, metadata_json
       )
-      VALUES ($1, $2, $3, $4, $5, $6, FALSE, NOW(), $7, $8, $9, $10, $11, $12, $13, $14)
+      VALUES ($1, $2, $3, $4, $5, $6, FALSE, NOW(), $7, $8, $9, $10, $11, $12)
       RETURNING *
     `, [
       id, userId, type, entityId, title, body,
       actorUserId, conversationId, messageId, threadRootMessageId, assetId,
-      projectId, projectName, JSON.stringify(metadata)
+      JSON.stringify(metadata)
     ]);
 
     return this._transformNotification(result.rows[0]);
@@ -1291,8 +1276,6 @@ class MessagingConversationsAdapter {
     return {
       id: row.id,
       organizationId: row.organization_id,
-      projectId: row.project_id || null,
-      projectName: row.project_name || null,
       name: row.name,
       isGroup: row.is_group,
       createdAt: row.created_at,
@@ -1481,9 +1464,6 @@ class MessagingConversationsAdapter {
       messageId: row.message_id,
       threadRootMessageId: row.thread_root_message_id,
       assetId: row.asset_id,
-      // Project context for project-scoped notifications
-      projectId: row.project_id || null,
-      projectName: row.project_name || null,
       metadata: row.metadata_json || {}
     };
 

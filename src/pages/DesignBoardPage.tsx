@@ -12,7 +12,6 @@ import { DashboardLayout } from '@/components/templates';
 import { Button, Card } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
-import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
 import {
   designBoardsSocketService,
   BoardNode,
@@ -300,7 +299,6 @@ export default function DesignBoardPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { showNotification } = useNotification();
-  const { reportBoard } = useReportEntityFocus();
 
   const [board, setBoard] = useState<Board | null>(null);
   const [nodes, setNodes] = useState<BoardNode[]>([]);
@@ -320,13 +318,6 @@ export default function DesignBoardPage() {
       navigate('/login', { replace: true });
     }
   }, [user, navigate]);
-
-  // Report board to Work Momentum
-  useEffect(() => {
-    if (boardId) {
-      reportBoard(boardId);
-    }
-  }, [boardId, reportBoard]);
 
   // Connect to socket and join board
   useEffect(() => {

@@ -16,6 +16,7 @@ import {
   CheckSquare,
   MessageCircle,
   ShieldCheck,
+  AlertCircle,
   ChevronRight,
   Inbox,
 } from 'lucide-react';
@@ -34,41 +35,38 @@ export interface AttentionInboxProps {
   compact?: boolean;
 }
 
-// Icon mapping for attention reasons
-function getAttentionIcon(reason: AttentionItem['reason']): React.ReactNode {
-  const iconMap: Record<string, React.ReactNode> = {
-    mention: <AtSign className="h-4 w-4" />,
-    task_assigned: <CheckSquare className="h-4 w-4" />,
-    reply: <MessageCircle className="h-4 w-4" />,
-    approval: <ShieldCheck className="h-4 w-4" />,
-  };
-  return iconMap[reason] || <Inbox className="h-4 w-4" />;
-}
+// Icon mapping for attention types
+const attentionIcons: Record<AttentionItem['type'], React.ReactNode> = {
+  mention: <AtSign className="h-4 w-4" />,
+  assigned_task: <CheckSquare className="h-4 w-4" />,
+  reply: <MessageCircle className="h-4 w-4" />,
+  approval: <ShieldCheck className="h-4 w-4" />,
+};
 
-// Labels for attention reasons
-function getAttentionLabel(reason: AttentionItem['reason']): string {
-  const labelMap: Record<string, string> = {
-    mention: 'Mention',
-    task_assigned: 'Task',
-    reply: 'Reply',
-    approval: 'Approval',
-  };
-  return labelMap[reason] || 'Attention';
-}
+// Labels for attention types
+const attentionLabels: Record<AttentionItem['type'], string> = {
+  mention: 'Mention',
+  assigned_task: 'Task',
+  reply: 'Reply',
+  approval: 'Approval',
+};
 
-// Priority badge variants
-function getPriorityBadgeVariant(priority: AttentionItem['priority']): string {
-  const variantMap: Record<string, string> = {
-    urgent: 'error',
-    high: 'warning',
-    medium: 'default',
-    low: 'default',
-  };
-  return variantMap[priority] || 'default';
-}
+// Priority colors
+const priorityColors: Record<AttentionItem['priority'], string> = {
+  urgent: 'text-red-600 dark:text-red-400',
+  high: 'text-amber-600 dark:text-amber-400',
+  medium: 'text-neutral-600 dark:text-neutral-400',
+  low: 'text-neutral-500 dark:text-neutral-500',
+};
 
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
+const priorityBadgeVariants: Record<AttentionItem['priority'], string> = {
+  urgent: 'error',
+  high: 'warning',
+  medium: 'default',
+  low: 'default',
+};
+
+function formatRelativeTime(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
@@ -111,7 +109,7 @@ function AttentionItemRow({
             : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
         )}
       >
-        {getAttentionIcon(item.reason)}
+        {attentionIcons[item.type]}
       </div>
 
       {/* Content */}
@@ -127,7 +125,7 @@ function AttentionItemRow({
           </span>
           {(item.priority === 'urgent' || item.priority === 'high') && (
             <Badge
-              variant={getPriorityBadgeVariant(item.priority) as 'error' | 'warning' | 'default'}
+              variant={priorityBadgeVariants[item.priority] as any}
               size="sm"
             >
               {item.priority}
@@ -141,11 +139,11 @@ function AttentionItemRow({
         )}
         <div className="flex items-center gap-2 mt-1">
           <span className="text-xs text-neutral-500 dark:text-neutral-500">
-            {getAttentionLabel(item.reason)}
+            {attentionLabels[item.type]}
           </span>
           <span className="text-xs text-neutral-400">•</span>
           <span className="text-xs text-neutral-500 dark:text-neutral-500">
-            {formatRelativeTime(item.createdAt)}
+            {formatRelativeTime(item.timestamp)}
           </span>
         </div>
       </div>
@@ -160,9 +158,9 @@ function AttentionItemRow({
     </div>
   );
 
-  if (item.deepLink) {
+  if (item.actionUrl) {
     return (
-      <Link to={item.deepLink} onClick={onClick} className="block">
+      <Link to={item.actionUrl} onClick={onClick} className="block">
         {content}
       </Link>
     );
@@ -185,19 +183,17 @@ export function AttentionInbox({
   className,
   compact = false,
 }: AttentionInboxProps) {
-  // Group items by reason
+  // Group items by type
   const groupedItems = React.useMemo(() => {
-    const groups: Record<string, AttentionItem[]> = {
+    const groups: Record<AttentionItem['type'], AttentionItem[]> = {
       mention: [],
       reply: [],
-      task_assigned: [],
+      assigned_task: [],
       approval: [],
     };
 
     items.forEach((item) => {
-      if (groups[item.reason]) {
-        groups[item.reason].push(item);
-      }
+      groups[item.type].push(item);
     });
 
     return groups;
@@ -217,10 +213,10 @@ export function AttentionInbox({
     );
   }
 
-  // Count by reason for header
+  // Count by type for header
   const counts = {
     mentions: groupedItems.mention.length + groupedItems.reply.length,
-    tasks: groupedItems.task_assigned.length,
+    tasks: groupedItems.assigned_task.length,
     approvals: groupedItems.approval.length,
   };
 
