@@ -174,14 +174,185 @@ const {
 } = useQuickActions();
 ```
 
+## Backend API Endpoints
+
+### GET /api/projects/:id/pulse/activity
+
+Fetches recent activity for the project. Activity is derived from notifications.
+
+**Query Parameters:**
+- `limit` (number, default 50): Maximum items to return
+- `cursor` (string, optional): Pagination cursor from previous response
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "notification-123",
+      "projectId": "proj-456",
+      "type": "message_new",
+      "actorUserId": "user-789",
+      "title": "New message in conversation",
+      "entity": {
+        "conversationId": "conv-111",
+        "messageId": "msg-222"
+      },
+      "createdAt": "2025-12-14T12:00:00Z",
+      "deepLink": "/messages?highlight=conv-111",
+      "preview": "Hey, can you review this?",
+      "isNew": true
+    }
+  ],
+  "pagination": {
+    "cursor": "2025-12-14T11:59:00Z",
+    "hasMore": true
+  }
+}
+```
+
+### GET /api/projects/:id/pulse/attention
+
+Fetches items needing user action (mentions, replies, assigned tasks).
+
+**Query Parameters:**
+- `limit` (number, default 50): Maximum items to return
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "notif-123",
+      "projectId": "proj-456",
+      "reason": "mention",
+      "title": "@you was mentioned",
+      "description": "Check out this design",
+      "entity": {
+        "conversationId": "conv-111",
+        "messageId": "msg-222"
+      },
+      "createdAt": "2025-12-14T12:00:00Z",
+      "deepLink": "/messages?highlight=conv-111",
+      "status": "open",
+      "priority": "high"
+    }
+  ]
+}
+```
+
+### GET /api/projects/:id/pulse/unseen-count
+
+Returns count of activity since user last viewed pulse.
+
+**Response:**
+```json
+{
+  "success": true,
+  "count": 5,
+  "lastSeenAt": "2025-12-14T11:00:00Z"
+}
+```
+
+### POST /api/projects/:id/pulse/mark-seen
+
+Marks all pulse activity as seen. Updates `lastSeenAt` to current time.
+
+**Response:**
+```json
+{
+  "success": true,
+  "lastSeenAt": "2025-12-14T12:30:00Z"
+}
+```
+
+### GET /api/projects/:id/pulse/presence
+
+Returns current online presence for the project.
+
+**Response:**
+```json
+{
+  "success": true,
+  "presence": [
+    {
+      "userId": "user-123",
+      "userName": "Alice",
+      "joinedAt": "2025-12-14T12:00:00Z",
+      "isOnline": true
+    }
+  ]
+}
+```
+
+## WebSocket Events
+
+### Real-time Presence
+
+**Client → Server:**
+```javascript
+// Join project room when focusing
+socket.emit('project:join', projectId, { userId, userName });
+
+// Leave project room when unfocusing
+socket.emit('project:leave', projectId, { userId, userName });
+```
+
+**Server → Client:**
+```javascript
+// Presence update broadcast to project room
+socket.on('project:presence', (data) => {
+  // data.projectId: string
+  // data.presence: PresenceMember[]
+  // data.event: 'join' | 'leave'
+  // data.userId: string (who joined/left)
+});
+```
+
+### Real-time Pulse Events
+
+**Server → Client:**
+```javascript
+// New activity/attention item (emitted when notifications created)
+socket.on('pulse:event', (data) => {
+  // data.projectId: string
+  // data.type: 'activity' | 'attention'
+  // data.event: ActivityItem | AttentionItem
+  // data.timestamp: string (ISO)
+});
+```
+
+The `useProjectPulse` hook automatically subscribes to `pulse:event` and updates the activity stream and attention inbox in real-time.
+
+## Database Schema
+
+### pulse_state table
+
+Tracks per-user per-project last-seen timestamp for unseen count calculation.
+
+```sql
+CREATE TABLE IF NOT EXISTS pulse_state (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  project_id TEXT NOT NULL,
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, project_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pulse_state_user_project
+  ON pulse_state(user_id, project_id);
+```
+
 ## Future Enhancements
 
-1. **Backend Activity Endpoint**: Dedicated API for aggregated activity
-2. **Real-time Updates**: WebSocket push for live activity stream
-3. **Team Presence Integration**: Full integration with SocketContext
-4. **Keyboard Shortcuts**: Additional shortcuts for common actions
-5. **Notification Preferences**: Per-project notification settings
-6. **Cross-project View**: "All my attention items" across projects
+1. **Keyboard Shortcuts**: Additional shortcuts for common actions
+2. **Notification Preferences**: Per-project notification settings
+3. **Cross-project View**: "All my attention items" across projects
+4. **Rich Presence**: Show what tab/view each team member is on
 
 ## Relationship to Other Features
 
@@ -205,3 +376,137 @@ const {
 | Navigation clicks per session | -40% |
 | Context switches to find info | -50% |
 | "What changed?" answered without navigation | Yes |
+
+## Manual Test Plan
+
+### Prerequisites
+
+1. Two user accounts (User A, User B)
+2. A shared project where both users are members
+3. Browser DevTools open for network inspection
+
+### Test 1: Activity Endpoint
+
+**Steps:**
+1. Log in as User A
+2. Focus on a project
+3. Click the Pulse indicator to open the panel
+4. Check the Activity tab
+
+**Expected:**
+- Network request to `/api/projects/:id/pulse/activity`
+- Activity items displayed (if any notifications exist)
+- Each item shows type icon, title, timestamp
+- Clicking an item navigates to the deepLink
+
+### Test 2: Attention Endpoint
+
+**Steps:**
+1. As User B, create a message mentioning User A (e.g., "@userA check this")
+2. Switch to User A's session
+3. Open the Pulse panel
+4. Check the Attention tab
+
+**Expected:**
+- Mention appears in attention items
+- Shows "Mention" label and appropriate icon
+- Priority badge if high/urgent
+- Click navigates to conversation
+
+### Test 3: Unseen Count
+
+**Steps:**
+1. As User A, open Pulse and click "Mark as Seen"
+2. As User B, send a new message in the project
+3. Refresh User A's page (don't open Pulse)
+
+**Expected:**
+- Pulse indicator shows "1 new" (or badge increments)
+- Activity items should have `isNew: true`
+- "Mark as Seen" button visible
+
+### Test 4: Mark Seen
+
+**Steps:**
+1. With unseen items, click "Mark as Seen" button
+2. Refresh the page
+3. Open Pulse panel
+
+**Expected:**
+- Unseen count resets to 0
+- Activity items no longer show "new" indicator
+- No "Mark as Seen" button (or disabled)
+
+### Test 5: Team Presence (Sockets)
+
+**Steps:**
+1. Log in as User A in Browser 1
+2. Log in as User B in Browser 2
+3. Both focus on the same project
+4. User A opens Pulse and checks Team tab
+
+**Expected:**
+- User B appears in team list
+- Shows "Online" status with green indicator
+- If User B closes their tab, they disappear (after disconnect)
+
+### Test 6: Real-time Updates
+
+**Steps:**
+1. User A has Pulse panel open
+2. User B sends a new message in the project
+3. Watch User A's Activity tab
+
+**Expected:**
+- New activity appears at top without refresh
+- Item has "new" indicator
+- Unseen count increments
+- No page reload required
+
+### Test 7: Error Handling
+
+**Steps:**
+1. Open DevTools Network tab
+2. Block requests to `/pulse/activity` (using DevTools)
+3. Open Pulse panel
+
+**Expected:**
+- Error message displayed: "Failed to load pulse data"
+- Retry button available
+- Other tabs still functional if their endpoints work
+
+### Test 8: Pagination (Large Activity)
+
+**Steps:**
+1. Create 60+ notifications in a project
+2. Open Pulse Activity tab
+3. Scroll to bottom
+
+**Expected:**
+- Initial load returns ~50 items
+- "Load more" or infinite scroll loads older items
+- Pagination cursor in network response
+
+### Test 9: Project Switch
+
+**Steps:**
+1. Focus on Project A
+2. Open Pulse (shows Project A activity)
+3. Switch focus to Project B
+4. Check Pulse panel
+
+**Expected:**
+- Activity/Attention clears and reloads for Project B
+- Team presence shows Project B members
+- Socket joins Project B room (check DevTools WebSocket)
+
+### Test 10: Cross-tab Consistency
+
+**Steps:**
+1. Open same project in two browser tabs
+2. Mark as seen in Tab 1
+3. Refresh Tab 2
+
+**Expected:**
+- Unseen count consistent in both tabs
+- Last seen timestamp updated in database

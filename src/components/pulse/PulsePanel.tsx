@@ -19,6 +19,8 @@ import {
   Users,
   ChevronRight,
   Check,
+  CheckCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -63,6 +65,7 @@ export function PulsePanel({
     teamMembers,
     unseenCount,
     isLoading,
+    error,
     refresh,
     markAllSeen,
   } = useProjectPulse();
@@ -129,6 +132,17 @@ export function PulsePanel({
           )}
         </div>
         <div className="flex items-center gap-1">
+          {unseenCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={markAllSeen}
+              aria-label="Mark all as seen"
+              title="Mark all as seen"
+            >
+              <CheckCheck className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -150,6 +164,24 @@ export function PulsePanel({
           </Button>
         </div>
       </div>
+
+      {/* Error state */}
+      {error && (
+        <div className="px-4 py-3 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
+          <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+            <AlertCircle className="h-4 w-4" />
+            <span>{error}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refresh}
+              className="ml-auto text-red-600 hover:text-red-700"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Project context */}
       {activeProject && (
