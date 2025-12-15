@@ -16,6 +16,7 @@ import { useSession } from '@/contexts/SessionContext';
 import { useNotifications, Notification } from '@/contexts/NotificationContext';
 import { useTasks, Task } from '@/hooks/useTasks';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProjectPresence, ProjectPresenceMember, PulseEvent } from '@/hooks/useProjectPresence';
 
 // Activity item types
 export type ActivityType =
@@ -54,9 +55,12 @@ export interface AttentionItem {
 
 export interface TeamMember {
   id: string;
+  userId: string;
   name: string;
+  userName: string;
   avatar?: string;
   isOnline: boolean;
+  joinedAt?: string;
   lastActivity?: string;
   currentView?: string;
 }
@@ -76,6 +80,8 @@ export interface ProjectPulseState {
   error: string | null;
   /** Whether pulse is available (project is focused) */
   isAvailable: boolean;
+  /** Whether socket is connected */
+  isConnected: boolean;
 }
 
 export interface UseProjectPulseReturn extends ProjectPulseState {
@@ -94,10 +100,14 @@ export function useProjectPulse(): UseProjectPulseReturn {
   const { tasks } = useTasks(activeProject?.id);
   const { user } = useAuth();
 
+  // Get presence from unified socket
+  const { members: presenceMembers, isConnected, onPulseEvent } = useProjectPresence();
+
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [realtimeActivity, setRealtimeActivity] = React.useState<ActivityItem[]>([]);
 
-  // Build activity stream from notifications
+  // Build activity stream from notifications + real-time events
   const activityStream = React.useMemo((): ActivityItem[] => {
     if (!hasFocus || !activeProject) return [];
 
@@ -106,7 +116,7 @@ export function useProjectPulse(): UseProjectPulseReturn {
       : null;
 
     // Convert notifications to activity items
-    const activities: ActivityItem[] = notificationState.notifications
+    const notificationActivities: ActivityItem[] = notificationState.notifications
       .filter((n) => n.projectId === activeProject.id)
       .slice(0, 20) // Limit to recent 20
       .map((notification): ActivityItem => {
@@ -123,11 +133,19 @@ export function useProjectPulse(): UseProjectPulseReturn {
         };
       });
 
+    // Merge with real-time activity, avoiding duplicates
+    const allActivities = [...realtimeActivity];
+    for (const notifActivity of notificationActivities) {
+      if (!allActivities.some((a) => a.id === notifActivity.id)) {
+        allActivities.push(notifActivity);
+      }
+    }
+
     // Sort by timestamp descending
-    return activities.sort(
+    return allActivities.sort(
       (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-    );
-  }, [hasFocus, activeProject, notificationState.notifications, session.lastSeenTimestamp]);
+    ).slice(0, 30);
+  }, [hasFocus, activeProject, notificationState.notifications, session.lastSeenTimestamp, realtimeActivity]);
 
   // Build attention items from notifications and tasks
   const attentionItems = React.useMemo((): AttentionItem[] => {
@@ -211,11 +229,49 @@ export function useProjectPulse(): UseProjectPulseReturn {
     ).length;
   }, [hasFocus, activeProject, notificationState.notifications, session.lastSeenTimestamp]);
 
-  // Team members (placeholder - will integrate with socket presence)
+  // Team members from socket presence
   const teamMembers = React.useMemo((): TeamMember[] => {
-    // TODO: Integrate with actual presence data from SocketContext
-    return [];
-  }, []);
+    return presenceMembers.map((m): TeamMember => ({
+      id: m.userId,
+      userId: m.userId,
+      name: m.userName,
+      userName: m.userName,
+      avatar: m.avatar,
+      isOnline: m.isOnline,
+      joinedAt: m.joinedAt,
+    }));
+  }, [presenceMembers]);
+
+  // Subscribe to real-time pulse events
+  React.useEffect(() => {
+    if (!hasFocus || !activeProject) {
+      setRealtimeActivity([]);
+      return;
+    }
+
+    const unsubscribe = onPulseEvent((event: PulseEvent) => {
+      if (event.projectId !== activeProject.id) return;
+
+      if (event.type === 'activity') {
+        // Add real-time activity to the list
+        const newItem = event.event as ActivityItem;
+        setRealtimeActivity((prev) => {
+          // Deduplicate
+          if (prev.some((item) => item.id === newItem.id)) {
+            return prev;
+          }
+          return [{ ...newItem, isNew: true }, ...prev].slice(0, 20);
+        });
+      }
+    });
+
+    return unsubscribe;
+  }, [hasFocus, activeProject, onPulseEvent]);
+
+  // Clear realtime activity when project changes
+  React.useEffect(() => {
+    setRealtimeActivity([]);
+  }, [activeProject?.id]);
 
   const refresh = React.useCallback(() => {
     // For now, data is reactive via contexts
@@ -243,6 +299,7 @@ export function useProjectPulse(): UseProjectPulseReturn {
     isLoading,
     error,
     isAvailable: hasFocus && !!activeProject,
+    isConnected,
     refresh,
     markAllSeen,
     getAttentionByType,
