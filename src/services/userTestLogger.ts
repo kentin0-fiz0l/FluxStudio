@@ -40,15 +40,43 @@ export interface UserTestFeedback {
   additionalComments?: string;
 }
 
+export interface ConfusionReport {
+  timestamp: string;
+  route: string;
+  focusedProjectId: string | null;
+  activeSubpage: string | null;
+  note?: string; // max 140 chars
+}
+
+export interface HesitationEvent {
+  timestamp: string;
+  route: string;
+  component: string;
+  durationMs: number;
+}
+
+export interface FrictionPattern {
+  mostCommonHesitationRoutes: Array<{ route: string; count: number }>;
+  repeatedPanelOpenCloses: number;
+  tasksWithLongestTime: Array<{ taskId: string; taskTitle: string; timeMs: number }>;
+  totalConfusionReports: number;
+  averageHesitationDurationMs: number;
+}
+
 const STORAGE_KEY_EVENTS = 'fluxstudio_usertest_events';
 const STORAGE_KEY_ENABLED = 'fluxstudio_usertest';
 const STORAGE_KEY_TESTER = 'fluxstudio_usertest_tester';
 const STORAGE_KEY_TASKS = 'fluxstudio_usertest_tasks';
 const STORAGE_KEY_FEEDBACK = 'fluxstudio_usertest_feedback';
+const STORAGE_KEY_CONFUSIONS = 'fluxstudio_usertest_confusions';
+const STORAGE_KEY_HESITATIONS = 'fluxstudio_usertest_hesitations';
 const MAX_EVENTS = 500;
+const MAX_CONFUSION_NOTE_LENGTH = 140;
 
 class UserTestLogger {
   private events: UserTestEvent[] = [];
+  private confusions: ConfusionReport[] = [];
+  private hesitations: HesitationEvent[] = [];
   private isEnabled: boolean = false;
 
   constructor() {
@@ -61,10 +89,20 @@ class UserTestLogger {
       if (stored) {
         this.events = JSON.parse(stored);
       }
+      const storedConfusions = localStorage.getItem(STORAGE_KEY_CONFUSIONS);
+      if (storedConfusions) {
+        this.confusions = JSON.parse(storedConfusions);
+      }
+      const storedHesitations = localStorage.getItem(STORAGE_KEY_HESITATIONS);
+      if (storedHesitations) {
+        this.hesitations = JSON.parse(storedHesitations);
+      }
       this.isEnabled = localStorage.getItem(STORAGE_KEY_ENABLED) === 'true';
     } catch (e) {
       console.warn('Failed to load user test events from storage:', e);
       this.events = [];
+      this.confusions = [];
+      this.hesitations = [];
     }
   }
 
@@ -199,6 +237,103 @@ class UserTestLogger {
     }
   }
 
+  // Confusion Report Management
+  reportConfusion(report: Omit<ConfusionReport, 'timestamp'>): void {
+    if (!this.isEnabled) return;
+
+    const confusion: ConfusionReport = {
+      timestamp: new Date().toISOString(),
+      route: report.route,
+      focusedProjectId: report.focusedProjectId,
+      activeSubpage: report.activeSubpage,
+      note: report.note ? report.note.slice(0, MAX_CONFUSION_NOTE_LENGTH) : undefined,
+    };
+
+    this.confusions.push(confusion);
+    localStorage.setItem(STORAGE_KEY_CONFUSIONS, JSON.stringify(this.confusions));
+
+    // Also log as event for telemetry
+    this.log('usertest_confusion_reported', {
+      route: confusion.route,
+      focusedProjectId: confusion.focusedProjectId,
+      activeSubpage: confusion.activeSubpage,
+      hasNote: !!confusion.note,
+    });
+  }
+
+  getConfusionReports(): ConfusionReport[] {
+    return [...this.confusions];
+  }
+
+  // Hesitation Event Management
+  logHesitation(event: Omit<HesitationEvent, 'timestamp'>): void {
+    if (!this.isEnabled) return;
+
+    const hesitation: HesitationEvent = {
+      timestamp: new Date().toISOString(),
+      route: event.route,
+      component: event.component,
+      durationMs: event.durationMs,
+    };
+
+    this.hesitations.push(hesitation);
+    localStorage.setItem(STORAGE_KEY_HESITATIONS, JSON.stringify(this.hesitations));
+
+    // Also log as event for telemetry
+    this.log('ui_hesitation_detected', {
+      route: hesitation.route,
+      component: hesitation.component,
+      durationMs: hesitation.durationMs,
+    });
+  }
+
+  getHesitationEvents(): HesitationEvent[] {
+    return [...this.hesitations];
+  }
+
+  /**
+   * Analyze friction patterns from collected data
+   */
+  analyzeFrictionPatterns(): FrictionPattern {
+    const tasks = this.getTaskOutcomes();
+
+    // Count hesitation routes
+    const routeCounts: Record<string, number> = {};
+    for (const h of this.hesitations) {
+      routeCounts[h.route] = (routeCounts[h.route] || 0) + 1;
+    }
+    const mostCommonHesitationRoutes = Object.entries(routeCounts)
+      .map(([route, count]) => ({ route, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // Count panel open/close patterns (looking for pulse_panel_opened/closed pairs)
+    let panelOpenCloses = 0;
+    const pulseOpens = this.events.filter(e => e.eventName === 'pulse_panel_opened').length;
+    const pulseCloses = this.events.filter(e => e.eventName === 'pulse_panel_closed').length;
+    panelOpenCloses = Math.min(pulseOpens, pulseCloses);
+
+    // Tasks with longest completion time
+    const completedTasks = tasks
+      .filter(t => t.status === 'completed' && t.timeToCompleteMs)
+      .map(t => ({ taskId: t.taskId, taskTitle: t.taskTitle, timeMs: t.timeToCompleteMs! }))
+      .sort((a, b) => b.timeMs - a.timeMs)
+      .slice(0, 3);
+
+    // Average hesitation duration
+    const avgHesitation = this.hesitations.length > 0
+      ? this.hesitations.reduce((sum, h) => sum + h.durationMs, 0) / this.hesitations.length
+      : 0;
+
+    return {
+      mostCommonHesitationRoutes,
+      repeatedPanelOpenCloses: panelOpenCloses,
+      tasksWithLongestTime: completedTasks,
+      totalConfusionReports: this.confusions.length,
+      averageHesitationDurationMs: Math.round(avgHesitation),
+    };
+  }
+
   /**
    * Generate a markdown report for GitHub issues
    */
@@ -254,6 +389,66 @@ class UserTestLogger {
       for (const task of stuckTasks) {
         lines.push(`**${task.taskTitle}:**`);
         lines.push(`> ${task.notes}`);
+        lines.push('');
+      }
+    }
+
+    // Observed Friction Patterns (Auto-Generated)
+    const friction = this.analyzeFrictionPatterns();
+    const hasAnyFriction = friction.totalConfusionReports > 0 ||
+      friction.mostCommonHesitationRoutes.length > 0 ||
+      friction.tasksWithLongestTime.length > 0;
+
+    if (hasAnyFriction) {
+      lines.push('## Observed Friction Patterns (Auto-Generated)');
+      lines.push('');
+
+      // Summary stats
+      lines.push('### Summary');
+      lines.push('');
+      lines.push(`- **Confusion reports:** ${friction.totalConfusionReports}`);
+      lines.push(`- **Hesitation events:** ${this.hesitations.length}`);
+      if (friction.averageHesitationDurationMs > 0) {
+        lines.push(`- **Avg hesitation duration:** ${(friction.averageHesitationDurationMs / 1000).toFixed(1)}s`);
+      }
+      lines.push(`- **Panel open/close cycles:** ${friction.repeatedPanelOpenCloses}`);
+      lines.push('');
+
+      // Most common hesitation routes
+      if (friction.mostCommonHesitationRoutes.length > 0) {
+        lines.push('### Most Common Hesitation Routes');
+        lines.push('');
+        lines.push('| Route | Hesitation Count |');
+        lines.push('|-------|------------------|');
+        for (const { route, count } of friction.mostCommonHesitationRoutes) {
+          lines.push(`| ${route} | ${count} |`);
+        }
+        lines.push('');
+      }
+
+      // Tasks with longest completion time
+      if (friction.tasksWithLongestTime.length > 0) {
+        lines.push('### Tasks with Longest Completion Time');
+        lines.push('');
+        lines.push('| Task | Time |');
+        lines.push('|------|------|');
+        for (const { taskTitle, timeMs } of friction.tasksWithLongestTime) {
+          lines.push(`| ${taskTitle} | ${(timeMs / 1000).toFixed(1)}s |`);
+        }
+        lines.push('');
+      }
+
+      // Confusion moments (if any)
+      if (this.confusions.length > 0) {
+        lines.push('### Reported Confusion Moments');
+        lines.push('');
+        for (const c of this.confusions) {
+          const time = new Date(c.timestamp).toLocaleTimeString();
+          lines.push(`- **${time}** on \`${c.route}\`${c.activeSubpage ? ` (${c.activeSubpage})` : ''}`);
+          if (c.note) {
+            lines.push(`  > "${c.note}"`);
+          }
+        }
         lines.push('');
       }
     }
@@ -328,6 +523,9 @@ class UserTestLogger {
       tasks: this.getTaskOutcomes(),
       feedback: this.getFeedback(),
       events: this.getEvents(),
+      confusions: this.getConfusionReports(),
+      hesitations: this.getHesitationEvents(),
+      frictionAnalysis: this.analyzeFrictionPatterns(),
     }, null, 2);
   }
 
@@ -336,11 +534,15 @@ class UserTestLogger {
    */
   resetAll(): void {
     this.events = [];
+    this.confusions = [];
+    this.hesitations = [];
     localStorage.removeItem(STORAGE_KEY_EVENTS);
     localStorage.removeItem(STORAGE_KEY_ENABLED);
     localStorage.removeItem(STORAGE_KEY_TESTER);
     localStorage.removeItem(STORAGE_KEY_TASKS);
     localStorage.removeItem(STORAGE_KEY_FEEDBACK);
+    localStorage.removeItem(STORAGE_KEY_CONFUSIONS);
+    localStorage.removeItem(STORAGE_KEY_HESITATIONS);
     this.isEnabled = false;
   }
 }

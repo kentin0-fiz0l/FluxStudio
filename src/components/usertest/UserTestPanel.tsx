@@ -24,6 +24,7 @@ import {
   ListChecks,
   MessageSquare,
   Star,
+  HelpCircle,
 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -77,9 +78,25 @@ const TEST_TASKS = [
 
 type TabId = 'info' | 'tasks' | 'feedback';
 
+// Helper to detect active subpage from route
+function detectActiveSubpage(route: string): string | null {
+  const lowerRoute = route.toLowerCase();
+  if (lowerRoute.includes('/messages')) return 'messages';
+  if (lowerRoute.includes('/files')) return 'files';
+  if (lowerRoute.includes('/assets')) return 'assets';
+  if (lowerRoute.includes('/boards')) return 'boards';
+  if (lowerRoute.includes('/pulse')) return 'pulse';
+  if (lowerRoute.includes('/notifications')) return 'notifications';
+  if (lowerRoute.includes('/settings')) return 'settings';
+  if (lowerRoute.includes('/project')) return 'project';
+  if (lowerRoute.includes('/dashboard')) return 'dashboard';
+  return null;
+}
+
 export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
   const {
     logEvent,
+    reportConfusion,
     testerInfo,
     saveTesterInfo,
     taskOutcomes,
@@ -89,11 +106,15 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
     copyReportToClipboard,
     downloadJsonExport,
     resetAll,
+    currentRoute,
   } = useUserTestMode();
 
   const [activeTab, setActiveTab] = React.useState<TabId>('info');
   const [copySuccess, setCopySuccess] = React.useState(false);
   const [expandedTask, setExpandedTask] = React.useState<string | null>(null);
+  const [confusionNote, setConfusionNote] = React.useState('');
+  const [showConfusionInput, setShowConfusionInput] = React.useState(false);
+  const [confusionReported, setConfusionReported] = React.useState(false);
 
   // Initialize task outcomes if not set
   React.useEffect(() => {
@@ -194,6 +215,25 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
     }
   };
 
+  const handleReportConfusion = () => {
+    if (showConfusionInput) {
+      // Submit the confusion report
+      const activeSubpage = detectActiveSubpage(currentRoute);
+      reportConfusion(confusionNote.trim() || undefined, activeSubpage);
+      setConfusionNote('');
+      setShowConfusionInput(false);
+      setConfusionReported(true);
+      setTimeout(() => setConfusionReported(false), 2000);
+    } else {
+      setShowConfusionInput(true);
+    }
+  };
+
+  const handleCancelConfusion = () => {
+    setConfusionNote('');
+    setShowConfusionInput(false);
+  };
+
   if (!isOpen) return null;
 
   const completedCount = taskOutcomes.filter(t => t.status === 'completed').length;
@@ -255,6 +295,65 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
               style={{ width: `${(completedCount / TEST_TASKS.length) * 100}%` }}
             />
           </div>
+        </div>
+
+        {/* Quick Action: Report Confusion */}
+        <div className="px-4 py-2 border-b border-neutral-200 dark:border-neutral-800 bg-rose-50 dark:bg-rose-900/10">
+          {!showConfusionInput ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReportConfusion}
+              className={cn(
+                'w-full text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700',
+                'hover:bg-rose-100 dark:hover:bg-rose-900/30',
+                confusionReported && 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300'
+              )}
+              disabled={confusionReported}
+            >
+              <HelpCircle className="h-4 w-4 mr-1.5" />
+              {confusionReported ? 'Confusion Reported!' : "I'm confused right now"}
+            </Button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs text-rose-700 dark:text-rose-300 font-medium">
+                What's confusing? (optional, max 140 chars)
+              </p>
+              <input
+                type="text"
+                value={confusionNote}
+                onChange={(e) => setConfusionNote(e.target.value.slice(0, 140))}
+                placeholder="e.g., Not sure where to find..."
+                className="w-full px-2 py-1.5 text-sm border border-rose-300 dark:border-rose-700 rounded bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:ring-2 focus:ring-rose-500"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleReportConfusion();
+                  if (e.key === 'Escape') handleCancelConfusion();
+                }}
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-neutral-500">{confusionNote.length}/140</span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelConfusion}
+                    className="text-neutral-600 dark:text-neutral-400"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleReportConfusion}
+                    className="bg-rose-600 hover:bg-rose-700"
+                  >
+                    Report
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tabs */}

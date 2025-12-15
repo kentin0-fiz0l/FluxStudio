@@ -14,6 +14,7 @@ import {
   TesterInfo,
   TaskOutcome,
   UserTestFeedback,
+  ConfusionReport,
 } from '@/services/userTestLogger';
 
 export interface UseUserTestModeReturn {
@@ -25,6 +26,8 @@ export interface UseUserTestModeReturn {
   disable: () => void;
   /** Log an event */
   logEvent: (eventName: string, metadata?: Record<string, unknown>) => void;
+  /** Report a confusion moment */
+  reportConfusion: (note?: string, activeSubpage?: string | null) => void;
   /** Tester info */
   testerInfo: TesterInfo | null;
   /** Save tester info */
@@ -47,6 +50,10 @@ export interface UseUserTestModeReturn {
   downloadJsonExport: () => void;
   /** Reset all test data */
   resetAll: () => void;
+  /** Current route */
+  currentRoute: string;
+  /** Focused project ID */
+  focusedProjectId: string | null;
 }
 
 export function useUserTestMode(): UseUserTestModeReturn {
@@ -95,6 +102,15 @@ export function useUserTestMode(): UseUserTestModeReturn {
       projectId: activeProject?.id,
     });
   }, [user?.id, activeProject?.id]);
+
+  const reportConfusion = React.useCallback((note?: string, activeSubpage?: string | null) => {
+    userTestLogger.reportConfusion({
+      route: location.pathname,
+      focusedProjectId: activeProject?.id ?? null,
+      activeSubpage: activeSubpage ?? null,
+      note,
+    });
+  }, [location.pathname, activeProject?.id]);
 
   const saveTesterInfo = React.useCallback((info: TesterInfo) => {
     userTestLogger.saveTesterInfo(info);
@@ -156,6 +172,7 @@ export function useUserTestMode(): UseUserTestModeReturn {
     enable,
     disable,
     logEvent,
+    reportConfusion,
     testerInfo,
     saveTesterInfo,
     taskOutcomes,
@@ -167,6 +184,8 @@ export function useUserTestMode(): UseUserTestModeReturn {
     copyReportToClipboard,
     downloadJsonExport,
     resetAll,
+    currentRoute: location.pathname,
+    focusedProjectId: activeProject?.id ?? null,
   };
 }
 
