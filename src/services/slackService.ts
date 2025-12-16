@@ -10,10 +10,13 @@
  * - File sharing
  */
 
-import { WebClient } from '@slack/web-api';
-import axios from 'axios';
+import { WebClient, Block, KnownBlock, MessageAttachment } from '@slack/web-api';
 
-interface SlackChannel {
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+export interface SlackChannel {
   id: string;
   name: string;
   is_private: boolean;
@@ -21,15 +24,17 @@ interface SlackChannel {
   is_member: boolean;
 }
 
-interface SlackMessage {
+export type SlackBlock = Block | KnownBlock;
+
+export interface SlackMessage {
   channel: string;
   ts: string;
   text?: string;
-  blocks?: any[];
+  blocks?: SlackBlock[];
   user?: string;
 }
 
-interface SlackUser {
+export interface SlackUser {
   id: string;
   name: string;
   real_name?: string;
@@ -39,13 +44,64 @@ interface SlackUser {
   };
 }
 
-interface SlackWebhook {
+export interface SlackWebhookEvent {
+  channel?: string;
+  user?: string;
+  type?: string;
+  text?: string;
+  ts?: string;
+}
+
+export interface SlackWebhookPayload {
+  type: string;
+  team_id?: string;
+  event?: SlackWebhookEvent;
+  challenge?: string;
+}
+
+export interface SlackWebhook {
   type: string;
   team_id: string;
   channel_id?: string;
   user_id?: string;
-  event?: any;
-  challenge?: string; // For URL verification
+  event?: SlackWebhookEvent;
+  challenge?: string;
+}
+
+export interface SlackAuthTestResult {
+  ok: boolean;
+  url?: string;
+  team?: string;
+  user?: string;
+  team_id?: string;
+  user_id?: string;
+}
+
+export interface SlackUpdateResult {
+  ok: boolean;
+  channel?: string;
+  ts?: string;
+  text?: string;
+}
+
+export interface SlackDeleteResult {
+  ok: boolean;
+  channel?: string;
+  ts?: string;
+}
+
+export interface SlackFileUploadResult {
+  ok: boolean;
+  file?: {
+    id: string;
+    name: string;
+    url_private?: string;
+  };
+}
+
+interface SlackError extends Error {
+  code?: string;
+  data?: unknown;
 }
 
 class SlackService {
@@ -71,16 +127,17 @@ class SlackService {
    * Test authentication
    * @returns Authentication test result
    */
-  async testAuth(): Promise<any> {
+  async testAuth(): Promise<SlackAuthTestResult> {
     if (!this.client) {
       throw new Error('Slack client not initialized. Set access token first.');
     }
 
     try {
       const result = await this.client.auth.test();
-      return result;
-    } catch (error: any) {
-      throw new Error(`Slack auth test failed: ${error.message}`);
+      return result as SlackAuthTestResult;
+    } catch (error) {
+      const slackError = error as SlackError;
+      throw new Error(`Slack auth test failed: ${slackError.message}`);
     }
   }
 
@@ -100,15 +157,24 @@ class SlackService {
         exclude_archived: true
       });
 
-      return (result.channels as any[])?.map(channel => ({
-        id: channel.id,
-        name: channel.name,
+      interface ChannelResponse {
+        id?: string;
+        name?: string;
+        is_private?: boolean;
+        is_archived?: boolean;
+        is_member?: boolean;
+      }
+
+      return (result.channels as ChannelResponse[] | undefined)?.map(channel => ({
+        id: channel.id || '',
+        name: channel.name || '',
         is_private: channel.is_private || false,
         is_archived: channel.is_archived || false,
         is_member: channel.is_member || false
       })) || [];
-    } catch (error: any) {
-      throw new Error(`Failed to list Slack channels: ${error.message}`);
+    } catch (error) {
+      const slackError = error as SlackError;
+      throw new Error(`Failed to list Slack channels: ${slackError.message}`);
     }
   }
 
@@ -123,10 +189,10 @@ class SlackService {
     channel: string,
     text: string,
     options: {
-      blocks?: any[];
+      blocks?: SlackBlock[];
       thread_ts?: string;
       reply_broadcast?: boolean;
-      attachments?: any[];
+      attachments?: MessageAttachment[];
     } = {}
   ): Promise<SlackMessage> {
     if (!this.client) {
@@ -144,11 +210,12 @@ class SlackService {
         channel: result.channel as string,
         ts: result.ts as string,
         text: result.message?.text,
-        blocks: result.message?.blocks,
+        blocks: result.message?.blocks as SlackBlock[] | undefined,
         user: result.message?.user
       };
-    } catch (error: any) {
-      throw new Error(`Failed to post Slack message: ${error.message}`);
+    } catch (error) {
+      const slackError = error as SlackError;
+      throw new Error(`Failed to post Slack message: ${slackError.message}`);
     }
   }
 
@@ -159,7 +226,7 @@ class SlackService {
    * @param text - Fallback text
    * @returns Message result
    */
-  async postRichMessage(channel: string, blocks: any[], text: string = 'New message'): Promise<SlackMessage> {
+  async postRichMessage(channel: string, blocks: SlackBlock[], text: string = 'New message'): Promise<SlackMessage> {
     return this.postMessage(channel, text, { blocks });
   }
 
@@ -176,9 +243,9 @@ class SlackService {
     ts: string,
     text: string,
     options: {
-      blocks?: any[];
+      blocks?: SlackBlock[];
     } = {}
-  ): Promise<any> {
+  ): Promise<SlackUpdateResult> {
     if (!this.client) {
       throw new Error('Slack client not initialized');
     }
@@ -191,9 +258,10 @@ class SlackService {
         ...options
       });
 
-      return result;
-    } catch (error: any) {
-      throw new Error(`Failed to update Slack message: ${error.message}`);
+      return result as SlackUpdateResult;
+    } catch (error) {
+      const slackError = error as SlackError;
+      throw new Error(`Failed to update Slack message: ${slackError.message}`);
     }
   }
 
@@ -203,7 +271,7 @@ class SlackService {
    * @param ts - Message timestamp
    * @returns Delete result
    */
-  async deleteMessage(channel: string, ts: string): Promise<any> {
+  async deleteMessage(channel: string, ts: string): Promise<SlackDeleteResult> {
     if (!this.client) {
       throw new Error('Slack client not initialized');
     }
@@ -214,9 +282,10 @@ class SlackService {
         ts
       });
 
-      return result;
-    } catch (error: any) {
-      throw new Error(`Failed to delete Slack message: ${error.message}`);
+      return result as SlackDeleteResult;
+    } catch (error) {
+      const slackError = error as SlackError;
+      throw new Error(`Failed to delete Slack message: ${slackError.message}`);
     }
   }
 
@@ -237,15 +306,23 @@ class SlackService {
         limit
       });
 
-      return (result.messages as any[])?.map(message => ({
+      interface MessageResponse {
+        ts?: string;
+        text?: string;
+        blocks?: SlackBlock[];
+        user?: string;
+      }
+
+      return (result.messages as MessageResponse[] | undefined)?.map(message => ({
         channel,
-        ts: message.ts,
+        ts: message.ts || '',
         text: message.text,
         blocks: message.blocks,
         user: message.user
       })) || [];
-    } catch (error: any) {
-      throw new Error(`Failed to get Slack channel history: ${error.message}`);
+    } catch (error) {
+      const slackError = error as SlackError;
+      throw new Error(`Failed to get Slack channel history: ${slackError.message}`);
     }
   }
 
@@ -265,7 +342,7 @@ class SlackService {
       title?: string;
       initial_comment?: string;
     } = {}
-  ): Promise<any> {
+  ): Promise<SlackFileUploadResult> {
     if (!this.client) {
       throw new Error('Slack client not initialized');
     }
@@ -278,9 +355,10 @@ class SlackService {
         ...options
       });
 
-      return result;
-    } catch (error: any) {
-      throw new Error(`Failed to upload file to Slack: ${error.message}`);
+      return result as unknown as SlackFileUploadResult;
+    } catch (error) {
+      const slackError = error as SlackError;
+      throw new Error(`Failed to upload file to Slack: ${slackError.message}`);
     }
   }
 
@@ -298,13 +376,14 @@ class SlackService {
       const result = await this.client.users.info({ user: userId });
 
       return {
-        id: result.user!.id as string,
-        name: result.user!.name as string,
-        real_name: result.user!.real_name,
-        profile: result.user!.profile
+        id: result.user?.id || '',
+        name: result.user?.name || '',
+        real_name: result.user?.real_name,
+        profile: result.user?.profile as { email?: string; image_512?: string } | undefined
       };
-    } catch (error: any) {
-      throw new Error(`Failed to get Slack user info: ${error.message}`);
+    } catch (error) {
+      const slackError = error as SlackError;
+      throw new Error(`Failed to get Slack user info: ${slackError.message}`);
     }
   }
 
@@ -439,14 +518,14 @@ class SlackService {
    * @param payload - Webhook payload
    * @returns Parsed event
    */
-  static parseWebhook(payload: any): SlackWebhook {
+  static parseWebhook(payload: SlackWebhookPayload): SlackWebhook {
     return {
       type: payload.type,
-      team_id: payload.team_id,
+      team_id: payload.team_id || '',
       channel_id: payload.event?.channel,
       user_id: payload.event?.user,
       event: payload.event,
-      challenge: payload.challenge // For URL verification
+      challenge: payload.challenge
     };
   }
 
@@ -455,7 +534,7 @@ class SlackService {
    * @param payload - Webhook payload
    * @returns Challenge response or null
    */
-  static handleChallenge(payload: any): string | null {
+  static handleChallenge(payload: SlackWebhookPayload): string | null {
     if (payload.type === 'url_verification' && payload.challenge) {
       return payload.challenge;
     }
