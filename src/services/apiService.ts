@@ -4,6 +4,27 @@
  */
 
 import { buildApiUrl, buildAuthUrl, buildMessagingUrl, config } from '../config/environment';
+import {
+  validate,
+  createOrganizationSchema,
+  updateOrganizationSchema,
+  createTeamSchema,
+  updateTeamSchema,
+  createProjectSchema,
+  updateProjectSchema,
+  fileMetadataSchema,
+  sendMessageSchema,
+  quickPrintSchema,
+  CreateOrganizationInput,
+  UpdateOrganizationInput,
+  CreateTeamInput,
+  UpdateTeamInput,
+  CreateProjectInput,
+  UpdateProjectInput,
+  FileMetadataInput,
+  SendMessageInput,
+  QuickPrintInput,
+} from './apiValidation';
 
 // API Response types
 export interface ApiResponse<T = any> {
@@ -257,17 +278,19 @@ class ApiService {
     return this.makeRequest(buildApiUrl('/organizations'));
   }
 
-  async createOrganization(data: any) {
+  async createOrganization(data: CreateOrganizationInput) {
+    const validated = validate(createOrganizationSchema, data);
     return this.makeRequest(buildApiUrl('/organizations'), {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(validated),
     });
   }
 
-  async updateOrganization(id: string, data: any) {
+  async updateOrganization(id: string, data: UpdateOrganizationInput) {
+    const validated = validate(updateOrganizationSchema, data);
     return this.makeRequest(buildApiUrl(`/organizations/${id}`), {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(validated),
     });
   }
 
@@ -282,17 +305,19 @@ class ApiService {
     return this.makeRequest(buildApiUrl(`/organizations/${organizationId}/teams`));
   }
 
-  async createTeam(organizationId: string, data: any) {
+  async createTeam(organizationId: string, data: CreateTeamInput) {
+    const validated = validate(createTeamSchema, data);
     return this.makeRequest(buildApiUrl(`/organizations/${organizationId}/teams`), {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(validated),
     });
   }
 
-  async updateTeam(id: string, data: any) {
+  async updateTeam(id: string, data: UpdateTeamInput) {
+    const validated = validate(updateTeamSchema, data);
     return this.makeRequest(buildApiUrl(`/teams/${id}`), {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(validated),
     });
   }
 
@@ -317,17 +342,19 @@ class ApiService {
     return this.makeRequest(url);
   }
 
-  async createProject(data: any) {
+  async createProject(data: CreateProjectInput) {
+    const validated = validate(createProjectSchema, data);
     return this.makeRequest(buildApiUrl('/projects'), {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(validated),
     });
   }
 
-  async updateProject(id: string, data: any) {
+  async updateProject(id: string, data: UpdateProjectInput) {
+    const validated = validate(updateProjectSchema, data);
     return this.makeRequest(buildApiUrl(`/projects/${id}`), {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(validated),
     });
   }
 
@@ -342,11 +369,12 @@ class ApiService {
     return this.makeRequest(buildApiUrl(`/projects/${projectId}/files`));
   }
 
-  async uploadFile(projectId: string, file: File, metadata?: any) {
+  async uploadFile(projectId: string, file: File, metadata?: FileMetadataInput) {
     const formData = new FormData();
     formData.append('file', file);
     if (metadata) {
-      formData.append('metadata', JSON.stringify(metadata));
+      const validatedMetadata = validate(fileMetadataSchema, metadata);
+      formData.append('metadata', JSON.stringify(validatedMetadata));
     }
 
     // makeRequest automatically handles CSRF token and auth headers for FormData
@@ -356,10 +384,11 @@ class ApiService {
     });
   }
 
-  async updateFile(id: string, data: any) {
+  async updateFile(id: string, data: FileMetadataInput) {
+    const validated = validate(fileMetadataSchema, data);
     return this.makeRequest(buildApiUrl(`/files/${id}`), {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(validated),
     });
   }
 
@@ -442,14 +471,11 @@ class ApiService {
   }
 
   // Printing API calls
-  async quickPrint(filename: string, projectId: string, config: any) {
+  async quickPrint(input: QuickPrintInput) {
+    const validated = validate(quickPrintSchema, input);
     return this.makeRequest(buildApiUrl('/printing/quick-print'), {
       method: 'POST',
-      body: JSON.stringify({
-        filename,
-        projectId,
-        config,
-      }),
+      body: JSON.stringify(validated),
     });
   }
 
@@ -461,10 +487,11 @@ class ApiService {
     return this.makeRequest(url);
   }
 
-  async sendMessage(data: any) {
+  async sendMessage(data: SendMessageInput) {
+    const validated = validate(sendMessageSchema, data);
     return this.makeRequest(buildMessagingUrl('/messages'), {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(validated),
     });
   }
 

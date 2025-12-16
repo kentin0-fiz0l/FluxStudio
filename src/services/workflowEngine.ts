@@ -464,21 +464,31 @@ export class WorkflowEngine {
   }
 
   /**
-   * Evaluate a condition
+   * Evaluate a condition safely without using eval()
    */
   private async evaluateCondition(
     condition: string,
     context: WorkflowContext
   ): Promise<boolean> {
-    // Simple expression evaluation
-    // In production, use a proper expression evaluator
+    // Use safe expression evaluator instead of eval()
+    // Supports: comparisons (===, !==, <, >, etc.), logical (&&, ||, !), arithmetic
     try {
-      const variables = context.variables || {};
-      const expression = condition.replace(/(\w+)/g, (match) => {
-        return variables[match] !== undefined ? variables[match] : match;
-      });
-      return eval(expression);
-    } catch {
+      const { safeEvaluateBoolean } = await import('../utils/safeExpressionEvaluator');
+
+      // Build variables from context
+      const variables: Record<string, unknown> = {
+        ...context.variables,
+        // Add context objects for nested access (e.g., "project.status")
+        project: context.project,
+        conversation: context.conversation,
+        organization: context.organization,
+        team: context.team,
+        user: context.user,
+      };
+
+      return safeEvaluateBoolean(condition, variables as Record<string, string | number | boolean | null | undefined>);
+    } catch (error) {
+      console.warn('Condition evaluation failed:', condition, error);
       return false;
     }
   }
