@@ -60,7 +60,6 @@
             "cmdk": "^1.1.1",
             "cookie-parser": "^1.4.7",
             "cors": "^2.8.5",
-            "csurf": "^1.11.0",
             "cuid": "^2.1.8",
             "date-fns": "^3.6.0",
             "dompurify": "^3.3.0",
@@ -140,7 +139,7 @@
             "supertest": "^7.1.4",
             "tailwindcss": "^3.4.17",
             "typescript": "^5.9.3",
-            "vite": "6.3.5",
+            "vite": "^7.3.0",
             "vitest": "^3.2.4"
       },
       "scripts": {
