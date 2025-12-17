@@ -1,34 +1,40 @@
 /**
  * ConversationSummary Component
  *
- * Displays a summary of a conversation including:
- * - Auto-generated summary text (placeholder for AI integration)
- * - Key decisions made in the conversation
- * - Open questions / action items
- * - Participant activity overview
+ * Displays AI-generated summaries with pulse-aware tone and clarity-aware detail.
+ * Integrates with the summary API endpoints for fetching and generating summaries.
  *
- * This is a scaffold for future AI-powered summaries.
+ * Features:
+ * - Fetch stored summary on mount
+ * - Generate/refresh summary via API
+ * - Subtle tone styling based on pulse (calm/neutral/intense)
+ * - Loading, error, and empty states
+ * - Project context awareness
  *
  * Usage:
  * <ConversationSummary
  *   conversationId={conversationId}
- *   summary={summaryData}
+ *   projectId={projectId}
  *   onClose={() => setShowSummary(false)}
  * />
  */
 
 import * as React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   X,
   Sparkles,
   CheckCircle2,
   HelpCircle,
-  Users,
+  ArrowRight,
   Clock,
   RefreshCw,
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  Activity,
+  Target,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,57 +42,34 @@ import { cn } from '@/lib/utils';
 // Types
 // ============================================================================
 
-interface KeyDecision {
-  id: string;
-  text: string;
-  decidedBy?: string;
-  timestamp?: Date;
+type PulseTone = 'calm' | 'neutral' | 'intense';
+type ClarityState = 'focused' | 'mixed' | 'uncertain';
+
+interface SummaryContent {
+  summary?: string[];
+  decisions?: Array<{ text: string; decidedBy?: string }>;
+  openQuestions?: Array<{ text: string; askedBy?: string }>;
+  nextSteps?: Array<{ text: string; priority?: string }>;
+  sentiment?: string;
 }
 
-interface OpenQuestion {
+interface SummaryData {
   id: string;
-  text: string;
-  askedBy?: string;
-  timestamp?: Date;
-}
-
-interface ParticipantActivity {
-  userId: string;
-  name: string;
-  avatar?: string;
+  conversationId: string;
+  projectId?: string;
+  content: SummaryContent;
+  pulseTone: PulseTone;
+  clarityState: ClarityState;
+  signalMetrics?: Record<string, number>;
+  generatedBy: string;
   messageCount: number;
-  lastActive?: Date;
-}
-
-export interface ConversationSummaryData {
-  /** AI-generated or extracted summary text */
-  summaryText?: string;
-  /** Key decisions made in conversation */
-  keyDecisions?: KeyDecision[];
-  /** Open questions that need answers */
-  openQuestions?: OpenQuestion[];
-  /** Participant activity stats */
-  participantActivity?: ParticipantActivity[];
-  /** When the summary was last generated */
-  generatedAt?: Date;
-  /** Whether summary is currently being generated */
-  isGenerating?: boolean;
-  /** Error if summary generation failed */
-  error?: string;
+  updatedAt: string;
 }
 
 interface ConversationSummaryProps {
-  /** Conversation ID */
   conversationId: string;
-  /** Summary data */
-  summary?: ConversationSummaryData;
-  /** Whether the panel is loading */
-  isLoading?: boolean;
-  /** Callback when panel is closed */
+  projectId?: string | null;
   onClose: () => void;
-  /** Callback to refresh/regenerate summary */
-  onRefresh?: () => void;
-  /** Additional class name */
   className?: string;
 }
 
@@ -119,7 +102,7 @@ function SectionHeader({
     >
       <Icon className="w-4 h-4 text-neutral-500" />
       <span className="flex-1 text-left">{title}</span>
-      {count !== undefined && (
+      {count !== undefined && count > 0 && (
         <span className="text-xs bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded">
           {count}
         </span>
@@ -135,7 +118,13 @@ function SectionHeader({
   );
 }
 
-function EmptySummaryState({ onGenerate }: { onGenerate?: () => void }) {
+function EmptySummaryState({
+  onGenerate,
+  isGenerating,
+}: {
+  onGenerate: () => void;
+  isGenerating: boolean;
+}) {
   return (
     <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
       <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-4">
@@ -145,22 +134,25 @@ function EmptySummaryState({ onGenerate }: { onGenerate?: () => void }) {
         No Summary Yet
       </h4>
       <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4 max-w-[200px]">
-        Summary generation will be available in a future update.
+        Generate a summary to see key decisions, open questions, and next steps.
       </p>
-      {onGenerate && (
-        <button
-          onClick={onGenerate}
-          disabled
-          className={cn(
-            'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium',
-            'bg-primary-600 text-white',
-            'opacity-50 cursor-not-allowed'
-          )}
-        >
+      <button
+        onClick={onGenerate}
+        disabled={isGenerating}
+        className={cn(
+          'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium',
+          'bg-primary-600 text-white hover:bg-primary-700',
+          'transition-colors',
+          isGenerating && 'opacity-50 cursor-not-allowed'
+        )}
+      >
+        {isGenerating ? (
+          <RefreshCw className="w-4 h-4 animate-spin" />
+        ) : (
           <Sparkles className="w-4 h-4" />
-          Generate Summary
-        </button>
-      )}
+        )}
+        {isGenerating ? 'Generating...' : 'Generate Summary'}
+      </button>
     </div>
   );
 }
@@ -172,11 +164,60 @@ function GeneratingState() {
         <RefreshCw className="w-6 h-6 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
       <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-        Generating Summary...
+        Analyzing Conversation...
       </h4>
       <p className="text-xs text-neutral-500 dark:text-neutral-400">
-        Analyzing conversation content
+        Extracting key insights and action items
       </p>
+    </div>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 px-4">
+      <RefreshCw className="w-6 h-6 text-neutral-400 animate-spin mb-2" />
+      <p className="text-xs text-neutral-500">Loading summary...</p>
+    </div>
+  );
+}
+
+/**
+ * Subtle tone indicator - doesn't use loud badges
+ */
+function ToneIndicator({
+  pulseTone,
+  clarityState,
+}: {
+  pulseTone: PulseTone;
+  clarityState: ClarityState;
+}) {
+  const pulseConfig = {
+    calm: { icon: Activity, label: 'Steady pace', color: 'text-green-600 dark:text-green-400' },
+    neutral: { icon: Activity, label: 'Active', color: 'text-blue-600 dark:text-blue-400' },
+    intense: { icon: Zap, label: 'High activity', color: 'text-orange-600 dark:text-orange-400' },
+  };
+
+  const clarityConfig = {
+    focused: { icon: Target, label: 'Clear direction', color: 'text-green-600 dark:text-green-400' },
+    mixed: { icon: Target, label: 'Mixed signals', color: 'text-yellow-600 dark:text-yellow-400' },
+    uncertain: { icon: HelpCircle, label: 'Needs clarity', color: 'text-orange-600 dark:text-orange-400' },
+  };
+
+  const pulse = pulseConfig[pulseTone];
+  const clarity = clarityConfig[clarityState];
+
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 text-[10px] text-neutral-500 dark:text-neutral-400">
+      <div className="flex items-center gap-1">
+        <pulse.icon className={cn('w-3 h-3', pulse.color)} />
+        <span>{pulse.label}</span>
+      </div>
+      <span className="text-neutral-300 dark:text-neutral-600">|</span>
+      <div className="flex items-center gap-1">
+        <clarity.icon className={cn('w-3 h-3', clarity.color)} />
+        <span>{clarity.label}</span>
+      </div>
     </div>
   );
 }
@@ -187,27 +228,113 @@ function GeneratingState() {
 
 export function ConversationSummary({
   conversationId,
-  summary,
-  isLoading,
+  projectId,
   onClose,
-  onRefresh,
   className,
 }: ConversationSummaryProps) {
-  const [decisionsExpanded, setDecisionsExpanded] = React.useState(true);
-  const [questionsExpanded, setQuestionsExpanded] = React.useState(true);
-  const [activityExpanded, setActivityExpanded] = React.useState(false);
+  const [summary, setSummary] = useState<SummaryData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const hasContent = summary && (
-    summary.summaryText ||
-    (summary.keyDecisions && summary.keyDecisions.length > 0) ||
-    (summary.openQuestions && summary.openQuestions.length > 0)
+  const [decisionsExpanded, setDecisionsExpanded] = useState(true);
+  const [questionsExpanded, setQuestionsExpanded] = useState(true);
+  const [nextStepsExpanded, setNextStepsExpanded] = useState(true);
+
+  // Fetch summary on mount
+  const fetchSummary = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem('auth_token');
+      const url = projectId
+        ? `/api/projects/${projectId}/conversations/${conversationId}/summary`
+        : `/api/conversations/${conversationId}/summary`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch summary');
+      }
+
+      const data = await response.json();
+      if (data.success && data.summary) {
+        setSummary(data.summary);
+      }
+    } catch (err) {
+      console.error('Error fetching summary:', err);
+      // Don't show error for initial fetch - just show empty state
+    } finally {
+      setIsLoading(false);
+    }
+  }, [conversationId, projectId]);
+
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
+
+  // Generate or refresh summary
+  const handleGenerate = async () => {
+    try {
+      setIsGenerating(true);
+      setError(null);
+
+      const token = localStorage.getItem('auth_token');
+      const url = projectId
+        ? `/api/projects/${projectId}/conversations/${conversationId}/summary/generate`
+        : `/api/conversations/${conversationId}/summary/generate`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to generate summary');
+      }
+
+      const data = await response.json();
+      if (data.success && data.summary) {
+        setSummary(data.summary);
+      }
+    } catch (err) {
+      console.error('Error generating summary:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate summary');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const content = summary?.content;
+  const hasContent = content && (
+    (content.summary && content.summary.length > 0) ||
+    (content.decisions && content.decisions.length > 0) ||
+    (content.openQuestions && content.openQuestions.length > 0) ||
+    (content.nextSteps && content.nextSteps.length > 0)
   );
+
+  // Tone-based styling (subtle background tint)
+  const toneStyles = {
+    calm: 'bg-white dark:bg-neutral-900',
+    neutral: 'bg-white dark:bg-neutral-900',
+    intense: 'bg-orange-50/30 dark:bg-orange-950/10',
+  };
 
   return (
     <div
       className={cn(
         'w-80 flex flex-col h-full',
-        'bg-white dark:bg-neutral-900',
+        toneStyles[summary?.pulseTone || 'neutral'],
         'border-l border-neutral-200 dark:border-neutral-700',
         className
       )}
@@ -221,19 +348,19 @@ export function ConversationSummary({
           </h3>
         </div>
         <div className="flex items-center gap-1">
-          {onRefresh && hasContent && (
+          {hasContent && (
             <button
-              onClick={onRefresh}
-              disabled={summary?.isGenerating}
+              onClick={handleGenerate}
+              disabled={isGenerating}
               className={cn(
                 'p-1.5 rounded-lg transition-colors',
                 'hover:bg-neutral-100 dark:hover:bg-neutral-800',
                 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300',
-                summary?.isGenerating && 'opacity-50 cursor-not-allowed'
+                isGenerating && 'opacity-50 cursor-not-allowed'
               )}
               title="Refresh summary"
             >
-              <RefreshCw className={cn('w-4 h-4', summary?.isGenerating && 'animate-spin')} />
+              <RefreshCw className={cn('w-4 h-4', isGenerating && 'animate-spin')} />
             </button>
           )}
           <button
@@ -246,54 +373,75 @@ export function ConversationSummary({
         </div>
       </div>
 
+      {/* Tone Indicator (when summary exists) */}
+      {summary && (
+        <ToneIndicator
+          pulseTone={summary.pulseTone}
+          clarityState={summary.clarityState}
+        />
+      )}
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
+          <LoadingState />
+        ) : isGenerating ? (
           <GeneratingState />
-        ) : summary?.isGenerating ? (
-          <GeneratingState />
-        ) : summary?.error ? (
+        ) : error ? (
           <div className="p-4 text-center">
             <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-            <p className="text-sm text-red-600 dark:text-red-400">{summary.error}</p>
+            <p className="text-sm text-red-600 dark:text-red-400 mb-3">{error}</p>
+            <button
+              onClick={handleGenerate}
+              className="text-xs text-primary-600 hover:underline"
+            >
+              Try again
+            </button>
           </div>
         ) : !hasContent ? (
-          <EmptySummaryState onGenerate={onRefresh} />
+          <EmptySummaryState onGenerate={handleGenerate} isGenerating={isGenerating} />
         ) : (
           <div className="p-3 space-y-4">
-            {/* Summary Text */}
-            {summary?.summaryText && (
-              <div className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed">
-                  {summary.summaryText}
-                </p>
-                {summary.generatedAt && (
-                  <p className="text-[10px] text-neutral-400 mt-2">
-                    Generated {formatRelativeTime(summary.generatedAt)}
+            {/* Summary Bullets */}
+            {content?.summary && content.summary.length > 0 && (
+              <div className="p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg space-y-2">
+                {content.summary.map((bullet, idx) => (
+                  <p
+                    key={idx}
+                    className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed"
+                  >
+                    {bullet}
                   </p>
-                )}
+                ))}
               </div>
             )}
 
             {/* Key Decisions */}
-            {summary?.keyDecisions && summary.keyDecisions.length > 0 && (
+            {content?.decisions && content.decisions.length > 0 && (
               <div>
                 <SectionHeader
                   icon={CheckCircle2}
                   title="Key Decisions"
-                  count={summary.keyDecisions.length}
+                  count={content.decisions.length}
                   isExpanded={decisionsExpanded}
                   onToggle={() => setDecisionsExpanded(!decisionsExpanded)}
                 />
                 {decisionsExpanded && (
                   <ul className="mt-2 space-y-2 pl-2">
-                    {summary.keyDecisions.map((decision) => (
+                    {content.decisions.map((decision, idx) => (
                       <li
-                        key={decision.id}
+                        key={idx}
                         className="flex gap-2 text-sm text-neutral-600 dark:text-neutral-400"
                       >
                         <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                        <span>{decision.text}</span>
+                        <div>
+                          <span>{decision.text}</span>
+                          {decision.decidedBy && (
+                            <span className="text-xs text-neutral-400 ml-1">
+                              ({decision.decidedBy})
+                            </span>
+                          )}
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -302,68 +450,30 @@ export function ConversationSummary({
             )}
 
             {/* Open Questions */}
-            {summary?.openQuestions && summary.openQuestions.length > 0 && (
+            {content?.openQuestions && content.openQuestions.length > 0 && (
               <div>
                 <SectionHeader
                   icon={HelpCircle}
                   title="Open Questions"
-                  count={summary.openQuestions.length}
+                  count={content.openQuestions.length}
                   isExpanded={questionsExpanded}
                   onToggle={() => setQuestionsExpanded(!questionsExpanded)}
                 />
                 {questionsExpanded && (
                   <ul className="mt-2 space-y-2 pl-2">
-                    {summary.openQuestions.map((question) => (
+                    {content.openQuestions.map((question, idx) => (
                       <li
-                        key={question.id}
+                        key={idx}
                         className="flex gap-2 text-sm text-neutral-600 dark:text-neutral-400"
                       >
                         <HelpCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                        <span>{question.text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {/* Participant Activity */}
-            {summary?.participantActivity && summary.participantActivity.length > 0 && (
-              <div>
-                <SectionHeader
-                  icon={Users}
-                  title="Participant Activity"
-                  count={summary.participantActivity.length}
-                  isExpanded={activityExpanded}
-                  onToggle={() => setActivityExpanded(!activityExpanded)}
-                />
-                {activityExpanded && (
-                  <ul className="mt-2 space-y-2">
-                    {summary.participantActivity.map((participant) => (
-                      <li
-                        key={participant.userId}
-                        className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                      >
-                        {participant.avatar ? (
-                          <img
-                            src={participant.avatar}
-                            alt={participant.name}
-                            className="w-6 h-6 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-                            <span className="text-xs font-medium text-primary-600 dark:text-primary-400">
-                              {participant.name.charAt(0).toUpperCase()}
+                        <div>
+                          <span>{question.text}</span>
+                          {question.askedBy && (
+                            <span className="text-xs text-neutral-400 ml-1">
+                              (asked by {question.askedBy})
                             </span>
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                            {participant.name}
-                          </p>
-                          <p className="text-xs text-neutral-500">
-                            {participant.messageCount} messages
-                          </p>
+                          )}
                         </div>
                       </li>
                     ))}
@@ -371,17 +481,75 @@ export function ConversationSummary({
                 )}
               </div>
             )}
+
+            {/* Next Steps */}
+            {content?.nextSteps && content.nextSteps.length > 0 && (
+              <div>
+                <SectionHeader
+                  icon={ArrowRight}
+                  title="Next Steps"
+                  count={content.nextSteps.length}
+                  isExpanded={nextStepsExpanded}
+                  onToggle={() => setNextStepsExpanded(!nextStepsExpanded)}
+                />
+                {nextStepsExpanded && (
+                  <ul className="mt-2 space-y-2 pl-2">
+                    {content.nextSteps.map((step, idx) => (
+                      <li
+                        key={idx}
+                        className="flex gap-2 text-sm text-neutral-600 dark:text-neutral-400"
+                      >
+                        <ArrowRight className={cn(
+                          'w-4 h-4 flex-shrink-0 mt-0.5',
+                          step.priority === 'high' ? 'text-red-500' :
+                          step.priority === 'medium' ? 'text-amber-500' :
+                          'text-blue-500'
+                        )} />
+                        <div>
+                          <span>{step.text}</span>
+                          {step.priority && (
+                            <span className={cn(
+                              'text-[10px] ml-1 px-1 py-0.5 rounded',
+                              step.priority === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                              step.priority === 'medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                              'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                            )}>
+                              {step.priority}
+                            </span>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* Sentiment (subtle) */}
+            {content?.sentiment && (
+              <p className="text-[10px] text-neutral-400 text-center mt-4">
+                Conversation tone: {content.sentiment}
+              </p>
+            )}
           </div>
         )}
       </div>
 
-      {/* Footer with timestamp */}
-      {hasContent && summary?.generatedAt && (
+      {/* Footer with timestamp and source */}
+      {summary && (
         <div className="px-4 py-2 border-t border-neutral-200 dark:border-neutral-700">
-          <p className="text-[10px] text-neutral-400 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            Last updated {formatRelativeTime(summary.generatedAt)}
-          </p>
+          <div className="flex items-center justify-between text-[10px] text-neutral-400">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {formatRelativeTime(new Date(summary.updatedAt))}
+            </span>
+            <span>
+              {summary.generatedBy === 'disabled' ? 'Basic analysis' :
+               summary.generatedBy === 'disabled-fallback' ? 'Fallback' :
+               summary.generatedBy?.includes('ai') ? 'AI generated' : 'System'}
+              {summary.messageCount > 0 && ` · ${summary.messageCount} msgs`}
+            </span>
+          </div>
         </div>
       )}
     </div>
