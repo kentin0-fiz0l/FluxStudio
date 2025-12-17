@@ -12,7 +12,7 @@
  */
 
 import * as React from 'react';
-import { useActiveProject } from './ActiveProjectContext';
+import { useActiveProjectOptional } from './ActiveProjectContext';
 
 // Current schema version - increment when structure changes
 const WORKING_CONTEXT_VERSION = 1;
@@ -138,7 +138,8 @@ function clearStoredWorkingContext(projectId: string): void {
 const WorkingContext = React.createContext<WorkingContextValue | null>(null);
 
 export function WorkingContextProvider({ children }: { children: React.ReactNode }) {
-  const { activeProject } = useActiveProject();
+  const activeProjectContext = useActiveProjectOptional();
+  const activeProject = activeProjectContext?.activeProject ?? null;
   const activeProjectId = activeProject?.id ?? null;
 
   // Current working context (for active project)

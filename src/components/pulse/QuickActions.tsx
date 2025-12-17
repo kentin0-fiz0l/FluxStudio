@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { useActiveProject } from '@/contexts/ActiveProjectContext';
+import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
 
 export interface QuickActionsProps {
   /** Whether the palette is open */
@@ -54,7 +54,9 @@ export interface QuickAction {
 
 export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
   const navigate = useNavigate();
-  const { activeProject, hasFocus } = useActiveProject();
+  const activeProjectContext = useActiveProjectOptional();
+  const activeProject = activeProjectContext?.activeProject ?? null;
+  const hasFocus = activeProjectContext?.hasFocus ?? false;
   const [search, setSearch] = React.useState('');
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);

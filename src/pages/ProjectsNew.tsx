@@ -20,7 +20,7 @@ import { useProjects, Project } from '../hooks/useProjects';
 import { useTeams } from '../hooks/useTeams';
 import { useOrganizations } from '../hooks/useOrganizations';
 import { useConnectors } from '../contexts/ConnectorsContext';
-import { useActiveProject } from '../contexts/ActiveProjectContext';
+import { useActiveProjectOptional } from '../contexts/ActiveProjectContext';
 import { toast } from '../lib/toast';
 import {
   Plus,
@@ -45,7 +45,10 @@ export function ProjectsNew() {
   const { projects, loading, error, createProject } = useProjects();
   const { teams } = useTeams();
   const { currentOrganization } = useOrganizations();
-  const { activeProject, setActiveProject, isProjectFocused } = useActiveProject();
+  const activeProjectContext = useActiveProjectOptional();
+  const activeProject = activeProjectContext?.activeProject ?? null;
+  const setActiveProject = activeProjectContext?.setActiveProject ?? (() => {});
+  const isProjectFocused = activeProjectContext?.isProjectFocused ?? (() => false);
 
   // Try to get connectors context for file linking
   let linkFileToProject: ((fileId: string, projectId: string) => Promise<void>) | undefined;
