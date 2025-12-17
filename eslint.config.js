@@ -37,6 +37,8 @@ export default [
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
       'prefer-const': 'error',
+      // DEBT-012: Prevent console statements in production
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
 ]
