@@ -14,8 +14,8 @@ const AIDesignAssistant: React.FC = () => {
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      // TODO: integrate with ClaudeCode or other AI service
-      // For now, generate dummy suggestions based on the prompt
+      // Placeholder: Will integrate with AI service (Anthropic Claude API) when backend endpoint is ready
+      // See src/services/aiService.ts for the integration layer
       const dummy: Suggestion[] = [
         { id: 1, text: `Try exploring alternative layouts for: ${prompt}` },
         { id: 2, text: `Consider using contrast and spacing to emphasise elements for: ${prompt}` },
