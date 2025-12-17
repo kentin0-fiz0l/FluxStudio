@@ -17,12 +17,17 @@ import * as React from 'react';
 import { useAuth } from './AuthContext';
 import { getApiUrl } from '@/utils/apiHelpers';
 
-// Notification types (v2 - messaging focused)
+// Notification types (v2 - messaging focused with category support)
 export type NotificationType =
   | 'mention'
   | 'reply'
   | 'thread_reply'
   | 'file_shared'
+  // v2 structured types
+  | 'decision'
+  | 'blocker'
+  | 'assignment'
+  | 'file_change'
   // Legacy types for backwards compatibility
   | 'message_mention'
   | 'message_reply'

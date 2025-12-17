@@ -4638,6 +4638,154 @@ app.get('/api/notifications/unread-count', authenticateToken, async (req, res) =
   }
 });
 
+// =============================================================================
+// NOTIFICATION PREFERENCES & PROJECT-SCOPED ACTIONS
+// =============================================================================
+
+const notificationService = require('./services/notification-service');
+
+/**
+ * 15. GET /api/notifications/preferences - Get user notification preferences
+ */
+app.get('/api/notifications/preferences', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const preferences = await notificationService.getUserPreferences(userId);
+    res.json({ success: true, preferences });
+  } catch (error) {
+    console.error('Error getting notification preferences:', error);
+    res.status(500).json({ success: false, error: 'Failed to get preferences' });
+  }
+});
+
+/**
+ * 16. PUT /api/notifications/preferences - Update user notification preferences
+ */
+app.put('/api/notifications/preferences', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const updates = req.body;
+
+    const preferences = await notificationService.updateUserPreferences(userId, updates);
+    res.json({ success: true, preferences });
+  } catch (error) {
+    console.error('Error updating notification preferences:', error);
+    res.status(500).json({ success: false, error: 'Failed to update preferences' });
+  }
+});
+
+/**
+ * 17. POST /api/projects/:projectId/notifications/read-all - Mark all project notifications as read
+ */
+app.post('/api/projects/:projectId/notifications/read-all', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { projectId } = req.params;
+
+    // Mark all notifications for this project as read
+    const result = await query(`
+      UPDATE notifications
+      SET is_read = TRUE, read_at = NOW()
+      WHERE user_id = $1 AND is_read = FALSE
+        AND (project_id = $2 OR metadata_json->>'projectId' = $2)
+      RETURNING id
+    `, [userId, projectId]);
+
+    res.json({
+      success: true,
+      updatedCount: result.rowCount,
+      projectId
+    });
+  } catch (error) {
+    console.error('Error marking project notifications as read:', error);
+    res.status(500).json({ success: false, error: 'Failed to mark notifications as read' });
+  }
+});
+
+/**
+ * 18. GET /api/projects/:projectId/notifications - Get notifications for a specific project
+ */
+app.get('/api/projects/:projectId/notifications', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const onlyUnread = req.query.onlyUnread === 'true';
+    const category = req.query.category || null;
+
+    // Build query conditions
+    let conditions = ['n.user_id = $1', '(n.project_id = $2 OR n.metadata_json->>\'projectId\' = $2)'];
+    let params = [userId, projectId];
+    let paramIndex = 3;
+
+    if (onlyUnread) {
+      conditions.push('n.is_read = FALSE');
+    }
+
+    if (category && category !== 'all') {
+      conditions.push(`(n.category = $${paramIndex} OR n.metadata_json->>'category' = $${paramIndex})`);
+      params.push(category);
+      paramIndex++;
+    }
+
+    params.push(limit, offset);
+
+    const queryText = `
+      SELECT
+        n.*,
+        u.id as actor_id,
+        u.name as actor_name,
+        u.email as actor_email,
+        u.avatar_url as actor_avatar
+      FROM notifications n
+      LEFT JOIN users u ON n.actor_user_id = u.id
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY n.created_at DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    const result = await query(queryText, params);
+
+    // Transform notifications
+    const notifications = result.rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      type: row.type,
+      title: row.title,
+      body: row.body,
+      message: row.body, // Legacy field
+      isRead: row.is_read,
+      readAt: row.read_at,
+      createdAt: row.created_at,
+      actorUserId: row.actor_user_id,
+      actor: row.actor_id ? {
+        id: row.actor_id,
+        name: row.actor_name,
+        email: row.actor_email,
+        avatarUrl: row.actor_avatar
+      } : null,
+      conversationId: row.conversation_id,
+      messageId: row.message_id,
+      threadRootMessageId: row.thread_root_message_id,
+      assetId: row.asset_id,
+      projectId: row.project_id || row.metadata_json?.projectId,
+      category: row.category || row.metadata_json?.category || 'other',
+      metadata: row.metadata_json || {}
+    }));
+
+    res.json({
+      success: true,
+      notifications,
+      pagination: { limit, offset },
+      filter: { projectId, category, onlyUnread }
+    });
+  } catch (error) {
+    console.error('Error getting project notifications:', error);
+    res.status(500).json({ success: false, error: 'Failed to get notifications' });
+  }
+});
+
 // ========================================
 // METMAP API (Musical Timeline Tool)
 // ========================================
