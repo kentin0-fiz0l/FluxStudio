@@ -173,6 +173,7 @@ export interface AssetsContextValue {
   refreshAssets: (params?: Partial<AssetsFilter>) => Promise<void>;
   createAsset: (data: { name: string; description?: string; assetType?: AssetType; fileId?: string; projectId?: string }) => Promise<AssetRecord | null>;
   createAssetFromFile: (fileId: string, data?: { name?: string; description?: string; assetType?: AssetType }) => Promise<AssetRecord | null>;
+  uploadAssetToProject: (projectId: string, files: File[], options?: { description?: string; tags?: string[]; role?: string }) => Promise<AssetRecord[]>;
   updateAsset: (assetId: string, updates: Partial<AssetRecord>) => Promise<AssetRecord | null>;
   deleteAsset: (assetId: string) => Promise<boolean>;
   getAssetById: (assetId: string, options?: { includeVersions?: boolean; includeRelations?: boolean }) => Promise<AssetRecord | null>;
@@ -415,6 +416,65 @@ export function AssetsProvider({ children }: { children: React.ReactNode }) {
       return result.asset;
     } catch (error) {
       console.error('Error creating asset from file:', error);
+      throw error;
+    }
+  }, [user, getToken]);
+
+  // Upload files directly to a project as assets
+  const uploadAssetToProject = React.useCallback(async (
+    projectId: string,
+    files: File[],
+    options?: { description?: string; tags?: string[]; role?: string }
+  ): Promise<AssetRecord[]> => {
+    if (!user) throw new Error('Authentication required');
+    if (!files.length) throw new Error('At least one file is required');
+
+    try {
+      const token = getToken();
+      const formData = new FormData();
+
+      // Add files
+      files.forEach(file => {
+        formData.append('files', file);
+      });
+
+      // Add options
+      if (options?.description) {
+        formData.append('description', options.description);
+      }
+      if (options?.tags?.length) {
+        formData.append('tags', JSON.stringify(options.tags));
+      }
+      if (options?.role) {
+        formData.append('role', options.role);
+      }
+
+      const response = await fetch(getApiUrl(`/projects/${projectId}/assets`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+          // Note: Don't set Content-Type - browser will set it with boundary for FormData
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload assets');
+      }
+
+      const result = await response.json();
+
+      // Add created assets to state
+      if (result.assets?.length) {
+        result.assets.forEach((asset: AssetRecord) => {
+          dispatch({ type: 'ADD_ASSET', payload: asset });
+        });
+      }
+
+      return result.assets || [];
+    } catch (error) {
+      console.error('Error uploading assets to project:', error);
       throw error;
     }
   }, [user, getToken]);
@@ -1041,6 +1101,7 @@ export function AssetsProvider({ children }: { children: React.ReactNode }) {
     refreshAssets,
     createAsset,
     createAssetFromFile,
+    uploadAssetToProject,
     updateAsset,
     deleteAsset,
     getAssetById,

@@ -3032,27 +3032,205 @@ app.get('/api/assets/:assetId/projects', authenticateToken, async (req, res) => 
   }
 });
 
-// 9. POST /api/projects/:projectId/assets - Attach asset to project
-app.post('/api/projects/:projectId/assets', authenticateToken, async (req, res) => {
+// 8.5 GET /api/assets/:assetId/file - Stream the asset's primary file content
+// Use ?thumbnail=true for thumbnail preview, ?inline=true to display in browser
+app.get('/api/assets/:assetId/file', authenticateToken, async (req, res) => {
   try {
-    const { projectId } = req.params;
-    const { assetId, role = 'reference', sortOrder = 0 } = req.body;
+    const { assetId } = req.params;
+    const { thumbnail, inline } = req.query;
 
-    if (!assetId) {
-      return res.status(400).json({ success: false, error: 'assetId is required' });
+    // Get asset with file info
+    const asset = await assetsAdapter.getAssetById(assetId);
+    if (!asset) {
+      return res.status(404).json({ error: 'Asset not found' });
     }
 
-    await assetsAdapter.attachAssetToProject({
-      assetId,
-      projectId,
-      role,
-      sortOrder
-    });
+    if (!asset.file) {
+      return res.status(404).json({ error: 'Asset has no file' });
+    }
 
-    res.json({ success: true, message: 'Asset attached to project' });
+    // Determine which file to serve (thumbnail or original)
+    let storageKey;
+    let mimeType = asset.file.mimeType;
+
+    if (thumbnail === 'true' && asset.file.thumbnailUrl) {
+      // Extract storage key from thumbnail URL
+      storageKey = asset.file.thumbnailUrl.replace('/files/storage/', '').replace('/files/', '');
+    } else if (asset.file.storageKey) {
+      storageKey = asset.file.storageKey;
+    } else if (asset.file.url) {
+      // Extract storage key from URL
+      storageKey = asset.file.url.replace('/files/storage/', '').replace('/files/', '');
+    } else {
+      return res.status(404).json({ error: 'File storage key not found' });
+    }
+
+    // Check if file exists
+    const exists = await fileStorage.exists(storageKey);
+    if (!exists) {
+      return res.status(404).json({ error: 'File not found in storage' });
+    }
+
+    // Get file stream
+    const stream = await fileStorage.getFileStream(storageKey);
+
+    // Set headers
+    res.setHeader('Content-Type', mimeType || 'application/octet-stream');
+
+    if (inline === 'true') {
+      res.setHeader('Content-Disposition', `inline; filename="${asset.file.name || 'file'}"`);
+    } else {
+      res.setHeader('Content-Disposition', `attachment; filename="${asset.file.name || 'file'}"`);
+    }
+
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+
+    stream.pipe(res);
   } catch (error) {
-    console.error('Error attaching asset to project:', error);
-    res.status(500).json({ success: false, error: 'Failed to attach asset' });
+    console.error('Error serving asset file:', error);
+    res.status(500).json({ error: 'Failed to serve asset file' });
+  }
+});
+
+// 9. POST /api/projects/:projectId/assets - Upload files as assets OR attach existing asset
+// Supports both:
+//   - Multipart upload: creates file, asset, and attaches to project
+//   - JSON body with assetId: attaches existing asset to project
+app.post('/api/projects/:projectId/assets', authenticateToken, fileUpload.array('files', 10), async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { assetId, role = 'reference', sortOrder = 0, description, tags } = req.body;
+
+    // Case 1: Attach existing asset (no files uploaded)
+    if (!req.files || req.files.length === 0) {
+      if (!assetId) {
+        return res.status(400).json({ success: false, error: 'Either files or assetId is required' });
+      }
+
+      await assetsAdapter.attachAssetToProject({
+        assetId,
+        projectId,
+        role,
+        sortOrder: parseInt(sortOrder) || 0
+      });
+
+      return res.json({ success: true, message: 'Asset attached to project' });
+    }
+
+    // Case 2: Upload files and create assets
+    const createdAssets = [];
+    const errors = [];
+
+    for (const file of req.files) {
+      try {
+        // 1. Save file to storage
+        const storageResult = await fileStorage.saveFile({
+          buffer: file.buffer,
+          mimeType: file.mimetype,
+          userId: req.user.id,
+          originalName: file.originalname
+        });
+
+        // 2. Create file record
+        const fileRecord = await filesAdapter.createFile({
+          userId: req.user.id,
+          projectId,
+          source: 'upload',
+          name: file.originalname,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          extension: storageResult.extension,
+          sizeBytes: storageResult.sizeBytes,
+          storageKey: storageResult.storageKey,
+          fileUrl: `/files/storage/${storageResult.storageKey}`,
+          metadata: { hash: storageResult.hash }
+        });
+
+        // 3. Generate thumbnail for images
+        if (file.mimetype.startsWith('image/')) {
+          try {
+            const previewResult = await fileStorage.savePreview({
+              buffer: file.buffer,
+              mimeType: file.mimetype,
+              fileId: fileRecord.id,
+              previewType: 'thumbnail'
+            });
+
+            await filesAdapter.createPreview({
+              fileId: fileRecord.id,
+              previewType: 'thumbnail',
+              storageKey: previewResult.storageKey,
+              mimeType: file.mimetype,
+              sizeBytes: previewResult.sizeBytes,
+              status: 'completed'
+            });
+
+            fileRecord.thumbnailUrl = `/files/storage/${previewResult.storageKey}`;
+          } catch (previewError) {
+            console.error('Preview generation error:', previewError);
+          }
+        }
+
+        // 4. Determine asset kind from mime type
+        const kind = determineAssetKind(file.mimetype);
+
+        // 5. Parse tags from request
+        let parsedTags = [];
+        if (tags) {
+          try {
+            parsedTags = typeof tags === 'string' ? JSON.parse(tags) : tags;
+          } catch (e) {
+            parsedTags = typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : [];
+          }
+        }
+
+        // 6. Create asset
+        const asset = await assetsAdapter.createAsset({
+          ownerId: req.user.id,
+          name: file.originalname,
+          kind,
+          primaryFileId: fileRecord.id,
+          description: description || null,
+          tags: parsedTags
+        });
+
+        // 7. Attach asset to project
+        await assetsAdapter.attachAssetToProject({
+          assetId: asset.id,
+          projectId,
+          role: role || 'reference',
+          sortOrder: parseInt(sortOrder) || createdAssets.length
+        });
+
+        // Add file info to asset response
+        asset.file = {
+          id: fileRecord.id,
+          name: fileRecord.name,
+          mimeType: fileRecord.mimeType,
+          size: fileRecord.sizeBytes,
+          url: fileRecord.fileUrl,
+          thumbnailUrl: fileRecord.thumbnailUrl
+        };
+
+        createdAssets.push(asset);
+      } catch (fileError) {
+        console.error('Error processing file:', file.originalname, fileError);
+        errors.push({ filename: file.originalname, error: fileError.message });
+      }
+    }
+
+    if (createdAssets.length === 0 && errors.length > 0) {
+      return res.status(500).json({ success: false, error: 'Failed to create assets', errors });
+    }
+
+    res.json({
+      success: true,
+      assets: createdAssets,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (error) {
+    console.error('Error creating/attaching project assets:', error);
+    res.status(500).json({ success: false, error: 'Failed to process assets' });
   }
 });
 
@@ -4635,6 +4813,154 @@ app.get('/api/notifications/unread-count', authenticateToken, async (req, res) =
   } catch (error) {
     console.error('Error getting unread notification count:', error);
     res.status(500).json({ success: false, error: 'Failed to get unread count' });
+  }
+});
+
+// =============================================================================
+// NOTIFICATION PREFERENCES & PROJECT-SCOPED ACTIONS
+// =============================================================================
+
+const notificationService = require('./services/notification-service');
+
+/**
+ * 15. GET /api/notifications/preferences - Get user notification preferences
+ */
+app.get('/api/notifications/preferences', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const preferences = await notificationService.getUserPreferences(userId);
+    res.json({ success: true, preferences });
+  } catch (error) {
+    console.error('Error getting notification preferences:', error);
+    res.status(500).json({ success: false, error: 'Failed to get preferences' });
+  }
+});
+
+/**
+ * 16. PUT /api/notifications/preferences - Update user notification preferences
+ */
+app.put('/api/notifications/preferences', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const updates = req.body;
+
+    const preferences = await notificationService.updateUserPreferences(userId, updates);
+    res.json({ success: true, preferences });
+  } catch (error) {
+    console.error('Error updating notification preferences:', error);
+    res.status(500).json({ success: false, error: 'Failed to update preferences' });
+  }
+});
+
+/**
+ * 17. POST /api/projects/:projectId/notifications/read-all - Mark all project notifications as read
+ */
+app.post('/api/projects/:projectId/notifications/read-all', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { projectId } = req.params;
+
+    // Mark all notifications for this project as read
+    const result = await query(`
+      UPDATE notifications
+      SET is_read = TRUE, read_at = NOW()
+      WHERE user_id = $1 AND is_read = FALSE
+        AND (project_id = $2 OR metadata_json->>'projectId' = $2)
+      RETURNING id
+    `, [userId, projectId]);
+
+    res.json({
+      success: true,
+      updatedCount: result.rowCount,
+      projectId
+    });
+  } catch (error) {
+    console.error('Error marking project notifications as read:', error);
+    res.status(500).json({ success: false, error: 'Failed to mark notifications as read' });
+  }
+});
+
+/**
+ * 18. GET /api/projects/:projectId/notifications - Get notifications for a specific project
+ */
+app.get('/api/projects/:projectId/notifications', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { projectId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const onlyUnread = req.query.onlyUnread === 'true';
+    const category = req.query.category || null;
+
+    // Build query conditions
+    let conditions = ['n.user_id = $1', '(n.project_id = $2 OR n.metadata_json->>\'projectId\' = $2)'];
+    let params = [userId, projectId];
+    let paramIndex = 3;
+
+    if (onlyUnread) {
+      conditions.push('n.is_read = FALSE');
+    }
+
+    if (category && category !== 'all') {
+      conditions.push(`(n.category = $${paramIndex} OR n.metadata_json->>'category' = $${paramIndex})`);
+      params.push(category);
+      paramIndex++;
+    }
+
+    params.push(limit, offset);
+
+    const queryText = `
+      SELECT
+        n.*,
+        u.id as actor_id,
+        u.name as actor_name,
+        u.email as actor_email,
+        u.avatar_url as actor_avatar
+      FROM notifications n
+      LEFT JOIN users u ON n.actor_user_id = u.id
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY n.created_at DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    const result = await query(queryText, params);
+
+    // Transform notifications
+    const notifications = result.rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      type: row.type,
+      title: row.title,
+      body: row.body,
+      message: row.body, // Legacy field
+      isRead: row.is_read,
+      readAt: row.read_at,
+      createdAt: row.created_at,
+      actorUserId: row.actor_user_id,
+      actor: row.actor_id ? {
+        id: row.actor_id,
+        name: row.actor_name,
+        email: row.actor_email,
+        avatarUrl: row.actor_avatar
+      } : null,
+      conversationId: row.conversation_id,
+      messageId: row.message_id,
+      threadRootMessageId: row.thread_root_message_id,
+      assetId: row.asset_id,
+      projectId: row.project_id || row.metadata_json?.projectId,
+      category: row.category || row.metadata_json?.category || 'other',
+      metadata: row.metadata_json || {}
+    }));
+
+    res.json({
+      success: true,
+      notifications,
+      pagination: { limit, offset },
+      filter: { projectId, category, onlyUnread }
+    });
+  } catch (error) {
+    console.error('Error getting project notifications:', error);
+    res.status(500).json({ success: false, error: 'Failed to get notifications' });
   }
 });
 

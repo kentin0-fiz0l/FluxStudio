@@ -1,14 +1,14 @@
 /**
  * Notifications Page - Flux Studio
  *
- * Full notifications inbox using DashboardLayout.
- * Shows all notifications with filtering, marking as read, and deletion.
+ * Full notifications inbox with project-scoped filtering and category filters.
+ * Features:
+ * - Category filters: All / Mentions / Decisions / Blockers / Files
+ * - Project-scoped "Mark all read" when viewing project notifications
+ * - Automatic refresh when project context changes
+ * - User preference toggles
  *
- * WCAG 2.1 Level A Compliant:
- * - ARIA labels and roles for all interactive elements
- * - Keyboard navigation support
- * - Live regions for dynamic updates
- * - Focus management
+ * WCAG 2.1 Level A Compliant
  */
 
 import * as React from 'react';
@@ -29,6 +29,11 @@ import {
   Check,
   ChevronRight,
   FolderOpen,
+  AtSign,
+  FileText,
+  AlertOctagon,
+  Gavel,
+  Settings,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
@@ -37,14 +42,62 @@ import { useNotifications, Notification, NotificationType, NotificationPriority 
 import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
 import { useProjectContextOptional } from '@/contexts/ProjectContext';
 import { cn } from '@/lib/utils';
+import { getApiUrl } from '@/utils/apiHelpers';
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+// Notification categories for filtering
+type NotificationCategory = 'all' | 'mention' | 'decision' | 'blocker' | 'file_change' | 'system';
+
+const CATEGORY_CONFIG: Record<NotificationCategory, { label: string; icon: React.ReactNode; types: string[] }> = {
+  all: {
+    label: 'All',
+    icon: <Bell className="h-4 w-4" />,
+    types: [],
+  },
+  mention: {
+    label: 'Mentions',
+    icon: <AtSign className="h-4 w-4" />,
+    types: ['mention', 'message_mention', 'reply', 'thread_reply'],
+  },
+  decision: {
+    label: 'Decisions',
+    icon: <Gavel className="h-4 w-4" />,
+    types: ['decision'],
+  },
+  blocker: {
+    label: 'Blockers',
+    icon: <AlertOctagon className="h-4 w-4" />,
+    types: ['blocker'],
+  },
+  file_change: {
+    label: 'Files',
+    icon: <FileText className="h-4 w-4" />,
+    types: ['file_shared', 'file_change', 'project_file_uploaded'],
+  },
+  system: {
+    label: 'System',
+    icon: <AlertCircle className="h-4 w-4" />,
+    types: ['system', 'info', 'warning', 'error', 'organization_alert'],
+  },
+};
 
 // Notification type icons
-const typeIcons: Record<NotificationType, React.ReactNode> = {
-  message_mention: <MessageSquare className="h-5 w-5" />,
+const typeIcons: Record<string, React.ReactNode> = {
+  mention: <AtSign className="h-5 w-5" />,
+  message_mention: <AtSign className="h-5 w-5" />,
   message_reply: <MessageSquare className="h-5 w-5" />,
+  reply: <MessageSquare className="h-5 w-5" />,
+  thread_reply: <MessageSquare className="h-5 w-5" />,
+  decision: <Gavel className="h-5 w-5" />,
+  blocker: <AlertOctagon className="h-5 w-5" />,
+  file_shared: <FileText className="h-5 w-5" />,
+  file_change: <FileText className="h-5 w-5" />,
   project_member_added: <Briefcase className="h-5 w-5" />,
   project_status_changed: <Briefcase className="h-5 w-5" />,
-  project_file_uploaded: <Briefcase className="h-5 w-5" />,
+  project_file_uploaded: <FileText className="h-5 w-5" />,
   organization_alert: <Building2 className="h-5 w-5" />,
   system: <AlertCircle className="h-5 w-5" />,
   info: <Info className="h-5 w-5" />,
@@ -53,17 +106,24 @@ const typeIcons: Record<NotificationType, React.ReactNode> = {
 };
 
 // Notification type colors
-const typeColors: Record<NotificationType, string> = {
-  message_mention: 'bg-blue-100 text-blue-600',
-  message_reply: 'bg-blue-100 text-blue-600',
-  project_member_added: 'bg-green-100 text-green-600',
-  project_status_changed: 'bg-purple-100 text-purple-600',
-  project_file_uploaded: 'bg-indigo-100 text-indigo-600',
-  organization_alert: 'bg-orange-100 text-orange-600',
-  system: 'bg-neutral-100 text-neutral-600',
-  info: 'bg-blue-100 text-blue-600',
-  warning: 'bg-amber-100 text-amber-600',
-  error: 'bg-red-100 text-red-600',
+const typeColors: Record<string, string> = {
+  mention: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+  message_mention: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+  message_reply: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+  reply: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+  thread_reply: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+  decision: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
+  blocker: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+  file_shared: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+  file_change: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+  project_member_added: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+  project_status_changed: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
+  project_file_uploaded: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+  organization_alert: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+  system: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400',
+  info: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+  warning: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
+  error: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
 };
 
 // Priority badges
@@ -75,42 +135,10 @@ const priorityVariants: Record<NotificationPriority, string> = {
 };
 
 type FilterType = 'all' | 'unread' | 'read';
-type GroupType = 'none' | 'intent';
-type ProjectScopeFilter = 'all' | 'project_only';
 
-// Intent groups for notification grouping
-const intentGroups: Record<string, { label: string; types: NotificationType[] }> = {
-  mentions: {
-    label: 'Mentions',
-    types: ['message_mention'],
-  },
-  replies: {
-    label: 'Replies',
-    types: ['message_reply'],
-  },
-  files: {
-    label: 'Files',
-    types: ['project_file_uploaded'],
-  },
-  projects: {
-    label: 'Projects',
-    types: ['project_member_added', 'project_status_changed'],
-  },
-  other: {
-    label: 'Other',
-    types: ['organization_alert', 'system', 'info', 'warning', 'error'],
-  },
-};
-
-// Get intent group for a notification type
-function getIntentGroup(type: NotificationType): string {
-  for (const [groupKey, group] of Object.entries(intentGroups)) {
-    if (group.types.includes(type)) {
-      return groupKey;
-    }
-  }
-  return 'other';
-}
+// =============================================================================
+// Helper Components
+// =============================================================================
 
 // Project Badge for Notification
 function NotificationProjectBadge({ projectId, projectName }: { projectId: string; projectName: string }) {
@@ -127,26 +155,71 @@ function NotificationProjectBadge({ projectId, projectName }: { projectId: strin
   );
 }
 
+// Category Filter Pills
+function CategoryFilters({
+  selected,
+  onChange,
+  counts,
+}: {
+  selected: NotificationCategory;
+  onChange: (category: NotificationCategory) => void;
+  counts: Record<NotificationCategory, number>;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by category">
+      {(Object.entries(CATEGORY_CONFIG) as [NotificationCategory, typeof CATEGORY_CONFIG['all']][]).map(
+        ([key, config]) => {
+          const count = counts[key] || 0;
+          const isSelected = selected === key;
+          return (
+            <button
+              key={key}
+              onClick={() => onChange(key)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+                isSelected
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+              )}
+              aria-pressed={isSelected}
+            >
+              {config.icon}
+              <span>{config.label}</span>
+              {count > 0 && key !== 'all' && (
+                <span
+                  className={cn(
+                    'text-xs px-1.5 py-0.5 rounded-full',
+                    isSelected ? 'bg-white/20' : 'bg-neutral-200 dark:bg-neutral-700'
+                  )}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        }
+      )}
+    </div>
+  );
+}
+
 // Notification Item Component
 function NotificationItem({
   notification,
-  typeColors,
-  typeIcons,
-  priorityVariants,
   formatRelativeTime,
   onNotificationClick,
   onMarkAsRead,
   onDelete,
 }: {
   notification: Notification;
-  typeColors: Record<NotificationType, string>;
-  typeIcons: Record<NotificationType, React.ReactNode>;
-  priorityVariants: Record<NotificationPriority, string>;
   formatRelativeTime: (date: string) => string;
   onNotificationClick: (notification: Notification) => void;
   onMarkAsRead: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const typeColor = typeColors[notification.type] || 'bg-neutral-100 text-neutral-600';
+  const typeIcon = typeIcons[notification.type] || <Bell className="h-5 w-5" />;
+
   return (
     <li
       className={cn(
@@ -157,29 +230,24 @@ function NotificationItem({
       <div className="flex items-start gap-4 p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
         {/* Icon */}
         <div
-          className={cn(
-            'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
-            typeColors[notification.type] || 'bg-neutral-100 text-neutral-600'
-          )}
+          className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', typeColor)}
           aria-hidden="true"
         >
-          {typeIcons[notification.type] || <Bell className="h-5 w-5" />}
+          {typeIcon}
         </div>
 
         {/* Content */}
         <button
           onClick={() => onNotificationClick(notification)}
           className="flex-1 text-left min-w-0"
-          aria-label={`${notification.title}: ${notification.message}. ${!notification.isRead ? 'Unread.' : ''} ${formatRelativeTime(notification.createdAt)}`}
+          aria-label={`${notification.title}: ${notification.message || notification.body}. ${!notification.isRead ? 'Unread.' : ''} ${formatRelativeTime(notification.createdAt)}`}
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap">
               {!notification.isRead && (
                 <div className="w-2 h-2 rounded-full bg-primary-600 flex-shrink-0" aria-label="Unread" />
               )}
-              <h3 className="font-medium text-neutral-900 dark:text-neutral-100">
-                {notification.title}
-              </h3>
+              <h3 className="font-medium text-neutral-900 dark:text-neutral-100">{notification.title}</h3>
               {notification.priority === 'high' || notification.priority === 'urgent' ? (
                 <Badge variant={priorityVariants[notification.priority] as any} size="sm">
                   {notification.priority}
@@ -197,7 +265,7 @@ function NotificationItem({
             </div>
           )}
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1 line-clamp-2">
-            {notification.message}
+            {notification.message || notification.body}
           </p>
           {notification.actionUrl && (
             <div className="flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 mt-2">
@@ -241,6 +309,10 @@ function NotificationItem({
   );
 }
 
+// =============================================================================
+// Main Component
+// =============================================================================
+
 export default function Notifications() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -262,9 +334,17 @@ export default function Notifications() {
   } = useNotifications();
 
   const [filter, setFilter] = React.useState<FilterType>('all');
-  const [selectedType, setSelectedType] = React.useState<NotificationType | 'all'>('all');
-  const [groupBy, setGroupBy] = React.useState<GroupType>('intent');
-  const [projectScope, setProjectScope] = React.useState<ProjectScopeFilter>('all');
+  const [selectedCategory, setSelectedCategory] = React.useState<NotificationCategory>('all');
+  const [isMarkingProjectRead, setIsMarkingProjectRead] = React.useState(false);
+
+  // Refetch when project changes
+  const projectIdRef = React.useRef(currentProject?.id);
+  React.useEffect(() => {
+    if (currentProject?.id !== projectIdRef.current) {
+      projectIdRef.current = currentProject?.id;
+      fetchNotifications();
+    }
+  }, [currentProject?.id, fetchNotifications]);
 
   // Format relative time
   const formatRelativeTime = (dateString: string) => {
@@ -282,34 +362,82 @@ export default function Notifications() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  // Filter notifications (with current project scoping)
+  // Get notification category from type
+  const getNotificationCategory = (notification: Notification): NotificationCategory => {
+    const metadata = notification.metadata || notification.data;
+    if (metadata?.category) return metadata.category as NotificationCategory;
+
+    // Infer from type
+    for (const [category, config] of Object.entries(CATEGORY_CONFIG) as [NotificationCategory, typeof CATEGORY_CONFIG['all']][]) {
+      if (config.types.includes(notification.type)) {
+        return category;
+      }
+    }
+    return 'system';
+  };
+
+  // Filter notifications
   const filteredNotifications = React.useMemo(() => {
     let filtered = [...state.notifications];
 
     // Apply current project filter when a project is selected
     if (hasProjectContext && currentProject) {
-      filtered = filtered.filter(n => n.projectId === currentProject.id);
+      filtered = filtered.filter((n) => n.projectId === currentProject.id);
     }
 
     // Filter by read status
     if (filter === 'unread') {
-      filtered = filtered.filter(n => !n.isRead);
+      filtered = filtered.filter((n) => !n.isRead);
     } else if (filter === 'read') {
-      filtered = filtered.filter(n => n.isRead);
+      filtered = filtered.filter((n) => n.isRead);
     }
 
-    // Filter by type
-    if (selectedType !== 'all') {
-      filtered = filtered.filter(n => n.type === selectedType);
-    }
-
-    // Filter by project scope (only when not focused on a specific project)
-    if (!hasProjectContext && projectScope === 'project_only') {
-      filtered = filtered.filter(n => n.projectId != null);
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      const categoryTypes = CATEGORY_CONFIG[selectedCategory].types;
+      filtered = filtered.filter((n) => {
+        const category = getNotificationCategory(n);
+        return category === selectedCategory || categoryTypes.includes(n.type);
+      });
     }
 
     return filtered;
-  }, [state.notifications, filter, selectedType, projectScope, hasProjectContext, currentProject]);
+  }, [state.notifications, filter, selectedCategory, hasProjectContext, currentProject]);
+
+  // Calculate category counts
+  const categoryCounts = React.useMemo(() => {
+    let baseNotifications = [...state.notifications];
+
+    // Apply project filter for counts
+    if (hasProjectContext && currentProject) {
+      baseNotifications = baseNotifications.filter((n) => n.projectId === currentProject.id);
+    }
+
+    // Apply read filter for counts
+    if (filter === 'unread') {
+      baseNotifications = baseNotifications.filter((n) => !n.isRead);
+    } else if (filter === 'read') {
+      baseNotifications = baseNotifications.filter((n) => n.isRead);
+    }
+
+    const counts: Record<NotificationCategory, number> = {
+      all: baseNotifications.length,
+      mention: 0,
+      decision: 0,
+      blocker: 0,
+      file_change: 0,
+      system: 0,
+    };
+
+    for (const notification of baseNotifications) {
+      const category = getNotificationCategory(notification);
+      if (category in counts && category !== 'all') {
+        counts[category]++;
+      }
+    }
+
+    return counts;
+  }, [state.notifications, filter, hasProjectContext, currentProject]);
 
   // Handle notification click
   const handleNotificationClick = async (notification: Notification) => {
@@ -318,41 +446,39 @@ export default function Notifications() {
     }
     if (notification.actionUrl) {
       navigate(notification.actionUrl);
+    } else if (notification.conversationId) {
+      navigate(`/messages?conversation=${notification.conversationId}`);
     }
   };
 
-  // Get unique notification types for filter
-  const availableTypes = React.useMemo(() => {
-    const types = new Set(state.notifications.map(n => n.type));
-    return Array.from(types);
-  }, [state.notifications]);
+  // Mark all project notifications as read
+  const handleMarkProjectAsRead = async () => {
+    if (!currentProject) return;
 
-  // Group notifications by intent
-  const groupedNotifications = React.useMemo(() => {
-    if (groupBy !== 'intent') return null;
+    setIsMarkingProjectRead(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(getApiUrl(`/projects/${currentProject.id}/notifications/read-all`), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-    const groups: Record<string, Notification[]> = {
-      mentions: [],
-      replies: [],
-      files: [],
-      projects: [],
-      other: [],
-    };
+      if (response.ok) {
+        // Refresh notifications
+        await fetchNotifications();
+      }
+    } catch (error) {
+      console.error('Failed to mark project notifications as read:', error);
+    } finally {
+      setIsMarkingProjectRead(false);
+    }
+  };
 
-    filteredNotifications.forEach((notification) => {
-      const group = getIntentGroup(notification.type);
-      groups[group].push(notification);
-    });
-
-    // Return only non-empty groups in order
-    return ['mentions', 'replies', 'files', 'projects', 'other']
-      .filter((key) => groups[key].length > 0)
-      .map((key) => ({
-        key,
-        label: intentGroups[key].label,
-        notifications: groups[key],
-      }));
-  }, [filteredNotifications, groupBy]);
+  // Unread count for current view
+  const viewUnreadCount = filteredNotifications.filter((n) => !n.isRead).length;
 
   return (
     <DashboardLayout
@@ -363,13 +489,18 @@ export default function Notifications() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-neutral-900" id="notifications-page-heading">
+            <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100" id="notifications-page-heading">
               Notifications
+              {hasProjectContext && currentProject && (
+                <span className="text-base font-normal text-neutral-500 dark:text-neutral-400 ml-2">
+                  for {currentProject.name}
+                </span>
+              )}
             </h1>
-            <p className="text-neutral-600 mt-1">
-              {state.unreadCount > 0
-                ? `You have ${state.unreadCount} unread notification${state.unreadCount !== 1 ? 's' : ''}`
-                : 'You\'re all caught up!'}
+            <p className="text-neutral-600 dark:text-neutral-400 mt-1">
+              {viewUnreadCount > 0
+                ? `You have ${viewUnreadCount} unread notification${viewUnreadCount !== 1 ? 's' : ''}`
+                : "You're all caught up!"}
             </p>
           </div>
 
@@ -383,28 +514,60 @@ export default function Notifications() {
             >
               Refresh
             </Button>
-            {state.unreadCount > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                icon={<CheckCheck className="h-4 w-4" aria-hidden="true" />}
-                onClick={() => markAllAsRead()}
-                aria-label="Mark all notifications as read"
-              >
-                Mark All Read
-              </Button>
+            {viewUnreadCount > 0 && (
+              <>
+                {hasProjectContext && currentProject ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<CheckCheck className="h-4 w-4" aria-hidden="true" />}
+                    onClick={handleMarkProjectAsRead}
+                    disabled={isMarkingProjectRead}
+                    aria-label={`Mark all ${currentProject.name} notifications as read`}
+                  >
+                    {isMarkingProjectRead ? 'Marking...' : 'Mark Project Read'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<CheckCheck className="h-4 w-4" aria-hidden="true" />}
+                    onClick={() => markAllAsRead()}
+                    aria-label="Mark all notifications as read"
+                  >
+                    Mark All Read
+                  </Button>
+                )}
+              </>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Settings className="h-4 w-4" aria-hidden="true" />}
+              onClick={() => navigate('/settings/notifications')}
+              aria-label="Notification settings"
+              title="Notification preferences"
+            />
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Category Filters */}
+        <div className="mb-4">
+          <CategoryFilters selected={selectedCategory} onChange={setSelectedCategory} counts={categoryCounts} />
+        </div>
+
+        {/* Status Filters */}
         <Card className="mb-6">
           <CardContent className="py-4">
             <div className="flex flex-wrap items-center gap-4">
               {/* Read status filter */}
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-neutral-600">Status:</span>
-                <div className="flex rounded-lg border border-neutral-200 overflow-hidden" role="group" aria-label="Filter by read status">
+                <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Status:</span>
+                <div
+                  className="flex rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden"
+                  role="group"
+                  aria-label="Filter by read status"
+                >
                   {(['all', 'unread', 'read'] as FilterType[]).map((f) => (
                     <button
                       key={f}
@@ -413,7 +576,7 @@ export default function Notifications() {
                         'px-3 py-1.5 text-sm font-medium transition-colors',
                         filter === f
                           ? 'bg-primary-600 text-white'
-                          : 'bg-white text-neutral-600 hover:bg-neutral-50'
+                          : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'
                       )}
                       aria-pressed={filter === f}
                     >
@@ -423,73 +586,8 @@ export default function Notifications() {
                 </div>
               </div>
 
-              {/* Type filter */}
-              {availableTypes.length > 1 && (
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-neutral-400" aria-hidden="true" />
-                  <select
-                    value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value as NotificationType | 'all')}
-                    className="text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-1.5 bg-white dark:bg-neutral-800 dark:text-neutral-200"
-                    aria-label="Filter by notification type"
-                  >
-                    <option value="all">All Types</option>
-                    {availableTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Project scope filter */}
-              <div className="flex items-center gap-2">
-                <FolderOpen className="h-4 w-4 text-neutral-400" aria-hidden="true" />
-                <select
-                  value={projectScope}
-                  onChange={(e) => setProjectScope(e.target.value as ProjectScopeFilter)}
-                  className="text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-1.5 bg-white dark:bg-neutral-800 dark:text-neutral-200"
-                  aria-label="Filter by project scope"
-                >
-                  <option value="all">All Projects</option>
-                  <option value="project_only">Project Only</option>
-                </select>
-              </div>
-
-              {/* Group toggle */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-neutral-600">Group:</span>
-                <div className="flex rounded-lg border border-neutral-200 overflow-hidden" role="group" aria-label="Group notifications">
-                  <button
-                    onClick={() => setGroupBy('none')}
-                    className={cn(
-                      'px-3 py-1.5 text-sm font-medium transition-colors',
-                      groupBy === 'none'
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-white text-neutral-600 hover:bg-neutral-50'
-                    )}
-                    aria-pressed={groupBy === 'none'}
-                  >
-                    None
-                  </button>
-                  <button
-                    onClick={() => setGroupBy('intent')}
-                    className={cn(
-                      'px-3 py-1.5 text-sm font-medium transition-colors',
-                      groupBy === 'intent'
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-white text-neutral-600 hover:bg-neutral-50'
-                    )}
-                    aria-pressed={groupBy === 'intent'}
-                  >
-                    By Type
-                  </button>
-                </div>
-              </div>
-
               {/* Results count */}
-              <span className="text-sm text-neutral-500 ml-auto">
+              <span className="text-sm text-neutral-500 dark:text-neutral-400 ml-auto">
                 {filteredNotifications.length} notification{filteredNotifications.length !== 1 ? 's' : ''}
               </span>
             </div>
@@ -505,66 +603,30 @@ export default function Notifications() {
                 <p className="text-sm text-neutral-500">Loading notifications...</p>
               </div>
             ) : filteredNotifications.length > 0 ? (
-              groupBy === 'intent' && groupedNotifications ? (
-                // Grouped view
-                <div>
-                  {groupedNotifications.map((group) => (
-                    <div key={group.key}>
-                      {/* Group header */}
-                      <div className="px-4 py-2 bg-neutral-50 border-b border-neutral-100 sticky top-0">
-                        <h3 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
-                          {group.label}
-                          <Badge variant="default" size="sm">
-                            {group.notifications.length}
-                          </Badge>
-                        </h3>
-                      </div>
-                      <ul role="list">
-                        {group.notifications.map((notification) => (
-                          <NotificationItem
-                            key={notification.id}
-                            notification={notification}
-                            typeColors={typeColors}
-                            typeIcons={typeIcons}
-                            priorityVariants={priorityVariants}
-                            formatRelativeTime={formatRelativeTime}
-                            onNotificationClick={handleNotificationClick}
-                            onMarkAsRead={markAsRead}
-                            onDelete={deleteNotification}
-                          />
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                // Ungrouped view
-                <ul role="list" aria-labelledby="notifications-page-heading">
-                  {filteredNotifications.map((notification) => (
-                    <NotificationItem
-                      key={notification.id}
-                      notification={notification}
-                      typeColors={typeColors}
-                      typeIcons={typeIcons}
-                      priorityVariants={priorityVariants}
-                      formatRelativeTime={formatRelativeTime}
-                      onNotificationClick={handleNotificationClick}
-                      onMarkAsRead={markAsRead}
-                      onDelete={deleteNotification}
-                    />
-                  ))}
-                </ul>
-              )
+              <ul role="list" aria-labelledby="notifications-page-heading">
+                {filteredNotifications.map((notification) => (
+                  <NotificationItem
+                    key={notification.id}
+                    notification={notification}
+                    formatRelativeTime={formatRelativeTime}
+                    onNotificationClick={handleNotificationClick}
+                    onMarkAsRead={markAsRead}
+                    onDelete={deleteNotification}
+                  />
+                ))}
+              </ul>
             ) : (
               <div className="p-12 text-center">
-                <Bell className="h-12 w-12 text-neutral-200 mx-auto mb-4" aria-hidden="true" />
-                <h3 className="text-lg font-medium text-neutral-900 mb-1">No notifications</h3>
-                <p className="text-sm text-neutral-500">
+                <Bell className="h-12 w-12 text-neutral-200 dark:text-neutral-700 mx-auto mb-4" aria-hidden="true" />
+                <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-1">No notifications</h3>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">
                   {filter === 'unread'
-                    ? 'You\'ve read all your notifications!'
+                    ? "You've read all your notifications!"
                     : filter === 'read'
                       ? 'No read notifications yet.'
-                      : 'When you get notifications, they\'ll show up here.'}
+                      : selectedCategory !== 'all'
+                        ? `No ${CATEGORY_CONFIG[selectedCategory].label.toLowerCase()} notifications.`
+                        : "When you get notifications, they'll show up here."}
                 </p>
               </div>
             )}
@@ -573,19 +635,23 @@ export default function Notifications() {
 
         {/* Keyboard shortcut hint */}
         <p className="text-xs text-neutral-400 mt-4 text-center">
-          <kbd className="px-1.5 py-0.5 bg-neutral-100 rounded border border-neutral-200 font-mono">Ctrl</kbd>
+          <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 font-mono">
+            Ctrl
+          </kbd>
           {' + '}
-          <kbd className="px-1.5 py-0.5 bg-neutral-100 rounded border border-neutral-200 font-mono">Shift</kbd>
+          <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 font-mono">
+            Shift
+          </kbd>
           {' + '}
-          <kbd className="px-1.5 py-0.5 bg-neutral-100 rounded border border-neutral-200 font-mono">N</kbd>
+          <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 font-mono">
+            N
+          </kbd>
           {' to quickly access notifications from anywhere'}
         </p>
 
         {/* Live region for screen reader announcements */}
         <div role="status" aria-live="polite" className="sr-only">
-          {state.unreadCount > 0
-            ? `You have ${state.unreadCount} unread notifications`
-            : 'No unread notifications'}
+          {viewUnreadCount > 0 ? `You have ${viewUnreadCount} unread notifications` : 'No unread notifications'}
         </div>
       </div>
     </DashboardLayout>
