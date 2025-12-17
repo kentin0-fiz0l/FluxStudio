@@ -93,6 +93,8 @@ import { MessageSearchPanel } from '../components/messaging/MessageSearchPanel';
 import { MessageSearchResult } from '../hooks/useMessageSearch';
 import { MarkdownMessage } from '../components/messaging/MarkdownMessage';
 import { ThreadPanel } from '../components/messaging/ThreadPanel';
+import { ConversationHeaderPresence } from '../components/messaging/PresenceIndicator';
+import { ConversationSummary } from '../components/messaging/ConversationSummary';
 import { EmptyState, emptyStateConfigs } from '../components/common/EmptyState';
 import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
 
@@ -1700,6 +1702,9 @@ function MessagesNew() {
   const [isLoadingThread, setIsLoadingThread] = useState(false);
   const [threadHighlightId, setThreadHighlightId] = useState<string | null>(null);
 
+  // Summary panel state
+  const [isSummaryPanelOpen, setIsSummaryPanelOpen] = useState(false);
+
   // Thread micro-hint (shown for first-time users)
   const THREAD_MICRO_HINT_KEY = 'fx_message_thread_hint_dismissed_v1';
   const [showThreadHint, setShowThreadHint] = useState<boolean>(() => {
@@ -2835,16 +2840,13 @@ function MessagesNew() {
                     <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">
                       {selectedConversation.title}
                     </h3>
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                      {selectedConversation.participant.isOnline ? (
-                        <span className="text-green-600 dark:text-green-400">Online</span>
-                      ) : (
-                        'Offline'
-                      )}
-                      {selectedConversation.type === 'group' && selectedConversation.participants && (
-                        <span> · {selectedConversation.participants.length} members</span>
-                      )}
-                    </p>
+                    <ConversationHeaderPresence
+                      isOnline={selectedConversation.participant.isOnline}
+                      lastSeen={selectedConversation.participant.lastSeen}
+                      isTyping={realtime.typingUsers.some(t => t.userId === selectedConversation.participant.id)}
+                      isGroup={selectedConversation.type === 'group'}
+                      memberCount={selectedConversation.participants?.length}
+                    />
                   </div>
                 </div>
 
@@ -2868,6 +2870,13 @@ function MessagesNew() {
                     title="Pinned messages"
                   >
                     <Pin className={`w-5 h-5 ${showPinnedMessages ? 'text-accent-600' : 'text-neutral-600 dark:text-neutral-400'}`} />
+                  </button>
+                  <button
+                    onClick={() => setIsSummaryPanelOpen(!isSummaryPanelOpen)}
+                    className={`p-2 rounded-lg transition-colors ${isSummaryPanelOpen ? 'bg-primary-100 dark:bg-primary-900/30' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
+                    title="Conversation summary"
+                  >
+                    <Sparkles className={`w-5 h-5 ${isSummaryPanelOpen ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'}`} />
                   </button>
                   <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="More options">
                     <MoreVertical className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
@@ -3051,6 +3060,14 @@ function MessagesNew() {
             onClose={handleCloseThread}
             onReply={handleThreadReply}
             currentUserId={user?.id}
+          />
+        )}
+
+        {/* Summary Panel */}
+        {isSummaryPanelOpen && selectedConversation && (
+          <ConversationSummary
+            conversationId={selectedConversation.id}
+            onClose={() => setIsSummaryPanelOpen(false)}
           />
         )}
       </div>
