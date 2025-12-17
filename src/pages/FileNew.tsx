@@ -19,7 +19,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/templates';
 import { Button, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, Input, Card, CardContent } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
-import { useFiles, FileRecord, FileType, FileSource } from '../contexts/FilesContext';
+import { useFilesOptional, FileRecord, FileType, FileSource } from '../contexts/FilesContext';
 import { useProjects } from '../hooks/useProjects';
 import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
 import { toast } from '../lib/toast';
@@ -347,6 +347,15 @@ export function FileNew() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const filesContext = useFilesOptional();
+  const { projects } = useProjects();
+  const { reportFile } = useReportEntityFocus();
+
+  // Guard: If context not available, return null (handled by ProtectedRoute)
+  if (!filesContext || !user) {
+    return null;
+  }
+
   const {
     state,
     refreshFiles,
@@ -357,9 +366,7 @@ export function FileNew() {
     setFilters,
     setPage,
     setSelectedFile
-  } = useFiles();
-  const { projects } = useProjects();
-  const { reportFile } = useReportEntityFocus();
+  } = filesContext;
 
   // UI State
   const [viewMode, setViewMode] = React.useState<ViewMode>('grid');
