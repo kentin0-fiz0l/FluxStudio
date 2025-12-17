@@ -69,7 +69,7 @@ import { useTaskRealtime } from '@/hooks/useTaskRealtime';
 import { useAssets, AssetRecord } from '@/contexts/AssetsContext';
 import { AssetDetailDrawer } from '@/components/assets/AssetDetailDrawer';
 import { useProjectCounts } from '@/hooks/useProjectCounts';
-import { useActiveProject } from '@/contexts/ActiveProjectContext';
+import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 
@@ -196,7 +196,9 @@ export const ProjectDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { projects, loading: projectsLoading } = useProjects();
-  const { setActiveProject, isProjectFocused } = useActiveProject();
+  const activeProjectContext = useActiveProjectOptional();
+  const setActiveProject = activeProjectContext?.setActiveProject ?? (() => {});
+  const isProjectFocused = activeProjectContext?.isProjectFocused ?? (() => false);
 
   // ============================================================================
   // State Management

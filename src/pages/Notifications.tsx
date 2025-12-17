@@ -34,7 +34,7 @@ import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications, Notification, NotificationType, NotificationPriority } from '@/contexts/NotificationContext';
-import { useActiveProject } from '@/contexts/ActiveProjectContext';
+import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
 import { cn } from '@/lib/utils';
 
 // Notification type icons
@@ -243,7 +243,9 @@ function NotificationItem({
 export default function Notifications() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { activeProject, hasFocus } = useActiveProject();
+  const activeProjectContext = useActiveProjectOptional();
+  const activeProject = activeProjectContext?.activeProject ?? null;
+  const hasFocus = activeProjectContext?.hasFocus ?? false;
   const {
     state,
     fetchNotifications,

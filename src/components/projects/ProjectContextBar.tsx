@@ -18,7 +18,7 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { Target, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui';
-import { useActiveProject } from '@/contexts/ActiveProjectContext';
+import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
 import { PulseIndicator } from '@/components/pulse/PulseIndicator';
 import { PulsePanel } from '@/components/pulse/PulsePanel';
 import { cn } from '@/lib/utils';
@@ -28,10 +28,15 @@ export interface ProjectContextBarProps {
 }
 
 export function ProjectContextBar({ className }: ProjectContextBarProps) {
-  const { activeProject, clearActiveProject, hasFocus } = useActiveProject();
+  const activeProjectContext = useActiveProjectOptional();
   const [isPulseOpen, setIsPulseOpen] = React.useState(false);
 
-  // Don't render if no project is focused
+  // Safe access with fallbacks - handles 401 race conditions
+  const activeProject = activeProjectContext?.activeProject ?? null;
+  const hasFocus = activeProjectContext?.hasFocus ?? false;
+  const clearActiveProject = activeProjectContext?.clearActiveProject ?? (() => {});
+
+  // Don't render if no project is focused or context unavailable
   if (!hasFocus || !activeProject) {
     return null;
   }
