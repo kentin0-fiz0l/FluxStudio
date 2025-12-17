@@ -38,6 +38,8 @@ interface ActiveProjectContextValue {
   isProjectFocused: (projectId: string) => boolean;
   /** Check if any project is focused */
   hasFocus: boolean;
+  /** Whether the context has finished hydrating from localStorage */
+  isReady: boolean;
 }
 
 // ============================================================================
@@ -110,15 +112,12 @@ export function ActiveProjectProvider({ children }: { children: React.ReactNode 
       clearActiveProject,
       isProjectFocused,
       hasFocus,
+      isReady: isHydrated,
     }),
-    [activeProject, setActiveProject, clearActiveProject, isProjectFocused, hasFocus]
+    [activeProject, setActiveProject, clearActiveProject, isProjectFocused, hasFocus, isHydrated]
   );
 
-  // Avoid flash of wrong state during hydration
-  if (!isHydrated) {
-    return null;
-  }
-
+  // Always render the provider - consumers can check isReady if needed
   return (
     <ActiveProjectContext.Provider value={value}>
       {children}

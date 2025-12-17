@@ -186,6 +186,12 @@ class ApiService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
 
+        // Handle authentication errors - 401 Unauthorized
+        if (response.status === 401) {
+          this.handleAuthError();
+          throw new Error('Authentication required. Please sign in again.');
+        }
+
         // Handle CSRF token errors
         if (response.status === 403 && errorData.error === 'CSRF_TOKEN_INVALID') {
           // Clear cached CSRF token and retry once
@@ -213,13 +219,6 @@ class ApiService {
           throw new Error('Request timeout');
         }
 
-        // Handle authentication errors
-        if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-          localStorage.removeItem('auth_token');
-          window.location.href = '/login';
-          throw new Error('Authentication required');
-        }
-
         // Retry logic for network errors
         if (retries > 0 && (error.message.includes('fetch') || error.message.includes('network'))) {
           console.warn(`Request failed, retrying... (${this.maxRetries - retries + 1}/${this.maxRetries})`);
@@ -236,6 +235,20 @@ class ApiService {
 
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Handle authentication errors by clearing token and redirecting to login
+   */
+  private handleAuthError(): void {
+    localStorage.removeItem('auth_token');
+    this.clearCsrfToken();
+    // Dispatch custom event so app can respond (e.g., show toast, clear state)
+    window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    // Only redirect if not already on login page
+    if (!window.location.pathname.includes('/login')) {
+      window.location.href = '/login?reason=session_expired';
+    }
   }
 
   // Authentication API calls
