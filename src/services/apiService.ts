@@ -186,8 +186,14 @@ class ApiService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
 
-        // Handle authentication errors - 401 Unauthorized
-        if (response.status === 401) {
+        // Handle authentication errors - 401 Unauthorized or 403 with auth message
+        if (response.status === 401 ||
+            (response.status === 403 && (
+              errorData.message?.toLowerCase().includes('token') ||
+              errorData.message?.toLowerCase().includes('unauthorized') ||
+              errorData.message?.toLowerCase().includes('authentication') ||
+              errorData.error === 'INVALID_TOKEN'
+            ))) {
           this.handleAuthError();
           throw new Error('Authentication required. Please sign in again.');
         }
