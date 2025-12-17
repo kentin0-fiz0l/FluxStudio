@@ -65,12 +65,52 @@
                 return 'vendor-socket';
               }
 
-              // Recharts - large charting library (lazy loaded anyway)
+              // Recharts and D3 - large charting libraries
               if (id.includes('recharts') || id.includes('d3-')) {
                 return 'vendor-charts';
               }
 
-              // Everything else (including React) goes into vendor bundle
+              // Date utilities - date-fns, dayjs, moment
+              if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment')) {
+                return 'vendor-dates';
+              }
+
+              // PDF/Document processing
+              if (id.includes('pdf') || id.includes('docx') || id.includes('xlsx')) {
+                return 'vendor-docs';
+              }
+
+              // Editor libraries - Monaco, CodeMirror, etc.
+              if (id.includes('monaco') || id.includes('codemirror') || id.includes('@tiptap')) {
+                return 'vendor-editor';
+              }
+
+              // Animation libraries
+              if (id.includes('framer-motion') || id.includes('gsap') || id.includes('animejs')) {
+                return 'vendor-animation';
+              }
+
+              // Three.js and 3D
+              if (id.includes('three') || id.includes('@react-three')) {
+                return 'vendor-3d';
+              }
+
+              // Radix UI primitives (substantial size)
+              if (id.includes('@radix-ui')) {
+                return 'vendor-radix';
+              }
+
+              // Form libraries
+              if (id.includes('react-hook-form') || id.includes('zod') || id.includes('yup')) {
+                return 'vendor-forms';
+              }
+
+              // Query/State management
+              if (id.includes('@tanstack') || id.includes('zustand') || id.includes('immer')) {
+                return 'vendor-state';
+              }
+
+              // Everything else (including React core) goes into vendor bundle
               // This prevents createContext errors from chunk loading order issues
               return 'vendor';
             }
