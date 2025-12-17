@@ -20,10 +20,13 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useMetMap, Song, Section, Chord } from '../contexts/MetMapContext';
 import { useNotification } from '../contexts/NotificationContext';
+import { useProjectContextOptional } from '../contexts/ProjectContext';
 import { MobilePlaybackControls } from '../components/metmap/MobilePlaybackControls';
 import { OfflineIndicator, NetworkStatusBadge } from '../components/pwa/OfflineIndicator';
 import { usePWA } from '../hooks/usePWA';
 import { ONBOARDING_STORAGE_KEYS, useFirstTimeExperience } from '../hooks/useFirstTimeExperience';
+import { useAuth } from '../contexts/AuthContext';
+import { getApiUrl } from '../utils/apiHelpers';
 
 // New MetMap components
 import { TapTempo } from '../components/metmap/TapTempo';
@@ -731,6 +734,8 @@ export default function ToolsMetMap() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { showNotification } = useNotification();
+  const projectContext = useProjectContextOptional();
+  const { token } = useAuth();
   const isMobile = useIsMobile();
   const { isOnline } = usePWA();
   const { markStepComplete } = useFirstTimeExperience({
@@ -738,6 +743,10 @@ export default function ToolsMetMap() {
     conversationCount: 0,
     fileCount: 0,
   });
+
+  // Project context - MetMap sessions should be project-scoped
+  const currentProject = projectContext?.currentProject;
+  const projectId = searchParams.get('projectId') || currentProject?.id;
 
   // Auto-complete MetMap onboarding step on first visit
   useEffect(() => {
@@ -822,6 +831,13 @@ export default function ToolsMetMap() {
     loadStats();
   }, [loadStats]);
 
+  // Sync filters with project context
+  useEffect(() => {
+    if (projectId) {
+      setFilters({ projectId });
+    }
+  }, [projectId, setFilters]);
+
   // Mark MetMap as visited for onboarding (first-time experience)
   useEffect(() => {
     try {
@@ -848,9 +864,14 @@ export default function ToolsMetMap() {
   }, [searchQuery, setFilters]);
 
   const handleCreateSong = async (data: Partial<Song>) => {
-    const song = await createSong(data);
+    // Include projectId when creating songs (project-scoped)
+    const songData = projectId ? { ...data, projectId } : data;
+    const song = await createSong(songData);
     if (song) {
-      navigate(`/tools/metmap?song=${song.id}`);
+      const params = new URLSearchParams();
+      params.set('song', song.id);
+      if (projectId) params.set('projectId', projectId);
+      navigate(`/tools/metmap?${params.toString()}`);
     }
   };
 
@@ -858,7 +879,10 @@ export default function ToolsMetMap() {
     if (hasUnsavedChanges) {
       if (!confirm('You have unsaved changes. Discard them?')) return;
     }
-    navigate(`/tools/metmap?song=${song.id}`);
+    const params = new URLSearchParams();
+    params.set('song', song.id);
+    if (projectId) params.set('projectId', projectId);
+    navigate(`/tools/metmap?${params.toString()}`);
     // Close sidebar on mobile after selection
     if (isMobile) {
       setShowSongList(false);
@@ -871,7 +895,9 @@ export default function ToolsMetMap() {
 
     const success = await deleteSong(currentSong.id);
     if (success) {
-      navigate('/tools/metmap');
+      const params = new URLSearchParams();
+      if (projectId) params.set('projectId', projectId);
+      navigate(`/tools/metmap?${params.toString()}`);
     }
   };
 
@@ -908,14 +934,102 @@ export default function ToolsMetMap() {
     const song = await createSong({
       title: data.title || 'Imported Song',
       bpmDefault: data.bpmDefault || 120,
-      timeSignatureDefault: data.timeSignatureDefault || '4/4'
+      timeSignatureDefault: data.timeSignatureDefault || '4/4',
+      projectId: projectId || undefined
     });
     if (song && data.sections) {
       // Add sections from import
       for (const sectionData of data.sections) {
         addSection(sectionData);
       }
-      navigate(`/tools/metmap?song=${song.id}`);
+      const params = new URLSearchParams();
+      params.set('song', song.id);
+      if (projectId) params.set('projectId', projectId);
+      navigate(`/tools/metmap?${params.toString()}`);
+    }
+  };
+
+  // Handle asset created (from Export as Asset)
+  const handleAssetCreated = (asset: any) => {
+    showNotification({
+      type: 'success',
+      title: 'Asset Saved',
+      message: `MetMap session "${currentSong?.title}" saved to project assets`
+    });
+  };
+
+  // Handle share to chat
+  const handleShareToChat = async (asset: any) => {
+    if (!projectId || !token) return;
+
+    try {
+      // Get project conversations to find the main project chat
+      const conversationsResponse = await fetch(
+        getApiUrl(`/api/messaging/conversations?projectId=${projectId}&limit=1`),
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (!conversationsResponse.ok) {
+        throw new Error('Could not find project chat');
+      }
+
+      const convData = await conversationsResponse.json();
+      const conversation = convData.conversations?.[0];
+
+      if (!conversation) {
+        showNotification({
+          type: 'warning',
+          title: 'No Project Chat',
+          message: 'Create a conversation in this project first to share MetMap sessions'
+        });
+        return;
+      }
+
+      // Create message with asset reference
+      const messageContent = `🎵 Shared MetMap: **${currentSong?.title}**\n\n` +
+        `${editedSections.length} sections • ${editedSections.reduce((sum, s) => sum + s.bars, 0)} bars • ${currentSong?.bpmDefault} BPM`;
+
+      const messageResponse = await fetch(
+        getApiUrl(`/api/messaging/conversations/${conversation.id}/messages`),
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            content: messageContent,
+            attachments: [{
+              type: 'asset',
+              assetId: asset.id,
+              name: asset.name,
+              mimeType: 'application/json'
+            }]
+          })
+        }
+      );
+
+      if (!messageResponse.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      showNotification({
+        type: 'success',
+        title: 'Shared to Chat',
+        message: `MetMap session shared to project chat`
+      });
+
+      // Navigate to messages
+      navigate(`/messages?projectId=${projectId}&conversationId=${conversation.id}`);
+    } catch (error) {
+      console.error('Share to chat failed:', error);
+      showNotification({
+        type: 'error',
+        title: 'Share Failed',
+        message: error instanceof Error ? error.message : 'Could not share to chat'
+      });
     }
   };
 
@@ -978,10 +1092,42 @@ export default function ToolsMetMap() {
           </Link>
           <span className="text-gray-400">/</span>
           <span className="text-gray-700 font-medium">MetMap</span>
+          {currentProject && (
+            <>
+              <span className="text-gray-400">•</span>
+              <span className="text-indigo-600 font-medium">{currentProject.name}</span>
+            </>
+          )}
         </nav>
       </div>
 
-      <div className="h-full flex">
+      {/* Project selection prompt */}
+      {!projectId && (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center max-w-md px-6">
+            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Select a project to use MetMap</h2>
+            <p className="text-gray-500 mb-6">
+              MetMap sessions are project-scoped. Choose a project to start mapping your musical timeline with tempo changes, time signatures, and chord progressions.
+            </p>
+            <Link
+              to="/projects"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              </svg>
+              Go to Projects
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {projectId && <div className="h-full flex">
         {/* Mobile header with sidebar toggle */}
         {isMobile && (
           <div className="absolute top-0 left-0 right-0 z-30 bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
@@ -1178,6 +1324,10 @@ export default function ToolsMetMap() {
                       currentSong={currentSong}
                       sections={editedSections}
                       onImportSong={handleImportSong}
+                      projectId={projectId}
+                      token={token || undefined}
+                      onAssetCreated={handleAssetCreated}
+                      onShareToChat={handleShareToChat}
                     />
                     <button
                       onClick={() => setShowShortcutsHelp(!showShortcutsHelp)}
@@ -1373,7 +1523,7 @@ export default function ToolsMetMap() {
             </div>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* Modals */}
       <NewSongModal

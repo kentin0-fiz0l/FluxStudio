@@ -1,28 +1,40 @@
 /**
  * ExportImport Component
  *
- * Export songs to JSON and import from file.
+ * Export songs to JSON, import from file, and save as project assets.
+ * Supports sharing MetMap sessions to project chat.
  */
 
 import React, { useRef, useState } from 'react';
 import { Song, Section } from '../../contexts/MetMapContext';
+import { getApiUrl } from '../../utils/apiHelpers';
 
 interface ExportImportProps {
   currentSong: Song | null;
   sections: Section[];
   onImportSong: (data: Partial<Song> & { sections?: Partial<Section>[] }) => void;
   className?: string;
+  projectId?: string;
+  token?: string;
+  onAssetCreated?: (asset: any) => void;
+  onShareToChat?: (asset: any) => void;
 }
 
 export function ExportImport({
   currentSong,
   sections,
   onImportSong,
-  className = ''
+  className = '',
+  projectId,
+  token,
+  onAssetCreated,
+  onShareToChat
 }: ExportImportProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [lastCreatedAsset, setLastCreatedAsset] = useState<any>(null);
 
   // Export song to JSON
   const handleExport = () => {
@@ -125,6 +137,121 @@ ${exportData.sections}`;
     }
   };
 
+  // Calculate MetMap metadata
+  const calculateMetadata = () => {
+    if (!currentSong) return {};
+
+    const totalBars = sections.reduce((sum, s) => sum + s.bars, 0);
+    const tempoChanges = sections.filter((s, i) => {
+      if (i === 0) return false;
+      return s.tempoStart !== sections[i - 1].tempoStart;
+    }).length;
+    const meterChanges = sections.filter((s, i) => {
+      if (i === 0) return false;
+      return s.timeSignature !== sections[i - 1].timeSignature;
+    }).length;
+
+    // Estimate duration based on average tempo
+    const avgTempo = sections.reduce((sum, s) => sum + s.tempoStart, 0) / (sections.length || 1);
+    const avgBeatsPerBar = sections.reduce((sum, s) => {
+      const [beats] = s.timeSignature.split('/').map(Number);
+      return sum + (beats || 4);
+    }, 0) / (sections.length || 1);
+    const estimatedDurationSeconds = Math.round((totalBars * avgBeatsPerBar * 60) / avgTempo);
+
+    return {
+      bpm: currentSong.bpmDefault,
+      timeSignature: currentSong.timeSignatureDefault,
+      sectionCount: sections.length,
+      totalBars,
+      tempoChanges,
+      meterChanges,
+      estimatedDurationSeconds,
+      lastEdited: new Date().toISOString()
+    };
+  };
+
+  // Export as project asset
+  const handleExportAsAsset = async () => {
+    if (!currentSong || !projectId || !token) return;
+
+    setIsExporting(true);
+    setImportError(null);
+
+    try {
+      const metadata = calculateMetadata();
+
+      // Create export data as JSON
+      const exportData = {
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        song: {
+          id: currentSong.id,
+          title: currentSong.title,
+          bpmDefault: currentSong.bpmDefault,
+          timeSignatureDefault: currentSong.timeSignatureDefault,
+          sections: sections.map((s) => ({
+            name: s.name,
+            bars: s.bars,
+            timeSignature: s.timeSignature,
+            tempoStart: s.tempoStart,
+            tempoEnd: s.tempoEnd,
+            tempoCurve: s.tempoCurve,
+            chords: s.chords,
+          })),
+        },
+        metadata
+      };
+
+      // Create a blob and file for upload
+      const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const fileName = `${currentSong.title.replace(/[^a-z0-9]/gi, '_')}_metmap.json`;
+
+      // Upload as project asset
+      const formData = new FormData();
+      formData.append('files', jsonBlob, fileName);
+      formData.append('description', `MetMap session: ${currentSong.title} - ${sections.length} sections, ${metadata.totalBars} bars, ${metadata.bpm} BPM`);
+      formData.append('tags', JSON.stringify(['metmap', 'timeline', 'music']));
+      formData.append('role', 'metmap');
+
+      const response = await fetch(getApiUrl(`/projects/${projectId}/assets`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create asset');
+      }
+
+      const result = await response.json();
+      const createdAsset = result.assets?.[0];
+
+      if (createdAsset) {
+        setLastCreatedAsset(createdAsset);
+        onAssetCreated?.(createdAsset);
+      }
+
+      setShowDropdown(false);
+    } catch (error) {
+      console.error('Failed to export as asset:', error);
+      setImportError(error instanceof Error ? error.message : 'Failed to export as asset');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Share to project chat
+  const handleShareToChat = () => {
+    if (lastCreatedAsset && onShareToChat) {
+      onShareToChat(lastCreatedAsset);
+      setShowDropdown(false);
+    }
+  };
+
   return (
     <div className={`relative ${className}`}>
       <button
@@ -172,6 +299,37 @@ ${exportData.sections}`;
               </svg>
               Copy Summary
             </button>
+
+            {/* Project Asset Export - only show when project is available */}
+            {projectId && token && (
+              <>
+                <div className="border-t border-gray-100 my-1" />
+                <div className="px-3 py-1 text-xs font-medium text-gray-400 uppercase">
+                  Project
+                </div>
+                <button
+                  onClick={handleExportAsAsset}
+                  disabled={!currentSong || isExporting}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  {isExporting ? 'Saving...' : 'Save as Project Asset'}
+                </button>
+                {lastCreatedAsset && onShareToChat && (
+                  <button
+                    onClick={handleShareToChat}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-indigo-600"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Share to Project Chat
+                  </button>
+                )}
+              </>
+            )}
 
             <div className="border-t border-gray-100 my-1" />
 
