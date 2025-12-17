@@ -596,4 +596,10 @@ export function useFiles(): FilesContextValue {
   return context;
 }
 
+// ==================== Optional Hook ====================
+
+export function useFilesOptional(): FilesContextValue | null {
+  return React.useContext(FilesContext);
+}
+
 export default FilesContext;

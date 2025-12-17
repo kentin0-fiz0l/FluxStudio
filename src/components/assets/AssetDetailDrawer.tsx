@@ -9,7 +9,7 @@
 
 import * as React from 'react';
 import { useAssets, AssetRecord, AssetVersion, AssetRelation, AssetMetadata, AssetTag, AssetComment, RelationType } from '../../contexts/AssetsContext';
-import { useFiles } from '../../contexts/FilesContext';
+import { useFilesOptional } from '../../contexts/FilesContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 
 // Asset type config
@@ -77,7 +77,9 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
     resolveComment,
     updateAsset
   } = useAssets();
-  const { state: filesState, uploadFiles } = useFiles();
+  const filesContext = useFilesOptional();
+  const filesState = filesContext?.state;
+  const uploadFiles = filesContext?.uploadFiles ?? (async () => []);
   const { addNotification } = useNotifications();
 
   // State

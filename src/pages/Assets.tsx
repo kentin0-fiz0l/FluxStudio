@@ -20,7 +20,7 @@ import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useAssets, AssetRecord, AssetType } from '../contexts/AssetsContext';
-import { useFiles } from '../contexts/FilesContext';
+import { useFilesOptional } from '../contexts/FilesContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { AssetDetailDrawer } from '../components/assets/AssetDetailDrawer';
 import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
@@ -226,7 +226,8 @@ export default function Assets() {
     deleteAsset,
     getAssetById
   } = useAssets();
-  const { state: filesState } = useFiles();
+  const filesContext = useFilesOptional();
+  const filesState = filesContext?.state ?? { files: [], loading: false, error: null, filters: { search: '', type: 'all', source: 'all' }, pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }, selectedFile: null, uploadProgress: {}, stats: null };
   const { addNotification } = useNotifications();
   const { reportAsset } = useReportEntityFocus();
 
