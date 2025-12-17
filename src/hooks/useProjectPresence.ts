@@ -13,7 +13,7 @@
 
 import * as React from 'react';
 import { socketService, ProjectPresenceMember, PulseEvent } from '@/services/socketService';
-import { useActiveProject } from '@/contexts/ActiveProjectContext';
+import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface ProjectPresenceState {
@@ -33,7 +33,9 @@ export interface UseProjectPresenceReturn extends ProjectPresenceState {
 }
 
 export function useProjectPresence(): UseProjectPresenceReturn {
-  const { activeProject, hasFocus } = useActiveProject();
+  const activeProjectContext = useActiveProjectOptional();
+  const activeProject = activeProjectContext?.activeProject ?? null;
+  const hasFocus = activeProjectContext?.hasFocus ?? false;
   const { user } = useAuth();
 
   const [members, setMembers] = React.useState<ProjectPresenceMember[]>([]);
