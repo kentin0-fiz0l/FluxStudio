@@ -248,8 +248,8 @@ export function ProjectsNew() {
   };
 
   const handleProjectEdit = (project: Project) => {
-    // TODO: Implement edit functionality
-    console.log('Edit project:', project.id);
+    // Navigate to project detail with settings tab for editing
+    navigate(`/projects/${project.id}?tab=settings`);
   };
 
   const handleProjectFocus = (project: Project) => {

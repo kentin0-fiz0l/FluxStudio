@@ -39,6 +39,9 @@ export default [
       'prefer-const': 'error',
       // DEBT-012: Prevent console statements in production
       'no-console': ['warn', { allow: ['warn', 'error'] }],
+      // DEBT-013: Array index keys - add eslint-plugin-react and enable 'react/no-array-index-key'
+      // rule when needed. For now, prefer unique IDs over index for dynamic lists.
+      // Acceptable uses: loading skeletons, static content that never reorders.
     },
   },
 ]

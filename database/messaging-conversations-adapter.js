@@ -94,9 +94,18 @@ class MessagingConversationsAdapter {
    * @param {string} params.userId
    * @param {number} [params.limit=50]
    * @param {number} [params.offset=0]
+   * @param {string|null} [params.projectId=null] - Optional project filter
    * @returns {Array} Array of conversations with metadata
    */
-  async getConversationsForUser({ userId, limit = 50, offset = 0 }) {
+  async getConversationsForUser({ userId, limit = 50, offset = 0, projectId = null }) {
+    // Build project filter clause
+    const projectFilter = projectId
+      ? 'AND c.project_id = $4'
+      : '';
+    const params = projectId
+      ? [userId, limit, offset, projectId]
+      : [userId, limit, offset];
+
     const result = await query(`
       WITH user_convs AS (
         SELECT
@@ -110,6 +119,7 @@ class MessagingConversationsAdapter {
         SELECT
           c.id,
           c.organization_id,
+          c.project_id,
           c.name,
           c.is_group,
           c.created_at,
@@ -137,18 +147,20 @@ class MessagingConversationsAdapter {
         FROM conversations c
         INNER JOIN user_convs uc ON c.id = uc.conversation_id
         LEFT JOIN messages m ON m.conversation_id = c.id
-        GROUP BY c.id, c.organization_id, c.name, c.is_group, c.created_at, c.updated_at,
+        ${projectFilter}
+        GROUP BY c.id, c.organization_id, c.project_id, c.name, c.is_group, c.created_at, c.updated_at,
                  uc.last_read_message_id, uc.member_since
       )
       SELECT *
       FROM conv_stats
       ORDER BY last_message_at DESC NULLS LAST, created_at DESC
       LIMIT $2 OFFSET $3
-    `, [userId, limit, offset]);
+    `, params);
 
     return result.rows.map(row => ({
       id: row.id,
       organizationId: row.organization_id,
+      projectId: row.project_id,
       name: row.name,
       isGroup: row.is_group,
       createdAt: row.created_at,
@@ -1003,12 +1015,27 @@ class MessagingConversationsAdapter {
    * @param {number} [params.limit=20]
    * @param {number} [params.offset=0]
    * @param {boolean} [params.onlyUnread=false]
+   * @param {string|null} [params.projectId=null] - Optional project filter
    * @returns {Array} Array of notifications with actor details
    */
-  async listNotifications({ userId, limit = 20, offset = 0, onlyUnread = false }) {
-    const whereClause = onlyUnread
-      ? 'WHERE n.user_id = $1 AND n.is_read = FALSE'
-      : 'WHERE n.user_id = $1';
+  async listNotifications({ userId, limit = 20, offset = 0, onlyUnread = false, projectId = null }) {
+    // Build where conditions
+    const conditions = ['n.user_id = $1'];
+    const params = [userId];
+    let paramIndex = 2;
+
+    if (onlyUnread) {
+      conditions.push('n.is_read = FALSE');
+    }
+
+    if (projectId) {
+      conditions.push(`n.project_id = $${paramIndex}`);
+      params.push(projectId);
+      paramIndex++;
+    }
+
+    params.push(limit, offset);
+    const limitOffset = `LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
 
     const queryText = `
       SELECT
@@ -1019,12 +1046,12 @@ class MessagingConversationsAdapter {
         u.avatar_url as actor_avatar
       FROM notifications n
       LEFT JOIN users u ON n.actor_user_id = u.id
-      ${whereClause}
+      WHERE ${conditions.join(' AND ')}
       ORDER BY n.created_at DESC
-      LIMIT $2 OFFSET $3
+      ${limitOffset}
     `;
 
-    const result = await query(queryText, [userId, limit, offset]);
+    const result = await query(queryText, params);
     return result.rows.map(row => this._transformNotification(row));
   }
 

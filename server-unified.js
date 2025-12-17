@@ -3385,22 +3385,26 @@ app.get('/api/projects/:projectId/boards/stats', authenticateToken, async (req, 
 // ----- Conversations -----
 
 // 1. GET /api/conversations - List conversations for current user
+// Supports optional projectId query param for project-scoped filtering
 app.get('/api/conversations', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
     const offset = parseInt(req.query.offset, 10) || 0;
+    const projectId = req.query.projectId || null;
 
     const conversations = await messagingConversationsAdapter.getConversationsForUser({
       userId,
       limit,
-      offset
+      offset,
+      projectId // Pass projectId filter to adapter
     });
 
     res.json({
       success: true,
       conversations,
-      pagination: { limit, offset }
+      pagination: { limit, offset },
+      filter: { projectId }
     });
   } catch (error) {
     console.error('Error listing conversations:', error);
@@ -4237,24 +4241,28 @@ app.get('/api/conversations/:conversationId/threads/:threadRootMessageId/summary
 // ----- Notifications -----
 
 // 11. GET /api/notifications - List notifications for current user
+// Supports optional projectId query param for project-scoped filtering
 app.get('/api/notifications', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
     const offset = parseInt(req.query.offset, 10) || 0;
     const onlyUnread = req.query.onlyUnread === 'true' || req.query.onlyUnread === '1';
+    const projectId = req.query.projectId || null;
 
     const notifications = await messagingConversationsAdapter.listNotifications({
       userId,
       limit,
       offset,
-      onlyUnread
+      onlyUnread,
+      projectId // Pass projectId filter to adapter
     });
 
     res.json({
       success: true,
       notifications,
-      pagination: { limit, offset }
+      pagination: { limit, offset },
+      filter: { projectId, onlyUnread }
     });
   } catch (error) {
     console.error('Error listing notifications:', error);

@@ -64,8 +64,8 @@ export interface Notification {
   messageId?: string;
   threadRootMessageId?: string;
   assetId?: string;
-  // TODO: Project context for project-scoped notifications
-  // See docs/project-context-followups.md for implementation plan
+  // Project context for project-scoped notifications
+  // See docs/project-context-followups.md for filtering implementation
   projectId?: string | null;
   projectName?: string | null;
   // Legacy

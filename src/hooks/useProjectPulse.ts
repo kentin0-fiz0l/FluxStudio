@@ -213,9 +213,9 @@ export function useProjectPulse(): UseProjectPulseReturn {
     ).length;
   }, [hasFocus, activeProject, notificationState.notifications, session.lastSeenTimestamp]);
 
-  // Team members (placeholder - will integrate with socket presence)
+  // Team members - will integrate with socket presence in future sprint
+  // Enhancement: Use useSocket().presence when presence tracking is implemented
   const teamMembers = React.useMemo((): TeamMember[] => {
-    // TODO: Integrate with actual presence data from SocketContext
     return [];
   }, []);
 

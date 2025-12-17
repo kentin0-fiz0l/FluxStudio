@@ -292,8 +292,8 @@ export function sanitizeJSON(input: string | null | undefined): unknown {
  * @returns Sanitized markdown
  */
 export function sanitizeMarkdown(input: string | null | undefined): string {
-  // TODO: Implement markdown-specific sanitization
-  // For now, use rich text sanitization
+  // Currently uses rich text sanitization which handles common markdown-to-HTML output safely.
+  // Future enhancement: Add markdown-aware parsing for better code block and link handling.
   return sanitizeRichText(input);
 }
 

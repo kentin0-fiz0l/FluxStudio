@@ -214,8 +214,8 @@ interface ConversationSummary {
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
   unreadCount: number;
-  // TODO: Backend will populate these for project-scoped conversations
-  // See docs/project-context-followups.md for implementation plan
+  // Project context for project-scoped conversations
+  // See docs/project-context-followups.md for backend integration
   projectId?: string | null;
   projectName?: string | null;
   members?: Array<{

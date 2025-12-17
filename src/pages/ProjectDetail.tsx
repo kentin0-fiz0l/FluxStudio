@@ -1058,7 +1058,7 @@ export const ProjectDetail = () => {
         task={isCreateMode ? null : selectedTask}
         onSave={handleTaskSave}
         onDelete={handleTaskDelete}
-        teamMembers={[]} // TODO: Get from project members
+        teamMembers={project.members?.map(id => ({ id, name: `Member ${id.slice(0, 4)}`, email: '' })) || []}
       />
 
       {/* Asset Detail Drawer */}

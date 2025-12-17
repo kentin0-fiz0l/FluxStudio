@@ -9,6 +9,7 @@ import { SocketProvider } from './contexts/SocketContext';
 import { MessagingProvider } from './contexts/MessagingContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ActiveProjectProvider } from './contexts/ActiveProjectContext';
+import { ProjectProvider } from './contexts/ProjectContext';
 import { SessionProvider } from './contexts/SessionContext';
 import { WorkingContextProvider } from './contexts/WorkingContext';
 import { ConnectorsProvider } from './contexts/ConnectorsContext';
@@ -74,14 +75,7 @@ const { Component: CreateOrganization } = lazyLoadWithRetry(() => import('./page
 
 // Lazy load comprehensive platform components
 const { Component: ClientOnboarding } = lazyLoadWithRetry(() => import('./components/onboarding/ClientOnboarding'));
-// TODO: These components need wrapper components to be used as route elements
-// const { Component: ProjectWorkflow } = lazyLoadWithRetry(() => import('./components/project/ProjectWorkflow'));
-// const { Component: DesignReviewWorkflow } = lazyLoadWithRetry(() => import('./components/review/DesignReviewWorkflow'));
-// const { Component: PortfolioShowcase } = lazyLoadWithRetry(() => import('./components/portfolio/PortfolioShowcase'));
-// const { Component: BusinessDashboard } = lazyLoadWithRetry(() => import('./components/analytics/BusinessDashboard'));
-// const { Component: TeamManagement } = lazyLoadWithRetry(() => import('./components/team/TeamManagement'));
-// const { Component: RealTimeCollaboration } = lazyLoadWithRetry(() => import('./components/collaboration/RealTimeCollaboration'));
-// const { Component: WorkspaceManager } = lazyLoadWithRetry(() => import('./components/workspace/WorkspaceManager'));
+// Future: Route components for advanced features - see docs/ROUTE_WRAPPERS.md for implementation guide
 
 // FluxPrint Integration - 3D Printing Dashboard
 const PrintingDashboard = React.lazy(() => import('./components/printing/PrintingDashboard'));
@@ -125,6 +119,7 @@ function AuthenticatedRoutes() {
         <MessagingProvider>
           <NotificationProvider>
             <ActiveProjectProvider>
+            <ProjectProvider>
             <SessionProvider>
             <WorkingContextProvider>
             <OrganizationProvider>
@@ -191,15 +186,7 @@ function AuthenticatedRoutes() {
 
                   {/* Core Platform Features - Protected */}
                   <Route path="/onboarding" element={<ProtectedRoute><ClientOnboarding /></ProtectedRoute>} />
-                  {/* TODO: These routes need wrapper components to extract route params and fetch data
-                  <Route path="/dashboard/projects/:projectId/workflow" element={<ProjectWorkflow />} />
-                  <Route path="/dashboard/projects/:projectId/review" element={<DesignReviewWorkflow />} />
-                  <Route path="/dashboard/projects/:projectId/collaborate" element={<RealTimeCollaboration />} />
-                  <Route path="/dashboard/projects/:projectId/workspace" element={<WorkspaceManager />} />
-                  <Route path="/dashboard/portfolio" element={<PortfolioShowcase />} />
-                  <Route path="/dashboard/analytics" element={<BusinessDashboard />} />
-                  <Route path="/dashboard/team" element={<TeamManagement />} />
-                  */}
+                  {/* Future routes: /dashboard/projects/:id/workflow, /review, /collaborate, /workspace */}
 
                   {/* Messaging redirect - consolidate to /messages */}
                   <Route path="/dashboard/messages" element={<Navigate to="/messages" replace />} />
@@ -232,6 +219,7 @@ function AuthenticatedRoutes() {
             </OrganizationProvider>
             </WorkingContextProvider>
             </SessionProvider>
+            </ProjectProvider>
           </ActiveProjectProvider>
           </NotificationProvider>
         </MessagingProvider>

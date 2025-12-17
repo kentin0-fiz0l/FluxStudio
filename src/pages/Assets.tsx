@@ -22,6 +22,7 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import { useAssets, AssetRecord, AssetType } from '../contexts/AssetsContext';
 import { useFilesOptional } from '../contexts/FilesContext';
 import { useNotifications } from '../contexts/NotificationContext';
+import { useProjectContextOptional } from '../contexts/ProjectContext';
 import { AssetDetailDrawer } from '../components/assets/AssetDetailDrawer';
 import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
 
@@ -230,6 +231,8 @@ export default function Assets() {
   const filesState = filesContext?.state ?? { files: [], loading: false, error: null, filters: { search: '', type: 'all', source: 'all' }, pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }, selectedFile: null, uploadProgress: {}, stats: null };
   const { addNotification } = useNotifications();
   const { reportAsset } = useReportEntityFocus();
+  const projectContext = useProjectContextOptional();
+  const currentProject = projectContext?.currentProject ?? null;
 
   // Local state
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
@@ -267,6 +270,15 @@ export default function Assets() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchInput, filters.search, setFilters]);
+
+  // Apply project filter when current project changes
+  React.useEffect(() => {
+    if (currentProject) {
+      setFilters({ projectId: currentProject.id });
+    } else {
+      setFilters({ projectId: undefined });
+    }
+  }, [currentProject, setFilters]);
 
   // Fetch stats and tags on mount
   React.useEffect(() => {
