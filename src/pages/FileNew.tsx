@@ -22,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useFilesOptional, FileRecord, FileType, FileSource } from '../contexts/FilesContext';
 import { useProjects } from '../hooks/useProjects';
 import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
+import { useProjectContextOptional } from '../contexts/ProjectContext';
 import { toast } from '../lib/toast';
 import { cn, formatFileSize, formatRelativeTime } from '../lib/utils';
 import {
@@ -350,6 +351,8 @@ export function FileNew() {
   const filesContext = useFilesOptional();
   const { projects } = useProjects();
   const { reportFile } = useReportEntityFocus();
+  const projectContext = useProjectContextOptional();
+  const currentProject = projectContext?.currentProject ?? null;
 
   // Guard: If context not available, return null (handled by ProtectedRoute)
   if (!filesContext || !user) {
@@ -383,18 +386,27 @@ export function FileNew() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const dropZoneRef = React.useRef<HTMLDivElement>(null);
 
-  // Handle URL params for filtering
+  // Handle URL params for filtering - prioritize current project from context
   React.useEffect(() => {
-    const projectId = searchParams.get('projectId');
+    const urlProjectId = searchParams.get('projectId');
     const source = searchParams.get('source') as FileSource;
 
-    if (projectId || source) {
+    // Use current project from context, or URL param as fallback
+    const effectiveProjectId = currentProject?.id || urlProjectId;
+
+    if (effectiveProjectId || source) {
       setFilters({
-        projectId: projectId || undefined,
+        projectId: effectiveProjectId || undefined,
+        source: source || 'all'
+      });
+    } else {
+      // Clear project filter when no project context
+      setFilters({
+        projectId: undefined,
         source: source || 'all'
       });
     }
-  }, [searchParams, setFilters]);
+  }, [searchParams, setFilters, currentProject]);
 
   // Debounced search
   React.useEffect(() => {

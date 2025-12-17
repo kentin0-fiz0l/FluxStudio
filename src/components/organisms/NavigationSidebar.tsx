@@ -32,6 +32,7 @@ import {
 import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { useMessaging } from '@/contexts/MessagingContext';
+import { ProjectSwitcher } from '@/components/projects/ProjectSwitcher';
 
 export interface NavigationItem {
   label: string;
@@ -172,6 +173,11 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
               FS
             </div>
           )}
+        </div>
+
+        {/* Project Switcher */}
+        <div className={cn('p-3 border-b border-neutral-800', collapsed && 'px-2')}>
+          <ProjectSwitcher collapsed={collapsed} />
         </div>
 
         {/* Navigation Items */}

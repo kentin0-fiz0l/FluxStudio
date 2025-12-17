@@ -9,6 +9,7 @@ import { SocketProvider } from './contexts/SocketContext';
 import { MessagingProvider } from './contexts/MessagingContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ActiveProjectProvider } from './contexts/ActiveProjectContext';
+import { ProjectProvider } from './contexts/ProjectContext';
 import { SessionProvider } from './contexts/SessionContext';
 import { WorkingContextProvider } from './contexts/WorkingContext';
 import { ConnectorsProvider } from './contexts/ConnectorsContext';
@@ -118,6 +119,7 @@ function AuthenticatedRoutes() {
         <MessagingProvider>
           <NotificationProvider>
             <ActiveProjectProvider>
+            <ProjectProvider>
             <SessionProvider>
             <WorkingContextProvider>
             <OrganizationProvider>
@@ -217,6 +219,7 @@ function AuthenticatedRoutes() {
             </OrganizationProvider>
             </WorkingContextProvider>
             </SessionProvider>
+            </ProjectProvider>
           </ActiveProjectProvider>
           </NotificationProvider>
         </MessagingProvider>

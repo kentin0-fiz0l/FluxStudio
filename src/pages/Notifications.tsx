@@ -35,6 +35,7 @@ import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/compo
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications, Notification, NotificationType, NotificationPriority } from '@/contexts/NotificationContext';
 import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
+import { useProjectContextOptional } from '@/contexts/ProjectContext';
 import { cn } from '@/lib/utils';
 
 // Notification type icons
@@ -243,9 +244,15 @@ function NotificationItem({
 export default function Notifications() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Use both contexts for backwards compatibility during migration
   const activeProjectContext = useActiveProjectOptional();
-  const activeProject = activeProjectContext?.activeProject ?? null;
-  const hasFocus = activeProjectContext?.hasFocus ?? false;
+  const projectContext = useProjectContextOptional();
+
+  // Prefer new ProjectContext, fall back to legacy ActiveProjectContext
+  const currentProject = projectContext?.currentProject ?? activeProjectContext?.activeProject ?? null;
+  const hasProjectContext = !!currentProject;
+
   const {
     state,
     fetchNotifications,
@@ -275,13 +282,13 @@ export default function Notifications() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  // Filter notifications (with active project scoping)
+  // Filter notifications (with current project scoping)
   const filteredNotifications = React.useMemo(() => {
     let filtered = [...state.notifications];
 
-    // Apply active project filter when a project is focused
-    if (hasFocus && activeProject) {
-      filtered = filtered.filter(n => n.projectId === activeProject.id);
+    // Apply current project filter when a project is selected
+    if (hasProjectContext && currentProject) {
+      filtered = filtered.filter(n => n.projectId === currentProject.id);
     }
 
     // Filter by read status
@@ -297,12 +304,12 @@ export default function Notifications() {
     }
 
     // Filter by project scope (only when not focused on a specific project)
-    if (!hasFocus && projectScope === 'project_only') {
+    if (!hasProjectContext && projectScope === 'project_only') {
       filtered = filtered.filter(n => n.projectId != null);
     }
 
     return filtered;
-  }, [state.notifications, filter, selectedType, projectScope, hasFocus, activeProject]);
+  }, [state.notifications, filter, selectedType, projectScope, hasProjectContext, currentProject]);
 
   // Handle notification click
   const handleNotificationClick = async (notification: Notification) => {
