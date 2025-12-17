@@ -26,7 +26,7 @@ import { DashboardLayout } from '@/components/templates';
 import { ChatMessage, UserCard } from '@/components/molecules';
 import { Button, Card, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
-import { useActiveProject } from '../contexts/ActiveProjectContext';
+import { useActiveProjectOptional } from '../contexts/ActiveProjectContext';
 import { useConversationRealtime } from '../hooks/useConversationRealtime';
 import { messagingSocketService, ConversationMessage } from '../services/messagingSocketService';
 import {
@@ -1610,8 +1610,17 @@ function PinnedMessagesPanel({
 // Main Messages Component
 function MessagesNew() {
   const { user, logout } = useAuth();
-  const { activeProject, hasFocus } = useActiveProject();
+  const activeProjectContext = useActiveProjectOptional();
   const navigate = useNavigate();
+
+  // Guard: If auth context indicates no user, return null and let ProtectedRoute redirect
+  if (!user) {
+    return null;
+  }
+
+  // Safe destructure with fallback values (handles hydration and 401 race conditions)
+  const activeProject = activeProjectContext?.activeProject ?? null;
+  const hasFocus = activeProjectContext?.hasFocus ?? false;
   const [searchParams, setSearchParams] = useSearchParams();
   const { reportConversation } = useReportEntityFocus();
 

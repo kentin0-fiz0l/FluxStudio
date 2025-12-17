@@ -45,6 +45,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check for existing session
     checkAuth();
+
+    // Listen for 401 unauthorized events from API service
+    const handleUnauthorized = () => {
+      // Immediately clear user state to trigger redirect via ProtectedRoute
+      setUser(null);
+      setIsLoading(false);
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
   }, []);
 
   const checkAuth = async () => {
