@@ -205,8 +205,8 @@ interface Conversation {
 
 type ConversationFilter = 'all' | 'unread' | 'archived' | 'starred' | 'muted';
 
-// API response type for conversations
-interface ConversationSummary {
+// API response type for conversations (renamed to avoid conflict with ConversationSummary component)
+interface ConversationListItem {
   id: string;
   organizationId: string | null;
   name: string | null;
@@ -1629,7 +1629,7 @@ function MessagesNew() {
   // ========================================
   // CONVERSATION STATE (REST API based)
   // ========================================
-  const [conversationSummaries, setConversationSummaries] = useState<ConversationSummary[]>([]);
+  const [conversationSummaries, setConversationSummaries] = useState<ConversationListItem[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [conversationError, setConversationError] = useState<string | null>(null);
@@ -1644,7 +1644,7 @@ function MessagesNew() {
       if (!existing) return prev;
 
       const isActive = data.conversationId === selectedConversationId;
-      const updated: ConversationSummary = {
+      const updated: ConversationListItem = {
         ...existing,
         lastMessageAt: data.message.createdAt,
         lastMessagePreview: data.message.content?.slice(0, 100) || '',
@@ -1794,7 +1794,7 @@ function MessagesNew() {
       }
 
       const data = await res.json();
-      const list = (data.conversations || []) as ConversationSummary[];
+      const list = (data.conversations || []) as ConversationListItem[];
 
       // Sort by lastMessageAt (newest first)
       list.sort((a, b) => {
@@ -1876,8 +1876,8 @@ function MessagesNew() {
   // TRANSFORM DATA FOR UI
   // ========================================
 
-  // Transform ConversationSummary to Conversation for UI
-  const transformSummaryToConversation = useCallback((summary: ConversationSummary): Conversation => {
+  // Transform ConversationListItem to Conversation for UI
+  const transformSummaryToConversation = useCallback((summary: ConversationListItem): Conversation => {
     const members = summary.members || [];
     const otherMember = members.find(m => m.userId !== user?.id) || members[0];
     const otherUser = otherMember?.user;
@@ -3067,6 +3067,7 @@ function MessagesNew() {
         {isSummaryPanelOpen && selectedConversation && (
           <ConversationSummary
             conversationId={selectedConversation.id}
+            projectId={selectedConversation.projectId}
             onClose={() => setIsSummaryPanelOpen(false)}
           />
         )}

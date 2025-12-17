@@ -4238,6 +4238,302 @@ app.get('/api/conversations/:conversationId/threads/:threadRootMessageId/summary
   }
 });
 
+// =============================================================================
+// AI CONVERSATION SUMMARIES
+// =============================================================================
+
+// Import AI Summary Service
+const { aiSummaryService } = require('./services/ai-summary-service');
+
+/**
+ * 10n. POST /api/projects/:projectId/conversations/:conversationId/summary/generate
+ * Generate AI summary for a conversation
+ *
+ * Features:
+ * - Pulse-aware tone switching (calm/neutral/intense)
+ * - Clarity-aware detail level (focused/mixed/uncertain)
+ * - Graceful fallback when AI is disabled
+ */
+app.post('/api/projects/:projectId/conversations/:conversationId/summary/generate', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { projectId, conversationId } = req.params;
+
+    // Verify conversation exists and user has access
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Conversation not found or access denied'
+      });
+    }
+
+    // Get project metadata if available
+    let projectMeta = {};
+    if (projectsAdapter && projectId && projectId !== 'null') {
+      try {
+        const project = await projectsAdapter.getProjectById(projectId);
+        if (project) {
+          projectMeta = {
+            name: project.name,
+            goal: project.description || project.goal
+          };
+        }
+      } catch (e) {
+        // Project lookup failed, continue without metadata
+      }
+    }
+
+    // Fetch messages for summary (last 100)
+    const messages = await messagingConversationsAdapter.listMessages({
+      conversationId,
+      limit: 100,
+      includeReactions: false
+    });
+
+    if (!messages || messages.length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'Conversation needs at least 3 messages to generate a summary'
+      });
+    }
+
+    // Reverse to chronological order (listMessages returns DESC)
+    const chronologicalMessages = messages.reverse();
+
+    // Generate summary
+    const summaryResult = await aiSummaryService.generateSummary({
+      conversationId,
+      projectId: projectId !== 'null' ? projectId : null,
+      projectMeta,
+      messages: chronologicalMessages
+    });
+
+    if (!summaryResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: summaryResult.error || 'Failed to generate summary'
+      });
+    }
+
+    // Store the summary
+    const storedSummary = await aiSummaryService.storeSummary(summaryResult);
+
+    res.json({
+      success: true,
+      summary: {
+        id: storedSummary.id,
+        conversationId: storedSummary.conversation_id,
+        projectId: storedSummary.project_id,
+        content: storedSummary.summary_json,
+        pulseTone: storedSummary.pulse_tone,
+        clarityState: storedSummary.clarity_state,
+        signalMetrics: storedSummary.signal_metrics,
+        generatedBy: storedSummary.generated_by,
+        messageCount: storedSummary.message_count,
+        updatedAt: storedSummary.updated_at
+      },
+      aiEnabled: aiSummaryService.isEnabled()
+    });
+  } catch (error) {
+    console.error('Error generating conversation summary:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate conversation summary'
+    });
+  }
+});
+
+/**
+ * 10o. GET /api/projects/:projectId/conversations/:conversationId/summary
+ * Get stored summary for a conversation
+ */
+app.get('/api/projects/:projectId/conversations/:conversationId/summary', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { projectId, conversationId } = req.params;
+
+    // Verify conversation exists and user has access
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Conversation not found or access denied'
+      });
+    }
+
+    // Get stored summary
+    const summary = await aiSummaryService.getSummary(conversationId);
+
+    if (!summary) {
+      return res.json({
+        success: true,
+        summary: null,
+        message: 'No summary available. Generate one to get started.',
+        aiEnabled: aiSummaryService.isEnabled()
+      });
+    }
+
+    res.json({
+      success: true,
+      summary: {
+        id: summary.id,
+        conversationId: summary.conversationId,
+        projectId: summary.projectId,
+        content: summary.summary,
+        pulseTone: summary.pulseTone,
+        clarityState: summary.clarityState,
+        signalMetrics: summary.signalMetrics,
+        generatedBy: summary.generatedBy,
+        messageCount: summary.messageCount,
+        createdAt: summary.createdAt,
+        updatedAt: summary.updatedAt
+      },
+      aiEnabled: aiSummaryService.isEnabled()
+    });
+  } catch (error) {
+    console.error('Error fetching conversation summary:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch conversation summary'
+    });
+  }
+});
+
+/**
+ * 10p. GET /api/conversations/:conversationId/summary
+ * Simplified endpoint without project scope (for backwards compatibility)
+ */
+app.get('/api/conversations/:conversationId/summary', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { conversationId } = req.params;
+
+    // Verify conversation exists and user has access
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Conversation not found or access denied'
+      });
+    }
+
+    const summary = await aiSummaryService.getSummary(conversationId);
+
+    res.json({
+      success: true,
+      summary: summary ? {
+        id: summary.id,
+        conversationId: summary.conversationId,
+        content: summary.summary,
+        pulseTone: summary.pulseTone,
+        clarityState: summary.clarityState,
+        generatedBy: summary.generatedBy,
+        messageCount: summary.messageCount,
+        updatedAt: summary.updatedAt
+      } : null,
+      aiEnabled: aiSummaryService.isEnabled()
+    });
+  } catch (error) {
+    console.error('Error fetching conversation summary:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch conversation summary'
+    });
+  }
+});
+
+/**
+ * 10q. POST /api/conversations/:conversationId/summary/generate
+ * Simplified generate endpoint without project scope
+ */
+app.post('/api/conversations/:conversationId/summary/generate', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { conversationId } = req.params;
+
+    // Verify conversation exists and user has access
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Conversation not found or access denied'
+      });
+    }
+
+    // Fetch messages
+    const messages = await messagingConversationsAdapter.listMessages({
+      conversationId,
+      limit: 100,
+      includeReactions: false
+    });
+
+    if (!messages || messages.length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'Conversation needs at least 3 messages to generate a summary'
+      });
+    }
+
+    const chronologicalMessages = messages.reverse();
+
+    // Generate summary
+    const summaryResult = await aiSummaryService.generateSummary({
+      conversationId,
+      projectId: null,
+      projectMeta: {},
+      messages: chronologicalMessages
+    });
+
+    if (!summaryResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: summaryResult.error || 'Failed to generate summary'
+      });
+    }
+
+    // Store the summary
+    const storedSummary = await aiSummaryService.storeSummary(summaryResult);
+
+    res.json({
+      success: true,
+      summary: {
+        id: storedSummary.id,
+        conversationId: storedSummary.conversation_id,
+        content: storedSummary.summary_json,
+        pulseTone: storedSummary.pulse_tone,
+        clarityState: storedSummary.clarity_state,
+        generatedBy: storedSummary.generated_by,
+        messageCount: storedSummary.message_count,
+        updatedAt: storedSummary.updated_at
+      },
+      aiEnabled: aiSummaryService.isEnabled()
+    });
+  } catch (error) {
+    console.error('Error generating conversation summary:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate conversation summary'
+    });
+  }
+});
+
 // ----- Notifications -----
 
 // 11. GET /api/notifications - List notifications for current user
