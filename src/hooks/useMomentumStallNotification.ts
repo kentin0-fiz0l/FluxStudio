@@ -25,7 +25,10 @@ import {
   shouldTriggerMomentumStall,
   buildStallNotificationContent,
   setLastStallNotifiedAt,
+  ActivityTimestamps,
+  OutstandingWork,
 } from '../utils/momentumStall';
+import { activateRecovery } from '../utils/momentumRecovery';
 
 // ============================================================================
 // Types
@@ -239,6 +242,9 @@ export function useMomentumStallNotification(
 
       // Record that we notified
       setLastStallNotifiedAt(projectId, new Date().toISOString());
+
+      // Activate recovery state so the panel appears when user navigates
+      activateRecovery(projectId);
     }
   }, [projectId, options, showNotification]);
 

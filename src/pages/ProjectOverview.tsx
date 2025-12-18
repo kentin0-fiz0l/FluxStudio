@@ -46,6 +46,8 @@ import { getApiUrl } from '@/utils/apiHelpers';
 import { isMetMapAsset } from '@/utils/assetHelpers';
 import { MetMapAssetCard } from '@/components/assets/MetMapAssetCard';
 import { useMomentumStallNotification } from '@/hooks/useMomentumStallNotification';
+import { isRecoveryActive, clearRecovery } from '@/utils/momentumRecovery';
+import { MomentumRecoveryPanel } from '@/components/projects/MomentumRecoveryPanel';
 
 // ============================================================================
 // Types
@@ -308,11 +310,21 @@ export default function ProjectOverview() {
   // Next step action states (persisted in localStorage)
   const [nextStepStates, setNextStepStates] = React.useState<NextStepState>({});
 
+  // Recovery state (for momentum recovery panel)
+  const [showRecoveryPanel, setShowRecoveryPanel] = React.useState(false);
+
   // Load next step states on mount
   React.useEffect(() => {
     if (projectId) {
       const states = loadNextStepStates(projectId);
       setNextStepStates(states);
+    }
+  }, [projectId]);
+
+  // Check recovery state on mount
+  React.useEffect(() => {
+    if (projectId) {
+      setShowRecoveryPanel(isRecoveryActive(projectId));
     }
   }, [projectId]);
 
@@ -325,6 +337,37 @@ export default function ProjectOverview() {
       saveNextStepStates(projectId, updated);
       return updated;
     });
+
+    // Clear recovery state when a meaningful action is taken
+    if (status === 'accepted' || status === 'completed') {
+      clearRecovery(projectId);
+      setShowRecoveryPanel(false);
+    }
+  }, [projectId]);
+
+  // Clear all accepted steps (for recovery panel reset)
+  const clearAcceptedSteps = React.useCallback(() => {
+    if (!projectId) return;
+
+    setNextStepStates(prev => {
+      const updated: NextStepState = {};
+      // Reset all accepted steps back to suggested, keep completed
+      for (const [stepId, status] of Object.entries(prev)) {
+        if (status === 'completed') {
+          updated[stepId] = status;
+        }
+        // Skip accepted and suggested - they'll default to suggested
+      }
+      saveNextStepStates(projectId, updated);
+      return updated;
+    });
+  }, [projectId]);
+
+  // Dismiss recovery panel
+  const dismissRecoveryPanel = React.useCallback(() => {
+    if (!projectId) return;
+    clearRecovery(projectId);
+    setShowRecoveryPanel(false);
   }, [projectId]);
 
   // Get step status (default to 'suggested')
@@ -928,6 +971,21 @@ export default function ProjectOverview() {
                             ))}
                           </ul>
                         </div>
+                      )}
+
+                      {/* Momentum Recovery Panel - shows after stall notification */}
+                      {showRecoveryPanel && projectId && (
+                        <MomentumRecoveryPanel
+                          projectId={projectId}
+                          projectName={project?.name}
+                          snapshot={snapshot}
+                          nextSteps={snapshot.nextSteps}
+                          nextStepStates={nextStepStates}
+                          onAcceptStep={(stepId) => updateStepStatus(stepId, 'accepted')}
+                          onClearAcceptedSteps={clearAcceptedSteps}
+                          onDismiss={dismissRecoveryPanel}
+                          className="mb-4"
+                        />
                       )}
 
                       {/* Next steps - Actionable */}
