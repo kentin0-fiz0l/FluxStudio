@@ -45,6 +45,7 @@ import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/utils/apiHelpers';
 import { isMetMapAsset } from '@/utils/assetHelpers';
 import { MetMapAssetCard } from '@/components/assets/MetMapAssetCard';
+import { useMomentumStallNotification } from '@/hooks/useMomentumStallNotification';
 
 // ============================================================================
 // Types
@@ -340,6 +341,18 @@ export default function ProjectOverview() {
     const encodedText = encodeURIComponent(discussText);
     navigate(`/messages?projectId=${projectId}&prefill=${encodedText}`);
   }, [projectId, navigate]);
+
+  // Momentum stall detection - triggers notification when project is stuck
+  const isDataLoading = projectLoading || messagesLoading || assetsLoading || aiSummaryState === 'loading';
+  useMomentumStallNotification(projectId, {
+    projectName: project?.name,
+    recentMessages,
+    projectAssets,
+    metmapSessions: songs,
+    snapshot,
+    nextStepStates,
+    isLoading: isDataLoading,
+  });
 
   // Load project details
   React.useEffect(() => {
