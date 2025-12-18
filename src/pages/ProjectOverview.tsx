@@ -48,6 +48,7 @@ import { MetMapAssetCard } from '@/components/assets/MetMapAssetCard';
 import { useMomentumStallNotification } from '@/hooks/useMomentumStallNotification';
 import { isRecoveryActive, clearRecovery } from '@/utils/momentumRecovery';
 import { MomentumRecoveryPanel } from '@/components/projects/MomentumRecoveryPanel';
+import { TeamAlignmentPanel } from '@/components/projects/TeamAlignmentPanel';
 
 // ============================================================================
 // Types
@@ -921,6 +922,18 @@ export default function ProjectOverview() {
                             ))}
                           </div>
                         </div>
+                      )}
+
+                      {/* Team Alignment Signals */}
+                      {projectId && (snapshot.decisions.length > 0 || snapshot.openQuestions.length > 0) && (
+                        <TeamAlignmentPanel
+                          projectId={projectId}
+                          projectName={project?.name}
+                          snapshot={snapshot}
+                          nextStepStates={nextStepStates}
+                          participantCount={project?.members?.length}
+                          className="mb-4"
+                        />
                       )}
 
                       {/* Key decisions */}
