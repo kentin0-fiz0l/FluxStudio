@@ -97,13 +97,59 @@ interface AggregatedSnapshot {
   whatsHappening: string[];
   decisions: Array<{ text: string; decidedBy?: string; conversationName?: string }>;
   openQuestions: Array<{ text: string; askedBy?: string; conversationName?: string }>;
-  nextSteps: Array<{ text: string; priority?: string }>;
+  nextSteps: Array<{ id: string; text: string; priority?: string }>;
   overallPulse: PulseTone;
   overallClarity: ClarityState;
   lastUpdated: string;
   summaryCount: number;
   totalMessages: number;
   aiEnabled: boolean;
+}
+
+// Next step status lifecycle
+type NextStepStatus = 'suggested' | 'accepted' | 'completed';
+
+interface NextStepState {
+  [stepId: string]: NextStepStatus;
+}
+
+// Generate a stable ID for a next step based on its text
+function generateStepId(text: string): string {
+  // Create a simple hash from the text for stable identification
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return `step_${Math.abs(hash).toString(36)}`;
+}
+
+// LocalStorage key for next step states
+function getNextStepStorageKey(projectId: string): string {
+  return `fluxstudio_nextsteps_${projectId}`;
+}
+
+// Load next step states from localStorage
+function loadNextStepStates(projectId: string): NextStepState {
+  try {
+    const stored = localStorage.getItem(getNextStepStorageKey(projectId));
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch {
+    // localStorage not available or invalid JSON
+  }
+  return {};
+}
+
+// Save next step states to localStorage
+function saveNextStepStates(projectId: string, states: NextStepState): void {
+  try {
+    localStorage.setItem(getNextStepStorageKey(projectId), JSON.stringify(states));
+  } catch {
+    // localStorage not available
+  }
 }
 
 // ============================================================================
@@ -257,6 +303,43 @@ export default function ProjectOverview() {
   // AI Snapshot state
   const [aiSummaryState, setAiSummaryState] = React.useState<'loading' | 'disabled' | 'empty' | 'ready'>('loading');
   const [snapshot, setSnapshot] = React.useState<AggregatedSnapshot | null>(null);
+
+  // Next step action states (persisted in localStorage)
+  const [nextStepStates, setNextStepStates] = React.useState<NextStepState>({});
+
+  // Load next step states on mount
+  React.useEffect(() => {
+    if (projectId) {
+      const states = loadNextStepStates(projectId);
+      setNextStepStates(states);
+    }
+  }, [projectId]);
+
+  // Update step status and persist
+  const updateStepStatus = React.useCallback((stepId: string, status: NextStepStatus) => {
+    if (!projectId) return;
+
+    setNextStepStates(prev => {
+      const updated = { ...prev, [stepId]: status };
+      saveNextStepStates(projectId, updated);
+      return updated;
+    });
+  }, [projectId]);
+
+  // Get step status (default to 'suggested')
+  const getStepStatus = React.useCallback((stepId: string): NextStepStatus => {
+    return nextStepStates[stepId] || 'suggested';
+  }, [nextStepStates]);
+
+  // Handle discuss action - navigate to messages with prefilled content
+  const handleDiscussStep = React.useCallback((stepText: string) => {
+    if (!projectId) return;
+
+    // Navigate to messages with prefilled content
+    const discussText = `Let's discuss this next step: "${stepText}"`;
+    const encodedText = encodeURIComponent(discussText);
+    navigate(`/messages?projectId=${projectId}&prefill=${encodedText}`);
+  }, [projectId, navigate]);
 
   // Load project details
   React.useEffect(() => {
@@ -516,7 +599,7 @@ export default function ProjectOverview() {
     const whatsHappening: string[] = [];
     const decisions: Array<{ text: string; decidedBy?: string; conversationName?: string }> = [];
     const openQuestions: Array<{ text: string; askedBy?: string; conversationName?: string }> = [];
-    const nextSteps: Array<{ text: string; priority?: string }> = [];
+    const nextSteps: Array<{ id: string; text: string; priority?: string }> = [];
 
     // Track pulse/clarity votes
     const pulseVotes: Record<PulseTone, number> = { calm: 0, neutral: 0, intense: 0 };
@@ -550,11 +633,15 @@ export default function ProjectOverview() {
         });
       }
 
-      // Aggregate next steps (de-duplicate by text)
+      // Aggregate next steps (de-duplicate by text, add IDs)
       if (summary.content.nextSteps) {
         summary.content.nextSteps.forEach(step => {
           if (!nextSteps.some(s => s.text === step.text)) {
-            nextSteps.push(step);
+            nextSteps.push({
+              id: generateStepId(step.text),
+              text: step.text,
+              priority: step.priority,
+            });
           }
         });
       }
@@ -830,37 +917,124 @@ export default function ProjectOverview() {
                         </div>
                       )}
 
-                      {/* Next steps */}
+                      {/* Next steps - Actionable */}
                       {snapshot.nextSteps.length > 0 && (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
                             <ArrowRight className="w-4 h-4 text-blue-500" />
                             Next Steps
                           </h4>
-                          <ul className="space-y-2">
-                            {snapshot.nextSteps.map((step, idx) => (
-                              <li key={idx} className="flex gap-2 text-sm">
-                                <ArrowRight className={cn(
-                                  'w-4 h-4 flex-shrink-0 mt-0.5',
-                                  step.priority === 'high' ? 'text-red-500' :
-                                  step.priority === 'medium' ? 'text-amber-500' :
-                                  'text-blue-500'
-                                )} />
-                                <div>
-                                  <span className="text-gray-600">{step.text}</span>
-                                  {step.priority && (
-                                    <span className={cn(
-                                      'text-[10px] ml-1 px-1 py-0.5 rounded',
-                                      step.priority === 'high' ? 'bg-red-100 text-red-700' :
-                                      step.priority === 'medium' ? 'bg-amber-100 text-amber-700' :
-                                      'bg-blue-100 text-blue-700'
-                                    )}>
-                                      {step.priority}
-                                    </span>
-                                  )}
-                                </div>
-                              </li>
-                            ))}
+                          <ul className="space-y-3">
+                            {/* Sort: high priority first, then by status (suggested > accepted > completed) */}
+                            {[...snapshot.nextSteps]
+                              .sort((a, b) => {
+                                // Priority order: high > medium > low/undefined
+                                const priorityOrder = { high: 0, medium: 1, low: 2 };
+                                const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 2;
+                                const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 2;
+                                if (aPriority !== bPriority) return aPriority - bPriority;
+
+                                // Status order: suggested > accepted > completed
+                                const statusOrder = { suggested: 0, accepted: 1, completed: 2 };
+                                const aStatus = statusOrder[getStepStatus(a.id)];
+                                const bStatus = statusOrder[getStepStatus(b.id)];
+                                return aStatus - bStatus;
+                              })
+                              .map((step) => {
+                                const status = getStepStatus(step.id);
+                                const isCompleted = status === 'completed';
+
+                                return (
+                                  <li
+                                    key={step.id}
+                                    className={cn(
+                                      'p-3 rounded-lg border transition-all',
+                                      isCompleted
+                                        ? 'bg-gray-50 border-gray-200 opacity-60'
+                                        : status === 'accepted'
+                                        ? 'bg-blue-50/50 border-blue-200'
+                                        : 'bg-white border-gray-200 hover:border-gray-300'
+                                    )}
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      {/* Status icon */}
+                                      {isCompleted ? (
+                                        <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                                      ) : (
+                                        <ArrowRight className={cn(
+                                          'w-4 h-4 flex-shrink-0 mt-0.5',
+                                          step.priority === 'high' ? 'text-red-500' :
+                                          step.priority === 'medium' ? 'text-amber-500' :
+                                          'text-blue-500'
+                                        )} />
+                                      )}
+
+                                      <div className="flex-1 min-w-0">
+                                        {/* Step text */}
+                                        <p className={cn(
+                                          'text-sm',
+                                          isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'
+                                        )}>
+                                          {step.text}
+                                        </p>
+
+                                        {/* Badges row */}
+                                        <div className="flex items-center gap-2 mt-1.5">
+                                          {/* Priority badge */}
+                                          {step.priority && (
+                                            <span className={cn(
+                                              'text-[10px] px-1.5 py-0.5 rounded font-medium',
+                                              step.priority === 'high' ? 'bg-red-100 text-red-700' :
+                                              step.priority === 'medium' ? 'bg-amber-100 text-amber-700' :
+                                              'bg-blue-100 text-blue-700'
+                                            )}>
+                                              {step.priority}
+                                            </span>
+                                          )}
+
+                                          {/* Status badge */}
+                                          <span className={cn(
+                                            'text-[10px] px-1.5 py-0.5 rounded font-medium',
+                                            status === 'completed' ? 'bg-green-100 text-green-700' :
+                                            status === 'accepted' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-gray-100 text-gray-600'
+                                          )}>
+                                            {status}
+                                          </span>
+                                        </div>
+
+                                        {/* Action buttons */}
+                                        {!isCompleted && (
+                                          <div className="flex items-center gap-2 mt-2">
+                                            {status === 'suggested' && (
+                                              <button
+                                                onClick={() => updateStepStatus(step.id, 'accepted')}
+                                                className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                                              >
+                                                Accept
+                                              </button>
+                                            )}
+                                            {status === 'accepted' && (
+                                              <button
+                                                onClick={() => updateStepStatus(step.id, 'completed')}
+                                                className="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 transition-colors"
+                                              >
+                                                Mark complete
+                                              </button>
+                                            )}
+                                            <button
+                                              onClick={() => handleDiscussStep(step.text)}
+                                              className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors"
+                                            >
+                                              Discuss
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </li>
+                                );
+                              })}
                           </ul>
                         </div>
                       )}
