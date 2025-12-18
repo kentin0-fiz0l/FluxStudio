@@ -62,6 +62,7 @@ const { Component: Connectors } = lazyLoadWithRetry(() => import('./pages/Connec
 // Redesigned pages (Flux Design Language)
 const { Component: ProjectsNew } = lazyLoadWithRetry(() => import('./pages/ProjectsNew'));
 const { Component: ProjectDetail } = lazyLoadWithRetry(() => import('./pages/ProjectDetail'));
+const { Component: ProjectOverview } = lazyLoadWithRetry(() => import('./pages/ProjectOverview'));
 const { Component: FileNew } = lazyLoadWithRetry(() => import('./pages/FileNew'));
 const { Component: Assets } = lazyLoadWithRetry(() => import('./pages/Assets'));
 const { Component: TeamNew } = lazyLoadWithRetry(() => import('./pages/TeamNew'));
@@ -159,6 +160,7 @@ function AuthenticatedRoutes() {
                   <Route path="/file" element={<ProtectedRoute><FilesErrorBoundary><FileNew /></FilesErrorBoundary></ProtectedRoute>} />
                   <Route path="/assets" element={<ProtectedRoute><FilesErrorBoundary><Assets /></FilesErrorBoundary></ProtectedRoute>} />
                   <Route path="/projects" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectsNew /></ProjectsErrorBoundary></ProtectedRoute>} />
+                  <Route path="/projects/:projectId/overview" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectOverview /></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/projects/:id" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectDetail /></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/boards/:boardId" element={<ProtectedRoute><DesignBoardPage /></ProtectedRoute>} />
                   <Route path="/messages" element={<ProtectedRoute><MessagingErrorBoundary><MessagesNew /></MessagingErrorBoundary></ProtectedRoute>} />
