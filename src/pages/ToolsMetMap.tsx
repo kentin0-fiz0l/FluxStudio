@@ -855,6 +855,90 @@ export default function ToolsMetMap() {
     }
   }, [searchParams, currentSong, loadSong]);
 
+  // Handle asset-based song loading (from "Open in MetMap" on asset cards)
+  useEffect(() => {
+    const assetId = searchParams.get('assetId');
+    if (!assetId || !projectId || !token) return;
+
+    async function loadFromAsset() {
+      try {
+        // Fetch the asset file content
+        const response = await fetch(
+          getApiUrl(`/assets/${assetId}/file`),
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+
+        if (!response.ok) {
+          showNotification({
+            type: 'error',
+            title: 'Load Failed',
+            message: 'Could not load MetMap session from asset'
+          });
+          return;
+        }
+
+        const data = await response.json();
+
+        // Check if it's a valid MetMap export
+        if (!data.song?.id || !data.song?.title) {
+          showNotification({
+            type: 'error',
+            title: 'Invalid Format',
+            message: 'This asset does not contain a valid MetMap session'
+          });
+          return;
+        }
+
+        // Try to load the original song if it still exists
+        const songId = data.song.id;
+        const existingSong = songs.find(s => s.id === songId);
+
+        if (existingSong) {
+          // Song still exists, navigate to it
+          const params = new URLSearchParams();
+          params.set('song', songId);
+          params.set('projectId', projectId);
+          navigate(`/tools/metmap?${params.toString()}`, { replace: true });
+        } else {
+          // Song doesn't exist, import it
+          const newSong = await createSong({
+            title: data.song.title,
+            bpmDefault: data.song.bpmDefault || 120,
+            timeSignatureDefault: data.song.timeSignatureDefault || '4/4',
+            projectId
+          });
+
+          if (newSong && data.song.sections) {
+            // Import sections
+            for (const sectionData of data.song.sections) {
+              addSection(sectionData);
+            }
+
+            const params = new URLSearchParams();
+            params.set('song', newSong.id);
+            params.set('projectId', projectId);
+            navigate(`/tools/metmap?${params.toString()}`, { replace: true });
+
+            showNotification({
+              type: 'success',
+              title: 'Session Restored',
+              message: `MetMap session "${data.song.title}" has been restored from the saved asset`
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load MetMap from asset:', error);
+        showNotification({
+          type: 'error',
+          title: 'Load Failed',
+          message: 'Could not load MetMap session from asset'
+        });
+      }
+    }
+
+    loadFromAsset();
+  }, [searchParams, projectId, token, songs, createSong, addSection, navigate, showNotification]);
+
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
