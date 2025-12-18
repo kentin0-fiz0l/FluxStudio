@@ -130,11 +130,13 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
     }
   };
 
-  // Handle project selection
+  // Handle project selection - navigate to project overview (command center)
   const handleSelectProject = (project: ProjectSummary) => {
     switchProject(project.id);
     setIsOpen(false);
     setSearchQuery('');
+    // Navigate to project overview as the default landing page
+    navigate(`/projects/${project.id}/overview`);
   };
 
   // Handle create project
