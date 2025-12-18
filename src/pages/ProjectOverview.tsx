@@ -28,14 +28,18 @@ import {
   AlertCircle,
   Folder,
   ChevronRight,
-  RefreshCw,
+  CheckCircle2,
+  HelpCircle,
+  ArrowRight,
+  Activity,
+  Target,
+  Zap,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProjects, Project } from '@/hooks/useProjects';
-import { useMessaging } from '@/contexts/MessagingContext';
-import { useAssets, AssetRecord } from '@/contexts/AssetsContext';
+import { Project } from '@/hooks/useProjects';
+import { AssetRecord } from '@/contexts/AssetsContext';
 import { useMetMap } from '@/contexts/MetMapContext';
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/utils/apiHelpers';
@@ -60,6 +64,44 @@ interface ActivityItem {
   description: string;
   timestamp: string;
   actor?: string;
+}
+
+// Summary types matching ConversationSummary component
+type PulseTone = 'calm' | 'neutral' | 'intense';
+type ClarityState = 'focused' | 'mixed' | 'uncertain';
+
+interface SummaryContent {
+  summary?: string[];
+  decisions?: Array<{ text: string; decidedBy?: string }>;
+  openQuestions?: Array<{ text: string; askedBy?: string }>;
+  nextSteps?: Array<{ text: string; priority?: string }>;
+  sentiment?: string;
+}
+
+interface ConversationSummaryData {
+  id: string;
+  conversationId: string;
+  conversationName?: string;
+  projectId?: string;
+  content: SummaryContent;
+  pulseTone: PulseTone;
+  clarityState: ClarityState;
+  generatedBy: string;
+  messageCount: number;
+  updatedAt: string;
+}
+
+interface AggregatedSnapshot {
+  whatsHappening: string[];
+  decisions: Array<{ text: string; decidedBy?: string; conversationName?: string }>;
+  openQuestions: Array<{ text: string; askedBy?: string; conversationName?: string }>;
+  nextSteps: Array<{ text: string; priority?: string }>;
+  overallPulse: PulseTone;
+  overallClarity: ClarityState;
+  lastUpdated: string;
+  summaryCount: number;
+  totalMessages: number;
+  aiEnabled: boolean;
 }
 
 // ============================================================================
@@ -116,9 +158,48 @@ const SectionSkeleton: React.FC = () => (
 );
 
 /**
+ * Snapshot pulse/clarity indicator - shows project health at a glance
+ */
+const SnapshotPulseIndicator: React.FC<{
+  pulse: PulseTone;
+  clarity: ClarityState;
+}> = ({ pulse, clarity }) => {
+  const pulseConfig = {
+    calm: { icon: Activity, label: 'Steady pace', color: 'text-green-600' },
+    neutral: { icon: Activity, label: 'Active', color: 'text-blue-600' },
+    intense: { icon: Zap, label: 'High activity', color: 'text-orange-600' },
+  };
+
+  const clarityConfig = {
+    focused: { icon: Target, label: 'Clear direction', color: 'text-green-600' },
+    mixed: { icon: Target, label: 'Mixed signals', color: 'text-yellow-600' },
+    uncertain: { icon: HelpCircle, label: 'Needs clarity', color: 'text-orange-600' },
+  };
+
+  const pulseInfo = pulseConfig[pulse];
+  const clarityInfo = clarityConfig[clarity];
+  const PulseIcon = pulseInfo.icon;
+  const ClarityIcon = clarityInfo.icon;
+
+  return (
+    <div className="flex items-center gap-4 px-3 py-2 bg-gray-50 rounded-lg text-xs text-gray-500">
+      <div className="flex items-center gap-1.5">
+        <PulseIcon className={cn('w-3.5 h-3.5', pulseInfo.color)} />
+        <span>{pulseInfo.label}</span>
+      </div>
+      <span className="text-gray-300">|</span>
+      <div className="flex items-center gap-1.5">
+        <ClarityIcon className={cn('w-3.5 h-3.5', clarityInfo.color)} />
+        <span>{clarityInfo.label}</span>
+      </div>
+    </div>
+  );
+};
+
+/**
  * Project not found / inaccessible state
  */
-const ProjectNotFound: React.FC<{ projectId: string }> = ({ projectId }) => (
+const ProjectNotFound: React.FC<{ projectId: string }> = ({ projectId: _projectId }) => (
   <DashboardLayout>
     <div className="flex-1 flex items-center justify-center bg-gray-50 min-h-screen">
       <div className="text-center max-w-md px-6">
@@ -153,7 +234,6 @@ export default function ProjectOverview() {
   const { token } = useAuth();
 
   // Project data
-  const { projects, loading: projectsLoading, error: projectsError, fetchProject } = useProjects();
   const [project, setProject] = React.useState<Project | null>(null);
   const [projectLoading, setProjectLoading] = React.useState(true);
   const [projectError, setProjectError] = React.useState<string | null>(null);
@@ -163,18 +243,18 @@ export default function ProjectOverview() {
   const [messagesLoading, setMessagesLoading] = React.useState(true);
 
   // Assets data
-  const { state: assetsState, refreshAssets } = useAssets();
   const [projectAssets, setProjectAssets] = React.useState<AssetRecord[]>([]);
   const [assetsLoading, setAssetsLoading] = React.useState(true);
 
   // MetMap data
   const { songs, songsLoading, setFilters: setMetMapFilters } = useMetMap();
 
-  // Activity data (placeholder)
-  const [recentActivity] = React.useState<ActivityItem[]>([]);
+  // Activity data (derived from recent data)
+  const [recentActivity, setRecentActivity] = React.useState<ActivityItem[]>([]);
 
-  // AI Summary state (placeholder)
-  const [aiSummaryState, setAiSummaryState] = React.useState<'loading' | 'disabled' | 'empty' | 'ready'>('empty');
+  // AI Snapshot state
+  const [aiSummaryState, setAiSummaryState] = React.useState<'loading' | 'disabled' | 'empty' | 'ready'>('loading');
+  const [snapshot, setSnapshot] = React.useState<AggregatedSnapshot | null>(null);
 
   // Load project details
   React.useEffect(() => {
@@ -313,6 +393,199 @@ export default function ProjectOverview() {
     }
   }, [projectId, setMetMapFilters]);
 
+  // Load and aggregate conversation summaries for AI Snapshot
+  React.useEffect(() => {
+    async function loadProjectSnapshot() {
+      if (!projectId || !token) {
+        setAiSummaryState('empty');
+        return;
+      }
+
+      setAiSummaryState('loading');
+
+      try {
+        // First get conversations for this project
+        const convResponse = await fetch(
+          getApiUrl(`/api/messaging/conversations?projectId=${projectId}&limit=10`),
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+
+        if (!convResponse.ok) {
+          setAiSummaryState('empty');
+          return;
+        }
+
+        const convData = await convResponse.json();
+        const conversations = convData.conversations || [];
+
+        if (conversations.length === 0) {
+          setAiSummaryState('empty');
+          return;
+        }
+
+        // Fetch summaries for each conversation
+        const summaries: ConversationSummaryData[] = [];
+        for (const conv of conversations) {
+          try {
+            const summaryResponse = await fetch(
+              getApiUrl(`/api/projects/${projectId}/conversations/${conv.id}/summary`),
+              { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+
+            if (summaryResponse.ok) {
+              const summaryData = await summaryResponse.json();
+              if (summaryData.success && summaryData.summary) {
+                summaries.push({
+                  ...summaryData.summary,
+                  conversationName: conv.name,
+                });
+              }
+            }
+          } catch {
+            // Skip failed summary fetches
+          }
+        }
+
+        // Check if AI is disabled (all summaries have 'disabled' generator)
+        const aiDisabled = summaries.length > 0 &&
+          summaries.every(s => s.generatedBy === 'disabled' || s.generatedBy === 'disabled-fallback');
+
+        if (summaries.length === 0) {
+          setAiSummaryState('empty');
+          return;
+        }
+
+        // Aggregate summaries into a project snapshot
+        const aggregated = aggregateSummaries(summaries, aiDisabled);
+        setSnapshot(aggregated);
+        setAiSummaryState(aiDisabled ? 'disabled' : 'ready');
+
+      } catch (error) {
+        console.error('Failed to load project snapshot:', error);
+        setAiSummaryState('empty');
+      }
+    }
+
+    loadProjectSnapshot();
+  }, [projectId, token]);
+
+  // Build recent activity from messages, assets, and MetMap
+  React.useEffect(() => {
+    const activities: ActivityItem[] = [];
+
+    // Add recent messages as activity
+    recentMessages.forEach(msg => {
+      activities.push({
+        id: `msg-${msg.id}`,
+        type: 'message',
+        description: `${msg.authorName} sent a message${msg.conversationName ? ` in ${msg.conversationName}` : ''}`,
+        timestamp: msg.createdAt,
+        actor: msg.authorName,
+      });
+    });
+
+    // Add recent assets as activity
+    projectAssets.forEach(asset => {
+      activities.push({
+        id: `asset-${asset.id}`,
+        type: 'asset',
+        description: `New asset added: ${asset.name}`,
+        timestamp: asset.createdAt,
+      });
+    });
+
+    // Add MetMap songs as activity
+    songs.slice(0, 3).forEach(song => {
+      activities.push({
+        id: `metmap-${song.id}`,
+        type: 'metmap',
+        description: `MetMap session: ${song.title}`,
+        timestamp: song.updatedAt || song.createdAt,
+      });
+    });
+
+    // Sort by timestamp and take top 10
+    activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    setRecentActivity(activities.slice(0, 10));
+  }, [recentMessages, projectAssets, songs]);
+
+  // Aggregate conversation summaries into a project snapshot
+  function aggregateSummaries(summaries: ConversationSummaryData[], aiDisabled: boolean): AggregatedSnapshot {
+    const whatsHappening: string[] = [];
+    const decisions: Array<{ text: string; decidedBy?: string; conversationName?: string }> = [];
+    const openQuestions: Array<{ text: string; askedBy?: string; conversationName?: string }> = [];
+    const nextSteps: Array<{ text: string; priority?: string }> = [];
+
+    // Track pulse/clarity votes
+    const pulseVotes: Record<PulseTone, number> = { calm: 0, neutral: 0, intense: 0 };
+    const clarityVotes: Record<ClarityState, number> = { focused: 0, mixed: 0, uncertain: 0 };
+    let totalMessages = 0;
+    let latestUpdate = '';
+
+    summaries.forEach(summary => {
+      // Aggregate summary bullets (take first 2 from each)
+      if (summary.content.summary) {
+        whatsHappening.push(...summary.content.summary.slice(0, 2));
+      }
+
+      // Aggregate decisions with conversation context
+      if (summary.content.decisions) {
+        summary.content.decisions.forEach(d => {
+          decisions.push({
+            ...d,
+            conversationName: summary.conversationName,
+          });
+        });
+      }
+
+      // Aggregate open questions with conversation context
+      if (summary.content.openQuestions) {
+        summary.content.openQuestions.forEach(q => {
+          openQuestions.push({
+            ...q,
+            conversationName: summary.conversationName,
+          });
+        });
+      }
+
+      // Aggregate next steps (de-duplicate by text)
+      if (summary.content.nextSteps) {
+        summary.content.nextSteps.forEach(step => {
+          if (!nextSteps.some(s => s.text === step.text)) {
+            nextSteps.push(step);
+          }
+        });
+      }
+
+      // Vote on pulse/clarity
+      pulseVotes[summary.pulseTone]++;
+      clarityVotes[summary.clarityState]++;
+      totalMessages += summary.messageCount || 0;
+
+      // Track latest update
+      if (!latestUpdate || new Date(summary.updatedAt) > new Date(latestUpdate)) {
+        latestUpdate = summary.updatedAt;
+      }
+    });
+
+    // Determine overall pulse (most votes wins)
+    const overallPulse = (Object.entries(pulseVotes).sort((a, b) => b[1] - a[1])[0]?.[0] || 'neutral') as PulseTone;
+    const overallClarity = (Object.entries(clarityVotes).sort((a, b) => b[1] - a[1])[0]?.[0] || 'mixed') as ClarityState;
+
+    return {
+      whatsHappening: whatsHappening.slice(0, 5), // Limit to 5 bullets
+      decisions: decisions.slice(0, 5), // Limit to 5 decisions
+      openQuestions: openQuestions.slice(0, 3), // Limit to 3 questions
+      nextSteps: nextSteps.slice(0, 5), // Limit to 5 steps
+      overallPulse,
+      overallClarity,
+      lastUpdated: latestUpdate,
+      summaryCount: summaries.length,
+      totalMessages,
+      aiEnabled: !aiDisabled,
+    };
+  }
+
   // Format relative time
   const formatRelativeTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -413,24 +686,207 @@ export default function ProjectOverview() {
                 </CardHeader>
                 <CardContent>
                   {aiSummaryState === 'loading' && <SectionSkeleton />}
-                  {aiSummaryState === 'disabled' && (
-                    <EmptySection
-                      message="AI features are currently disabled. Enable AI in settings to see project insights."
-                      icon={<Sparkles className="w-8 h-8 mx-auto text-gray-300" />}
-                    />
-                  )}
+
                   {aiSummaryState === 'empty' && (
                     <div className="py-6 text-center">
                       <Sparkles className="w-10 h-10 mx-auto text-gray-300 mb-3" />
-                      <p className="text-gray-500 mb-2">No AI summary available yet</p>
+                      <p className="text-gray-500 mb-2">No summary available yet</p>
                       <p className="text-sm text-gray-400">
-                        AI-generated insights will appear here as project activity grows.
+                        Insights will appear here as project conversations grow.
                       </p>
                     </div>
                   )}
-                  {aiSummaryState === 'ready' && (
+
+                  {/* Disabled state - still shows aggregated data if available */}
+                  {aiSummaryState === 'disabled' && snapshot && (
                     <div className="space-y-4">
-                      <p className="text-gray-700">AI-generated summary will appear here.</p>
+                      {/* Disabled notice */}
+                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-xs text-gray-500">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>AI features disabled - showing basic analysis</span>
+                      </div>
+
+                      {/* What's happening */}
+                      {snapshot.whatsHappening.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-gray-700">What&apos;s Happening</h4>
+                          <ul className="space-y-1.5">
+                            {snapshot.whatsHappening.map((item, idx) => (
+                              <li key={idx} className="text-sm text-gray-600 pl-4 relative before:absolute before:left-0 before:top-2 before:w-1.5 before:h-1.5 before:bg-gray-300 before:rounded-full">
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Open questions */}
+                      {snapshot.openQuestions.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                            <HelpCircle className="w-4 h-4 text-amber-500" />
+                            Open Questions
+                          </h4>
+                          <ul className="space-y-2">
+                            {snapshot.openQuestions.map((q, idx) => (
+                              <li key={idx} className="text-sm text-gray-600 pl-4">
+                                <span>{q.text}</span>
+                                {q.conversationName && (
+                                  <span className="text-xs text-gray-400 ml-1">
+                                    ({q.conversationName})
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Footer */}
+                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {snapshot.lastUpdated ? formatRelativeTime(snapshot.lastUpdated) : 'Unknown'}
+                        </span>
+                        <span>
+                          Basic analysis · {snapshot.summaryCount} conversation{snapshot.summaryCount !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Ready state - full AI-powered snapshot */}
+                  {aiSummaryState === 'ready' && snapshot && (
+                    <div className="space-y-4">
+                      {/* Pulse/Clarity indicator */}
+                      <SnapshotPulseIndicator
+                        pulse={snapshot.overallPulse}
+                        clarity={snapshot.overallClarity}
+                      />
+
+                      {/* What's happening */}
+                      {snapshot.whatsHappening.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-gray-700">What&apos;s Happening</h4>
+                          <div className="p-3 bg-gray-50 rounded-lg space-y-2">
+                            {snapshot.whatsHappening.map((item, idx) => (
+                              <p key={idx} className="text-sm text-gray-600 leading-relaxed">
+                                {item}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Key decisions */}
+                      {snapshot.decisions.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            Key Decisions
+                          </h4>
+                          <ul className="space-y-2">
+                            {snapshot.decisions.map((d, idx) => (
+                              <li key={idx} className="flex gap-2 text-sm">
+                                <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <span className="text-gray-700">{d.text}</span>
+                                  {(d.decidedBy || d.conversationName) && (
+                                    <span className="text-xs text-gray-400 ml-1">
+                                      ({d.decidedBy || d.conversationName})
+                                    </span>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Open questions */}
+                      {snapshot.openQuestions.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                            <HelpCircle className="w-4 h-4 text-amber-500" />
+                            Open Questions
+                          </h4>
+                          <ul className="space-y-2">
+                            {snapshot.openQuestions.map((q, idx) => (
+                              <li key={idx} className="flex gap-2 text-sm">
+                                <HelpCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <span className="text-gray-600">{q.text}</span>
+                                  {q.conversationName && (
+                                    <span className="text-xs text-gray-400 ml-1">
+                                      ({q.conversationName})
+                                    </span>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Next steps */}
+                      {snapshot.nextSteps.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                            <ArrowRight className="w-4 h-4 text-blue-500" />
+                            Next Steps
+                          </h4>
+                          <ul className="space-y-2">
+                            {snapshot.nextSteps.map((step, idx) => (
+                              <li key={idx} className="flex gap-2 text-sm">
+                                <ArrowRight className={cn(
+                                  'w-4 h-4 flex-shrink-0 mt-0.5',
+                                  step.priority === 'high' ? 'text-red-500' :
+                                  step.priority === 'medium' ? 'text-amber-500' :
+                                  'text-blue-500'
+                                )} />
+                                <div>
+                                  <span className="text-gray-600">{step.text}</span>
+                                  {step.priority && (
+                                    <span className={cn(
+                                      'text-[10px] ml-1 px-1 py-0.5 rounded',
+                                      step.priority === 'high' ? 'bg-red-100 text-red-700' :
+                                      step.priority === 'medium' ? 'bg-amber-100 text-amber-700' :
+                                      'bg-blue-100 text-blue-700'
+                                    )}>
+                                      {step.priority}
+                                    </span>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Empty content fallback */}
+                      {snapshot.whatsHappening.length === 0 &&
+                       snapshot.decisions.length === 0 &&
+                       snapshot.openQuestions.length === 0 &&
+                       snapshot.nextSteps.length === 0 && (
+                        <div className="py-4 text-center text-gray-500 text-sm">
+                          <p>Conversations are being tracked, but no key insights yet.</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Keep collaborating - summaries build over time.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Footer */}
+                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {snapshot.lastUpdated ? formatRelativeTime(snapshot.lastUpdated) : 'Unknown'}
+                        </span>
+                        <span>
+                          AI generated · {snapshot.summaryCount} conversation{snapshot.summaryCount !== 1 ? 's' : ''}
+                          {snapshot.totalMessages > 0 && ` · ${snapshot.totalMessages} msgs`}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </CardContent>
