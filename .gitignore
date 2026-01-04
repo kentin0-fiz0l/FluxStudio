@@ -16,6 +16,14 @@ build/
 coverage/
 .nyc_output/
 
+# Next.js
+.next/
+out/
+.vercel
+
+# Supabase
+.supabase/
+
 # Security - Credentials and keys
 *.key
 *.pem
