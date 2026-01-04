@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { getFileCategory } from '@/lib/utils';
 
 interface UploadProgress {
@@ -11,6 +10,7 @@ interface UploadProgress {
 }
 
 interface UploadResult {
+  id: string;
   path: string;
   url: string;
   fileType: 'image' | 'video' | 'audio' | '3d' | 'document' | 'unknown';
@@ -22,57 +22,35 @@ export function useUpload(projectId: string) {
   const [error, setError] = useState<Error | null>(null);
 
   const upload = useCallback(async (file: File): Promise<UploadResult | null> => {
-    const supabase = createClient();
     setUploading(true);
     setError(null);
     setProgress({ loaded: 0, total: file.size, percentage: 0 });
 
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('Not authenticated');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('projectId', projectId);
 
-      // Generate unique file path
-      const timestamp = Date.now();
-      const extension = file.name.split('.').pop();
-      const fileName = `${timestamp}-${Math.random().toString(36).substring(7)}.${extension}`;
-      const filePath = `${projectId}/${fileName}`;
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
 
-      // Upload to Supabase Storage
-      const { data, error: uploadError } = await supabase.storage
-        .from('assets')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
 
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('assets')
-        .getPublicUrl(filePath);
-
-      // Create asset record in database
+      const data = await response.json();
       const fileType = getFileCategory(file.type);
-      const { error: dbError } = await supabase
-        .from('assets')
-        .insert({
-          name: file.name,
-          file_path: filePath,
-          file_type: fileType === 'unknown' ? 'document' : fileType,
-          mime_type: file.type,
-          file_size: file.size,
-          project_id: projectId,
-          uploaded_by: user.user.id,
-        });
-
-      if (dbError) throw dbError;
 
       setProgress({ loaded: file.size, total: file.size, percentage: 100 });
 
       return {
-        path: filePath,
-        url: publicUrl,
+        id: data.id,
+        path: data.path,
+        url: data.url,
         fileType,
       };
     } catch (err) {

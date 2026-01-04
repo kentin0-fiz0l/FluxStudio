@@ -1,27 +1,34 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
-import type { Comment } from '@/types/database';
+import { api } from '@/lib/api';
+
+interface Comment {
+  id: string;
+  content: string;
+  assetId: string;
+  authorId: string;
+  author?: {
+    id: string;
+    fullName: string;
+    avatarUrl?: string;
+  };
+  parentCommentId?: string;
+  position?: { x: number; y: number };
+  timestamp?: number;
+  cameraPosition?: object;
+  isResolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export function useComments(assetId: string) {
-  const supabase = createClient();
   const queryClient = useQueryClient();
 
   const { data: comments = [], isLoading, error } = useQuery({
     queryKey: ['comments', assetId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('comments')
-        .select(`
-          *,
-          author:users(id, full_name, avatar_url)
-        `)
-        .eq('asset_id', assetId)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      return data;
+      return api.get<Comment[]>(`/api/assets/${assetId}/comments`);
     },
     enabled: !!assetId,
   });
@@ -34,25 +41,7 @@ export function useComments(assetId: string) {
       cameraPosition?: object;
       parentCommentId?: string;
     }) => {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('Not authenticated');
-
-      const { data: comment, error } = await supabase
-        .from('comments')
-        .insert({
-          content: data.content,
-          asset_id: assetId,
-          author_id: user.user.id,
-          position: data.position,
-          timestamp: data.timestamp,
-          camera_position: data.cameraPosition,
-          parent_comment_id: data.parentCommentId,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return comment;
+      return api.post<Comment>(`/api/assets/${assetId}/comments`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', assetId] });
@@ -61,15 +50,7 @@ export function useComments(assetId: string) {
 
   const updateComment = useMutation({
     mutationFn: async ({ id, content }: { id: string; content: string }) => {
-      const { data: comment, error } = await supabase
-        .from('comments')
-        .update({ content })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return comment;
+      return api.patch<Comment>(`/api/comments/${id}`, { content });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', assetId] });
@@ -78,15 +59,7 @@ export function useComments(assetId: string) {
 
   const resolveComment = useMutation({
     mutationFn: async ({ id, isResolved }: { id: string; isResolved: boolean }) => {
-      const { data: comment, error } = await supabase
-        .from('comments')
-        .update({ is_resolved: isResolved })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return comment;
+      return api.patch<Comment>(`/api/comments/${id}`, { isResolved });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', assetId] });
@@ -95,12 +68,7 @@ export function useComments(assetId: string) {
 
   const deleteComment = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('comments')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      return api.delete(`/api/comments/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', assetId] });

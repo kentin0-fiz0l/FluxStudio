@@ -1,5 +1,5 @@
 /**
- * Supabase Database Types for FluxStudio
+ * Database Types for FluxStudio
  *
  * This file contains TypeScript types for the database schema.
  * Update this file when making schema changes.
@@ -13,295 +13,136 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export interface Database {
-  public: {
-    Tables: {
-      // Users table
-      users: {
-        Row: {
-          id: string;
-          email: string;
-          full_name: string | null;
-          avatar_url: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          email: string;
-          full_name?: string | null;
-          avatar_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          email?: string;
-          full_name?: string | null;
-          avatar_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-
-      // Organizations/Teams
-      organizations: {
-        Row: {
-          id: string;
-          name: string;
-          slug: string;
-          logo_url: string | null;
-          owner_id: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          slug: string;
-          logo_url?: string | null;
-          owner_id: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          slug?: string;
-          logo_url?: string | null;
-          owner_id?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-
-      // Organization members
-      organization_members: {
-        Row: {
-          id: string;
-          organization_id: string;
-          user_id: string;
-          role: 'owner' | 'admin' | 'member' | 'viewer';
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          user_id: string;
-          role?: 'owner' | 'admin' | 'member' | 'viewer';
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          organization_id?: string;
-          user_id?: string;
-          role?: 'owner' | 'admin' | 'member' | 'viewer';
-          created_at?: string;
-        };
-      };
-
-      // Projects
-      projects: {
-        Row: {
-          id: string;
-          name: string;
-          description: string | null;
-          organization_id: string;
-          created_by: string;
-          status: 'active' | 'archived' | 'completed';
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          description?: string | null;
-          organization_id: string;
-          created_by: string;
-          status?: 'active' | 'archived' | 'completed';
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          description?: string | null;
-          organization_id?: string;
-          created_by?: string;
-          status?: 'active' | 'archived' | 'completed';
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-
-      // Assets (files uploaded for feedback)
-      assets: {
-        Row: {
-          id: string;
-          name: string;
-          file_path: string;
-          file_type: 'image' | 'video' | 'audio' | '3d' | 'document';
-          mime_type: string;
-          file_size: number;
-          thumbnail_url: string | null;
-          duration: number | null; // For video/audio in seconds
-          dimensions: Json | null; // { width: number, height: number } for images/video
-          metadata: Json | null;
-          project_id: string;
-          uploaded_by: string;
-          version: number;
-          parent_asset_id: string | null; // For version tracking
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          file_path: string;
-          file_type: 'image' | 'video' | 'audio' | '3d' | 'document';
-          mime_type: string;
-          file_size: number;
-          thumbnail_url?: string | null;
-          duration?: number | null;
-          dimensions?: Json | null;
-          metadata?: Json | null;
-          project_id: string;
-          uploaded_by: string;
-          version?: number;
-          parent_asset_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          file_path?: string;
-          file_type?: 'image' | 'video' | 'audio' | '3d' | 'document';
-          mime_type?: string;
-          file_size?: number;
-          thumbnail_url?: string | null;
-          duration?: number | null;
-          dimensions?: Json | null;
-          metadata?: Json | null;
-          project_id?: string;
-          uploaded_by?: string;
-          version?: number;
-          parent_asset_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-
-      // Comments/Annotations
-      comments: {
-        Row: {
-          id: string;
-          content: string;
-          asset_id: string;
-          author_id: string;
-          parent_comment_id: string | null; // For replies
-          // Position data for annotations
-          position: Json | null; // { x: number, y: number } for images
-          timestamp: number | null; // For video/audio timestamps in seconds
-          frame: number | null; // For video frame numbers
-          camera_position: Json | null; // For 3D models { x, y, z, target: { x, y, z } }
-          is_resolved: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          content: string;
-          asset_id: string;
-          author_id: string;
-          parent_comment_id?: string | null;
-          position?: Json | null;
-          timestamp?: number | null;
-          frame?: number | null;
-          camera_position?: Json | null;
-          is_resolved?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          content?: string;
-          asset_id?: string;
-          author_id?: string;
-          parent_comment_id?: string | null;
-          position?: Json | null;
-          timestamp?: number | null;
-          frame?: number | null;
-          camera_position?: Json | null;
-          is_resolved?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-
-      // Review sessions
-      review_sessions: {
-        Row: {
-          id: string;
-          name: string;
-          project_id: string;
-          created_by: string;
-          status: 'pending' | 'in_progress' | 'completed';
-          due_date: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          project_id: string;
-          created_by: string;
-          status?: 'pending' | 'in_progress' | 'completed';
-          due_date?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          project_id?: string;
-          created_by?: string;
-          status?: 'pending' | 'in_progress' | 'completed';
-          due_date?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-    };
-
-    Views: {
-      [_ in never]: never;
-    };
-
-    Functions: {
-      [_ in never]: never;
-    };
-
-    Enums: {
-      asset_type: 'image' | 'video' | 'audio' | '3d' | 'document';
-      member_role: 'owner' | 'admin' | 'member' | 'viewer';
-      project_status: 'active' | 'archived' | 'completed';
-      review_status: 'pending' | 'in_progress' | 'completed';
-    };
-  };
+// User type
+export interface User {
+  id: string;
+  email: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Helper types
-export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
-export type InsertTables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert'];
-export type UpdateTables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update'];
-export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T];
+// Organization/Team type
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  ownerId: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
-// Convenience type aliases
-export type User = Tables<'users'>;
-export type Organization = Tables<'organizations'>;
-export type OrganizationMember = Tables<'organization_members'>;
-export type Project = Tables<'projects'>;
-export type Asset = Tables<'assets'>;
-export type Comment = Tables<'comments'>;
-export type ReviewSession = Tables<'review_sessions'>;
+// Organization member type
+export interface OrganizationMember {
+  id: string;
+  organizationId: string;
+  userId: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  createdAt: string;
+}
+
+// Project type
+export interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+  organizationId: string;
+  createdBy: string;
+  status: 'active' | 'archived' | 'completed';
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Asset type (files uploaded for feedback)
+export interface Asset {
+  id: string;
+  name: string;
+  filePath: string;
+  fileType: 'image' | 'video' | 'audio' | '3d' | 'document';
+  mimeType: string;
+  fileSize: number;
+  thumbnailUrl: string | null;
+  duration: number | null; // For video/audio in seconds
+  dimensions: { width: number; height: number } | null;
+  metadata: Json | null;
+  projectId: string;
+  uploadedBy: string;
+  version: number;
+  parentAssetId: string | null; // For version tracking
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Comment/Annotation type
+export interface Comment {
+  id: string;
+  content: string;
+  assetId: string;
+  authorId: string;
+  author?: User;
+  parentCommentId: string | null; // For replies
+  // Position data for annotations
+  position: { x: number; y: number } | null; // For images
+  timestamp: number | null; // For video/audio timestamps in seconds
+  frame: number | null; // For video frame numbers
+  cameraPosition: { x: number; y: number; z: number; target: { x: number; y: number; z: number } } | null; // For 3D models
+  isResolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Review session type
+export interface ReviewSession {
+  id: string;
+  name: string;
+  projectId: string;
+  createdBy: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  dueDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Enum types
+export type AssetType = 'image' | 'video' | 'audio' | '3d' | 'document';
+export type MemberRole = 'owner' | 'admin' | 'member' | 'viewer';
+export type ProjectStatus = 'active' | 'archived' | 'completed';
+export type ReviewStatus = 'pending' | 'in_progress' | 'completed';
+
+// Input types for creating/updating records
+export interface CreateUserInput {
+  email: string;
+  fullName?: string;
+  avatarUrl?: string;
+}
+
+export interface CreateProjectInput {
+  name: string;
+  description?: string;
+  organizationId: string;
+}
+
+export interface CreateAssetInput {
+  name: string;
+  filePath: string;
+  fileType: AssetType;
+  mimeType: string;
+  fileSize: number;
+  projectId: string;
+  thumbnailUrl?: string;
+  duration?: number;
+  dimensions?: { width: number; height: number };
+  metadata?: Json;
+}
+
+export interface CreateCommentInput {
+  content: string;
+  assetId: string;
+  parentCommentId?: string;
+  position?: { x: number; y: number };
+  timestamp?: number;
+  frame?: number;
+  cameraPosition?: { x: number; y: number; z: number; target: { x: number; y: number; z: number } };
+}

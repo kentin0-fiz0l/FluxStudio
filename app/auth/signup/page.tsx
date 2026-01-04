@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { signUp, signInWithOAuth } from '@/lib/supabase/auth';
+import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { signUp, signInWithProvider } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -24,10 +25,10 @@ export default function SignUpPage() {
 
     try {
       await signUp(email, password, fullName);
-      toast.success('Check your email to confirm your account');
-      router.push('/auth/verify');
+      toast.success('Account created successfully!');
+      router.push('/studio');
     } catch (error) {
-      toast.error('Failed to create account. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Failed to create account');
     } finally {
       setLoading(false);
     }
@@ -35,7 +36,7 @@ export default function SignUpPage() {
 
   async function handleOAuth(provider: 'google' | 'github' | 'figma') {
     try {
-      await signInWithOAuth(provider);
+      await signInWithProvider(provider);
     } catch (error) {
       toast.error(`Failed to sign in with ${provider}`);
     }

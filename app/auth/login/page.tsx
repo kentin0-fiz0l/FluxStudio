@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { signIn, signInWithOAuth } from '@/lib/supabase/auth';
+import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/studio';
+  const { signIn, signInWithProvider } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,7 +28,7 @@ export default function LoginPage() {
       await signIn(email, password);
       router.push(redirect);
     } catch (error) {
-      toast.error('Invalid email or password');
+      toast.error(error instanceof Error ? error.message : 'Invalid email or password');
     } finally {
       setLoading(false);
     }
@@ -35,7 +36,7 @@ export default function LoginPage() {
 
   async function handleOAuth(provider: 'google' | 'github' | 'figma') {
     try {
-      await signInWithOAuth(provider);
+      await signInWithProvider(provider);
     } catch (error) {
       toast.error(`Failed to sign in with ${provider}`);
     }
