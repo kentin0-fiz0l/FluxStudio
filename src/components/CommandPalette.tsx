@@ -5,7 +5,7 @@
  * Inspired by VS Code, Raycast, and Linear.
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -237,12 +237,12 @@ export function CommandPalette({
   }, [filteredCommands]);
 
   // Reset selection when search changes
-  useEffect(() => {
+  useLayoutEffect(() => {
     setSelectedIndex(0);
   }, [search]);
 
   // Reset search when closing
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) {
       setSearch('');
       setSelectedIndex(0);

@@ -13,7 +13,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/templates';
-import { ProjectCard, SearchBar } from '../components/molecules';
+import { ProjectCard } from '../components/molecules';
 import { Button, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, Input } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects, Project } from '../hooks/useProjects';
@@ -24,7 +24,6 @@ import { useActiveProjectOptional } from '../contexts/ActiveProjectContext';
 import { toast } from '../lib/toast';
 import {
   Plus,
-  Filter,
   LayoutGrid,
   List as ListIcon,
   Target,

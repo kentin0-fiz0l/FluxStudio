@@ -30,6 +30,9 @@ export function EnoBackground() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Calculate theme mode for this effect
+    const isLightMode = theme === 'light';
+
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -241,10 +244,7 @@ export function EnoBackground() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [scrollProgress]);
-
-  // Render background for both light and dark modes with different colors
-  const isLightMode = theme === 'light';
+  }, [scrollProgress, theme]);
 
   return (
     <>
