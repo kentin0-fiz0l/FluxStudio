@@ -47,12 +47,12 @@ jobs:
           VITE_GITHUB_CONNECTED: 'true'
 
       - name: Deploy to DigitalOcean
-    uses: digitalocean/app_action/deploy@v2
+        uses: digitalocean/app_action/deploy@v2
         with:
           app_name: fluxstudio
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
           app_spec_location: .do/app.yaml
-    deploy_pr_preview: ${{ github.event_name == 'pull_request' }}
+          deploy_pr_preview: ${{ github.event_name == 'pull_request' }}
 
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request'
