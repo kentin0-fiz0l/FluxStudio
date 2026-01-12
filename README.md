@@ -1,5 +1,21 @@
-
 # FluxStudio - Complete Marching Arts Creative Design Platform
+
+[![CI](https://github.com/kentin0-fiz0l/FluxStudio/actions/workflows/ci.yml/badge.svg)](https://github.com/kentin0-fiz0l/FluxStudio/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/kentin0-fiz0l/FluxStudio/branch/main/graph/badge.svg)](https://codecov.io/gh/kentin0-fiz0l/FluxStudio)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-18+-green.svg)](https://nodejs.org)
+
+> Creative design collaboration platform for marching arts services
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Environment Setup](./docs/ENVIRONMENT_SETUP.md) | Configure environment variables |
+| [Architecture](./docs/ARCHITECTURE.md) | System architecture overview |
+| [API Documentation](./docs/API_DOCUMENTATION.md) | REST API reference |
+| [Security](./docs/SECURITY.md) | Security best practices |
+| [Contributing](./CONTRIBUTING.md) | Contribution guidelines |
 
 FluxStudio is now a comprehensive, production-ready platform for marching arts creative design services, enabling seamless collaboration between designers, clients, and teams.
 
