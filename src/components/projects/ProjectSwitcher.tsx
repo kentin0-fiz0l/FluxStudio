@@ -26,7 +26,7 @@ import {
   X,
   FolderOpen,
 } from 'lucide-react';
-import { useProjectContext, ProjectSummary } from '@/contexts/ProjectContext';
+import { useProjectContextOptional, ProjectSummary } from '@/contexts/ProjectContext';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -70,13 +70,17 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
   className,
 }) => {
   const navigate = useNavigate();
-  const {
-    currentProject,
-    projects,
-    isLoading,
-    switchProject,
-    clearProject,
-  } = useProjectContext();
+  const projectContext = useProjectContextOptional();
+
+  // Handle case when ProjectProvider is not available
+  const currentProject = projectContext?.currentProject;
+  const projects = projectContext?.projects || [];
+  const isLoading = projectContext?.isLoading ?? true;
+  const switchProject = projectContext?.switchProject;
+  const clearProject = projectContext?.clearProject;
+
+  // Show placeholder if context is not available yet
+  const contextUnavailable = !projectContext;
 
   const [isOpen, setIsOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -132,7 +136,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
 
   // Handle project selection - navigate to project overview (command center)
   const handleSelectProject = (project: ProjectSummary) => {
-    switchProject(project.id);
+    switchProject?.(project.id);
     setIsOpen(false);
     setSearchQuery('');
     // Navigate to project overview as the default landing page
@@ -149,9 +153,42 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
   // Handle clear project (go to global view)
   const handleClearProject = (e: React.MouseEvent) => {
     e.stopPropagation();
-    clearProject();
+    clearProject?.();
     setIsOpen(false);
   };
+
+  // Show loading placeholder if context is unavailable
+  if (contextUnavailable) {
+    if (collapsed) {
+      return (
+        <div
+          className={cn(
+            'w-10 h-10 rounded-lg flex items-center justify-center mx-auto',
+            'bg-neutral-800 animate-pulse',
+            className
+          )}
+        >
+          <Briefcase className="h-5 w-5 text-neutral-500" />
+        </div>
+      );
+    }
+    return (
+      <div className={cn('relative', className)}>
+        <div
+          className={cn(
+            'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg',
+            'bg-neutral-800 border border-neutral-700 animate-pulse'
+          )}
+        >
+          <div className="w-8 h-8 rounded-lg bg-neutral-700 flex-shrink-0" />
+          <div className="flex-1">
+            <div className="h-4 w-24 bg-neutral-700 rounded mb-1" />
+            <div className="h-3 w-16 bg-neutral-700 rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Collapsed state - just show icon
   if (collapsed) {
