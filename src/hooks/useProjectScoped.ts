@@ -17,7 +17,7 @@
  * const { data } = useQuery(['messages', projectId], () => fetchMessages(projectId));
  */
 
-import { useProjectContext, ProjectSummary } from '@/contexts/ProjectContext';
+import { useProjectContextOptional, ProjectSummary } from '@/contexts/ProjectContext';
 
 export interface UseProjectScopedResult {
   /** Current project ID (null if none selected) */
@@ -39,14 +39,15 @@ export interface UseProjectScopedResult {
 }
 
 export function useProjectScoped(): UseProjectScopedResult {
-  const {
-    currentProject,
-    projects,
-    isLoading,
-    isReady,
-    switchProject,
-    clearProject,
-  } = useProjectContext();
+  const context = useProjectContextOptional();
+
+  // Handle case when provider is not available
+  const currentProject = context?.currentProject ?? null;
+  const projects = context?.projects ?? [];
+  const isLoading = context?.isLoading ?? true;
+  const isReady = context?.isReady ?? false;
+  const switchProject = context?.switchProject ?? (() => {});
+  const clearProject = context?.clearProject ?? (() => {});
 
   const projectId = currentProject?.id ?? null;
   const shouldShowEmptyState = isReady && !isLoading && !currentProject;
@@ -73,19 +74,23 @@ export function useProjectRequired(): {
   projectId: string;
   currentProject: ProjectSummary;
 } {
-  const { currentProject, isReady } = useProjectContext();
+  const context = useProjectContextOptional();
 
-  if (!isReady) {
+  if (!context) {
+    throw new Error('useProjectRequired: Project context not available');
+  }
+
+  if (!context.isReady) {
     throw new Error('useProjectRequired: Project context not ready');
   }
 
-  if (!currentProject) {
+  if (!context.currentProject) {
     throw new Error('useProjectRequired: No project selected');
   }
 
   return {
-    projectId: currentProject.id,
-    currentProject,
+    projectId: context.currentProject.id,
+    currentProject: context.currentProject,
   };
 }
 

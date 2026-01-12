@@ -17,7 +17,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FolderOpen, Plus, ArrowRight } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
-import { useProjectContext, ProjectSummary } from '@/contexts/ProjectContext';
+import { useProjectContextOptional, ProjectSummary } from '@/contexts/ProjectContext';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -49,7 +49,12 @@ export const NoProjectSelected: React.FC<NoProjectSelectedProps> = ({
   className,
 }) => {
   const navigate = useNavigate();
-  const { projects, switchProject, isLoading } = useProjectContext();
+  const context = useProjectContextOptional();
+
+  // Handle case when provider is not available
+  const projects = context?.projects ?? [];
+  const switchProject = context?.switchProject;
+  const isLoading = context?.isLoading ?? true;
 
   // Get recent projects (last N by most recent activity - for now just first N)
   const recentProjects = React.useMemo(
@@ -58,7 +63,7 @@ export const NoProjectSelected: React.FC<NoProjectSelectedProps> = ({
   );
 
   const handleSelectProject = (project: ProjectSummary) => {
-    switchProject(project.id);
+    switchProject?.(project.id);
   };
 
   const handleCreateProject = () => {
