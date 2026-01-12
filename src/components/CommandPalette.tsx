@@ -1,396 +1,420 @@
+/**
+ * CommandPalette - Quick navigation and actions (⌘K)
+ *
+ * Keyboard-driven command interface for quick navigation and actions.
+ * Inspired by VS Code, Raycast, and Linear.
+ */
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useOrganization } from '../contexts/OrganizationContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { Dialog, DialogContent } from './ui/dialog';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
-import { cn } from './ui/utils';
 import {
-  Search,
-  ArrowRight,
-  Settings,
-  User,
-  FolderOpen,
-  FileText,
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+  Home,
+  Briefcase,
+  Folder,
   Users,
-  Building,
-  Palette,
-  Zap,
-  Command,
-  Hash,
-  Clock,
-  Star,
+  MessageSquare,
+  Settings,
+  Plus,
+  Search,
+  Wrench,
+  Building2,
+  Layers,
+  type LucideIcon,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-interface CommandAction {
+interface Command {
   id: string;
-  title: string;
+  label: string;
   description?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  keywords: string[];
-  category: 'navigation' | 'actions' | 'settings' | 'search' | 'recent';
+  icon?: LucideIcon;
+  shortcut?: string[];
   action: () => void;
-  shortcut?: string;
-  requiresAuth?: boolean;
-  permissions?: string[];
+  category?: 'navigation' | 'actions' | 'create';
+  keywords?: string[];
 }
 
 interface CommandPaletteProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreateProject?: () => void;
+  projects?: Array<{ id: string; name: string }>;
 }
 
-export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
+export function CommandPalette({
+  open,
+  onOpenChange,
+  onCreateProject,
+  projects = [],
+}: CommandPaletteProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { currentOrganization } = useOrganization();
-  const { updateSettings } = useTheme();
-  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [recentCommands, setRecentCommands] = useState<string[]>([]);
 
-  // Load recent commands from localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('flux-command-palette-recent');
-      if (stored) {
-        setRecentCommands(JSON.parse(stored));
-      }
-    } catch (error) {
-      console.warn('Failed to load recent commands:', error);
-    }
-  }, []);
+  // Define commands
+  const commands: Command[] = useMemo(() => {
+    const baseCommands: Command[] = [
+      // Navigation
+      {
+        id: 'nav-dashboard',
+        label: 'Go to Dashboard',
+        icon: Home,
+        category: 'navigation',
+        keywords: ['home', 'dashboard', 'overview'],
+        action: () => {
+          navigate('/home');
+          onOpenChange(false);
+        },
+      },
+      {
+        id: 'nav-projects',
+        label: 'Go to Projects',
+        icon: Briefcase,
+        category: 'navigation',
+        keywords: ['projects', 'work'],
+        action: () => {
+          navigate('/projects');
+          onOpenChange(false);
+        },
+      },
+      {
+        id: 'nav-files',
+        label: 'Go to Files',
+        icon: Folder,
+        category: 'navigation',
+        keywords: ['files', 'documents', 'storage'],
+        action: () => {
+          navigate('/file');
+          onOpenChange(false);
+        },
+      },
+      {
+        id: 'nav-assets',
+        label: 'Go to Assets',
+        icon: Layers,
+        category: 'navigation',
+        keywords: ['assets', 'media', 'images'],
+        action: () => {
+          navigate('/assets');
+          onOpenChange(false);
+        },
+      },
+      {
+        id: 'nav-team',
+        label: 'Go to Team',
+        icon: Users,
+        category: 'navigation',
+        keywords: ['team', 'members', 'people'],
+        action: () => {
+          navigate('/team');
+          onOpenChange(false);
+        },
+      },
+      {
+        id: 'nav-messages',
+        label: 'Go to Messages',
+        icon: MessageSquare,
+        category: 'navigation',
+        keywords: ['messages', 'chat', 'communication'],
+        action: () => {
+          navigate('/messages');
+          onOpenChange(false);
+        },
+      },
+      {
+        id: 'nav-org',
+        label: 'Go to Organization',
+        icon: Building2,
+        category: 'navigation',
+        keywords: ['organization', 'company', 'org'],
+        action: () => {
+          navigate('/organization');
+          onOpenChange(false);
+        },
+      },
+      {
+        id: 'nav-tools',
+        label: 'Go to Tools',
+        icon: Wrench,
+        category: 'navigation',
+        keywords: ['tools', 'utilities'],
+        action: () => {
+          navigate('/tools');
+          onOpenChange(false);
+        },
+      },
+      {
+        id: 'nav-settings',
+        label: 'Go to Settings',
+        icon: Settings,
+        category: 'navigation',
+        keywords: ['settings', 'preferences', 'config'],
+        action: () => {
+          navigate('/settings');
+          onOpenChange(false);
+        },
+      },
 
-  // Save recent commands to localStorage
-  const saveRecentCommand = useCallback((commandId: string) => {
-    const updated = [commandId, ...recentCommands.filter(id => id !== commandId)].slice(0, 10);
-    setRecentCommands(updated);
-    try {
-      localStorage.setItem('flux-command-palette-recent', JSON.stringify(updated));
-    } catch (error) {
-      console.warn('Failed to save recent commands:', error);
-    }
-  }, [recentCommands]);
+      // Actions
+      {
+        id: 'action-create-project',
+        label: 'Create New Project',
+        description: 'Start a new project',
+        icon: Plus,
+        category: 'create',
+        shortcut: ['⌘', 'N'],
+        keywords: ['create', 'new', 'project', 'add'],
+        action: () => {
+          onOpenChange(false);
+          setTimeout(() => onCreateProject?.(), 100);
+        },
+      },
+      {
+        id: 'action-search',
+        label: 'Search Everything',
+        description: 'Search across all content',
+        icon: Search,
+        category: 'actions',
+        shortcut: ['⌘', 'F'],
+        keywords: ['search', 'find', 'look'],
+        action: () => {
+          onOpenChange(false);
+        },
+      },
+    ];
 
-  // Define available commands
-  const commands: CommandAction[] = useMemo(() => [
-    // Navigation Commands
-    {
-      id: 'nav-dashboard',
-      title: 'Go to Dashboard',
-      description: 'Return to your main dashboard',
-      icon: FolderOpen,
-      keywords: ['dashboard', 'home', 'main'],
+    // Add recent projects
+    const projectCommands: Command[] = projects.slice(0, 5).map((project) => ({
+      id: `project-${project.id}`,
+      label: project.name,
+      description: 'Go to project',
+      icon: Briefcase,
       category: 'navigation',
-      action: () => window.location.href = '/dashboard/unified',
-      shortcut: 'Cmd+H',
-    },
-    {
-      id: 'nav-projects',
-      title: 'View All Projects',
-      description: 'Browse all your projects',
-      icon: FileText,
-      keywords: ['projects', 'browse', 'list'],
-      category: 'navigation',
-      action: () => window.location.href = '/dashboard/projects',
-    },
-    {
-      id: 'nav-organizations',
-      title: 'Organizations',
-      description: 'Manage organizations and teams',
-      icon: Building,
-      keywords: ['organizations', 'teams', 'manage'],
-      category: 'navigation',
-      action: () => window.location.href = '/dashboard/organizations',
-      requiresAuth: true,
-    },
+      keywords: ['project', project.name.toLowerCase()],
+      action: () => {
+        navigate(`/projects/${project.id}`);
+        onOpenChange(false);
+      },
+    }));
 
-    // Action Commands
-    {
-      id: 'action-new-project',
-      title: 'Create New Project',
-      description: 'Start a new creative project',
-      icon: FileText,
-      keywords: ['create', 'new', 'project', 'start'],
-      category: 'actions',
-      action: () => navigate('/projects?create=true'),
-      shortcut: 'Cmd+N',
-      requiresAuth: true,
-    },
-    {
-      id: 'action-invite-user',
-      title: 'Invite Team Member',
-      description: 'Invite someone to your team',
-      icon: Users,
-      keywords: ['invite', 'team', 'member', 'collaborate'],
-      category: 'actions',
-      action: () => navigate('/dashboard/teams?invite=true'),
-      requiresAuth: true,
-      permissions: ['admin', 'designer'],
-    },
+    return [...baseCommands, ...projectCommands];
+  }, [navigate, onOpenChange, onCreateProject, projects]);
 
-    // Settings Commands
-    {
-      id: 'settings-profile',
-      title: 'Profile Settings',
-      description: 'Update your profile information',
-      icon: User,
-      keywords: ['profile', 'settings', 'account', 'personal'],
-      category: 'settings',
-      action: () => window.location.href = '/dashboard/profile',
-      requiresAuth: true,
-    },
-    {
-      id: 'settings-theme-dark',
-      title: 'Switch to Dark Theme',
-      description: 'Change to default dark theme',
-      icon: Palette,
-      keywords: ['theme', 'dark', 'appearance'],
-      category: 'settings',
-      action: () => updateSettings({ variant: 'default' }),
-    },
-    {
-      id: 'settings-theme-cosmic',
-      title: 'Switch to Cosmic Theme',
-      description: 'Change to cosmic purple theme',
-      icon: Palette,
-      keywords: ['theme', 'cosmic', 'purple', 'space'],
-      category: 'settings',
-      action: () => updateSettings({ variant: 'cosmic' }),
-    },
-    {
-      id: 'settings-animations-toggle',
-      title: 'Toggle Animations',
-      description: 'Enable or disable UI animations',
-      icon: Zap,
-      keywords: ['animations', 'toggle', 'performance'],
-      category: 'settings',
-      action: () => updateSettings({ showAnimations: !user?.preferences?.showAnimations }),
-    },
-
-    // Search Commands
-    {
-      id: 'search-files',
-      title: 'Search Files',
-      description: 'Find files across all projects',
-      icon: Search,
-      keywords: ['search', 'files', 'find', 'documents'],
-      category: 'search',
-      action: () => navigate('/dashboard/files?search=true'),
-      shortcut: 'Cmd+K',
-    },
-    {
-      id: 'search-projects',
-      title: 'Search Projects',
-      description: 'Find specific projects',
-      icon: Search,
-      keywords: ['search', 'projects', 'find'],
-      category: 'search',
-      action: () => navigate('/dashboard/projects?search=true'),
-      shortcut: 'Cmd+P',
-    },
-  ], [updateSettings, user?.preferences?.showAnimations]);
-
-  // Filter commands based on query and permissions
+  // Filter commands based on search
   const filteredCommands = useMemo(() => {
-    let filtered = commands.filter(command => {
-      // Check authentication requirements
-      if (command.requiresAuth && !user) return false;
+    if (!search) return commands;
 
-      // Check permissions
-      if (command.permissions && user && !command.permissions.includes(user.userType)) {
-        return false;
-      }
+    const searchLower = search.toLowerCase();
+    return commands.filter((cmd) => {
+      const matchesLabel = cmd.label.toLowerCase().includes(searchLower);
+      const matchesDescription = cmd.description?.toLowerCase().includes(searchLower);
+      const matchesKeywords = cmd.keywords?.some((k) => k.includes(searchLower));
 
-      // Filter by query
-      if (!query.trim()) return true;
-
-      const searchTerms = query.toLowerCase().split(' ');
-      return searchTerms.every(term =>
-        command.title.toLowerCase().includes(term) ||
-        command.description?.toLowerCase().includes(term) ||
-        command.keywords.some(keyword => keyword.toLowerCase().includes(term))
-      );
+      return matchesLabel || matchesDescription || matchesKeywords;
     });
+  }, [commands, search]);
 
-    // Add recent commands at the top if no query
-    if (!query.trim() && recentCommands.length > 0) {
-      const recentCommandObjects = recentCommands
-        .map(id => commands.find(cmd => cmd.id === id))
-        .filter(Boolean) as CommandAction[];
-
-      // Remove recent commands from filtered list to avoid duplicates
-      const nonRecentFiltered = filtered.filter(cmd => !recentCommands.includes(cmd.id));
-
-      // Add recent section
-      filtered = [
-        ...recentCommandObjects.map(cmd => ({ ...cmd, category: 'recent' as const })),
-        ...nonRecentFiltered
-      ];
-    }
-
-    return filtered;
-  }, [commands, query, user, recentCommands]);
-
-  // Handle command execution
-  const executeCommand = useCallback((command: CommandAction) => {
-    command.action();
-    saveRecentCommand(command.id);
-    onClose();
-    setQuery('');
-  }, [saveRecentCommand, onClose]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          setSelectedIndex(prev => (prev + 1) % filteredCommands.length);
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          setSelectedIndex(prev => prev === 0 ? filteredCommands.length - 1 : prev - 1);
-          break;
-        case 'Enter':
-          e.preventDefault();
-          if (filteredCommands[selectedIndex]) {
-            executeCommand(filteredCommands[selectedIndex]);
-          }
-          break;
-        case 'Escape':
-          e.preventDefault();
-          onClose();
-          break;
-      }
+  // Group commands by category
+  const groupedCommands = useMemo(() => {
+    const groups: Record<string, Command[]> = {
+      navigation: [],
+      actions: [],
+      create: [],
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, filteredCommands, selectedIndex, executeCommand, onClose]);
+    filteredCommands.forEach((cmd) => {
+      const category = cmd.category || 'navigation';
+      if (!groups[category]) groups[category] = [];
+      groups[category].push(cmd);
+    });
 
-  // Reset selection when filtered commands change
-  useEffect(() => {
-    setSelectedIndex(0);
+    return groups;
   }, [filteredCommands]);
 
-  // Reset state when closing
+  // Reset selection when search changes
   useEffect(() => {
-    if (!isOpen) {
-      setQuery('');
+    setSelectedIndex(0);
+  }, [search]);
+
+  // Reset search when closing
+  useEffect(() => {
+    if (!open) {
+      setSearch('');
       setSelectedIndex(0);
     }
-  }, [isOpen]);
+  }, [open]);
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'navigation': return ArrowRight;
-      case 'actions': return Zap;
-      case 'settings': return Settings;
-      case 'search': return Search;
-      case 'recent': return Clock;
-      default: return Hash;
-    }
+  // Keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex((prev) => Math.min(prev + 1, filteredCommands.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex((prev) => Math.max(prev - 1, 0));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        filteredCommands[selectedIndex]?.action();
+      } else if (e.key === 'Escape') {
+        onOpenChange(false);
+      }
+    },
+    [filteredCommands, selectedIndex, onOpenChange]
+  );
+
+  // Execute command
+  const executeCommand = (command: Command) => {
+    command.action();
   };
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'navigation': return 'bg-blue-500/20 text-blue-400';
-      case 'actions': return 'bg-green-500/20 text-green-400';
-      case 'settings': return 'bg-purple-500/20 text-purple-400';
-      case 'search': return 'bg-orange-500/20 text-orange-400';
-      case 'recent': return 'bg-gray-500/20 text-gray-400';
-      default: return 'bg-gray-500/20 text-gray-400';
-    }
+  const categoryLabels: Record<string, string> = {
+    navigation: 'Navigation',
+    actions: 'Actions',
+    create: 'Create',
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl p-0 bg-slate-900/95 backdrop-blur-md border-white/10">
-        <div className="border-b border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <Command className="h-5 w-5 text-gray-400" />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="p-0 gap-0 max-w-2xl" aria-describedby="command-palette-description">
+        <div className="sr-only" id="command-palette-description">
+          Command palette for quick navigation and actions
+        </div>
+
+        {/* Search Input */}
+        <div className="border-b border-neutral-200 dark:border-neutral-700 p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Type a command or search..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="border-0 bg-transparent text-white placeholder-gray-400 focus:ring-0 text-lg"
+              className="pl-10 border-0 focus-visible:ring-0 text-base"
               autoFocus
+              aria-label="Search commands"
             />
           </div>
         </div>
 
-        <div className="max-h-96 overflow-y-auto">
+        {/* Commands List */}
+        <div className="max-h-[400px] overflow-y-auto p-2">
           {filteredCommands.length === 0 ? (
-            <div className="p-8 text-center">
-              <Search className="h-8 w-8 text-gray-500 mx-auto mb-3" />
-              <p className="text-gray-400">No commands found</p>
-              <p className="text-sm text-gray-500 mt-1">Try different keywords</p>
+            <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">
+              No commands found
             </div>
           ) : (
-            <div className="p-2">
-              {filteredCommands.map((command, index) => {
-                const IconComponent = command.icon;
-                const CategoryIcon = getCategoryIcon(command.category);
+            <div className="space-y-4">
+              {Object.entries(groupedCommands).map(
+                ([category, cmds]) =>
+                  cmds.length > 0 && (
+                    <div key={category}>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase">
+                        {categoryLabels[category] || category}
+                      </div>
+                      <div className="space-y-1">
+                        {cmds.map((command) => {
+                          const globalIndex = filteredCommands.indexOf(command);
+                          const Icon = command.icon;
 
-                return (
-                  <div
-                    key={command.id}
-                    className={cn(
-                      'flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors',
-                      index === selectedIndex
-                        ? 'bg-white/10 text-white'
-                        : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                    )}
-                    onClick={() => executeCommand(command)}
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <IconComponent className="h-5 w-5 text-gray-400" />
-                      <div className="flex-1">
-                        <div className="font-medium">{command.title}</div>
-                        {command.description && (
-                          <div className="text-sm text-gray-400">{command.description}</div>
-                        )}
+                          return (
+                            <button
+                              key={command.id}
+                              onClick={() => executeCommand(command)}
+                              onMouseEnter={() => setSelectedIndex(globalIndex)}
+                              className={cn(
+                                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors',
+                                globalIndex === selectedIndex
+                                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-900 dark:text-primary-100'
+                                  : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300'
+                              )}
+                            >
+                              {Icon && (
+                                <Icon
+                                  className={cn(
+                                    'w-4 h-4 flex-shrink-0',
+                                    globalIndex === selectedIndex
+                                      ? 'text-primary-600 dark:text-primary-400'
+                                      : 'text-neutral-400 dark:text-neutral-500'
+                                  )}
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{command.label}</div>
+                                {command.description && (
+                                  <div className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                                    {command.description}
+                                  </div>
+                                )}
+                              </div>
+                              {command.shortcut && (
+                                <div className="flex items-center gap-1">
+                                  {command.shortcut.map((key, i) => (
+                                    <kbd
+                                      key={i}
+                                      className="px-1.5 py-0.5 text-xs font-semibold bg-neutral-200 dark:bg-neutral-700 rounded"
+                                    >
+                                      {key}
+                                    </kbd>
+                                  ))}
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2">
-                      <Badge className={cn('text-xs', getCategoryColor(command.category))}>
-                        <CategoryIcon className="h-3 w-3 mr-1" />
-                        {command.category}
-                      </Badge>
-
-                      {command.shortcut && (
-                        <Badge variant="outline" className="text-xs text-gray-400 border-gray-600">
-                          {command.shortcut}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  )
+              )}
             </div>
           )}
         </div>
 
-        <div className="border-t border-white/10 p-3">
-          <div className="flex items-center justify-between text-xs text-gray-400">
-            <div className="flex items-center gap-4">
-              <span>↑↓ to navigate</span>
-              <span>↵ to select</span>
-              <span>esc to close</span>
+        {/* Footer */}
+        <div className="border-t border-neutral-200 dark:border-neutral-700 p-2 flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded">↑↓</kbd>
+              <span>Navigate</span>
             </div>
             <div className="flex items-center gap-1">
-              <Star className="h-3 w-3" />
-              <span>{filteredCommands.length} commands</span>
+              <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded">↵</kbd>
+              <span>Select</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded">ESC</kbd>
+              <span>Close</span>
             </div>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
+}
+
+/**
+ * Hook to manage command palette state and keyboard shortcut
+ */
+export function useCommandPalette() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // ⌘K or Ctrl+K to open
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return { open, setOpen };
 }

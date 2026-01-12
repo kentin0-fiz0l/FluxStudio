@@ -34,6 +34,7 @@ import {
   FolderOpen
 } from 'lucide-react';
 import { EmptyState, emptyStateConfigs } from '../components/common/EmptyState';
+import { BulkActionBar } from '../components/BulkActionBar';
 
 type ViewMode = 'grid' | 'list';
 type StatusFilter = 'all' | Project['status'];
@@ -71,6 +72,9 @@ export function ProjectsNew() {
   const [showLinkFileModal, setShowLinkFileModal] = useState(false);
   const [linkingFileId, setLinkingFileId] = useState<string | null>(null);
   const [isLinking, setIsLinking] = useState(false);
+
+  // Bulk selection state
+  const [selectedProjects, setSelectedProjects] = useState<Set<string>>(new Set());
 
   // Form State
   const [createForm, setCreateForm] = useState({
@@ -257,6 +261,47 @@ export function ProjectsNew() {
     toast.success(`Now focused on "${project.name}"`);
   };
 
+  // Bulk selection handlers
+  const handleSelectProject = (projectId: string, selected: boolean) => {
+    setSelectedProjects(prev => {
+      const next = new Set(prev);
+      if (selected) {
+        next.add(projectId);
+      } else {
+        next.delete(projectId);
+      }
+      return next;
+    });
+  };
+
+  const handleClearSelection = () => {
+    setSelectedProjects(new Set());
+  };
+
+  const handleBulkDelete = () => {
+    if (window.confirm(`Are you sure you want to delete ${selectedProjects.size} project${selectedProjects.size !== 1 ? 's' : ''}?`)) {
+      // TODO: Implement bulk delete logic here
+      toast.success(`${selectedProjects.size} project${selectedProjects.size !== 1 ? 's' : ''} deleted`);
+      setSelectedProjects(new Set());
+    }
+  };
+
+  const handleBulkArchive = () => {
+    // TODO: Implement bulk archive logic here
+    toast.success(`${selectedProjects.size} project${selectedProjects.size !== 1 ? 's' : ''} archived`);
+    setSelectedProjects(new Set());
+  };
+
+  const handleBulkMove = () => {
+    // TODO: Implement bulk move logic here
+    toast.info('Bulk move functionality coming soon');
+  };
+
+  const handleBulkTag = () => {
+    // TODO: Implement bulk tag logic here
+    toast.info('Bulk tag functionality coming soon');
+  };
+
   return (
     <DashboardLayout
       user={user}
@@ -433,19 +478,32 @@ export function ProjectsNew() {
             }
           >
             {filteredProjects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                variant={viewMode === 'list' ? 'compact' : 'default'}
-                showActions
-                showProgress
-                showTeam
-                showTags
-                onView={() => handleProjectView(project)}
-                onEdit={() => handleProjectEdit(project)}
-                onFocus={() => handleProjectFocus(project)}
-                isFocused={isProjectFocused(project.id)}
-              />
+              <div key={project.id} className="relative group">
+                {/* Selection checkbox */}
+                <div className="absolute top-3 left-3 z-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedProjects.has(project.id)}
+                    onChange={(e) => handleSelectProject(project.id, e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-5 h-5 rounded border-neutral-300 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 cursor-pointer"
+                    aria-label={`Select ${project.name}`}
+                  />
+                </div>
+
+                <ProjectCard
+                  project={project}
+                  variant={viewMode === 'list' ? 'compact' : 'default'}
+                  showActions
+                  showProgress
+                  showTeam
+                  showTags
+                  onView={() => handleProjectView(project)}
+                  onEdit={() => handleProjectEdit(project)}
+                  onFocus={() => handleProjectFocus(project)}
+                  isFocused={isProjectFocused(project.id)}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -690,6 +748,16 @@ export function ProjectsNew() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedProjects.size}
+        onClear={handleClearSelection}
+        onDelete={handleBulkDelete}
+        onArchive={handleBulkArchive}
+        onMove={handleBulkMove}
+        onTag={handleBulkTag}
+      />
     </DashboardLayout>
   );
 }

@@ -10,7 +10,7 @@ import { MessagingProvider } from './contexts/MessagingContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ActiveProjectProvider } from './contexts/ActiveProjectContext';
 import { ProjectProvider } from './contexts/ProjectContext';
-import { SessionProvider } from './contexts/SessionContext';
+import { SessionProvider } from './contexts/SessionProvider';
 import { WorkingContextProvider } from './contexts/WorkingContext';
 import { ConnectorsProvider } from './contexts/ConnectorsContext';
 import { FilesProvider } from './contexts/FilesContext';
@@ -31,6 +31,8 @@ import { apiService } from './services/apiService';
 import { lazyLoadWithRetry, DefaultLoadingFallback } from './utils/lazyLoad';
 import { queryClient } from './lib/queryClient';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { useTheme } from './hooks/useTheme';
+import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 
 // Critical pages - loaded immediately
 import { SimpleHomePage } from './pages/SimpleHomePage';
@@ -231,6 +233,12 @@ function AuthenticatedRoutes() {
 }
 
 export default function App() {
+  // Initialize theme system (Light/Dark/Auto)
+  useTheme();
+
+  // Initialize command palette
+  const { open: commandPaletteOpen, setOpen: setCommandPaletteOpen } = useCommandPalette();
+
   // Initialize performance monitoring and CSRF token
   React.useEffect(() => {
     performanceMonitoring.trackFeatureUsage('app-start');
@@ -258,6 +266,12 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <Router>
           <ThemeProvider>
+            {/* Global Command Palette - accessible via ⌘K */}
+            <CommandPalette
+              open={commandPaletteOpen}
+              onOpenChange={setCommandPaletteOpen}
+              projects={[]}
+            />
             <Routes>
               {/* All routes go through authenticated providers */}
               <Route path="/*" element={<AuthenticatedRoutes />} />

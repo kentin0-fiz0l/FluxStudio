@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { useNotifications, Notification as NotificationType } from '@/contexts/NotificationContext';
 import { UserTestPill, UserTestPanel } from '@/components/usertest';
 import { useUserTestMode } from '@/hooks/useUserTestMode';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export interface Breadcrumb {
   label: string;
@@ -268,8 +269,11 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
             </div>
           )}
 
-          {/* Right Section: User Test + Notifications + User */}
+          {/* Right Section: Theme + User Test + Notifications + User */}
           <div className="flex items-center gap-2">
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
             {/* User Test Pill */}
             {isUserTestEnabled && (
               <UserTestPill onClick={() => setUserTestPanelOpen(true)} />

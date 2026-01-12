@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Read(./src/**)",
+      "Read(./apps/**)",
+      "Read(./packages/**)",
+      "Edit(./src/**)",
+      "Edit(./apps/**)",
+      "Edit(./packages/**)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./.env.local)",
+      "Read(./.env.production)",
+      "Read(./.env.secrets)"
+    ]
+  }
+}

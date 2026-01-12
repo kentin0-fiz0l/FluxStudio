@@ -154,6 +154,21 @@
   --font-title: 'Swanky and Moo Moo', cursive;
   --font-body: 'Lexend', sans-serif;
   --font-heading: 'Lexend', sans-serif;
+
+  /* Dashboard Design System Variables */
+  --spacing-content: 1.5rem;
+  --spacing-section: 3rem;
+
+  /* Dashboard Colors - Light Mode */
+  --color-bg-app: 249 250 251; /* neutral-50 */
+  --color-bg-card: 255 255 255;
+  --color-sidebar: 17 24 39; /* neutral-900 */
+  --color-text-primary: 17 24 39;
+  --color-text-secondary: 107 114 128;
+
+  /* Borders */
+  --border-radius-card: 0.75rem;
+  --border-radius-button: 0.5rem;
 }
 
 .dark {
@@ -188,6 +203,13 @@
   --chart-3: 30 80% 55%;
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
+
+  /* Dashboard Colors - Dark Mode */
+  --color-bg-app: 17 24 39; /* neutral-900 */
+  --color-bg-card: 31 41 55; /* neutral-800 */
+  --color-sidebar: 31 41 55;
+  --color-text-primary: 249 250 251;
+  --color-text-secondary: 156 163 175;
 }
 
 * {
@@ -198,6 +220,7 @@ body {
   color: hsl(var(--foreground));
   background: hsl(var(--background));
   font-feature-settings: "rlig" 1, "calt" 1;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Flux Studio specific styles */
