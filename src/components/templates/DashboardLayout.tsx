@@ -17,6 +17,7 @@ import * as React from 'react';
 import { NavigationSidebar, NavigationItem } from '@/components/organisms/NavigationSidebar';
 import { TopBar, Breadcrumb, Notification } from '@/components/organisms/TopBar';
 import { SkipLink } from '@/components/ui';
+import { AIChatPanel } from '@/components/ai/AIChatPanel';
 import { cn } from '@/lib/utils';
 
 export interface DashboardLayoutProps {
@@ -117,6 +118,25 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
   ) => {
     const [sidebarCollapsed, setSidebarCollapsed] = React.useState(initialCollapsed);
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+    const [aiPanelOpen, setAiPanelOpen] = React.useState(false);
+
+    // Keyboard shortcut for AI Panel (Cmd+K / Ctrl+K)
+    React.useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        // Cmd+K on Mac, Ctrl+K on Windows/Linux
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+          e.preventDefault();
+          setAiPanelOpen((prev) => !prev);
+        }
+        // Escape to close
+        if (e.key === 'Escape' && aiPanelOpen) {
+          setAiPanelOpen(false);
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [aiPanelOpen]);
 
     // Close mobile menu when window is resized to desktop
     React.useEffect(() => {
@@ -220,6 +240,13 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
             {children}
           </main>
         </div>
+
+        {/* AI Co-Pilot Panel (Cmd+K) */}
+        <AIChatPanel
+          isOpen={aiPanelOpen}
+          onClose={() => setAiPanelOpen(false)}
+          position="right"
+        />
       </div>
     );
   }

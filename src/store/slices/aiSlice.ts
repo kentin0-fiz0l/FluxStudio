@@ -151,7 +151,15 @@ export interface AIActions {
   clearConversations: () => void;
 
   // Messages
-  sendMessage: (conversationId: string, content: string, attachments?: AIAttachment[]) => Promise<void>;
+  sendMessage: (
+    conversationId: string,
+    content: string,
+    context?: {
+      project?: { id: string; name: string; description?: string; status?: string };
+      page?: string;
+      recentActions?: string[];
+    }
+  ) => Promise<void>;
   addMessage: (conversationId: string, message: Omit<AIMessage, 'id' | 'timestamp'>) => string;
   updateMessage: (conversationId: string, messageId: string, updates: Partial<AIMessage>) => void;
   deleteMessage: (conversationId: string, messageId: string) => void;
@@ -279,7 +287,7 @@ export const createAISlice: StateCreator<
     },
 
     // Message actions
-    sendMessage: async (conversationId, content, attachments) => {
+    sendMessage: async (conversationId, content, externalContext) => {
       const conversation = get().ai.conversations.find((c) => c.id === conversationId);
       if (!conversation) return;
 
@@ -287,7 +295,6 @@ export const createAISlice: StateCreator<
       get().ai.addMessage(conversationId, {
         role: 'user',
         content,
-        attachments,
       });
 
       // Create streaming assistant message
@@ -305,26 +312,47 @@ export const createAISlice: StateCreator<
       });
 
       try {
-        // This would be replaced with actual API call
-        // For now, simulate streaming response
-        const response = await simulateAIResponse(content, conversation.model);
+        // Import AI service dynamically to avoid circular dependencies
+        const { streamChat, chat } = await import('@/services/aiService');
+
+        // Use external context if provided, otherwise build minimal context
+        const context = externalContext || {
+          project: conversation.projectId ? { id: conversation.projectId, name: '', description: '' } : undefined,
+        };
 
         if (get().ai.preferences.streamResponses) {
-          // Simulate streaming
-          for (let i = 0; i < response.length; i += 10) {
-            const chunk = response.slice(i, i + 10);
-            get().ai.streamMessageChunk(conversationId, assistantMessageId, chunk);
-            await new Promise((r) => setTimeout(r, 50));
-          }
+          // Use streaming API
+          await streamChat(
+            content,
+            {
+              conversationId,
+              model: conversation.model as 'claude-3-opus' | 'claude-3-sonnet' | 'claude-3-haiku',
+              context,
+            },
+            {
+              onChunk: (chunk) => {
+                get().ai.streamMessageChunk(conversationId, assistantMessageId, chunk);
+              },
+              onDone: (_convId, tokensUsed) => {
+                get().ai.finishStreaming(conversationId, assistantMessageId);
+                get().ai.incrementUsage(tokensUsed);
+              },
+              onError: (error) => {
+                get().ai.updateMessage(conversationId, assistantMessageId, {
+                  error,
+                  isStreaming: false,
+                });
+                get().ai.setError(error);
+              },
+            }
+          );
         } else {
-          get().ai.updateMessage(conversationId, assistantMessageId, { content: response });
+          // Use sync API
+          const response = await chat(content, context);
+          get().ai.updateMessage(conversationId, assistantMessageId, { content: response.content });
+          get().ai.finishStreaming(conversationId, assistantMessageId);
+          get().ai.incrementUsage(response.tokensUsed);
         }
-
-        get().ai.finishStreaming(conversationId, assistantMessageId);
-
-        // Update usage
-        const estimatedTokens = Math.ceil((content.length + response.length) / 4);
-        get().ai.incrementUsage(estimatedTokens);
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -554,24 +582,6 @@ export const createAISlice: StateCreator<
     },
   },
 });
-
-// ============================================================================
-// Simulation Helper (would be replaced with actual API)
-// ============================================================================
-
-async function simulateAIResponse(prompt: string, _model: AIModel): Promise<string> {
-  await new Promise((r) => setTimeout(r, 500));
-
-  const responses = [
-    "I understand you're working on this creative project. Here are some suggestions to enhance your work...",
-    "Based on the context, I'd recommend considering these approaches for your design...",
-    "That's an interesting direction! Here's how we could develop this idea further...",
-    "I can help you refine this concept. Let me break down some key considerations...",
-  ];
-
-  return responses[Math.floor(Math.random() * responses.length)] +
-    `\n\nYour input: "${prompt.slice(0, 50)}..."`;
-}
 
 // ============================================================================
 // Convenience Hooks

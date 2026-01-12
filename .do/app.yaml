@@ -154,11 +154,12 @@ services:
         value: "3001"
 
       # Database (Existing PostgreSQL database - same as MetMap for shared accounts)
+      # TEMPORARILY DISABLED until DATABASE_URL secret is configured
       - key: DATABASE_URL
         scope: RUN_TIME
         type: SECRET
       - key: USE_DATABASE
-        value: "true"
+        value: "false"
       - key: DB_SSL
         value: "true"
 

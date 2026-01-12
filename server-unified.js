@@ -667,6 +667,10 @@ app.use('/admin/maintenance', adminMaintenance);
 // Mount monitoring endpoints
 app.use('/monitoring', createMonitoringRouter());
 
+// Mount AI Design Assistant routes
+const aiRoutes = require('./routes/ai');
+app.use('/api/ai', aiRoutes);
+
 // Organizations endpoint (teams API)
 // Note: Path is /organizations but DigitalOcean routes /api/organizations to here
 app.get('/organizations', authenticateToken, async (req, res) => {

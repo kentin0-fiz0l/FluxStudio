@@ -28,6 +28,8 @@ import {
   Settings,
 } from 'lucide-react';
 import { useAI, useActiveConversation, useAIUsage, type AIMessage } from '@/store/slices/aiSlice';
+import { useProjectContextOptional } from '@/contexts/ProjectContext';
+import { useAIContext } from '@/hooks/useAIContext';
 import { cn } from '@/lib/utils';
 
 interface AIChatPanelProps {
@@ -46,10 +48,26 @@ export function AIChatPanel({
   const ai = useAI();
   const conversation = useActiveConversation();
   const usage = useAIUsage();
+  const projectContext = useProjectContextOptional();
+  const { context: aiContext, addAction } = useAIContext();
   const [input, setInput] = React.useState('');
   const [isExpanded, setIsExpanded] = React.useState(false);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
+
+  // Build context for AI requests
+  const buildAIContext = React.useCallback(() => {
+    return {
+      project: projectContext?.currentProject ? {
+        id: projectContext.currentProject.id,
+        name: projectContext.currentProject.name,
+        description: projectContext.currentProject.description,
+        status: projectContext.currentProject.status,
+      } : undefined,
+      page: aiContext.page,
+      recentActions: aiContext.recentActions.slice(0, 5),
+    };
+  }, [projectContext?.currentProject, aiContext.page, aiContext.recentActions]);
 
   // Scroll to bottom on new messages
   React.useEffect(() => {
@@ -66,16 +84,26 @@ export function AIChatPanel({
   // Create conversation if none exists
   React.useEffect(() => {
     if (isOpen && !conversation) {
-      ai.createConversation({ title: 'New Chat' });
+      const context = buildAIContext();
+      const projectName = context.project?.name;
+      ai.createConversation({
+        title: projectName ? `Chat: ${projectName}` : 'New Chat',
+        projectId: context.project?.id,
+      });
     }
-  }, [isOpen, conversation, ai]);
+  }, [isOpen, conversation, ai, buildAIContext]);
 
   const handleSend = async () => {
     if (!input.trim() || !conversation || ai.isProcessing) return;
 
     const message = input.trim();
     setInput('');
-    await ai.sendMessage(conversation.id, message);
+
+    // Track the action for context
+    addAction(`Sent message: "${message.slice(0, 30)}${message.length > 30 ? '...' : ''}"`);
+
+    // Pass context with the message
+    await ai.sendMessage(conversation.id, message, buildAIContext());
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -86,7 +114,12 @@ export function AIChatPanel({
   };
 
   const handleNewChat = () => {
-    ai.createConversation({ title: 'New Chat' });
+    const context = buildAIContext();
+    const projectName = context.project?.name;
+    ai.createConversation({
+      title: projectName ? `Chat: ${projectName}` : 'New Chat',
+      projectId: context.project?.id,
+    });
     setInput('');
   };
 
