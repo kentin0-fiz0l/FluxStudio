@@ -163,10 +163,10 @@ services:
       - key: DB_SSL
         value: "true"
 
-      # Redis (Optional - for Socket.IO scaling)
-      # Disabled by default - enable when Redis database is added
+      # Redis (Valkey 8.0 - Redis-compatible cache layer)
+      # REDIS_URL is set as encrypted secret in DigitalOcean dashboard
       - key: USE_REDIS
-        value: "false"
+        value: "true"
       - key: REDIS_URL
         scope: RUN_TIME
         type: SECRET
