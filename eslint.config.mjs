@@ -11,7 +11,11 @@ export default [
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2020,
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        JSX: 'readonly',
+      },
       parser: tseslintParser,
       parserOptions: {
         ecmaVersion: 'latest',
@@ -37,6 +41,8 @@ export default [
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
       'prefer-const': 'error',
+      // Disable no-undef - TypeScript handles this better
+      'no-undef': 'off',
       // DEBT-012: Prevent console statements in production
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       // DEBT-013: Array index keys - add eslint-plugin-react and enable 'react/no-array-index-key'
