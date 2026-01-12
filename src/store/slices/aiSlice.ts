@@ -10,7 +10,7 @@
  */
 
 import { StateCreator } from 'zustand';
-import { FluxStore } from '../store';
+import type { FluxStore } from '../types';
 
 // ============================================================================
 // Types

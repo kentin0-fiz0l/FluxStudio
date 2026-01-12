@@ -9,28 +9,18 @@ import { create } from 'zustand';
 import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 
-import { AuthSlice, createAuthSlice } from './slices/authSlice';
-import { ProjectSlice, createProjectSlice } from './slices/projectSlice';
-import { UISlice, createUISlice } from './slices/uiSlice';
-import { MessagingSlice, createMessagingSlice } from './slices/messagingSlice';
-import { OfflineSlice, createOfflineSlice } from './slices/offlineSlice';
-import { CollaborationSlice, createCollaborationSlice } from './slices/collaborationSlice';
-import { TimelineSlice, createTimelineSlice } from './slices/timelineSlice';
-import { AISlice, createAISlice } from './slices/aiSlice';
+import { createAuthSlice } from './slices/authSlice';
+import { createProjectSlice } from './slices/projectSlice';
+import { createUISlice } from './slices/uiSlice';
+import { createMessagingSlice } from './slices/messagingSlice';
+import { createOfflineSlice } from './slices/offlineSlice';
+import { createCollaborationSlice } from './slices/collaborationSlice';
+import { createTimelineSlice } from './slices/timelineSlice';
+import { createAISlice } from './slices/aiSlice';
 
-// ============================================================================
-// Combined Store Type
-// ============================================================================
-
-export interface FluxStore extends
-  AuthSlice,
-  ProjectSlice,
-  UISlice,
-  MessagingSlice,
-  OfflineSlice,
-  CollaborationSlice,
-  TimelineSlice,
-  AISlice {}
+// Import and re-export FluxStore type from types.ts to avoid circular dependencies
+import type { FluxStore } from './types';
+export type { FluxStore };
 
 // ============================================================================
 // Store Creation
