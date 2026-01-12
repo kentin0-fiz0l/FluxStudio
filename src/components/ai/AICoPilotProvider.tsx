@@ -14,7 +14,7 @@ import { AICommandPalette } from './AICommandPalette';
 import { AISuggestionsBar } from './AISuggestionsBar';
 import { useAIShortcuts } from '@/hooks/useAIShortcuts';
 import { useAIContext } from '@/hooks/useAIContext';
-import { useAI } from '@/store/slices/aiSlice';
+import { useAI } from '@/store';
 
 interface AICoPilotContextValue {
   isChatOpen: boolean;

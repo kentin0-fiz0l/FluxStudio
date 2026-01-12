@@ -19,7 +19,7 @@ import {
   Zap,
   AlertTriangle,
 } from 'lucide-react';
-import { useAISuggestions, useAI, type AISuggestion } from '@/store/slices/aiSlice';
+import { useAISuggestions, useAI, type AISuggestion } from '@/store';
 import { cn } from '@/lib/utils';
 
 interface AISuggestionsBarProps {

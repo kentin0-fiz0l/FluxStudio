@@ -43,7 +43,7 @@ export {
   useAIUsage,
   useAIPreferences,
   useGenerationRequests,
-} from './slices/aiSlice';
+} from './hooks/aiHooks';
 
 // Type exports
 export type {

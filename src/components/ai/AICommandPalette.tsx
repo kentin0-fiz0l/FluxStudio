@@ -22,7 +22,7 @@ import {
   Loader2,
   X,
 } from 'lucide-react';
-import { useAI } from '@/store/slices/aiSlice';
+import { useAI } from '@/store';
 import { cn } from '@/lib/utils';
 
 interface AICommand {

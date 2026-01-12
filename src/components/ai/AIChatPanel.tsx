@@ -27,7 +27,7 @@ import {
   RefreshCw,
   Settings,
 } from 'lucide-react';
-import { useAI, useActiveConversation, useAIUsage, type AIMessage } from '@/store/slices/aiSlice';
+import { useAI, useActiveConversation, useAIUsage, type AIMessage } from '@/store';
 import { useProjectContextOptional } from '@/contexts/ProjectContext';
 import { useAIContext } from '@/hooks/useAIContext';
 import { cn } from '@/lib/utils';
