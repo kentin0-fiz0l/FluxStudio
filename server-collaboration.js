@@ -1,17 +1,19 @@
 /**
  * FluxStudio Collaboration Server
  * Real-time CRDT-based collaborative editing using Yjs
- * Sprint 11 - Phase 1: Infrastructure Setup
+ * Sprint 11 - Phase 2: Document Persistence
  */
 
 const http = require('http');
 const WebSocket = require('ws');
 const Y = require('yjs');
 const { encodeAwarenessUpdate, applyAwarenessUpdate } = require('y-protocols/awareness');
+const db = require('./lib/db');
 require('dotenv').config();
 
 const PORT = process.env.COLLAB_PORT || 4000;
 const HOST = process.env.COLLAB_HOST || '0.0.0.0';
+const AUTOSAVE_INTERVAL = 30000; // 30 seconds
 
 // Statistics tracking
 const stats = {
@@ -60,13 +62,92 @@ const server = http.createServer((req, res) => {
 
 // Store Y.Doc instances per room
 const docs = new Map(); // roomName -> Y.Doc
+const saveTimers = new Map(); // roomName -> timer for auto-save
 
-// Get or create Y.Doc for a room
-function getDoc(roomName) {
+/**
+ * Save document snapshot to database
+ */
+async function saveDocument(roomName, doc) {
+  try {
+    const snapshot = Y.encodeStateAsUpdate(doc);
+    const buffer = Buffer.from(snapshot);
+
+    await db.query(
+      `INSERT INTO documents (room_id, snapshot, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (room_id) DO UPDATE
+       SET snapshot = $2, updated_at = NOW()`,
+      [roomName, buffer]
+    );
+
+    console.log(`💾 Saved document for room: ${roomName} (${buffer.length} bytes)`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error saving document for room ${roomName}:`, error.message);
+    return false;
+  }
+}
+
+/**
+ * Load document snapshot from database
+ */
+async function loadDocument(roomName, doc) {
+  try {
+    const result = await db.query(
+      'SELECT snapshot FROM documents WHERE room_id = $1',
+      [roomName]
+    );
+
+    if (result.rows.length > 0) {
+      const snapshot = new Uint8Array(result.rows[0].snapshot);
+      Y.applyUpdate(doc, snapshot);
+      console.log(`📂 Loaded document for room: ${roomName} (${snapshot.length} bytes)`);
+      return true;
+    }
+
+    console.log(`📄 No existing document for room: ${roomName}`);
+    return false;
+  } catch (error) {
+    console.error(`❌ Error loading document for room ${roomName}:`, error.message);
+    return false;
+  }
+}
+
+/**
+ * Schedule auto-save for a document
+ */
+function scheduleAutoSave(roomName, doc) {
+  // Clear existing timer if any
+  if (saveTimers.has(roomName)) {
+    clearTimeout(saveTimers.get(roomName));
+  }
+
+  // Schedule new save
+  const timer = setTimeout(async () => {
+    await saveDocument(roomName, doc);
+    // Reschedule for next interval
+    scheduleAutoSave(roomName, doc);
+  }, AUTOSAVE_INTERVAL);
+
+  saveTimers.set(roomName, timer);
+}
+
+/**
+ * Get or create Y.Doc for a room (with persistence)
+ */
+async function getDoc(roomName) {
   if (!docs.has(roomName)) {
     const doc = new Y.Doc();
+
+    // Try to load existing document from database
+    await loadDocument(roomName, doc);
+
     docs.set(roomName, doc);
-    console.log(`📄 Created new document for room: ${roomName}`);
+
+    // Start auto-save timer
+    scheduleAutoSave(roomName, doc);
+
+    console.log(`📄 Initialized document for room: ${roomName}`);
   }
   return docs.get(roomName);
 }
@@ -76,7 +157,7 @@ const wss = new WebSocket.Server({ server });
 
 console.log('🚀 FluxStudio Collaboration Server starting...');
 
-wss.on('connection', (ws, req) => {
+wss.on('connection', async (ws, req) => {
   stats.connections++;
   stats.totalConnections++;
 
@@ -95,8 +176,8 @@ wss.on('connection', (ws, req) => {
   }
   stats.rooms.get(roomName).add(ws);
 
-  // Get Y.Doc for this room
-  const doc = getDoc(roomName);
+  // Get Y.Doc for this room (loads from database if exists)
+  const doc = await getDoc(roomName);
 
   // Send initial document state to client
   const stateVector = Y.encodeStateVector(doc);
@@ -180,7 +261,7 @@ wss.on('connection', (ws, req) => {
   });
 
   // Handle disconnection
-  ws.on('close', () => {
+  ws.on('close', async () => {
     stats.connections--;
 
     // Remove update listener
@@ -193,9 +274,25 @@ wss.on('connection', (ws, req) => {
       // Clean up empty rooms
       if (room.size === 0) {
         stats.rooms.delete(roomName);
-        // Optionally: persist document and remove from memory
-        // For now, keep in memory for quick reconnects
-        console.log(`🗑️  Room empty (keeping document in memory): ${roomName}`);
+
+        // Save document one final time before cleanup
+        await saveDocument(roomName, doc);
+
+        // Clear auto-save timer
+        if (saveTimers.has(roomName)) {
+          clearTimeout(saveTimers.get(roomName));
+          saveTimers.delete(roomName);
+        }
+
+        // Keep document in memory for 5 minutes for quick reconnects
+        setTimeout(() => {
+          if (!stats.rooms.has(roomName)) {
+            docs.delete(roomName);
+            console.log(`🗑️  Document removed from memory: ${roomName}`);
+          }
+        }, 300000); // 5 minutes
+
+        console.log(`💾 Room empty, document saved: ${roomName}`);
       }
     }
 
@@ -225,8 +322,26 @@ server.listen(PORT, HOST, () => {
 });
 
 // Graceful shutdown
-const shutdown = () => {
+const shutdown = async () => {
   console.log('\n🛑 Shutting down collaboration server...');
+
+  // Save all documents before shutdown
+  console.log('💾 Saving all documents...');
+  const savePromises = [];
+  docs.forEach((doc, roomName) => {
+    savePromises.push(saveDocument(roomName, doc));
+  });
+
+  try {
+    await Promise.all(savePromises);
+    console.log(`✅ Saved ${savePromises.length} document(s)`);
+  } catch (error) {
+    console.error('❌ Error saving documents:', error.message);
+  }
+
+  // Clear all auto-save timers
+  saveTimers.forEach((timer) => clearTimeout(timer));
+  saveTimers.clear();
 
   // Close all WebSocket connections
   wss.clients.forEach((ws) => {
