@@ -215,7 +215,16 @@ app.use(cookieParser());
 // so paths here should NOT include /api prefix
 app.use(csrfProtection({
   ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
-  ignorePaths: ['/auth/google', '/auth/apple', '/health', '/monitoring']
+  ignorePaths: [
+    '/auth/google',
+    '/auth/apple',
+    '/auth/login',
+    '/auth/signup',
+    '/api/auth/login',
+    '/api/auth/signup',
+    '/health',
+    '/monitoring'
+  ]
 }));
 
 // Static file serving
@@ -583,6 +592,8 @@ if (USE_DATABASE && authAdapter) {
 // CSRF token endpoint
 // Note: DigitalOcean routes /api/csrf-token to this service as /csrf-token
 app.get('/csrf-token', getCsrfToken);
+// Also serve at /api/csrf-token for local development
+app.get('/api/csrf-token', getCsrfToken);
 
 // Mount route modules (all auth routes consolidated here for simplicity)
 // For a production app, these would be in separate route files in ./routes/
@@ -652,6 +663,7 @@ app.post('/auth/google', async (req, res) => {
 // NOW mount the /auth router (after OAuth route is defined)
 // This prevents the router from catching OAuth requests
 app.use('/auth', refreshTokenRoutes);
+app.use('/api/auth', refreshTokenRoutes); // Alias for frontend compatibility
 
 // Mount Sprint 13 Day 5 - Admin API Routes
 const adminBlockedIps = require('./lib/api/admin/blockedIps');
@@ -670,6 +682,10 @@ app.use('/monitoring', createMonitoringRouter());
 // Mount AI Design Assistant routes
 const aiRoutes = require('./routes/ai');
 app.use('/api/ai', aiRoutes);
+
+// Mount Documents routes (collaborative editing)
+const documentsRoutes = require('./routes/documents');
+app.use('/api', documentsRoutes);
 
 // Organizations endpoint (teams API)
 // Note: Path is /organizations but DigitalOcean routes /api/organizations to here
