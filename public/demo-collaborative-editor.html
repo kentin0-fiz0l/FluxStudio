@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FluxStudio Collaborative Editor Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 900px;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px;
+      position: relative;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .status {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.connecting {
+      background: #f59e0b;
+    }
+
+    .status-dot.disconnected {
+      background: #ef4444;
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .toolbar {
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .room-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .room-id {
+      background: #e5e7eb;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+
+    .users {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .user-count {
+      font-size: 12px;
+      color: #6b7280;
+      margin-left: 4px;
+    }
+
+    .editor-container {
+      position: relative;
+      min-height: 400px;
+    }
+
+    #editor {
+      width: 100%;
+      min-height: 400px;
+      padding: 24px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      line-height: 1.6;
+      resize: vertical;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    #editor::placeholder {
+      color: #9ca3af;
+    }
+
+    .cursors {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .cursor {
+      position: absolute;
+      width: 2px;
+      height: 20px;
+      pointer-events: none;
+      animation: blink 1s infinite;
+    }
+
+    .cursor-label {
+      position: absolute;
+      top: -20px;
+      left: 0;
+      background: inherit;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    .footer {
+      background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+      padding: 16px 24px;
+      font-size: 12px;
+      color: #6b7280;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stats {
+      display: flex;
+      gap: 16px;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .instructions {
+      background: #fef3c7;
+      border: 1px solid #fbbf24;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 16px 24px;
+      font-size: 14px;
+      color: #92400e;
+    }
+
+    .instructions strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .copy-button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.2s;
+    }
+
+    .copy-button:hover {
+      background: #5568d3;
+    }
+
+    .copy-button:active {
+      transform: scale(0.95);
+    }
+
+    @media (max-width: 640px) {
+      .header h1 {
+        font-size: 20px;
+      }
+
+      .status {
+        position: static;
+        margin-top: 12px;
+      }
+
+      .toolbar {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>
+        <span>✨</span>
+        FluxStudio Collaborative Editor
+      </h1>
+      <p>Real-time collaborative editing powered by Yjs CRDT</p>
+      <div class="status">
+        <div class="status-dot connecting" id="statusDot"></div>
+        <span id="statusText">Connecting...</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="room-info">
+        <span>Room:</span>
+        <span class="room-id" id="roomId">...</span>
+        <button class="copy-button" onclick="copyRoomUrl()">Copy Link</button>
+      </div>
+      <div class="users">
+        <div id="userBadges"></div>
+        <span class="user-count" id="userCount">0 users</span>
+      </div>
+    </div>
+
+    <div class="instructions">
+      <strong>🎯 Try it out!</strong>
+      1. Open this page in multiple browser windows or share the link with others
+      <br>
+      2. Start typing and see changes appear instantly in all windows
+      <br>
+      3. Watch the user badges update as people join
+    </div>
+
+    <div class="editor-container">
+      <div class="cursors" id="cursors"></div>
+      <textarea
+        id="editor"
+        placeholder="Start typing... Your changes will sync in real-time to all connected users!"
+      ></textarea>
+    </div>
+
+    <div class="footer">
+      <div class="stats">
+        <div class="stat">
+          <span>📊</span>
+          <span id="messageCount">0 messages</span>
+        </div>
+        <div class="stat">
+          <span>⚡</span>
+          <span id="latency">0ms</span>
+        </div>
+      </div>
+      <div>
+        <a href="https://fluxstudio.art" style="color: #667eea; text-decoration: none;">
+          Powered by FluxStudio
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Import Yjs and WebSocket provider from CDN
+    import * as Y from 'https://cdn.jsdelivr.net/npm/yjs@13.6.18/+esm';
+    import { WebsocketProvider } from 'https://cdn.jsdelivr.net/npm/y-websocket@2.0.4/+esm';
+
+    // Get room ID from URL or generate new one
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('room') || 'demo-' + Math.random().toString(36).substring(2, 9);
+
+    // Update URL if no room specified
+    if (!urlParams.get('room')) {
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.set('room', roomId);
+      window.history.replaceState({}, '', newUrl);
+    }
+
+    // Display room ID
+    document.getElementById('roomId').textContent = roomId;
+
+    // Generate random user info
+    const userColors = ['#667eea', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+    const userNames = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Henry'];
+    const userName = userNames[Math.floor(Math.random() * userNames.length)] + Math.floor(Math.random() * 100);
+    const userColor = userColors[Math.floor(Math.random() * userColors.length)];
+
+    // Create Yjs document
+    const ydoc = new Y.Doc();
+    const ytext = ydoc.getText('content');
+
+    // Connect to FluxStudio collaboration server
+    const wsUrl = window.location.protocol === 'https:'
+      ? 'wss://fluxstudio.art/collab'
+      : 'ws://localhost:4000';
+
+    const provider = new WebsocketProvider(wsUrl, roomId, ydoc, {
+      connect: true,
+      awareness: {
+        name: userName,
+        color: userColor
+      }
+    });
+
+    const awareness = provider.awareness;
+
+    // Elements
+    const editor = document.getElementById('editor');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const userBadges = document.getElementById('userBadges');
+    const userCount = document.getElementById('userCount');
+    const messageCount = document.getElementById('messageCount');
+    const latency = document.getElementById('latency');
+
+    let messages = 0;
+    let isUpdating = false;
+
+    // Connection status
+    provider.on('status', event => {
+      console.log('Connection status:', event.status);
+
+      if (event.status === 'connected') {
+        statusDot.className = 'status-dot';
+        statusText.textContent = 'Connected';
+      } else if (event.status === 'connecting') {
+        statusDot.className = 'status-dot connecting';
+        statusText.textContent = 'Connecting...';
+      } else {
+        statusDot.className = 'status-dot disconnected';
+        statusText.textContent = 'Disconnected';
+      }
+    });
+
+    // Sync text editor with Yjs
+    ytext.observe(event => {
+      if (isUpdating) return;
+
+      isUpdating = true;
+      const currentCursorPos = editor.selectionStart;
+      editor.value = ytext.toString();
+      editor.setSelectionRange(currentCursorPos, currentCursorPos);
+      isUpdating = false;
+
+      messages++;
+      messageCount.textContent = `${messages} messages`;
+    });
+
+    editor.addEventListener('input', () => {
+      if (isUpdating) return;
+
+      isUpdating = true;
+      const text = editor.value;
+      const delta = text.length - ytext.length;
+
+      if (delta > 0) {
+        // Text was added
+        const pos = editor.selectionStart - delta;
+        ytext.insert(pos, text.substring(pos, editor.selectionStart));
+      } else if (delta < 0) {
+        // Text was deleted
+        const pos = editor.selectionStart;
+        ytext.delete(pos, -delta);
+      }
+
+      isUpdating = false;
+
+      // Update cursor position in awareness
+      awareness.setLocalStateField('cursor', {
+        position: editor.selectionStart,
+        anchor: editor.selectionStart
+      });
+    });
+
+    // Track cursor position
+    editor.addEventListener('selectionchange', () => {
+      awareness.setLocalStateField('cursor', {
+        position: editor.selectionStart,
+        anchor: editor.selectionStart
+      });
+    });
+
+    // Update user badges
+    awareness.on('change', () => {
+      const states = Array.from(awareness.getStates().values());
+      const users = states.filter(state => state.name);
+
+      // Update user count
+      userCount.textContent = `${users.length} user${users.length !== 1 ? 's' : ''}`;
+
+      // Update user badges
+      userBadges.innerHTML = users
+        .map(user => {
+          const initial = user.name ? user.name.charAt(0).toUpperCase() : '?';
+          return `
+            <div
+              class="user-badge"
+              style="background: ${user.color || '#667eea'}"
+              title="${user.name || 'Anonymous'}"
+            >
+              ${initial}
+            </div>
+          `;
+        })
+        .join('');
+    });
+
+    // Measure latency
+    let lastMessageTime = Date.now();
+    provider.on('message', () => {
+      const now = Date.now();
+      const lat = now - lastMessageTime;
+      lastMessageTime = now;
+
+      if (lat < 1000) {
+        latency.textContent = `${lat}ms`;
+      }
+    });
+
+    // Initialize editor with existing content
+    editor.value = ytext.toString();
+
+    // Set initial awareness state
+    awareness.setLocalStateField('user', {
+      name: userName,
+      color: userColor
+    });
+
+    // Copy room URL
+    window.copyRoomUrl = function() {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url).then(() => {
+        const button = event.target;
+        const originalText = button.textContent;
+        button.textContent = '✓ Copied!';
+        setTimeout(() => {
+          button.textContent = originalText;
+        }, 2000);
+      });
+    };
+
+    // Log connection info
+    console.log('🚀 FluxStudio Collaborative Editor');
+    console.log('Room:', roomId);
+    console.log('User:', userName);
+    console.log('WebSocket:', wsUrl + '/' + roomId);
+  </script>
+</body>
+</html>
