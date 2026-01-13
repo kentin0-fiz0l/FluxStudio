@@ -8,6 +8,52 @@
 import { getApiUrl, getAuthToken } from '@/utils/apiHelpers';
 
 // ============================================================================
+// CSRF Token Management
+// ============================================================================
+
+let csrfToken: string | null = null;
+let csrfTokenPromise: Promise<string> | null = null;
+
+/**
+ * Fetch CSRF token from server
+ * Uses singleton pattern to avoid multiple concurrent requests
+ */
+async function fetchCsrfToken(): Promise<string> {
+  if (csrfToken) return csrfToken;
+
+  // Return existing promise if fetch is in progress
+  if (csrfTokenPromise) return csrfTokenPromise;
+
+  csrfTokenPromise = (async () => {
+    try {
+      const response = await fetch(getApiUrl('/api/csrf-token'), {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch CSRF token');
+      }
+
+      const data = await response.json();
+      csrfToken = data.csrfToken;
+      return csrfToken!;
+    } finally {
+      csrfTokenPromise = null;
+    }
+  })();
+
+  return csrfTokenPromise;
+}
+
+/**
+ * Clear cached CSRF token (call on logout or 403 errors)
+ */
+export function clearCsrfToken(): void {
+  csrfToken = null;
+  csrfTokenPromise = null;
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -33,7 +79,7 @@ export interface AIContext {
 
 export interface ChatOptions {
   conversationId?: string;
-  model?: 'claude-3-opus' | 'claude-3-sonnet' | 'claude-3-haiku';
+  model?: 'claude-sonnet-4-20250514' | 'claude-3-5-sonnet-20241022' | 'claude-3-5-haiku-20241022' | 'claude-3-opus-20240229';
   context?: AIContext;
 }
 
@@ -76,6 +122,19 @@ function getHeaders(): Record<string, string> {
   };
 }
 
+/**
+ * Get headers with CSRF token for POST/PUT/DELETE requests
+ */
+async function getHeadersWithCsrf(): Promise<Record<string, string>> {
+  const token = getAuthToken();
+  const csrf = await fetchCsrfToken();
+  return {
+    'Authorization': token ? `Bearer ${token}` : '',
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': csrf,
+  };
+}
+
 // ============================================================================
 // Chat Functions
 // ============================================================================
@@ -93,16 +152,16 @@ export async function streamChat(
   const { onStart, onChunk, onDone, onError } = callbacks;
 
   const url = getApiUrl('/api/ai/chat');
-  const token = getAuthToken();
 
   try {
+    // Get headers with CSRF token
+    const headers = await getHeadersWithCsrf();
+    headers['Accept'] = 'text/event-stream';
+
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Authorization': token ? `Bearer ${token}` : '',
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream',
-      },
+      credentials: 'include',
+      headers,
       body: JSON.stringify({
         message,
         conversationId,
@@ -173,10 +232,12 @@ export async function chat(
   context?: AIContext
 ): Promise<{ content: string; tokensUsed: number }> {
   const url = getApiUrl('/api/ai/chat/sync');
+  const headers = await getHeadersWithCsrf();
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: getHeaders(),
+    credentials: 'include',
+    headers,
     body: JSON.stringify({ message, context }),
   });
 
@@ -238,10 +299,12 @@ export async function getConversation(id: string): Promise<{
  */
 export async function deleteConversation(id: string): Promise<void> {
   const url = getApiUrl(`/api/ai/conversations/${id}`);
+  const headers = await getHeadersWithCsrf();
 
   const response = await fetch(url, {
     method: 'DELETE',
-    headers: getHeaders(),
+    credentials: 'include',
+    headers,
   });
 
   if (!response.ok) {
@@ -261,10 +324,12 @@ export async function reviewDesign(options: DesignReviewOptions): Promise<{
   aspects: string[];
 }> {
   const url = getApiUrl('/api/ai/design-review');
+  const headers = await getHeadersWithCsrf();
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: getHeaders(),
+    credentials: 'include',
+    headers,
     body: JSON.stringify(options),
   });
 
@@ -289,10 +354,12 @@ export async function generateCode(options: CodeGenerationOptions): Promise<{
   style: string;
 }> {
   const url = getApiUrl('/api/ai/generate-code');
+  const headers = await getHeadersWithCsrf();
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: getHeaders(),
+    credentials: 'include',
+    headers,
     body: JSON.stringify(options),
   });
 

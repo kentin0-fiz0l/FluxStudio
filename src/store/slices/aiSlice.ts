@@ -16,9 +16,10 @@ import { StateCreator } from 'zustand';
 // ============================================================================
 
 export type AIModel =
-  | 'claude-3-opus'
-  | 'claude-3-sonnet'
-  | 'claude-3-haiku'
+  | 'claude-sonnet-4-20250514'
+  | 'claude-3-5-sonnet-20241022'
+  | 'claude-3-5-haiku-20241022'
+  | 'claude-3-opus-20240229'
   | 'gpt-4'
   | 'gpt-4-turbo'
   | 'gpt-3.5-turbo'
@@ -198,7 +199,7 @@ export interface AISlice {
 // ============================================================================
 
 const initialPreferences: AIPreferences = {
-  defaultModel: 'claude-3-sonnet',
+  defaultModel: 'claude-sonnet-4-20250514',
   autoSuggest: true,
   suggestThreshold: 0.7,
   streamResponses: true,
@@ -325,7 +326,7 @@ export const createAISlice: StateCreator<
             content,
             {
               conversationId,
-              model: conversation.model as 'claude-3-opus' | 'claude-3-sonnet' | 'claude-3-haiku',
+              model: conversation.model as 'claude-sonnet-4-20250514' | 'claude-3-5-sonnet-20241022' | 'claude-3-5-haiku-20241022' | 'claude-3-opus-20240229',
               context,
             },
             {

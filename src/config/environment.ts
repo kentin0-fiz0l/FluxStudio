@@ -40,12 +40,13 @@ const baseConfig = {
 };
 
 // Development configuration
+// Use relative URLs to go through Vite proxy (configured in vite.config.ts)
 const developmentConfig: EnvironmentConfig = {
   ...baseConfig,
-  API_BASE_URL: 'http://localhost:3001/api',
+  API_BASE_URL: '/api',
   SOCKET_URL: 'ws://localhost:3004',
-  AUTH_URL: 'http://localhost:3001/api/auth',
-  MESSAGING_URL: 'http://localhost:3004/api',
+  AUTH_URL: '/auth',
+  MESSAGING_URL: '/api/messaging',
   APP_URL: 'http://localhost:5173',
 };
 

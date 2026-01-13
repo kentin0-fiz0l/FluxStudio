@@ -72,6 +72,8 @@ import { useProjectCounts } from '@/hooks/useProjectCounts';
 import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
+import { DocumentList } from '@/components/documents/DocumentList';
+import { TiptapCollaborativeEditor } from '@/components/documents/TiptapCollaborativeEditor';
 
 // ============================================================================
 // Type Definitions
@@ -220,6 +222,9 @@ export const ProjectDetail = () => {
   const [isTaskModalOpen, setIsTaskModalOpen] = React.useState(false);
   const [isCreateMode, setIsCreateMode] = React.useState(false);
 
+  // Documents state
+  const [activeDocumentId, setActiveDocumentId] = React.useState<number | null>(null);
+
   // Refs for keyboard navigation
   const tabListRef = React.useRef<HTMLDivElement>(null);
   const tabContentRef = React.useRef<HTMLDivElement>(null);
@@ -228,6 +233,7 @@ export const ProjectDetail = () => {
   const tabLabels: Record<string, string> = {
     overview: 'Overview',
     tasks: 'Tasks',
+    documents: 'Documents',
     files: 'Files',
     assets: 'Assets',
     boards: 'Boards',
@@ -632,6 +638,21 @@ export const ProjectDetail = () => {
               </TabsTrigger>
 
               <TabsTrigger
+                value="documents"
+                className={cn(
+                  'data-[state=active]:border-b-2 data-[state=active]:border-primary-600',
+                  'rounded-none border-b-2 border-transparent h-full px-4'
+                )}
+                role="tab"
+                aria-selected={activeTab === 'documents'}
+                aria-controls="documents-panel"
+                id="documents-tab"
+              >
+                <FileText className="h-4 w-4 mr-2" aria-hidden="true" />
+                Documents
+              </TabsTrigger>
+
+              <TabsTrigger
                 value="files"
                 className={cn(
                   'data-[state=active]:border-b-2 data-[state=active]:border-primary-600',
@@ -827,6 +848,35 @@ export const ProjectDetail = () => {
                   </div>
                 </aside>
               </div>
+            </TabsContent>
+
+            {/* Documents Tab */}
+            <TabsContent
+              value="documents"
+              className="h-full mt-0"
+              role="tabpanel"
+              id="documents-panel"
+              aria-labelledby="documents-tab"
+              tabIndex={0}
+            >
+              <div role="status" aria-live="polite" className="sr-only">
+                {activeTab === 'documents' ? `Showing ${tabLabels.documents} tab` : ''}
+              </div>
+
+              {activeDocumentId ? (
+                <TiptapCollaborativeEditor
+                  projectId={project.id}
+                  documentId={activeDocumentId}
+                  onBack={() => setActiveDocumentId(null)}
+                />
+              ) : (
+                <div className="h-full overflow-y-auto p-6">
+                  <DocumentList
+                    projectId={project.id}
+                    onOpenDocument={setActiveDocumentId}
+                  />
+                </div>
+              )}
             </TabsContent>
 
             {/* Files Tab */}

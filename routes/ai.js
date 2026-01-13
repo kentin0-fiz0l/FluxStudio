@@ -374,4 +374,48 @@ router.get('/health', (req, res) => {
   });
 });
 
+/**
+ * POST /api/ai/test
+ * Development-only test endpoint (no auth required)
+ * WARNING: Only available in development mode
+ */
+if (process.env.NODE_ENV !== 'production') {
+  router.post('/test', async (req, res) => {
+    const { message, context } = req.body;
+
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    try {
+      const systemPrompt = buildSystemPrompt(context);
+
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: message }],
+      });
+
+      const content = response.content[0]?.text || '';
+      const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+
+      res.json({
+        content,
+        tokensUsed,
+        model: response.model,
+        warning: 'This is a development-only endpoint. Do not use in production.',
+      });
+
+    } catch (error) {
+      console.error('[AI] Test endpoint error:', error);
+      res.status(500).json({
+        error: 'Failed to get AI response',
+        details: error.message,
+      });
+    }
+  });
+  console.log('⚠️  AI test endpoint enabled (development mode only): POST /api/ai/test');
+}
+
 module.exports = router;
