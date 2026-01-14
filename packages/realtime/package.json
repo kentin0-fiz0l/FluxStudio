@@ -1,0 +1,51 @@
+{
+  "name": "@fluxstudio/realtime",
+  "version": "1.0.0",
+  "description": "FluxStudio real-time collaboration with Yjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./server": {
+      "import": "./dist/server/index.js",
+      "require": "./dist/server/index.js",
+      "types": "./dist/server/index.d.ts"
+    },
+    "./client": {
+      "import": "./dist/client/index.js",
+      "require": "./dist/client/index.js",
+      "types": "./dist/client/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ioredis": "^5.4.1",
+    "lib0": "^0.2.97",
+    "ws": "^8.18.0",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.18"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}

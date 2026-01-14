@@ -1,0 +1,683 @@
+// FluxStudio Prisma Schema
+// Converted from database/schema.sql
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USERS & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique @db.VarChar(255)
+  name          String    @db.VarChar(255)
+  passwordHash  String?   @map("password_hash") @db.VarChar(255)
+  userType      UserType  @map("user_type")
+  avatarUrl     String?   @map("avatar_url")
+  phone         String?   @db.VarChar(20)
+  timezone      String    @default("America/New_York") @db.VarChar(50)
+  preferences   Json      @default("{}")
+  oauthProvider String?   @map("oauth_provider") @db.VarChar(50)
+  oauthId       String?   @map("oauth_id") @db.VarChar(255)
+  emailVerified Boolean   @default(false) @map("email_verified")
+  isActive      Boolean   @default(true) @map("is_active")
+  lastLogin     DateTime? @map("last_login") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  createdOrganizations  Organization[]          @relation("OrganizationCreator")
+  organizationMembers   OrganizationMember[]
+  ledTeams              Team[]                  @relation("TeamLead")
+  teamMembers           TeamMember[]
+  managedProjects       Project[]               @relation("ProjectManager")
+  clientProjects        Project[]               @relation("ProjectClient")
+  projectMembers        ProjectMember[]
+  assignedMilestones    ProjectMilestone[]
+  uploadedFiles         File[]
+  grantedPermissions    FilePermission[]        @relation("PermissionGranter")
+  userFilePermissions   FilePermission[]        @relation("PermissionUser")
+  createdConversations  Conversation[]
+  conversationParticipants ConversationParticipant[]
+  messages              Message[]
+  messageReactions      MessageReaction[]
+  notifications         Notification[]
+  timeEntries           TimeEntry[]
+  assignedRequests      ClientRequest[]
+  portfolios            Portfolio[]
+  invitedMembers        OrganizationMember[]    @relation("InvitedBy")
+
+  @@index([email])
+  @@index([oauthProvider, oauthId])
+  @@map("users")
+}
+
+enum UserType {
+  client
+  designer
+  admin
+}
+
+// ============================================================================
+// ORGANIZATIONS
+// ============================================================================
+
+model Organization {
+  id                 String   @id @default(uuid()) @db.Uuid
+  name               String   @db.VarChar(255)
+  slug               String   @unique @db.VarChar(255)
+  description        String?
+  type               String   @db.VarChar(100)
+  location           String?
+  contactEmail       String?  @map("contact_email") @db.VarChar(255)
+  contactPhone       String?  @map("contact_phone") @db.VarChar(20)
+  website            String?  @db.VarChar(255)
+  logoUrl            String?  @map("logo_url")
+  settings           Json     @default("{}")
+  subscriptionTier   String   @default("free") @map("subscription_tier") @db.VarChar(50)
+  subscriptionStatus String   @default("active") @map("subscription_status") @db.VarChar(50)
+  billingEmail       String?  @map("billing_email") @db.VarChar(255)
+  stripeCustomerId   String?  @map("stripe_customer_id") @db.VarChar(255)
+  createdById        String   @map("created_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  createdBy     User                 @relation("OrganizationCreator", fields: [createdById], references: [id])
+  members       OrganizationMember[]
+  teams         Team[]
+  projects      Project[]
+  files         File[]
+  conversations Conversation[]
+  invoices      Invoice[]
+
+  @@index([slug])
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  role           OrgRole
+  permissions    Json     @default("[]")
+  invitedById    String?  @map("invited_by") @db.Uuid
+  joinedAt       DateTime @default(now()) @map("joined_at") @db.Timestamptz
+  isActive       Boolean  @default(true) @map("is_active")
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy    User?        @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+enum OrgRole {
+  owner
+  admin
+  member
+}
+
+// ============================================================================
+// TEAMS
+// ============================================================================
+
+model Team {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String   @db.VarChar(255)
+  description    String?
+  slug           String   @db.VarChar(255)
+  organizationId String   @map("organization_id") @db.Uuid
+  leadId         String?  @map("lead_id") @db.Uuid
+  settings       Json     @default("{}")
+  isPrivate      Boolean  @default(false) @map("is_private")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  organization    Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead            User?              @relation("TeamLead", fields: [leadId], references: [id])
+  members         TeamMember[]
+  projects        Project[]
+  filePermissions FilePermission[]
+  conversations   Conversation[]
+
+  @@unique([organizationId, slug])
+  @@map("teams")
+}
+
+model TeamMember {
+  id          String   @id @default(uuid()) @db.Uuid
+  teamId      String   @map("team_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  role        TeamRole
+  permissions Json     @default("[]")
+  joinedAt    DateTime @default(now()) @map("joined_at") @db.Timestamptz
+  isActive    Boolean  @default(true) @map("is_active")
+
+  // Relations
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+enum TeamRole {
+  lead
+  member
+  viewer
+}
+
+// ============================================================================
+// PROJECTS
+// ============================================================================
+
+model Project {
+  id              String        @id @default(uuid()) @db.Uuid
+  name            String        @db.VarChar(255)
+  description     String?
+  slug            String        @db.VarChar(255)
+  organizationId  String        @map("organization_id") @db.Uuid
+  teamId          String?       @map("team_id") @db.Uuid
+  managerId       String        @map("manager_id") @db.Uuid
+  clientId        String?       @map("client_id") @db.Uuid
+  status          ProjectStatus @default(planning)
+  priority        Priority      @default(medium)
+  projectType     String        @map("project_type") @db.VarChar(100)
+  serviceCategory String        @map("service_category") @db.VarChar(100)
+  serviceTier     String        @map("service_tier") @db.VarChar(50)
+  ensembleType    String        @map("ensemble_type") @db.VarChar(100)
+  budget          Decimal?      @db.Decimal(10, 2)
+  estimatedHours  Int?          @map("estimated_hours")
+  actualHours     Int           @default(0) @map("actual_hours")
+  startDate       DateTime?     @map("start_date") @db.Date
+  dueDate         DateTime?     @map("due_date") @db.Date
+  completionDate  DateTime?     @map("completion_date") @db.Date
+  metadata        Json          @default("{}")
+  settings        Json          @default("{}")
+  tags            String[]      @default([])
+  isTemplate      Boolean       @default(false) @map("is_template")
+  templateId      String?       @map("template_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  organization  Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team          Team?              @relation(fields: [teamId], references: [id])
+  manager       User               @relation("ProjectManager", fields: [managerId], references: [id])
+  client        User?              @relation("ProjectClient", fields: [clientId], references: [id])
+  template      Project?           @relation("ProjectTemplate", fields: [templateId], references: [id])
+  templatedFrom Project[]          @relation("ProjectTemplate")
+  members       ProjectMember[]
+  milestones    ProjectMilestone[]
+  files         File[]
+  conversations Conversation[]
+  invoices      Invoice[]
+  timeEntries   TimeEntry[]
+  portfolioItems PortfolioItem[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([status])
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  planning
+  active
+  @map("on-hold") onHold
+  completed
+  cancelled
+}
+
+enum Priority {
+  low
+  medium
+  high
+  urgent
+}
+
+model ProjectMember {
+  id          String      @id @default(uuid()) @db.Uuid
+  projectId   String      @map("project_id") @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  role        ProjectRole
+  permissions Json        @default("[]")
+  hourlyRate  Decimal?    @map("hourly_rate") @db.Decimal(8, 2)
+  joinedAt    DateTime    @default(now()) @map("joined_at") @db.Timestamptz
+  isActive    Boolean     @default(true) @map("is_active")
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+enum ProjectRole {
+  manager
+  contributor
+  reviewer
+  viewer
+}
+
+model ProjectMilestone {
+  id          String    @id @default(uuid()) @db.Uuid
+  projectId   String    @map("project_id") @db.Uuid
+  name        String    @db.VarChar(255)
+  description String?
+  dueDate     DateTime? @map("due_date") @db.Date
+  completedAt DateTime? @map("completed_at") @db.Timestamptz
+  assignedToId String?  @map("assigned_to") @db.Uuid
+  orderIndex  Int       @default(0) @map("order_index")
+  isRequired  Boolean   @default(true) @map("is_required")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo User?   @relation(fields: [assignedToId], references: [id])
+
+  @@map("project_milestones")
+}
+
+// ============================================================================
+// FILES
+// ============================================================================
+
+model File {
+  id             String       @id @default(uuid()) @db.Uuid
+  name           String       @db.VarChar(255)
+  originalName   String       @map("original_name") @db.VarChar(255)
+  description    String?
+  filePath       String       @map("file_path")
+  fileUrl        String       @map("file_url")
+  thumbnailUrl   String?      @map("thumbnail_url")
+  mimeType       String       @map("mime_type") @db.VarChar(100)
+  fileSize       BigInt       @map("file_size")
+  width          Int?
+  height         Int?
+  duration       Int?
+  pages          Int?
+  category       FileCategory @default(other)
+  status         FileStatus   @default(draft)
+  version        Int          @default(1)
+  isLatest       Boolean      @default(true) @map("is_latest")
+  parentFileId   String?      @map("parent_file_id") @db.Uuid
+  projectId      String?      @map("project_id") @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  uploadedById   String       @map("uploaded_by") @db.Uuid
+  metadata       Json         @default("{}")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  parentFile   File?            @relation("FileVersions", fields: [parentFileId], references: [id])
+  versions     File[]           @relation("FileVersions")
+  project      Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  uploadedBy   User             @relation(fields: [uploadedById], references: [id])
+  permissions  FilePermission[]
+
+  @@index([projectId])
+  @@index([organizationId])
+  @@map("files")
+}
+
+enum FileCategory {
+  design
+  reference
+  final
+  feedback
+  other
+}
+
+enum FileStatus {
+  draft
+  review
+  approved
+  rejected
+}
+
+model FilePermission {
+  id             String         @id @default(uuid()) @db.Uuid
+  fileId         String         @map("file_id") @db.Uuid
+  userId         String?        @map("user_id") @db.Uuid
+  teamId         String?        @map("team_id") @db.Uuid
+  permissionType PermissionType @map("permission_type")
+  grantedById    String         @map("granted_by") @db.Uuid
+  grantedAt      DateTime       @default(now()) @map("granted_at") @db.Timestamptz
+
+  // Relations
+  file      File  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user      User? @relation("PermissionUser", fields: [userId], references: [id], onDelete: Cascade)
+  team      Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  grantedBy User  @relation("PermissionGranter", fields: [grantedById], references: [id])
+
+  @@map("file_permissions")
+}
+
+enum PermissionType {
+  read
+  write
+  delete
+  share
+}
+
+// ============================================================================
+// MESSAGING
+// ============================================================================
+
+model Conversation {
+  id             String           @id @default(uuid()) @db.Uuid
+  name           String?          @db.VarChar(255)
+  description    String?
+  type           ConversationType
+  organizationId String?          @map("organization_id") @db.Uuid
+  projectId      String?          @map("project_id") @db.Uuid
+  teamId         String?          @map("team_id") @db.Uuid
+  createdById    String           @map("created_by") @db.Uuid
+  lastMessageAt  DateTime?        @map("last_message_at") @db.Timestamptz
+  metadata       Json             @default("{}")
+  settings       Json             @default("{}")
+  isArchived     Boolean          @default(false) @map("is_archived")
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  organization Organization?             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project?                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team         Team?                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy    User                      @relation(fields: [createdById], references: [id])
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+enum ConversationType {
+  direct
+  group
+  project
+  team
+}
+
+model ConversationParticipant {
+  id             String           @id @default(uuid()) @db.Uuid
+  conversationId String           @map("conversation_id") @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  role           ParticipantRole  @default(member)
+  joinedAt       DateTime         @default(now()) @map("joined_at") @db.Timestamptz
+  lastReadAt     DateTime?        @map("last_read_at") @db.Timestamptz
+  isMuted        Boolean          @default(false) @map("is_muted")
+  isPinned       Boolean          @default(false) @map("is_pinned")
+
+  // Relations
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+enum ParticipantRole {
+  owner
+  admin
+  member
+}
+
+model Message {
+  id             String        @id @default(uuid()) @db.Uuid
+  conversationId String        @map("conversation_id") @db.Uuid
+  authorId       String        @map("author_id") @db.Uuid
+  content        String?
+  messageType    MessageType   @default(text) @map("message_type")
+  priority       Priority      @default(normal)
+  status         MessageStatus @default(sent)
+  replyToId      String?       @map("reply_to_id") @db.Uuid
+  threadId       String?       @map("thread_id") @db.Uuid
+  mentions       String[]      @default([]) @db.Uuid
+  attachments    Json          @default("[]")
+  metadata       Json          @default("{}")
+  editedAt       DateTime?     @map("edited_at") @db.Timestamptz
+  deletedAt      DateTime?     @map("deleted_at") @db.Timestamptz
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  conversation Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  author       User              @relation(fields: [authorId], references: [id])
+  replyTo      Message?          @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies      Message[]         @relation("MessageReplies")
+  reactions    MessageReaction[]
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+enum MessageType {
+  text
+  file
+  image
+  system
+}
+
+enum MessageStatus {
+  sent
+  delivered
+  read
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  reaction  String   @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, reaction])
+  @@map("message_reactions")
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  type      String    @db.VarChar(100)
+  title     String    @db.VarChar(255)
+  message   String
+  data      Json      @default("{}")
+  priority  Priority  @default(medium)
+  isRead    Boolean   @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at") @db.Timestamptz
+  actionUrl String?   @map("action_url")
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ============================================================================
+// BILLING
+// ============================================================================
+
+model Invoice {
+  id                    String        @id @default(uuid()) @db.Uuid
+  invoiceNumber         String        @unique @map("invoice_number") @db.VarChar(50)
+  organizationId        String        @map("organization_id") @db.Uuid
+  clientId              String        @map("client_id") @db.Uuid
+  projectId             String?       @map("project_id") @db.Uuid
+  amount                Decimal       @db.Decimal(10, 2)
+  taxAmount             Decimal       @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  totalAmount           Decimal       @map("total_amount") @db.Decimal(10, 2)
+  currency              String        @default("USD") @db.VarChar(3)
+  status                InvoiceStatus @default(draft)
+  dueDate               DateTime?     @map("due_date") @db.Date
+  paidAt                DateTime?     @map("paid_at") @db.Timestamptz
+  stripeInvoiceId       String?       @map("stripe_invoice_id") @db.VarChar(255)
+  stripePaymentIntentId String?       @map("stripe_payment_intent_id") @db.VarChar(255)
+  lineItems             Json
+  notes                 String?
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id])
+  project      Project?     @relation(fields: [projectId], references: [id])
+
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  draft
+  sent
+  paid
+  overdue
+  cancelled
+}
+
+// ============================================================================
+// TIME TRACKING
+// ============================================================================
+
+model TimeEntry {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  projectId       String   @map("project_id") @db.Uuid
+  taskDescription String   @map("task_description")
+  hours           Decimal  @db.Decimal(5, 2)
+  billable        Boolean  @default(true)
+  hourlyRate      Decimal? @map("hourly_rate") @db.Decimal(8, 2)
+  date            DateTime @db.Date
+  startTime       DateTime? @map("start_time") @db.Time
+  endTime         DateTime? @map("end_time") @db.Time
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@map("time_entries")
+}
+
+// ============================================================================
+// SERVICES
+// ============================================================================
+
+model ServicePackage {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @db.VarChar(255)
+  slug            String   @unique @db.VarChar(255)
+  description     String?
+  serviceCategory String   @map("service_category") @db.VarChar(100)
+  serviceTier     String   @map("service_tier") @db.VarChar(50)
+  basePrice       Decimal  @map("base_price") @db.Decimal(10, 2)
+  estimatedHours  Int?     @map("estimated_hours")
+  deliverables    Json
+  inclusions      Json     @default("[]")
+  exclusions      Json     @default("[]")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("service_packages")
+}
+
+model ClientRequest {
+  id                 String              @id @default(uuid()) @db.Uuid
+  name               String              @db.VarChar(255)
+  email              String              @db.VarChar(255)
+  phone              String?             @db.VarChar(20)
+  organizationName   String?             @map("organization_name") @db.VarChar(255)
+  ensembleType       String              @map("ensemble_type") @db.VarChar(100)
+  serviceCategory    String              @map("service_category") @db.VarChar(100)
+  serviceTier        String?             @map("service_tier") @db.VarChar(50)
+  projectDescription String?             @map("project_description")
+  budgetRange        String?             @map("budget_range") @db.VarChar(50)
+  timeline           String?             @db.VarChar(100)
+  status             ClientRequestStatus @default(new)
+  assignedToId       String?             @map("assigned_to") @db.Uuid
+  notes              String?
+  metadata           Json                @default("{}")
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  assignedTo User? @relation(fields: [assignedToId], references: [id])
+
+  @@map("client_requests")
+}
+
+enum ClientRequestStatus {
+  new
+  contacted
+  quoted
+  converted
+  declined
+}
+
+// ============================================================================
+// PORTFOLIOS
+// ============================================================================
+
+model Portfolio {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  title         String   @db.VarChar(255)
+  description   String?
+  isPublic      Boolean  @default(true) @map("is_public")
+  coverImageUrl String?  @map("cover_image_url")
+  settings      Json     @default("{}")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user  User            @relation(fields: [userId], references: [id])
+  items PortfolioItem[]
+
+  @@map("portfolios")
+}
+
+model PortfolioItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  portfolioId String   @map("portfolio_id") @db.Uuid
+  projectId   String?  @map("project_id") @db.Uuid
+  title       String   @db.VarChar(255)
+  description String?
+  imageUrl    String?  @map("image_url")
+  category    String?  @db.VarChar(100)
+  tags        String[] @default([])
+  orderIndex  Int      @default(0) @map("order_index")
+  isFeatured  Boolean  @default(false) @map("is_featured")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  project   Project?  @relation(fields: [projectId], references: [id])
+
+  @@map("portfolio_items")
+}
