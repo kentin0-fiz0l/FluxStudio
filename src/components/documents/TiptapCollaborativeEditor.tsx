@@ -33,7 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/lib/toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -68,7 +68,6 @@ export function TiptapCollaborativeEditor({
   onBack,
 }: TiptapCollaborativeEditorProps) {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [doc, setDoc] = useState<Y.Doc | null>(null);
   const [provider, setProvider] = useState<WebsocketProvider | null>(null);
   const [document, setDocument] = useState<DocumentData | null>(null);
@@ -100,11 +99,7 @@ export function TiptapCollaborativeEditor({
       setTitle(data.document.title);
     } catch (error) {
       console.error('Error fetching document:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load document',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load document');
     }
   }
 
@@ -200,17 +195,10 @@ export function TiptapCollaborativeEditor({
         body: JSON.stringify({ title }),
       });
 
-      toast({
-        title: 'Title saved',
-        description: 'Document title updated successfully',
-      });
+      toast.success('Document title updated successfully');
     } catch (error) {
       console.error('Error saving title:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save title',
-        variant: 'destructive',
-      });
+      toast.error('Failed to save title');
     } finally {
       setIsSavingTitle(false);
     }
