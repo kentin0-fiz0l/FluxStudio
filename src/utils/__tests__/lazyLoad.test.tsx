@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { lazyLoadWithRetry, preloadComponents, usePreloadOnInteraction } from '../lazyLoad';
 import React from 'react';
 
@@ -75,28 +75,23 @@ describe('lazyLoad utilities', () => {
     it('should fail after max retry attempts', async () => {
       const importFn = vi.fn(() => Promise.reject(new Error('Network error')));
 
-      const { Component } = lazyLoadWithRetry(importFn, {
+      const { preload } = lazyLoadWithRetry(importFn, {
         retryAttempts: 2,
         retryDelay: 50,
       });
 
-      const TestWrapper = () => (
-        <React.Suspense fallback={<div>Loading...</div>}>
-          <Component />
-        </React.Suspense>
-      );
-
-      // Suppress error boundary warnings
+      // Suppress error warnings
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      expect(() => render(<TestWrapper />)).toThrow();
+      // Test preload directly - it should reject after max retries
+      await expect(preload()).rejects.toThrow('Network error');
 
       consoleError.mockRestore();
+      consoleWarn.mockRestore();
 
       // Should have called import 2 times (max retries)
-      await waitFor(() => {
-        expect(importFn).toHaveBeenCalledTimes(2);
-      });
+      expect(importFn).toHaveBeenCalledTimes(2);
     });
 
     it('should support preload functionality', async () => {
@@ -171,8 +166,8 @@ describe('lazyLoad utilities', () => {
       // Should not preload initially
       expect(preloadFn).not.toHaveBeenCalled();
 
-      // Trigger mouse enter
-      button.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+      // Trigger mouse enter using fireEvent
+      fireEvent.mouseEnter(button);
 
       // Should preload
       await waitFor(() => {
@@ -180,7 +175,7 @@ describe('lazyLoad utilities', () => {
       });
 
       // Hovering again should not trigger another preload
-      button.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+      fireEvent.mouseEnter(button);
       expect(preloadFn).toHaveBeenCalledTimes(1);
     });
 
@@ -216,14 +211,17 @@ describe('lazyLoad utilities', () => {
       const { getByText } = render(<TestComponent />);
       const button = getByText('Hover me');
 
-      button.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+      // Trigger mouse enter using fireEvent
+      fireEvent.mouseEnter(button);
 
       await waitFor(() => {
         expect(preloadFn).toHaveBeenCalled();
       });
 
-      // Should not crash
-      expect(consoleError).toHaveBeenCalled();
+      // Should not crash and should log error
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalled();
+      });
 
       consoleError.mockRestore();
     });
