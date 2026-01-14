@@ -83,14 +83,20 @@ const renderWithRouter = (component: React.ReactElement) => {
   return render(<BrowserRouter>{component}</BrowserRouter>);
 };
 
+// Wrapper for renderHook with Router context
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <BrowserRouter>{children}</BrowserRouter>
+);
+
 // ============================================================================
 // HOOK TESTS
 // ============================================================================
 
 describe('useTaskSearch Hook', () => {
   it('should initialize with default filters', () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     expect(result.current.filters.query).toBe('');
@@ -101,8 +107,9 @@ describe('useTaskSearch Hook', () => {
   });
 
   it('should filter by search query', async () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     act(() => {
@@ -122,8 +129,9 @@ describe('useTaskSearch Hook', () => {
   });
 
   it('should filter by status', () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     act(() => {
@@ -135,8 +143,9 @@ describe('useTaskSearch Hook', () => {
   });
 
   it('should filter by multiple statuses', () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     act(() => {
@@ -148,8 +157,9 @@ describe('useTaskSearch Hook', () => {
   });
 
   it('should filter by priority', () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     act(() => {
@@ -161,8 +171,9 @@ describe('useTaskSearch Hook', () => {
   });
 
   it('should filter by assignee', () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     act(() => {
@@ -176,8 +187,9 @@ describe('useTaskSearch Hook', () => {
   });
 
   it('should sort tasks by title ascending', () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     act(() => {
@@ -189,8 +201,9 @@ describe('useTaskSearch Hook', () => {
   });
 
   it('should sort tasks by priority', () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     act(() => {
@@ -202,8 +215,9 @@ describe('useTaskSearch Hook', () => {
   });
 
   it('should calculate active filter count correctly', () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     expect(result.current.activeFilterCount).toBe(0);
@@ -217,8 +231,9 @@ describe('useTaskSearch Hook', () => {
   });
 
   it('should clear all filters', () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     act(() => {
@@ -239,8 +254,9 @@ describe('useTaskSearch Hook', () => {
   });
 
   it('should apply "my tasks" preset', () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     act(() => {
@@ -252,8 +268,9 @@ describe('useTaskSearch Hook', () => {
   });
 
   it('should apply "high priority" preset', () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     act(() => {
@@ -264,8 +281,9 @@ describe('useTaskSearch Hook', () => {
   });
 
   it('should combine multiple filters', () => {
-    const { result } = renderHook(() =>
-      useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false })
+    const { result } = renderHook(
+      () => useTaskSearch(mockTasks, mockTeamMembers, 'user-1', { syncWithURL: false }),
+      { wrapper }
     );
 
     act(() => {
@@ -342,7 +360,10 @@ describe('TaskSearch Component', () => {
       />
     );
 
-    expect(screen.getByText(/4 tasks found/i)).toBeInTheDocument();
+    // Text is split across elements: <span>4</span> tasks found
+    // Use a custom text matcher to find it
+    const resultsRegion = screen.getByRole('status');
+    expect(resultsRegion).toHaveTextContent(/4.*tasks found/i);
   });
 
   it('should open filter panel when filter button is clicked', () => {
@@ -359,8 +380,13 @@ describe('TaskSearch Component', () => {
     const filterButton = screen.getByRole('button', { name: /filters/i });
     fireEvent.click(filterButton);
 
-    expect(screen.getByText(/status/i)).toBeInTheDocument();
-    expect(screen.getByText(/priority/i)).toBeInTheDocument();
+    // Filter panel should be visible with filter options
+    const filterPanel = document.getElementById('filter-panel');
+    expect(filterPanel).toBeInTheDocument();
+
+    // Check filter sections exist by their aria-label attributes
+    expect(screen.getByLabelText(/filter by to do status/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/filter by low priority/i)).toBeInTheDocument();
   });
 
   it('should update search query on input', () => {
@@ -476,8 +502,9 @@ describe('TaskSearch Component', () => {
     const inProgressButton = screen.getByLabelText(/filter by in progress status/i);
     fireEvent.click(inProgressButton);
 
-    // Check badge appears
-    expect(screen.getByText('1')).toBeInTheDocument();
+    // Check badge appears - find by the filter button having the badge count
+    // The badge is inside the Filters button when active filters exist
+    expect(filterButton).toHaveTextContent(/1/);
   });
 
   it('should render in compact mode', () => {
