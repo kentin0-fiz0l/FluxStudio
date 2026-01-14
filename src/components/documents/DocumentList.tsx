@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/lib/toast';
 
 interface Document {
   id: number;
@@ -52,7 +52,6 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchDocuments();
@@ -77,11 +76,7 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
       setDocuments(data.documents || []);
     } catch (error) {
       console.error('Error fetching documents:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load documents',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load documents');
     } finally {
       setLoading(false);
     }
@@ -109,20 +104,13 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
 
       const data = await response.json();
 
-      toast({
-        title: 'Document created',
-        description: 'Opening your new document...',
-      });
+      toast.success('Document created - Opening your new document...');
 
       // Open the newly created document
       onOpenDocument(data.document.id);
     } catch (error) {
       console.error('Error creating document:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create document',
-        variant: 'destructive',
-      });
+      toast.error('Failed to create document');
     }
   }
 
@@ -141,20 +129,13 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
         throw new Error('Failed to delete document');
       }
 
-      toast({
-        title: 'Document archived',
-        description: `"${document.title}" has been archived`,
-      });
+      toast.success(`"${document.title}" has been archived`);
 
       // Refresh the list
       fetchDocuments();
     } catch (error) {
       console.error('Error deleting document:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to archive document',
-        variant: 'destructive',
-      });
+      toast.error('Failed to archive document');
     } finally {
       setDeleteDialogOpen(false);
       setDocumentToDelete(null);

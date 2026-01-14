@@ -5,12 +5,12 @@
  * and keep documents synchronized across servers.
  */
 
-import Redis from "ioredis";
+import Redis, { RedisOptions } from "ioredis";
 import * as Y from "yjs";
 
 export interface RedisPubSubOptions {
   /** Redis connection URL or options */
-  redis?: string | Redis.RedisOptions;
+  redis?: string | RedisOptions;
   /** Channel prefix for namespacing */
   channelPrefix?: string;
   /** Callback when update is received from another server */
