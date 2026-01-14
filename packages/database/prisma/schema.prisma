@@ -235,13 +235,14 @@ model Project {
 enum ProjectStatus {
   planning
   active
-  @map("on-hold") onHold
+  onHold @map("on-hold")
   completed
   cancelled
 }
 
 enum Priority {
   low
+  normal
   medium
   high
   urgent

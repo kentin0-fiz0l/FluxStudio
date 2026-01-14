@@ -170,10 +170,10 @@ export function useFluxPresence(
 
   const remoteStates = useMemo(() => {
     if (!awareness) return [];
-    const clientId = awareness.clientID;
+    const localClientId = awareness.clientID;
     return Array.from(states.entries())
-      .filter(([id]) => id !== clientId)
-      .map(([clientId, state]) => ({ clientId, ...state }));
+      .filter(([id]) => id !== localClientId)
+      .map(([id, state]) => ({ ...state, clientId: id }));
   }, [awareness, states]);
 
   const setPresence = useCallback(

@@ -13,14 +13,16 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
+import type { Prisma } from "@prisma/client";
+
 /**
  * PrismaClient configuration options
  */
-const prismaClientOptions = {
+const prismaClientOptions: Prisma.PrismaClientOptions = {
   log:
     process.env.NODE_ENV === "development"
-      ? (["query", "info", "warn", "error"] as const)
-      : (["error"] as const),
+      ? ["query", "info", "warn", "error"]
+      : ["error"],
 };
 
 /**
