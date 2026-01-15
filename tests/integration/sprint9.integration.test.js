@@ -12,7 +12,7 @@ const request = require('supertest');
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
-const { expect } = require('chai');
+// Using Jest's built-in expect (chai v5+ is ESM-only)
 const { io } = require('socket.io-client');
 
 // Test configuration (unified backend consolidates all services on 3001)
@@ -22,21 +22,21 @@ const WS_PERFORMANCE_URL = 'ws://localhost:3001/performance';
 const WS_FILES_URL = 'ws://localhost:3001/files';
 
 describe('Sprint 9 Integration Tests', function() {
-  this.timeout(30000); // 30 second timeout for integration tests
+  jest.setTimeout(30000); // 30 second timeout for integration tests
 
   let authToken;
   let testUser;
   let performanceSocket;
   let filesSocket;
 
-  before(async function() {
+  beforeAll(async function() {
     console.log('🚀 Starting Sprint 9 Integration Test Suite...\n');
 
     // Wait for servers to be ready
     await new Promise(resolve => setTimeout(resolve, 2000));
   });
 
-  after(async function() {
+  afterAll(async function() {
     // Cleanup WebSocket connections
     if (performanceSocket) performanceSocket.disconnect();
     if (filesSocket) filesSocket.disconnect();
@@ -58,8 +58,8 @@ describe('Sprint 9 Integration Tests', function() {
         .send(userData)
         .expect(201);
 
-      expect(signupResponse.body).to.have.property('token');
-      expect(signupResponse.body.user).to.have.property('email', userData.email);
+      expect(signupResponse.body).toHaveProperty('token');
+      expect(signupResponse.body.user).toHaveProperty('email', userData.email);
 
       authToken = signupResponse.body.token;
       testUser = signupResponse.body.user;
@@ -73,7 +73,7 @@ describe('Sprint 9 Integration Tests', function() {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body.user).to.have.property('id', testUser.id);
+      expect(response.body.user).toHaveProperty('id', testUser.id);
       console.log(`   ✓ Authenticated user: ${response.body.user.name}`);
     });
   });
@@ -97,12 +97,12 @@ describe('Sprint 9 Integration Tests', function() {
 
     it('should receive real-time system metrics', function(done) {
       performanceSocket.on('system_metrics', (metrics) => {
-        expect(metrics).to.be.an('object');
-        expect(metrics).to.have.property('timestamp');
-        expect(metrics).to.have.property('cpu_usage');
-        expect(metrics).to.have.property('memory_usage');
-        expect(metrics).to.have.property('database_connections');
-        expect(metrics).to.have.property('database_query_time');
+        expect(typeof metrics).toBe('object');
+        expect(metrics).toHaveProperty('timestamp');
+        expect(metrics).toHaveProperty('cpu_usage');
+        expect(metrics).toHaveProperty('memory_usage');
+        expect(metrics).toHaveProperty('database_connections');
+        expect(metrics).toHaveProperty('database_query_time');
 
         console.log(`   ✓ Received metrics: CPU ${metrics.cpu_usage}%, Memory ${metrics.memory_usage}%`);
         done();
@@ -121,7 +121,7 @@ describe('Sprint 9 Integration Tests', function() {
         .expect(200);
 
       const responseTime = Date.now() - startTime;
-      expect(responseTime).to.be.below(1000); // Should respond within 1 second
+      expect(responseTime).toBeLessThan(1000); // Should respond within 1 second
 
       console.log(`   ✓ API response time: ${responseTime}ms`);
     });
@@ -151,7 +151,7 @@ describe('Sprint 9 Integration Tests', function() {
       const testContent = 'This is a test file for integration testing.\nCreated at: ' + new Date().toISOString();
 
       fs.writeFileSync(testFilePath, testContent);
-      expect(fs.existsSync(testFilePath)).to.be.true;
+      expect(fs.existsSync(testFilePath)).toBe(true);
 
       console.log('   ✓ Created test file for upload');
     });
@@ -165,16 +165,16 @@ describe('Sprint 9 Integration Tests', function() {
         progressReceived = true;
         uploadSession = progress;
 
-        expect(progress).to.have.property('uploadId');
-        expect(progress).to.have.property('filename', 'test-upload.txt');
-        expect(progress).to.have.property('progress');
-        expect(progress).to.have.property('stage');
-        expect(progress).to.have.property('securityStatus');
+        expect(progress).toHaveProperty('uploadId');
+        expect(progress).toHaveProperty('filename', 'test-upload.txt');
+        expect(progress).toHaveProperty('progress');
+        expect(progress).toHaveProperty('stage');
+        expect(progress).toHaveProperty('securityStatus');
 
         console.log(`   ✓ Upload progress: ${progress.progress}% - ${progress.stage}`);
 
         if (progress.status === 'completed') {
-          expect(progressReceived).to.be.true;
+          expect(progressReceived).toBe(true);
           done();
         }
       });
@@ -188,17 +188,17 @@ describe('Sprint 9 Integration Tests', function() {
         .attach('file', testFilePath)
         .end((err, res) => {
           if (err) return done(err);
-          expect(res.status).to.equal(200);
+          expect(res.status).toBe(200);
         });
     });
 
     it('should complete security scan', function(done) {
       filesSocket.on('file_scan_complete', (scanResult) => {
-        expect(scanResult).to.have.property('fileId');
-        expect(scanResult).to.have.property('uploadId', uploadSession.uploadId);
-        expect(scanResult.scanResult).to.have.property('status');
-        expect(scanResult.scanResult).to.have.property('threats');
-        expect(scanResult.scanResult).to.have.property('scanDuration');
+        expect(scanResult).toHaveProperty('fileId');
+        expect(scanResult).toHaveProperty('uploadId', uploadSession.uploadId);
+        expect(scanResult.scanResult).toHaveProperty('status');
+        expect(scanResult.scanResult).toHaveProperty('threats');
+        expect(scanResult.scanResult).toHaveProperty('scanDuration');
 
         console.log(`   ✓ Security scan complete: ${scanResult.scanResult.status}`);
         console.log(`   ✓ Scan duration: ${scanResult.scanResult.scanDuration}ms`);
@@ -213,17 +213,17 @@ describe('Sprint 9 Integration Tests', function() {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).to.be.an('array');
-      expect(response.body.length).to.be.at.least(1);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBeGreaterThanOrEqual(1);
 
       const uploadedFile = response.body.find(f => f.original_name === 'test-upload.txt');
-      expect(uploadedFile).to.exist;
-      expect(uploadedFile).to.have.property('security_status');
+      expect(uploadedFile).toBeDefined();
+      expect(uploadedFile).toHaveProperty('security_status');
 
       console.log(`   ✓ Listed ${response.body.length} files, security status: ${uploadedFile.security_status}`);
     });
 
-    after(function() {
+    afterAll(function() {
       // Cleanup test file
       const testFilePath = path.join(__dirname, 'test-upload.txt');
       if (fs.existsSync(testFilePath)) {
@@ -249,7 +249,7 @@ describe('Sprint 9 Integration Tests', function() {
         .send(conversationData)
         .expect(201);
 
-      expect(response.body).to.have.property('id');
+      expect(response.body).toHaveProperty('id');
       conversationId = response.body.id;
 
       console.log(`   ✓ Created conversation: ${conversationId}`);
@@ -267,7 +267,7 @@ describe('Sprint 9 Integration Tests', function() {
         .send(messageData)
         .expect(201);
 
-      expect(response.body).to.have.property('id');
+      expect(response.body).toHaveProperty('id');
       parentMessageId = response.body.id;
 
       console.log(`   ✓ Sent parent message: ${parentMessageId}`);
@@ -286,7 +286,7 @@ describe('Sprint 9 Integration Tests', function() {
         .send(replyData)
         .expect(201);
 
-      expect(response.body).to.have.property('reply_to_id', parentMessageId);
+      expect(response.body).toHaveProperty('reply_to_id', parentMessageId);
 
       console.log(`   ✓ Sent threaded reply: ${response.body.id}`);
     });
@@ -297,14 +297,14 @@ describe('Sprint 9 Integration Tests', function() {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).to.be.an('array');
-      expect(response.body.length).to.be.at.least(2); // Parent + reply
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBeGreaterThanOrEqual(2); // Parent + reply
 
       const parentMsg = response.body.find(m => m.id === parentMessageId);
       const replyMsg = response.body.find(m => m.reply_to_id === parentMessageId);
 
-      expect(parentMsg).to.exist;
-      expect(replyMsg).to.exist;
+      expect(parentMsg).toBeDefined();
+      expect(replyMsg).toBeDefined();
 
       console.log(`   ✓ Retrieved thread with ${response.body.length} messages`);
     });
@@ -320,12 +320,12 @@ describe('Sprint 9 Integration Tests', function() {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).to.be.an('array');
-      expect(response.body.length).to.be.at.least(1);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBeGreaterThanOrEqual(1);
 
       const foundMessage = response.body[0];
-      expect(foundMessage).to.have.property('content');
-      expect(foundMessage.content.toLowerCase()).to.include('threading');
+      expect(foundMessage).toHaveProperty('content');
+      expect(foundMessage.content.toLowerCase()).toContain('threading');
 
       console.log(`   ✓ Found ${response.body.length} messages for "${searchQuery}"`);
     });
@@ -339,12 +339,12 @@ describe('Sprint 9 Integration Tests', function() {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).to.be.an('array');
-      expect(response.body.length).to.be.at.least(1);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBeGreaterThanOrEqual(1);
 
       const foundConversation = response.body[0];
-      expect(foundConversation).to.have.property('name');
-      expect(foundConversation.name).to.include('Integration Test');
+      expect(foundConversation).toHaveProperty('name');
+      expect(foundConversation.name).toContain('Integration Test');
 
       console.log(`   ✓ Found ${response.body.length} conversations for "${searchQuery}"`);
     });
@@ -353,13 +353,13 @@ describe('Sprint 9 Integration Tests', function() {
   describe('📈 Database Performance Monitoring', function() {
     it('should track database connection pool metrics', function(done) {
       performanceSocket.on('database_metrics', (dbMetrics) => {
-        expect(dbMetrics).to.be.an('array');
+        expect(Array.isArray(dbMetrics)).toBe(true);
 
         if (dbMetrics.length > 0) {
           const metric = dbMetrics[0];
-          expect(metric).to.have.property('table_name');
-          expect(metric).to.have.property('size_mb');
-          expect(metric).to.have.property('query_count');
+          expect(metric).toHaveProperty('table_name');
+          expect(metric).toHaveProperty('size_mb');
+          expect(metric).toHaveProperty('query_count');
         }
 
         console.log(`   ✓ Received database metrics for ${dbMetrics.length} tables`);
@@ -383,7 +383,7 @@ describe('Sprint 9 Integration Tests', function() {
 
       // Check if metrics are being tracked
       const metricsResponse = await performanceSocket.emitWithAck('get_slow_queries');
-      expect(metricsResponse).to.be.an('object');
+      expect(typeof metricsResponse).toBe('object');
 
       console.log('   ✓ Slow query monitoring active');
     });
@@ -395,9 +395,9 @@ describe('Sprint 9 Integration Tests', function() {
         .get('/health')
         .expect(200);
 
-      expect(response.body).to.have.property('status', 'healthy');
-      expect(response.body).to.have.property('uptime');
-      expect(response.body).to.have.property('timestamp');
+      expect(response.body).toHaveProperty('status', 'healthy');
+      expect(response.body).toHaveProperty('uptime');
+      expect(response.body).toHaveProperty('timestamp');
 
       console.log(`   ✓ Auth service healthy - uptime: ${Math.round(response.body.uptime)}s`);
     });
@@ -407,15 +407,15 @@ describe('Sprint 9 Integration Tests', function() {
         .get('/health')
         .expect(200);
 
-      expect(response.body).to.have.property('status', 'healthy');
-      expect(response.body).to.have.property('uptime');
+      expect(response.body).toHaveProperty('status', 'healthy');
+      expect(response.body).toHaveProperty('uptime');
 
       console.log(`   ✓ Messaging service healthy - uptime: ${Math.round(response.body.uptime)}s`);
     });
 
     it('should verify WebSocket connectivity', function() {
-      expect(performanceSocket.connected).to.be.true;
-      expect(filesSocket.connected).to.be.true;
+      expect(performanceSocket.connected).toBe(true);
+      expect(filesSocket.connected).toBe(true);
 
       console.log('   ✓ All WebSocket connections active');
     });
@@ -442,7 +442,7 @@ describe('Sprint 9 Integration Tests', function() {
         .attach('file', testFilePath)
         .expect(200);
 
-      expect(response.body).to.have.property('securityStatus');
+      expect(response.body).toHaveProperty('securityStatus');
 
       // Cleanup
       fs.unlinkSync(testFilePath);
@@ -464,7 +464,7 @@ describe('Sprint 9 Integration Tests', function() {
       const responses = await Promise.all(promises);
       const rateLimitedResponses = responses.filter(r => r.status === 429);
 
-      expect(rateLimitedResponses.length).to.be.at.least(1);
+      expect(rateLimitedResponses.length).toBeGreaterThanOrEqual(1);
       console.log(`   ✓ Rate limiting active - ${rateLimitedResponses.length} requests blocked`);
     });
   });
@@ -485,14 +485,14 @@ describe('Sprint 9 Integration Tests', function() {
           .expect(200);
 
         const responseTime = Date.now() - startTime;
-        expect(responseTime).to.be.below(500); // 500ms threshold
+        expect(responseTime).toBeLessThan(500); // 500ms threshold
 
         console.log(`   ✓ ${endpoint}: ${responseTime}ms`);
       }
     });
 
     it('should handle concurrent file uploads', async function() {
-      this.timeout(15000);
+      jest.setTimeout(15000);
 
       const uploadPromises = [];
       for (let i = 0; i < 3; i++) {
@@ -511,7 +511,7 @@ describe('Sprint 9 Integration Tests', function() {
       const results = await Promise.all(uploadPromises);
 
       results.forEach((result, index) => {
-        expect(result.status).to.equal(200);
+        expect(result.status).toBe(200);
 
         // Cleanup
         const testFilePath = path.join(__dirname, `concurrent-test-${index}.txt`);

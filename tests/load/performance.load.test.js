@@ -9,8 +9,9 @@ const { io } = require('socket.io-client');
 const fs = require('fs');
 const path = require('path');
 
-const AUTH_SERVER_URL = 'http://localhost:3001';
-const MESSAGING_SERVER_URL = 'http://localhost:3004';
+// Test configuration (unified backend consolidates all services on 3001)
+const AUTH_SERVER_URL = process.env.UNIFIED_BACKEND_URL || 'http://localhost:3001';
+const MESSAGING_SERVER_URL = process.env.UNIFIED_BACKEND_URL || 'http://localhost:3001';
 
 class LoadTester {
   constructor() {
@@ -811,3 +812,14 @@ if (require.main === module) {
 }
 
 module.exports = LoadTester;
+
+// Jest test wrapper - prevents "no tests" error when run via npm run test:integration
+describe('LoadTester', () => {
+  test('LoadTester class exists and can be instantiated', () => {
+    const tester = new LoadTester();
+    expect(tester).toBeDefined();
+    expect(tester.results).toBeDefined();
+    expect(typeof tester.setup).toBe('function');
+    expect(typeof tester.testAuthenticationLoad).toBe('function');
+  });
+});
