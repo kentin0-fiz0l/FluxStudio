@@ -61,6 +61,32 @@ ingress:
       match:
         path:
           prefix: /collab
+    # MCP Server (Model Context Protocol)
+    - component:
+        name: flux-mcp
+      match:
+        path:
+          prefix: /mcp
+      cors:
+        allow_origins:
+          - exact: https://fluxstudio.art
+          - exact: https://www.fluxstudio.art
+        allow_methods:
+          - GET
+          - POST
+          - OPTIONS
+        allow_headers:
+          - Content-Type
+          - Authorization
+          - Upgrade
+          - Connection
+        allow_credentials: true
+    # FFmpeg Worker health check
+    - component:
+        name: ffmpeg-worker
+      match:
+        path:
+          prefix: /ffmpeg
     # Frontend (catch-all, must be last)
     - component:
         name: frontend
