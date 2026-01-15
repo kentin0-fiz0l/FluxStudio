@@ -3,210 +3,227 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
-  Zap,
+  FolderPlus,
   Users,
-  Rocket,
-  CheckCircle,
-  ChevronRight
+  LayoutTemplate,
+  ChevronRight,
+  Rocket
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-interface WelcomeStep {
+/**
+ * Simplified WelcomeFlow - 2 steps for <30 second time-to-creation
+ * Step 1: Welcome with key value props
+ * Step 2: Quick start options (Create Project, Use Template, Join Team)
+ */
+
+interface QuickAction {
   id: string;
   title: string;
   description: string;
   icon: React.ComponentType<any>;
-  features: string[];
-  cta: string;
+  path: string;
+  primary?: boolean;
 }
 
-const welcomeSteps: WelcomeStep[] = [
+const quickActions: QuickAction[] = [
   {
-    id: 'welcome',
-    title: 'Welcome to FluxStudio!',
-    description: 'Your creative collaboration hub is ready. Let\'s get you started with a quick tour.',
-    icon: Sparkles,
-    features: [
-      'Real-time collaboration with your team',
-      'Powerful project management tools',
-      'Secure file sharing and version control',
-      'Integrated communication features'
-    ],
-    cta: 'Start Tour'
+    id: 'create',
+    title: 'Create Project',
+    description: 'Start fresh with a blank project',
+    icon: FolderPlus,
+    path: '/projects?action=create',
+    primary: true
   },
   {
-    id: 'dashboard',
-    title: 'Your Adaptive Dashboard',
-    description: 'Your dashboard adapts to your role and shows exactly what you need.',
-    icon: Zap,
-    features: [
-      'Personalized widget layout',
-      'Quick actions for common tasks',
-      'Real-time activity feed',
-      'AI-powered smart suggestions'
-    ],
-    cta: 'Next'
+    id: 'templates',
+    title: 'Use Template',
+    description: 'Start with a pre-built template',
+    icon: LayoutTemplate,
+    path: '/projects?tab=templates'
   },
   {
-    id: 'collaboration',
-    title: 'Collaborate Seamlessly',
-    description: 'Work together with your team in real-time, no matter where you are.',
+    id: 'team',
+    title: 'Join Team',
+    description: 'Accept a team invitation',
     icon: Users,
-    features: [
-      'Live document editing',
-      'Instant messaging and video calls',
-      'Share feedback and annotations',
-      'Track project progress together'
-    ],
-    cta: 'Next'
-  },
-  {
-    id: 'ready',
-    title: 'You\'re All Set!',
-    description: 'Start creating amazing work with your team today.',
-    icon: Rocket,
-    features: [
-      'Invite team members',
-      'Create your first project',
-      'Explore templates and resources',
-      'Access help and support anytime'
-    ],
-    cta: 'Go to Dashboard'
+    path: '/team'
   }
 ];
 
+const highlights = [
+  'Real-time collaboration',
+  'AI-powered design tools',
+  'Formation & drill writing',
+  'Secure file sharing'
+];
+
 export function WelcomeFlow() {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [step, setStep] = useState<'welcome' | 'start'>(
+    'welcome'
+  );
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleNext = () => {
-    const currentStepId = welcomeSteps[currentStep].id;
-    setCompletedSteps(prev => [...prev, currentStepId]);
-
-    if (currentStep < welcomeSteps.length - 1) {
-      setCurrentStep(prev => prev + 1);
-    } else {
-      // Mark welcome flow as completed
-      localStorage.setItem('welcome_flow_completed', 'true');
-      navigate('/dashboard');
-    }
+  const handleContinue = () => {
+    setStep('start');
   };
 
   const handleSkip = () => {
     localStorage.setItem('welcome_flow_completed', 'true');
-    navigate('/dashboard');
+    navigate('/projects');
   };
 
-  const step = welcomeSteps[currentStep];
-  const StepIcon = step.icon;
-  const progress = ((currentStep + 1) / welcomeSteps.length) * 100;
+  const handleQuickAction = (action: QuickAction) => {
+    localStorage.setItem('welcome_flow_completed', 'true');
+    navigate(action.path);
+  };
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-3xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
-            FluxStudio
-          </h1>
-          {user && (
-            <p className="text-gray-400">
-              Welcome, {user.name}! 👋
-            </p>
-          )}
-        </div>
-
-        {/* Progress */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-gray-400">
-              {currentStep + 1} of {welcomeSteps.length}
-            </span>
-            <button
-              onClick={handleSkip}
-              className="text-sm text-gray-400 hover:text-white transition-colors"
-            >
-              Skip Tour
-            </button>
-          </div>
-          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-blue-500 to-purple-600"
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
-        </div>
-
-        {/* Step Content */}
+      <div className="w-full max-w-2xl">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white/5 backdrop-blur-lg rounded-2xl p-8 border border-white/10"
-          >
-            {/* Icon */}
-            <div className="flex justify-center mb-6">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                <StepIcon className="h-10 w-10 text-white" />
-              </div>
-            </div>
-
-            {/* Title & Description */}
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold mb-4">{step.title}</h2>
-              <p className="text-xl text-gray-400">{step.description}</p>
-            </div>
-
-            {/* Features */}
-            <div className="space-y-4 mb-8">
-              {step.features.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-start space-x-3 p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                >
-                  <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-gray-300">{feature}</p>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* CTA */}
-            <button
-              onClick={handleNext}
-              className="w-full py-4 px-6 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600
-                       hover:from-blue-700 hover:to-purple-700 transition-all font-semibold text-lg
-                       flex items-center justify-center group"
+          {step === 'welcome' ? (
+            <motion.div
+              key="welcome"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="text-center"
             >
-              {step.cta}
-              <ChevronRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </motion.div>
+              {/* Logo & Welcome */}
+              <div className="mb-8">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-6">
+                  <Sparkles className="h-10 w-10 text-white" />
+                </div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-3">
+                  Welcome to FluxStudio
+                </h1>
+                {user && (
+                  <p className="text-xl text-gray-300">
+                    Hey {user.name?.split(' ')[0] || 'there'}! 👋
+                  </p>
+                )}
+              </div>
+
+              {/* Value Props */}
+              <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 mb-8 border border-white/10">
+                <p className="text-lg text-gray-300 mb-4">
+                  Your creative collaboration hub is ready
+                </p>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {highlights.map((highlight) => (
+                    <span
+                      key={highlight}
+                      className="px-3 py-1.5 bg-white/10 rounded-full text-sm text-gray-300"
+                    >
+                      {highlight}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* CTA */}
+              <button
+                onClick={handleContinue}
+                className="w-full max-w-sm mx-auto py-4 px-6 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600
+                         hover:from-blue-700 hover:to-purple-700 transition-all font-semibold text-lg
+                         flex items-center justify-center group"
+              >
+                Let's Go
+                <ChevronRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              {/* Skip */}
+              <button
+                onClick={handleSkip}
+                className="mt-4 text-sm text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                Skip to dashboard
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="start"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Header */}
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 flex items-center justify-center mx-auto mb-4">
+                  <Rocket className="h-8 w-8 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-2">
+                  How would you like to start?
+                </h2>
+                <p className="text-gray-400">
+                  Choose an option to get started right away
+                </p>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="space-y-4">
+                {quickActions.map((action) => {
+                  const ActionIcon = action.icon;
+                  return (
+                    <motion.button
+                      key={action.id}
+                      onClick={() => handleQuickAction(action)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`w-full p-5 rounded-xl text-left transition-all flex items-center gap-4 ${
+                        action.primary
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+                          : 'bg-white/5 hover:bg-white/10 border border-white/10'
+                      }`}
+                    >
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                        action.primary ? 'bg-white/20' : 'bg-white/10'
+                      }`}>
+                        <ActionIcon className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg">{action.title}</h3>
+                        <p className={action.primary ? 'text-blue-100' : 'text-gray-400'}>
+                          {action.description}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Back / Skip */}
+              <div className="flex justify-center gap-4 mt-8">
+                <button
+                  onClick={() => setStep('welcome')}
+                  className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  ← Back
+                </button>
+                <button
+                  onClick={handleSkip}
+                  className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  Skip to dashboard
+                </button>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
 
-        {/* Step Indicators */}
-        <div className="flex justify-center space-x-2 mt-8">
-          {welcomeSteps.map((_, index) => (
-            <div
-              key={index}
-              className={`h-2 rounded-full transition-all ${
-                index === currentStep
-                  ? 'w-8 bg-gradient-to-r from-blue-500 to-purple-600'
-                  : index < currentStep
-                  ? 'w-2 bg-green-400'
-                  : 'w-2 bg-white/20'
-              }`}
-            />
-          ))}
+        {/* Progress Indicator */}
+        <div className="flex justify-center gap-2 mt-8">
+          <div className={`h-1.5 rounded-full transition-all ${
+            step === 'welcome' ? 'w-8 bg-blue-500' : 'w-2 bg-gray-600'
+          }`} />
+          <div className={`h-1.5 rounded-full transition-all ${
+            step === 'start' ? 'w-8 bg-blue-500' : 'w-2 bg-gray-600'
+          }`} />
         </div>
       </div>
     </div>

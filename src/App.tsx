@@ -64,6 +64,7 @@ const { Component: Connectors } = lazyLoadWithRetry(() => import('./pages/Connec
 // These imports are no longer needed as legacy routes now redirect to new pages
 
 // Redesigned pages (Flux Design Language)
+const { Component: FormationEditor } = lazyLoadWithRetry(() => import('./pages/FormationEditor'));
 const { Component: ProjectsNew } = lazyLoadWithRetry(() => import('./pages/ProjectsNew'));
 const { Component: ProjectDetail } = lazyLoadWithRetry(() => import('./pages/ProjectDetail'));
 const { Component: ProjectOverview } = lazyLoadWithRetry(() => import('./pages/ProjectOverview'));
@@ -170,6 +171,8 @@ function AuthenticatedRoutes() {
                   <Route path="/projects" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectsNew /></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/projects/:projectId/overview" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectOverview /></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/projects/:id" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectDetail /></ProjectsErrorBoundary></ProtectedRoute>} />
+                  <Route path="/projects/:projectId/formations" element={<ProtectedRoute><FormationEditor /></ProtectedRoute>} />
+                  <Route path="/projects/:projectId/formations/:formationId" element={<ProtectedRoute><FormationEditor /></ProtectedRoute>} />
                   <Route path="/boards/:boardId" element={<ProtectedRoute><DesignBoardPage /></ProtectedRoute>} />
                   <Route path="/messages" element={<ProtectedRoute><MessagingErrorBoundary><MessagesNew /></MessagingErrorBoundary></ProtectedRoute>} />
                   <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
