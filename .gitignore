@@ -2,10 +2,17 @@ node_modules/
 .env
 .env.local
 .env.production
+.env.production.*
 .env.staging
 .env.development
 .env.test
+.env.*.backup*
 .DS_Store
+
+# Security - Production secrets (never commit)
+**/security/backups/*.env*
+**/.env.production
+**/.env.production.*
 *.log
 dist/
 build/
