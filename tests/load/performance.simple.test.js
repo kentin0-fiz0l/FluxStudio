@@ -273,3 +273,15 @@ if (require.main === module) {
 }
 
 module.exports = SimpleLoadTester;
+
+// Jest test wrapper - required for Jest to recognize this file as a test suite
+describe('SimpleLoadTester', () => {
+  test('SimpleLoadTester class exists and can be instantiated', () => {
+    const tester = new SimpleLoadTester();
+    expect(tester).toBeDefined();
+    expect(tester.results).toBeDefined();
+    expect(typeof tester.testBasicEndpoints).toBe('function');
+    expect(typeof tester.testConcurrentLoad).toBe('function');
+    expect(typeof tester.testMemoryAndCPU).toBe('function');
+  });
+});

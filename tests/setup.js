@@ -6,7 +6,7 @@
 // Set test environment variables
 process.env.NODE_ENV = 'test';
 process.env.USE_DATABASE = 'true';
-process.env.JWT_SECRET = 'test-jwt-secret-key';
+process.env.JWT_SECRET = 'test-jwt-secret-key-for-integration-tests-32chars';
 
 // Database configuration for tests
 process.env.DB_HOST = 'localhost';

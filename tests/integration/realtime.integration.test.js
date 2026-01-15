@@ -8,16 +8,20 @@ const jwt = require('jsonwebtoken');
 
 // Test configuration
 // Updated to use unified backend with /messaging namespace
-const MESSAGING_WS_URL = process.env.MESSAGING_WS_URL || 'http://localhost:3001/messaging';
-const JWT_SECRET = process.env.JWT_SECRET || 'flux-studio-secret-key-2025';
+const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3001';
+// JWT_SECRET must match what the server uses - set in tests/setup.js
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Helper function to create authenticated socket connection
 function createAuthenticatedSocket(userId = 'test-user', email = 'test@example.com') {
   const token = jwt.sign({ id: userId, email }, JWT_SECRET, { expiresIn: '1h' });
 
-  return SocketIOClient(MESSAGING_WS_URL, {
+  // Connect to the /messaging namespace with the correct Socket.IO path
+  return SocketIOClient(`${SERVER_URL}/messaging`, {
+    path: '/api/socket.io', // Match the server's custom path
     auth: { token },
-    autoConnect: false
+    autoConnect: false,
+    transports: ['polling', 'websocket'] // Start with polling for reliable initial connection
   });
 }
 
@@ -71,9 +75,11 @@ describe('Real-time Integration Tests', () => {
     });
 
     test('should reject connection without valid token', (done) => {
-      const invalidSocket = SocketIOClient(MESSAGING_WS_URL, {
+      const invalidSocket = SocketIOClient(`${SERVER_URL}/messaging`, {
+        path: '/api/socket.io',
         auth: { token: 'invalid-token' },
-        autoConnect: false
+        autoConnect: false,
+        transports: ['polling', 'websocket']
       });
 
       invalidSocket.on('connect_error', (error) => {
