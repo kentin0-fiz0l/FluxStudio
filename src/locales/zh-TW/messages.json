@@ -1,0 +1,102 @@
+{
+  "title": "訊息",
+  "subtitle": "與團隊協作",
+  "conversations": {
+    "title": "對話",
+    "new": "新對話",
+    "empty": "暫無對話",
+    "emptyDescription": "開始與團隊的對話",
+    "search": "搜尋對話",
+    "pinned": "已釘選",
+    "unread": "未讀"
+  },
+  "compose": {
+    "placeholder": "輸入訊息...",
+    "send": "傳送",
+    "attachFile": "附加檔案",
+    "emoji": "新增表情符號",
+    "mention": "提及某人",
+    "formatting": "文字格式"
+  },
+  "message": {
+    "edited": "已編輯",
+    "deleted": "此訊息已刪除",
+    "reply": "回覆",
+    "edit": "編輯",
+    "delete": "刪除",
+    "pin": "釘選",
+    "unpin": "取消釘選",
+    "react": "新增回應",
+    "forward": "轉發",
+    "copy": "複製文字",
+    "thread": "在討論串中回覆",
+    "markUnread": "標記為未讀"
+  },
+  "reactions": {
+    "title": "回應",
+    "addReaction": "新增回應",
+    "removeReaction": "移除回應"
+  },
+  "threads": {
+    "title": "討論串",
+    "replies": "{{count}}則回覆",
+    "replies_plural": "{{count}}則回覆",
+    "viewThread": "檢視討論串",
+    "replyToThread": "回覆討論串"
+  },
+  "typing": {
+    "one": "{{name}}正在輸入...",
+    "two": "{{name1}}和{{name2}}正在輸入...",
+    "many": "多人正在輸入..."
+  },
+  "presence": {
+    "online": "線上",
+    "away": "離開",
+    "busy": "忙碌",
+    "offline": "離線",
+    "lastSeen": "最後上線: {{time}}"
+  },
+  "notifications": {
+    "newMessage": "{{sender}}傳來新訊息",
+    "mention": "{{sender}}提到了你",
+    "reaction": "{{sender}}回應了你的訊息"
+  },
+  "search": {
+    "title": "搜尋訊息",
+    "placeholder": "在對話中搜尋...",
+    "results": "{{count}}筆結果",
+    "results_plural": "{{count}}筆結果",
+    "noResults": "找不到訊息",
+    "filters": {
+      "all": "所有訊息",
+      "files": "包含檔案",
+      "links": "包含連結",
+      "mentions": "提及"
+    }
+  },
+  "files": {
+    "shared": "共享檔案",
+    "upload": "上傳檔案",
+    "download": "下載",
+    "preview": "預覽",
+    "size": "大小: {{size}}"
+  },
+  "settings": {
+    "notifications": "通知設定",
+    "muteConversation": "靜音對話",
+    "leaveConversation": "離開對話",
+    "deleteConversation": "刪除對話",
+    "addMembers": "新增成員",
+    "conversationName": "對話名稱"
+  },
+  "errors": {
+    "sendFailed": "無法傳送訊息",
+    "loadFailed": "無法載入訊息",
+    "uploadFailed": "無法上傳檔案",
+    "connectionLost": "連線中斷。正在重新連線..."
+  },
+  "empty": {
+    "selectConversation": "選擇一個對話",
+    "startConversation": "開始新對話"
+  }
+}

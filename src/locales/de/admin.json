@@ -1,0 +1,184 @@
+{
+  "title": "Admin-Dashboard",
+  "navigation": {
+    "overview": "Ubersicht",
+    "users": "Benutzer",
+    "teams": "Teams",
+    "projects": "Projekte",
+    "analytics": "Analytik",
+    "auditLogs": "Audit-Protokolle",
+    "settings": "Einstellungen",
+    "billing": "Abrechnung"
+  },
+  "overview": {
+    "title": "Dashboard-Ubersicht",
+    "totalUsers": "Benutzer gesamt",
+    "activeUsers": "Aktive Benutzer",
+    "totalProjects": "Projekte gesamt",
+    "activeProjects": "Aktive Projekte",
+    "storageUsed": "Genutzter Speicher",
+    "apiCalls": "API-Aufrufe",
+    "recentActivity": "Letzte Aktivitaten",
+    "systemHealth": "Systemzustand"
+  },
+  "users": {
+    "title": "Benutzerverwaltung",
+    "list": "Alle Benutzer",
+    "add": "Benutzer hinzufugen",
+    "invite": "Benutzer einladen",
+    "search": "Benutzer suchen...",
+    "filters": {
+      "all": "Alle Benutzer",
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "pending": "Ausstehend"
+    },
+    "columns": {
+      "name": "Name",
+      "email": "E-Mail",
+      "role": "Rolle",
+      "status": "Status",
+      "lastActive": "Zuletzt aktiv",
+      "joined": "Beigetreten"
+    },
+    "actions": {
+      "edit": "Benutzer bearbeiten",
+      "disable": "Benutzer deaktivieren",
+      "enable": "Benutzer aktivieren",
+      "delete": "Benutzer loschen",
+      "resetPassword": "Passwort zurucksetzen",
+      "impersonate": "Als Benutzer anmelden"
+    },
+    "roles": {
+      "admin": "Administrator",
+      "manager": "Manager",
+      "member": "Mitglied",
+      "viewer": "Betrachter"
+    }
+  },
+  "teams": {
+    "title": "Teamverwaltung",
+    "list": "Alle Teams",
+    "create": "Team erstellen",
+    "members": "{{count}} Mitglied",
+    "members_plural": "{{count}} Mitglieder"
+  },
+  "analytics": {
+    "title": "Analytik",
+    "overview": "Ubersicht",
+    "engagement": "Benutzer-Engagement",
+    "performance": "Leistung",
+    "usage": "Nutzungsstatistiken",
+    "dateRange": {
+      "today": "Heute",
+      "week": "Diese Woche",
+      "month": "Dieser Monat",
+      "quarter": "Dieses Quartal",
+      "year": "Dieses Jahr",
+      "custom": "Benutzerdefinierter Zeitraum"
+    },
+    "metrics": {
+      "pageViews": "Seitenaufrufe",
+      "sessions": "Sitzungen",
+      "avgSessionDuration": "Durchschn. Sitzungsdauer",
+      "bounceRate": "Absprungrate",
+      "activeUsers": "Aktive Benutzer",
+      "newUsers": "Neue Benutzer"
+    },
+    "export": {
+      "title": "Daten exportieren",
+      "csv": "Als CSV exportieren",
+      "pdf": "Als PDF exportieren",
+      "excel": "Als Excel exportieren"
+    }
+  },
+  "auditLogs": {
+    "title": "Audit-Protokolle",
+    "search": "Protokolle durchsuchen...",
+    "filters": {
+      "all": "Alle Ereignisse",
+      "auth": "Authentifizierung",
+      "users": "Benutzeranderungen",
+      "projects": "Projektanderungen",
+      "settings": "Einstellungsanderungen",
+      "security": "Sicherheitsereignisse"
+    },
+    "columns": {
+      "timestamp": "Zeitstempel",
+      "user": "Benutzer",
+      "action": "Aktion",
+      "resource": "Ressource",
+      "details": "Details",
+      "ip": "IP-Adresse"
+    },
+    "actions": {
+      "login": "Benutzer angemeldet",
+      "logout": "Benutzer abgemeldet",
+      "create": "Erstellt",
+      "update": "Aktualisiert",
+      "delete": "Geloscht",
+      "invite": "Eingeladen",
+      "remove": "Entfernt"
+    }
+  },
+  "settings": {
+    "title": "Systemeinstellungen",
+    "general": {
+      "title": "Allgemein",
+      "siteName": "Seitenname",
+      "siteUrl": "Seiten-URL",
+      "supportEmail": "Support-E-Mail",
+      "timezone": "Zeitzone"
+    },
+    "security": {
+      "title": "Sicherheit",
+      "passwordPolicy": "Passwortrichtlinie",
+      "sessionTimeout": "Sitzungs-Timeout",
+      "twoFactor": "Zwei-Faktor-Authentifizierung",
+      "ipWhitelist": "IP-Whitelist"
+    },
+    "email": {
+      "title": "E-Mail-Einstellungen",
+      "provider": "E-Mail-Anbieter",
+      "fromAddress": "Absenderadresse",
+      "fromName": "Absendername"
+    },
+    "integrations": {
+      "title": "Integrationen",
+      "connected": "Verbunden",
+      "notConnected": "Nicht verbunden",
+      "configure": "Konfigurieren"
+    }
+  },
+  "billing": {
+    "title": "Abrechnung & Abonnement",
+    "currentPlan": "Aktueller Tarif",
+    "usage": "Nutzung",
+    "invoices": "Rechnungen",
+    "paymentMethod": "Zahlungsmethode",
+    "upgrade": "Tarif upgraden",
+    "cancel": "Abonnement kundigen"
+  },
+  "health": {
+    "title": "Systemzustand",
+    "status": {
+      "healthy": "Gesund",
+      "degraded": "Beeintrachtigt",
+      "down": "Ausgefallen"
+    },
+    "services": {
+      "api": "API-Server",
+      "database": "Datenbank",
+      "cache": "Cache",
+      "storage": "Speicher",
+      "websocket": "WebSocket"
+    },
+    "uptime": "Verfugbarkeit",
+    "lastChecked": "Zuletzt gepruft"
+  },
+  "errors": {
+    "loadFailed": "Daten konnten nicht geladen werden",
+    "saveFailed": "Anderungen konnten nicht gespeichert werden",
+    "actionFailed": "Aktion fehlgeschlagen. Bitte versuchen Sie es erneut."
+  }
+}

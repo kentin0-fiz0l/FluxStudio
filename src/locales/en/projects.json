@@ -1,0 +1,111 @@
+{
+  "list": {
+    "title": "Projects",
+    "subtitle": "Manage your creative projects",
+    "empty": "No projects yet",
+    "emptyDescription": "Create your first project to get started",
+    "createFirst": "Create your first project"
+  },
+  "create": {
+    "title": "Create new project",
+    "nameLabel": "Project name",
+    "namePlaceholder": "Enter project name",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Describe your project (optional)",
+    "teamLabel": "Team",
+    "teamPlaceholder": "Select a team",
+    "templateLabel": "Template",
+    "templatePlaceholder": "Start from template (optional)",
+    "visibilityLabel": "Visibility",
+    "visibilityPublic": "Public",
+    "visibilityPrivate": "Private",
+    "visibilityTeam": "Team only",
+    "submit": "Create project",
+    "success": "Project created successfully"
+  },
+  "detail": {
+    "overview": "Overview",
+    "files": "Files",
+    "tasks": "Tasks",
+    "messages": "Messages",
+    "team": "Team",
+    "settings": "Settings",
+    "activity": "Activity"
+  },
+  "status": {
+    "active": "Active",
+    "completed": "Completed",
+    "archived": "Archived",
+    "onHold": "On Hold",
+    "draft": "Draft"
+  },
+  "actions": {
+    "edit": "Edit project",
+    "delete": "Delete project",
+    "archive": "Archive project",
+    "duplicate": "Duplicate project",
+    "share": "Share project",
+    "export": "Export project",
+    "addMember": "Add team member",
+    "removeMember": "Remove member",
+    "changeOwner": "Transfer ownership"
+  },
+  "bulk": {
+    "selected": "{{count}} selected",
+    "delete": "Delete selected",
+    "archive": "Archive selected",
+    "move": "Move selected",
+    "tag": "Tag selected",
+    "confirmDelete": "Are you sure you want to delete {{count}} projects? This cannot be undone.",
+    "confirmArchive": "Are you sure you want to archive {{count}} projects?"
+  },
+  "filters": {
+    "all": "All projects",
+    "active": "Active",
+    "completed": "Completed",
+    "archived": "Archived",
+    "myProjects": "My projects",
+    "shared": "Shared with me",
+    "recent": "Recent"
+  },
+  "sort": {
+    "name": "Name",
+    "dateCreated": "Date created",
+    "dateModified": "Last modified",
+    "status": "Status"
+  },
+  "views": {
+    "grid": "Grid view",
+    "list": "List view",
+    "board": "Board view"
+  },
+  "timeline": {
+    "title": "Timeline",
+    "start": "Start date",
+    "end": "End date",
+    "duration": "Duration",
+    "milestone": "Milestone",
+    "addMilestone": "Add milestone"
+  },
+  "members": {
+    "title": "Team members",
+    "owner": "Owner",
+    "manager": "Manager",
+    "contributor": "Contributor",
+    "viewer": "Viewer",
+    "invite": "Invite member",
+    "pending": "Pending invitation"
+  },
+  "errors": {
+    "notFound": "Project not found",
+    "accessDenied": "You don't have access to this project",
+    "createFailed": "Could not create project",
+    "updateFailed": "Could not update project",
+    "deleteFailed": "Could not delete project"
+  },
+  "confirmation": {
+    "delete": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+    "archive": "Are you sure you want to archive \"{{name}}\"?",
+    "leave": "Are you sure you want to leave this project?"
+  }
+}

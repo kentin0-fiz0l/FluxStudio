@@ -1,0 +1,184 @@
+{
+  "title": "管理儀表板",
+  "navigation": {
+    "overview": "概覽",
+    "users": "使用者",
+    "teams": "團隊",
+    "projects": "專案",
+    "analytics": "分析",
+    "auditLogs": "稽核日誌",
+    "settings": "設定",
+    "billing": "帳單"
+  },
+  "overview": {
+    "title": "儀表板概覽",
+    "totalUsers": "總使用者數",
+    "activeUsers": "活躍使用者",
+    "totalProjects": "總專案數",
+    "activeProjects": "活躍專案",
+    "storageUsed": "已用儲存空間",
+    "apiCalls": "API呼叫",
+    "recentActivity": "最近活動",
+    "systemHealth": "系統健康狀態"
+  },
+  "users": {
+    "title": "使用者管理",
+    "list": "所有使用者",
+    "add": "新增使用者",
+    "invite": "邀請使用者",
+    "search": "搜尋使用者...",
+    "filters": {
+      "all": "所有使用者",
+      "active": "活躍",
+      "inactive": "不活躍",
+      "pending": "待處理"
+    },
+    "columns": {
+      "name": "姓名",
+      "email": "電子郵件",
+      "role": "角色",
+      "status": "狀態",
+      "lastActive": "最後活躍",
+      "joined": "加入時間"
+    },
+    "actions": {
+      "edit": "編輯使用者",
+      "disable": "停用使用者",
+      "enable": "啟用使用者",
+      "delete": "刪除使用者",
+      "resetPassword": "重設密碼",
+      "impersonate": "模擬登入"
+    },
+    "roles": {
+      "admin": "管理員",
+      "manager": "經理",
+      "member": "成員",
+      "viewer": "檢視者"
+    }
+  },
+  "teams": {
+    "title": "團隊管理",
+    "list": "所有團隊",
+    "create": "建立團隊",
+    "members": "{{count}}位成員",
+    "members_plural": "{{count}}位成員"
+  },
+  "analytics": {
+    "title": "分析",
+    "overview": "概覽",
+    "engagement": "使用者參與度",
+    "performance": "效能",
+    "usage": "使用統計",
+    "dateRange": {
+      "today": "今天",
+      "week": "本週",
+      "month": "本月",
+      "quarter": "本季",
+      "year": "今年",
+      "custom": "自訂範圍"
+    },
+    "metrics": {
+      "pageViews": "頁面瀏覽量",
+      "sessions": "工作階段",
+      "avgSessionDuration": "平均工作階段時間",
+      "bounceRate": "跳出率",
+      "activeUsers": "活躍使用者",
+      "newUsers": "新使用者"
+    },
+    "export": {
+      "title": "匯出資料",
+      "csv": "匯出為CSV",
+      "pdf": "匯出為PDF",
+      "excel": "匯出為Excel"
+    }
+  },
+  "auditLogs": {
+    "title": "稽核日誌",
+    "search": "搜尋日誌...",
+    "filters": {
+      "all": "所有事件",
+      "auth": "身份驗證",
+      "users": "使用者變更",
+      "projects": "專案變更",
+      "settings": "設定變更",
+      "security": "安全事件"
+    },
+    "columns": {
+      "timestamp": "時間戳記",
+      "user": "使用者",
+      "action": "動作",
+      "resource": "資源",
+      "details": "詳細資訊",
+      "ip": "IP位址"
+    },
+    "actions": {
+      "login": "使用者登入",
+      "logout": "使用者登出",
+      "create": "建立",
+      "update": "更新",
+      "delete": "刪除",
+      "invite": "邀請",
+      "remove": "移除"
+    }
+  },
+  "settings": {
+    "title": "系統設定",
+    "general": {
+      "title": "一般",
+      "siteName": "網站名稱",
+      "siteUrl": "網站URL",
+      "supportEmail": "支援信箱",
+      "timezone": "時區"
+    },
+    "security": {
+      "title": "安全性",
+      "passwordPolicy": "密碼政策",
+      "sessionTimeout": "工作階段逾時",
+      "twoFactor": "雙因素驗證",
+      "ipWhitelist": "IP白名單"
+    },
+    "email": {
+      "title": "電子郵件設定",
+      "provider": "電子郵件提供者",
+      "fromAddress": "寄件地址",
+      "fromName": "寄件人名稱"
+    },
+    "integrations": {
+      "title": "整合",
+      "connected": "已連接",
+      "notConnected": "未連接",
+      "configure": "設定"
+    }
+  },
+  "billing": {
+    "title": "帳單與訂閱",
+    "currentPlan": "目前方案",
+    "usage": "使用情況",
+    "invoices": "發票",
+    "paymentMethod": "付款方式",
+    "upgrade": "升級方案",
+    "cancel": "取消訂閱"
+  },
+  "health": {
+    "title": "系統健康狀態",
+    "status": {
+      "healthy": "健康",
+      "degraded": "降級",
+      "down": "當機"
+    },
+    "services": {
+      "api": "API伺服器",
+      "database": "資料庫",
+      "cache": "快取",
+      "storage": "儲存空間",
+      "websocket": "WebSocket"
+    },
+    "uptime": "運行時間",
+    "lastChecked": "最後檢查"
+  },
+  "errors": {
+    "loadFailed": "無法載入資料",
+    "saveFailed": "無法儲存變更",
+    "actionFailed": "操作失敗，請重試。"
+  }
+}

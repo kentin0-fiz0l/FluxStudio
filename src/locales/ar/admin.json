@@ -1,0 +1,184 @@
+{
+  "title": "لوحة تحكم المسؤول",
+  "navigation": {
+    "overview": "نظرة عامة",
+    "users": "المستخدمون",
+    "teams": "الفرق",
+    "projects": "المشاريع",
+    "analytics": "التحليلات",
+    "auditLogs": "سجلات التدقيق",
+    "settings": "الإعدادات",
+    "billing": "الفواتير"
+  },
+  "overview": {
+    "title": "نظرة عامة على لوحة التحكم",
+    "totalUsers": "إجمالي المستخدمين",
+    "activeUsers": "المستخدمون النشطون",
+    "totalProjects": "إجمالي المشاريع",
+    "activeProjects": "المشاريع النشطة",
+    "storageUsed": "التخزين المستخدم",
+    "apiCalls": "استدعاءات API",
+    "recentActivity": "النشاط الأخير",
+    "systemHealth": "صحة النظام"
+  },
+  "users": {
+    "title": "إدارة المستخدمين",
+    "list": "جميع المستخدمين",
+    "add": "إضافة مستخدم",
+    "invite": "دعوة مستخدم",
+    "search": "البحث عن مستخدمين...",
+    "filters": {
+      "all": "جميع المستخدمين",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "pending": "قيد الانتظار"
+    },
+    "columns": {
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "role": "الدور",
+      "status": "الحالة",
+      "lastActive": "آخر نشاط",
+      "joined": "تاريخ الانضمام"
+    },
+    "actions": {
+      "edit": "تعديل المستخدم",
+      "disable": "تعطيل المستخدم",
+      "enable": "تفعيل المستخدم",
+      "delete": "حذف المستخدم",
+      "resetPassword": "إعادة تعيين كلمة المرور",
+      "impersonate": "انتحال الشخصية"
+    },
+    "roles": {
+      "admin": "مسؤول",
+      "manager": "مدير",
+      "member": "عضو",
+      "viewer": "مشاهد"
+    }
+  },
+  "teams": {
+    "title": "إدارة الفرق",
+    "list": "جميع الفرق",
+    "create": "إنشاء فريق",
+    "members": "{{count}} عضو",
+    "members_plural": "{{count}} أعضاء"
+  },
+  "analytics": {
+    "title": "التحليلات",
+    "overview": "نظرة عامة",
+    "engagement": "تفاعل المستخدمين",
+    "performance": "الأداء",
+    "usage": "إحصائيات الاستخدام",
+    "dateRange": {
+      "today": "اليوم",
+      "week": "هذا الأسبوع",
+      "month": "هذا الشهر",
+      "quarter": "هذا الربع",
+      "year": "هذه السنة",
+      "custom": "نطاق مخصص"
+    },
+    "metrics": {
+      "pageViews": "مشاهدات الصفحة",
+      "sessions": "الجلسات",
+      "avgSessionDuration": "متوسط مدة الجلسة",
+      "bounceRate": "معدل الارتداد",
+      "activeUsers": "المستخدمون النشطون",
+      "newUsers": "المستخدمون الجدد"
+    },
+    "export": {
+      "title": "تصدير البيانات",
+      "csv": "تصدير كـ CSV",
+      "pdf": "تصدير كـ PDF",
+      "excel": "تصدير كـ Excel"
+    }
+  },
+  "auditLogs": {
+    "title": "سجلات التدقيق",
+    "search": "البحث في السجلات...",
+    "filters": {
+      "all": "جميع الأحداث",
+      "auth": "المصادقة",
+      "users": "تغييرات المستخدمين",
+      "projects": "تغييرات المشاريع",
+      "settings": "تغييرات الإعدادات",
+      "security": "أحداث الأمان"
+    },
+    "columns": {
+      "timestamp": "الطابع الزمني",
+      "user": "المستخدم",
+      "action": "الإجراء",
+      "resource": "المورد",
+      "details": "التفاصيل",
+      "ip": "عنوان IP"
+    },
+    "actions": {
+      "login": "تسجيل دخول المستخدم",
+      "logout": "تسجيل خروج المستخدم",
+      "create": "تم الإنشاء",
+      "update": "تم التحديث",
+      "delete": "تم الحذف",
+      "invite": "تم الدعوة",
+      "remove": "تم الإزالة"
+    }
+  },
+  "settings": {
+    "title": "إعدادات النظام",
+    "general": {
+      "title": "عام",
+      "siteName": "اسم الموقع",
+      "siteUrl": "رابط الموقع",
+      "supportEmail": "بريد الدعم",
+      "timezone": "المنطقة الزمنية"
+    },
+    "security": {
+      "title": "الأمان",
+      "passwordPolicy": "سياسة كلمة المرور",
+      "sessionTimeout": "انتهاء مهلة الجلسة",
+      "twoFactor": "المصادقة الثنائية",
+      "ipWhitelist": "القائمة البيضاء لـ IP"
+    },
+    "email": {
+      "title": "إعدادات البريد الإلكتروني",
+      "provider": "مزود البريد الإلكتروني",
+      "fromAddress": "عنوان المرسل",
+      "fromName": "اسم المرسل"
+    },
+    "integrations": {
+      "title": "التكاملات",
+      "connected": "متصل",
+      "notConnected": "غير متصل",
+      "configure": "تكوين"
+    }
+  },
+  "billing": {
+    "title": "الفواتير والاشتراك",
+    "currentPlan": "الخطة الحالية",
+    "usage": "الاستخدام",
+    "invoices": "الفواتير",
+    "paymentMethod": "طريقة الدفع",
+    "upgrade": "ترقية الخطة",
+    "cancel": "إلغاء الاشتراك"
+  },
+  "health": {
+    "title": "صحة النظام",
+    "status": {
+      "healthy": "سليم",
+      "degraded": "متدهور",
+      "down": "معطل"
+    },
+    "services": {
+      "api": "خادم API",
+      "database": "قاعدة البيانات",
+      "cache": "التخزين المؤقت",
+      "storage": "التخزين",
+      "websocket": "WebSocket"
+    },
+    "uptime": "وقت التشغيل",
+    "lastChecked": "آخر فحص"
+  },
+  "errors": {
+    "loadFailed": "تعذر تحميل البيانات",
+    "saveFailed": "تعذر حفظ التغييرات",
+    "actionFailed": "فشل الإجراء. يرجى المحاولة مرة أخرى."
+  }
+}

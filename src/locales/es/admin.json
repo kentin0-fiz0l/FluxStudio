@@ -1,0 +1,184 @@
+{
+  "title": "Panel de Administración",
+  "navigation": {
+    "overview": "Resumen",
+    "users": "Usuarios",
+    "teams": "Equipos",
+    "projects": "Proyectos",
+    "analytics": "Analíticas",
+    "auditLogs": "Registros de Auditoría",
+    "settings": "Configuración",
+    "billing": "Facturación"
+  },
+  "overview": {
+    "title": "Resumen del Panel",
+    "totalUsers": "Total de Usuarios",
+    "activeUsers": "Usuarios Activos",
+    "totalProjects": "Total de Proyectos",
+    "activeProjects": "Proyectos Activos",
+    "storageUsed": "Almacenamiento Usado",
+    "apiCalls": "Llamadas API",
+    "recentActivity": "Actividad Reciente",
+    "systemHealth": "Estado del Sistema"
+  },
+  "users": {
+    "title": "Gestión de Usuarios",
+    "list": "Todos los Usuarios",
+    "add": "Añadir Usuario",
+    "invite": "Invitar Usuario",
+    "search": "Buscar usuarios...",
+    "filters": {
+      "all": "Todos los usuarios",
+      "active": "Activos",
+      "inactive": "Inactivos",
+      "pending": "Pendientes"
+    },
+    "columns": {
+      "name": "Nombre",
+      "email": "Correo",
+      "role": "Rol",
+      "status": "Estado",
+      "lastActive": "Última Actividad",
+      "joined": "Fecha de Registro"
+    },
+    "actions": {
+      "edit": "Editar usuario",
+      "disable": "Deshabilitar usuario",
+      "enable": "Habilitar usuario",
+      "delete": "Eliminar usuario",
+      "resetPassword": "Restablecer contraseña",
+      "impersonate": "Suplantar"
+    },
+    "roles": {
+      "admin": "Administrador",
+      "manager": "Gerente",
+      "member": "Miembro",
+      "viewer": "Observador"
+    }
+  },
+  "teams": {
+    "title": "Gestión de Equipos",
+    "list": "Todos los Equipos",
+    "create": "Crear Equipo",
+    "members": "{{count}} miembro",
+    "members_plural": "{{count}} miembros"
+  },
+  "analytics": {
+    "title": "Analíticas",
+    "overview": "Resumen",
+    "engagement": "Interacción de Usuarios",
+    "performance": "Rendimiento",
+    "usage": "Estadísticas de Uso",
+    "dateRange": {
+      "today": "Hoy",
+      "week": "Esta Semana",
+      "month": "Este Mes",
+      "quarter": "Este Trimestre",
+      "year": "Este Año",
+      "custom": "Rango Personalizado"
+    },
+    "metrics": {
+      "pageViews": "Vistas de Página",
+      "sessions": "Sesiones",
+      "avgSessionDuration": "Duración Promedio de Sesión",
+      "bounceRate": "Tasa de Rebote",
+      "activeUsers": "Usuarios Activos",
+      "newUsers": "Nuevos Usuarios"
+    },
+    "export": {
+      "title": "Exportar Datos",
+      "csv": "Exportar como CSV",
+      "pdf": "Exportar como PDF",
+      "excel": "Exportar como Excel"
+    }
+  },
+  "auditLogs": {
+    "title": "Registros de Auditoría",
+    "search": "Buscar registros...",
+    "filters": {
+      "all": "Todos los eventos",
+      "auth": "Autenticación",
+      "users": "Cambios de usuarios",
+      "projects": "Cambios de proyectos",
+      "settings": "Cambios de configuración",
+      "security": "Eventos de seguridad"
+    },
+    "columns": {
+      "timestamp": "Fecha y Hora",
+      "user": "Usuario",
+      "action": "Acción",
+      "resource": "Recurso",
+      "details": "Detalles",
+      "ip": "Dirección IP"
+    },
+    "actions": {
+      "login": "Usuario inició sesión",
+      "logout": "Usuario cerró sesión",
+      "create": "Creado",
+      "update": "Actualizado",
+      "delete": "Eliminado",
+      "invite": "Invitado",
+      "remove": "Removido"
+    }
+  },
+  "settings": {
+    "title": "Configuración del Sistema",
+    "general": {
+      "title": "General",
+      "siteName": "Nombre del Sitio",
+      "siteUrl": "URL del Sitio",
+      "supportEmail": "Correo de Soporte",
+      "timezone": "Zona Horaria"
+    },
+    "security": {
+      "title": "Seguridad",
+      "passwordPolicy": "Política de Contraseñas",
+      "sessionTimeout": "Tiempo de Sesión",
+      "twoFactor": "Autenticación de Dos Factores",
+      "ipWhitelist": "Lista Blanca de IP"
+    },
+    "email": {
+      "title": "Configuración de Correo",
+      "provider": "Proveedor de Correo",
+      "fromAddress": "Dirección de Envío",
+      "fromName": "Nombre de Envío"
+    },
+    "integrations": {
+      "title": "Integraciones",
+      "connected": "Conectado",
+      "notConnected": "No conectado",
+      "configure": "Configurar"
+    }
+  },
+  "billing": {
+    "title": "Facturación y Suscripción",
+    "currentPlan": "Plan Actual",
+    "usage": "Uso",
+    "invoices": "Facturas",
+    "paymentMethod": "Método de Pago",
+    "upgrade": "Mejorar Plan",
+    "cancel": "Cancelar Suscripción"
+  },
+  "health": {
+    "title": "Estado del Sistema",
+    "status": {
+      "healthy": "Saludable",
+      "degraded": "Degradado",
+      "down": "Caído"
+    },
+    "services": {
+      "api": "Servidor API",
+      "database": "Base de Datos",
+      "cache": "Caché",
+      "storage": "Almacenamiento",
+      "websocket": "WebSocket"
+    },
+    "uptime": "Tiempo Activo",
+    "lastChecked": "Última verificación"
+  },
+  "errors": {
+    "loadFailed": "No se pudieron cargar los datos",
+    "saveFailed": "No se pudieron guardar los cambios",
+    "actionFailed": "La acción falló. Por favor, inténtalo de nuevo."
+  }
+}

@@ -71,6 +71,10 @@ const { Component: TeamNew } = lazyLoadWithRetry(() => import('./pages/TeamNew')
 const { Component: OrganizationNew } = lazyLoadWithRetry(() => import('./pages/OrganizationNew'));
 const { Component: Profile } = lazyLoadWithRetry(() => import('./pages/Profile'));
 const { Component: Notifications } = lazyLoadWithRetry(() => import('./pages/Notifications'));
+const { Component: SearchResults } = lazyLoadWithRetry(() => import('./pages/SearchResults'));
+const { Component: AdminDashboard } = lazyLoadWithRetry(() => import('./pages/admin/Dashboard'));
+const { Component: AdminUsers } = lazyLoadWithRetry(() => import('./pages/admin/Users'));
+const { Component: AdminAuditLogs } = lazyLoadWithRetry(() => import('./pages/admin/AuditLogs'));
 const { Component: OrganizationDashboard } = lazyLoadWithRetry(() => import('./components/OrganizationDashboard'));
 const { Component: TeamDashboard } = lazyLoadWithRetry(() => import('./components/TeamDashboard'));
 const { Component: ProjectDashboard } = lazyLoadWithRetry(() => import('./components/ProjectDashboard'));
@@ -169,7 +173,13 @@ function AuthenticatedRoutes() {
                   <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                  <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
                   <Route path="/connectors" element={<ProtectedRoute><Connectors /></ProtectedRoute>} />
+
+                  {/* Admin Routes */}
+                  <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                  <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+                  <Route path="/admin/audit" element={<ProtectedRoute><AdminAuditLogs /></ProtectedRoute>} />
                   <Route path="/tools" element={<ProtectedRoute><ToolsErrorBoundary><Tools /></ToolsErrorBoundary></ProtectedRoute>} />
                   <Route path="/tools/metmap" element={<ProtectedRoute><ToolsErrorBoundary><ToolsMetMap /></ToolsErrorBoundary></ProtectedRoute>} />
                   <Route path="/tools/files" element={<ProtectedRoute><ToolsErrorBoundary><ToolsFiles /></ToolsErrorBoundary></ProtectedRoute>} />

@@ -1,0 +1,111 @@
+{
+  "list": {
+    "title": "Projekte",
+    "subtitle": "Verwalten Sie Ihre kreativen Projekte",
+    "empty": "Noch keine Projekte",
+    "emptyDescription": "Erstellen Sie Ihr erstes Projekt, um zu beginnen",
+    "createFirst": "Erstes Projekt erstellen"
+  },
+  "create": {
+    "title": "Neues Projekt erstellen",
+    "nameLabel": "Projektname",
+    "namePlaceholder": "Projektname eingeben",
+    "descriptionLabel": "Beschreibung",
+    "descriptionPlaceholder": "Beschreiben Sie Ihr Projekt (optional)",
+    "teamLabel": "Team",
+    "teamPlaceholder": "Team auswählen",
+    "templateLabel": "Vorlage",
+    "templatePlaceholder": "Mit Vorlage beginnen (optional)",
+    "visibilityLabel": "Sichtbarkeit",
+    "visibilityPublic": "Öffentlich",
+    "visibilityPrivate": "Privat",
+    "visibilityTeam": "Nur Team",
+    "submit": "Projekt erstellen",
+    "success": "Projekt erfolgreich erstellt"
+  },
+  "detail": {
+    "overview": "Übersicht",
+    "files": "Dateien",
+    "tasks": "Aufgaben",
+    "messages": "Nachrichten",
+    "team": "Team",
+    "settings": "Einstellungen",
+    "activity": "Aktivität"
+  },
+  "status": {
+    "active": "Aktiv",
+    "completed": "Abgeschlossen",
+    "archived": "Archiviert",
+    "onHold": "Pausiert",
+    "draft": "Entwurf"
+  },
+  "actions": {
+    "edit": "Projekt bearbeiten",
+    "delete": "Projekt löschen",
+    "archive": "Projekt archivieren",
+    "duplicate": "Projekt duplizieren",
+    "share": "Projekt teilen",
+    "export": "Projekt exportieren",
+    "addMember": "Teammitglied hinzufügen",
+    "removeMember": "Mitglied entfernen",
+    "changeOwner": "Eigentum übertragen"
+  },
+  "bulk": {
+    "selected": "{{count}} ausgewählt",
+    "delete": "Auswahl löschen",
+    "archive": "Auswahl archivieren",
+    "move": "Auswahl verschieben",
+    "tag": "Auswahl taggen",
+    "confirmDelete": "Sind Sie sicher, dass Sie {{count}} Projekte löschen möchten? Dies kann nicht rückgängig gemacht werden.",
+    "confirmArchive": "Sind Sie sicher, dass Sie {{count}} Projekte archivieren möchten?"
+  },
+  "filters": {
+    "all": "Alle Projekte",
+    "active": "Aktiv",
+    "completed": "Abgeschlossen",
+    "archived": "Archiviert",
+    "myProjects": "Meine Projekte",
+    "shared": "Mit mir geteilt",
+    "recent": "Kürzlich"
+  },
+  "sort": {
+    "name": "Name",
+    "dateCreated": "Erstellungsdatum",
+    "dateModified": "Zuletzt geändert",
+    "status": "Status"
+  },
+  "views": {
+    "grid": "Rasteransicht",
+    "list": "Listenansicht",
+    "board": "Board-Ansicht"
+  },
+  "timeline": {
+    "title": "Zeitplan",
+    "start": "Startdatum",
+    "end": "Enddatum",
+    "duration": "Dauer",
+    "milestone": "Meilenstein",
+    "addMilestone": "Meilenstein hinzufügen"
+  },
+  "members": {
+    "title": "Teammitglieder",
+    "owner": "Eigentümer",
+    "manager": "Manager",
+    "contributor": "Mitwirkender",
+    "viewer": "Betrachter",
+    "invite": "Mitglied einladen",
+    "pending": "Ausstehende Einladung"
+  },
+  "errors": {
+    "notFound": "Projekt nicht gefunden",
+    "accessDenied": "Sie haben keinen Zugriff auf dieses Projekt",
+    "createFailed": "Projekt konnte nicht erstellt werden",
+    "updateFailed": "Projekt konnte nicht aktualisiert werden",
+    "deleteFailed": "Projekt konnte nicht gelöscht werden"
+  },
+  "confirmation": {
+    "delete": "Sind Sie sicher, dass Sie \"{{name}}\" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "archive": "Sind Sie sicher, dass Sie \"{{name}}\" archivieren möchten?",
+    "leave": "Sind Sie sicher, dass Sie dieses Projekt verlassen möchten?"
+  }
+}

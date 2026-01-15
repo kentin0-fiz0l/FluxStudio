@@ -1,0 +1,111 @@
+{
+  "list": {
+    "title": "المشاريع",
+    "subtitle": "إدارة مشاريعك الإبداعية",
+    "empty": "لا توجد مشاريع بعد",
+    "emptyDescription": "أنشئ مشروعك الأول للبدء",
+    "createFirst": "إنشاء مشروعك الأول"
+  },
+  "create": {
+    "title": "إنشاء مشروع جديد",
+    "nameLabel": "اسم المشروع",
+    "namePlaceholder": "أدخل اسم المشروع",
+    "descriptionLabel": "الوصف",
+    "descriptionPlaceholder": "صف مشروعك (اختياري)",
+    "teamLabel": "الفريق",
+    "teamPlaceholder": "اختر فريقاً",
+    "templateLabel": "القالب",
+    "templatePlaceholder": "ابدأ من قالب (اختياري)",
+    "visibilityLabel": "الظهور",
+    "visibilityPublic": "عام",
+    "visibilityPrivate": "خاص",
+    "visibilityTeam": "الفريق فقط",
+    "submit": "إنشاء المشروع",
+    "success": "تم إنشاء المشروع بنجاح"
+  },
+  "detail": {
+    "overview": "نظرة عامة",
+    "files": "الملفات",
+    "tasks": "المهام",
+    "messages": "الرسائل",
+    "team": "الفريق",
+    "settings": "الإعدادات",
+    "activity": "النشاط"
+  },
+  "status": {
+    "active": "نشط",
+    "completed": "مكتمل",
+    "archived": "مؤرشف",
+    "onHold": "معلق",
+    "draft": "مسودة"
+  },
+  "actions": {
+    "edit": "تعديل المشروع",
+    "delete": "حذف المشروع",
+    "archive": "أرشفة المشروع",
+    "duplicate": "نسخ المشروع",
+    "share": "مشاركة المشروع",
+    "export": "تصدير المشروع",
+    "addMember": "إضافة عضو",
+    "removeMember": "إزالة العضو",
+    "changeOwner": "نقل الملكية"
+  },
+  "bulk": {
+    "selected": "تم تحديد {{count}}",
+    "delete": "حذف المحدد",
+    "archive": "أرشفة المحدد",
+    "move": "نقل المحدد",
+    "tag": "وسم المحدد",
+    "confirmDelete": "هل أنت متأكد من حذف {{count}} مشاريع؟ لا يمكن التراجع عن هذا الإجراء.",
+    "confirmArchive": "هل أنت متأكد من أرشفة {{count}} مشاريع؟"
+  },
+  "filters": {
+    "all": "جميع المشاريع",
+    "active": "نشط",
+    "completed": "مكتمل",
+    "archived": "مؤرشف",
+    "myProjects": "مشاريعي",
+    "shared": "مشترك معي",
+    "recent": "الأخيرة"
+  },
+  "sort": {
+    "name": "الاسم",
+    "dateCreated": "تاريخ الإنشاء",
+    "dateModified": "آخر تعديل",
+    "status": "الحالة"
+  },
+  "views": {
+    "grid": "عرض شبكي",
+    "list": "عرض قائمة",
+    "board": "عرض لوحة"
+  },
+  "timeline": {
+    "title": "الجدول الزمني",
+    "start": "تاريخ البدء",
+    "end": "تاريخ الانتهاء",
+    "duration": "المدة",
+    "milestone": "معلم",
+    "addMilestone": "إضافة معلم"
+  },
+  "members": {
+    "title": "أعضاء الفريق",
+    "owner": "المالك",
+    "manager": "المدير",
+    "contributor": "المساهم",
+    "viewer": "المشاهد",
+    "invite": "دعوة عضو",
+    "pending": "دعوة معلقة"
+  },
+  "errors": {
+    "notFound": "المشروع غير موجود",
+    "accessDenied": "ليس لديك صلاحية الوصول لهذا المشروع",
+    "createFailed": "تعذر إنشاء المشروع",
+    "updateFailed": "تعذر تحديث المشروع",
+    "deleteFailed": "تعذر حذف المشروع"
+  },
+  "confirmation": {
+    "delete": "هل أنت متأكد من حذف \"{{name}}\"؟ لا يمكن التراجع عن هذا الإجراء.",
+    "archive": "هل أنت متأكد من أرشفة \"{{name}}\"؟",
+    "leave": "هل أنت متأكد من مغادرة هذا المشروع؟"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "title": "Messages",
+  "subtitle": "Collaborate with your team",
+  "conversations": {
+    "title": "Conversations",
+    "new": "New conversation",
+    "empty": "No conversations yet",
+    "emptyDescription": "Start a conversation with your team",
+    "search": "Search conversations",
+    "pinned": "Pinned",
+    "unread": "Unread"
+  },
+  "compose": {
+    "placeholder": "Type a message...",
+    "send": "Send",
+    "attachFile": "Attach file",
+    "emoji": "Add emoji",
+    "mention": "Mention someone",
+    "formatting": "Text formatting"
+  },
+  "message": {
+    "edited": "edited",
+    "deleted": "This message was deleted",
+    "reply": "Reply",
+    "edit": "Edit",
+    "delete": "Delete",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "react": "Add reaction",
+    "forward": "Forward",
+    "copy": "Copy text",
+    "thread": "Reply in thread",
+    "markUnread": "Mark as unread"
+  },
+  "reactions": {
+    "title": "Reactions",
+    "addReaction": "Add reaction",
+    "removeReaction": "Remove reaction"
+  },
+  "threads": {
+    "title": "Thread",
+    "replies": "{{count}} reply",
+    "replies_plural": "{{count}} replies",
+    "viewThread": "View thread",
+    "replyToThread": "Reply to thread"
+  },
+  "typing": {
+    "one": "{{name}} is typing...",
+    "two": "{{name1}} and {{name2}} are typing...",
+    "many": "Several people are typing..."
+  },
+  "presence": {
+    "online": "Online",
+    "away": "Away",
+    "busy": "Busy",
+    "offline": "Offline",
+    "lastSeen": "Last seen {{time}}"
+  },
+  "notifications": {
+    "newMessage": "New message from {{sender}}",
+    "mention": "{{sender}} mentioned you",
+    "reaction": "{{sender}} reacted to your message"
+  },
+  "search": {
+    "title": "Search messages",
+    "placeholder": "Search in conversation...",
+    "results": "{{count}} result",
+    "results_plural": "{{count}} results",
+    "noResults": "No messages found",
+    "filters": {
+      "all": "All messages",
+      "files": "With files",
+      "links": "With links",
+      "mentions": "Mentions"
+    }
+  },
+  "files": {
+    "shared": "Shared files",
+    "upload": "Upload file",
+    "download": "Download",
+    "preview": "Preview",
+    "size": "Size: {{size}}"
+  },
+  "settings": {
+    "notifications": "Notification settings",
+    "muteConversation": "Mute conversation",
+    "leaveConversation": "Leave conversation",
+    "deleteConversation": "Delete conversation",
+    "addMembers": "Add members",
+    "conversationName": "Conversation name"
+  },
+  "errors": {
+    "sendFailed": "Could not send message",
+    "loadFailed": "Could not load messages",
+    "uploadFailed": "Could not upload file",
+    "connectionLost": "Connection lost. Reconnecting..."
+  },
+  "empty": {
+    "selectConversation": "Select a conversation",
+    "startConversation": "Start a new conversation"
+  }
+}

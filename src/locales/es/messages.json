@@ -1,0 +1,102 @@
+{
+  "title": "Mensajes",
+  "subtitle": "Colabora con tu equipo",
+  "conversations": {
+    "title": "Conversaciones",
+    "new": "Nueva conversación",
+    "empty": "Aún no hay conversaciones",
+    "emptyDescription": "Inicia una conversación con tu equipo",
+    "search": "Buscar conversaciones",
+    "pinned": "Fijadas",
+    "unread": "Sin leer"
+  },
+  "compose": {
+    "placeholder": "Escribe un mensaje...",
+    "send": "Enviar",
+    "attachFile": "Adjuntar archivo",
+    "emoji": "Añadir emoji",
+    "mention": "Mencionar a alguien",
+    "formatting": "Formato de texto"
+  },
+  "message": {
+    "edited": "editado",
+    "deleted": "Este mensaje fue eliminado",
+    "reply": "Responder",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "pin": "Fijar",
+    "unpin": "Desfijar",
+    "react": "Añadir reacción",
+    "forward": "Reenviar",
+    "copy": "Copiar texto",
+    "thread": "Responder en hilo",
+    "markUnread": "Marcar como no leído"
+  },
+  "reactions": {
+    "title": "Reacciones",
+    "addReaction": "Añadir reacción",
+    "removeReaction": "Quitar reacción"
+  },
+  "threads": {
+    "title": "Hilo",
+    "replies": "{{count}} respuesta",
+    "replies_plural": "{{count}} respuestas",
+    "viewThread": "Ver hilo",
+    "replyToThread": "Responder al hilo"
+  },
+  "typing": {
+    "one": "{{name}} está escribiendo...",
+    "two": "{{name1}} y {{name2}} están escribiendo...",
+    "many": "Varias personas están escribiendo..."
+  },
+  "presence": {
+    "online": "En línea",
+    "away": "Ausente",
+    "busy": "Ocupado",
+    "offline": "Desconectado",
+    "lastSeen": "Visto por última vez {{time}}"
+  },
+  "notifications": {
+    "newMessage": "Nuevo mensaje de {{sender}}",
+    "mention": "{{sender}} te mencionó",
+    "reaction": "{{sender}} reaccionó a tu mensaje"
+  },
+  "search": {
+    "title": "Buscar mensajes",
+    "placeholder": "Buscar en la conversación...",
+    "results": "{{count}} resultado",
+    "results_plural": "{{count}} resultados",
+    "noResults": "No se encontraron mensajes",
+    "filters": {
+      "all": "Todos los mensajes",
+      "files": "Con archivos",
+      "links": "Con enlaces",
+      "mentions": "Menciones"
+    }
+  },
+  "files": {
+    "shared": "Archivos compartidos",
+    "upload": "Subir archivo",
+    "download": "Descargar",
+    "preview": "Vista previa",
+    "size": "Tamaño: {{size}}"
+  },
+  "settings": {
+    "notifications": "Configuración de notificaciones",
+    "muteConversation": "Silenciar conversación",
+    "leaveConversation": "Abandonar conversación",
+    "deleteConversation": "Eliminar conversación",
+    "addMembers": "Añadir miembros",
+    "conversationName": "Nombre de la conversación"
+  },
+  "errors": {
+    "sendFailed": "No se pudo enviar el mensaje",
+    "loadFailed": "No se pudieron cargar los mensajes",
+    "uploadFailed": "No se pudo subir el archivo",
+    "connectionLost": "Conexión perdida. Reconectando..."
+  },
+  "empty": {
+    "selectConversation": "Selecciona una conversación",
+    "startConversation": "Inicia una nueva conversación"
+  }
+}

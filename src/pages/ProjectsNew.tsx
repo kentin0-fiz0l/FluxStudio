@@ -42,7 +42,7 @@ export function ProjectsNew() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { projects, loading, error, createProject } = useProjects();
+  const { projects, loading, error, createProject, deleteProject, updateProject, fetchProjects } = useProjects();
   const { teams } = useTeams();
   const { currentOrganization } = useOrganizations();
   const activeProjectContext = useActiveProjectOptional();
@@ -74,6 +74,11 @@ export function ProjectsNew() {
 
   // Bulk selection state
   const [selectedProjects, setSelectedProjects] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkArchiving, setIsBulkArchiving] = useState(false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [showTagDialog, setShowTagDialog] = useState(false);
+  const [selectedTeamForMove, setSelectedTeamForMove] = useState<string>('');
 
   // Form State
   const [createForm, setCreateForm] = useState({
@@ -277,28 +282,105 @@ export function ProjectsNew() {
     setSelectedProjects(new Set());
   };
 
-  const handleBulkDelete = () => {
-    if (window.confirm(`Are you sure you want to delete ${selectedProjects.size} project${selectedProjects.size !== 1 ? 's' : ''}?`)) {
-      // TODO: Implement bulk delete logic here
-      toast.success(`${selectedProjects.size} project${selectedProjects.size !== 1 ? 's' : ''} deleted`);
-      setSelectedProjects(new Set());
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedProjects.size} project${selectedProjects.size !== 1 ? 's' : ''}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsBulkDeleting(true);
+    const projectIds = Array.from(selectedProjects);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const projectId of projectIds) {
+      try {
+        await deleteProject(projectId);
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to delete project ${projectId}:`, error);
+        errorCount++;
+      }
+    }
+
+    setIsBulkDeleting(false);
+    setSelectedProjects(new Set());
+
+    if (errorCount === 0) {
+      toast.success(`${successCount} project${successCount !== 1 ? 's' : ''} deleted successfully`);
+    } else if (successCount > 0) {
+      toast.warning(`Deleted ${successCount} project${successCount !== 1 ? 's' : ''}, ${errorCount} failed`);
+    } else {
+      toast.error('Failed to delete projects');
     }
   };
 
-  const handleBulkArchive = () => {
-    // TODO: Implement bulk archive logic here
-    toast.success(`${selectedProjects.size} project${selectedProjects.size !== 1 ? 's' : ''} archived`);
+  const handleBulkArchive = async () => {
+    setIsBulkArchiving(true);
+    const projectIds = Array.from(selectedProjects);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const projectId of projectIds) {
+      try {
+        await updateProject(projectId, { status: 'completed' });
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to archive project ${projectId}:`, error);
+        errorCount++;
+      }
+    }
+
+    setIsBulkArchiving(false);
     setSelectedProjects(new Set());
+
+    if (errorCount === 0) {
+      toast.success(`${successCount} project${successCount !== 1 ? 's' : ''} archived successfully`);
+    } else if (successCount > 0) {
+      toast.warning(`Archived ${successCount} project${successCount !== 1 ? 's' : ''}, ${errorCount} failed`);
+    } else {
+      toast.error('Failed to archive projects');
+    }
   };
 
   const handleBulkMove = () => {
-    // TODO: Implement bulk move logic here
-    toast.info('Bulk move functionality coming soon');
+    setSelectedTeamForMove('');
+    setShowMoveDialog(true);
+  };
+
+  const handleConfirmMove = async () => {
+    if (!selectedTeamForMove) {
+      toast.error('Please select a team');
+      return;
+    }
+
+    const projectIds = Array.from(selectedProjects);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const projectId of projectIds) {
+      try {
+        await updateProject(projectId, { teamId: selectedTeamForMove });
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to move project ${projectId}:`, error);
+        errorCount++;
+      }
+    }
+
+    setShowMoveDialog(false);
+    setSelectedProjects(new Set());
+
+    if (errorCount === 0) {
+      toast.success(`${successCount} project${successCount !== 1 ? 's' : ''} moved successfully`);
+    } else if (successCount > 0) {
+      toast.warning(`Moved ${successCount} project${successCount !== 1 ? 's' : ''}, ${errorCount} failed`);
+    } else {
+      toast.error('Failed to move projects');
+    }
   };
 
   const handleBulkTag = () => {
-    // TODO: Implement bulk tag logic here
-    toast.info('Bulk tag functionality coming soon');
+    setShowTagDialog(true);
   };
 
   return (
@@ -743,6 +825,91 @@ export function ProjectsNew() {
               disabled={isLinking}
             >
               Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move Projects Dialog */}
+      <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
+        <DialogContent
+          aria-labelledby="move-projects-title"
+          role="dialog"
+          aria-modal="true"
+        >
+          <DialogHeader>
+            <DialogTitle id="move-projects-title" className="flex items-center gap-2">
+              <FolderOpen className="w-5 h-5 text-primary-600" aria-hidden="true" />
+              Move {selectedProjects.size} Project{selectedProjects.size !== 1 ? 's' : ''} to Team
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="move-team-select" className="block text-sm font-medium text-neutral-700 mb-2">
+                Select Team
+              </label>
+              <select
+                id="move-team-select"
+                value={selectedTeamForMove}
+                onChange={(e) => setSelectedTeamForMove(e.target.value)}
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                aria-label="Select destination team"
+              >
+                <option value="">Select a team...</option>
+                <option value="">No Team (Personal)</option>
+                {teams.map(team => (
+                  <option key={team.id} value={team.id}>{team.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100">
+            <Button
+              variant="ghost"
+              onClick={() => setShowMoveDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmMove}
+              disabled={!selectedTeamForMove}
+            >
+              Move Projects
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tag Projects Dialog */}
+      <Dialog open={showTagDialog} onOpenChange={setShowTagDialog}>
+        <DialogContent
+          aria-labelledby="tag-projects-title"
+          role="dialog"
+          aria-modal="true"
+        >
+          <DialogHeader>
+            <DialogTitle id="tag-projects-title">
+              Tag {selectedProjects.size} Project{selectedProjects.size !== 1 ? 's' : ''}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-8 text-center">
+            <p className="text-neutral-600 mb-4">
+              Project tagging functionality will be available in a future update.
+            </p>
+            <p className="text-sm text-neutral-500">
+              This feature allows you to organize projects with custom tags for easier filtering and categorization.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100">
+            <Button
+              variant="ghost"
+              onClick={() => setShowTagDialog(false)}
+            >
+              Close
             </Button>
           </div>
         </DialogContent>

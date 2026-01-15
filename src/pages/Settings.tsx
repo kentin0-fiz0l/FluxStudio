@@ -26,10 +26,13 @@ import {
 import { FigmaIntegration } from '@/components/organisms/FigmaIntegration';
 import { SlackIntegration } from '@/components/organisms/SlackIntegration';
 import { GitHubIntegration } from '@/components/organisms/GitHubIntegration';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
 
 function Settings() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation('common');
 
   // Authentication guard - redirect to login if not authenticated
   React.useEffect(() => {
@@ -177,6 +180,17 @@ function Settings() {
                   onCheckedChange={setDarkMode}
                   aria-label="Toggle dark mode"
                 />
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg min-h-[3.5rem]">
+                <div className="flex items-center gap-3">
+                  <Globe className="w-5 h-5 text-primary-600" aria-hidden="true" />
+                  <div>
+                    <h3 className="font-medium text-neutral-900 dark:text-neutral-100">{t('language.select')}</h3>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('language.current')}</p>
+                  </div>
+                </div>
+                <LanguageSwitcher variant="default" />
               </div>
             </div>
           </Card>

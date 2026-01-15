@@ -37,6 +37,7 @@ import {
   Circle,
   Eye,
 } from 'lucide-react';
+import { TaskDetailModal } from './TaskDetailModal';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -222,6 +223,10 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   });
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // Edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // Refs for accessibility
   const tableRef = useRef<HTMLDivElement>(null);
@@ -425,6 +430,38 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       setLoadingStates(prev => ({ ...prev, [taskId]: false }));
     }
   }, [deleteConfirm, onTaskDelete]);
+
+  /**
+   * Open the edit modal for a task
+   */
+  const handleOpenEditModal = useCallback((task: Task) => {
+    setEditingTask(task);
+    setEditModalOpen(true);
+  }, []);
+
+  /**
+   * Close the edit modal
+   */
+  const handleCloseEditModal = useCallback(() => {
+    setEditModalOpen(false);
+    setEditingTask(null);
+  }, []);
+
+  /**
+   * Handle saving task from modal
+   */
+  const handleModalSave = useCallback(async (taskId: string | null, taskData: Partial<Task>) => {
+    if (taskId) {
+      await onTaskUpdate(taskId, taskData);
+    }
+  }, [onTaskUpdate]);
+
+  /**
+   * Handle deleting task from modal
+   */
+  const handleModalDelete = useCallback(async (taskId: string) => {
+    await onTaskDelete(taskId);
+  }, [onTaskDelete]);
 
   // ============================================================================
   // RENDER HELPERS
@@ -933,7 +970,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => {/* TODO: Open edit modal */}}
+                              onClick={() => handleOpenEditModal(task)}
                               icon={<Edit2 className="w-4 h-4" />}
                               aria-label={`Edit ${task.title}`}
                               className="h-8 px-2"
@@ -1009,7 +1046,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => {/* TODO: Open edit modal */}}
+                        onClick={() => handleOpenEditModal(task)}
                         icon={<Edit2 className="w-4 h-4" />}
                         aria-label={`Edit ${task.title}`}
                         className="h-9 w-9 p-0"
@@ -1059,6 +1096,17 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
           </div>
         </>
       )}
+
+      {/* Task Edit Modal */}
+      <TaskDetailModal
+        isOpen={editModalOpen}
+        onClose={handleCloseEditModal}
+        projectId={projectId}
+        task={editingTask}
+        onSave={handleModalSave}
+        onDelete={handleModalDelete}
+        teamMembers={[]}
+      />
     </div>
   );
 };

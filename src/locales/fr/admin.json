@@ -1,0 +1,184 @@
+{
+  "title": "Tableau de bord administrateur",
+  "navigation": {
+    "overview": "Apercu",
+    "users": "Utilisateurs",
+    "teams": "Equipes",
+    "projects": "Projets",
+    "analytics": "Analytique",
+    "auditLogs": "Journaux d'audit",
+    "settings": "Parametres",
+    "billing": "Facturation"
+  },
+  "overview": {
+    "title": "Apercu du tableau de bord",
+    "totalUsers": "Total des utilisateurs",
+    "activeUsers": "Utilisateurs actifs",
+    "totalProjects": "Total des projets",
+    "activeProjects": "Projets actifs",
+    "storageUsed": "Stockage utilise",
+    "apiCalls": "Appels API",
+    "recentActivity": "Activite recente",
+    "systemHealth": "Sante du systeme"
+  },
+  "users": {
+    "title": "Gestion des utilisateurs",
+    "list": "Tous les utilisateurs",
+    "add": "Ajouter un utilisateur",
+    "invite": "Inviter un utilisateur",
+    "search": "Rechercher des utilisateurs...",
+    "filters": {
+      "all": "Tous les utilisateurs",
+      "active": "Actifs",
+      "inactive": "Inactifs",
+      "pending": "En attente"
+    },
+    "columns": {
+      "name": "Nom",
+      "email": "E-mail",
+      "role": "Role",
+      "status": "Statut",
+      "lastActive": "Derniere activite",
+      "joined": "Inscription"
+    },
+    "actions": {
+      "edit": "Modifier l'utilisateur",
+      "disable": "Desactiver l'utilisateur",
+      "enable": "Activer l'utilisateur",
+      "delete": "Supprimer l'utilisateur",
+      "resetPassword": "Reinitialiser le mot de passe",
+      "impersonate": "Se faire passer pour"
+    },
+    "roles": {
+      "admin": "Administrateur",
+      "manager": "Responsable",
+      "member": "Membre",
+      "viewer": "Lecteur"
+    }
+  },
+  "teams": {
+    "title": "Gestion des equipes",
+    "list": "Toutes les equipes",
+    "create": "Creer une equipe",
+    "members": "{{count}} membre",
+    "members_plural": "{{count}} membres"
+  },
+  "analytics": {
+    "title": "Analytique",
+    "overview": "Apercu",
+    "engagement": "Engagement des utilisateurs",
+    "performance": "Performance",
+    "usage": "Statistiques d'utilisation",
+    "dateRange": {
+      "today": "Aujourd'hui",
+      "week": "Cette semaine",
+      "month": "Ce mois",
+      "quarter": "Ce trimestre",
+      "year": "Cette annee",
+      "custom": "Plage personnalisee"
+    },
+    "metrics": {
+      "pageViews": "Pages vues",
+      "sessions": "Sessions",
+      "avgSessionDuration": "Duree moyenne de session",
+      "bounceRate": "Taux de rebond",
+      "activeUsers": "Utilisateurs actifs",
+      "newUsers": "Nouveaux utilisateurs"
+    },
+    "export": {
+      "title": "Exporter les donnees",
+      "csv": "Exporter en CSV",
+      "pdf": "Exporter en PDF",
+      "excel": "Exporter en Excel"
+    }
+  },
+  "auditLogs": {
+    "title": "Journaux d'audit",
+    "search": "Rechercher dans les journaux...",
+    "filters": {
+      "all": "Tous les evenements",
+      "auth": "Authentification",
+      "users": "Modifications utilisateurs",
+      "projects": "Modifications projets",
+      "settings": "Modifications parametres",
+      "security": "Evenements de securite"
+    },
+    "columns": {
+      "timestamp": "Horodatage",
+      "user": "Utilisateur",
+      "action": "Action",
+      "resource": "Ressource",
+      "details": "Details",
+      "ip": "Adresse IP"
+    },
+    "actions": {
+      "login": "Utilisateur connecte",
+      "logout": "Utilisateur deconnecte",
+      "create": "Cree",
+      "update": "Mis a jour",
+      "delete": "Supprime",
+      "invite": "Invite",
+      "remove": "Supprime"
+    }
+  },
+  "settings": {
+    "title": "Parametres systeme",
+    "general": {
+      "title": "General",
+      "siteName": "Nom du site",
+      "siteUrl": "URL du site",
+      "supportEmail": "E-mail de support",
+      "timezone": "Fuseau horaire"
+    },
+    "security": {
+      "title": "Securite",
+      "passwordPolicy": "Politique de mot de passe",
+      "sessionTimeout": "Expiration de session",
+      "twoFactor": "Authentification a deux facteurs",
+      "ipWhitelist": "Liste blanche IP"
+    },
+    "email": {
+      "title": "Parametres e-mail",
+      "provider": "Fournisseur d'e-mail",
+      "fromAddress": "Adresse d'expedition",
+      "fromName": "Nom d'expedition"
+    },
+    "integrations": {
+      "title": "Integrations",
+      "connected": "Connecte",
+      "notConnected": "Non connecte",
+      "configure": "Configurer"
+    }
+  },
+  "billing": {
+    "title": "Facturation et abonnement",
+    "currentPlan": "Forfait actuel",
+    "usage": "Utilisation",
+    "invoices": "Factures",
+    "paymentMethod": "Moyen de paiement",
+    "upgrade": "Ameliorer le forfait",
+    "cancel": "Annuler l'abonnement"
+  },
+  "health": {
+    "title": "Sante du systeme",
+    "status": {
+      "healthy": "Sain",
+      "degraded": "Degrade",
+      "down": "Hors service"
+    },
+    "services": {
+      "api": "Serveur API",
+      "database": "Base de donnees",
+      "cache": "Cache",
+      "storage": "Stockage",
+      "websocket": "WebSocket"
+    },
+    "uptime": "Disponibilite",
+    "lastChecked": "Derniere verification"
+  },
+  "errors": {
+    "loadFailed": "Impossible de charger les donnees",
+    "saveFailed": "Impossible d'enregistrer les modifications",
+    "actionFailed": "L'action a echoue. Veuillez reessayer."
+  }
+}

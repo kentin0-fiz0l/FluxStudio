@@ -1,0 +1,102 @@
+{
+  "title": "消息",
+  "subtitle": "与团队协作",
+  "conversations": {
+    "title": "会话",
+    "new": "新建会话",
+    "empty": "暂无会话",
+    "emptyDescription": "开始与团队的对话",
+    "search": "搜索会话",
+    "pinned": "已置顶",
+    "unread": "未读"
+  },
+  "compose": {
+    "placeholder": "输入消息...",
+    "send": "发送",
+    "attachFile": "附加文件",
+    "emoji": "添加表情",
+    "mention": "提及某人",
+    "formatting": "文本格式"
+  },
+  "message": {
+    "edited": "已编辑",
+    "deleted": "此消息已删除",
+    "reply": "回复",
+    "edit": "编辑",
+    "delete": "删除",
+    "pin": "置顶",
+    "unpin": "取消置顶",
+    "react": "添加回应",
+    "forward": "转发",
+    "copy": "复制文本",
+    "thread": "在话题中回复",
+    "markUnread": "标记为未读"
+  },
+  "reactions": {
+    "title": "回应",
+    "addReaction": "添加回应",
+    "removeReaction": "移除回应"
+  },
+  "threads": {
+    "title": "话题",
+    "replies": "{{count}}条回复",
+    "replies_plural": "{{count}}条回复",
+    "viewThread": "查看话题",
+    "replyToThread": "回复话题"
+  },
+  "typing": {
+    "one": "{{name}}正在输入...",
+    "two": "{{name1}}和{{name2}}正在输入...",
+    "many": "多人正在输入..."
+  },
+  "presence": {
+    "online": "在线",
+    "away": "离开",
+    "busy": "忙碌",
+    "offline": "离线",
+    "lastSeen": "最后在线: {{time}}"
+  },
+  "notifications": {
+    "newMessage": "{{sender}}发来新消息",
+    "mention": "{{sender}}提到了你",
+    "reaction": "{{sender}}回应了你的消息"
+  },
+  "search": {
+    "title": "搜索消息",
+    "placeholder": "在会话中搜索...",
+    "results": "{{count}}条结果",
+    "results_plural": "{{count}}条结果",
+    "noResults": "未找到消息",
+    "filters": {
+      "all": "所有消息",
+      "files": "包含文件",
+      "links": "包含链接",
+      "mentions": "提及"
+    }
+  },
+  "files": {
+    "shared": "共享文件",
+    "upload": "上传文件",
+    "download": "下载",
+    "preview": "预览",
+    "size": "大小: {{size}}"
+  },
+  "settings": {
+    "notifications": "通知设置",
+    "muteConversation": "静音会话",
+    "leaveConversation": "退出会话",
+    "deleteConversation": "删除会话",
+    "addMembers": "添加成员",
+    "conversationName": "会话名称"
+  },
+  "errors": {
+    "sendFailed": "无法发送消息",
+    "loadFailed": "无法加载消息",
+    "uploadFailed": "无法上传文件",
+    "connectionLost": "连接丢失。正在重新连接..."
+  },
+  "empty": {
+    "selectConversation": "选择一个会话",
+    "startConversation": "开始新会话"
+  }
+}

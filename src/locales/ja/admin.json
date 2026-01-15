@@ -1,0 +1,184 @@
+{
+  "title": "管理ダッシュボード",
+  "navigation": {
+    "overview": "概要",
+    "users": "ユーザー",
+    "teams": "チーム",
+    "projects": "プロジェクト",
+    "analytics": "アナリティクス",
+    "auditLogs": "監査ログ",
+    "settings": "設定",
+    "billing": "請求"
+  },
+  "overview": {
+    "title": "ダッシュボード概要",
+    "totalUsers": "総ユーザー数",
+    "activeUsers": "アクティブユーザー",
+    "totalProjects": "総プロジェクト数",
+    "activeProjects": "アクティブプロジェクト",
+    "storageUsed": "使用ストレージ",
+    "apiCalls": "API呼び出し",
+    "recentActivity": "最近のアクティビティ",
+    "systemHealth": "システム状態"
+  },
+  "users": {
+    "title": "ユーザー管理",
+    "list": "全ユーザー",
+    "add": "ユーザーを追加",
+    "invite": "ユーザーを招待",
+    "search": "ユーザーを検索...",
+    "filters": {
+      "all": "全ユーザー",
+      "active": "アクティブ",
+      "inactive": "非アクティブ",
+      "pending": "保留中"
+    },
+    "columns": {
+      "name": "名前",
+      "email": "メール",
+      "role": "役割",
+      "status": "ステータス",
+      "lastActive": "最終アクティブ",
+      "joined": "参加日"
+    },
+    "actions": {
+      "edit": "ユーザーを編集",
+      "disable": "ユーザーを無効化",
+      "enable": "ユーザーを有効化",
+      "delete": "ユーザーを削除",
+      "resetPassword": "パスワードをリセット",
+      "impersonate": "なりすまし"
+    },
+    "roles": {
+      "admin": "管理者",
+      "manager": "マネージャー",
+      "member": "メンバー",
+      "viewer": "閲覧者"
+    }
+  },
+  "teams": {
+    "title": "チーム管理",
+    "list": "全チーム",
+    "create": "チームを作成",
+    "members": "{{count}}人のメンバー",
+    "members_plural": "{{count}}人のメンバー"
+  },
+  "analytics": {
+    "title": "アナリティクス",
+    "overview": "概要",
+    "engagement": "ユーザーエンゲージメント",
+    "performance": "パフォーマンス",
+    "usage": "使用統計",
+    "dateRange": {
+      "today": "今日",
+      "week": "今週",
+      "month": "今月",
+      "quarter": "今四半期",
+      "year": "今年",
+      "custom": "カスタム範囲"
+    },
+    "metrics": {
+      "pageViews": "ページビュー",
+      "sessions": "セッション",
+      "avgSessionDuration": "平均セッション時間",
+      "bounceRate": "直帰率",
+      "activeUsers": "アクティブユーザー",
+      "newUsers": "新規ユーザー"
+    },
+    "export": {
+      "title": "データをエクスポート",
+      "csv": "CSVでエクスポート",
+      "pdf": "PDFでエクスポート",
+      "excel": "Excelでエクスポート"
+    }
+  },
+  "auditLogs": {
+    "title": "監査ログ",
+    "search": "ログを検索...",
+    "filters": {
+      "all": "全イベント",
+      "auth": "認証",
+      "users": "ユーザー変更",
+      "projects": "プロジェクト変更",
+      "settings": "設定変更",
+      "security": "セキュリティイベント"
+    },
+    "columns": {
+      "timestamp": "タイムスタンプ",
+      "user": "ユーザー",
+      "action": "アクション",
+      "resource": "リソース",
+      "details": "詳細",
+      "ip": "IPアドレス"
+    },
+    "actions": {
+      "login": "ユーザーがログイン",
+      "logout": "ユーザーがログアウト",
+      "create": "作成",
+      "update": "更新",
+      "delete": "削除",
+      "invite": "招待",
+      "remove": "削除"
+    }
+  },
+  "settings": {
+    "title": "システム設定",
+    "general": {
+      "title": "一般",
+      "siteName": "サイト名",
+      "siteUrl": "サイトURL",
+      "supportEmail": "サポートメール",
+      "timezone": "タイムゾーン"
+    },
+    "security": {
+      "title": "セキュリティ",
+      "passwordPolicy": "パスワードポリシー",
+      "sessionTimeout": "セッションタイムアウト",
+      "twoFactor": "二要素認証",
+      "ipWhitelist": "IPホワイトリスト"
+    },
+    "email": {
+      "title": "メール設定",
+      "provider": "メールプロバイダー",
+      "fromAddress": "送信元アドレス",
+      "fromName": "送信元名"
+    },
+    "integrations": {
+      "title": "連携",
+      "connected": "接続済み",
+      "notConnected": "未接続",
+      "configure": "設定"
+    }
+  },
+  "billing": {
+    "title": "請求とサブスクリプション",
+    "currentPlan": "現在のプラン",
+    "usage": "使用状況",
+    "invoices": "請求書",
+    "paymentMethod": "支払い方法",
+    "upgrade": "プランをアップグレード",
+    "cancel": "サブスクリプションをキャンセル"
+  },
+  "health": {
+    "title": "システム状態",
+    "status": {
+      "healthy": "正常",
+      "degraded": "低下",
+      "down": "停止"
+    },
+    "services": {
+      "api": "APIサーバー",
+      "database": "データベース",
+      "cache": "キャッシュ",
+      "storage": "ストレージ",
+      "websocket": "WebSocket"
+    },
+    "uptime": "稼働時間",
+    "lastChecked": "最終確認"
+  },
+  "errors": {
+    "loadFailed": "データを読み込めませんでした",
+    "saveFailed": "変更を保存できませんでした",
+    "actionFailed": "アクションに失敗しました。もう一度お試しください。"
+  }
+}

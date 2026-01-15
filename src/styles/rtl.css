@@ -1,0 +1,252 @@
+/**
+ * RTL (Right-to-Left) Support Styles
+ * @file src/styles/rtl.css
+ *
+ * Styles for Arabic and other RTL languages
+ */
+
+/* Base RTL direction */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Flip horizontal margins and paddings */
+[dir="rtl"] .ml-auto {
+  margin-left: initial;
+  margin-right: auto;
+}
+
+[dir="rtl"] .mr-auto {
+  margin-right: initial;
+  margin-left: auto;
+}
+
+/* Flip flex direction */
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+/* Flip absolute/fixed positioning */
+[dir="rtl"] .left-0 {
+  left: initial;
+  right: 0;
+}
+
+[dir="rtl"] .right-0 {
+  right: initial;
+  left: 0;
+}
+
+/* Flip transforms */
+[dir="rtl"] .rotate-90 {
+  transform: rotate(-90deg);
+}
+
+[dir="rtl"] .-rotate-90 {
+  transform: rotate(90deg);
+}
+
+/* Flip gradients */
+[dir="rtl"] .bg-gradient-to-r {
+  background: linear-gradient(to left, var(--tw-gradient-stops));
+}
+
+[dir="rtl"] .bg-gradient-to-l {
+  background: linear-gradient(to right, var(--tw-gradient-stops));
+}
+
+/* Flip border radius */
+[dir="rtl"] .rounded-l {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+[dir="rtl"] .rounded-r {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+[dir="rtl"] .rounded-l-md {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+}
+
+[dir="rtl"] .rounded-r-md {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-top-left-radius: 0.375rem;
+  border-bottom-left-radius: 0.375rem;
+}
+
+/* Flip shadows */
+[dir="rtl"] .shadow-lg {
+  box-shadow: -10px 10px 15px -3px rgba(0, 0, 0, 0.1),
+              -4px 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+/* Navigation and sidebar */
+[dir="rtl"] nav {
+  direction: rtl;
+}
+
+[dir="rtl"] .sidebar {
+  border-left: none;
+  border-right: 1px solid var(--border);
+}
+
+/* Form elements */
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+  text-align: right;
+}
+
+[dir="rtl"] input[type="number"] {
+  text-align: left; /* Numbers should stay LTR */
+}
+
+/* Icons that need flipping */
+[dir="rtl"] .icon-flip {
+  transform: scaleX(-1);
+}
+
+/* Arrow icons */
+[dir="rtl"] [data-lucide="chevron-right"],
+[dir="rtl"] [data-lucide="arrow-right"],
+[dir="rtl"] [data-lucide="arrow-left"] {
+  transform: scaleX(-1);
+}
+
+/* Breadcrumbs */
+[dir="rtl"] .breadcrumb-separator {
+  transform: scaleX(-1);
+}
+
+/* Tables */
+[dir="rtl"] table {
+  direction: rtl;
+}
+
+[dir="rtl"] th,
+[dir="rtl"] td {
+  text-align: right;
+}
+
+/* Lists */
+[dir="rtl"] ul,
+[dir="rtl"] ol {
+  padding-left: 0;
+  padding-right: 1.5rem;
+}
+
+/* Dropdown menus */
+[dir="rtl"] [data-radix-popper-content-wrapper] {
+  direction: rtl;
+}
+
+/* Dialogs and modals */
+[dir="rtl"] [role="dialog"] {
+  direction: rtl;
+}
+
+/* Tooltips */
+[dir="rtl"] [role="tooltip"] {
+  direction: rtl;
+}
+
+/* Progress bars */
+[dir="rtl"] .progress-bar {
+  direction: ltr; /* Progress bars should fill left-to-right */
+  transform: scaleX(-1);
+}
+
+/* Sliders */
+[dir="rtl"] input[type="range"] {
+  direction: ltr;
+  transform: scaleX(-1);
+}
+
+/* Checkboxes and radio buttons - keep original */
+[dir="rtl"] input[type="checkbox"],
+[dir="rtl"] input[type="radio"] {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
+/* Message bubbles */
+[dir="rtl"] .message-sent {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .message-received {
+  margin-right: 0;
+  margin-left: auto;
+}
+
+/* Calendar */
+[dir="rtl"] .calendar {
+  direction: rtl;
+}
+
+/* Code blocks - keep LTR */
+[dir="rtl"] pre,
+[dir="rtl"] code {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Scrollbars */
+[dir="rtl"]::-webkit-scrollbar {
+  width: 8px;
+}
+
+[dir="rtl"]::-webkit-scrollbar-track {
+  margin-right: 0;
+  margin-left: 2px;
+}
+
+/* Utility classes for explicit RTL control */
+.rtl-flip {
+  transform: scaleX(-1);
+}
+
+.rtl-no-flip {
+  transform: none !important;
+}
+
+.rtl-text-left {
+  text-align: left !important;
+}
+
+.rtl-text-right {
+  text-align: right !important;
+}
+
+/* Animation adjustments for RTL */
+@keyframes slide-in-from-right-rtl {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-from-left-rtl {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+[dir="rtl"] .animate-slide-in-from-right {
+  animation-name: slide-in-from-right-rtl;
+}
+
+[dir="rtl"] .animate-slide-in-from-left {
+  animation-name: slide-in-from-left-rtl;
+}

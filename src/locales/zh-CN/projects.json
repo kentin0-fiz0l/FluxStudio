@@ -1,0 +1,111 @@
+{
+  "list": {
+    "title": "项目",
+    "subtitle": "管理您的创意项目",
+    "empty": "暂无项目",
+    "emptyDescription": "创建您的第一个项目开始使用",
+    "createFirst": "创建第一个项目"
+  },
+  "create": {
+    "title": "创建新项目",
+    "nameLabel": "项目名称",
+    "namePlaceholder": "输入项目名称",
+    "descriptionLabel": "描述",
+    "descriptionPlaceholder": "描述您的项目（可选）",
+    "teamLabel": "团队",
+    "teamPlaceholder": "选择团队",
+    "templateLabel": "模板",
+    "templatePlaceholder": "从模板开始（可选）",
+    "visibilityLabel": "可见性",
+    "visibilityPublic": "公开",
+    "visibilityPrivate": "私有",
+    "visibilityTeam": "仅团队",
+    "submit": "创建项目",
+    "success": "项目创建成功"
+  },
+  "detail": {
+    "overview": "概览",
+    "files": "文件",
+    "tasks": "任务",
+    "messages": "消息",
+    "team": "团队",
+    "settings": "设置",
+    "activity": "活动"
+  },
+  "status": {
+    "active": "进行中",
+    "completed": "已完成",
+    "archived": "已归档",
+    "onHold": "暂停",
+    "draft": "草稿"
+  },
+  "actions": {
+    "edit": "编辑项目",
+    "delete": "删除项目",
+    "archive": "归档项目",
+    "duplicate": "复制项目",
+    "share": "共享项目",
+    "export": "导出项目",
+    "addMember": "添加成员",
+    "removeMember": "移除成员",
+    "changeOwner": "转让所有权"
+  },
+  "bulk": {
+    "selected": "已选择{{count}}项",
+    "delete": "删除所选",
+    "archive": "归档所选",
+    "move": "移动所选",
+    "tag": "标记所选",
+    "confirmDelete": "确定要删除{{count}}个项目吗？此操作无法撤销。",
+    "confirmArchive": "确定要归档{{count}}个项目吗？"
+  },
+  "filters": {
+    "all": "所有项目",
+    "active": "进行中",
+    "completed": "已完成",
+    "archived": "已归档",
+    "myProjects": "我的项目",
+    "shared": "共享给我",
+    "recent": "最近"
+  },
+  "sort": {
+    "name": "名称",
+    "dateCreated": "创建日期",
+    "dateModified": "修改日期",
+    "status": "状态"
+  },
+  "views": {
+    "grid": "网格视图",
+    "list": "列表视图",
+    "board": "看板视图"
+  },
+  "timeline": {
+    "title": "时间线",
+    "start": "开始日期",
+    "end": "结束日期",
+    "duration": "持续时间",
+    "milestone": "里程碑",
+    "addMilestone": "添加里程碑"
+  },
+  "members": {
+    "title": "团队成员",
+    "owner": "所有者",
+    "manager": "管理员",
+    "contributor": "贡献者",
+    "viewer": "查看者",
+    "invite": "邀请成员",
+    "pending": "待接受邀请"
+  },
+  "errors": {
+    "notFound": "找不到项目",
+    "accessDenied": "您无权访问此项目",
+    "createFailed": "无法创建项目",
+    "updateFailed": "无法更新项目",
+    "deleteFailed": "无法删除项目"
+  },
+  "confirmation": {
+    "delete": "确定要删除\"{{name}}\"吗？此操作无法撤销。",
+    "archive": "确定要归档\"{{name}}\"吗？",
+    "leave": "确定要离开此项目吗？"
+  }
+}

@@ -1,0 +1,184 @@
+{
+  "title": "Admin Dashboard",
+  "navigation": {
+    "overview": "Overview",
+    "users": "Users",
+    "teams": "Teams",
+    "projects": "Projects",
+    "analytics": "Analytics",
+    "auditLogs": "Audit Logs",
+    "settings": "Settings",
+    "billing": "Billing"
+  },
+  "overview": {
+    "title": "Dashboard Overview",
+    "totalUsers": "Total Users",
+    "activeUsers": "Active Users",
+    "totalProjects": "Total Projects",
+    "activeProjects": "Active Projects",
+    "storageUsed": "Storage Used",
+    "apiCalls": "API Calls",
+    "recentActivity": "Recent Activity",
+    "systemHealth": "System Health"
+  },
+  "users": {
+    "title": "User Management",
+    "list": "All Users",
+    "add": "Add User",
+    "invite": "Invite User",
+    "search": "Search users...",
+    "filters": {
+      "all": "All users",
+      "active": "Active",
+      "inactive": "Inactive",
+      "pending": "Pending"
+    },
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "lastActive": "Last Active",
+      "joined": "Joined"
+    },
+    "actions": {
+      "edit": "Edit user",
+      "disable": "Disable user",
+      "enable": "Enable user",
+      "delete": "Delete user",
+      "resetPassword": "Reset password",
+      "impersonate": "Impersonate"
+    },
+    "roles": {
+      "admin": "Admin",
+      "manager": "Manager",
+      "member": "Member",
+      "viewer": "Viewer"
+    }
+  },
+  "teams": {
+    "title": "Team Management",
+    "list": "All Teams",
+    "create": "Create Team",
+    "members": "{{count}} member",
+    "members_plural": "{{count}} members"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "overview": "Overview",
+    "engagement": "User Engagement",
+    "performance": "Performance",
+    "usage": "Usage Statistics",
+    "dateRange": {
+      "today": "Today",
+      "week": "This Week",
+      "month": "This Month",
+      "quarter": "This Quarter",
+      "year": "This Year",
+      "custom": "Custom Range"
+    },
+    "metrics": {
+      "pageViews": "Page Views",
+      "sessions": "Sessions",
+      "avgSessionDuration": "Avg. Session Duration",
+      "bounceRate": "Bounce Rate",
+      "activeUsers": "Active Users",
+      "newUsers": "New Users"
+    },
+    "export": {
+      "title": "Export Data",
+      "csv": "Export as CSV",
+      "pdf": "Export as PDF",
+      "excel": "Export as Excel"
+    }
+  },
+  "auditLogs": {
+    "title": "Audit Logs",
+    "search": "Search logs...",
+    "filters": {
+      "all": "All events",
+      "auth": "Authentication",
+      "users": "User changes",
+      "projects": "Project changes",
+      "settings": "Settings changes",
+      "security": "Security events"
+    },
+    "columns": {
+      "timestamp": "Timestamp",
+      "user": "User",
+      "action": "Action",
+      "resource": "Resource",
+      "details": "Details",
+      "ip": "IP Address"
+    },
+    "actions": {
+      "login": "User logged in",
+      "logout": "User logged out",
+      "create": "Created",
+      "update": "Updated",
+      "delete": "Deleted",
+      "invite": "Invited",
+      "remove": "Removed"
+    }
+  },
+  "settings": {
+    "title": "System Settings",
+    "general": {
+      "title": "General",
+      "siteName": "Site Name",
+      "siteUrl": "Site URL",
+      "supportEmail": "Support Email",
+      "timezone": "Timezone"
+    },
+    "security": {
+      "title": "Security",
+      "passwordPolicy": "Password Policy",
+      "sessionTimeout": "Session Timeout",
+      "twoFactor": "Two-Factor Authentication",
+      "ipWhitelist": "IP Whitelist"
+    },
+    "email": {
+      "title": "Email Settings",
+      "provider": "Email Provider",
+      "fromAddress": "From Address",
+      "fromName": "From Name"
+    },
+    "integrations": {
+      "title": "Integrations",
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "configure": "Configure"
+    }
+  },
+  "billing": {
+    "title": "Billing & Subscription",
+    "currentPlan": "Current Plan",
+    "usage": "Usage",
+    "invoices": "Invoices",
+    "paymentMethod": "Payment Method",
+    "upgrade": "Upgrade Plan",
+    "cancel": "Cancel Subscription"
+  },
+  "health": {
+    "title": "System Health",
+    "status": {
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "down": "Down"
+    },
+    "services": {
+      "api": "API Server",
+      "database": "Database",
+      "cache": "Cache",
+      "storage": "Storage",
+      "websocket": "WebSocket"
+    },
+    "uptime": "Uptime",
+    "lastChecked": "Last checked"
+  },
+  "errors": {
+    "loadFailed": "Could not load data",
+    "saveFailed": "Could not save changes",
+    "actionFailed": "Action failed. Please try again."
+  }
+}

@@ -1,0 +1,184 @@
+{
+  "title": "管理仪表板",
+  "navigation": {
+    "overview": "概览",
+    "users": "用户",
+    "teams": "团队",
+    "projects": "项目",
+    "analytics": "分析",
+    "auditLogs": "审计日志",
+    "settings": "设置",
+    "billing": "账单"
+  },
+  "overview": {
+    "title": "仪表板概览",
+    "totalUsers": "总用户数",
+    "activeUsers": "活跃用户",
+    "totalProjects": "总项目数",
+    "activeProjects": "活跃项目",
+    "storageUsed": "已用存储",
+    "apiCalls": "API调用",
+    "recentActivity": "最近活动",
+    "systemHealth": "系统健康"
+  },
+  "users": {
+    "title": "用户管理",
+    "list": "所有用户",
+    "add": "添加用户",
+    "invite": "邀请用户",
+    "search": "搜索用户...",
+    "filters": {
+      "all": "所有用户",
+      "active": "活跃",
+      "inactive": "不活跃",
+      "pending": "待处理"
+    },
+    "columns": {
+      "name": "姓名",
+      "email": "邮箱",
+      "role": "角色",
+      "status": "状态",
+      "lastActive": "最后活跃",
+      "joined": "加入时间"
+    },
+    "actions": {
+      "edit": "编辑用户",
+      "disable": "禁用用户",
+      "enable": "启用用户",
+      "delete": "删除用户",
+      "resetPassword": "重置密码",
+      "impersonate": "模拟登录"
+    },
+    "roles": {
+      "admin": "管理员",
+      "manager": "经理",
+      "member": "成员",
+      "viewer": "查看者"
+    }
+  },
+  "teams": {
+    "title": "团队管理",
+    "list": "所有团队",
+    "create": "创建团队",
+    "members": "{{count}}个成员",
+    "members_plural": "{{count}}个成员"
+  },
+  "analytics": {
+    "title": "分析",
+    "overview": "概览",
+    "engagement": "用户参与度",
+    "performance": "性能",
+    "usage": "使用统计",
+    "dateRange": {
+      "today": "今天",
+      "week": "本周",
+      "month": "本月",
+      "quarter": "本季度",
+      "year": "今年",
+      "custom": "自定义范围"
+    },
+    "metrics": {
+      "pageViews": "页面浏览量",
+      "sessions": "会话数",
+      "avgSessionDuration": "平均会话时长",
+      "bounceRate": "跳出率",
+      "activeUsers": "活跃用户",
+      "newUsers": "新用户"
+    },
+    "export": {
+      "title": "导出数据",
+      "csv": "导出为CSV",
+      "pdf": "导出为PDF",
+      "excel": "导出为Excel"
+    }
+  },
+  "auditLogs": {
+    "title": "审计日志",
+    "search": "搜索日志...",
+    "filters": {
+      "all": "所有事件",
+      "auth": "身份认证",
+      "users": "用户变更",
+      "projects": "项目变更",
+      "settings": "设置变更",
+      "security": "安全事件"
+    },
+    "columns": {
+      "timestamp": "时间戳",
+      "user": "用户",
+      "action": "操作",
+      "resource": "资源",
+      "details": "详情",
+      "ip": "IP地址"
+    },
+    "actions": {
+      "login": "用户登录",
+      "logout": "用户登出",
+      "create": "创建",
+      "update": "更新",
+      "delete": "删除",
+      "invite": "邀请",
+      "remove": "移除"
+    }
+  },
+  "settings": {
+    "title": "系统设置",
+    "general": {
+      "title": "常规",
+      "siteName": "站点名称",
+      "siteUrl": "站点URL",
+      "supportEmail": "支持邮箱",
+      "timezone": "时区"
+    },
+    "security": {
+      "title": "安全",
+      "passwordPolicy": "密码策略",
+      "sessionTimeout": "会话超时",
+      "twoFactor": "双因素认证",
+      "ipWhitelist": "IP白名单"
+    },
+    "email": {
+      "title": "邮件设置",
+      "provider": "邮件提供商",
+      "fromAddress": "发件地址",
+      "fromName": "发件人名称"
+    },
+    "integrations": {
+      "title": "集成",
+      "connected": "已连接",
+      "notConnected": "未连接",
+      "configure": "配置"
+    }
+  },
+  "billing": {
+    "title": "账单与订阅",
+    "currentPlan": "当前套餐",
+    "usage": "使用情况",
+    "invoices": "发票",
+    "paymentMethod": "支付方式",
+    "upgrade": "升级套餐",
+    "cancel": "取消订阅"
+  },
+  "health": {
+    "title": "系统健康",
+    "status": {
+      "healthy": "健康",
+      "degraded": "降级",
+      "down": "宕机"
+    },
+    "services": {
+      "api": "API服务器",
+      "database": "数据库",
+      "cache": "缓存",
+      "storage": "存储",
+      "websocket": "WebSocket"
+    },
+    "uptime": "运行时间",
+    "lastChecked": "最后检查"
+  },
+  "errors": {
+    "loadFailed": "无法加载数据",
+    "saveFailed": "无法保存更改",
+    "actionFailed": "操作失败，请重试。"
+  }
+}

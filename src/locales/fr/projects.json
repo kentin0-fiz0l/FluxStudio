@@ -1,0 +1,111 @@
+{
+  "list": {
+    "title": "Projets",
+    "subtitle": "Gérez vos projets créatifs",
+    "empty": "Aucun projet",
+    "emptyDescription": "Créez votre premier projet pour commencer",
+    "createFirst": "Créer votre premier projet"
+  },
+  "create": {
+    "title": "Créer un nouveau projet",
+    "nameLabel": "Nom du projet",
+    "namePlaceholder": "Entrez le nom du projet",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Décrivez votre projet (optionnel)",
+    "teamLabel": "Équipe",
+    "teamPlaceholder": "Sélectionner une équipe",
+    "templateLabel": "Modèle",
+    "templatePlaceholder": "Commencer avec un modèle (optionnel)",
+    "visibilityLabel": "Visibilité",
+    "visibilityPublic": "Public",
+    "visibilityPrivate": "Privé",
+    "visibilityTeam": "Équipe uniquement",
+    "submit": "Créer le projet",
+    "success": "Projet créé avec succès"
+  },
+  "detail": {
+    "overview": "Aperçu",
+    "files": "Fichiers",
+    "tasks": "Tâches",
+    "messages": "Messages",
+    "team": "Équipe",
+    "settings": "Paramètres",
+    "activity": "Activité"
+  },
+  "status": {
+    "active": "Actif",
+    "completed": "Terminé",
+    "archived": "Archivé",
+    "onHold": "En attente",
+    "draft": "Brouillon"
+  },
+  "actions": {
+    "edit": "Modifier le projet",
+    "delete": "Supprimer le projet",
+    "archive": "Archiver le projet",
+    "duplicate": "Dupliquer le projet",
+    "share": "Partager le projet",
+    "export": "Exporter le projet",
+    "addMember": "Ajouter un membre",
+    "removeMember": "Retirer le membre",
+    "changeOwner": "Transférer la propriété"
+  },
+  "bulk": {
+    "selected": "{{count}} sélectionné(s)",
+    "delete": "Supprimer la sélection",
+    "archive": "Archiver la sélection",
+    "move": "Déplacer la sélection",
+    "tag": "Taguer la sélection",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer {{count}} projets ? Cette action est irréversible.",
+    "confirmArchive": "Êtes-vous sûr de vouloir archiver {{count}} projets ?"
+  },
+  "filters": {
+    "all": "Tous les projets",
+    "active": "Actifs",
+    "completed": "Terminés",
+    "archived": "Archivés",
+    "myProjects": "Mes projets",
+    "shared": "Partagés avec moi",
+    "recent": "Récents"
+  },
+  "sort": {
+    "name": "Nom",
+    "dateCreated": "Date de création",
+    "dateModified": "Dernière modification",
+    "status": "Statut"
+  },
+  "views": {
+    "grid": "Vue grille",
+    "list": "Vue liste",
+    "board": "Vue tableau"
+  },
+  "timeline": {
+    "title": "Chronologie",
+    "start": "Date de début",
+    "end": "Date de fin",
+    "duration": "Durée",
+    "milestone": "Jalon",
+    "addMilestone": "Ajouter un jalon"
+  },
+  "members": {
+    "title": "Membres de l'équipe",
+    "owner": "Propriétaire",
+    "manager": "Gestionnaire",
+    "contributor": "Contributeur",
+    "viewer": "Observateur",
+    "invite": "Inviter un membre",
+    "pending": "Invitation en attente"
+  },
+  "errors": {
+    "notFound": "Projet non trouvé",
+    "accessDenied": "Vous n'avez pas accès à ce projet",
+    "createFailed": "Impossible de créer le projet",
+    "updateFailed": "Impossible de mettre à jour le projet",
+    "deleteFailed": "Impossible de supprimer le projet"
+  },
+  "confirmation": {
+    "delete": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ? Cette action est irréversible.",
+    "archive": "Êtes-vous sûr de vouloir archiver \"{{name}}\" ?",
+    "leave": "Êtes-vous sûr de vouloir quitter ce projet ?"
+  }
+}

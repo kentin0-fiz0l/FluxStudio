@@ -1,0 +1,102 @@
+{
+  "title": "メッセージ",
+  "subtitle": "チームとコラボレーション",
+  "conversations": {
+    "title": "会話",
+    "new": "新しい会話",
+    "empty": "会話がありません",
+    "emptyDescription": "チームとの会話を始めましょう",
+    "search": "会話を検索",
+    "pinned": "ピン留め",
+    "unread": "未読"
+  },
+  "compose": {
+    "placeholder": "メッセージを入力...",
+    "send": "送信",
+    "attachFile": "ファイルを添付",
+    "emoji": "絵文字を追加",
+    "mention": "メンションする",
+    "formatting": "テキスト書式"
+  },
+  "message": {
+    "edited": "編集済み",
+    "deleted": "このメッセージは削除されました",
+    "reply": "返信",
+    "edit": "編集",
+    "delete": "削除",
+    "pin": "ピン留め",
+    "unpin": "ピン解除",
+    "react": "リアクションを追加",
+    "forward": "転送",
+    "copy": "テキストをコピー",
+    "thread": "スレッドで返信",
+    "markUnread": "未読にする"
+  },
+  "reactions": {
+    "title": "リアクション",
+    "addReaction": "リアクションを追加",
+    "removeReaction": "リアクションを削除"
+  },
+  "threads": {
+    "title": "スレッド",
+    "replies": "{{count}}件の返信",
+    "replies_plural": "{{count}}件の返信",
+    "viewThread": "スレッドを表示",
+    "replyToThread": "スレッドに返信"
+  },
+  "typing": {
+    "one": "{{name}}が入力中...",
+    "two": "{{name1}}と{{name2}}が入力中...",
+    "many": "複数のユーザーが入力中..."
+  },
+  "presence": {
+    "online": "オンライン",
+    "away": "離席中",
+    "busy": "取り込み中",
+    "offline": "オフライン",
+    "lastSeen": "最終閲覧: {{time}}"
+  },
+  "notifications": {
+    "newMessage": "{{sender}}からの新しいメッセージ",
+    "mention": "{{sender}}があなたをメンションしました",
+    "reaction": "{{sender}}があなたのメッセージにリアクションしました"
+  },
+  "search": {
+    "title": "メッセージを検索",
+    "placeholder": "会話内を検索...",
+    "results": "{{count}}件の結果",
+    "results_plural": "{{count}}件の結果",
+    "noResults": "メッセージが見つかりません",
+    "filters": {
+      "all": "すべてのメッセージ",
+      "files": "ファイル付き",
+      "links": "リンク付き",
+      "mentions": "メンション"
+    }
+  },
+  "files": {
+    "shared": "共有ファイル",
+    "upload": "ファイルをアップロード",
+    "download": "ダウンロード",
+    "preview": "プレビュー",
+    "size": "サイズ: {{size}}"
+  },
+  "settings": {
+    "notifications": "通知設定",
+    "muteConversation": "会話をミュート",
+    "leaveConversation": "会話から退出",
+    "deleteConversation": "会話を削除",
+    "addMembers": "メンバーを追加",
+    "conversationName": "会話名"
+  },
+  "errors": {
+    "sendFailed": "メッセージを送信できませんでした",
+    "loadFailed": "メッセージを読み込めませんでした",
+    "uploadFailed": "ファイルをアップロードできませんでした",
+    "connectionLost": "接続が切断されました。再接続中..."
+  },
+  "empty": {
+    "selectConversation": "会話を選択してください",
+    "startConversation": "新しい会話を始める"
+  }
+}

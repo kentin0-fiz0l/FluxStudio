@@ -1,0 +1,102 @@
+{
+  "title": "الرسائل",
+  "subtitle": "تعاون مع فريقك",
+  "conversations": {
+    "title": "المحادثات",
+    "new": "محادثة جديدة",
+    "empty": "لا توجد محادثات بعد",
+    "emptyDescription": "ابدأ محادثة مع فريقك",
+    "search": "بحث في المحادثات",
+    "pinned": "مثبتة",
+    "unread": "غير مقروءة"
+  },
+  "compose": {
+    "placeholder": "اكتب رسالة...",
+    "send": "إرسال",
+    "attachFile": "إرفاق ملف",
+    "emoji": "إضافة رمز تعبيري",
+    "mention": "الإشارة إلى شخص",
+    "formatting": "تنسيق النص"
+  },
+  "message": {
+    "edited": "تم التعديل",
+    "deleted": "تم حذف هذه الرسالة",
+    "reply": "رد",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "pin": "تثبيت",
+    "unpin": "إلغاء التثبيت",
+    "react": "إضافة تفاعل",
+    "forward": "إعادة توجيه",
+    "copy": "نسخ النص",
+    "thread": "الرد في سلسلة",
+    "markUnread": "تحديد كغير مقروءة"
+  },
+  "reactions": {
+    "title": "التفاعلات",
+    "addReaction": "إضافة تفاعل",
+    "removeReaction": "إزالة التفاعل"
+  },
+  "threads": {
+    "title": "سلسلة",
+    "replies": "{{count}} رد",
+    "replies_plural": "{{count}} ردود",
+    "viewThread": "عرض السلسلة",
+    "replyToThread": "الرد على السلسلة"
+  },
+  "typing": {
+    "one": "{{name}} يكتب...",
+    "two": "{{name1}} و{{name2}} يكتبان...",
+    "many": "عدة أشخاص يكتبون..."
+  },
+  "presence": {
+    "online": "متصل",
+    "away": "بعيد",
+    "busy": "مشغول",
+    "offline": "غير متصل",
+    "lastSeen": "آخر ظهور {{time}}"
+  },
+  "notifications": {
+    "newMessage": "رسالة جديدة من {{sender}}",
+    "mention": "{{sender}} أشار إليك",
+    "reaction": "{{sender}} تفاعل مع رسالتك"
+  },
+  "search": {
+    "title": "بحث في الرسائل",
+    "placeholder": "بحث في المحادثة...",
+    "results": "{{count}} نتيجة",
+    "results_plural": "{{count}} نتائج",
+    "noResults": "لم يتم العثور على رسائل",
+    "filters": {
+      "all": "جميع الرسائل",
+      "files": "مع ملفات",
+      "links": "مع روابط",
+      "mentions": "الإشارات"
+    }
+  },
+  "files": {
+    "shared": "الملفات المشتركة",
+    "upload": "رفع ملف",
+    "download": "تحميل",
+    "preview": "معاينة",
+    "size": "الحجم: {{size}}"
+  },
+  "settings": {
+    "notifications": "إعدادات الإشعارات",
+    "muteConversation": "كتم المحادثة",
+    "leaveConversation": "مغادرة المحادثة",
+    "deleteConversation": "حذف المحادثة",
+    "addMembers": "إضافة أعضاء",
+    "conversationName": "اسم المحادثة"
+  },
+  "errors": {
+    "sendFailed": "تعذر إرسال الرسالة",
+    "loadFailed": "تعذر تحميل الرسائل",
+    "uploadFailed": "تعذر رفع الملف",
+    "connectionLost": "انقطع الاتصال. جاري إعادة الاتصال..."
+  },
+  "empty": {
+    "selectConversation": "اختر محادثة",
+    "startConversation": "ابدأ محادثة جديدة"
+  }
+}

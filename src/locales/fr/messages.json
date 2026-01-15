@@ -1,0 +1,102 @@
+{
+  "title": "Messages",
+  "subtitle": "Collaborez avec votre équipe",
+  "conversations": {
+    "title": "Conversations",
+    "new": "Nouvelle conversation",
+    "empty": "Aucune conversation",
+    "emptyDescription": "Commencez une conversation avec votre équipe",
+    "search": "Rechercher des conversations",
+    "pinned": "Épinglées",
+    "unread": "Non lues"
+  },
+  "compose": {
+    "placeholder": "Écrivez un message...",
+    "send": "Envoyer",
+    "attachFile": "Joindre un fichier",
+    "emoji": "Ajouter un emoji",
+    "mention": "Mentionner quelqu'un",
+    "formatting": "Mise en forme du texte"
+  },
+  "message": {
+    "edited": "modifié",
+    "deleted": "Ce message a été supprimé",
+    "reply": "Répondre",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "pin": "Épingler",
+    "unpin": "Désépingler",
+    "react": "Ajouter une réaction",
+    "forward": "Transférer",
+    "copy": "Copier le texte",
+    "thread": "Répondre dans le fil",
+    "markUnread": "Marquer comme non lu"
+  },
+  "reactions": {
+    "title": "Réactions",
+    "addReaction": "Ajouter une réaction",
+    "removeReaction": "Retirer la réaction"
+  },
+  "threads": {
+    "title": "Fil de discussion",
+    "replies": "{{count}} réponse",
+    "replies_plural": "{{count}} réponses",
+    "viewThread": "Voir le fil",
+    "replyToThread": "Répondre au fil"
+  },
+  "typing": {
+    "one": "{{name}} écrit...",
+    "two": "{{name1}} et {{name2}} écrivent...",
+    "many": "Plusieurs personnes écrivent..."
+  },
+  "presence": {
+    "online": "En ligne",
+    "away": "Absent",
+    "busy": "Occupé",
+    "offline": "Hors ligne",
+    "lastSeen": "Vu {{time}}"
+  },
+  "notifications": {
+    "newMessage": "Nouveau message de {{sender}}",
+    "mention": "{{sender}} vous a mentionné",
+    "reaction": "{{sender}} a réagi à votre message"
+  },
+  "search": {
+    "title": "Rechercher des messages",
+    "placeholder": "Rechercher dans la conversation...",
+    "results": "{{count}} résultat",
+    "results_plural": "{{count}} résultats",
+    "noResults": "Aucun message trouvé",
+    "filters": {
+      "all": "Tous les messages",
+      "files": "Avec fichiers",
+      "links": "Avec liens",
+      "mentions": "Mentions"
+    }
+  },
+  "files": {
+    "shared": "Fichiers partagés",
+    "upload": "Télécharger un fichier",
+    "download": "Télécharger",
+    "preview": "Aperçu",
+    "size": "Taille : {{size}}"
+  },
+  "settings": {
+    "notifications": "Paramètres de notification",
+    "muteConversation": "Mettre en sourdine",
+    "leaveConversation": "Quitter la conversation",
+    "deleteConversation": "Supprimer la conversation",
+    "addMembers": "Ajouter des membres",
+    "conversationName": "Nom de la conversation"
+  },
+  "errors": {
+    "sendFailed": "Impossible d'envoyer le message",
+    "loadFailed": "Impossible de charger les messages",
+    "uploadFailed": "Impossible de télécharger le fichier",
+    "connectionLost": "Connexion perdue. Reconnexion..."
+  },
+  "empty": {
+    "selectConversation": "Sélectionnez une conversation",
+    "startConversation": "Commencer une nouvelle conversation"
+  }
+}

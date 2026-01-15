@@ -1,0 +1,102 @@
+{
+  "title": "Nachrichten",
+  "subtitle": "Arbeiten Sie mit Ihrem Team zusammen",
+  "conversations": {
+    "title": "Unterhaltungen",
+    "new": "Neue Unterhaltung",
+    "empty": "Noch keine Unterhaltungen",
+    "emptyDescription": "Starten Sie eine Unterhaltung mit Ihrem Team",
+    "search": "Unterhaltungen suchen",
+    "pinned": "Angeheftet",
+    "unread": "Ungelesen"
+  },
+  "compose": {
+    "placeholder": "Nachricht eingeben...",
+    "send": "Senden",
+    "attachFile": "Datei anhängen",
+    "emoji": "Emoji hinzufügen",
+    "mention": "Jemanden erwähnen",
+    "formatting": "Textformatierung"
+  },
+  "message": {
+    "edited": "bearbeitet",
+    "deleted": "Diese Nachricht wurde gelöscht",
+    "reply": "Antworten",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "pin": "Anheften",
+    "unpin": "Lösen",
+    "react": "Reaktion hinzufügen",
+    "forward": "Weiterleiten",
+    "copy": "Text kopieren",
+    "thread": "Im Thread antworten",
+    "markUnread": "Als ungelesen markieren"
+  },
+  "reactions": {
+    "title": "Reaktionen",
+    "addReaction": "Reaktion hinzufügen",
+    "removeReaction": "Reaktion entfernen"
+  },
+  "threads": {
+    "title": "Thread",
+    "replies": "{{count}} Antwort",
+    "replies_plural": "{{count}} Antworten",
+    "viewThread": "Thread anzeigen",
+    "replyToThread": "Auf Thread antworten"
+  },
+  "typing": {
+    "one": "{{name}} schreibt...",
+    "two": "{{name1}} und {{name2}} schreiben...",
+    "many": "Mehrere Personen schreiben..."
+  },
+  "presence": {
+    "online": "Online",
+    "away": "Abwesend",
+    "busy": "Beschäftigt",
+    "offline": "Offline",
+    "lastSeen": "Zuletzt gesehen {{time}}"
+  },
+  "notifications": {
+    "newMessage": "Neue Nachricht von {{sender}}",
+    "mention": "{{sender}} hat Sie erwähnt",
+    "reaction": "{{sender}} hat auf Ihre Nachricht reagiert"
+  },
+  "search": {
+    "title": "Nachrichten suchen",
+    "placeholder": "In Unterhaltung suchen...",
+    "results": "{{count}} Ergebnis",
+    "results_plural": "{{count}} Ergebnisse",
+    "noResults": "Keine Nachrichten gefunden",
+    "filters": {
+      "all": "Alle Nachrichten",
+      "files": "Mit Dateien",
+      "links": "Mit Links",
+      "mentions": "Erwähnungen"
+    }
+  },
+  "files": {
+    "shared": "Geteilte Dateien",
+    "upload": "Datei hochladen",
+    "download": "Herunterladen",
+    "preview": "Vorschau",
+    "size": "Größe: {{size}}"
+  },
+  "settings": {
+    "notifications": "Benachrichtigungseinstellungen",
+    "muteConversation": "Unterhaltung stummschalten",
+    "leaveConversation": "Unterhaltung verlassen",
+    "deleteConversation": "Unterhaltung löschen",
+    "addMembers": "Mitglieder hinzufügen",
+    "conversationName": "Name der Unterhaltung"
+  },
+  "errors": {
+    "sendFailed": "Nachricht konnte nicht gesendet werden",
+    "loadFailed": "Nachrichten konnten nicht geladen werden",
+    "uploadFailed": "Datei konnte nicht hochgeladen werden",
+    "connectionLost": "Verbindung verloren. Verbindung wird wiederhergestellt..."
+  },
+  "empty": {
+    "selectConversation": "Wählen Sie eine Unterhaltung",
+    "startConversation": "Neue Unterhaltung starten"
+  }
+}

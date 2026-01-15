@@ -1,0 +1,111 @@
+{
+  "list": {
+    "title": "プロジェクト",
+    "subtitle": "クリエイティブプロジェクトを管理",
+    "empty": "プロジェクトがありません",
+    "emptyDescription": "最初のプロジェクトを作成して始めましょう",
+    "createFirst": "最初のプロジェクトを作成"
+  },
+  "create": {
+    "title": "新しいプロジェクトを作成",
+    "nameLabel": "プロジェクト名",
+    "namePlaceholder": "プロジェクト名を入力",
+    "descriptionLabel": "説明",
+    "descriptionPlaceholder": "プロジェクトの説明（任意）",
+    "teamLabel": "チーム",
+    "teamPlaceholder": "チームを選択",
+    "templateLabel": "テンプレート",
+    "templatePlaceholder": "テンプレートから開始（任意）",
+    "visibilityLabel": "公開設定",
+    "visibilityPublic": "公開",
+    "visibilityPrivate": "非公開",
+    "visibilityTeam": "チームのみ",
+    "submit": "プロジェクトを作成",
+    "success": "プロジェクトが作成されました"
+  },
+  "detail": {
+    "overview": "概要",
+    "files": "ファイル",
+    "tasks": "タスク",
+    "messages": "メッセージ",
+    "team": "チーム",
+    "settings": "設定",
+    "activity": "アクティビティ"
+  },
+  "status": {
+    "active": "進行中",
+    "completed": "完了",
+    "archived": "アーカイブ済み",
+    "onHold": "保留中",
+    "draft": "下書き"
+  },
+  "actions": {
+    "edit": "プロジェクトを編集",
+    "delete": "プロジェクトを削除",
+    "archive": "プロジェクトをアーカイブ",
+    "duplicate": "プロジェクトを複製",
+    "share": "プロジェクトを共有",
+    "export": "プロジェクトをエクスポート",
+    "addMember": "メンバーを追加",
+    "removeMember": "メンバーを削除",
+    "changeOwner": "所有権を移転"
+  },
+  "bulk": {
+    "selected": "{{count}}件選択中",
+    "delete": "選択項目を削除",
+    "archive": "選択項目をアーカイブ",
+    "move": "選択項目を移動",
+    "tag": "選択項目にタグ付け",
+    "confirmDelete": "{{count}}件のプロジェクトを削除してよろしいですか？この操作は取り消せません。",
+    "confirmArchive": "{{count}}件のプロジェクトをアーカイブしてよろしいですか？"
+  },
+  "filters": {
+    "all": "すべてのプロジェクト",
+    "active": "進行中",
+    "completed": "完了",
+    "archived": "アーカイブ済み",
+    "myProjects": "マイプロジェクト",
+    "shared": "共有されたもの",
+    "recent": "最近"
+  },
+  "sort": {
+    "name": "名前",
+    "dateCreated": "作成日",
+    "dateModified": "更新日",
+    "status": "ステータス"
+  },
+  "views": {
+    "grid": "グリッド表示",
+    "list": "リスト表示",
+    "board": "ボード表示"
+  },
+  "timeline": {
+    "title": "タイムライン",
+    "start": "開始日",
+    "end": "終了日",
+    "duration": "期間",
+    "milestone": "マイルストーン",
+    "addMilestone": "マイルストーンを追加"
+  },
+  "members": {
+    "title": "チームメンバー",
+    "owner": "オーナー",
+    "manager": "マネージャー",
+    "contributor": "コントリビューター",
+    "viewer": "閲覧者",
+    "invite": "メンバーを招待",
+    "pending": "招待保留中"
+  },
+  "errors": {
+    "notFound": "プロジェクトが見つかりません",
+    "accessDenied": "このプロジェクトへのアクセス権がありません",
+    "createFailed": "プロジェクトを作成できませんでした",
+    "updateFailed": "プロジェクトを更新できませんでした",
+    "deleteFailed": "プロジェクトを削除できませんでした"
+  },
+  "confirmation": {
+    "delete": "\"{{name}}\"を削除してよろしいですか？この操作は取り消せません。",
+    "archive": "\"{{name}}\"をアーカイブしてよろしいですか？",
+    "leave": "このプロジェクトから離れてよろしいですか？"
+  }
+}
