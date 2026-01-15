@@ -6,9 +6,9 @@
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
 
-// Test configuration
-const AUTH_BASE_URL = 'http://localhost:3001';
-const MESSAGING_BASE_URL = 'http://localhost:3004';
+// Test configuration (unified backend consolidates all services on 3001)
+const AUTH_BASE_URL = process.env.UNIFIED_BACKEND_URL || 'http://localhost:3001';
+const MESSAGING_BASE_URL = process.env.UNIFIED_BACKEND_URL || 'http://localhost:3001';
 const JWT_SECRET = process.env.JWT_SECRET || 'flux-studio-secret-key-2025';
 
 describe('API Integration Tests', () => {

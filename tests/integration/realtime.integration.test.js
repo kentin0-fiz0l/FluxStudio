@@ -7,7 +7,8 @@ const { io: SocketIOClient } = require('socket.io-client');
 const jwt = require('jsonwebtoken');
 
 // Test configuration
-const MESSAGING_WS_URL = 'http://localhost:3004';
+// Updated to use unified backend with /messaging namespace
+const MESSAGING_WS_URL = process.env.MESSAGING_WS_URL || 'http://localhost:3001/messaging';
 const JWT_SECRET = process.env.JWT_SECRET || 'flux-studio-secret-key-2025';
 
 // Helper function to create authenticated socket connection

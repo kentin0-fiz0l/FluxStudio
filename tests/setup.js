@@ -15,9 +15,11 @@ process.env.DB_NAME = 'fluxstudio';
 process.env.DB_USER = 'postgres';
 process.env.DB_PASSWORD = 'postgres';
 
-// Service ports
+// Service ports (unified backend consolidates all services on 3001)
 process.env.AUTH_PORT = '3001';
-process.env.MESSAGING_PORT = '3004';
+process.env.MESSAGING_PORT = '3001';
+process.env.UNIFIED_BACKEND_URL = 'http://localhost:3001';
+process.env.MESSAGING_WS_URL = 'http://localhost:3001/messaging';
 
 // Increase timeout for integration tests
 jest.setTimeout(30000);

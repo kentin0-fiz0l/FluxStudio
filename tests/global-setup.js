@@ -18,10 +18,12 @@ module.exports = async () => {
   process.env.DB_USER = 'postgres';
   process.env.DB_PASSWORD = 'postgres';
 
-  // Service ports
+  // Service ports (unified backend consolidates all services on 3001)
   process.env.AUTH_PORT = '3001';
-  process.env.MESSAGING_PORT = '3004';
+  process.env.MESSAGING_PORT = '3001';
+  process.env.UNIFIED_BACKEND_URL = 'http://localhost:3001';
+  process.env.MESSAGING_WS_URL = 'http://localhost:3001/messaging';
 
   console.log('✅ Test environment configured');
-  console.log('⚠️  Tests expect services to be running on ports 3001 and 3004');
+  console.log('⚠️  Tests expect unified backend to be running on port 3001');
 };

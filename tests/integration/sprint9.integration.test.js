@@ -15,9 +15,9 @@ const path = require('path');
 const { expect } = require('chai');
 const { io } = require('socket.io-client');
 
-// Test configuration
-const AUTH_SERVER_URL = 'http://localhost:3001';
-const MESSAGING_SERVER_URL = 'http://localhost:3004';
+// Test configuration (unified backend consolidates all services on 3001)
+const AUTH_SERVER_URL = process.env.UNIFIED_BACKEND_URL || 'http://localhost:3001';
+const MESSAGING_SERVER_URL = process.env.UNIFIED_BACKEND_URL || 'http://localhost:3001';
 const WS_PERFORMANCE_URL = 'ws://localhost:3001/performance';
 const WS_FILES_URL = 'ws://localhost:3001/files';
 

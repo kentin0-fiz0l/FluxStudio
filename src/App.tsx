@@ -34,13 +34,15 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { useTheme } from './hooks/useTheme';
 import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 
-// Critical pages - loaded immediately
+// Critical pages - loaded immediately (minimal for fast initial load)
 import { SimpleHomePage } from './pages/SimpleHomePage';
 import { Login } from './pages/Login';
-import Settings from './pages/Settings';
-import { MessagesNew } from './pages/MessagesNew';
 import OAuthCallback from './pages/OAuthCallback';
 import { useAuth } from './contexts/AuthContext';
+
+// Large pages - lazy loaded for better initial bundle
+const { Component: Settings } = lazyLoadWithRetry(() => import('./pages/Settings'));
+const { Component: MessagesNew } = lazyLoadWithRetry(() => import('./pages/MessagesNew'));
 
 // Tools page - uses DashboardLayout like other authenticated pages
 const { Component: Tools } = lazyLoadWithRetry(() => import('./pages/Tools'));

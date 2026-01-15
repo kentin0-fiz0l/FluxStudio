@@ -110,6 +110,26 @@
                 return 'vendor-state';
               }
 
+              // Yjs and collaboration libraries
+              if (id.includes('yjs') || id.includes('y-websocket') || id.includes('y-indexeddb') || id.includes('lib0')) {
+                return 'vendor-collab';
+              }
+
+              // HTTP clients
+              if (id.includes('axios') || id.includes('ky') || id.includes('got')) {
+                return 'vendor-http';
+              }
+
+              // Crypto and security
+              if (id.includes('crypto') || id.includes('bcrypt') || id.includes('jsonwebtoken')) {
+                return 'vendor-crypto';
+              }
+
+              // Icons - lucide is large
+              if (id.includes('lucide-react')) {
+                return 'vendor-icons';
+              }
+
               // Everything else (including React core) goes into vendor bundle
               // This prevents createContext errors from chunk loading order issues
               return 'vendor';
