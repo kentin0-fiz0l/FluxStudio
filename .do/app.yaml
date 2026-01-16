@@ -347,14 +347,16 @@ services:
         type: SECRET
 
 # MCP Server (Model Context Protocol for AI integrations)
-  # Using Dockerfile for complete build control
+  # Using Node.js buildpack (Dockerfile detection unreliable on App Platform)
   - name: flux-mcp
     github:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
     source_dir: flux-mcp
-    dockerfile_path: Dockerfile
+    build_command: npm ci && npm run build
+    run_command: npm start
+    environment_slug: node-js
     http_port: 8787
     health_check:
       http_path: /health
