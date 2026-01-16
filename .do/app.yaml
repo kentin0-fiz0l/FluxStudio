@@ -348,13 +348,14 @@ services:
 
 # MCP Server (Model Context Protocol for AI integrations)
   # Using Dockerfile for complete build control
+  # Note: dockerfile_path is relative to source_dir, not repo root
   - name: flux-mcp
     github:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    dockerfile_path: flux-mcp/Dockerfile
     source_dir: flux-mcp
+    dockerfile_path: Dockerfile
     http_port: 8787
     health_check:
       http_path: /health
@@ -388,13 +389,14 @@ services:
 
 # FFmpeg Transcoding Worker (for HLS video streaming)
 # Configured as a service (not worker) because DigitalOcean App Platform requires HTTP endpoint
+  # Note: dockerfile_path is relative to source_dir
   - name: ffmpeg-worker
     github:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    dockerfile_path: services/ffmpeg-worker/Dockerfile
     source_dir: services/ffmpeg-worker
+    dockerfile_path: Dockerfile
     http_port: 8080
     health_check:
       http_path: /health
