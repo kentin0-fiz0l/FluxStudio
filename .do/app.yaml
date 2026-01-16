@@ -353,7 +353,7 @@ services:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    dockerfile_path: Dockerfile
+    dockerfile_path: flux-mcp/Dockerfile
     source_dir: flux-mcp
     http_port: 8787
     health_check:
@@ -393,7 +393,7 @@ services:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    dockerfile_path: Dockerfile
+    dockerfile_path: services/ffmpeg-worker/Dockerfile
     source_dir: services/ffmpeg-worker
     http_port: 8080
     health_check:
