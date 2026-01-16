@@ -81,12 +81,13 @@ ingress:
           - Upgrade
           - Connection
         allow_credentials: true
-    # FFmpeg Worker health check
-    - component:
-        name: ffmpeg-worker
-      match:
-        path:
-          prefix: /ffmpeg
+    # FFmpeg Worker disabled - Dockerfile detection issues on App Platform
+    # TODO: Re-enable when Dockerfile path resolution is fixed
+    # - component:
+    #     name: ffmpeg-worker
+    #   match:
+    #     path:
+    #       prefix: /ffmpeg
     # Frontend (catch-all, must be last)
     - component:
         name: frontend
@@ -354,7 +355,7 @@ services:
       branch: main
       deploy_on_push: true
     source_dir: flux-mcp
-    build_command: npm ci && npm run build
+    build_command: npm ci
     run_command: npm start
     environment_slug: node-js
     http_port: 8787
@@ -388,51 +389,52 @@ services:
         scope: RUN_TIME
         type: SECRET
 
-# FFmpeg Transcoding Worker (for HLS video streaming)
+# FFmpeg Transcoding Worker (DISABLED - Dockerfile detection issues on App Platform)
+# TODO: Re-enable when Dockerfile path resolution is fixed
 # Configured as a service (not worker) because DigitalOcean App Platform requires HTTP endpoint
-  - name: ffmpeg-worker
-    github:
-      repo: kentin0-fiz0l/FluxStudio
-      branch: main
-      deploy_on_push: true
-    source_dir: services/ffmpeg-worker
-    dockerfile_path: Dockerfile
-    http_port: 8080
-    health_check:
-      http_path: /health
-      initial_delay_seconds: 10
-      period_seconds: 30
-      timeout_seconds: 5
-      success_threshold: 1
-      failure_threshold: 3
-    instance_count: 1
-    instance_size_slug: basic-xs
-    envs:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: "8080"
-      - key: DATABASE_URL
-        scope: RUN_TIME
-        type: SECRET
-      - key: SPACES_ACCESS_KEY
-        scope: RUN_TIME
-        type: SECRET
-      - key: SPACES_SECRET_KEY
-        scope: RUN_TIME
-        type: SECRET
-      - key: SPACES_BUCKET
-        value: fluxstudio
-      - key: SPACES_ENDPOINT
-        value: sfo3.digitaloceanspaces.com
-      - key: SPACES_REGION
-        value: sfo3
-      - key: SPACES_CDN
-        value: https://fluxstudio.sfo3.cdn.digitaloceanspaces.com
-      - key: WORK_DIR
-        value: /tmp/transcoding
-      - key: CONCURRENT_JOBS
-        value: "1"
+#  - name: ffmpeg-worker
+#    github:
+#      repo: kentin0-fiz0l/FluxStudio
+#      branch: main
+#      deploy_on_push: true
+#    source_dir: services/ffmpeg-worker
+#    dockerfile_path: Dockerfile
+#    http_port: 8080
+#    health_check:
+#      http_path: /health
+#      initial_delay_seconds: 10
+#      period_seconds: 30
+#      timeout_seconds: 5
+#      success_threshold: 1
+#      failure_threshold: 3
+#    instance_count: 1
+#    instance_size_slug: basic-xs
+#    envs:
+#      - key: NODE_ENV
+#        value: production
+#      - key: PORT
+#        value: "8080"
+#      - key: DATABASE_URL
+#        scope: RUN_TIME
+#        type: SECRET
+#      - key: SPACES_ACCESS_KEY
+#        scope: RUN_TIME
+#        type: SECRET
+#      - key: SPACES_SECRET_KEY
+#        scope: RUN_TIME
+#        type: SECRET
+#      - key: SPACES_BUCKET
+#        value: fluxstudio
+#      - key: SPACES_ENDPOINT
+#        value: sfo3.digitaloceanspaces.com
+#      - key: SPACES_REGION
+#        value: sfo3
+#      - key: SPACES_CDN
+#        value: https://fluxstudio.sfo3.cdn.digitaloceanspaces.com
+#      - key: WORK_DIR
+#        value: /tmp/transcoding
+#      - key: CONCURRENT_JOBS
+#        value: "1"
 
 # Custom Domain Configuration
 domains:

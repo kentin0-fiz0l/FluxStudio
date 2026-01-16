@@ -8,7 +8,8 @@
     "dev": "tsx src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "vitest"
+    "test": "vitest",
+    "heroku-postbuild": "npm run build"
   },
   "keywords": ["mcp", "model-context-protocol", "flux-studio", "github-actions"],
   "author": "Flux Studio Team",
