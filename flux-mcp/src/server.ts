@@ -20,8 +20,26 @@ import { validateAuth, RateLimiter } from './auth.js';
 const PORT = parseInt(process.env.PORT || '8787', 10);
 const USE_WEBSOCKET = process.env.TRANSPORT !== 'stdio';
 
-// Initialize GitHub client
-const github = new GitHubClient();
+// Lazy-initialize GitHub client (only when needed, allows server to start without credentials)
+let github: GitHubClient | null = null;
+let githubInitError: Error | null = null;
+
+function getGitHubClient(): GitHubClient {
+  if (githubInitError) {
+    throw githubInitError;
+  }
+  if (!github) {
+    try {
+      github = new GitHubClient();
+    } catch (error) {
+      githubInitError = error as Error;
+      console.error('[MCP] GitHub client initialization failed:', (error as Error).message);
+      console.error('[MCP] GitHub-related tools will not be available until credentials are configured');
+      throw error;
+    }
+  }
+  return github;
+}
 
 // Initialize rate limiter (30 requests per minute per connection)
 const rateLimiter = new RateLimiter(60000, 30);
@@ -93,7 +111,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         console.log(`[MCP] Creating preview for branch: ${validatedArgs.branch}`);
 
         // Call GitHub API
-        const result = await github.createPreview(
+        const result = await getGitHubClient().createPreview(
           validatedArgs.branch,
           validatedArgs.payload
         );
@@ -115,8 +133,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         console.log(`[MCP] Fetching logs for run: ${validatedArgs.run_id}`);
 
         // Call GitHub API
-        const result = await github.tailLogs(validatedArgs.run_id);
-        const formatted = github.formatLogsResponse(result);
+        const client = getGitHubClient();
+        const result = await client.tailLogs(validatedArgs.run_id);
+        const formatted = client.formatLogsResponse(result);
 
         return {
           content: [
