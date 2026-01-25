@@ -581,10 +581,10 @@ router.delete('/projects/:projectId/files/:fileId', csrfProtection, authenticate
  * GET /files/storage/*storageKey
  * Serve stored files (for file URLs)
  */
-router.get('/storage/*', authenticateToken, async (req, res) => {
+router.get('/storage/*storageKey', authenticateToken, async (req, res) => {
   try {
     // Get the storage key from the wildcard parameter
-    const storageKey = req.params[0];
+    const storageKey = req.params.storageKey;
 
     // Check if file exists
     const exists = await fileStorage.exists(storageKey);
