@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, XCircle, Loader2, AlertCircle } from 'lucide-react';
 import { apiService } from '../services/apiService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface OAuthCallbackProps {
   provider: 'google' | 'figma' | 'slack' | 'github';
@@ -36,6 +37,7 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
   const [state, setState] = useState<CallbackState>('loading');
   const [result, setResult] = useState<CallbackResult | null>(null);
   const [isPopup, setIsPopup] = useState(false);
+  const { setAuthToken } = useAuth();
 
   useEffect(() => {
     // Detect if opened in popup vs. full window
@@ -44,7 +46,41 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
 
     const handleCallback = async () => {
       try {
-        // Extract OAuth parameters from URL
+        // Handle Google auth redirect flow (token in URL)
+        if (provider === 'google') {
+          const token = searchParams.get('token');
+          const error = searchParams.get('error');
+
+          if (error) {
+            const errorMessages: Record<string, string> = {
+              'csrf_mismatch': 'Security validation failed. Please try again.',
+              'no_credential': 'No credential received from Google. Please try again.',
+              'email_not_verified': 'Your Google email is not verified.',
+              'google_auth_failed': 'Google authentication failed. Please try again.'
+            };
+            const errorMessage = errorMessages[error] || `Google sign-in error: ${error}`;
+            setState('error');
+            setResult({ success: false, message: errorMessage });
+            return;
+          }
+
+          if (token) {
+            // Store the token and redirect to dashboard
+            setAuthToken(token);
+            setState('success');
+            setResult({
+              success: true,
+              message: 'Successfully signed in with Google',
+              data: { provider: 'google', permissions: [] }
+            });
+
+            // Redirect to dashboard after brief success display
+            setTimeout(() => navigate('/projects'), 1500);
+            return;
+          }
+        }
+
+        // Extract OAuth parameters from URL (for other providers)
         const code = searchParams.get('code');
         const stateToken = searchParams.get('state');
         const error = searchParams.get('error');

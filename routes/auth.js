@@ -408,6 +408,94 @@ router.post('/google', async (req, res) => {
   }
 });
 
+// Google OAuth redirect callback endpoint (for redirect flow to bypass COOP)
+router.post('/google/callback', async (req, res) => {
+  try {
+    const { credential, g_csrf_token } = req.body;
+
+    // Verify CSRF token from cookie matches form
+    const cookieCsrfToken = req.cookies?.g_csrf_token;
+    if (!g_csrf_token || !cookieCsrfToken || g_csrf_token !== cookieCsrfToken) {
+      console.log('Google OAuth CSRF mismatch:', { g_csrf_token, cookieCsrfToken });
+      return res.redirect(`${config.FRONTEND_URL || 'https://fluxstudio.art'}/login?error=csrf_mismatch`);
+    }
+
+    if (!credential) {
+      console.log('No credential in Google redirect callback');
+      return res.redirect(`${config.FRONTEND_URL || 'https://fluxstudio.art'}/login?error=no_credential`);
+    }
+
+    // Verify the Google ID token
+    console.log('Verifying Google ID token from redirect callback...');
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, email_verified } = payload;
+    console.log('Google token verified successfully:', { email, name, email_verified });
+
+    if (!email_verified) {
+      return res.redirect(`${config.FRONTEND_URL || 'https://fluxstudio.art'}/login?error=email_not_verified`);
+    }
+
+    // Check if user already exists
+    const users = await authHelper.getUsers();
+    let user = Array.isArray(users) ? users.find(u => u.email === email) : null;
+
+    if (user) {
+      // User exists, update Google ID if not set
+      if (!user.googleId) {
+        user.googleId = googleId;
+        await authHelper.saveUsers(users);
+      }
+    } else {
+      // Create new user
+      user = {
+        id: uuidv4(),
+        email,
+        name,
+        googleId,
+        userType: 'client',
+        createdAt: new Date().toISOString()
+      };
+      users.push(user);
+      await authHelper.saveUsers(users);
+    }
+
+    // Generate JWT token
+    const authResponse = USE_DATABASE
+      ? await generateAuthResponse(user, req)
+      : simpleAuthResponse(user);
+
+    // Log successful OAuth authentication
+    await securityLogger.logOAuthSuccess(user.id, 'google', req, {
+      email: user.email,
+      name: user.name,
+      flow: 'redirect'
+    });
+
+    // Redirect to frontend with token in URL fragment (not query param for security)
+    const frontendUrl = config.FRONTEND_URL || 'https://fluxstudio.art';
+    const token = authResponse.token || authResponse.accessToken;
+
+    // Use URL fragment to pass token (not logged in server logs)
+    res.redirect(`${frontendUrl}/auth/callback/google?token=${encodeURIComponent(token)}`);
+
+  } catch (error) {
+    console.error('[GoogleOAuth] Redirect callback failed:', error.message);
+
+    await securityLogger.logOAuthFailure('google', error.message, req, {
+      flow: 'redirect',
+      errorMessage: error.message
+    });
+
+    const frontendUrl = config.FRONTEND_URL || 'https://fluxstudio.art';
+    res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+  }
+});
+
 // Apple OAuth endpoint (placeholder)
 router.post('/apple', async (req, res) => {
   try {

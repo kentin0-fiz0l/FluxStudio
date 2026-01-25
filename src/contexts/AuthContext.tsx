@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiService } from '../services/apiService';
 
 export type UserType = 'client' | 'designer' | 'admin';
@@ -9,6 +9,12 @@ interface User {
   name: string;
   userType: UserType;
   createdAt: string;
+  avatar?: string;
+}
+
+interface AuthResponse {
+  token: string;
+  user: User;
 }
 
 interface AuthContextType {
@@ -19,8 +25,10 @@ interface AuthContextType {
   loginWithGoogle: (credential: string) => Promise<User>;
   loginWithApple: () => Promise<User>;
   logout: () => Promise<void>;
+  setAuthToken: (token: string) => Promise<void>;
   isAuthenticated: boolean;
   getUserDashboardPath: (userType: UserType) => string;
+  token: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -92,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(response.error || 'Login failed');
     }
 
-    const { token, user } = response.data;
+    const { token, user } = response.data as AuthResponse;
     localStorage.setItem('auth_token', token);
     setUser(user);
 
@@ -107,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(response.error || 'Signup failed');
     }
 
-    const { token, user } = response.data;
+    const { token, user } = response.data as AuthResponse;
     localStorage.setItem('auth_token', token);
     setUser(user);
 
@@ -122,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(response.error || 'Google login failed');
     }
 
-    const { token, user } = response.data;
+    const { token, user } = response.data as AuthResponse;
     localStorage.setItem('auth_token', token);
     setUser(user);
 
@@ -160,6 +168,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Set auth token directly (for OAuth redirect flows)
+  const setAuthToken = async (token: string): Promise<void> => {
+    localStorage.setItem('auth_token', token);
+    // Fetch user info with the new token
+    try {
+      const response = await apiService.getMe();
+      if (response.success && response.data) {
+        setUser(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user after setting token:', error);
+      // Keep the token but user will be fetched on next page load
+    }
+  };
+
   const value = {
     user,
     isLoading,
@@ -168,8 +191,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginWithGoogle,
     loginWithApple,
     logout,
+    setAuthToken,
     isAuthenticated: !!user,
     getUserDashboardPath,
+    token: localStorage.getItem('auth_token'),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

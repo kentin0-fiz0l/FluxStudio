@@ -45,6 +45,7 @@ const config = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   APP_NAME: process.env.APP_NAME || 'FluxStudio',
   APP_URL: process.env.APP_URL || 'http://localhost:3000',
+  FRONTEND_URL: process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:5173',
 
   // Ports
   AUTH_PORT: parseInt(process.env.PORT) || 3001,

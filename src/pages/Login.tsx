@@ -4,6 +4,8 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../contexts/AuthContext';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '65518208813-f4rgudom5b57qad0jlhjtsocsrb26mfc.apps.googleusercontent.com';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.fluxstudio.art';
+const GOOGLE_LOGIN_URI = `${API_URL}/api/auth/google/callback`;
 
 export function Login() {
   const [searchParams] = useSearchParams();
@@ -77,7 +79,7 @@ export function Login() {
                 </div>
               )}
 
-              {/* Google OAuth Button */}
+              {/* Google OAuth Button - using redirect mode to bypass COOP */}
               <div className="mb-4 flex justify-center">
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
@@ -88,6 +90,8 @@ export function Login() {
                   shape="rectangular"
                   width="350"
                   useOneTap={false}
+                  ux_mode="redirect"
+                  login_uri={GOOGLE_LOGIN_URI}
                 />
               </div>
 
