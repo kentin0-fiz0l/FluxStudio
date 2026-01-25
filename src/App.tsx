@@ -1,21 +1,8 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './contexts/AuthContext';
-import { OrganizationProvider } from './contexts/OrganizationContext';
-import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { SocketProvider } from './contexts/SocketContext';
-import { MessagingProvider } from './contexts/MessagingContext';
-import { NotificationProvider } from './contexts/NotificationContext';
-import { ActiveProjectProvider } from './contexts/ActiveProjectContext';
-import { ProjectProvider } from './contexts/ProjectContext';
-import { SessionProvider } from './contexts/SessionProvider';
-import { WorkingContextProvider } from './contexts/WorkingContext';
-import { ConnectorsProvider } from './contexts/ConnectorsContext';
-import { FilesProvider } from './contexts/FilesContext';
-import { AssetsProvider } from './contexts/AssetsContext';
-import { MetMapProvider } from './contexts/MetMapContext';
+import { RootProviders } from './components/providers';
 import { ToastContainer } from './components/notifications/ToastContainer';
 import { ProjectContextBar } from './components/projects/ProjectContextBar';
 import { MomentumCapture } from './components/momentum/MomentumCapture';
@@ -124,28 +111,15 @@ function GlobalQuickActions({ children }: { children: React.ReactNode }) {
 // Authenticated app wrapper - contains all providers for authenticated routes
 function AuthenticatedRoutes() {
   return (
-    <AuthProvider>
-      <SocketProvider>
-        <MessagingProvider>
-          <NotificationProvider>
-            <ActiveProjectProvider>
-            <ProjectProvider>
-            <SessionProvider>
-            <WorkingContextProvider>
-            <OrganizationProvider>
-              <WorkspaceProvider>
-                <ConnectorsProvider>
-                  <FilesProvider>
-                    <AssetsProvider>
-                      <MetMapProvider>
-                {/* Project Context Bar - shows when a project is focused */}
-                <ProjectContextBar />
-                {/* Work Momentum - passive context capture */}
-                <MomentumCapture />
-                {/* Global Quick Actions - Cmd/Ctrl+K to open */}
-                <GlobalQuickActions>
-                <Suspense fallback={<DefaultLoadingFallback />}>
-                  <Routes>
+    <RootProviders>
+      {/* Project Context Bar - shows when a project is focused */}
+      <ProjectContextBar />
+      {/* Work Momentum - passive context capture */}
+      <MomentumCapture />
+      {/* Global Quick Actions - Cmd/Ctrl+K to open */}
+      <GlobalQuickActions>
+        <Suspense fallback={<DefaultLoadingFallback />}>
+          <Routes>
                   {/* Root route - redirects based on auth state */}
                   <Route path="/" element={<RootRedirect />} />
                   <Route path="/login" element={<Login />} />
@@ -225,25 +199,12 @@ function AuthenticatedRoutes() {
                   {/* FluxPrint Integration - 3D Printing - Protected */}
                   <Route path="/printing" element={<ProtectedRoute><PrintingDashboard /></ProtectedRoute>} />
                   <Route path="/dashboard/printing" element={<ProtectedRoute><PrintingDashboard /></ProtectedRoute>} />
-                  </Routes>
-                </Suspense>
-                </GlobalQuickActions>
-                {/* Global Toast Notifications */}
-                <ToastContainer />
-                      </MetMapProvider>
-                    </AssetsProvider>
-                  </FilesProvider>
-                </ConnectorsProvider>
-              </WorkspaceProvider>
-            </OrganizationProvider>
-            </WorkingContextProvider>
-            </SessionProvider>
-            </ProjectProvider>
-          </ActiveProjectProvider>
-          </NotificationProvider>
-        </MessagingProvider>
-      </SocketProvider>
-    </AuthProvider>
+          </Routes>
+        </Suspense>
+      </GlobalQuickActions>
+      {/* Global Toast Notifications */}
+      <ToastContainer />
+    </RootProviders>
   );
 }
 

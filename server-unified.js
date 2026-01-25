@@ -687,6 +687,30 @@ app.use('/api/ai', aiRoutes);
 const documentsRoutes = require('./routes/documents');
 app.use('/api', documentsRoutes);
 
+// Mount modular route files (Phase 1 refactoring)
+const filesRoutes = require('./routes/files');
+const notificationsRoutes = require('./routes/notifications');
+const teamsRoutes = require('./routes/teams');
+const projectsRoutes = require('./routes/projects');
+const assetsRoutes = require('./routes/assets');
+const designBoardsRoutes = require('./routes/design-boards');
+const connectorsRoutes = require('./routes/connectors');
+const messagingRoutes = require('./routes/messaging');
+const messagesRoutes = require('./routes/messages');
+
+app.use('/api/files', filesRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/teams', teamsRoutes);
+app.use('/api/projects', projectsRoutes);
+app.use('/api/assets', assetsRoutes);
+app.use('/api/boards', designBoardsRoutes);
+app.use('/api/connectors', connectorsRoutes);
+app.use('/api/conversations', messagingRoutes);
+app.use('/api/messages', messagesRoutes);
+
+// Set Socket.IO namespace for messaging routes (for real-time broadcasts)
+messagingRoutes.setMessagingNamespace(messagingNamespace);
+
 // Organizations endpoint (teams API)
 // Note: Path is /organizations but DigitalOcean routes /api/organizations to here
 app.get('/organizations', authenticateToken, async (req, res) => {

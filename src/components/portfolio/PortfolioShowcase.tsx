@@ -1,25 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Eye,
   Heart,
   Share2,
-  ExternalLink,
-  Filter,
   Grid3X3,
   List,
   Search,
-  Calendar,
   Award,
-  Users,
   MapPin,
-  Clock,
   Star,
-  Download,
   Play,
-  Pause,
-  Volume2,
-  VolumeX,
   ChevronLeft,
   ChevronRight,
   X,
@@ -30,16 +21,15 @@ import {
   Camera,
   Video,
   FileText,
-  Music
+  User
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Textarea } from '../ui/textarea';
-import { Separator } from '../ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
@@ -142,7 +132,7 @@ export function PortfolioShowcase({
   onItemDelete,
   onPortfolioUpdate
 }: PortfolioShowcaseProps) {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -308,14 +298,14 @@ export function PortfolioShowcase({
 
             <div className="flex items-center border border-gray-300 rounded-lg">
               <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                variant={viewMode === 'grid' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('grid')}
               >
                 <Grid3X3 className="h-4 w-4" />
               </Button>
               <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                variant={viewMode === 'list' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('list')}
               >

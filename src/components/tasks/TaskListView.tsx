@@ -38,24 +38,14 @@ import {
   Eye,
 } from 'lucide-react';
 import { TaskDetailModal } from './TaskDetailModal';
+import type { Task } from '../../hooks/useTasks';
+
+// Re-export Task type for consumers
+export type { Task };
 
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
-
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  status: 'todo' | 'in-progress' | 'review' | 'completed';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  assignedTo: string | null;
-  dueDate: string | null;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-  completedAt: string | null;
-}
 
 export interface TaskListViewProps {
   projectId: string;
@@ -95,7 +85,7 @@ const getStatusDisplay = (status: Task['status']) => {
       variant: 'default' as const,
       icon: Circle,
     },
-    'in-progress': {
+    'in_progress': {
       label: 'In Progress',
       variant: 'info' as const,
       icon: Clock,
@@ -164,7 +154,7 @@ const sortTasks = (tasks: Task[], field: SortField, direction: SortDirection): T
     switch (field) {
       case 'status':
         // Custom order: todo, in-progress, review, completed
-        const statusOrder = { todo: 0, 'in-progress': 1, review: 2, completed: 3 };
+        const statusOrder = { todo: 0, 'in_progress': 1, review: 2, completed: 3 };
         aValue = statusOrder[a.status];
         bValue = statusOrder[b.status];
         break;
@@ -648,7 +638,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
               Status
             </label>
             <div className="flex flex-wrap gap-2">
-              {(['todo', 'in-progress', 'review', 'completed'] as Task['status'][]).map(status => {
+              {(['todo', 'in_progress', 'review', 'completed'] as Task['status'][]).map(status => {
                 const { label, variant, icon: Icon } = getStatusDisplay(status);
                 const isActive = filters.status.includes(status);
 
@@ -903,7 +893,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                             'select',
                             [
                               { value: 'todo', label: 'To Do' },
-                              { value: 'in-progress', label: 'In Progress' },
+                              { value: 'in_progress', label: 'In Progress' },
                               { value: 'review', label: 'Review' },
                               { value: 'completed', label: 'Completed' },
                             ]
