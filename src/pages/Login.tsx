@@ -77,7 +77,7 @@ export function Login() {
                 </div>
               )}
 
-              {/* Google OAuth Button - Single instance using @react-oauth/google */}
+              {/* Google OAuth Button */}
               <div className="mb-4 flex justify-center">
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
@@ -87,6 +87,7 @@ export function Login() {
                   text="signin_with"
                   shape="rectangular"
                   width="350"
+                  useOneTap={false}
                 />
               </div>
 
