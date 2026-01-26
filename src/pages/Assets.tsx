@@ -18,7 +18,7 @@
 
 import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import DashboardLayout from '../components/layout/DashboardLayout';
+import DashboardLayout from '../components/templates/DashboardLayout';
 import { useAssets, AssetRecord, AssetType } from '../contexts/AssetsContext';
 import { useFilesOptional } from '../contexts/FilesContext';
 import { useNotifications } from '../contexts/NotificationContext';

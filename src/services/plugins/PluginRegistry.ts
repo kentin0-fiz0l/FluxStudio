@@ -7,8 +7,6 @@
 import {
   PluginManifest,
   PluginInstance,
-  PluginState,
-  PluginPermission,
   PluginContext,
   PluginStorage,
   PluginLogger,
@@ -40,7 +38,7 @@ class PluginRegistry {
   // Plugin Lifecycle
   // ============================================================================
 
-  async install(manifest: PluginManifest, source: string): Promise<PluginInstance> {
+  async install(manifest: PluginManifest, _source: string): Promise<PluginInstance> {
     // Validate manifest
     this.validateManifest(manifest);
 
@@ -409,7 +407,7 @@ class PluginRegistry {
     return {
       version: '1.0.0',
       commands: {
-        register: (id, callback) => ({
+        register: (id, _callback) => ({
           dispose: () => console.log(`Command ${id} disposed`),
         }),
         execute: async (id, ...args) => {
@@ -419,8 +417,8 @@ class PluginRegistry {
       },
       ui: {
         showNotification: (options) => console.log('Notification:', options),
-        showModal: async (component) => null,
-        registerPanel: (panel, component) => ({
+        showModal: async (_component) => null,
+        registerPanel: (panel, _component) => ({
           dispose: () => console.log(`Panel ${panel.id} disposed`),
         }),
         registerToolbarItem: (item) => ({
@@ -440,27 +438,27 @@ class PluginRegistry {
         }),
       },
       files: {
-        read: async (path) => '',
-        write: async (path, content) => console.log(`Writing to ${path}`),
+        read: async (_path) => '',
+        write: async (path, _content) => console.log(`Writing to ${path}`),
         delete: async (path) => console.log(`Deleting ${path}`),
-        exists: async (path) => false,
-        list: async (path) => [],
+        exists: async (_path) => false,
+        list: async (_path) => [],
       },
       ai: {
-        chat: async (messages) => ({ content: 'AI response' }),
-        generate: async (prompt, type) => ({ result: null, type }),
-        suggest: async (context) => [],
+        chat: async (_messages) => ({ content: 'AI response' }),
+        generate: async (_prompt, type) => ({ result: null, type }),
+        suggest: async (_context) => [],
       },
       events: {
-        on: (event, callback) => ({
+        on: (event, _callback) => ({
           dispose: () => console.log(`Event ${event} unsubscribed`),
         }),
         emit: (event, ...args) => console.log(`Emitting ${event}`, args),
       },
       workspace: {
-        getConfiguration: (section) => ({}),
-        updateConfiguration: async (section, value) => console.log(`Config updated: ${section}`),
-        onDidChangeConfiguration: (callback) => ({
+        getConfiguration: (_section) => ({}),
+        updateConfiguration: async (section, _value) => console.log(`Config updated: ${section}`),
+        onDidChangeConfiguration: (_callback) => ({
           dispose: () => console.log('Config listener disposed'),
         }),
       },

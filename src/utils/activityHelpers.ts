@@ -8,12 +8,12 @@
 import {
   Activity,
   ActivityType,
-  ActivityDateRange,
-  ActivityStats,
   calculateActivityStats,
-  filterActivities,
   sortActivitiesByDate,
 } from '../types/activity';
+// Re-export types for convenience
+export type { ActivityDateRange, ActivityStats } from '../types/activity';
+export { filterActivities } from '../types/activity';
 
 // ============================================================================
 // Date Formatting

@@ -3,7 +3,7 @@
  * Smart panel for rapid conversation creation with context-aware templates
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,

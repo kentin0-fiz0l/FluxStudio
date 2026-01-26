@@ -64,6 +64,14 @@ export interface SocketEvents {
 
   // Pulse real-time events
   'pulse:event': (event: PulseEvent) => void;
+
+  // Dashboard metrics events
+  'metrics:update': (data: { metrics: Record<string, unknown> }) => void;
+  'activity:update': (data: { activityData: number[] }) => void;
+  'projects:status': (data: { statusCounts: number[] }) => void;
+
+  // Notification events
+  'notification:new': (notification: { id: string; type: string; title: string; message: string; timestamp: Date }) => void;
 }
 
 class SocketService {

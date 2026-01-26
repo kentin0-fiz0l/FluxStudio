@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
@@ -7,7 +7,6 @@ import {
   Shield,
   MoreVertical,
   Search,
-  Filter,
   Crown,
   Edit,
   Trash2,
@@ -16,9 +15,7 @@ import {
   Clock,
   Star,
   Award,
-  Calendar,
   Activity,
-  Settings,
   Eye,
   EyeOff,
   X

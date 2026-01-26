@@ -4,7 +4,7 @@
  * Voice-only call UI with participant avatars and audio controls.
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { CallParticipant } from '../../services/webrtcService';

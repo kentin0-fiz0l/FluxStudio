@@ -87,7 +87,7 @@ export async function requestPermission(): Promise<NotificationPermission> {
 /**
  * Convert VAPID key to Uint8Array
  */
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding)
     .replace(/-/g, '+')
@@ -262,7 +262,7 @@ export async function showLocalNotification(
       badge: '/icons/icon-72x72.png',
       ...options
     });
-  } catch (error) {
+  } catch {
     // Fallback to native Notification API
     new Notification(title, options);
   }

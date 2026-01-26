@@ -106,7 +106,7 @@ export function useAIContext(options: UseAIContextOptions = {}) {
           activeProject: {
             id: project.id,
             name: project.name || 'Untitled',
-            type: project.type || 'general',
+            type: (project as any).type || 'general',
           },
         }));
       }

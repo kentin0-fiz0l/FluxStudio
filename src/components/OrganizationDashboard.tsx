@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,37 +16,30 @@ import {
   Plus,
   Search,
   Settings,
-  BarChart3,
-  Calendar,
-  Star,
   ChevronRight,
-  Filter,
   Grid3X3,
-  List,
-  Zap,
-  Activity,
-  Clock
+  List
 } from 'lucide-react';
-import { Organization, Team, Project, OrganizationStats } from '../types/organization';
+import { OrganizationStats } from '../types/organization';
 
 interface OrganizationDashboardProps {
   organizationId?: string;
 }
 
 export function OrganizationDashboard({ organizationId }: OrganizationDashboardProps) {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const _navigate = useNavigate();
+  const { user: _user } = useAuth();
   const {
     currentOrganization,
     organizations,
     teams,
     projects,
-    isLoading,
+    isLoading: _isLoading,
     isLoadingTeams,
     isLoadingProjects,
     navigateTo,
-    fetchTeams,
-    fetchProjects,
+    fetchTeams: _fetchTeams,
+    fetchProjects: _fetchProjects,
     createTeam,
     createProject,
     getOrganizationStats
@@ -56,8 +49,8 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterType, setFilterType] = useState<'all' | 'teams' | 'projects'>('all');
   const [stats, setStats] = useState<OrganizationStats | null>(null);
-  const [showCreateTeam, setShowCreateTeam] = useState(false);
-  const [showCreateProject, setShowCreateProject] = useState(false);
+  const [_showCreateTeam, setShowCreateTeam] = useState(false);
+  const [_showCreateProject, setShowCreateProject] = useState(false);
 
   // Initialize organization if provided
   useEffect(() => {
@@ -86,7 +79,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
     }
   };
 
-  const handleCreateTeam = async (name: string, description?: string) => {
+  const _handleCreateTeam = async (name: string, description?: string) => {
     if (!currentOrganization) return;
     try {
       await createTeam(currentOrganization.id, {
@@ -104,7 +97,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
     }
   };
 
-  const handleCreateProject = async (name: string, description?: string, teamId?: string) => {
+  const _handleCreateProject = async (name: string, description?: string, teamId?: string) => {
     if (!currentOrganization) return;
     try {
       await createProject({
@@ -271,7 +264,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
 
             <div className="flex items-center gap-2">
               <Button
-                variant={filterType === 'all' ? 'default' : 'ghost'}
+                variant={filterType === 'all' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setFilterType('all')}
                 className="text-white"
@@ -279,7 +272,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
                 All
               </Button>
               <Button
-                variant={filterType === 'teams' ? 'default' : 'ghost'}
+                variant={filterType === 'teams' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setFilterType('teams')}
                 className="text-white"
@@ -287,7 +280,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
                 Teams
               </Button>
               <Button
-                variant={filterType === 'projects' ? 'default' : 'ghost'}
+                variant={filterType === 'projects' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setFilterType('projects')}
                 className="text-white"
@@ -298,7 +291,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
               <div className="w-px h-6 bg-white/20 mx-2" />
 
               <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                variant={viewMode === 'grid' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('grid')}
                 className="p-2"
@@ -306,7 +299,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
                 <Grid3X3 className="h-4 w-4" />
               </Button>
               <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                variant={viewMode === 'list' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('list')}
                 className="p-2"

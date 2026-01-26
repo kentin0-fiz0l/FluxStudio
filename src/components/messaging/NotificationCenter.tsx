@@ -3,15 +3,15 @@
  * Displays and manages all notifications with priority levels and actions
  */
 
-import React, { useState, useEffect } from 'react';
-import { Bell, BellOff, X, Check, Clock, Archive, Filter, MoreVertical } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Bell, BellOff, X, Check, Clock, Archive, MoreVertical } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
-import { Notification, NotificationType, Priority } from '../../types/messaging';
+import { Notification, NotificationType } from '../../types/messaging';
 import { messagingService } from '../../services/messagingService';
 import { cn } from '../../lib/utils';
 
@@ -48,7 +48,7 @@ export function NotificationCenter({ isOpen, onClose, className }: NotificationC
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread' | 'mentions' | 'priority'>('all');
-  const [selectedType, setSelectedType] = useState<NotificationType | 'all'>('all');
+  const [selectedType, _setSelectedType] = useState<NotificationType | 'all'>('all');
 
   useEffect(() => {
     if (isOpen) {

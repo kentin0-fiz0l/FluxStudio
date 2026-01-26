@@ -4,7 +4,7 @@
  * collaboration patterns, and business metrics
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Button } from '../ui/button';
@@ -12,8 +12,6 @@ import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Input } from '../ui/input';
-import { DatePicker } from '../ui/date-picker';
-import { ScrollArea } from '../ui/scroll-area';
 import {
   ResponsiveContainer,
   LineChart,
@@ -30,31 +28,18 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-} from 'recharts';
+  } from 'recharts';
 import {
   BarChart3,
   TrendingUp,
-  TrendingDown,
   Users,
   Clock,
   Target,
-  Award,
-  Activity,
   Search,
-  Filter,
   Download,
   RefreshCw,
-  Calendar,
-  Eye,
   MessageSquare,
   FileText,
-  Zap,
-  AlertCircle,
   CheckCircle,
   Star,
   ArrowUpRight,

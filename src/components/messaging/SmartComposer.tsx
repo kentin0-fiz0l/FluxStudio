@@ -10,17 +10,11 @@ import {
   Paperclip,
   Image as ImageIcon,
   Mic,
-  Smile,
-  AtSign,
-  Hash,
   Calendar,
   Zap,
   X,
-  Plus,
   FileText,
-  Camera,
   Video,
-  Volume2,
   Palette,
   CheckCircle,
   AlertCircle,
@@ -121,7 +115,7 @@ export function SmartComposer({
   replyingTo,
   onCancelReply,
   onSendMessage,
-  aiSuggestions = false,
+  aiSuggestions: _aiSuggestions = false,
   className
 }: SmartComposerProps) {
   const { sendMessage } = useMessaging();
@@ -130,12 +124,12 @@ export function SmartComposer({
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [_showEmojiPicker, _setShowEmojiPicker] = useState(false);
   const [mentions, setMentions] = useState<string[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [messageIntent, setMessageIntent] = useState<MessageIntent | null>(null);
-  const [contextAnalysis, setContextAnalysis] = useState<ContextAnalysis | null>(null);
+  const [_contextAnalysis, _setContextAnalysis] = useState<ContextAnalysis | null>(null);
   const [showSmartSuggestions, setShowSmartSuggestions] = useState(false);
   const [showFeedbackTemplates, setShowFeedbackTemplates] = useState(false);
   const [typingTimer, setTypingTimer] = useState<NodeJS.Timeout | null>(null);
@@ -316,7 +310,7 @@ export function SmartComposer({
         </Card>
         <Button
           size="sm"
-          variant="destructive"
+          variant="danger"
           className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={onRemove}
         >
@@ -629,7 +623,7 @@ export function SmartComposer({
                           return (
                             <Button
                               key={key}
-                              variant={priority === key ? "default" : "ghost"}
+                              variant={priority === key ? "primary" : "ghost"}
                               size="sm"
                               onClick={() => setPriority(key)}
                               className="w-full justify-start"

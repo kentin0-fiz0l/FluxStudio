@@ -5,9 +5,10 @@
  * Real-time system performance monitoring with charts and metrics
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAdminApi } from '../hooks/useAdminAuth';
-import { Line, Bar } from 'react-chartjs-2';
+// Line chart import - uncomment when needed
+// import { Line } from 'react-chartjs-2';
 
 interface PerformanceMetrics {
   requests: {
@@ -31,7 +32,7 @@ interface PerformanceMetrics {
     maxCpu: number;
     avgCpu: number;
   };
-  endpoints: Record<string, any>;
+  endpoints: Record<string, { count?: number; mean?: number; p95?: number }>;
 }
 
 interface SystemHealth {
@@ -55,15 +56,6 @@ export function Performance() {
   const [period, setPeriod] = useState('1h');
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  useEffect(() => {
-    loadPerformanceData();
-
-    if (autoRefresh) {
-      const interval = setInterval(loadPerformanceData, 30000); // Refresh every 30 seconds
-      return () => clearInterval(interval);
-    }
-  }, [period, autoRefresh]);
-
   const loadPerformanceData = async () => {
     try {
       setLoading(true);
@@ -81,6 +73,16 @@ export function Performance() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadPerformanceData();
+
+    if (autoRefresh) {
+      const interval = setInterval(loadPerformanceData, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period, autoRefresh]);
 
   const getHealthColor = (status: string) => {
     switch (status) {
@@ -349,9 +351,9 @@ export function Performance() {
                   </thead>
                   <tbody className="divide-y divide-gray-700">
                     {Object.entries(metrics.endpoints)
-                      .sort(([, a]: any, [, b]: any) => b.count - a.count)
+                      .sort(([, a], [, b]) => (b.count ?? 0) - (a.count ?? 0))
                       .slice(0, 10)
-                      .map(([endpoint, stats]: [string, any]) => (
+                      .map(([endpoint, stats]) => (
                         <tr key={endpoint} className="hover:bg-gray-900/30">
                           <td className="px-6 py-4 text-sm text-white font-mono">{endpoint}</td>
                           <td className="px-6 py-4 text-sm text-gray-300">{stats.count?.toLocaleString() || 0}</td>

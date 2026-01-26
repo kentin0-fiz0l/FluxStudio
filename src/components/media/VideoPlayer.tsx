@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Slider } from '../ui/slider';
 import {
@@ -8,7 +8,6 @@ import {
   VolumeX,
   Maximize,
   Minimize,
-  Settings,
   SkipBack,
   SkipForward,
   RotateCcw,

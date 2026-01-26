@@ -19,12 +19,6 @@ import {
   DialogFooter
 } from '../ui/dialog';
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
-} from '../ui/tabs';
-import {
   Play,
   Pause,
   RotateCcw,
@@ -37,11 +31,8 @@ import {
   Users,
   MessageSquare,
   Folder,
-  Calendar,
   TrendingUp,
-  Filter,
   Search,
-  ChevronRight,
   Star,
   Copy,
   Edit,
@@ -225,7 +216,7 @@ export function SmartTemplates() {
     const statusConfig = {
       running: { label: 'Running', variant: 'default' as const, icon: Play },
       completed: { label: 'Completed', variant: 'success' as const, icon: CheckCircle },
-      failed: { label: 'Failed', variant: 'destructive' as const, icon: XCircle },
+      failed: { label: 'Failed', variant: 'error' as const, icon: XCircle },
       cancelled: { label: 'Cancelled', variant: 'secondary' as const, icon: XCircle },
       pending: { label: 'Pending', variant: 'outline' as const, icon: Clock }
     };
@@ -279,7 +270,7 @@ export function SmartTemplates() {
           {Object.entries(categoryIcons).map(([category, Icon]) => (
             <Button
               key={category}
-              variant={selectedCategory === category ? 'default' : 'outline'}
+              variant={selectedCategory === category ? 'primary' : 'outline'}
               size="sm"
               onClick={() => setSelectedCategory(category)}
             >

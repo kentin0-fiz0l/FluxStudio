@@ -2,9 +2,9 @@
  * FloatingMessageButton - Floating action button for quick access to messaging
  */
 
-import React from 'react';
+// React import not needed with JSX transform
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useMessaging } from '../../hooks/useMessaging';
@@ -57,7 +57,7 @@ export function FloatingMessageButton({
             {/* Unread count badge */}
             {unreadCount > 0 && (
               <Badge
-                variant="destructive"
+                variant="error"
                 className="absolute -top-2 -right-2 h-6 w-6 p-0 flex items-center justify-center text-xs font-bold bg-red-500 border-2 border-white"
               >
                 {unreadCount > 99 ? '99+' : unreadCount}

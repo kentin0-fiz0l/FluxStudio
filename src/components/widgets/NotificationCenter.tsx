@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell,
@@ -15,12 +15,7 @@ import {
   Calendar,
   Users,
   Star,
-  Trash2,
-  Eye,
-  EyeOff,
-  ChevronDown,
-  ChevronRight,
-  MoreHorizontal
+  Eye
 } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
 import {
@@ -114,7 +109,7 @@ function NotificationItem({
   onDismiss
 }: NotificationItemProps) {
   const [showActions, setShowActions] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [_expanded, _setExpanded] = useState(false);
 
   const handleAction = (action: NotificationAction) => {
     onExecuteAction(notification.id, action.id, action.data);
@@ -427,17 +422,17 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
     notifications,
     unreadCount,
     criticalCount,
-    groupedNotifications,
-    preferences,
+    groupedNotifications: _groupedNotifications,
+    preferences: _preferences,
     markAsRead,
     markAllAsRead,
     markAsArchived,
     snoozeNotification,
     executeAction,
     dismissNotification,
-    filterNotifications,
+    filterNotifications: _filterNotifications,
     clearAll,
-    updatePreferences,
+    updatePreferences: _updatePreferences,
     isLoading,
     error,
     refresh

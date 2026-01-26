@@ -1,4 +1,4 @@
-import React from 'react';
+// React import not needed with JSX transform
 
 // SVG Logo Components for direct Figma import
 export function FluxStudioLogoSVG({ 

@@ -30,7 +30,6 @@ import {
   LayoutGrid,
   List as ListIcon,
   Search,
-  Filter,
   FolderOpen,
   Image,
   Video,
@@ -48,7 +47,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  X,
   Cloud,
   Github,
   HardDrive,
@@ -879,7 +877,7 @@ export function FileNew() {
               <Button variant="ghost" onClick={() => setShowDeleteDialog(false)}>
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={handleDeleteConfirm}>
+              <Button variant="danger" onClick={handleDeleteConfirm}>
                 Delete
               </Button>
             </div>

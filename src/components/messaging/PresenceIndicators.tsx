@@ -3,13 +3,12 @@
  * Real-time presence and activity indicators for collaborative messaging
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wifi, WifiOff, Eye, MessageCircle, Edit3, Users } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Card, CardContent } from '../ui/card';
 import { cn } from '../../lib/utils';
 import { realtimeCollaborationService, PresenceUser, TypingIndicator } from '../../services/realtimeCollaborationService';
 import { MessageUser } from '../../types/messaging';

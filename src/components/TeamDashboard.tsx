@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,19 +15,13 @@ import {
   Plus,
   Search,
   Settings,
-  Calendar,
-  Star,
   ChevronRight,
   User,
-  Mail,
-  MoreVertical,
-  Edit,
-  Trash2,
   Shield,
   Clock,
   Activity
 } from 'lucide-react';
-import { Team, Project, TeamStats } from '../types/organization';
+import { TeamStats } from '../types/organization';
 
 interface TeamDashboardProps {
   teamId?: string;
@@ -35,15 +29,15 @@ interface TeamDashboardProps {
 
 export function TeamDashboard({ teamId }: TeamDashboardProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const {
     currentTeam,
     currentOrganization,
     projects,
-    isLoading,
+    isLoading: _isLoading,
     isLoadingProjects,
     navigateTo,
-    fetchProjects,
+    fetchProjects: _fetchProjects,
     createProject,
     getTeamStats,
     getTeamMembers
@@ -52,7 +46,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState<TeamStats | null>(null);
   const [members, setMembers] = useState<any[]>([]);
-  const [showCreateProject, setShowCreateProject] = useState(false);
+  const [_showCreateProject, setShowCreateProject] = useState(false);
 
   // Initialize team if provided
   useEffect(() => {
@@ -82,7 +76,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
     }
   };
 
-  const handleCreateProject = async (name: string, description?: string) => {
+  const _handleCreateProject = async (name: string, description?: string) => {
     if (!currentTeam || !currentOrganization) return;
     try {
       await createProject({

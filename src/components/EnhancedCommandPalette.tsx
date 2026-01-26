@@ -13,15 +13,10 @@ import {
   MessageSquare,
   Folder,
   Users,
-  Settings,
-  Palette,
-  Calendar,
-  FileImage,
   Zap,
   Target,
   ArrowRight,
   Clock,
-  Star,
   Plus,
   Activity,
   Building2,
@@ -30,9 +25,10 @@ import {
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { useMessaging } from '../contexts/MessagingContext';
+import { useMessaging } from '../hooks/useMessaging';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { Conversation } from '../types/messaging';
 
 interface CommandItem {
   id: string;
@@ -49,8 +45,8 @@ interface CommandItem {
 
 export function EnhancedCommandPalette() {
   const { state, actions } = useWorkspace();
-  const { user } = useAuth();
-  const { organizations, projects, teams } = useOrganization();
+  useAuth(); // Reserved for user context
+  const { organizations, projects } = useOrganization();
   const { conversations } = useMessaging();
   const navigate = useNavigate();
 
@@ -187,7 +183,7 @@ export function EnhancedCommandPalette() {
       });
     });
 
-    (conversations || []).slice(0, 5).forEach(conv => {
+    (conversations || []).slice(0, 5).forEach((conv: Conversation) => {
       commands.push({
         id: `conv-${conv.id}`,
         title: conv.name,
@@ -355,6 +351,7 @@ export function EnhancedCommandPalette() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [actions]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'navigation': return ArrowRight;
@@ -410,7 +407,7 @@ export function EnhancedCommandPalette() {
               <div className="space-y-1">
                 {filteredCommands.map((command, index) => {
                   const Icon = command.icon;
-                  const CategoryIcon = getCategoryIcon(command.category);
+                  // Category icon available for future use: getCategoryIcon(command.category)
 
                   return (
                     <div

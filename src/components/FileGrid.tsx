@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { File, Image, Video, FileText, Download, Trash2, Edit3, MoreVertical, Eye, Share2 } from 'lucide-react';
 import { FileUpload } from '../hooks/useFileUpload';
 import { getFileUrl } from '../utils/apiHelpers';
@@ -147,7 +147,7 @@ export function FileGrid({ files, onDelete, onUpdate, className = '' }: FileGrid
                 {file.originalName}
               </h3>
               {file.isPublic && (
-                <Share2 className="w-4 h-4 text-blue-400 ml-2" title="Public" />
+                <span title="Public"><Share2 className="w-4 h-4 text-blue-400 ml-2" aria-hidden="true" /></span>
               )}
             </div>
 

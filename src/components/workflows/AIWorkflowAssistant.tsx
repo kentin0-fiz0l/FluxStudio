@@ -3,11 +3,11 @@
  * Intelligent workflow suggestions based on user behavior and context
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { ScrollArea } from '../ui/scroll-area';
+// ScrollArea not currently used
 import {
   Alert,
   AlertDescription,
@@ -18,18 +18,11 @@ import {
   Brain,
   TrendingUp,
   Lightbulb,
-  PlayCircle,
-  ChevronRight,
   Info,
   Zap,
   Target,
   Clock,
-  Users,
-  MessageSquare,
-  FileText,
-  Settings,
-  AlertCircle,
-  CheckCircle
+  Users
 } from 'lucide-react';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -67,7 +60,7 @@ export function AIWorkflowAssistant() {
   const { user } = useAuth();
   const [suggestions, setSuggestions] = useState<WorkflowSuggestion[]>([]);
   const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
-  const [learningMode, setLearningMode] = useState(true);
+  const [learningMode, _setLearningMode] = useState(true);
   const [userPatterns, setUserPatterns] = useState<Map<string, number>>(new Map());
 
   // Analyze user behavior and generate suggestions
@@ -144,9 +137,9 @@ export function AIWorkflowAssistant() {
       }
 
       // Pattern: Project nearing deadline
-      if (state.activeProject && state.activeProject.deadline) {
+      if (state.activeProject && state.activeProject.dueDate) {
         const daysUntilDeadline = Math.ceil(
-          (new Date(state.activeProject.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+          (new Date(state.activeProject.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
         );
 
         if (daysUntilDeadline <= 3 && daysUntilDeadline > 0) {
@@ -212,7 +205,7 @@ export function AIWorkflowAssistant() {
       // Pattern: Idle project detection
       if (state.activeProject) {
         const lastActivity = state.recentActivity
-          .filter(a => a.context?.projectId === state.activeProject?.id)
+          .filter(a => a.projectId === state.activeProject?.id)
           .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
 
         if (lastActivity) {
@@ -274,7 +267,7 @@ export function AIWorkflowAssistant() {
     const patterns = new Map<string, number>();
 
     state.recentActivity.forEach(activity => {
-      const key = `${activity.type}_${activity.context?.projectId || 'global'}`;
+      const key = `${activity.type}_${activity.projectId || 'global'}`;
       patterns.set(key, (patterns.get(key) || 0) + 1);
     });
 
@@ -353,7 +346,7 @@ export function AIWorkflowAssistant() {
                 </p>
               </div>
             </div>
-            <Badge variant={learningMode ? 'default' : 'secondary'}>
+            <Badge variant={learningMode ? 'primary' : 'secondary'}>
               {learningMode ? 'Learning' : 'Active'}
             </Badge>
           </div>

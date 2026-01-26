@@ -2,7 +2,7 @@
  * BulkActionBar - Actions for multiple selected items
  */
 
-import React from 'react';
+// React import not needed with JSX transform
 import { X, Trash2, Archive, FolderInput, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';

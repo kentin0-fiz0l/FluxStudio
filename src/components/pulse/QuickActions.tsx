@@ -26,7 +26,6 @@ import {
   PenTool,
   Settings,
   Target,
-  X,
   ArrowRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
@@ -336,7 +335,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
                   <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 px-2 py-1">
                     Create
                   </p>
-                  {groupedActions.create.map((action, index) => {
+                  {groupedActions.create.map((action) => {
                     const globalIndex = filteredActions.indexOf(action);
                     return (
                       <ActionItem

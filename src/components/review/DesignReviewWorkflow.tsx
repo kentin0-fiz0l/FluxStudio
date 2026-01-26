@@ -1,39 +1,32 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
   Plus,
-  Check,
   X,
   Edit3,
   Eye,
   Download,
   Share2,
   Clock,
-  AlertCircle,
   CheckCircle,
   XCircle,
   RotateCcw,
   Pencil,
   MousePointer,
-  Trash2,
   Reply,
   ThumbsUp,
-  ThumbsDown,
   Flag,
   Palette,
   ZoomIn,
-  ZoomOut,
-  Move
+  ZoomOut
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Separator } from '../ui/separator';
 import { Progress } from '../ui/progress';
@@ -148,8 +141,8 @@ export function DesignReviewWorkflow({
   const [isAddingAnnotation, setIsAddingAnnotation] = useState(false);
   const [annotationType, setAnnotationType] = useState<Annotation['type']>('comment');
   const [zoom, setZoom] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
-  const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
+  const [_isDragging, _setIsDragging] = useState(false);
+  const [panPosition, _setPanPosition] = useState({ x: 0, y: 0 });
   const [selectedAnnotation, setSelectedAnnotation] = useState<string | null>(null);
   const imageRef = useRef<HTMLDivElement>(null);
 
@@ -178,7 +171,7 @@ export function DesignReviewWorkflow({
       author: {
         id: user?.id || '',
         name: user?.name || '',
-        avatar: user?.avatar_url,
+        avatar: user?.avatar,
         role: user?.userType || 'client'
       },
       replies: [],
@@ -382,7 +375,7 @@ export function DesignReviewWorkflow({
                   </Select>
 
                   <Button
-                    variant={isAddingAnnotation ? "default" : "outline"}
+                    variant={isAddingAnnotation ? "primary" : "outline"}
                     onClick={() => setIsAddingAnnotation(!isAddingAnnotation)}
                   >
                     {isAddingAnnotation ? (
@@ -561,7 +554,7 @@ function AnnotationPanel({
         author: {
           id: user?.id || '',
           name: user?.name || '',
-          avatar: user?.avatar_url,
+          avatar: user?.avatar,
           role: user?.userType || 'client'
         },
         created_at: new Date().toISOString()

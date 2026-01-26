@@ -31,7 +31,8 @@ export type WidgetCategory =
   | 'notifications'
   | 'organizations'
   | 'files'
-  | 'messages';
+  | 'messages'
+  | 'settings';
 
 export type WidgetSize =
   | 'small'      // 1x1

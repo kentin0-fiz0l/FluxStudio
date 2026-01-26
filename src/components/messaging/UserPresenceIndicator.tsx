@@ -3,7 +3,7 @@
  * Shows online users and their status
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { MessageCircle, Users, Circle, Clock, CircleDashed, Moon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -145,28 +145,28 @@ export function UserPresenceIndicator({
         {/* Filters */}
         <div className="flex gap-2">
           <Button
-            variant={filter === 'all' ? 'default' : 'outline'}
+            variant={filter === 'all' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setFilter('all')}
           >
             All
           </Button>
           <Button
-            variant={filter === 'online' ? 'default' : 'outline'}
+            variant={filter === 'online' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setFilter('online')}
           >
             Online
           </Button>
           <Button
-            variant={filter === 'designers' ? 'default' : 'outline'}
+            variant={filter === 'designers' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setFilter('designers')}
           >
             Designers
           </Button>
           <Button
-            variant={filter === 'clients' ? 'default' : 'outline'}
+            variant={filter === 'clients' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setFilter('clients')}
           >

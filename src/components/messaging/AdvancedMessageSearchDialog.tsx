@@ -9,17 +9,14 @@ import {
   Search,
   X,
   Filter,
-  Calendar,
   User,
   FileText,
   Hash,
   Clock,
   Star,
-  TrendingUp,
   History,
   Trash2,
   ChevronDown,
-  ChevronRight,
   Loader2
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -319,7 +316,7 @@ export function AdvancedMessageSearchDialog({
             {/* Quick Actions */}
             <div className="flex items-center gap-2">
               <Button
-                variant={showFilters ? 'default' : 'outline'}
+                variant={showFilters ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
                 className="gap-2"

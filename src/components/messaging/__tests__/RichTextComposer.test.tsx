@@ -12,9 +12,9 @@ describe('RichTextComposer', () => {
   const mockOnTyping = vi.fn();
 
   const mockParticipants = [
-    { id: '1', name: 'John Doe', email: 'john@example.com', avatar: '' },
-    { id: '2', name: 'Jane Smith', email: 'jane@example.com', avatar: '' },
-    { id: '3', name: 'Bob Johnson', email: 'bob@example.com', avatar: '' },
+    { id: '1', name: 'John Doe', email: 'john@example.com', avatar: '', userType: 'client' as const },
+    { id: '2', name: 'Jane Smith', email: 'jane@example.com', avatar: '', userType: 'designer' as const },
+    { id: '3', name: 'Bob Johnson', email: 'bob@example.com', avatar: '', userType: 'admin' as const },
   ];
 
   beforeEach(() => {

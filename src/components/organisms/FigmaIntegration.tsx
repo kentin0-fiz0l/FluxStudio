@@ -3,7 +3,7 @@
  * Figma-specific integration with file browsing
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FileText, Folder, Loader2, RefreshCw } from 'lucide-react';
 import { IntegrationCard } from './IntegrationCard';
 import { Button } from '@/components/ui/button';

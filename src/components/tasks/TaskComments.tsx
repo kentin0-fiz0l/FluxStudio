@@ -26,7 +26,7 @@
  */
 
 import * as React from 'react';
-import { MessageCircle, Send, Edit2, Trash2, X, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';

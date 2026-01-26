@@ -1,5 +1,5 @@
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import kentinoHeadshot from 'figma:asset/77df102c051da8e4526d9646379eb0536120af9a.png';
+import kentinoHeadshot from '../assets/77df102c051da8e4526d9646379eb0536120af9a.png';
 
 export function AboutSnapshot() {
   return (

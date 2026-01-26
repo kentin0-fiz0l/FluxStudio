@@ -19,7 +19,6 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import {
   Check,
-  X,
   FolderOpen,
   MessageSquare,
   FileUp,

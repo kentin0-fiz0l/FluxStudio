@@ -16,7 +16,8 @@ import {
   Check,
   CheckCheck,
   Clock,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 

@@ -3,7 +3,7 @@
  * AI-powered design analysis and feedback generation for images
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain,
@@ -17,7 +17,6 @@ import {
   Palette,
   Type,
   Layout,
-  Zap,
   BarChart3,
   Star,
   ThumbsUp,
@@ -420,7 +419,7 @@ export function AIDesignFeedbackPanel({
             </TabsContent>
 
             <TabsContent value="suggestions" className="space-y-3">
-              {suggestions.map((suggestion, index) => {
+              {suggestions.map((suggestion) => {
                 const Icon = getSuggestionIcon(suggestion.type);
                 const priorityColors = {
                   high: 'border-red-200 bg-red-50',
@@ -502,7 +501,7 @@ export function AIDesignFeedbackPanel({
             </TabsContent>
 
             <TabsContent value="insights" className="space-y-3">
-              {insights.map((insight, index) => (
+              {insights.map((insight) => (
                 <Card key={insight.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">

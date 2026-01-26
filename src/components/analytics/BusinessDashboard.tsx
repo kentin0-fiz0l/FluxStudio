@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   BarChart,
@@ -22,18 +22,11 @@ import {
   TrendingDown,
   DollarSign,
   Users,
-  Calendar,
   Target,
-  Award,
   Clock,
   FileText,
-  MessageSquare,
   Star,
   Activity,
-  Zap,
-  ArrowUpRight,
-  ArrowDownRight,
-  Filter,
   Download,
   RefreshCw,
   Eye
@@ -42,7 +35,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { DatePickerWithRange } from '../ui/date-picker';
+// DatePickerWithRange not currently used but kept for future implementation
 import { Progress } from '../ui/progress';
 import { Separator } from '../ui/separator';
 import { cn } from '../../lib/utils';
@@ -127,14 +120,14 @@ const COLORS = {
 
 export function BusinessDashboard({
   data,
-  dateRange,
-  onDateRangeChange,
+  dateRange: _dateRange,
+  onDateRangeChange: _onDateRangeChange,
   onExport,
   onRefresh,
   isLoading = false
 }: BusinessDashboardProps) {
   const [selectedTimeRange, setSelectedTimeRange] = useState('30d');
-  const [selectedMetric, setSelectedMetric] = useState('revenue');
+  const [_selectedMetric, _setSelectedMetric] = useState('revenue');
 
   // Calculate key metrics
   const formatCurrency = (amount: number) => {
@@ -311,7 +304,7 @@ export function BusinessDashboard({
                   dataKey="count"
                   label={({ status, percentage }) => `${status} (${(percentage * 100).toFixed(0)}%)`}
                 >
-                  {data.projects.byStatus.map((entry, index) => (
+                  {data.projects.byStatus.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={Object.values(COLORS)[index % Object.values(COLORS).length]} />
                   ))}
                 </Pie>

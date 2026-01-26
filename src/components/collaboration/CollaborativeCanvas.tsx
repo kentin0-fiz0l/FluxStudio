@@ -14,7 +14,7 @@ import { realtime } from '@/services/realtime';
 import { CollaborativeCursors } from './CollaborativeCursors';
 import { PresenceIndicator } from './PresenceIndicator';
 import { SelectionHighlights } from './SelectionHighlights';
-import { Users, Lock, AlertTriangle } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 interface CollaborativeCanvasProps {
   entityType: 'board' | 'metmap' | 'document' | 'project';
@@ -102,7 +102,7 @@ export function CollaborativeCanvas({
       {/* Toolbar overlay */}
       {showPresence && collaboratorCount > 0 && (
         <div className="absolute top-4 right-4 z-50 flex items-center gap-3 bg-white dark:bg-gray-800 rounded-full px-3 py-1.5 shadow-lg border border-gray-200 dark:border-gray-700">
-          <PresenceIndicator sessionId={sessionId} maxVisible={4} size="sm" />
+          <PresenceIndicator roomId={sessionId} maxDisplay={4} />
           <span className="text-sm text-gray-600 dark:text-gray-300">
             {collaboratorCount} {collaboratorCount === 1 ? 'viewer' : 'viewing'}
           </span>

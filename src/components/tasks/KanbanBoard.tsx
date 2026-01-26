@@ -373,7 +373,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   };
 
   // Handle drag over (optional - for visual feedback)
-  const handleDragOver = (event: DragOverEvent) => {
+  const handleDragOver = (_event: DragOverEvent) => {
     // Could add visual feedback here if needed
   };
 

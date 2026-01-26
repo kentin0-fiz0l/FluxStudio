@@ -3,7 +3,7 @@
  * Lightweight annotation viewer for displaying annotations directly in message threads
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, Eye, EyeOff, Camera, Maximize2 } from 'lucide-react';
 import { Button } from '../ui/button';

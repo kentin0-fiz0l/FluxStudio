@@ -3,35 +3,26 @@
  * Smart navigation sidebar that adapts to current context and user role
  */
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   MessageSquare,
   Users,
   Folder,
-  Bell,
   Star,
-  Clock,
   Activity,
   Settings,
-  Search,
   Plus,
-  Filter,
   BarChart3,
   UserCircle,
-  Building,
   Palette,
-  Archive,
-  Bookmark,
-  Zap,
-  Eye,
-  TrendingUp
+  Archive
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Separator } from '../ui/separator';
+// Separator not currently used
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessaging } from '../../hooks/useMessaging';
@@ -60,9 +51,9 @@ export function ContextualSidebar({
   onViewModeChange,
   className
 }: ContextualSidebarProps) {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const { conversations } = useMessaging();
-  const { projects, teams, organizations } = useOrganization();
+  const { projects, teams, organizations: _organizations } = useOrganization();
   const [selectedContext, setSelectedContext] = useState<string | null>(null);
 
   // Generate contextual data from conversations
@@ -81,7 +72,7 @@ export function ContextualSidebar({
           id: conv.projectId,
           name: project?.name || conv.name,
           type: 'project',
-          avatar: project?.avatar,
+          avatar: undefined,
           unreadCount: (existing?.unreadCount || 0) + conv.unreadCount,
           lastActivity: new Date(Math.max(
             existing?.lastActivity.getTime() || 0,
@@ -123,7 +114,7 @@ export function ContextualSidebar({
           id: conv.teamId,
           name: team?.name || conv.name,
           type: 'team',
-          avatar: team?.avatar,
+          avatar: undefined,
           unreadCount: (existing?.unreadCount || 0) + conv.unreadCount,
           lastActivity: new Date(Math.max(
             existing?.lastActivity.getTime() || 0,
@@ -313,7 +304,7 @@ export function ContextualSidebar({
             return (
               <Button
                 key={mode.id}
-                variant={isActive ? "default" : "ghost"}
+                variant={isActive ? "primary" : "ghost"}
                 size="sm"
                 onClick={() => onViewModeChange(mode.id)}
                 className="w-full justify-start h-9"

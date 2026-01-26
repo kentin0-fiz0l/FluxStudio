@@ -36,6 +36,8 @@ export type NotificationType =
   | 'project_file_uploaded'
   | 'organization_alert'
   | 'system'
+  // Toast-style types
+  | 'success'
   | 'info'
   | 'warning'
   | 'error';

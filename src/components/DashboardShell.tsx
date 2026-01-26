@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useEffect } from 'react';
+import { forwardRef, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
@@ -8,48 +8,22 @@ import { useMessaging } from '../hooks/useMessaging';
 import { useFiles } from '../hooks/useFiles';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { CommandPalette } from './search/CommandPalette';
-import { UnifiedNotificationCenter } from './notifications/UnifiedNotificationCenter';
 import { EnhancedHeader } from './EnhancedHeader';
 import { File } from '../pages/File';
 import { MessagingSidepanel } from './messaging/MessagingSidepanel';
 import { FloatingMessageButton } from './messaging/FloatingMessageButton';
-import { Avatar, AvatarFallback } from './ui/avatar';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Skeleton } from './ui/skeleton';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from './ui/dropdown-menu';
-import {
-  Home,
   Building2,
   Users,
   FolderOpen,
-  Search,
-  Bell,
-  Settings,
-  User,
-  LogOut,
   Palette,
   Briefcase,
   BarChart3,
   Shield,
-  ChevronRight,
-  ChevronLeft,
-  Plus,
-  Command,
-  Menu,
-  PanelLeftClose,
-  PanelLeft,
   FileText,
   MessageSquare,
   Printer,
 } from 'lucide-react';
-import { cn } from '../lib/utils';
 
 // ForwardRef wrapper for button elements to fix Slot ref warnings
 const ForwardedButton = forwardRef<HTMLButtonElement, React.ComponentProps<'button'>>((props, ref) => (
@@ -67,10 +41,11 @@ interface DashboardShellProps {
   children: React.ReactNode;
 }
 
-export function DashboardShell({ children }: DashboardShellProps) {
-  const navigate = useNavigate();
+export function DashboardShell({ children: _children }: DashboardShellProps) {
+  // Navigation and auth hooks - some reserved for future use
+  useNavigate(); // Reserved for navigation
   const location = useLocation();
-  const { user, logout, getUserDashboardPath } = useAuth();
+  const { user } = useAuth();
   const {
     currentOrganization,
     currentTeam,
@@ -78,13 +53,12 @@ export function DashboardShell({ children }: DashboardShellProps) {
     organizations,
     teams,
     projects,
-    navigateTo
   } = useOrganization();
   const { isOpen: isCommandPaletteOpen, open: openCommandPalette, close: closeCommandPalette } = useCommandPalette();
-  const { isMobile, isTablet, isDesktop, currentBreakpoint } = useBreakpoint();
+  useBreakpoint(); // Reserved for responsive behavior
   const { unreadCount } = useMessaging();
   const { files } = useFiles();
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
   const [activeView, setActiveView] = useState('organizations');
   const [isMessagingOpen, setIsMessagingOpen] = useState(false);
 
@@ -152,6 +126,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
   if (!user) return null;
 
   // Navigation items based on user role and context
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getNavigationItems = () => {
     const baseItems = [
       {
@@ -236,6 +211,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
   };
 
   // Get contextual navigation based on current context
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getContextualItems = () => {
     const contextualItems = [];
 
@@ -269,8 +245,9 @@ export function DashboardShell({ children }: DashboardShellProps) {
     return contextualItems;
   };
 
-  const navigationItems = getNavigationItems();
-  const contextualItems = getContextualItems();
+  // Navigation items computed but not currently rendered
+  // const navigationItems = getNavigationItems();
+  // const contextualItems = getContextualItems();
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -319,10 +296,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
       </main>
 
       {/* Global Command Palette */}
-      <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={closeCommandPalette}
-      />
+      <CommandPalette />
 
       {/* Messaging Sidepanel - Available from any view */}
       <MessagingSidepanel

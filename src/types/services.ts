@@ -329,9 +329,9 @@ export function getProjectTypesByCategory(category: ServiceCategory): ProjectTyp
 
 // Helper function to validate project configuration
 export function validateProjectConfiguration(
-  projectType: ProjectType,
-  ensembleType: EnsembleType,
-  serviceTier: ServiceTier
+  _projectType: ProjectType,
+  _ensembleType: EnsembleType,
+  _serviceTier: ServiceTier
 ): boolean {
   // Add any business rules for valid combinations
   // For now, all combinations are valid

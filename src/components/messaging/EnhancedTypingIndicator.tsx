@@ -3,7 +3,7 @@
  * Shows when users are typing with improved visuals and animations
  */
 
-import React from 'react';
+// React import not needed with JSX transform
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';

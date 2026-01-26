@@ -314,7 +314,7 @@ export async function processPendingSync(
           failed++;
         }
       }
-    } catch (error) {
+    } catch {
       // Network error, keep in queue
       failed++;
     }

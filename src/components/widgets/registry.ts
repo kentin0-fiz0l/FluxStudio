@@ -1,4 +1,5 @@
-import { WidgetConfig, WidgetRegistry } from './types';
+import React from 'react';
+import { WidgetConfig, WidgetRegistry, WidgetProps } from './types';
 import { QuickActionsWidget } from './QuickActionsWidget';
 import { ProjectOverviewWidget } from './ProjectOverviewWidget';
 import { AccountOverviewWidget } from './AccountOverviewWidget';
@@ -193,7 +194,7 @@ export const WIDGET_REGISTRY: WidgetRegistry = {
     id: 'notifications',
     title: 'Notification Center',
     description: 'Manage notifications with smart filtering and priority routing',
-    component: NotificationCenter,
+    component: NotificationCenter as React.ComponentType<WidgetProps>,
     category: 'collaboration',
     size: 'medium',
     permissions: ['client', 'designer', 'admin'],
@@ -205,7 +206,7 @@ export const WIDGET_REGISTRY: WidgetRegistry = {
     id: 'project-communication',
     title: 'Project Communication',
     description: 'Project-specific messaging, milestones, and file collaboration',
-    component: ProjectCommunicationWidget,
+    component: ProjectCommunicationWidget as React.ComponentType<WidgetProps>,
     category: 'collaboration',
     size: 'large',
     permissions: ['client', 'designer', 'admin'],
@@ -217,7 +218,7 @@ export const WIDGET_REGISTRY: WidgetRegistry = {
     id: 'design-review',
     title: 'Design Review',
     description: 'Interactive design review with visual annotations and approval workflow',
-    component: DesignReviewWidget,
+    component: DesignReviewWidget as React.ComponentType<WidgetProps>,
     category: 'collaboration',
     size: 'large',
     permissions: ['client', 'designer', 'admin'],
@@ -229,7 +230,7 @@ export const WIDGET_REGISTRY: WidgetRegistry = {
     id: 'consultations',
     title: 'Consultations',
     description: 'Schedule and manage design consultation sessions',
-    component: ConsultationWidget,
+    component: ConsultationWidget as React.ComponentType<WidgetProps>,
     category: 'collaboration',
     size: 'medium',
     permissions: ['client', 'designer', 'admin'],

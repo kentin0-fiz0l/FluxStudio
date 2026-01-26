@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, X, Check, Info, AlertCircle, Sparkles } from 'lucide-react';
+import { Bell, Check, Info, AlertCircle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';

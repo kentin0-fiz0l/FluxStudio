@@ -1,4 +1,4 @@
-import React from 'react';
+// React import not needed with JSX transform
 
 interface FluxStudioLogoExportProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'hero';
@@ -7,46 +7,46 @@ interface FluxStudioLogoExportProps {
   className?: string;
 }
 
-export function FluxStudioLogoExport({ 
+// Size configurations - moved outside component for reuse in exported functions
+const sizeConfig = {
+  sm: {
+    fontSize: '1.5rem',
+    spacing: '0.25rem',
+    subtitleSize: '0.75rem',
+    depth: 4
+  },
+  md: {
+    fontSize: '2rem',
+    spacing: '0.5rem',
+    subtitleSize: '0.875rem',
+    depth: 6
+  },
+  lg: {
+    fontSize: '3rem',
+    spacing: '0.75rem',
+    subtitleSize: '1rem',
+    depth: 8
+  },
+  xl: {
+    fontSize: '4rem',
+    spacing: '1rem',
+    subtitleSize: '1.25rem',
+    depth: 10
+  },
+  hero: {
+    fontSize: '6rem',
+    spacing: '1.5rem',
+    subtitleSize: '1.5rem',
+    depth: 12
+  }
+};
+
+export function FluxStudioLogoExport({
   size = 'md',
   variant = 'horizontal',
   showSubtitle = false,
   className = ''
 }: FluxStudioLogoExportProps) {
-  
-  // Size configurations
-  const sizeConfig = {
-    sm: {
-      fontSize: '1.5rem',
-      spacing: '0.25rem',
-      subtitleSize: '0.75rem',
-      depth: 4
-    },
-    md: {
-      fontSize: '2rem',
-      spacing: '0.5rem',
-      subtitleSize: '0.875rem',
-      depth: 6
-    },
-    lg: {
-      fontSize: '3rem',
-      spacing: '0.75rem',
-      subtitleSize: '1rem',
-      depth: 8
-    },
-    xl: {
-      fontSize: '4rem',
-      spacing: '1rem',
-      subtitleSize: '1.25rem',
-      depth: 10
-    },
-    hero: {
-      fontSize: '6rem',
-      spacing: '1.5rem',
-      subtitleSize: '1.5rem',
-      depth: 12
-    }
-  };
 
   const config = sizeConfig[size];
 

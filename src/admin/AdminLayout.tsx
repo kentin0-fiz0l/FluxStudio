@@ -5,7 +5,7 @@
  * Main layout component with sidebar navigation and header
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from './hooks/useAdminAuth';
 

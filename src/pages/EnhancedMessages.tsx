@@ -3,35 +3,23 @@
  * Integrates all new messaging features: user search, advanced search, mobile optimization, and automation
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
   Search,
-  Settings,
   Zap,
   Users,
-  Phone,
-  Video,
   Plus,
-  Filter,
-  Archive,
-  Star,
   Menu,
   X,
   ChevronLeft,
   ChevronRight,
-  Bot,
-  Smartphone,
-  Monitor,
-  Calendar,
-  BarChart3
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { EnhancedMessageHub } from '../components/messaging/EnhancedMessageHub';
 import { AdvancedMessageSearch } from '../components/messaging/AdvancedMessageSearch';
@@ -40,7 +28,7 @@ import { MessageAutomationHub } from '../components/messaging/MessageAutomationH
 import { UserDirectory } from '../components/UserDirectory';
 import { useAuth } from '../contexts/AuthContext';
 import { useMessaging } from '../hooks/useMessaging';
-import { Conversation, Message, MessageUser } from '../types/messaging';
+import { Conversation } from '../types/messaging';
 import { cn } from '../lib/utils';
 
 interface EnhancedMessagesProps {
@@ -50,10 +38,10 @@ interface EnhancedMessagesProps {
 
 export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
   initialView = 'conversations',
-  isMobile = false
+  isMobile: _isMobile = false
 }) => {
   const { user } = useAuth();
-  const { conversations, selectedConversation, setSelectedConversation } = useMessaging();
+  const { conversations: _conversations } = useMessaging();
 
   const [currentView, setCurrentView] = useState(initialView);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -65,8 +53,9 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
   const mockConversations: Conversation[] = [
     {
       id: 'conv1',
-      title: 'Brand Redesign Project',
+      name: 'Brand Redesign Project',
       type: 'project',
+      projectId: 'project1',
       participants: [
         {
           id: 'user1',
@@ -93,25 +82,42 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
           name: 'Sarah Chen',
           userType: 'client'
         },
-        timestamp: new Date(Date.now() - 15 * 60 * 1000),
+        createdAt: new Date(Date.now() - 15 * 60 * 1000),
+        updatedAt: new Date(Date.now() - 15 * 60 * 1000),
         type: 'text',
         status: 'read',
-        priority: 'medium',
         conversationId: 'conv1',
-        mentions: []
+        mentions: [],
+        isEdited: false
       },
       createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
       updatedAt: new Date(Date.now() - 15 * 60 * 1000),
+      lastActivity: new Date(Date.now() - 15 * 60 * 1000),
       unreadCount: 2,
       metadata: {
-        projectId: 'project1',
+        isArchived: false,
+        isMuted: false,
+        isPinned: false,
+        priority: 'medium',
         tags: ['design', 'branding']
+      },
+      permissions: {
+        canWrite: true,
+        canAddMembers: true,
+        canArchive: true,
+        canDelete: false
+      },
+      createdBy: {
+        id: 'user1',
+        name: 'Sarah Chen',
+        userType: 'client'
       }
     },
     {
       id: 'conv2',
-      title: 'Mobile App Design',
+      name: 'Mobile App Design',
       type: 'project',
+      projectId: 'project2',
       participants: [
         {
           id: 'user3',
@@ -130,24 +136,40 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
           name: 'Alex Rodriguez',
           userType: 'designer'
         },
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
         type: 'text',
         status: 'delivered',
-        priority: 'medium',
         conversationId: 'conv2',
-        mentions: []
+        mentions: [],
+        isEdited: false
       },
       createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
       updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      lastActivity: new Date(Date.now() - 2 * 60 * 60 * 1000),
       unreadCount: 0,
       metadata: {
-        projectId: 'project2',
+        isArchived: false,
+        isMuted: false,
+        isPinned: false,
+        priority: 'medium',
         tags: ['mobile', 'app', 'ux']
+      },
+      permissions: {
+        canWrite: true,
+        canAddMembers: true,
+        canArchive: true,
+        canDelete: false
+      },
+      createdBy: {
+        id: 'user3',
+        name: 'Alex Rodriguez',
+        userType: 'designer'
       }
     }
   ];
 
-  const [activeConversations, setActiveConversations] = useState(mockConversations);
+  const [activeConversations, _setActiveConversations] = useState(mockConversations);
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
 
   // Auto-detect mobile view based on screen size
@@ -163,7 +185,7 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
 
   // Filter conversations based on search query
   const filteredConversations = activeConversations.filter(conv =>
-    conv.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     conv.participants.some(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
     conv.lastMessage?.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -264,7 +286,7 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                       <Avatar className="w-12 h-12">
                         <AvatarImage src={conversation.participants[0]?.avatar} />
                         <AvatarFallback>
-                          {conversation.title.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          {conversation.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       {conversation.participants[0]?.isOnline && (
@@ -275,11 +297,11 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className="font-medium text-gray-900 truncate">
-                          {conversation.title}
+                          {conversation.name}
                         </h3>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-500">
-                            {formatLastMessageTime(conversation.lastMessage?.timestamp || conversation.updatedAt)}
+                            {formatLastMessageTime(conversation.lastMessage?.createdAt || conversation.updatedAt)}
                           </span>
                           {conversation.unreadCount > 0 && (
                             <Badge className="bg-blue-500 text-white text-xs px-2 py-1">
@@ -416,7 +438,7 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                 />
 
                 <div className="flex gap-2">
-                  <Select value={currentView} onValueChange={setCurrentView}>
+                  <Select value={currentView} onValueChange={(value) => setCurrentView(value as 'conversations' | 'search' | 'automation' | 'directory')}>
                     <SelectTrigger className="flex-1">
                       <SelectValue />
                     </SelectTrigger>
@@ -472,7 +494,7 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={conversation.participants[0]?.avatar} />
                         <AvatarFallback>
-                          {conversation.title.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          {conversation.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       {conversation.participants[0]?.isOnline && (
@@ -483,11 +505,11 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className="font-medium text-gray-900 truncate text-sm">
-                          {conversation.title}
+                          {conversation.name}
                         </h3>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-500">
-                            {formatLastMessageTime(conversation.lastMessage?.timestamp || conversation.updatedAt)}
+                            {formatLastMessageTime(conversation.lastMessage?.createdAt || conversation.updatedAt)}
                           </span>
                           {conversation.unreadCount > 0 && (
                             <Badge className="bg-blue-500 text-white text-xs px-1.5 py-0.5">

@@ -1,41 +1,24 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
   Users,
-  Calendar,
   FileText,
   Star,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Play,
-  Pause,
-  Send,
   Paperclip,
   Image,
   Video,
-  Mic,
   MoreVertical,
-  Pin,
-  Archive,
   Search,
-  Filter,
   Plus,
   Eye,
   Download,
   Share2,
   Zap,
-  Target,
-  Award,
-  AlertTriangle
+  Target
 } from 'lucide-react';
 import { useMessaging } from '../../hooks/useMessaging';
-import { useNotifications } from '../../hooks/useNotifications';
 import {
-  Message,
-  Conversation,
-  MessageType,
   Priority,
   MessageUser
 } from '../../types/messaging';
@@ -424,7 +407,7 @@ export function ProjectCommunicationWidget({
     }
   ];
 
-  const activeTabData = tabs.find(tab => tab.id === activeTab);
+  const _activeTabData = tabs.find(tab => tab.id === activeTab);
 
   const renderTabContent = () => {
     switch (activeTab) {

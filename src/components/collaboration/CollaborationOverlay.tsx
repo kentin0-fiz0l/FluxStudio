@@ -13,18 +13,11 @@ import {
   Users,
   MousePointer,
   MessageSquare,
-  Video,
   ScreenShare,
-  Eye,
-  Edit,
   Circle,
-  Mic,
-  MicOff,
-  VideoOff,
   MonitorUp,
   X,
-  Send,
-  Smile
+  Send
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -159,7 +152,7 @@ export function CollaborationOverlay({
     }
   };
 
-  const handleSelectionChange = ({ userId, selection }: { userId: string; selection: SelectionRange }) => {
+  const _handleSelectionChange = ({ userId, selection }: { userId: string; selection: SelectionRange }) => {
     if (userId === user?.id) return;
 
     const collaborator = collaborators.find(c => c.userId === userId);

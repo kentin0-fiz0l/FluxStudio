@@ -305,7 +305,6 @@ class MessagingService {
       content: messageData.content,
       author: this.currentUser,
       replyTo: messageData.replyTo,
-      threadId: messageData.threadId,
       mentions: messageData.mentions,
       attachments,
       metadata: messageData.metadata,
@@ -329,7 +328,6 @@ class MessagingService {
       attachments,
       mentions: messageData.mentions,
       replyTo: messageData.replyTo,
-      threadId: messageData.threadId,
     });
 
     return savedMessage;
@@ -697,7 +695,6 @@ class MessagingService {
       return {
         id: u.id,
         name: u.name || 'Unknown',
-        email: u.email,
         avatar: u.avatar,
         userType: u.userType || 'client',
         isOnline: u.isOnline || false,

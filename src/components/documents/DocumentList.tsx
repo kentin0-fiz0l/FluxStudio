@@ -4,7 +4,7 @@
  * Displays and manages project documents with create/archive/delete actions
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FileText, Plus, MoreVertical, Trash2, Archive, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';

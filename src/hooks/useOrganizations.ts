@@ -60,7 +60,7 @@ export function useOrganizations() {
       const response = await apiService.getOrganizations();
 
       if (response.success && response.data) {
-        const organizations = response.data.organizations || response.data || [];
+        const organizations = (response.data as any)?.organizations || response.data || [];
         setOrganizations(organizations);
 
         // Set current organization if user has one

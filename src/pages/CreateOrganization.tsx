@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, MapPin, Phone, Mail } from 'lucide-react';
+import { ArrowLeft, Plus, MapPin, Phone, Mail } from 'lucide-react';
 
 export function CreateOrganization() {
   const navigate = useNavigate();

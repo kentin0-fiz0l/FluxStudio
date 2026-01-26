@@ -75,19 +75,9 @@ import {
 // Type Definitions
 // ============================================================================
 
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  status: 'todo' | 'in-progress' | 'review' | 'completed';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  assignedTo: string | null;
-  dueDate: string | null; // ISO8601
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-  completedAt: string | null;
-}
+// Import Task from the canonical source
+import type { Task } from '../../hooks/useTasks';
+export type { Task };
 
 export interface TeamMember {
   id: string;
@@ -452,7 +442,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
 
   const handleToggleComplete = () => {
     if (status === 'completed') {
-      setStatus('in-progress');
+      setStatus('in_progress');
     } else {
       setStatus('completed');
     }

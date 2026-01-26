@@ -2,7 +2,7 @@
  * Unit Tests - Lazy Loading Utilities
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { lazyLoadWithRetry, preloadComponents, usePreloadOnInteraction } from '../lazyLoad';
 import React from 'react';

@@ -3,7 +3,7 @@
  * Tracks and displays file versions linked to conversations with visual diff capabilities
  */
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,

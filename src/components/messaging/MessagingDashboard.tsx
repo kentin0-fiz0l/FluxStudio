@@ -3,12 +3,11 @@
  * Main dashboard that combines all messaging features into a unified interface
  */
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Bell, Search, Settings, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Bell, Search, Users } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Conversation, MessageUser, ConversationType } from '../../types/messaging';
 import { messagingService } from '../../services/messagingService';
 import ConversationList from './ConversationList';

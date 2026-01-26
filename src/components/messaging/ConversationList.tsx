@@ -3,7 +3,7 @@
  * Displays all conversations with filtering, search, and real-time updates
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, Filter, Archive, MessageCircle, Users, Folder, Bell, BellOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';

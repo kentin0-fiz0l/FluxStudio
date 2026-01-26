@@ -4,7 +4,7 @@
  * Full-featured video call UI with controls, participant grid, and screen sharing.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { CallParticipant } from '../../services/webrtcService';

@@ -149,7 +149,7 @@ export const MobileGallery: React.FC<MobileGalleryProps> = ({
     setZoom(prev => Math.max(prev / 1.5, 0.5));
   };
 
-  const handlePan = (e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handlePan = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // Handle swipe gestures
     if (Math.abs(info.offset.x) > 100) {
       if (info.offset.x > 0) {

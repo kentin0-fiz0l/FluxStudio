@@ -1,4 +1,4 @@
-import React from 'react';
+// React import not needed with JSX transform
 import { VideoPlayer } from './VideoPlayer';
 import { AudioPlayer } from './AudioPlayer';
 import { EnhancedImageViewer } from '../messaging/EnhancedImageViewer';
@@ -151,8 +151,7 @@ export function MediaPreview({
       case 'image':
         return (
           <EnhancedImageViewer
-            src={file.url}
-            alt={file.name}
+            attachment={{ id: file.id, type: 'image', url: file.url, name: file.name, size: file.size || 0, mimeType: file.mimeType || 'image/*', uploadedAt: new Date() }}
             className="w-full max-h-[70vh]"
           />
         );

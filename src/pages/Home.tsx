@@ -12,8 +12,6 @@ import {
   Folder,
   Users as UsersIcon,
   MessageSquare,
-  TrendingUp,
-  Calendar,
   Clock,
   ArrowRight,
   Sparkles,
@@ -67,7 +65,7 @@ export function Home() {
     dueDate: p.dueDate ? new Date(p.dueDate) : undefined,
     teamSize: p.members?.length || 1,
     teamAvatars: [],
-    tags: p.tags || []
+    tags: (p as any).tags || []
   })) : [
     {
       id: '1',

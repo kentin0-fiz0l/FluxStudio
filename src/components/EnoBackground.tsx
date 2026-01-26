@@ -10,6 +10,9 @@ export function EnoBackground() {
   const particlesRef = useRef<any[]>([]);
   const timeRef = useRef(0);
 
+  // Calculate theme mode for component-wide use
+  const isLightMode = theme === 'light';
+
   useEffect(() => {
     const handleScroll = () => {
       const scrolled = window.scrollY;
@@ -29,9 +32,6 @@ export function EnoBackground() {
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    // Calculate theme mode for this effect
-    const isLightMode = theme === 'light';
 
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
@@ -159,7 +159,7 @@ export function EnoBackground() {
 
         // Update and draw particles
         if (particlesRef.current && particlesRef.current.length > 0) {
-          particlesRef.current.forEach((particle, index) => {
+          particlesRef.current.forEach((particle) => {
             if (!particle) return;
             
             // Gentle Brownian motion with Eno-inspired drift

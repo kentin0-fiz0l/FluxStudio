@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Zap, Plus, Play, Save, Settings } from 'lucide-react';
+import { Zap, Play, Save, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';

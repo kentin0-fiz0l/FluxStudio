@@ -4,7 +4,7 @@
  * Supports click/keyboard navigation to jump to the original message
  */
 
-import React, { KeyboardEvent } from 'react';
+import { KeyboardEvent } from 'react';
 import { Pin } from 'lucide-react';
 import { cn } from '../../lib/utils';
 

@@ -3,7 +3,7 @@
  * Provides quick access to start common conversation types
  */
 
-import React from 'react';
+// React import not needed with JSX transform
 import { MessageCircle, Users, Folder, Bell, Zap } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -100,7 +100,7 @@ export function QuickChatActions({ onQuickAction, className = '' }: QuickChatAct
                   </Badge>
                   {action.priority !== 'low' && (
                     <Badge
-                      variant={action.priority === 'high' ? 'destructive' : 'default'}
+                      variant={action.priority === 'high' ? 'error' : 'default'}
                       className="text-xs capitalize"
                     >
                       {action.priority}

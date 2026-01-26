@@ -14,7 +14,19 @@
 import * as React from 'react';
 import { Mail, MoreVertical, User } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+
+export interface UserCardAction {
+  label: string;
+  onClick: () => void;
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
+}
 
 export interface UserCardUser {
   id?: string;
@@ -68,6 +80,16 @@ export interface UserCardProps {
   onMoreOptions?: (user: UserCardUser) => void;
 
   /**
+   * View profile callback
+   */
+  onView?: () => void;
+
+  /**
+   * Custom action buttons
+   */
+  actions?: UserCardAction[];
+
+  /**
    * Custom className
    */
   className?: string;
@@ -89,6 +111,8 @@ export const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
       onClick,
       onMessage,
       onMoreOptions,
+      onView,
+      actions,
       className,
       variant = 'default',
     },
@@ -194,19 +218,43 @@ export const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
                 )}
               </div>
 
-              {/* More options button */}
-              {onMoreOptions && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMoreOptions(user);
-                  }}
-                  className="flex-shrink-0"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
+              {/* More options button or actions dropdown */}
+              {(onMoreOptions || (actions && actions.length > 0)) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onMoreOptions && !actions) {
+                          onMoreOptions(user);
+                        }
+                      }}
+                      className="flex-shrink-0"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  {actions && actions.length > 0 && (
+                    <DropdownMenuContent align="end">
+                      {actions.map((action, index) => (
+                        <DropdownMenuItem
+                          key={index}
+                          onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            action.onClick();
+                          }}
+                          className={cn(
+                            action.variant === 'danger' && 'text-error-600 focus:text-error-600'
+                          )}
+                        >
+                          {action.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  )}
+                </DropdownMenu>
               )}
             </div>
 
@@ -239,7 +287,11 @@ export const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
                   icon={<User className="h-4 w-4" />}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onClick?.(user);
+                    if (onView) {
+                      onView();
+                    } else {
+                      onClick?.(user);
+                    }
                   }}
                 >
                   View Profile

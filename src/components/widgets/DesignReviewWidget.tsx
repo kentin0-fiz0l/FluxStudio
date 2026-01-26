@@ -5,39 +5,25 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  MessageSquare,
   Eye,
   Download,
   Share2,
-  MoreVertical,
-  Plus,
-  Minus,
-  RotateCcw,
-  Move,
   MousePointer,
   Edit3,
   Type,
   Circle,
   Square,
   ArrowRight,
-  Palette,
-  Send,
   User,
   Calendar,
   AlertTriangle,
   ThumbsUp,
-  ThumbsDown,
-  Zap,
-  Target,
-  Image as ImageIcon,
-  FileText,
-  Video
+  ThumbsDown
 } from 'lucide-react';
 import {
   DesignReview,
   ImageAnnotation,
-  MessageUser,
-  MessageAttachment
+  MessageUser
 } from '../../types/messaging';
 
 interface DesignReviewWidgetProps {

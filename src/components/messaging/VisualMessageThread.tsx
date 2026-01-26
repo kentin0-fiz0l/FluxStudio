@@ -3,21 +3,15 @@
  * Enhanced message interface with inline design preview and visual collaboration tools
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Reply,
   MoreHorizontal,
   Heart,
-  ThumbsUp,
-  ThumbsDown,
   Eye,
   Download,
-  ExternalLink,
-  Image as ImageIcon,
   Play,
-  Pause,
-  Volume2,
   Maximize2,
   MessageSquare,
   Clock,
@@ -29,7 +23,6 @@ import {
   FileText,
   Camera,
   History,
-  Layers,
   Brain,
   Sparkles
 } from 'lucide-react';
@@ -65,7 +58,7 @@ interface MessageReaction {
   users: string[];
 }
 
-const commonReactions = ['👍', '❤️', '🎨', '✨', '🔥', '💯'];
+const _commonReactions = ['👍', '❤️', '🎨', '✨', '🔥', '💯'];
 
 export function VisualMessageThread({
   conversation,
@@ -76,10 +69,10 @@ export function VisualMessageThread({
   // Real-time messaging
   const {
     messages: realtimeMessages,
-    isConnected,
-    syncStatus,
-    sendMessage,
-    retryMessage
+    isConnected: _isConnected,
+    syncStatus: _syncStatus,
+    sendMessage: _sendMessage,
+    retryMessage: _retryMessage
   } = useRealtimeMessages({
     conversationId: conversation.id,
     currentUser,
@@ -133,8 +126,7 @@ export function VisualMessageThread({
         return <CheckCheck size={14} className="text-blue-500" />;
       case 'failed':
         return <AlertCircle size={14} className="text-red-500" />;
-      default:
-        return null;
+      return null;
     }
   };
 
@@ -162,7 +154,7 @@ export function VisualMessageThread({
           <div className="flex items-center gap-1 mb-2">
             <Button
               size="sm"
-              variant={inlinePreviewMode === 'simple' ? 'default' : 'outline'}
+              variant={inlinePreviewMode === 'simple' ? 'primary' : 'outline'}
               onClick={() => setInlinePreviewMode('simple')}
               className="text-xs h-7"
             >
@@ -170,7 +162,7 @@ export function VisualMessageThread({
             </Button>
             <Button
               size="sm"
-              variant={inlinePreviewMode === 'enhanced' ? 'default' : 'outline'}
+              variant={inlinePreviewMode === 'enhanced' ? 'primary' : 'outline'}
               onClick={() => setInlinePreviewMode('enhanced')}
               className="text-xs h-7"
             >
@@ -179,7 +171,7 @@ export function VisualMessageThread({
             {(attachment.annotations && attachment.annotations.length > 0) && (
               <Button
                 size="sm"
-                variant={inlinePreviewMode === 'annotations' ? 'default' : 'outline'}
+                variant={inlinePreviewMode === 'annotations' ? 'primary' : 'outline'}
                 onClick={() => setInlinePreviewMode('annotations')}
                 className="text-xs h-7"
               >
@@ -266,11 +258,10 @@ export function VisualMessageThread({
               </div>
               <div className="h-48 relative">
                 <EnhancedImageViewer
-                  imageUrl={attachment.url}
+                  attachment={attachment}
                   className="rounded"
                   showMinimap={false}
                   showGrid={false}
-                  enableAnnotations={false}
                 />
               </div>
             </div>
@@ -338,7 +329,7 @@ export function VisualMessageThread({
     isOwn: boolean;
     showAvatar: boolean;
   }) => {
-    const [reactions, setReactions] = useState<MessageReaction[]>([
+    const [reactions, _setReactions] = useState<MessageReaction[]>([
       { emoji: '👍', count: 0, hasReacted: false, users: [] }
     ]);
 
@@ -513,14 +504,14 @@ export function VisualMessageThread({
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              variant={showVersionTracker ? "default" : "ghost"}
+              variant={showVersionTracker ? "primary" : "ghost"}
               onClick={() => setShowVersionTracker(!showVersionTracker)}
             >
               <History size={16} />
             </Button>
             <Button
               size="sm"
-              variant={showAIFeedback ? "default" : "ghost"}
+              variant={showAIFeedback ? "primary" : "ghost"}
               onClick={() => setShowAIFeedback(!showAIFeedback)}
               title="AI Design Feedback"
             >
@@ -528,7 +519,7 @@ export function VisualMessageThread({
             </Button>
             <Button
               size="sm"
-              variant={showInsights ? "default" : "ghost"}
+              variant={showInsights ? "primary" : "ghost"}
               onClick={() => setShowInsights(!showInsights)}
               title="Conversation Insights"
             >
@@ -536,7 +527,7 @@ export function VisualMessageThread({
             </Button>
             <Button
               size="sm"
-              variant={showAutomation ? "default" : "ghost"}
+              variant={showAutomation ? "primary" : "ghost"}
               onClick={() => setShowAutomation(!showAutomation)}
               title="Workflow Automation"
             >

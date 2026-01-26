@@ -94,7 +94,7 @@ export function sanitizeRichText(input: string | null | undefined): string {
 
     // Transform external links to be safe
     HOOKS: {
-      afterSanitizeAttributes: (node) => {
+      afterSanitizeAttributes: (node: Element) => {
         if (node.tagName === 'A') {
           const href = node.getAttribute('href');
           if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
@@ -132,7 +132,7 @@ export function sanitizeComment(input: string | null | undefined): string {
     ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
 
     HOOKS: {
-      afterSanitizeAttributes: (node) => {
+      afterSanitizeAttributes: (node: Element) => {
         if (node.tagName === 'A') {
           const href = node.getAttribute('href');
           if (href && (href.startsWith('http://') || href.startsWith('https://'))) {

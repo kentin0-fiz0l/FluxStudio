@@ -5,7 +5,7 @@ import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Upload, X, CheckCircle, AlertTriangle, Shield, FileIcon } from 'lucide-react';
+import { Upload, CheckCircle, AlertTriangle, Shield, FileIcon } from 'lucide-react';
 
 interface UploadSession {
   uploadId: string;
@@ -227,7 +227,7 @@ export const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
       case 'suspicious':
         return 'secondary';
       case 'infected':
-        return 'destructive';
+        return 'error';
       default:
         return 'outline';
     }

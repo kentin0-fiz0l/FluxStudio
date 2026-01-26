@@ -1,4 +1,3 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
 export function Process() {
   const steps = [

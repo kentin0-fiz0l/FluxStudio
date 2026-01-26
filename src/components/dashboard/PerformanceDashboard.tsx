@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useWebSocket } from '../../hooks/useWebSocket';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
@@ -81,7 +81,7 @@ export const PerformanceDashboard: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">FluxStudio Performance Dashboard</h1>
-        <Badge variant={isConnected ? 'default' : 'destructive'}>
+        <Badge variant={isConnected ? 'primary' : 'error'}>
           {isConnected ? 'Connected' : 'Disconnected'}
         </Badge>
       </div>

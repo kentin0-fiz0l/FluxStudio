@@ -20,7 +20,6 @@ import {
   Shield,
   User,
   Search,
-  Filter,
   Grid3x3,
   List,
   Settings,
@@ -362,7 +361,7 @@ export function TeamNew() {
                   {/* View Mode Toggle */}
                   <div className="flex items-center gap-2">
                     <Button
-                      variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                      variant={viewMode === 'grid' ? 'primary' : 'ghost'}
                       size="sm"
                       onClick={() => setViewMode('grid')}
                       aria-label="Grid view"
@@ -370,7 +369,7 @@ export function TeamNew() {
                       <Grid3x3 className="w-4 h-4" aria-hidden="true" />
                     </Button>
                     <Button
-                      variant={viewMode === 'list' ? 'default' : 'ghost'}
+                      variant={viewMode === 'list' ? 'primary' : 'ghost'}
                       size="sm"
                       onClick={() => setViewMode('list')}
                       aria-label="List view"

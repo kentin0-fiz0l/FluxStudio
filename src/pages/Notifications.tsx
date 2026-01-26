@@ -17,7 +17,6 @@ import {
   Bell,
   CheckCheck,
   Trash2,
-  Filter,
   RefreshCw,
   MessageSquare,
   Briefcase,

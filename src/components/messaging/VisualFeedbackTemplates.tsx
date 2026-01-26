@@ -4,15 +4,10 @@
  */
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Star,
-  ThumbsUp,
-  ThumbsDown,
-  AlertCircle,
   CheckCircle,
-  XCircle,
-  Clock,
   Flag,
   MessageSquare,
   Palette,
@@ -24,18 +19,15 @@ import {
   Lightbulb,
   Send,
   X,
-  Plus,
   Edit3
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Textarea } from '../ui/textarea';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Checkbox } from '../ui/checkbox';
-import { Slider } from '../ui/slider';
 import { Label } from '../ui/label';
-import { Separator } from '../ui/separator';
 import { MessageUser } from '../../types/messaging';
 import { cn } from '../../lib/utils';
 
@@ -47,6 +39,14 @@ interface FeedbackCriteria {
   weight: number;
 }
 
+interface CustomField {
+  id: string;
+  label: string;
+  type: 'text' | 'rating' | 'checkbox' | 'radio' | 'textarea';
+  options?: string[];
+  required?: boolean;
+}
+
 interface FeedbackTemplate {
   id: string;
   name: string;
@@ -54,13 +54,7 @@ interface FeedbackTemplate {
   icon: React.ElementType;
   category: 'approval' | 'design' | 'content' | 'technical' | 'general';
   criteria: FeedbackCriteria[];
-  customFields?: {
-    id: string;
-    label: string;
-    type: 'text' | 'rating' | 'checkbox' | 'radio' | 'textarea';
-    options?: string[];
-    required?: boolean;
-  }[];
+  customFields?: CustomField[];
 }
 
 interface VisualFeedbackTemplatesProps {
@@ -254,7 +248,7 @@ export function VisualFeedbackTemplates({
     );
   };
 
-  const renderCustomField = (field: typeof selectedTemplate.customFields[0]) => {
+  const renderCustomField = (field: CustomField) => {
     if (!field) return null;
 
     switch (field.type) {
@@ -277,7 +271,7 @@ export function VisualFeedbackTemplates({
               value={customFieldValues[field.id] || ''}
               onValueChange={(value) => handleCustomFieldChange(field.id, value)}
             >
-              {field.options?.map(option => (
+              {field.options?.map((option: string) => (
                 <div key={option} className="flex items-center space-x-2">
                   <RadioGroupItem value={option} id={`${field.id}-${option}`} />
                   <Label htmlFor={`${field.id}-${option}`} className="text-sm">{option}</Label>
@@ -292,7 +286,7 @@ export function VisualFeedbackTemplates({
           <div>
             <Label className="text-sm font-medium">{field.label}</Label>
             <div className="space-y-2">
-              {field.options?.map(option => (
+              {field.options?.map((option: string) => (
                 <div key={option} className="flex items-center space-x-2">
                   <Checkbox
                     id={`${field.id}-${option}`}

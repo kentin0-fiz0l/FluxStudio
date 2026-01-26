@@ -5,7 +5,7 @@
  * Integrates with the real-time reaction system via WebSocket.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Smile, Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';

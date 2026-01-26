@@ -3,7 +3,7 @@
  * Advanced message composer with formatting, mentions, and markdown support
  */
 
-import React, { useState, useRef, useCallback, KeyboardEvent } from 'react';
+import React, { useState, useRef, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bold,
@@ -16,9 +16,6 @@ import {
   Strikethrough,
   Heading2,
   AtSign,
-  Hash,
-  Smile,
-  Image as ImageIcon,
   Paperclip,
   Send,
   X
@@ -71,8 +68,8 @@ export function RichTextComposer({
   onTyping,
   disabled = false,
   participants = [],
-  priority = 'medium',
-  onPriorityChange,
+  priority: _priority = 'medium',
+  onPriorityChange: _onPriorityChange,
   className
 }: RichTextComposerProps) {
   const [content, setContent] = useState('');
@@ -82,7 +79,7 @@ export function RichTextComposer({
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const [mentions, setMentions] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<File[]>([]);
-  const [cursorPosition, setCursorPosition] = useState(0);
+  const [_cursorPosition, _setCursorPosition] = useState(0);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

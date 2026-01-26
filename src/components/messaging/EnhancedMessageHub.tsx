@@ -11,24 +11,16 @@ import {
   Folder,
   Bell,
   Search,
-  Filter,
   Plus,
   Zap,
-  Eye,
   Clock,
   Star,
   Archive,
-  Settings,
   Palette,
   FileImage,
-  MessageCircle,
   Activity,
   Brain,
-  TrendingUp,
   Target,
-  ChevronDown,
-  ChevronRight,
-  BarChart3,
   Sparkles,
   RefreshCw
 } from 'lucide-react';
@@ -36,20 +28,17 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Conversation, ConversationType, Message, MessageUser, Priority } from '../../types/messaging';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
+import { Conversation, Message, MessageUser } from '../../types/messaging';
 import { MessageAnalysis, messageIntelligenceService } from '../../services/messageIntelligenceService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessaging } from '../../hooks/useMessaging';
 import { cn } from '../../lib/utils';
 import { VisualMessageThread } from './VisualMessageThread';
 import { SmartComposer } from './SmartComposer';
-import { ContextualSidebar } from './ContextualSidebar';
 import { QuickActionPanel } from './QuickActionPanel';
 import { ActivityFeed } from './ActivityFeed';
 import { PresenceIndicators } from './PresenceIndicators';
-import { IntelligentMessageCard } from './IntelligentMessageCard';
 import { ConversationIntelligencePanel } from './ConversationIntelligencePanel';
 
 interface EnhancedMessageHubProps {
@@ -68,8 +57,8 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
     setActiveConversation,
     filterConversations,
     sendMessage,
-    createConversation,
-    isLoading
+    createConversation: _createConversation,
+    isLoading: _isLoading
   } = useMessaging();
 
   const [viewMode, setViewMode] = useState<ViewMode>('unified');
@@ -129,7 +118,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
     });
 
     // Apply type filters with AI enhancement
-    const typeFiltered = filterConversations({
+    filterConversations({
       hasUnread: filterType === 'unread',
       priority: filterType === 'priority' ? 'high' : undefined,
     });
@@ -143,7 +132,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
           return false;
         }
         const messages = conversationMessages[conv.id] || [];
-        return messages.some(msg => {
+        return messages.some((msg: Message) => {
           if (!msg || !msg.id) {
             console.error('[EnhancedMessageHub] Invalid message in urgent filter for conv:', conv.id, msg);
             return false;
@@ -161,7 +150,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
           return false;
         }
         const messages = conversationMessages[conv.id] || [];
-        return messages.some(msg => {
+        return messages.some((msg: Message) => {
           if (!msg || !msg.id) {
             console.error('[EnhancedMessageHub] Invalid message in pending filter for conv:', conv.id, msg);
             return false;
@@ -198,7 +187,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
       const lastActivity = new Date(conv.lastActivity);
 
       // Check for AI-detected urgency
-      const hasUrgentMessages = (conversationMessages[conv.id] || []).some(msg => {
+      const hasUrgentMessages = (conversationMessages[conv.id] || []).some((msg: Message) => {
         if (!msg || !msg.id) {
           console.error('[EnhancedMessageHub] Invalid message in urgency check:', msg);
           return false;
@@ -208,7 +197,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
       });
 
       // Check for pending actions
-      const hasPendingActions = (conversationMessages[conv.id] || []).some(msg => {
+      const hasPendingActions = (conversationMessages[conv.id] || []).some((msg: Message) => {
         if (!msg || !msg.id) {
           console.error('[EnhancedMessageHub] Invalid message in pending check:', msg);
           return false;
@@ -226,7 +215,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
         grouped.urgent.push(conv);
       } else if (hasPendingActions) {
         grouped.pending.push(conv);
-      } else if (conv.isPinned) {
+      } else if (conv.metadata?.isPinned) {
         grouped.pinned.push(conv);
       } else if (lastActivity >= today) {
         grouped.today.push(conv);
@@ -284,7 +273,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
     isActive?: boolean;
   }) => {
     const messages = conversationMessages[conversation.id] || [];
-    const urgentCount = messages.filter(msg => {
+    const urgentCount = messages.filter((msg: Message) => {
       if (!msg || !msg.id) {
         console.error('[EnhancedMessageHub] Invalid message in urgentCount filter:', msg);
         return false;
@@ -293,7 +282,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
       return analysis && (analysis.urgency === 'critical' || analysis.urgency === 'high');
     }).length;
 
-    const pendingCount = messages.filter(msg => {
+    const pendingCount = messages.filter((msg: Message) => {
       if (!msg || !msg.id) {
         console.error('[EnhancedMessageHub] Invalid message in pendingCount filter:', msg);
         return false;
@@ -305,7 +294,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
       );
     }).length;
 
-    const questionCount = messages.filter(msg => {
+    const questionCount = messages.filter((msg: Message) => {
       if (!msg || !msg.id) {
         console.error('[EnhancedMessageHub] Invalid message in questionCount filter:', msg);
         return false;
@@ -324,7 +313,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
             ? 'bg-blue-50 border-blue-200 shadow-sm'
             : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
         )}
-        onClick={() => setActiveConversation(conversation)}
+        onClick={() => setActiveConversation(conversation.id)}
       >
         <div className="flex gap-3">
           {/* Conversation Type Icon */}
@@ -364,7 +353,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
                     {questionCount} ?
                   </Badge>
                 )}
-                {conversation.isPinned && (
+                {conversation.metadata?.isPinned && (
                   <Star size={12} className="text-yellow-500 fill-current" />
                 )}
                 <span className="text-xs text-gray-500">
@@ -607,7 +596,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
                 {(['all', 'unread', 'urgent', 'pending', 'priority', 'mentions'] as FilterType[]).map(filter => (
                   <Button
                     key={filter}
-                    variant={filterType === filter ? "default" : "ghost"}
+                    variant={filterType === filter ? "primary" : "ghost"}
                     size="sm"
                     onClick={() => setFilterType(filter)}
                     className="text-xs capitalize"
@@ -691,8 +680,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
                 messageAnalyses={messageAnalyses}
                 currentUserId={user?.id || ''}
                 onConversationSelect={(id) => {
-                  const conv = conversations.find(c => c.id === id);
-                  if (conv) setActiveConversation(conv);
+                  setActiveConversation(id);
                   setViewMode('unified');
                 }}
                 onActionTrigger={handleActionTrigger}
@@ -776,8 +764,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
                   messageAnalyses={messageAnalyses}
                   currentUserId={user?.id || ''}
                   onConversationSelect={(id) => {
-                    const conv = conversations.find(c => c.id === id);
-                    if (conv) setActiveConversation(conv);
+                    setActiveConversation(id);
                   }}
                   onActionTrigger={handleActionTrigger}
                 />

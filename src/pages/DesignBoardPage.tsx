@@ -9,7 +9,7 @@ import * as React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
-import { Button, Card } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import {
@@ -20,7 +20,6 @@ import {
 } from '../services/designBoardsSocketService';
 import {
   ArrowLeft,
-  Plus,
   Type,
   Square,
   Image,
@@ -29,12 +28,7 @@ import {
   Unlock,
   ZoomIn,
   ZoomOut,
-  Move,
-  RotateCw,
-  Layers,
   Users,
-  Save,
-  MoreHorizontal,
 } from 'lucide-react';
 
 // Node type configurations
@@ -68,7 +62,7 @@ function BoardNodeComponent({
   isLockedByOther,
   onSelect,
   onUpdate,
-  onDelete,
+  onDelete: _onDelete,
   scale,
 }: {
   node: BoardNode;
@@ -308,7 +302,7 @@ export default function DesignBoardPage() {
   const [scale, setScale] = useState(1);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [_isSaving, _setIsSaving] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -367,7 +361,7 @@ export default function DesignBoardPage() {
     });
 
     const unsubCursorMoved = designBoardsSocketService.on('cursor:moved', (data: unknown) => {
-      const { userId, userEmail, x, y } = data as { userId: string; userEmail: string; x: number; y: number };
+      const { userId, userEmail: _userEmail, x, y } = data as { userId: string; userEmail: string; x: number; y: number };
       if (userId !== user.id) {
         setCollaborators(prev =>
           prev.map(u => u.userId === userId ? { ...u, cursor: { x, y } } : u)
@@ -550,7 +544,7 @@ export default function DesignBoardPage() {
   // Zoom controls
   const handleZoomIn = () => setScale(prev => Math.min(prev + 0.1, 2));
   const handleZoomOut = () => setScale(prev => Math.max(prev - 0.1, 0.5));
-  const handleZoomReset = () => setScale(1);
+  const _handleZoomReset = () => setScale(1);
 
   // Back navigation
   const handleBack = () => {

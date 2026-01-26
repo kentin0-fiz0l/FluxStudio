@@ -9,15 +9,11 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Plus,
-  Minus,
   Grid,
   Users,
   Trash2,
-  Copy,
   Download,
   Save,
-  Undo,
-  Redo,
   ZoomIn,
   ZoomOut,
   Move,
@@ -25,10 +21,6 @@ import {
   Layers,
   Eye,
   EyeOff,
-  Lock,
-  Unlock,
-  Settings,
-  MoreVertical,
 } from 'lucide-react';
 import { PerformerMarker } from './PerformerMarker';
 import { Timeline } from './Timeline';
@@ -36,9 +28,7 @@ import { ExportDialog } from './ExportDialog';
 import {
   formationService,
   Formation,
-  Performer,
   Position,
-  Keyframe,
   PlaybackState,
   FormationExportOptions,
 } from '../../services/formationService';
@@ -81,7 +71,7 @@ export function FormationCanvas({
   formationId,
   projectId,
   onSave,
-  onClose,
+  onClose: _onClose,
 }: FormationCanvasProps) {
   const { t } = useTranslation('common');
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -95,7 +85,7 @@ export function FormationCanvas({
   // UI state
   const [activeTool, setActiveTool] = useState<Tool>('select');
   const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [_pan, _setPan] = useState({ x: 0, y: 0 });
   const [showGrid, setShowGrid] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
   const [showRotation, setShowRotation] = useState(false);
@@ -112,7 +102,7 @@ export function FormationCanvas({
   });
 
   // History for undo/redo (simplified)
-  const [historyIndex, setHistoryIndex] = useState(0);
+  const [_historyIndex, _setHistoryIndex] = useState(0);
 
   // Initialize or load formation
   useEffect(() => {

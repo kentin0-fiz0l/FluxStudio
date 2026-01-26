@@ -17,7 +17,7 @@
  * />
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Hls from 'hls.js';
 import { Button } from '../ui/button';
 import { Slider } from '../ui/slider';
@@ -110,10 +110,10 @@ export function HLSVideoPlayer({
       hls.attachMedia(video);
 
       // HLS events
-      hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+      hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
         console.log('[HLS] Manifest loaded:', data.levels.length, 'quality levels');
 
-        const levels: QualityLevel[] = data.levels.map((level, index) => ({
+        const levels: QualityLevel[] = data.levels.map((level) => ({
           height: level.height,
           bitrate: level.bitrate,
           label: getLevelLabel(level.height),
@@ -123,12 +123,12 @@ export function HLSVideoPlayer({
         setIsLoading(false);
       });
 
-      hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+      hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
         console.log('[HLS] Quality switched to:', data.level);
         setCurrentQuality(data.level);
       });
 
-      hls.on(Hls.Events.ERROR, (event, data) => {
+      hls.on(Hls.Events.ERROR, (_event, data) => {
         console.error('[HLS] Error:', data);
 
         if (data.fatal) {

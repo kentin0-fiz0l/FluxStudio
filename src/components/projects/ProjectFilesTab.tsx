@@ -186,7 +186,7 @@ const PrintStatusBadge: React.FC<PrintStatusBadgeProps> = ({ status, progress })
     failed: {
       icon: <XCircle className="h-3 w-3" />,
       label: 'Failed',
-      variant: 'destructive' as const,
+      variant: 'error' as const,
     },
   };
 
@@ -383,7 +383,7 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
       onSuccess: () => {
         toast.success(`Deleted ${file.name}`);
       },
-      onError: (error) => {
+      onError: (error: Error) => {
         toast.error(`Failed to delete: ${error.message}`);
       },
     });
@@ -405,10 +405,10 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
       toast.info(`Uploading ${files.length} file(s)...`);
 
       uploadFiles.mutate(files, {
-        onSuccess: (data) => {
+        onSuccess: (data: { files: { length: number }[] }) => {
           toast.success(`Uploaded ${data.files.length} file(s) successfully`);
         },
-        onError: (error) => {
+        onError: (error: Error) => {
           toast.error(`Upload failed: ${error.message}`);
         },
       });

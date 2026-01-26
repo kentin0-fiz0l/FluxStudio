@@ -3,7 +3,7 @@
  * Visual query builder for complex message filtering
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -33,7 +33,6 @@ import {
   CardTitle,
 } from '../ui/card';
 import { cn } from '../../lib/utils';
-import { MessageType, Priority } from '../../types/messaging';
 
 type FilterOperator = 'equals' | 'contains' | 'startsWith' | 'endsWith' | 'greaterThan' | 'lessThan' | 'between';
 type FilterField = 'content' | 'author' | 'date' | 'type' | 'priority' | 'hasAttachments' | 'tags';
@@ -364,7 +363,7 @@ export function SmartFilterBuilder({
                     <CardTitle className="text-sm">Group {groupIndex + 1}</CardTitle>
                     {group.conditions.length > 1 && (
                       <Badge
-                        variant={group.operator === 'AND' ? 'default' : 'secondary'}
+                        variant={group.operator === 'AND' ? 'primary' : 'secondary'}
                         className="cursor-pointer text-xs"
                         onClick={() => toggleGroupOperator(group.id)}
                       >

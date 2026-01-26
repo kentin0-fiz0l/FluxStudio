@@ -3,7 +3,7 @@
  * Comprehensive tests for all messaging components and services
  */
 
-import React from 'react';
+// React import not needed with JSX transform
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { act } from 'react-dom/test-utils';
 import '@testing-library/jest-dom';
@@ -31,22 +31,41 @@ const mockUser: MessageUser = {
   name: 'Test User',
   email: 'test@example.com',
   avatar: 'https://example.com/avatar.jpg',
-  role: 'designer',
-  status: 'active'
+  userType: 'designer',
+  isOnline: true
 };
 
 const mockConversation: Conversation = {
   id: 'test-conv-1',
-  title: 'Test Conversation',
+  name: 'Test Conversation',
+  type: 'project',
   participants: [mockUser],
   lastMessage: {
+    id: 'last-msg-1',
+    conversationId: 'test-conv-1',
     content: 'Test message',
-    timestamp: new Date(),
-    author: mockUser
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    author: mockUser,
+    type: 'text',
+    status: 'sent',
+    isEdited: false
   },
   unreadCount: 0,
-  priority: 'medium',
-  tags: ['test'],
+  metadata: {
+    priority: 'medium',
+    tags: ['test'],
+    isArchived: false,
+    isMuted: false,
+    isPinned: false
+  },
+  lastActivity: new Date(),
+  permissions: {
+    canWrite: true,
+    canAddMembers: true,
+    canArchive: true,
+    canDelete: true
+  },
   createdAt: new Date(),
   updatedAt: new Date()
 };
@@ -59,7 +78,9 @@ const mockMessages: Message[] = [
     content: 'Test message content',
     createdAt: new Date(),
     updatedAt: new Date(),
-    status: 'sent'
+    status: 'sent',
+    type: 'text',
+    isEdited: false
   }
 ];
 

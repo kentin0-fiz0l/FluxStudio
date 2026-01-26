@@ -3,25 +3,17 @@
  * Combines messages, notifications, project updates into a single chronological feed
  */
 
-import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   MessageSquare,
   Bell,
   Star,
-  Users,
   Folder,
   CheckCircle,
-  AlertCircle,
   Calendar,
   FileText,
-  Image as ImageIcon,
-  Video,
-  Camera,
-  Clock,
-  TrendingUp,
   Activity,
-  Filter,
   Search,
   MoreHorizontal
 } from 'lucide-react';
@@ -29,10 +21,9 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Card, CardContent } from '../ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { cn } from '../../lib/utils';
-import { Message, Conversation, Notification, MessageUser } from '../../types/messaging';
+import { MessageUser } from '../../types/messaging';
 import { useMessaging } from '../../hooks/useMessaging';
 import { useNotifications } from '../../hooks/useNotifications';
 
@@ -58,7 +49,7 @@ type ActivityItem = {
   actions?: Array<{
     label: string;
     action: () => void;
-    variant?: 'default' | 'outline' | 'ghost';
+    variant?: 'primary' | 'outline' | 'ghost';
   }>;
 };
 
@@ -105,7 +96,7 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
     // Add notifications
     notifications.forEach(notif => {
       let activityType: ActivityItem['type'] = 'notification';
-      let icon = Bell;
+      const _icon = Bell;
 
       // Map notification types to activity types
       switch (notif.type) {
@@ -400,7 +391,7 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
             <Button
               key={filter}
               size="sm"
-              variant={timeFilter === filter ? "default" : "ghost"}
+              variant={timeFilter === filter ? "primary" : "ghost"}
               onClick={() => setTimeFilter(filter)}
               className="text-xs capitalize"
             >

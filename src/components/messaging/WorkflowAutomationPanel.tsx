@@ -3,30 +3,20 @@
  * Interface for managing automated workflows and triggers
  */
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Zap,
   Settings,
-  Play,
-  Pause,
   Plus,
-  Trash2,
-  Edit,
-  Clock,
   CheckCircle,
   AlertTriangle,
-  TrendingUp,
   BarChart3,
   Bot,
   Lightbulb,
   Timer,
   Target,
   MessageSquare,
-  Bell,
-  ChevronDown,
-  ChevronRight,
-  Eye,
   EyeOff
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -35,16 +25,13 @@ import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { Switch } from '../ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import {
   workflowAutomationService,
   WorkflowTrigger,
-  AutomationSuggestion,
-  WorkflowContext
+  AutomationSuggestion
 } from '../../services/workflowAutomationService';
 import { Message, Conversation, MessageUser } from '../../types/messaging';
+import { WorkflowContext } from '../../services/workflowEngine';
 
 interface WorkflowAutomationPanelProps {
   conversation: Conversation;
@@ -67,7 +54,7 @@ export function WorkflowAutomationPanel({
   const [activeTriggers, setActiveTriggers] = useState<WorkflowTrigger[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('suggestions');
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['suggestions']));
+  const [_expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['suggestions']));
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [analytics, setAnalytics] = useState<any>(null);
 
@@ -102,7 +89,7 @@ export function WorkflowAutomationPanel({
     }
   };
 
-  const toggleSection = (sectionId: string) => {
+  const _toggleSection = (sectionId: string) => {
     setExpandedSections(prev => {
       const newSet = new Set(prev);
       if (newSet.has(sectionId)) {
@@ -253,7 +240,7 @@ export function WorkflowAutomationPanel({
                       <p className="text-sm text-gray-500 mt-1">Continue conversing to generate suggestions</p>
                     </div>
                   ) : (
-                    suggestions.map((suggestion, index) => (
+                    suggestions.map((suggestion) => (
                       <Card key={suggestion.id} className="border border-gray-200">
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
@@ -457,7 +444,7 @@ export function WorkflowAutomationPanel({
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-2">
-                            {analytics.recentActivity.slice(0, 5).map((activity, index) => (
+                            {analytics.recentActivity.slice(0, 5).map((activity: { success: boolean; context: { triggerName?: string }; createdAt: Date }, index: number) => (
                               <div key={index} className="flex items-center justify-between text-xs">
                                 <div className="flex items-center space-x-2">
                                   {activity.success ?
@@ -469,7 +456,7 @@ export function WorkflowAutomationPanel({
                                   </span>
                                 </div>
                                 <span className="text-gray-500">
-                                  {new Date(activity.timestamp).toLocaleTimeString()}
+                                  {new Date(activity.createdAt).toLocaleTimeString()}
                                 </span>
                               </div>
                             ))}

@@ -5,7 +5,7 @@
  * Allows users to switch between supported languages
  */
 
-import React from 'react';
+// React import not needed with JSX transform
 import { useTranslation } from 'react-i18next';
 import {
   SUPPORTED_LANGUAGES,
@@ -47,7 +47,7 @@ export function LanguageSwitcher({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size={variant === 'icon' ? 'icon' : 'default'}
+          size={variant === 'icon' ? 'icon' : 'md'}
           className={cn('gap-2', className)}
           aria-label={t('language.select')}
         >

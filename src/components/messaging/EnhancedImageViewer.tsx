@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   ZoomIn,
   ZoomOut,
@@ -547,7 +547,7 @@ export function EnhancedImageViewer({
               <div className="flex items-center bg-gray-100 rounded-md p-0.5">
                 <Button
                   size="sm"
-                  variant={cursorMode === 'select' ? 'default' : 'ghost'}
+                  variant={cursorMode === 'select' ? 'primary' : 'ghost'}
                   onClick={() => setCursorMode('select')}
                   className="h-7 px-2"
                 >
@@ -555,7 +555,7 @@ export function EnhancedImageViewer({
                 </Button>
                 <Button
                   size="sm"
-                  variant={cursorMode === 'pan' ? 'default' : 'ghost'}
+                  variant={cursorMode === 'pan' ? 'primary' : 'ghost'}
                   onClick={() => setCursorMode('pan')}
                   className="h-7 px-2"
                 >
@@ -626,7 +626,7 @@ export function EnhancedImageViewer({
                 <TooltipTrigger asChild>
                   <Button
                     size="sm"
-                    variant={showGrid ? 'default' : 'ghost'}
+                    variant={showGrid ? 'primary' : 'ghost'}
                     onClick={() => setShowGrid(!showGrid)}
                     className="h-7 w-7 p-0"
                   >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell,
@@ -6,7 +6,6 @@ import {
   Check,
   CheckCheck,
   Trash2,
-  Filter,
   MessageSquare,
   Users,
   FileText,
@@ -15,11 +14,10 @@ import {
   Star,
   Settings
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { useSocket } from '../../contexts/SocketContext';
 import { cn } from '../../lib/utils';
 
@@ -90,21 +88,29 @@ export function NotificationCenter() {
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    socket.on('notification:new', (notification: Notification) => {
+    const handleNewNotification = (data: { id: string; type: string; title: string; message: string; timestamp: Date }) => {
+      const notification: Notification = {
+        ...data,
+        type: data.type as Notification['type'],
+        read: false,
+        priority: 'medium'
+      };
       setNotifications(prev => [notification, ...prev]);
 
       // Show browser notification if permission granted
-      if (Notification.permission === 'granted' && !document.hasFocus()) {
-        new Notification(notification.title, {
+      if (window.Notification?.permission === 'granted' && !document.hasFocus()) {
+        new window.Notification(notification.title, {
           body: notification.message,
           icon: '/icons/icon-192x192.png',
           badge: '/icons/icon-72x72.png'
         });
       }
-    });
+    };
+
+    socket.on('notification:new', handleNewNotification);
 
     return () => {
-      socket.off('notification:new');
+      socket.off('notification:new', handleNewNotification);
     };
   }, [socket, isConnected]);
 
@@ -203,7 +209,7 @@ export function NotificationCenter() {
           {unreadCount > 0 && (
             <Badge
               className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center"
-              variant="destructive"
+              variant="error"
             >
               {unreadCount > 9 ? '9+' : unreadCount}
             </Badge>

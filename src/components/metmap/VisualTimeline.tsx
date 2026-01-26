@@ -5,7 +5,7 @@
  * Displays section names, bar counts, and tempo ramps.
  */
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Section } from '../../contexts/MetMapContext';
 
 interface VisualTimelineProps {

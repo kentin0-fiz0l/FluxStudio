@@ -25,6 +25,10 @@ const typeIcons: Record<NotificationType, React.ReactNode> = {
   reply: <MessageSquare className="h-5 w-5" />,
   thread_reply: <MessageSquare className="h-5 w-5" />,
   file_shared: <Briefcase className="h-5 w-5" />,
+  decision: <AlertCircle className="h-5 w-5" />,
+  blocker: <AlertCircle className="h-5 w-5" />,
+  assignment: <Briefcase className="h-5 w-5" />,
+  file_change: <Briefcase className="h-5 w-5" />,
   // Legacy types
   message_mention: <MessageSquare className="h-5 w-5" />,
   message_reply: <MessageSquare className="h-5 w-5" />,
@@ -33,6 +37,8 @@ const typeIcons: Record<NotificationType, React.ReactNode> = {
   project_file_uploaded: <Briefcase className="h-5 w-5" />,
   organization_alert: <Building2 className="h-5 w-5" />,
   system: <AlertCircle className="h-5 w-5" />,
+  // Toast types
+  success: <Info className="h-5 w-5" />,
   info: <Info className="h-5 w-5" />,
   warning: <AlertTriangle className="h-5 w-5" />,
   error: <XCircle className="h-5 w-5" />,
@@ -45,6 +51,10 @@ const typeColors: Record<NotificationType, { bg: string; icon: string; border: s
   reply: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-200' },
   thread_reply: { bg: 'bg-indigo-50', icon: 'text-indigo-600', border: 'border-indigo-200' },
   file_shared: { bg: 'bg-green-50', icon: 'text-green-600', border: 'border-green-200' },
+  decision: { bg: 'bg-orange-50', icon: 'text-orange-600', border: 'border-orange-200' },
+  blocker: { bg: 'bg-red-50', icon: 'text-red-600', border: 'border-red-200' },
+  assignment: { bg: 'bg-cyan-50', icon: 'text-cyan-600', border: 'border-cyan-200' },
+  file_change: { bg: 'bg-teal-50', icon: 'text-teal-600', border: 'border-teal-200' },
   // Legacy types
   message_mention: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-200' },
   message_reply: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-200' },
@@ -53,6 +63,8 @@ const typeColors: Record<NotificationType, { bg: string; icon: string; border: s
   project_file_uploaded: { bg: 'bg-indigo-50', icon: 'text-indigo-600', border: 'border-indigo-200' },
   organization_alert: { bg: 'bg-orange-50', icon: 'text-orange-600', border: 'border-orange-200' },
   system: { bg: 'bg-neutral-50', icon: 'text-neutral-600', border: 'border-neutral-200' },
+  // Toast types
+  success: { bg: 'bg-green-50', icon: 'text-green-600', border: 'border-green-200' },
   info: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-200' },
   warning: { bg: 'bg-amber-50', icon: 'text-amber-600', border: 'border-amber-200' },
   error: { bg: 'bg-red-50', icon: 'text-red-600', border: 'border-red-200' },

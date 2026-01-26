@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Plus, Smile, Paperclip, Image, Mic, MoreVertical, Reply } from 'lucide-react';
+import { Send, Smile, Paperclip, Image, Mic, MoreVertical, Reply } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -247,7 +247,7 @@ export function MessageInterface({ conversation, currentUser, className }: Messa
 
         <div className="flex items-center gap-2">
           {conversation.metadata.priority !== 'medium' && (
-            <Badge variant={conversation.metadata.priority === 'high' ? 'destructive' : 'secondary'}>
+            <Badge variant={conversation.metadata.priority === 'high' ? 'error' : 'secondary'}>
               {conversation.metadata.priority}
             </Badge>
           )}

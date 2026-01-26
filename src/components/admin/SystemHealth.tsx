@@ -4,7 +4,7 @@
  * Displays system health status including API, database, cache, and other services.
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Server,

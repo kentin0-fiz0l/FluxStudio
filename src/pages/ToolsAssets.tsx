@@ -16,7 +16,7 @@
 import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DashboardLayout from '../components/layout/DashboardLayout';
+import DashboardLayout from '../components/templates/DashboardLayout';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/apiService';
@@ -479,7 +479,7 @@ export default function ToolsAssets() {
       }
     } catch (error) {
       console.error('Error loading assets:', error);
-      showNotification({ type: 'error', message: 'Failed to load assets' });
+      showNotification({ type: 'error', title: 'Failed to load assets' });
     } finally {
       setLoading(false);
     }
@@ -534,13 +534,13 @@ export default function ToolsAssets() {
     try {
       const response = await apiService.patch(`/api/assets/${selectedAsset.id}`, updates);
       if (response.data.success) {
-        showNotification({ type: 'success', message: 'Asset updated' });
+        showNotification({ type: 'success', title: 'Asset updated' });
         loadAssetDetail(selectedAsset.id);
         loadAssets();
       }
     } catch (error) {
       console.error('Error updating asset:', error);
-      showNotification({ type: 'error', message: 'Failed to update asset' });
+      showNotification({ type: 'error', title: 'Failed to update asset' });
     }
   };
 
@@ -550,13 +550,13 @@ export default function ToolsAssets() {
     try {
       const response = await apiService.post(`/api/assets/${selectedAsset.id}/primary`, { versionId });
       if (response.data.success) {
-        showNotification({ type: 'success', message: 'Primary version updated' });
+        showNotification({ type: 'success', title: 'Primary version updated' });
         loadAssetDetail(selectedAsset.id);
         loadAssets();
       }
     } catch (error) {
       console.error('Error setting primary version:', error);
-      showNotification({ type: 'error', message: 'Failed to set primary version' });
+      showNotification({ type: 'error', title: 'Failed to set primary version' });
     }
   };
 

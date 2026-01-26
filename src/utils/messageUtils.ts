@@ -201,7 +201,7 @@ export function getOtherParticipants(conversation: Conversation, currentUser: Me
  * Generate conversation title from participants
  */
 export function generateConversationTitle(conversation: Conversation, currentUser: MessageUser): string {
-  if (conversation.title) return conversation.title;
+  if (conversation.name) return conversation.name;
 
   const others = getOtherParticipants(conversation, currentUser);
 
@@ -240,7 +240,7 @@ export function calculateActivityScore(messages: Message[]): number {
 export function isActiveConversation(conversation: Conversation): boolean {
   if (!conversation.lastMessage) return false;
 
-  const lastMessageTime = new Date(conversation.lastMessage.timestamp);
+  const lastMessageTime = new Date(conversation.lastMessage.createdAt);
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   return lastMessageTime > oneDayAgo;
@@ -256,8 +256,8 @@ export function sortConversationsByActivity(conversations: Conversation[]): Conv
     if (b.unreadCount > 0 && a.unreadCount === 0) return 1;
 
     // Then by last message time
-    const aTime = a.lastMessage ? new Date(a.lastMessage.timestamp).getTime() : 0;
-    const bTime = b.lastMessage ? new Date(b.lastMessage.timestamp).getTime() : 0;
+    const aTime = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
+    const bTime = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
 
     return bTime - aTime;
   });

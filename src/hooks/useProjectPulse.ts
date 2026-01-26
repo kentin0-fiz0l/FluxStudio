@@ -162,12 +162,12 @@ export function useProjectPulse(): UseProjectPulseReturn {
     if (tasks) {
       tasks
         .filter(
-          (task) =>
-            task.assigneeId === user.id &&
+          (task: Task) =>
+            task.assignedTo === user.id &&
             task.status !== 'done' &&
             task.status !== 'completed'
         )
-        .forEach((task) => {
+        .forEach((task: Task) => {
           items.push({
             id: `task-${task.id}`,
             type: 'assigned_task',

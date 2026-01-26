@@ -5,7 +5,7 @@
  * and the component calculates the average tempo.
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 interface TapTempoProps {
   onTempoDetected: (bpm: number) => void;

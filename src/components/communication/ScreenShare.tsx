@@ -14,7 +14,6 @@ import {
   Users,
   X,
   MessageSquare,
-  Settings,
   Hand,
   MousePointer,
   PenTool,

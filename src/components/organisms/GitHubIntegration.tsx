@@ -3,7 +3,7 @@
  * GitHub-specific integration with repository linking and issue sync
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Github, GitBranch, GitPullRequest, GitCommit, Star, GitFork, AlertCircle } from 'lucide-react';
 import { IntegrationCard } from './IntegrationCard';
 import { Button } from '@/components/ui/button';

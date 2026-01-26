@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Smile, Paperclip, Reply, Edit2, Trash2, MoreVertical, Hash, Check, CheckCheck } from 'lucide-react';
+import { Send, Smile, Paperclip, Edit2, Trash2, Hash } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -39,7 +39,7 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({
-  channelId,
+  channelId: _channelId,
   channelName,
   messages,
   onSendMessage,
@@ -51,7 +51,8 @@ export function ChatInterface({
   const { user, token } = useAuth();
   const [message, setMessage] = useState('');
   const [editingMessage, setEditingMessage] = useState<{ id: string; text: string } | null>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
+  // Emoji picker state - reserved for future implementation
+  // const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);

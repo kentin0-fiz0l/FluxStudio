@@ -1,4 +1,4 @@
-import React from 'react';
+// React import not needed with JSX transform
 import { DashboardShell } from '../components/DashboardShell';
 import { RealTimeMetrics } from '../components/dashboard/RealTimeMetrics';
 import { NotificationCenter } from '../components/dashboard/NotificationCenter';

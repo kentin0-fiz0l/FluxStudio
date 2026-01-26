@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Pencil, Square, Circle, ArrowRight, Type, Palette, Save, X, Trash2 } from 'lucide-react';
+import { Pencil, Square, Circle, ArrowRight, Type, Palette, Save, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -290,7 +290,7 @@ export function ImageAnnotationTool({
             {annotationTools.map(tool => (
               <Button
                 key={tool.type}
-                variant={selectedTool === tool.type ? 'default' : 'outline'}
+                variant={selectedTool === tool.type ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedTool(tool.type)}
               >

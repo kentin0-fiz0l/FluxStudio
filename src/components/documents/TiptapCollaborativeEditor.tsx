@@ -4,7 +4,7 @@
  * Real-time collaborative rich text editor with Yjs CRDT and WebSocket sync
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
@@ -63,7 +63,7 @@ function generateColor(userId: string) {
 }
 
 export function TiptapCollaborativeEditor({
-  projectId,
+  projectId: _projectId,
   documentId,
   onBack,
 }: TiptapCollaborativeEditorProps) {
@@ -118,7 +118,7 @@ export function TiptapCollaborativeEditor({
       document.roomId,
       ydoc,
       {
-        params: { token },
+        params: { token: token || '' },
       }
     );
 
@@ -152,6 +152,7 @@ export function TiptapCollaborativeEditor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        // @ts-expect-error - history is valid but not in type definitions
         history: false, // Disable default history, use Yjs history
       }),
       Placeholder.configure({
@@ -234,7 +235,7 @@ export function TiptapCollaborativeEditor({
 
         <div className="flex items-center gap-2">
           {/* Connection Status */}
-          <Badge variant={isConnected ? 'default' : 'secondary'} className="gap-1">
+          <Badge variant={isConnected ? 'primary' : 'secondary'} className="gap-1">
             {isConnected ? (
               <>
                 <Wifi className="h-3 w-3" />

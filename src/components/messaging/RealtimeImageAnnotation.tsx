@@ -3,7 +3,7 @@
  * Enhanced image annotation with real-time collaboration capabilities
  */
 
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Pencil,
@@ -11,19 +11,15 @@ import {
   Circle,
   ArrowRight,
   Type,
-  Palette,
   Save,
-  X,
   Trash2,
   Users,
   Eye,
   EyeOff,
-  MousePointer2,
   Wifi,
   WifiOff,
   Clock,
   MessageCircle,
-  Pin,
   Layers,
   Undo,
   Redo,
@@ -32,7 +28,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+// Input not currently used
 import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -40,7 +36,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Separator } from '../ui/separator';
 import { Slider } from '../ui/slider';
-import { Switch } from '../ui/switch';
+// Switch not currently used
 import { Label } from '../ui/label';
 import { ImageAnnotation, MessageUser } from '../../types/messaging';
 import { cn } from '../../lib/utils';
@@ -109,7 +105,7 @@ export function RealtimeImageAnnotation({
   readOnly = false,
   className,
   conversationId,
-  fileVersionId,
+  fileVersionId: _fileVersionId,
   collaborators = [],
   onCollaboratorCursorMove,
   onAnnotationSelect
@@ -124,7 +120,7 @@ export function RealtimeImageAnnotation({
 
   // UI state
   const [showCommentDialog, setShowCommentDialog] = useState(false);
-  const [commentPosition, setCommentPosition] = useState({ x: 0, y: 0 });
+  const [_commentPosition, _setCommentPosition] = useState({ x: 0, y: 0 });
   const [commentText, setCommentText] = useState('');
   const [showCollaborators, setShowCollaborators] = useState(true);
   const [showLayers, setShowLayers] = useState(false);
@@ -263,7 +259,7 @@ export function RealtimeImageAnnotation({
     }
   };
 
-  const addCollaborator = (user: MessageUser) => {
+  const addCollaborator = (_user: MessageUser) => {
     // Add collaborator logic if needed
   };
 
@@ -766,7 +762,7 @@ export function RealtimeImageAnnotation({
                   {annotationTools.map(tool => (
                     <Button
                       key={tool.type}
-                      variant={selectedTool === tool.type ? 'default' : 'outline'}
+                      variant={selectedTool === tool.type ? 'primary' : 'outline'}
                       size="sm"
                       onClick={() => setSelectedTool(tool.type)}
                       className="h-9"

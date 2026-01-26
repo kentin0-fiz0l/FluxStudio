@@ -54,6 +54,8 @@ interface UseMessagingReturn {
   // Actions
   createConversation: (options: CreateConversationOptions) => Promise<string>;
   sendMessage: (conversationId: string, options: SendMessageOptions) => Promise<void>;
+  editMessage: (messageId: string, content: string) => Promise<void>;
+  deleteMessage: (messageId: string) => Promise<void>;
   setActiveConversation: (conversationId: string | null) => void;
   joinConversation: (conversationId: string) => void;
   leaveConversation: (conversationId: string) => void;
@@ -75,6 +77,9 @@ interface UseMessagingReturn {
   error: string | null;
   lastUpdated: Date | null;
   refresh: () => Promise<void>;
+
+  // Unread counts
+  unreadCount: number;
 }
 
 export function useMessaging(): UseMessagingReturn {
@@ -152,23 +157,23 @@ export function useMessaging(): UseMessagingReturn {
     }
   };
 
-  const joinConversation = (conversationId: string) => {
+  const joinConversation = (_conversationId: string) => {
     // Implementation handled by messaging service
   };
 
-  const leaveConversation = (conversationId: string) => {
+  const leaveConversation = (_conversationId: string) => {
     // Implementation handled by messaging service
   };
 
-  const addParticipant = (conversationId: string, userId: string) => {
+  const addParticipant = (_conversationId: string, _userId: string) => {
     // Would call messaging service to add participant
   };
 
-  const removeParticipant = (conversationId: string, userId: string) => {
+  const removeParticipant = (_conversationId: string, _userId: string) => {
     // Would call messaging service to remove participant
   };
 
-  const searchMessages = (options: MessageSearchOptions): Message[] => {
+  const searchMessages = (_options: MessageSearchOptions): Message[] => {
     // For now, return empty array - would implement search
     return [];
   };
@@ -216,7 +221,7 @@ export function useMessaging(): UseMessagingReturn {
     }
   };
 
-  const uploadFile = async (file: File, conversationId: string): Promise<MessageAttachment> => {
+  const uploadFile = async (file: File, _conversationId: string): Promise<MessageAttachment> => {
     // Mock implementation - would upload file and return attachment
     return {
       id: `file-${Date.now()}`,
@@ -244,6 +249,16 @@ export function useMessaging(): UseMessagingReturn {
     await actions.loadNotifications();
   };
 
+  const editMessage = async (_messageId: string, _content: string): Promise<void> => {
+    // TODO: Implement message editing via API
+    console.log('Edit message:', _messageId, _content);
+  };
+
+  const deleteMessage = async (_messageId: string): Promise<void> => {
+    // TODO: Implement message deletion via API
+    console.log('Delete message:', _messageId);
+  };
+
   return {
     // Conversations
     conversations: state.conversations,
@@ -257,6 +272,8 @@ export function useMessaging(): UseMessagingReturn {
     // Actions
     createConversation,
     sendMessage,
+    editMessage,
+    deleteMessage,
     setActiveConversation,
     joinConversation,
     leaveConversation,
@@ -278,6 +295,9 @@ export function useMessaging(): UseMessagingReturn {
     error: null,
     lastUpdated: new Date(),
     refresh,
+
+    // Unread counts
+    unreadCount: state.unreadCounts?.messages || 0,
   };
 }
 

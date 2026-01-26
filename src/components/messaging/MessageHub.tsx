@@ -3,39 +3,32 @@
  * Central communication hub optimized for design workflow collaboration
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   MessageSquare,
   Users,
   Folder,
   Bell,
   Search,
-  Filter,
   Plus,
-  Zap,
-  Eye,
   Clock,
   Star,
   Archive,
-  Settings,
   Palette,
   FileImage,
-  MessageCircle,
-  Activity
+  MessageCircle
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Conversation, ConversationType, Message, MessageUser, Priority } from '../../types/messaging';
+import { Conversation, ConversationType, MessageUser, Priority } from '../../types/messaging';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessaging } from '../../hooks/useMessaging';
 import { cn } from '../../lib/utils';
 import { VisualMessageThread } from './VisualMessageThread';
-import { SmartComposer } from './SmartComposer';
+// SmartComposer not currently used in this component
 import { ContextualSidebar } from './ContextualSidebar';
 import { QuickActionPanel } from './QuickActionPanel';
 import { ActivityFeed } from './ActivityFeed';
@@ -56,7 +49,7 @@ export function MessageHub({ className }: MessageHubProps) {
     conversationMessages,
     setActiveConversation,
     filterConversations,
-    isLoading
+    isLoading: _isLoading
   } = useMessaging();
 
   const [viewMode, setViewMode] = useState<ViewMode>('unified');
@@ -66,7 +59,7 @@ export function MessageHub({ className }: MessageHubProps) {
 
   // Smart context detection - group conversations by context
   const contextualConversations = useMemo(() => {
-    const filtered = conversations.filter(conv => {
+    const _filtered = conversations.filter(conv => {
       // Apply search filter
       if (searchQuery) {
         const searchLower = searchQuery.toLowerCase();
@@ -342,7 +335,7 @@ export function MessageHub({ className }: MessageHubProps) {
                 {(['all', 'unread', 'priority', 'mentions'] as FilterType[]).map(filter => (
                   <Button
                     key={filter}
-                    variant={filterType === filter ? "default" : "ghost"}
+                    variant={filterType === filter ? "primary" : "ghost"}
                     size="sm"
                     onClick={() => setFilterType(filter)}
                     className="text-xs capitalize"

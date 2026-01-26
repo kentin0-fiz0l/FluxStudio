@@ -3,7 +3,7 @@
  * Complete implementation showing all features working together
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageHub } from '../components/messaging/MessageHub';
 import { aiDesignFeedbackService } from '../services/aiDesignFeedbackService';
 import { aiContentGenerationService } from '../services/aiContentGenerationService';
@@ -23,15 +23,16 @@ export function MessageSystemIntegration() {
     name: 'John Designer',
     email: 'john@fluxstudio.com',
     avatar: 'https://api.dicebear.com/7.x/avatars/svg?seed=john',
-    role: 'designer',
-    status: 'active'
+    userType: 'designer',
+    isOnline: true
   };
 
   // Sample conversations
   const [conversations, setConversations] = useState<Conversation[]>([
     {
       id: 'conv-1',
-      title: 'Website Redesign Project',
+      name: 'Website Redesign Project',
+      type: 'project',
       participants: [
         currentUser,
         {
@@ -39,29 +40,44 @@ export function MessageSystemIntegration() {
           name: 'Sarah Client',
           email: 'sarah@client.com',
           avatar: 'https://api.dicebear.com/7.x/avatars/svg?seed=sarah',
-          role: 'client',
-          status: 'active'
+          userType: 'client',
+          isOnline: true
         }
       ],
       lastMessage: {
+        id: 'msg-1',
+        conversationId: 'conv-1',
         content: 'Let me analyze the latest design mockup for you.',
-        timestamp: new Date(),
-        author: currentUser
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        author: currentUser,
+        type: 'text',
+        status: 'sent',
+        isEdited: false
       },
       unreadCount: 0,
-      priority: 'high',
-      tags: ['design', 'website', 'urgent'],
-      projectInfo: {
-        name: 'Corporate Website',
-        deadline: new Date('2024-12-31'),
-        progress: 0.65
+      metadata: {
+        priority: 'high',
+        tags: ['design', 'website', 'urgent'],
+        isArchived: false,
+        isMuted: false,
+        isPinned: false
       },
+      lastActivity: new Date(),
+      permissions: {
+        canWrite: true,
+        canAddMembers: true,
+        canArchive: true,
+        canDelete: true
+      },
+      projectId: 'proj-1',
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date()
     },
     {
       id: 'conv-2',
-      title: 'Brand Identity Discussion',
+      name: 'Brand Identity Discussion',
+      type: 'team',
       participants: [
         currentUser,
         {
@@ -69,23 +85,42 @@ export function MessageSystemIntegration() {
           name: 'Mike Developer',
           email: 'mike@fluxstudio.com',
           avatar: 'https://api.dicebear.com/7.x/avatars/svg?seed=mike',
-          role: 'developer',
-          status: 'active'
+          userType: 'designer',
+          isOnline: true
         }
       ],
       lastMessage: {
+        id: 'msg-2',
+        conversationId: 'conv-2',
         content: 'The color palette looks great! Let me implement it.',
-        timestamp: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
         author: {
           id: 'user-3',
           name: 'Mike Developer',
           email: 'mike@fluxstudio.com',
-          avatar: 'https://api.dicebear.com/7.x/avatars/svg?seed=mike'
-        }
+          avatar: 'https://api.dicebear.com/7.x/avatars/svg?seed=mike',
+          userType: 'designer'
+        },
+        type: 'text',
+        status: 'sent',
+        isEdited: false
       },
       unreadCount: 2,
-      priority: 'medium',
-      tags: ['branding', 'colors', 'identity'],
+      metadata: {
+        priority: 'medium',
+        tags: ['branding', 'colors', 'identity'],
+        isArchived: false,
+        isMuted: false,
+        isPinned: false
+      },
+      lastActivity: new Date(),
+      permissions: {
+        canWrite: true,
+        canAddMembers: true,
+        canArchive: true,
+        canDelete: true
+      },
       createdAt: new Date('2024-01-15'),
       updatedAt: new Date()
     }
@@ -358,7 +393,9 @@ export function MessageSystemIntegration() {
         content: 'Great work! I really like the color scheme. Can we make the header slightly larger?',
         createdAt: new Date('2024-10-01T09:30:00'),
         updatedAt: new Date('2024-10-01T09:30:00'),
-        status: 'read'
+        status: 'read',
+        type: 'text',
+        isEdited: false
       },
       {
         id: 'msg-3',
@@ -368,7 +405,9 @@ export function MessageSystemIntegration() {
         createdAt: new Date('2024-10-01T10:00:00'),
         updatedAt: new Date('2024-10-01T10:00:00'),
         status: 'sent',
-        priority: 'high'
+        type: 'text',
+        isEdited: false,
+        metadata: { priority: 'high' }
       },
       {
         id: 'msg-4',
@@ -377,7 +416,9 @@ export function MessageSystemIntegration() {
         content: 'Perfect! Let\'s schedule a review meeting for Wednesday to go over the final changes.',
         createdAt: new Date('2024-10-01T10:30:00'),
         updatedAt: new Date('2024-10-01T10:30:00'),
-        status: 'delivered'
+        status: 'delivered',
+        type: 'text',
+        isEdited: false
       },
       {
         id: 'msg-5',
@@ -386,7 +427,9 @@ export function MessageSystemIntegration() {
         content: 'Wednesday works for me. I\'ll send out calendar invites. Should we include the development team?',
         createdAt: new Date('2024-10-01T11:00:00'),
         updatedAt: new Date('2024-10-01T11:00:00'),
-        status: 'sending'
+        status: 'sending',
+        type: 'text',
+        isEdited: false
       }
     ];
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -546,8 +546,8 @@ export function EnhancedFileUpload({
                   <div className="text-sm">
                     <span className="text-gray-600">Dimensions:</span>{' '}
                     <span className="font-medium">
-                      {selectedFile.analysis.imageAnalysis.width} ×{' '}
-                      {selectedFile.analysis.imageAnalysis.height}
+                      {selectedFile.analysis.imageAnalysis.dimensions.width} ×{' '}
+                      {selectedFile.analysis.imageAnalysis.dimensions.height}
                     </span>
                   </div>
                   {selectedFile.analysis.imageAnalysis.dominantColors && (
@@ -595,7 +595,7 @@ export function EnhancedFileUpload({
                             ? 'default'
                             : selectedFile.analysis.textAnalysis.sentiment ===
                               'negative'
-                            ? 'destructive'
+                            ? 'error'
                             : 'secondary'
                         }
                         className="ml-2"

@@ -5,9 +5,10 @@
  * Main dashboard with security metrics, charts, and system health
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAdminApi } from '../hooks/useAdminAuth';
-import { Line, Bar, Pie } from 'react-chartjs-2';
+// Line chart import - uncomment when needed
+// import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -60,11 +61,11 @@ export function Dashboard() {
     systemHealth: 'healthy',
   });
   const [recentEvents, setRecentEvents] = useState<SecurityEvent[]>([]);
-  const [performanceData, setPerformanceData] = useState<any>(null);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  const [performanceData, setPerformanceData] = useState<{
+    requests?: { total: number; errorRate?: number };
+    latency?: { avg?: number; p95?: number };
+    system?: { currentMemory: number; currentCpu?: number };
+  } | null>(null);
 
   const loadDashboardData = async () => {
     try {
@@ -94,6 +95,10 @@ export function Dashboard() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [apiRequest]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity?.toUpperCase()) {

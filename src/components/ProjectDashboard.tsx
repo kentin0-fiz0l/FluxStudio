@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { EnoBackground } from './EnoBackground';
 import { MobileOptimizedHeader } from './MobileOptimizedHeader';
 import { OrganizationBreadcrumb } from './OrganizationBreadcrumb';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
@@ -16,27 +16,20 @@ import {
   Video,
   Music,
   Archive,
-  Plus,
   Search,
   Settings,
   Download,
-  Share,
-  Star,
-  Calendar,
   User,
   Users,
   Clock,
   Activity,
   Upload,
-  Filter,
   Grid3X3,
   List,
   MoreVertical,
-  Edit,
-  Trash2,
   Eye
 } from 'lucide-react';
-import { Project, ProjectFile, ProjectStats } from '../types/organization';
+import { ProjectStats } from '../types/organization';
 
 interface ProjectDashboardProps {
   projectId?: string;
@@ -44,19 +37,19 @@ interface ProjectDashboardProps {
 
 export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const {
     currentProject,
-    currentTeam,
-    currentOrganization,
+    currentTeam: _currentTeam,
+    currentOrganization: _currentOrganization,
     files,
-    isLoading,
+    isLoading: _isLoading,
     isLoadingFiles,
     navigateTo,
-    fetchFiles,
+    fetchFiles: _fetchFiles,
     uploadFile,
-    updateFile,
-    deleteFile,
+    updateFile: _updateFile,
+    deleteFile: _deleteFile,
     getProjectStats,
     getProjectMembers
   } = useOrganization();
@@ -66,7 +59,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
   const [filterType, setFilterType] = useState<'all' | 'design' | 'reference' | 'final' | 'feedback'>('all');
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [members, setMembers] = useState<any[]>([]);
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [_selectedFiles, _setSelectedFiles] = useState<string[]>([]);
 
   // Initialize project if provided
   useEffect(() => {
@@ -268,7 +261,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
 
                 <div className="flex items-center gap-2">
                   <Button
-                    variant={filterType === 'all' ? 'default' : 'ghost'}
+                    variant={filterType === 'all' ? 'primary' : 'ghost'}
                     size="sm"
                     onClick={() => setFilterType('all')}
                     className="text-white"
@@ -276,7 +269,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                     All
                   </Button>
                   <Button
-                    variant={filterType === 'design' ? 'default' : 'ghost'}
+                    variant={filterType === 'design' ? 'primary' : 'ghost'}
                     size="sm"
                     onClick={() => setFilterType('design')}
                     className="text-white"
@@ -284,7 +277,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                     Design
                   </Button>
                   <Button
-                    variant={filterType === 'reference' ? 'default' : 'ghost'}
+                    variant={filterType === 'reference' ? 'primary' : 'ghost'}
                     size="sm"
                     onClick={() => setFilterType('reference')}
                     className="text-white"
@@ -292,7 +285,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                     Reference
                   </Button>
                   <Button
-                    variant={filterType === 'final' ? 'default' : 'ghost'}
+                    variant={filterType === 'final' ? 'primary' : 'ghost'}
                     size="sm"
                     onClick={() => setFilterType('final')}
                     className="text-white"
@@ -303,7 +296,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                   <div className="w-px h-6 bg-white/20 mx-2" />
 
                   <Button
-                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                    variant={viewMode === 'grid' ? 'primary' : 'ghost'}
                     size="sm"
                     onClick={() => setViewMode('grid')}
                     className="p-2"
@@ -311,7 +304,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                     <Grid3X3 className="h-4 w-4" />
                   </Button>
                   <Button
-                    variant={viewMode === 'list' ? 'default' : 'ghost'}
+                    variant={viewMode === 'list' ? 'primary' : 'ghost'}
                     size="sm"
                     onClick={() => setViewMode('list')}
                     className="p-2"

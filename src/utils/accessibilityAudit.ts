@@ -31,7 +31,7 @@ function checkImageAltText(): AccessibilityIssue[] {
   const issues: AccessibilityIssue[] = [];
   const images = document.querySelectorAll('img');
 
-  images.forEach((img, index) => {
+  images.forEach((img) => {
     if (!img.hasAttribute('alt')) {
       issues.push({
         severity: 'critical',

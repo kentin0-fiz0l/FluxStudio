@@ -90,7 +90,7 @@ export function SearchResults() {
 
   // Close dropdowns when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = () => {
       setShowHistoryDropdown(false);
       setShowSortDropdown(false);
     };

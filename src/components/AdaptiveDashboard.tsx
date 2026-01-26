@@ -3,7 +3,7 @@
  * Single dashboard that adapts to user role, context, and current workflow
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
@@ -26,15 +26,12 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Sparkles,
   TrendingUp,
-  Users,
   MessageSquare,
   Folder,
-  Clock,
   ArrowRight,
   Plus,
   Zap,
   Target,
-  Activity,
   Puzzle,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -73,7 +70,8 @@ export function AdaptiveDashboard() {
   }, [projects, conversations, files, updateData]);
 
   // Adaptive layout based on current context and user role
-  const getDashboardLayout = () => {
+   
+  const _getDashboardLayout = () => {
     const baseWidgets = [
       'search',
       'quick-actions',
@@ -93,19 +91,19 @@ export function AdaptiveDashboard() {
       organization: ['org-overview', 'teams', 'projects', 'members']
     };
 
-    let widgets = [...baseWidgets];
+    const allWidgets = [...baseWidgets];
 
     // Add role-specific widgets
-    if (user?.userType && roleSpecificWidgets[user.userType]) {
-      widgets.push(...roleSpecificWidgets[user.userType]);
+    if (user?.userType && roleSpecificWidgets[user.userType as keyof typeof roleSpecificWidgets]) {
+      allWidgets.push(...roleSpecificWidgets[user.userType as keyof typeof roleSpecificWidgets]);
     }
 
     // Add context-specific widgets
-    if (contextSpecificWidgets[state.currentContext]) {
-      widgets.push(...contextSpecificWidgets[state.currentContext]);
+    if (contextSpecificWidgets[state.currentContext as keyof typeof contextSpecificWidgets]) {
+      allWidgets.push(...contextSpecificWidgets[state.currentContext as keyof typeof contextSpecificWidgets]);
     }
 
-    return widgets;
+    return allWidgets;
   };
 
   const getWelcomeMessage = () => {
@@ -582,11 +580,7 @@ export function AdaptiveDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <DraggableWidgetGrid
-              availableWidgets={getDashboardLayout()}
-              context={state.currentContext}
-              userRole={user?.userType || 'client'}
-            />
+            <DraggableWidgetGrid />
           </CardContent>
         </Card>
 

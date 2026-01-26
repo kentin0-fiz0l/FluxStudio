@@ -3,8 +3,8 @@
  * Integrates messaging system with existing project and user management
  */
 
-import React, { useEffect, useState } from 'react';
-import { MessageCircle, Users, Bell, Plus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { MessageCircle, Bell, Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';

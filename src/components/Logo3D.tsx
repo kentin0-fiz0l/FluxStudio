@@ -1,4 +1,4 @@
-import React from 'react';
+// React import not needed with JSX transform
 
 interface Logo3DProps {
   variant?: 'light' | 'dark';
@@ -12,7 +12,7 @@ export function Logo3D({ variant = 'dark' }: Logo3DProps) {
     <div className="flex flex-col items-center space-y-1 sm:space-y-2" style={{ perspective: '800px' }}>
       {/* FLUX */}
       <div className="flex text-6xl justify-center" style={{ perspective: '1000px' }}>
-        {['F', 'L', 'U', 'X'].map((letter, index) => (
+        {['F', 'L', 'U', 'X'].map((letter) => (
           <div
             key={`flux-${letter}`}
             className="relative inline-block"
@@ -63,7 +63,7 @@ export function Logo3D({ variant = 'dark' }: Logo3DProps) {
 
       {/* STUDIO */}
       <div className="flex text-4xl justify-center">
-        {['S', 'T', 'U', 'D', 'I', 'O'].map((letter, index) => (
+        {['S', 'T', 'U', 'D', 'I', 'O'].map((letter) => (
           <div
             key={`studio-${letter}`}
             className="font-black"

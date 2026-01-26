@@ -17,27 +17,16 @@ import {
   Camera,
   Image,
   Paperclip,
-  Smile,
-  AtSign,
   Reply,
   Forward,
-  Copy,
   Trash2,
   Star,
-  Pin,
-  VolumeX,
   ChevronDown,
-  ChevronUp,
-  Archive,
-  Edit3,
-  AlertCircle
+  ChevronUp
 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Badge } from '../ui/badge';
-import { Message, Conversation, MessageUser } from '../../types/messaging';
-import { EnhancedSmartComposer } from './EnhancedSmartComposer';
+import { Message, Conversation } from '../../types/messaging';
 import { cn } from '../../lib/utils';
 
 interface MobileMessagingInterfaceProps {
@@ -63,10 +52,10 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
   className
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [showComposer, setShowComposer] = useState(true);
+  const [_showComposer, _setShowComposer] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const [showMessageActions, setShowMessageActions] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+  const [isTyping, _setIsTyping] = useState(false);
   const [draggedMessage, setDraggedMessage] = useState<string | null>(null);
   const [swipeAction, setSwipeAction] = useState<SwipeAction | null>(null);
 
@@ -85,12 +74,14 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
         avatar: undefined,
         isOnline: true
       },
-      timestamp: new Date('2024-01-15T09:30:00'),
+      createdAt: new Date('2024-01-15T09:30:00'),
+      updatedAt: new Date('2024-01-15T09:30:00'),
       type: 'text',
       status: 'read',
-      priority: 'medium',
+      metadata: { priority: 'medium' },
       conversationId: conversation?.id || 'conv1',
-      mentions: []
+      mentions: [],
+      isEdited: false
     },
     {
       id: '2',
@@ -102,12 +93,14 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
         avatar: undefined,
         isOnline: true
       },
-      timestamp: new Date('2024-01-15T09:35:00'),
+      createdAt: new Date('2024-01-15T09:35:00'),
+      updatedAt: new Date('2024-01-15T09:35:00'),
       type: 'text',
       status: 'read',
-      priority: 'medium',
+      metadata: { priority: 'medium' },
       conversationId: conversation?.id || 'conv1',
-      mentions: []
+      mentions: [],
+      isEdited: false
     },
     {
       id: '3',
@@ -119,12 +112,14 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
         avatar: undefined,
         isOnline: true
       },
-      timestamp: new Date('2024-01-15T09:40:00'),
+      createdAt: new Date('2024-01-15T09:40:00'),
+      updatedAt: new Date('2024-01-15T09:40:00'),
       type: 'text',
       status: 'read',
-      priority: 'medium',
+      metadata: { priority: 'medium' },
       conversationId: conversation?.id || 'conv1',
-      mentions: []
+      mentions: [],
+      isEdited: false
     }
   ];
 
@@ -240,7 +235,7 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
               <Avatar className="w-10 h-10">
                 <AvatarImage src={conversation.participants[0]?.avatar} />
                 <AvatarFallback>
-                  {conversation.title.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {conversation.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               {conversation.participants[0]?.isOnline && (
@@ -249,7 +244,7 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
             </div>
 
             <div className="flex-1 min-w-0">
-              <h2 className="font-semibold text-gray-900 truncate">{conversation.title}</h2>
+              <h2 className="font-semibold text-gray-900 truncate">{conversation.name}</h2>
               <p className="text-sm text-gray-500">
                 {isTyping ? 'typing...' : 'last seen 2m ago'}
               </p>
@@ -329,7 +324,7 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
                   'flex items-center justify-end gap-1 mt-1',
                   isMyMessage(message) ? 'text-blue-100' : 'text-gray-500'
                 )}>
-                  <span className="text-xs">{formatTime(message.timestamp)}</span>
+                  <span className="text-xs">{formatTime(message.createdAt)}</span>
                   {isMyMessage(message) && (
                     <div className="flex">
                       {message.status === 'read' ? (
@@ -383,12 +378,14 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
                 userType: 'designer',
                 isOnline: true
               },
-              timestamp: new Date(),
+              createdAt: new Date(),
+              updatedAt: new Date(),
               type: options.type,
               status: 'sending',
-              priority: options.priority,
+              metadata: { priority: options.priority },
               conversationId: conversation.id,
-              mentions: options.mentions || []
+              mentions: options.mentions || [],
+              isEdited: false
             };
 
             setMessages(prev => [...prev, newMessage]);
@@ -492,7 +489,7 @@ interface MobileComposerProps {
   onSend: (content: string, options: any) => Promise<void>;
 }
 
-const MobileComposer: React.FC<MobileComposerProps> = ({ conversation, onSend }) => {
+const MobileComposer: React.FC<MobileComposerProps> = ({ conversation: _conversation, onSend }) => {
   const [content, setContent] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRecording, setIsRecording] = useState(false);

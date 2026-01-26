@@ -189,7 +189,7 @@ export function ResumeCard({
 
       {/* Resume button */}
       <Button
-        variant="default"
+        variant="primary"
         size="sm"
         onClick={handleResume}
         className="w-full bg-amber-600 hover:bg-amber-700 text-white"

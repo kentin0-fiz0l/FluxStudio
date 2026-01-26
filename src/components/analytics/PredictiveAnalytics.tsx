@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   TrendingUp,
   TrendingDown,
@@ -6,11 +6,7 @@ import {
   Target,
   Zap,
   Brain,
-  Calendar,
-  Users,
-  FileText,
   AlertTriangle,
-  CheckCircle,
   Clock,
   BarChart3,
   LineChart as LineChartIcon,
@@ -18,10 +14,6 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
   AreaChart,
   Area,
   XAxis,
@@ -189,7 +181,7 @@ const historicalDataTemplate = (baseValue: number, trend: 'up' | 'down' | 'stabl
 };
 
 export const PredictiveAnalytics: React.FC<PredictiveAnalyticsProps> = ({
-  timeRange = '30d',
+  timeRange: _timeRange = '30d',
   categories = ['all'],
   onPredictionClick,
 }) => {

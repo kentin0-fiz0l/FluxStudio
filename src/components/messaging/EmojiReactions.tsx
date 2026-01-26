@@ -4,9 +4,9 @@
  * Supports quick reactions and full emoji picker
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Smile, Plus, X } from 'lucide-react';
+import { Smile, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
@@ -111,7 +111,7 @@ export function EmojiReactions({
               whileTap={{ scale: 0.95 }}
             >
               <Badge
-                variant={reaction.hasReacted ? 'default' : 'secondary'}
+                variant={reaction.hasReacted ? 'primary' : 'secondary'}
                 className={cn(
                   'cursor-pointer transition-all text-sm px-2 py-0.5',
                   reaction.hasReacted && 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700'

@@ -47,7 +47,7 @@ export function useProjectPresence(): UseProjectPresenceReturn {
 
   const projectId = activeProject?.id;
   const userId = user?.id;
-  const userName = user?.name || user?.userEmail?.split('@')[0] || 'Unknown';
+  const userName = user?.name || user?.email?.split('@')[0] || 'Unknown';
 
   // Pulse event listeners (external callbacks)
   const pulseListenersRef = React.useRef(new Set<(event: PulseEvent) => void>());

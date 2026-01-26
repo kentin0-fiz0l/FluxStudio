@@ -15,7 +15,7 @@ import * as React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FileUp } from 'lucide-react';
-import DashboardLayout from '../components/layout/DashboardLayout';
+import { DashboardLayout } from '../components/templates/DashboardLayout';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/apiService';
@@ -366,7 +366,7 @@ export default function ToolsFiles() {
       }
     } catch (error) {
       console.error('Error loading files:', error);
-      showNotification({ type: 'error', message: 'Failed to load files' });
+      showNotification({ type: 'error', title: 'Failed to load files' });
     } finally {
       setLoading(false);
     }
@@ -409,14 +409,14 @@ export default function ToolsFiles() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (response.data.success) {
-        showNotification({ type: 'success', message: 'Files uploaded' });
+        showNotification({ type: 'success', title: 'Files uploaded' });
         setShowUpload(false);
         loadFiles();
         loadStats();
       }
     } catch (error) {
       console.error('Upload error:', error);
-      showNotification({ type: 'error', message: 'Failed to upload files' });
+      showNotification({ type: 'error', title: 'Failed to upload files' });
     } finally {
       setUploading(false);
     }
@@ -425,13 +425,13 @@ export default function ToolsFiles() {
   const handleDelete = async (fileId: string) => {
     try {
       await apiService.delete(`/files/${fileId}`);
-      showNotification({ type: 'success', message: 'File deleted' });
+      showNotification({ type: 'success', title: 'File deleted' });
       setSelectedFile(null);
       loadFiles();
       loadStats();
     } catch (error) {
       console.error('Delete error:', error);
-      showNotification({ type: 'error', message: 'Failed to delete file' });
+      showNotification({ type: 'error', title: 'Failed to delete file' });
     }
   };
 
@@ -442,7 +442,7 @@ export default function ToolsFiles() {
         name: file.name
       });
       if (response.data.success) {
-        showNotification({ type: 'success', message: 'Asset created! Redirecting...' });
+        showNotification({ type: 'success', title: 'Asset created! Redirecting...' });
         // Navigate to assets page
         setTimeout(() => {
           navigate('/tools/assets');
@@ -450,7 +450,7 @@ export default function ToolsFiles() {
       }
     } catch (error) {
       console.error('Error creating asset:', error);
-      showNotification({ type: 'error', message: 'Failed to create asset' });
+      showNotification({ type: 'error', title: 'Failed to create asset' });
     }
   };
 

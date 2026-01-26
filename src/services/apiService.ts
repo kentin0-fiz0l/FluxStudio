@@ -274,6 +274,39 @@ class ApiService {
     });
   }
 
+  // Generic HTTP methods for flexible API access
+  async get<T = any>(endpoint: string, options: { params?: Record<string, string> } = {}): Promise<ApiResponse<T>> {
+    let url = endpoint.startsWith('http') ? endpoint : buildApiUrl(endpoint);
+    if (options.params) {
+      const searchParams = new URLSearchParams(options.params);
+      url += `?${searchParams.toString()}`;
+    }
+    return this.makeRequest<T>(url, { method: 'GET' });
+  }
+
+  async post<T = any>(endpoint: string, data?: any, options: { headers?: Record<string, string> } = {}): Promise<ApiResponse<T>> {
+    const url = endpoint.startsWith('http') ? endpoint : buildApiUrl(endpoint);
+    const isFormData = data instanceof FormData;
+    return this.makeRequest<T>(url, {
+      method: 'POST',
+      body: isFormData ? data : JSON.stringify(data),
+      headers: isFormData ? {} : options.headers,
+    });
+  }
+
+  async patch<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    const url = endpoint.startsWith('http') ? endpoint : buildApiUrl(endpoint);
+    return this.makeRequest<T>(url, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async delete<T = any>(endpoint: string): Promise<ApiResponse<T>> {
+    const url = endpoint.startsWith('http') ? endpoint : buildApiUrl(endpoint);
+    return this.makeRequest<T>(url, { method: 'DELETE' });
+  }
+
   async loginWithGoogle(credential: string) {
     return this.makeRequest(buildAuthUrl('/google'), {
       method: 'POST',

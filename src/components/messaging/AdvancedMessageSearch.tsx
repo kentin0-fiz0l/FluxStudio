@@ -3,40 +3,22 @@
  * Semantic search, analytics, and intelligent filtering for messages
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
   Filter,
-  Calendar,
-  User,
   FileText,
-  Image,
-  Video,
-  Mic,
-  Tag,
   TrendingUp,
   BarChart3,
   PieChart,
   Clock,
   MessageSquare,
-  Users,
-  Star,
   Hash,
-  AtSign,
-  Download,
-  Share2,
   X,
-  ChevronDown,
-  ChevronRight,
-  SortAsc,
-  SortDesc,
-  Zap,
   Brain,
-  Eye,
   Heart,
-  ThumbsUp,
-  Bookmark
+  CheckCircle
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -46,9 +28,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { DatePicker } from '../ui/date-picker';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Message, MessageType, Priority, Conversation } from '../../types/messaging';
-import { UserSearch, UserSearchResult } from '../search/UserSearch';
+import { UserSearch } from '../search/UserSearch';
 import { MessageAnalysis } from '../../services/messageIntelligenceService';
 import { cn } from '../../lib/utils';
 
@@ -109,7 +90,7 @@ interface AdvancedMessageSearchProps {
 export const AdvancedMessageSearch: React.FC<AdvancedMessageSearchProps> = ({
   onClose,
   initialQuery = '',
-  conversations = [],
+  conversations: _conversations = [],
   className
 }) => {
   const [activeTab, setActiveTab] = useState<'search' | 'analytics'>('search');
@@ -145,16 +126,18 @@ export const AdvancedMessageSearch: React.FC<AdvancedMessageSearchProps> = ({
           userType: 'client',
           avatar: undefined
         },
-        timestamp: new Date('2024-01-15T10:30:00'),
+        createdAt: new Date('2024-01-15T10:30:00'),
+        updatedAt: new Date('2024-01-15T10:30:00'),
         type: 'text',
         status: 'read',
-        priority: 'medium',
+        metadata: { priority: 'medium' },
         conversationId: 'conv1',
-        mentions: []
+        mentions: [],
+        isEdited: false
       },
       conversation: {
         id: 'conv1',
-        title: 'Brand Redesign Project',
+        name: 'Brand Redesign Project',
         type: 'project',
         participants: [],
         lastMessage: {
@@ -165,13 +148,20 @@ export const AdvancedMessageSearch: React.FC<AdvancedMessageSearchProps> = ({
             name: 'Sarah Chen',
             userType: 'client'
           },
-          timestamp: new Date('2024-01-15T10:30:00'),
+          createdAt: new Date('2024-01-15T10:30:00'),
+          updatedAt: new Date('2024-01-15T10:30:00'),
           type: 'text',
           status: 'read',
-          priority: 'medium',
+          metadata: { priority: 'medium' },
           conversationId: 'conv1',
-          mentions: []
+          mentions: [],
+          isEdited: false
         },
+        metadata: { priority: 'medium', tags: [], isArchived: false, isMuted: false, isPinned: false },
+        lastActivity: new Date('2024-01-15T10:30:00'),
+        unreadCount: 0,
+        permissions: { canWrite: true, canAddMembers: true, canArchive: true, canDelete: true },
+        createdBy: 'user1',
         createdAt: new Date('2024-01-10'),
         updatedAt: new Date('2024-01-15T10:30:00')
       },
@@ -199,16 +189,18 @@ export const AdvancedMessageSearch: React.FC<AdvancedMessageSearchProps> = ({
           userType: 'designer',
           avatar: undefined
         },
-        timestamp: new Date('2024-01-14T15:45:00'),
+        createdAt: new Date('2024-01-14T15:45:00'),
+        updatedAt: new Date('2024-01-14T15:45:00'),
         type: 'text',
         status: 'read',
-        priority: 'low',
+        metadata: { priority: 'low' },
         conversationId: 'conv2',
-        mentions: []
+        mentions: [],
+        isEdited: false
       },
       conversation: {
         id: 'conv2',
-        title: 'Mobile App Design',
+        name: 'Mobile App Design',
         type: 'project',
         participants: [],
         lastMessage: {
@@ -219,13 +211,20 @@ export const AdvancedMessageSearch: React.FC<AdvancedMessageSearchProps> = ({
             name: 'Mike Johnson',
             userType: 'designer'
           },
-          timestamp: new Date('2024-01-14T15:45:00'),
+          createdAt: new Date('2024-01-14T15:45:00'),
+          updatedAt: new Date('2024-01-14T15:45:00'),
           type: 'text',
           status: 'read',
-          priority: 'low',
+          metadata: { priority: 'low' },
           conversationId: 'conv2',
-          mentions: []
+          mentions: [],
+          isEdited: false
         },
+        metadata: { priority: 'low', tags: [], isArchived: false, isMuted: false, isPinned: false },
+        lastActivity: new Date('2024-01-14T15:45:00'),
+        unreadCount: 0,
+        permissions: { canWrite: true, canAddMembers: true, canArchive: true, canDelete: true },
+        createdBy: 'user2',
         createdAt: new Date('2024-01-08'),
         updatedAt: new Date('2024-01-14T15:45:00')
       },
@@ -307,7 +306,7 @@ export const AdvancedMessageSearch: React.FC<AdvancedMessageSearchProps> = ({
     if (filters.query) {
       results = results.filter(result =>
         result.message.content.toLowerCase().includes(filters.query.toLowerCase()) ||
-        result.conversation.title.toLowerCase().includes(filters.query.toLowerCase())
+        result.conversation.name.toLowerCase().includes(filters.query.toLowerCase())
       );
     }
 
@@ -332,7 +331,7 @@ export const AdvancedMessageSearch: React.FC<AdvancedMessageSearchProps> = ({
           comparison = b.relevanceScore - a.relevanceScore;
           break;
         case 'date':
-          comparison = b.message.timestamp.getTime() - a.message.timestamp.getTime();
+          comparison = b.message.createdAt.getTime() - a.message.createdAt.getTime();
           break;
         case 'author':
           comparison = a.message.author.name.localeCompare(b.message.author.name);
@@ -510,13 +509,13 @@ export const AdvancedMessageSearch: React.FC<AdvancedMessageSearchProps> = ({
                         <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
                         <div className="space-y-2">
                           <DatePicker
-                            date={filters.dateRange.from}
-                            onDateChange={(date) => updateFilter('dateRange', { ...filters.dateRange, from: date })}
+                            selected={filters.dateRange.from ?? undefined}
+                            onSelect={(date: Date | undefined) => updateFilter('dateRange', { ...filters.dateRange, from: date ?? null })}
                             placeholder="From date"
                           />
                           <DatePicker
-                            date={filters.dateRange.to}
-                            onDateChange={(date) => updateFilter('dateRange', { ...filters.dateRange, to: date })}
+                            selected={filters.dateRange.to ?? undefined}
+                            onSelect={(date: Date | undefined) => updateFilter('dateRange', { ...filters.dateRange, to: date ?? null })}
                             placeholder="To date"
                           />
                         </div>
@@ -605,7 +604,7 @@ const SearchResultCard: React.FC<{ result: SearchResult }> = ({ result }) => {
             <div>
               <p className="font-medium text-gray-900">{message.author.name}</p>
               <p className="text-sm text-gray-500">
-                in {conversation.title} • {message.timestamp.toLocaleDateString()}
+                in {conversation.name} • {message.createdAt.toLocaleDateString()}
               </p>
             </div>
           </div>
@@ -757,7 +756,7 @@ const MessageAnalyticsPanel: React.FC<{ analytics: MessageAnalytics }> = ({ anal
             {analytics.topKeywords.map((keyword, index) => (
               <Badge
                 key={keyword.word}
-                variant={index < 3 ? 'default' : 'secondary'}
+                variant={index < 3 ? 'primary' : 'secondary'}
                 className="flex items-center gap-1"
               >
                 {keyword.word}

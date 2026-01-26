@@ -7,8 +7,10 @@
 export interface MessageUser {
   id: string;
   name: string;
+  email?: string;
   userType: 'client' | 'designer' | 'admin';
   avatar?: string;
+  color?: string;
   isOnline?: boolean;
   lastSeen?: Date;
 }
@@ -91,6 +93,9 @@ export interface Message {
     approvalStatus?: 'pending' | 'approved' | 'rejected' | 'needs-revision';
     consultationId?: string;
     systemAction?: string;
+    messageType?: string;
+    oldStatus?: string;
+    newStatus?: string;
   };
   status: MessageStatus;
   isEdited: boolean;
@@ -211,7 +216,7 @@ export interface NotificationAction {
   id: string;
   type: 'button' | 'link' | 'input' | 'select';
   label: string;
-  variant?: 'default' | 'primary' | 'secondary' | 'destructive';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   action: string;
   data?: Record<string, any>;
   icon?: string;
@@ -245,6 +250,7 @@ export interface UserPresence {
   lastSeen: Date;
   currentActivity?: string;
   isTyping?: boolean;
+  isOnline?: boolean;
 }
 
 // Message search and filtering

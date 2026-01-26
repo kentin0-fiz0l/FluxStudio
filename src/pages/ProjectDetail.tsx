@@ -40,7 +40,6 @@ import {
   MoreVertical,
   List,
   Columns,
-  Users,
   Layers,
   PenTool,
   Plus,

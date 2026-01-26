@@ -24,7 +24,6 @@ import {
   CheckCircle,
   Loader2,
   RefreshCw,
-  Filter,
   Grid,
   List,
 } from 'lucide-react';
@@ -451,8 +450,8 @@ function MarketplacePluginCard({
             <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">
               {plugin.manifest.name}
             </h3>
-            {plugin.verified && <Shield className="w-4 h-4 text-blue-500" title="Verified" />}
-            {plugin.featured && <Star className="w-4 h-4 text-amber-500 fill-amber-500" title="Featured" />}
+            {plugin.verified && <span title="Verified"><Shield className="w-4 h-4 text-blue-500" aria-hidden="true" /></span>}
+            {plugin.featured && <span title="Featured"><Star className="w-4 h-4 text-amber-500 fill-amber-500" aria-hidden="true" /></span>}
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
             {plugin.manifest.description}

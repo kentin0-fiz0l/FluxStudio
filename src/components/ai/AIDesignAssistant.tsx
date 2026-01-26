@@ -3,7 +3,7 @@
  * Provides intelligent design suggestions and real-time collaboration features
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -116,7 +116,7 @@ export function AIDesignAssistant({
 
   const getImpactColor = (impact: string) => {
     switch (impact) {
-      case 'high': return 'destructive';
+      case 'high': return 'error';
       case 'medium': return 'default';
       case 'low': return 'secondary';
       default: return 'default';

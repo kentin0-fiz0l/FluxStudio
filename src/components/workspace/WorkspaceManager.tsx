@@ -1,20 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Layout,
-  Grid,
   Layers,
   Save,
   RotateCcw,
   RotateCw,
-  Copy,
-  Trash2,
   Settings,
   Download,
   Upload,
-  Share2,
   Lock,
-  Unlock,
   Eye,
   EyeOff,
   Plus,
@@ -25,11 +19,9 @@ import {
   Circle,
   Type,
   Image,
-  Palette,
   Ruler,
   Grid3X3,
   Maximize,
-  Minimize,
   Monitor,
   Smartphone,
   Tablet
@@ -128,10 +120,10 @@ export const WorkspaceManager: React.FC<WorkspaceManagerProps> = ({
   });
 
   const [activeTool, setActiveTool] = useState('select');
-  const [isDrawing, setIsDrawing] = useState(false);
+  const [_isDrawing, _setIsDrawing] = useState(false);
   const [showLayersPanel, setShowLayersPanel] = useState(true);
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
-  const [isDragging, setIsDragging] = useState(false);
+  const [_isDragging, _setIsDragging] = useState(false);
 
   const canUndo = state.historyIndex > 0;
   const canRedo = state.historyIndex < state.history.length - 1;
@@ -214,7 +206,7 @@ export const WorkspaceManager: React.FC<WorkspaceManagerProps> = ({
     addToHistory(newElements);
   };
 
-  const handleElementDelete = () => {
+  const _handleElementDelete = () => {
     if (readOnly || state.selectedElements.length === 0) return;
 
     const newElements = state.elements.filter(el => !state.selectedElements.includes(el.id));
@@ -222,12 +214,12 @@ export const WorkspaceManager: React.FC<WorkspaceManagerProps> = ({
     setState(prev => ({ ...prev, selectedElements: [] }));
   };
 
-  const handleElementCopy = () => {
+  const _handleElementCopy = () => {
     const elementsToCopy = state.elements.filter(el => state.selectedElements.includes(el.id));
     setState(prev => ({ ...prev, clipboard: elementsToCopy }));
   };
 
-  const handleElementPaste = () => {
+  const _handleElementPaste = () => {
     if (readOnly || state.clipboard.length === 0) return;
 
     const newElements = state.clipboard.map(el => ({

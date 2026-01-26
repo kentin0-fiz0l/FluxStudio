@@ -1,6 +1,6 @@
 import { Card, CardContent } from './ui/card';
 import { Award, Users, Lightbulb, Heart } from 'lucide-react';
-import kentinoHeadshot from 'figma:asset/77df102c051da8e4526d9646379eb0536120af9a.png';
+import kentinoHeadshot from '../assets/77df102c051da8e4526d9646379eb0536120af9a.png';
 
 export function About() {
   const values = [

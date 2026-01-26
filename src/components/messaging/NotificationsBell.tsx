@@ -6,18 +6,11 @@
  * WebSocket updates.
  */
 
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, BellOff, Check, MoreVertical, ExternalLink } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '../ui/dropdown-menu';
 import {
   Popover,
   PopoverContent,
@@ -156,7 +149,7 @@ export function NotificationsBell({ className }: NotificationsBellProps) {
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
               <Badge
-                variant="destructive"
+                variant="error"
                 className="relative h-5 min-w-5 rounded-full px-1.5 text-xs font-medium"
               >
                 {unreadCount > 99 ? '99+' : unreadCount}

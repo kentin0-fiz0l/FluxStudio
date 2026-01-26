@@ -16,7 +16,6 @@ import {
   CheckSquare,
   MessageCircle,
   ShieldCheck,
-  AlertCircle,
   ChevronRight,
   Inbox,
 } from 'lucide-react';

@@ -10,7 +10,6 @@ import {
   BarChart3,
   TrendingUp,
   TrendingDown,
-  Calendar,
   Download,
   Users,
   FolderKanban,

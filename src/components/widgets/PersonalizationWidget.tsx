@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BaseWidget } from './BaseWidget';
 import { WidgetProps } from './types';
 import { useTheme, THEME_VARIANTS, LAYOUT_DENSITIES } from '../../contexts/ThemeContext';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import {
@@ -15,7 +14,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
-export function PersonalizationWidget({ config, onRefresh, onConfigChange, onRemove }: WidgetProps) {
+export function PersonalizationWidget({ config, onRefresh, onRemove }: WidgetProps) {
   const { settings, updateSettings, resetToDefaults } = useTheme();
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [tempColor, setTempColor] = useState(settings.customAccentColor || '#3b82f6');
@@ -49,9 +48,7 @@ export function PersonalizationWidget({ config, onRefresh, onConfigChange, onRem
 
   return (
     <BaseWidget
-      title={config.title}
-      description="Customize your dashboard experience"
-      icon={<Settings className="h-5 w-5" />}
+      config={config}
       onRefresh={onRefresh}
       onRemove={onRemove}
       className="min-h-96"
@@ -67,7 +64,7 @@ export function PersonalizationWidget({ config, onRefresh, onConfigChange, onRem
             {Object.entries(THEME_VARIANTS).map(([key, variant]) => (
               <Button
                 key={key}
-                variant={settings.variant === key ? "default" : "outline"}
+                variant={settings.variant === key ? "primary" : "outline"}
                 size="sm"
                 onClick={() => handleThemeChange(key as keyof typeof THEME_VARIANTS)}
                 className={`justify-start p-3 h-auto ${
@@ -101,7 +98,7 @@ export function PersonalizationWidget({ config, onRefresh, onConfigChange, onRem
             {Object.entries(LAYOUT_DENSITIES).map(([key, density]) => (
               <Button
                 key={key}
-                variant={settings.layoutDensity === key ? "default" : "outline"}
+                variant={settings.layoutDensity === key ? "primary" : "outline"}
                 size="sm"
                 onClick={() => handleDensityChange(key as keyof typeof LAYOUT_DENSITIES)}
                 className={`flex-1 ${
@@ -189,7 +186,7 @@ export function PersonalizationWidget({ config, onRefresh, onConfigChange, onRem
               </div>
               <Button
                 size="sm"
-                variant={settings.sidebarCollapsed ? "default" : "outline"}
+                variant={settings.sidebarCollapsed ? "primary" : "outline"}
                 onClick={handleToggleSidebar}
                 className={
                   settings.sidebarCollapsed
@@ -208,7 +205,7 @@ export function PersonalizationWidget({ config, onRefresh, onConfigChange, onRem
               </div>
               <Button
                 size="sm"
-                variant={settings.showAnimations ? "default" : "outline"}
+                variant={settings.showAnimations ? "primary" : "outline"}
                 onClick={handleToggleAnimations}
                 className={
                   settings.showAnimations

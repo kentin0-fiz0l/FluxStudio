@@ -18,7 +18,6 @@ import {
   XCircle,
   Clock,
   Package,
-  TrendingUp,
   AlertCircle,
   FileText,
   Weight,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Tag,
   X,
@@ -6,14 +6,12 @@ import {
   TrendingUp,
   Hash,
   Search,
-  Filter,
   Edit2,
   Check,
   Sparkles,
   BarChart3,
   ChevronRight,
   ChevronDown,
-  AlertCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -156,7 +154,7 @@ export const SmartTagging: React.FC<SmartTaggingProps> = ({
 
   // Filter and sort tags
   const filteredTags = useMemo(() => {
-    let filtered = allTags.filter((tag) => {
+    const filtered = allTags.filter((tag) => {
       const matchesSearch = tag.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory =
         selectedCategory === 'all' || tag.category === selectedCategory;

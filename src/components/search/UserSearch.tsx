@@ -9,11 +9,9 @@ import {
   Users,
   Building2,
   Check,
-  Plus,
   UserPlus,
   Mail,
   MapPin,
-  Calendar,
   Briefcase
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -185,7 +183,7 @@ export function UserSearch({
       await new Promise(resolve => setTimeout(resolve, 300));
 
       // Filter mock users based on search query and filters
-      let filteredUsers = mockUsers.filter(user => {
+      const filteredUsers = mockUsers.filter(user => {
         // Exclude already selected users and excluded user IDs
         if (selectedUsers.some(selected => selected.id === user.id)) return false;
         if (excludeUserIds.includes(user.id)) return false;

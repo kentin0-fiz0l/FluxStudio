@@ -2,7 +2,7 @@
  * MessagingSidepanel - Integrated messaging panel that slides out from the right
  */
 
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
@@ -174,7 +174,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                 <MessageSquare className="h-5 w-5 text-gray-600" />
                 <h2 className="font-semibold text-lg">Messages</h2>
                 {unreadCount > 0 && (
-                  <Badge variant="destructive" className="h-5 px-1.5">
+                  <Badge variant="error" className="h-5 px-1.5">
                     {unreadCount}
                   </Badge>
                 )}
@@ -213,7 +213,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                 ].map((filter) => (
                   <Button
                     key={filter.key}
-                    variant={searchFilter === filter.key ? 'default' : 'ghost'}
+                    variant={searchFilter === filter.key ? 'primary' : 'ghost'}
                     size="sm"
                     onClick={() => setSearchFilter(filter.key as any)}
                     className="h-7 px-3 text-xs"
@@ -255,7 +255,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                       >
                         <div className="relative">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={conv.avatar} />
+                            <AvatarImage src={conv.participants?.[0]?.avatar} />
                             <AvatarFallback>
                               {conv.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                             </AvatarFallback>
@@ -277,7 +277,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                           </p>
                         </div>
                         {conv.unreadCount > 0 && (
-                          <Badge variant="destructive" className="h-5 min-w-[20px] px-1">
+                          <Badge variant="error" className="h-5 min-w-[20px] px-1">
                             {conv.unreadCount}
                           </Badge>
                         )}
@@ -305,7 +305,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                       {activeConversation && (
                         <>
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={activeConversation.avatar} />
+                            <AvatarImage src={activeConversation.participants?.[0]?.avatar} />
                             <AvatarFallback>
                               {activeConversation.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                             </AvatarFallback>
@@ -359,7 +359,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                         </div>
                       ) : (
                         conversationMessages.map((msg) => {
-                          const isOwnMessage = msg.senderId === user?.id;
+                          const isOwnMessage = msg.author?.id === user?.id;
                           const messageTime = new Date(msg.createdAt).toLocaleTimeString('en-US', {
                             hour: 'numeric',
                             minute: '2-digit',
@@ -376,9 +376,9 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                             >
                               {!isOwnMessage && (
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={msg.senderAvatar} />
+                                  <AvatarImage src={msg.author?.avatar} />
                                   <AvatarFallback>
-                                    {msg.senderName?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                    {msg.author?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>
                               )}

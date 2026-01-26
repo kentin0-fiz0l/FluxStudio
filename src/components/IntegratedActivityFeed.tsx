@@ -3,7 +3,7 @@
  * Cross-feature activity timeline that connects projects, messages, and user actions
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
@@ -16,20 +16,17 @@ import {
   Users,
   CheckCircle,
   AlertCircle,
-  Clock,
   Star,
-  Palette,
-  Calendar,
   Activity,
   Filter,
-  ChevronRight,
   ExternalLink
 } from 'lucide-react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { useMessaging } from '../contexts/MessagingContext';
+import { useMessaging } from '../hooks/useMessaging';
 import { cn } from '../lib/utils';
+import { Conversation } from '../types/messaging';
 
 interface ActivityItem {
   id: string;
@@ -107,7 +104,7 @@ export function IntegratedActivityFeed() {
     // Add recent messages as activities
     if (conversationMessages && typeof conversationMessages === 'object') {
       Object.entries(conversationMessages).forEach(([conversationId, messages]) => {
-        const conversation = conversations?.find(c => c.id === conversationId);
+        const conversation = conversations?.find((c: Conversation) => c.id === conversationId);
       if (messages && Array.isArray(messages)) {
         messages.slice(0, 5).forEach(message => {
         allActivities.push({
@@ -304,7 +301,7 @@ export function IntegratedActivityFeed() {
           </CardTitle>
           <div className="flex items-center gap-2">
             <Button
-              variant={showOnlyMyActivity ? "default" : "outline"}
+              variant={showOnlyMyActivity ? "primary" : "outline"}
               size="sm"
               onClick={() => setShowOnlyMyActivity(!showOnlyMyActivity)}
             >
@@ -322,7 +319,7 @@ export function IntegratedActivityFeed() {
           {filterOptions.map(option => (
             <Button
               key={option.value}
-              variant={filter === option.value ? "default" : "ghost"}
+              variant={filter === option.value ? "primary" : "ghost"}
               size="sm"
               onClick={() => setFilter(option.value)}
               className="text-xs h-7"
@@ -348,7 +345,7 @@ export function IntegratedActivityFeed() {
             </div>
           ) : (
             <div className="p-4 space-y-4">
-              {filteredActivities.map((activity, index) => {
+              {filteredActivities.map((activity) => {
                 const Icon = getActivityIcon(activity.type);
                 const colorClasses = getActivityColor(activity.type);
 
@@ -411,7 +408,7 @@ export function IntegratedActivityFeed() {
                         <div className="flex items-center gap-1">
                           {activity.metadata?.priority && (
                             <Badge
-                              variant={activity.metadata.priority === 'high' || activity.metadata.priority === 'critical' ? 'destructive' : 'secondary'}
+                              variant={activity.metadata.priority === 'high' || activity.metadata.priority === 'critical' ? 'error' : 'secondary'}
                               className="text-xs"
                             >
                               {activity.metadata.priority}

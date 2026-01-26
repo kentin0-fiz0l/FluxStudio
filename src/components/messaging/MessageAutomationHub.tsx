@@ -3,59 +3,33 @@
  * Scheduling, templates, workflows, and AI-powered automation for messaging
  */
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Clock,
-  Calendar,
   Zap,
   Bot,
   MessageSquare,
-  Settings,
-  Play,
   Pause,
   Edit,
   Trash2,
   Plus,
-  Copy,
-  Save,
-  Send,
-  User,
   Users,
-  Tag,
-  Filter,
-  Search,
   CheckCircle,
-  AlertCircle,
   RotateCcw,
   TrendingUp,
-  Target,
-  Sparkles,
-  Brain,
-  Workflow,
-  Archive,
   FileText,
-  Image,
-  Mic,
-  Video,
-  Star,
   Heart,
-  ThumbsUp
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Switch } from '../ui/switch';
-import { Label } from '../ui/label';
-import { DatePicker } from '../ui/date-picker';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { MessageType, Priority, Conversation } from '../../types/messaging';
-import { UserSearch, UserSearchResult } from '../search/UserSearch';
+import { UserSearchResult } from '../search/UserSearch';
 import { cn } from '../../lib/utils';
 
 interface ScheduledMessage {
@@ -111,7 +85,7 @@ interface MessageAutomationHubProps {
 
 export const MessageAutomationHub: React.FC<MessageAutomationHubProps> = ({
   onClose,
-  conversations = [],
+  conversations: _conversations = [],
   className
 }) => {
   const [activeTab, setActiveTab] = useState<'scheduled' | 'templates' | 'automation' | 'analytics'>('scheduled');
@@ -245,50 +219,6 @@ export const MessageAutomationHub: React.FC<MessageAutomationHubProps> = ({
     setTemplates(mockTemplates);
     setAutomationRules(mockAutomationRules);
   }, []);
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
-
-  const getStatusColor = (status: ScheduledMessage['status']) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'sent':
-        return 'bg-green-100 text-green-800';
-      case 'failed':
-        return 'bg-red-100 text-red-800';
-      case 'cancelled':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getCategoryIcon = (category: MessageTemplate['category']) => {
-    switch (category) {
-      case 'approval':
-        return CheckCircle;
-      case 'feedback':
-        return MessageSquare;
-      case 'update':
-        return TrendingUp;
-      case 'reminder':
-        return Clock;
-      case 'greeting':
-        return Heart;
-      case 'follow-up':
-        return RotateCcw;
-      default:
-        return MessageSquare;
-    }
-  };
 
   return (
     <div className={cn('h-full flex flex-col bg-white', className)}>
@@ -489,7 +419,7 @@ export const MessageAutomationHub: React.FC<MessageAutomationHubProps> = ({
       <NewScheduledMessageModal
         isOpen={showNewScheduledMessage}
         onClose={() => setShowNewScheduledMessage(false)}
-        onSave={(message) => {
+        onSave={(message: Omit<ScheduledMessage, 'id'>) => {
           setScheduledMessages(prev => [...prev, { ...message, id: `msg-${Date.now()}` }]);
           setShowNewScheduledMessage(false);
         }}
@@ -499,7 +429,7 @@ export const MessageAutomationHub: React.FC<MessageAutomationHubProps> = ({
       <NewTemplateModal
         isOpen={showNewTemplate}
         onClose={() => setShowNewTemplate(false)}
-        onSave={(template) => {
+        onSave={(template: Omit<MessageTemplate, 'id'>) => {
           setTemplates(prev => [...prev, { ...template, id: `template-${Date.now()}` }]);
           setShowNewTemplate(false);
         }}
@@ -508,7 +438,7 @@ export const MessageAutomationHub: React.FC<MessageAutomationHubProps> = ({
       <NewAutomationModal
         isOpen={showNewAutomation}
         onClose={() => setShowNewAutomation(false)}
-        onSave={(rule) => {
+        onSave={(rule: Omit<AutomationRule, 'id'>) => {
           setAutomationRules(prev => [...prev, { ...rule, id: `rule-${Date.now()}` }]);
           setShowNewAutomation(false);
         }}
@@ -516,6 +446,51 @@ export const MessageAutomationHub: React.FC<MessageAutomationHubProps> = ({
       />
     </div>
   );
+};
+
+// Helper functions used by sub-components
+const formatDate = (date: Date) => {
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+const getStatusColor = (status: ScheduledMessage['status']) => {
+  switch (status) {
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'sent':
+      return 'bg-green-100 text-green-800';
+    case 'failed':
+      return 'bg-red-100 text-red-800';
+    case 'cancelled':
+      return 'bg-gray-100 text-gray-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getCategoryIcon = (category: MessageTemplate['category']) => {
+  switch (category) {
+    case 'approval':
+      return CheckCircle;
+    case 'feedback':
+      return MessageSquare;
+    case 'update':
+      return TrendingUp;
+    case 'reminder':
+      return Clock;
+    case 'greeting':
+      return Heart;
+    case 'follow-up':
+      return RotateCcw;
+    default:
+      return MessageSquare;
+  }
 };
 
 // Sub-components

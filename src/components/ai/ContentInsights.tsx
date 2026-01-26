@@ -7,8 +7,6 @@ import {
   Music,
   Archive,
   Code,
-  Calendar,
-  Clock,
   HardDrive,
   Zap,
   Activity,
@@ -17,9 +15,9 @@ import {
   Eye,
   Download,
   Share2,
-  AlertCircle,
   CheckCircle,
   Sparkles,
+  AlertCircle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {

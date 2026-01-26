@@ -116,7 +116,7 @@ export const TouchGestures: React.FC<TouchGesturesProps> = ({
       }
     };
 
-    const handleTouchEnd = (e: TouchEvent) => {
+    const handleTouchEnd = (_e: TouchEvent) => {
       // Clear long press timer
       if (longPressTimer) {
         clearTimeout(longPressTimer);
@@ -147,7 +147,7 @@ export const TouchGestures: React.FC<TouchGesturesProps> = ({
     };
   }, [onDoubleTap, onLongPress, onPinch, lastTap, longPressDelay, longPressTimer, initialDistance, initialScale]);
 
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const { offset, velocity } = info;
 
     // Check for swipe gestures based on offset and velocity
@@ -309,14 +309,14 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
   const [pullDistance, setPullDistance] = useState(0);
   const y = useMotionValue(0);
 
-  const handleDrag = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDrag = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (info.offset.y > 0 && window.scrollY === 0) {
       setPullDistance(info.offset.y);
       y.set(Math.min(info.offset.y * 0.5, threshold));
     }
   };
 
-  const handleDragEnd = async (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDragEnd = async (_event: MouseEvent | TouchEvent | PointerEvent, _info: PanInfo) => {
     if (pullDistance > threshold && !isRefreshing) {
       setIsRefreshing(true);
       try {

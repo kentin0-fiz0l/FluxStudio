@@ -3,7 +3,7 @@
  * Individual message display with reactions, replies, and file attachments
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Reply, MoreVertical, Download, ExternalLink, Edit, Trash2, Copy } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -223,7 +223,7 @@ export function MessageBubble({
           {/* Priority Badge */}
           {message.metadata?.priority && message.metadata.priority !== 'medium' && (
             <Badge
-              variant={message.metadata.priority === 'high' ? 'destructive' : 'secondary'}
+              variant={message.metadata.priority === 'high' ? 'error' : 'secondary'}
               className="absolute -top-2 -right-2 text-xs"
             >
               {message.metadata.priority}

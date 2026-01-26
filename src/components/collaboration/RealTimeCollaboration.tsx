@@ -12,14 +12,10 @@ import {
   Share,
   Lock,
   Unlock,
-  Cursor,
   Edit,
-  Hand,
   Zap,
   Wifi,
-  WifiOff,
-  Clock,
-  CheckCircle
+  WifiOff
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -93,7 +89,7 @@ interface RealTimeCollaborationProps {
   onStartScreenShare?: () => void;
 }
 
-const userColors = [
+const _userColors = [
   '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
   '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
 ];
@@ -105,21 +101,21 @@ export const RealTimeCollaboration: React.FC<RealTimeCollaborationProps> = ({
   onJoinSession,
   onLeaveSession,
   onToggleLock,
-  onUpdatePermissions,
+  onUpdatePermissions: _onUpdatePermissions,
   onSendMessage,
   onToggleVoice,
   onToggleVideo,
   onStartScreenShare
 }) => {
   const [cursors, setCursors] = useState<CollaboratorCursor[]>([]);
-  const [recentEdits, setRecentEdits] = useState<RealTimeEdit[]>([]);
+  const [_recentEdits, _setRecentEdits] = useState<RealTimeEdit[]>([]);
   const [showParticipants, setShowParticipants] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [message, setMessage] = useState('');
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor'>('excellent');
+  const [connectionQuality, _setConnectionQuality] = useState<'excellent' | 'good' | 'poor'>('excellent');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isHost = session.hostId === currentUser.id;
@@ -132,8 +128,8 @@ export const RealTimeCollaboration: React.FC<RealTimeCollaborationProps> = ({
       if (!isConnected || !containerRef.current) return;
 
       const rect = containerRef.current.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      const _x = ((e.clientX - rect.left) / rect.width) * 100;
+      const _y = ((e.clientY - rect.top) / rect.height) * 100;
 
       // In real implementation, this would emit to websocket
       // For demo, we'll just update local state occasionally
@@ -147,7 +143,7 @@ export const RealTimeCollaboration: React.FC<RealTimeCollaborationProps> = ({
   useEffect(() => {
     const interval = setInterval(() => {
       // Simulate other users' cursors
-      setCursors(prev =>
+      setCursors(_prev =>
         session.participants
           .filter(p => p.userId !== currentUser.id && p.status === 'active')
           .map(p => ({
@@ -437,9 +433,9 @@ export const RealTimeCollaboration: React.FC<RealTimeCollaborationProps> = ({
 
                   <div className="flex items-center space-x-1">
                     {canEdit && (
-                      <Edit className="w-3 h-3 text-green-500" title="Can edit" />
+                      <span title="Can edit"><Edit className="w-3 h-3 text-green-500" aria-hidden="true" /></span>
                     )}
-                    <Eye className="w-3 h-3 text-blue-500" title="Can view" />
+                    <span title="Can view"><Eye className="w-3 h-3 text-blue-500" aria-hidden="true" /></span>
                   </div>
                 </div>
               ))}

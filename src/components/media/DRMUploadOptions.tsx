@@ -19,7 +19,7 @@
  * />
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Switch } from '../ui/switch';
@@ -236,7 +236,7 @@ export function DRMUploadOptions({
           </div>
 
           {userTier && (
-            <Badge variant={userTier.canUseDrm ? 'default' : 'secondary'}>
+            <Badge variant={userTier.canUseDrm ? 'primary' : 'secondary'}>
               {userTier.canUseDrm && <Crown className="w-3 h-3 mr-1" />}
               {userTier.name}
             </Badge>

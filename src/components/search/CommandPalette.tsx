@@ -17,7 +17,6 @@ import {
   ArrowRight,
   Hash,
   FolderOpen,
-  Users,
   Settings,
   Palette,
   FileText,
@@ -26,12 +25,10 @@ import {
   Zap,
   Building2,
   User,
-  Calendar,
   BarChart3,
   Plus,
   Target,
   ChevronRight,
-  Clock,
   X,
 } from 'lucide-react';
 

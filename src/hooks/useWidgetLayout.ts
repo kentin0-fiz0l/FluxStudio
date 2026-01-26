@@ -90,7 +90,7 @@ export function useWidgetLayout(): WidgetLayoutHook {
       let currentY = 0;
       let maxY = 0;
 
-      layouts[breakpoint] = defaultWidgets.map((widgetId, index) => {
+      layouts[breakpoint] = defaultWidgets.map((widgetId) => {
         // Default widget dimensions based on size
         const getWidgetSize = (id: string) => {
           if (id.includes('overview') || id.includes('stats')) return { w: 2, h: 2 };

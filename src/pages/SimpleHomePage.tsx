@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Logo3D } from '../components/Logo3D';
 import { SkipLink } from '@/components/ui/SkipLink';

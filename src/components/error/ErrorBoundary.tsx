@@ -5,7 +5,7 @@
  * Integrated with observability layer for error tracking and correlation.
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -304,7 +304,7 @@ Timestamp: ${new Date().toISOString()}
                     </p>
                   </div>
                 </div>
-                <Badge variant={severity === 'critical' ? 'destructive' : 'secondary'}>
+                <Badge variant={severity === 'critical' ? 'error' : 'secondary'}>
                   {errorCategory}
                 </Badge>
               </div>

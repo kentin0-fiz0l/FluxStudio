@@ -13,7 +13,7 @@ interface LazyLoadOptions {
   preload?: boolean;
 }
 
-interface LoadableComponent<P = {}> {
+interface LoadableComponent<P extends Record<string, unknown> = Record<string, unknown>> {
   Component: LazyExoticComponent<ComponentType<P>>;
   preload: () => Promise<{ default: ComponentType<P> }>;
 }
@@ -21,7 +21,7 @@ interface LoadableComponent<P = {}> {
 /**
  * Creates a lazy-loaded component with retry logic and preloading support
  */
-export function lazyLoadWithRetry<P = {}>(
+export function lazyLoadWithRetry<P extends Record<string, unknown> = Record<string, unknown>>(
   importFn: () => Promise<{ default: ComponentType<P> }>,
   options: LazyLoadOptions = {}
 ): LoadableComponent<P> {
@@ -85,13 +85,13 @@ export const DefaultLoadingFallback: React.FC<{ message?: string }> = ({ message
 /**
  * Wraps a lazy component with Suspense and custom fallback
  */
-export function withSuspense<P = {}>(
+export function withSuspense<P extends Record<string, unknown> = Record<string, unknown>>(
   Component: LazyExoticComponent<ComponentType<P>>,
   fallback: React.ReactNode = <DefaultLoadingFallback />
 ) {
   return (props: P) => (
     <Suspense fallback={fallback}>
-      <Component {...props} />
+      <Component {...props as P & React.JSX.IntrinsicAttributes} />
     </Suspense>
   );
 }
@@ -131,7 +131,7 @@ export function useRoutePreloader(routes: Record<string, { preload: () => Promis
 /**
  * Higher-order component for lazy loading with error boundary
  */
-export function withLazyLoad<P = {}>(
+export function withLazyLoad<P extends Record<string, unknown> = Record<string, unknown>>(
   importFn: () => Promise<{ default: ComponentType<P> }>,
   options: LazyLoadOptions = {}
 ) {
@@ -140,7 +140,7 @@ export function withLazyLoad<P = {}>(
 
   const WrappedComponent = (props: P) => (
     <Suspense fallback={fallback}>
-      <Component {...props} />
+      <Component {...props as P & React.JSX.IntrinsicAttributes} />
     </Suspense>
   );
 

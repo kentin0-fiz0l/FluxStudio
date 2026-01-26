@@ -8,22 +8,15 @@ import {
   List,
   MapPin,
   Calendar,
-  Star,
-  Award,
-  Clock,
   Mail,
   MessageSquare,
   UserPlus,
   Eye,
-  SortAsc,
-  SortDesc,
   X,
   ChevronDown,
-  Building,
-  Briefcase,
-  Globe
+  Building
 } from 'lucide-react';
-import { UserSearch, UserSearchResult } from './search/UserSearch';
+import { UserSearchResult } from './search/UserSearch';
 import { cn } from '../lib/utils';
 
 interface UserDirectoryProps {
@@ -137,9 +130,9 @@ export const UserDirectory: React.FC<UserDirectoryProps> = ({
   currentUserId = '1',
   onConnect,
   onMessage,
-  onViewProfile
+  onViewProfile: _onViewProfile
 }) => {
-  const [users, setUsers] = useState<UserSearchResult[]>(mockUsers);
+  const [users, _setUsers] = useState<UserSearchResult[]>(mockUsers);
   const [filteredUsers, setFilteredUsers] = useState<UserSearchResult[]>(mockUsers);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -167,7 +160,7 @@ export const UserDirectory: React.FC<UserDirectoryProps> = ({
 
   // Apply filters and search
   useEffect(() => {
-    let filtered = users.filter(user => {
+    const filtered = users.filter(user => {
       // Exclude current user
       if (user.id === currentUserId) return false;
 
@@ -275,7 +268,7 @@ export const UserDirectory: React.FC<UserDirectoryProps> = ({
     Array.isArray(filter) ? filter.length > 0 : filter !== undefined
   );
 
-  const formatJoinDate = (dateString: string) => {
+  const _formatJoinDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',

@@ -565,9 +565,9 @@ export const QUEUE_LIMITS = {
 export type PrintJobStatus = 'queued' | 'printing' | 'completed' | 'failed' | 'canceled';
 
 /**
- * Print job record from database
+ * Print job record from database (snake_case for raw DB rows)
  */
-export interface PrintJobRecord {
+export interface PrintJobDatabaseRecord {
   id: string;                           // cuid/cuid2
   project_id: string | null;            // FluxStudio project ID
   file_id: string | null;               // FluxStudio file ID

@@ -15,9 +15,9 @@
  */
 
 import * as React from 'react';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import DashboardLayout from '../components/layout/DashboardLayout';
+import DashboardLayout from '../components/templates/DashboardLayout';
 import { useMetMap, Song, Section, Chord } from '../contexts/MetMapContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { useProjectContextOptional } from '../contexts/ProjectContext';
@@ -34,7 +34,7 @@ import { SectionTemplates, SectionTemplate } from '../components/metmap/SectionT
 import { VisualTimeline } from '../components/metmap/VisualTimeline';
 import { PracticeMode } from '../components/metmap/PracticeMode';
 import { ExportImport } from '../components/metmap/ExportImport';
-import { MetronomeControls, useMetronomeAudio, ClickSound } from '../components/metmap/MetronomeAudio';
+import { useMetronomeAudio, ClickSound } from '../components/metmap/MetronomeAudio';
 import { useMetMapKeyboardShortcuts, ShortcutsHelp } from '../hooks/useMetMapKeyboardShortcuts';
 
 // Hook for detecting mobile viewport
@@ -54,7 +54,7 @@ function useIsMobile(breakpoint = 768) {
 
 // ==================== Helper Functions ====================
 
-function formatDate(date: string): string {
+function _formatDate(date: string): string {
   return new Date(date).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -339,7 +339,7 @@ function SectionRow({
 // Chord Grid for a section
 function ChordGrid({
   section,
-  sectionIndex,
+  sectionIndex: _sectionIndex,
   chords,
   onChordsChange
 }: {
@@ -496,7 +496,7 @@ function ChordGrid({
 // Playback Controls
 function PlaybackControls({
   isPlaying,
-  isPaused,
+  isPaused: _isPaused,
   currentBar,
   currentBeat,
   currentTempo,
@@ -737,7 +737,7 @@ export default function ToolsMetMap() {
   const projectContext = useProjectContextOptional();
   const { token } = useAuth();
   const isMobile = useIsMobile();
-  const { isOnline } = usePWA();
+  const { isOnline: _isOnline } = usePWA();
   const { markStepComplete } = useFirstTimeExperience({
     projectCount: 0,
     conversationCount: 0,
@@ -756,7 +756,7 @@ export default function ToolsMetMap() {
   const {
     songs,
     songsLoading,
-    filters,
+    filters: _filters,
     setFilters,
     currentSong,
     currentSongLoading,
@@ -768,7 +768,7 @@ export default function ToolsMetMap() {
     loadSong,
     updateSong,
     deleteSong,
-    closeSong,
+    closeSong: _closeSong,
     addSection,
     updateSection,
     removeSection,
@@ -797,9 +797,9 @@ export default function ToolsMetMap() {
   const [loopSection, setLoopSection] = useState<number | null>(null);
   const [tempoPercent, setTempoPercent] = useState(100);
   const [repetitionCount, setRepetitionCount] = useState(0);
-  const [clickSound, setClickSound] = useState<ClickSound>('classic');
-  const [clickVolume, setClickVolume] = useState(80);
-  const [accentFirstBeat, setAccentFirstBeat] = useState(true);
+  const [clickSound, _setClickSound] = useState<ClickSound>('classic');
+  const [clickVolume, _setClickVolume] = useState(80);
+  const [accentFirstBeat, _setAccentFirstBeat] = useState(true);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
 
   // Metronome audio hook
@@ -1034,7 +1034,7 @@ export default function ToolsMetMap() {
   };
 
   // Handle asset created (from Export as Asset)
-  const handleAssetCreated = (asset: any) => {
+  const handleAssetCreated = (_asset: any) => {
     showNotification({
       type: 'success',
       title: 'Asset Saved',

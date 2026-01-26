@@ -12,11 +12,9 @@ import {
   CheckCircle,
   MessageSquare,
   FileText,
-  Calendar,
   User,
   Tag,
   Zap,
-  TrendingUp,
   Heart,
   ThumbsUp,
   ThumbsDown,
@@ -24,7 +22,6 @@ import {
   Lightbulb,
   Target,
   ChevronDown,
-  ChevronRight,
   Sparkles
 } from 'lucide-react';
 import { Button } from '../ui/button';

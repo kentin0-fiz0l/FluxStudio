@@ -3,7 +3,7 @@
  * Shows when users are typing in the conversation
  */
 
-import React from 'react';
+// React import not needed with JSX transform
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { MessageUser } from '../../types/messaging';
 import { cn } from '../../lib/utils';

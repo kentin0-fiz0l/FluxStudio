@@ -3,7 +3,7 @@
  * Shows who has read a message with visual indicators and detailed view
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, CheckCheck, Eye, Clock } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';

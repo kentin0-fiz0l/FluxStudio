@@ -2,8 +2,8 @@
  * AI Workspace Panel - Deployment automation sidebar
  * Combines preview creation and log viewing functionality
  */
-import React, { useState } from 'react';
-import { X, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
 import PreviewForm from './PreviewForm';
 import LogsViewer from './LogsViewer';
 

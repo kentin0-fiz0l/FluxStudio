@@ -1,4 +1,4 @@
-import React from 'react';
+// React import not needed with JSX transform
 import { useActivityData } from '../../hooks/useRealTimeData';
 import { BaseWidget } from './BaseWidget';
 import { Button } from '../ui/button';
@@ -17,6 +17,15 @@ import {
   User,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+interface ActivityItem {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  user: string;
+  timestamp: Date;
+}
 
 export function ActivityWidget(props: WidgetProps) {
   const { data: activities, isLoading, error, lastUpdated, refresh } = useActivityData();
@@ -80,11 +89,11 @@ export function ActivityWidget(props: WidgetProps) {
       headerAction={
         <div className="flex items-center gap-2">
           {/* Connection Status */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" title={error ? `Error: ${error}` : `Last updated: ${lastUpdated && lastUpdated instanceof Date && !isNaN(lastUpdated.getTime()) ? lastUpdated.toLocaleTimeString() : 'Never'}`}>
             {error ? (
-              <WifiOff className="h-3 w-3 text-red-400" title={`Error: ${error}`} />
+              <WifiOff className="h-3 w-3 text-red-400" aria-hidden="true" />
             ) : (
-              <Wifi className="h-3 w-3 text-green-400" title={`Last updated: ${lastUpdated && lastUpdated instanceof Date && !isNaN(lastUpdated.getTime()) ? lastUpdated.toLocaleTimeString() : 'Never'}`} />
+              <Wifi className="h-3 w-3 text-green-400" aria-hidden="true" />
             )}
           </div>
 
@@ -133,7 +142,7 @@ export function ActivityWidget(props: WidgetProps) {
         <div className="space-y-3">
           <AnimatePresence mode="popLayout">
             {activities && activities.length > 0 ? (
-              activities.slice(0, 5).map((activity, index) => (
+              activities.slice(0, 5).map((activity: ActivityItem, index: number) => (
                 <motion.div
                   key={activity.id}
                   layout

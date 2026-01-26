@@ -5,7 +5,7 @@
  * View, filter, and export security events with timeline visualization
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAdminApi } from '../hooks/useAdminAuth';
 
 interface SecurityEvent {

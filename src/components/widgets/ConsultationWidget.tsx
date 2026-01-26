@@ -5,37 +5,20 @@ import {
   Clock,
   Users,
   Video,
-  Phone,
-  MessageSquare,
   Plus,
   Edit,
   Trash2,
   CheckCircle,
   XCircle,
   Play,
-  Pause,
-  Square,
-  Mic,
-  MicOff,
-  Camera,
-  CameraOff,
-  Share2,
-  FileText,
-  Download,
   MoreVertical,
-  MapPin,
   Zap,
   AlertCircle,
   Star,
-  User,
-  Send,
-  Paperclip,
-  Settings
+  User
 } from 'lucide-react';
 import {
-  ConsultationSession,
-  MessageUser,
-  Priority
+  ConsultationSession
 } from '../../types/messaging';
 
 interface ConsultationWidgetProps {
@@ -258,7 +241,7 @@ function ConsultationCard({
 
         <div className="flex items-center justify-between">
           <div className="flex -space-x-2">
-            {consultation.participants.slice(0, 4).map((participant, index) => (
+            {consultation.participants.slice(0, 4).map((participant) => (
               <div
                 key={participant.id}
                 className="w-8 h-8 bg-gray-200 rounded-full border-2 border-white flex items-center justify-center"

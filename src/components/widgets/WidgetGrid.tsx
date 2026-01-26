@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { WidgetLayout, WIDGET_DIMENSIONS } from './types';
 import { getWidgetById, getDefaultWidgets } from './registry';

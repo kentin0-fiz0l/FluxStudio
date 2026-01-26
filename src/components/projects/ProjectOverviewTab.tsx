@@ -24,10 +24,11 @@ import { Calendar, Users, Clock, TrendingUp, Map, Pencil, FileAudio, Box, ArrowR
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
 import { Project } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
-import { useMessaging } from '@/contexts/MessagingContext';
+import { useMessaging } from '@/hooks/useMessaging';
 import { useUserTestMode } from '@/hooks/useUserTestMode';
 import { useClarityState } from '@/hooks/useClarityState';
 import { buildClarityAwareSummary, getReframingPrompt } from '@/services/clarityAwareSummary';
+import { Conversation } from '@/types/messaging';
 
 export interface ProjectOverviewTabProps {
   project: Project;
@@ -38,12 +39,12 @@ export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOvervi
   ({ project, className }, ref) => {
     // Get messaging context for project conversation
     let projectConversation = null;
-    let unreadCount = 0;
+    let unreadCountValue = 0;
     try {
-      const { state } = useMessaging();
+      const { conversations } = useMessaging();
       // Find conversation linked to this project
-      projectConversation = state.conversations.find(c => c.projectId === project.id);
-      unreadCount = projectConversation?.unreadCount || 0;
+      projectConversation = conversations.find((c: Conversation) => c.projectId === project.id);
+      unreadCountValue = projectConversation?.unreadCount || 0;
     } catch {
       // Context not available
     }
@@ -290,9 +291,9 @@ export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOvervi
                 <MessageSquare className="h-5 w-5 text-primary-600" aria-hidden="true" />
                 Team Discussion
               </CardTitle>
-              {unreadCount > 0 && (
-                <Badge variant="solidError" size="sm" aria-label={`${unreadCount} unread messages`}>
-                  {unreadCount > 99 ? '99+' : unreadCount} new
+              {unreadCountValue > 0 && (
+                <Badge variant="solidError" size="sm" aria-label={`${unreadCountValue} unread messages`}>
+                  {unreadCountValue > 99 ? '99+' : unreadCount} new
                 </Badge>
               )}
             </div>
@@ -345,7 +346,7 @@ export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOvervi
                 to={projectConversation ? `/messages?conversationId=${projectConversation.id}&compose=true` : `/messages?projectId=${project.id}&compose=true`}
               >
                 <Button
-                  variant="solid"
+                  variant="primary"
                   icon={<Send className="h-4 w-4" aria-hidden="true" />}
                   aria-label="Send a new message to project team"
                 >
@@ -355,9 +356,9 @@ export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOvervi
             </div>
 
             {/* Live region for new message notifications */}
-            {unreadCount > 0 && (
+            {unreadCountValue > 0 && (
               <div role="status" aria-live="polite" className="sr-only">
-                You have {unreadCount} unread message{unreadCount !== 1 ? 's' : ''} in this project's conversation
+                You have {unreadCountValue} unread message{unreadCountValue !== 1 ? 's' : ''} in this project's conversation
               </div>
             )}
           </CardContent>

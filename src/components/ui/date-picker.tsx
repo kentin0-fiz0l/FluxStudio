@@ -3,7 +3,7 @@
  * A simple date picker component for message search filtering
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './button';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
@@ -137,7 +137,7 @@ export function DatePicker({
               return (
                 <Button
                   key={day}
-                  variant={isSelected ? "default" : "ghost"}
+                  variant={isSelected ? "primary" : "ghost"}
                   className={cn(
                     "h-8 w-8 p-0 text-sm",
                     isToday && !isSelected && "bg-accent text-accent-foreground",

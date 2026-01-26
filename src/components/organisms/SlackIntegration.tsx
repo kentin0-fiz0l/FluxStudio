@@ -3,7 +3,7 @@
  * Slack-specific integration with multi-workspace support
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MessageSquare, Hash, Loader2, RefreshCw, Users } from 'lucide-react';
 import { IntegrationCard } from './IntegrationCard';
 import { Button } from '@/components/ui/button';

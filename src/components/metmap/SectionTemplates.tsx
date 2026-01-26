@@ -4,7 +4,7 @@
  * Quick-add buttons for common song sections with preset configurations.
  */
 
-import React from 'react';
+// React import not needed with JSX transform
 
 export interface SectionTemplate {
   name: string;

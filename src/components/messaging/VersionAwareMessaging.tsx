@@ -3,38 +3,27 @@
  * Intelligent messaging system that tracks file versions and links conversations to design evolution
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
-  FileText,
   GitBranch,
   MessageSquare,
   ArrowRight,
   Clock,
-  Users,
-  Eye,
   Download,
-  Compare,
   History,
   Layers,
   Pin,
   Link,
-  Tag,
-  Lightbulb,
-  AlertCircle,
   CheckCircle,
   PlayCircle,
   Pause,
   SkipForward,
   SkipBack,
-  ChevronRight,
-  ChevronDown,
   Maximize2,
   Minimize2,
   RefreshCw,
-  Filter,
   Search,
-  Calendar,
   Zap
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -42,13 +31,11 @@ import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Input } from '../ui/input';
-import { Separator } from '../ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
 import { Progress } from '../ui/progress';
-import { Message, Conversation, MessageUser, ImageAnnotation } from '../../types/messaging';
+import { Conversation, MessageUser, ImageAnnotation } from '../../types/messaging';
 import { FileVersionTracker } from './FileVersionTracker';
 import { RealtimeImageAnnotation } from './RealtimeImageAnnotation';
 import { cn } from '../../lib/utils';
@@ -299,10 +286,10 @@ export function VersionAwareMessaging({
   currentUser,
   className,
   onVersionSelect,
-  onConversationNavigate
+  onConversationNavigate: _onConversationNavigate
 }: VersionAwareMessagingProps) {
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
-  const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
+  const [selectedVersion, _setSelectedVersion] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'timeline' | 'versions' | 'annotations' | 'links'>('timeline');
   const [isTimelinePlaying, setIsTimelinePlaying] = useState(false);
   const [timelineSpeed, setTimelineSpeed] = useState(1);
@@ -484,7 +471,7 @@ export function VersionAwareMessaging({
             <History className="w-4 h-4" />
             Project Milestones
           </h4>
-          {thread.milestones.map((milestone, index) => {
+          {thread.milestones.map((milestone) => {
             const Icon = getMilestoneIcon(milestone.type);
             const isActive = thread.versions[currentIndex]?.id === milestone.versionId;
 
@@ -759,7 +746,7 @@ export function VersionAwareMessaging({
                           imageUrl={mockVersionThreads[0].currentVersion.url}
                           annotations={mockVersionThreads[0].currentVersion.annotations || []}
                           currentUser={currentUser}
-                          onAnnotationsChange={(annotations) => {
+                          onAnnotationsChange={(_annotations) => {
                             // Handle annotation changes
                           }}
                           conversationId={conversationId}

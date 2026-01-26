@@ -210,7 +210,7 @@ export function ErrorState({
           <Button
             onClick={onRetry}
             disabled={isRetrying}
-            variant="default"
+            variant="primary"
           >
             <RefreshCw
               className={cn('h-4 w-4 mr-2', isRetrying && 'animate-spin')}
@@ -220,7 +220,7 @@ export function ErrorState({
         )}
 
         {shouldShowLogin && (
-          <Button onClick={handleLogin} variant="default">
+          <Button onClick={handleLogin} variant="primary">
             <LogIn className="h-4 w-4 mr-2" />
             Sign In
           </Button>

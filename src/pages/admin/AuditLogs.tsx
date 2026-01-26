@@ -4,7 +4,7 @@
  * View and filter audit logs for security and compliance.
  */
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import {
@@ -24,7 +24,6 @@ import {
   Trash2,
   UserPlus,
   UserMinus,
-  Settings,
   RefreshCw,
 } from 'lucide-react';
 

@@ -182,7 +182,7 @@ class WorkflowAutomationService {
   /**
    * Set up automated trigger for conversation
    */
-  async setupTrigger(conversationId: string, trigger: Partial<WorkflowTrigger>): Promise<WorkflowTrigger> {
+  async setupTrigger(_conversationId: string, trigger: Partial<WorkflowTrigger>): Promise<WorkflowTrigger> {
     const fullTrigger: WorkflowTrigger = {
       id: `trigger-${Date.now()}`,
       name: trigger.name || 'Custom Trigger',
@@ -479,17 +479,17 @@ class WorkflowAutomationService {
   }
 
   private evaluateUserActionCondition(
-    condition: TriggerCondition,
-    message: Message,
-    context: WorkflowContext
+    _condition: TriggerCondition,
+    _message: Message,
+    _context: WorkflowContext
   ): boolean {
     // Implement user action evaluation logic
     return false; // Placeholder
   }
 
   private evaluateConversationStateCondition(
-    condition: TriggerCondition,
-    context: WorkflowContext
+    _condition: TriggerCondition,
+    _context: WorkflowContext
   ): boolean {
     // Implement conversation state evaluation logic
     return false; // Placeholder
@@ -545,32 +545,32 @@ class WorkflowAutomationService {
     }
   }
 
-  private async sendNotification(config: any, context: WorkflowContext): Promise<void> {
+  private async sendNotification(config: any, _context: WorkflowContext): Promise<void> {
     console.log('Notification sent:', config.message);
     // In a real implementation, this would send actual notifications
   }
 
-  private async sendAutoReply(config: any, context: WorkflowContext): Promise<void> {
+  private async sendAutoReply(config: any, _context: WorkflowContext): Promise<void> {
     console.log('Auto-reply sent:', config.message);
     // In a real implementation, this would send a message to the conversation
   }
 
-  private async createTask(config: any, message: Message, context: WorkflowContext): Promise<void> {
+  private async createTask(_config: any, message: Message, _context: WorkflowContext): Promise<void> {
     console.log('Task created from message:', message.content);
     // In a real implementation, this would create a task in a task management system
   }
 
-  private async scheduleReminder(config: any, context: WorkflowContext): Promise<void> {
+  private async scheduleReminder(config: any, _context: WorkflowContext): Promise<void> {
     console.log('Reminder scheduled:', config.message);
     // In a real implementation, this would schedule a reminder
   }
 
-  private async updateStatus(config: any, context: WorkflowContext): Promise<void> {
+  private async updateStatus(config: any, _context: WorkflowContext): Promise<void> {
     console.log('Status updated:', config);
     // In a real implementation, this would update project status
   }
 
-  private async escalateIssue(config: any, message: Message, context: WorkflowContext): Promise<void> {
+  private async escalateIssue(_config: any, message: Message, _context: WorkflowContext): Promise<void> {
     console.log('Issue escalated:', message.content);
     // In a real implementation, this would escalate to appropriate team members
   }
@@ -631,7 +631,7 @@ class WorkflowAutomationService {
     return patterns;
   }
 
-  private async createSuggestionFromPattern(pattern: any, context: WorkflowContext): Promise<AutomationSuggestion | null> {
+  private async createSuggestionFromPattern(pattern: any, _context: WorkflowContext): Promise<AutomationSuggestion | null> {
     // Convert patterns to automation suggestions
     if (pattern.type === 'frequent_questions') {
       return {
@@ -658,7 +658,7 @@ class WorkflowAutomationService {
     return null;
   }
 
-  private async getTemplateSuggestions(context: WorkflowContext): Promise<AutomationSuggestion[]> {
+  private async getTemplateSuggestions(_context: WorkflowContext): Promise<AutomationSuggestion[]> {
     return this.automationTemplates.map((template, index) => ({
       id: `template-${index}`,
       title: `Enable ${template.name}`,

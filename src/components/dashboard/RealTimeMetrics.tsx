@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -22,10 +22,8 @@ import {
   TrendingDown,
   Activity,
   Users,
-  Clock,
   Target,
   RefreshCw,
-  BarChart3
 } from 'lucide-react';
 import { useSocket } from '../../contexts/SocketContext';
 
@@ -95,7 +93,7 @@ export function RealTimeMetrics() {
     ]
   });
 
-  const [teamPerformanceData, setTeamPerformanceData] = useState({
+  const [teamPerformanceData, _setTeamPerformanceData] = useState({
     labels: ['Design', 'Development', 'Marketing', 'Sales'],
     datasets: [
       {
@@ -115,12 +113,12 @@ export function RealTimeMetrics() {
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    socket.on('metrics:update', (data: any) => {
-      setMetrics(data.metrics);
+    const handleMetricsUpdate = (data: { metrics: Record<string, unknown> }) => {
+      setMetrics(data.metrics as unknown as MetricData[]);
       setLastUpdate(new Date());
-    });
+    };
 
-    socket.on('activity:update', (data: any) => {
+    const handleActivityUpdate = (data: { activityData: number[] }) => {
       setActivityData(prev => ({
         ...prev,
         datasets: [{
@@ -128,9 +126,9 @@ export function RealTimeMetrics() {
           data: data.activityData
         }]
       }));
-    });
+    };
 
-    socket.on('projects:status', (data: any) => {
+    const handleProjectsStatus = (data: { statusCounts: number[] }) => {
       setProjectStatusData(prev => ({
         ...prev,
         datasets: [{
@@ -138,12 +136,16 @@ export function RealTimeMetrics() {
           data: data.statusCounts
         }]
       }));
-    });
+    };
+
+    socket.on('metrics:update', handleMetricsUpdate);
+    socket.on('activity:update', handleActivityUpdate);
+    socket.on('projects:status', handleProjectsStatus);
 
     return () => {
-      socket.off('metrics:update');
-      socket.off('activity:update');
-      socket.off('projects:status');
+      socket.off('metrics:update', handleMetricsUpdate);
+      socket.off('activity:update', handleActivityUpdate);
+      socket.off('projects:status', handleProjectsStatus);
     };
   }, [socket, isConnected]);
 

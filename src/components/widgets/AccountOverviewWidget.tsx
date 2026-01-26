@@ -1,4 +1,4 @@
-import React from 'react';
+// React import not needed with JSX transform
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
@@ -10,7 +10,6 @@ import {
   User,
   Settings,
   Calendar,
-  Clock,
   Star,
   Shield,
   Mail,

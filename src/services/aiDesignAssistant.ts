@@ -65,24 +65,24 @@ export interface CollaborationInsight {
 }
 
 class AIDesignAssistant {
-  private apiKey: string | null = null;
-  private baseUrl: string;
+  private _apiKey: string | null = null;
+  private _baseUrl: string;
 
   constructor() {
-    this.baseUrl = config.API_BASE_URL;
+    this._baseUrl = config.API_BASE_URL;
     this.initializeAPI();
   }
 
   private async initializeAPI() {
     // In a real implementation, you'd get the API key from your backend
     // For now, we'll simulate AI responses
-    this.apiKey = 'simulated-ai-key';
+    this._apiKey = 'simulated-ai-key';
   }
 
   /**
    * Analyze design and provide intelligent suggestions
    */
-  async analyzeDesign(designData: {
+  async analyzeDesign(_designData: {
     imageUrl?: string;
     designElements?: any[];
     context?: string;
@@ -176,7 +176,7 @@ class AIDesignAssistant {
   /**
    * Generate intelligent color palettes based on context
    */
-  async generateColorPalette(context: {
+  async generateColorPalette(_context: {
     industry?: string;
     mood?: string[];
     brand?: string;
@@ -276,7 +276,7 @@ class AIDesignAssistant {
   /**
    * Analyze layout for usability and aesthetic issues
    */
-  async analyzeLayout(layoutData: {
+  async analyzeLayout(_layoutData: {
     elements: any[];
     viewport: { width: number; height: number };
     userFlow?: string[];
@@ -336,7 +336,7 @@ class AIDesignAssistant {
   /**
    * Analyze collaboration patterns and provide insights
    */
-  async analyzeCollaboration(collaborationData: {
+  async analyzeCollaboration(_collaborationData: {
     messages: any[];
     feedback: any[];
     designIterations: any[];
@@ -397,7 +397,7 @@ class AIDesignAssistant {
   /**
    * Get real-time design suggestions during editing
    */
-  async getRealTimeSuggestions(currentContext: {
+  async getRealTimeSuggestions(_currentContext: {
     selectedElement?: any;
     recentActions?: string[];
     userIntent?: string;
@@ -434,7 +434,7 @@ class AIDesignAssistant {
   /**
    * Generate accessibility report
    */
-  async generateAccessibilityReport(designData: any): Promise<{
+  async generateAccessibilityReport(_designData: any): Promise<{
     score: number;
     issues: any[];
     recommendations: DesignSuggestion[];

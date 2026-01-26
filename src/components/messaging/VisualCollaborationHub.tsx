@@ -3,7 +3,7 @@
  * Central hub for visual collaboration with multi-user design review capabilities
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
@@ -12,54 +12,34 @@ import {
   MicOff,
   VideoOff,
   Screen,
-  Share2,
   MessageSquare,
   Eye,
-  EyeOff,
-  Settings,
   Volume2,
   VolumeX,
-  Phone,
   PhoneOff,
   Record,
   StopCircle,
-  Play,
-  Pause,
-  SkipForward,
-  SkipBack,
   Maximize2,
   Minimize2,
   Grid3X3,
   Focus,
   Palette,
-  Layers,
-  Hand,
-  MousePointer2,
-  Zap,
   Clock,
   CheckCircle,
-  AlertCircle,
-  Download,
   Upload,
-  Link,
-  Copy,
   Wifi,
   WifiOff,
   Crown,
-  UserPlus,
-  UserMinus,
-  Sparkles
+  UserPlus
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { Slider } from '../ui/slider';
-import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
-import { Separator } from '../ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Progress } from '../ui/progress';
 import { RealtimeImageAnnotation } from './RealtimeImageAnnotation';
@@ -238,11 +218,11 @@ const mockSession: CollaborationSession = {
 };
 
 export function VisualCollaborationHub({
-  sessionId,
+  sessionId: _sessionId,
   currentUser,
   className,
   onSessionEnd,
-  onParticipantAdd,
+  onParticipantAdd: _onParticipantAdd,
   onAssetUpload
 }: VisualCollaborationHubProps) {
   const [session, setSession] = useState<CollaborationSession>(mockSession);
@@ -251,7 +231,7 @@ export function VisualCollaborationHub({
   const [viewMode, setViewMode] = useState<'focus' | 'grid' | 'presentation'>('focus');
   const [showParticipants, setShowParticipants] = useState(true);
   const [showChat, setShowChat] = useState(true);
-  const [isConnected, setIsConnected] = useState(true);
+  const [isConnected, _setIsConnected] = useState(true);
   const [sessionTime, setSessionTime] = useState(0);
 
   // User controls
@@ -459,7 +439,7 @@ export function VisualCollaborationHub({
               {/* View Mode Controls */}
               <div className="flex border border-gray-600 rounded">
                 <Button
-                  variant={viewMode === 'focus' ? 'default' : 'ghost'}
+                  variant={viewMode === 'focus' ? 'primary' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('focus')}
                   className="rounded-r-none"
@@ -467,7 +447,7 @@ export function VisualCollaborationHub({
                   <Focus className="w-4 h-4" />
                 </Button>
                 <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  variant={viewMode === 'grid' ? 'primary' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
                   className="rounded-none border-x border-gray-600"
@@ -475,7 +455,7 @@ export function VisualCollaborationHub({
                   <Grid3X3 className="w-4 h-4" />
                 </Button>
                 <Button
-                  variant={viewMode === 'presentation' ? 'default' : 'ghost'}
+                  variant={viewMode === 'presentation' ? 'primary' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('presentation')}
                   className="rounded-l-none"
@@ -543,7 +523,7 @@ export function VisualCollaborationHub({
                   {session.assets.map(asset => (
                     <Button
                       key={asset.id}
-                      variant={activeAsset === asset.id ? 'default' : 'outline'}
+                      variant={activeAsset === asset.id ? 'primary' : 'outline'}
                       size="sm"
                       onClick={() => setActiveAsset(asset.id)}
                       className="text-xs"
@@ -678,14 +658,14 @@ export function VisualCollaborationHub({
             {/* Media Controls */}
             <div className="flex items-center gap-2">
               <Button
-                variant={hasVideo ? 'default' : 'destructive'}
+                variant={hasVideo ? 'primary' : 'danger'}
                 size="sm"
                 onClick={handleToggleVideo}
               >
                 {hasVideo ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
               </Button>
               <Button
-                variant={hasAudio ? 'default' : 'destructive'}
+                variant={hasAudio ? 'primary' : 'danger'}
                 size="sm"
                 onClick={handleToggleAudio}
               >
@@ -694,7 +674,7 @@ export function VisualCollaborationHub({
 
               {currentParticipant?.permissions.canScreenShare && (
                 <Button
-                  variant={isScreenSharing ? 'default' : 'outline'}
+                  variant={isScreenSharing ? 'primary' : 'outline'}
                   size="sm"
                   onClick={handleScreenShare}
                 >
@@ -727,7 +707,7 @@ export function VisualCollaborationHub({
             <div className="flex items-center gap-2">
               {currentParticipant?.permissions.canRecord && (
                 <Button
-                  variant={session.isRecording ? 'destructive' : 'outline'}
+                  variant={session.isRecording ? 'danger' : 'outline'}
                   size="sm"
                   onClick={session.isRecording ? handleStopRecording : handleStartRecording}
                 >
@@ -756,7 +736,7 @@ export function VisualCollaborationHub({
               </Button>
 
               <Button
-                variant="destructive"
+                variant="danger"
                 size="sm"
                 onClick={onSessionEnd}
               >

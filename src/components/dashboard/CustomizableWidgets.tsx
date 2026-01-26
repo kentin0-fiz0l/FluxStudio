@@ -12,7 +12,6 @@ import {
   EyeOff,
   Settings,
   Plus,
-  TrendingUp,
   Users,
   MessageSquare,
   Clock,

@@ -5,7 +5,7 @@
  * View, unblock, whitelist, and manage blocked IP addresses
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAdminApi } from '../hooks/useAdminAuth';
 
 interface BlockedIP {

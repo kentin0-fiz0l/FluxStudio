@@ -2,7 +2,7 @@
  * PresenceIndicator - Displays active collaborators and their status
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import {

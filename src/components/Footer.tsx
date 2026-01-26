@@ -1,5 +1,5 @@
 import { Mail, Instagram, Twitter, Youtube } from 'lucide-react';
-import fluxLogo from 'figma:asset/128e5611c12549cded97c5e071b8c30cbaf7c018.png';
+import fluxLogo from '../assets/128e5611c12549cded97c5e071b8c30cbaf7c018.png';
 import { LazyImage } from './LazyImage';
 
 export function Footer() {

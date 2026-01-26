@@ -3,14 +3,10 @@
  * Automated workflow management for design projects with AI-powered task coordination
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   Play,
-  Pause,
-  Square,
-  SkipForward,
-  RotateCcw,
   Settings,
   CheckCircle,
   Clock,
@@ -19,35 +15,19 @@ import {
   Calendar,
   FileText,
   MessageSquare,
-  Zap,
-  GitBranch,
   Target,
   Sparkles,
   Brain,
   Workflow,
-  ArrowRight,
-  ArrowDown,
   Plus,
-  Edit,
-  Trash2,
-  Copy,
   Eye,
-  EyeOff,
-  Filter,
   Search,
   Download,
-  Upload,
-  Link,
-  Bell,
-  BellOff,
-  Flag,
   Star,
   Timer,
   TrendingUp,
   BarChart3,
-  PieChart,
   Activity,
-  Gauge
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -55,16 +35,9 @@ import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Progress } from '../ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
 import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Switch } from '../ui/switch';
-import { Label } from '../ui/label';
-import { Slider } from '../ui/slider';
-import { Calendar as CalendarComponent } from '../ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { MessageUser } from '../../types/messaging';
 import { cn } from '../../lib/utils';
 
@@ -468,16 +441,16 @@ const mockExecution: WorkflowExecution = {
 };
 
 export function WorkflowOrchestrator({
-  projectId,
-  currentUser,
+  projectId: _projectId,
+  currentUser: _currentUser,
   className,
-  onTaskAssign,
+  onTaskAssign: _onTaskAssign,
   onWorkflowStart,
   onTaskComplete
 }: WorkflowOrchestratorProps) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'templates' | 'execution' | 'analytics'>('dashboard');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [execution, setExecution] = useState<WorkflowExecution>(mockExecution);
+  const [execution, _setExecution] = useState<WorkflowExecution>(mockExecution);
   const [showSettings, setShowSettings] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'in_progress' | 'completed' | 'blocked'>('all');
@@ -587,7 +560,7 @@ export function WorkflowOrchestrator({
                   </div>
 
                   {isOverdue && (
-                    <Badge variant="destructive" className="text-xs">
+                    <Badge variant="error" className="text-xs">
                       <AlertTriangle className="w-3 h-3 mr-1" />
                       Overdue
                     </Badge>

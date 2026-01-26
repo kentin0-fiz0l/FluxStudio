@@ -301,7 +301,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
                       <div className="px-4 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                         {category}
                       </div>
-                      {cmds.map((command, index) => {
+                      {cmds.map((command) => {
                         const flatIndex = filteredCommands.indexOf(command);
                         const isSelected = flatIndex === selectedIndex;
 

@@ -3,7 +3,7 @@
  * Advanced message classification, content analysis, and workflow automation
  */
 
-import { Message, MessageType, Priority, Conversation } from '../types/messaging';
+import { Message, Conversation } from '../types/messaging';
 
 // Enhanced message classification types
 export type MessageCategory =
@@ -64,9 +64,9 @@ export interface ContentAnalysisPatterns {
 
   // Design-specific patterns
   designTerms: string[];
-  colorReferences: RegExp[];
-  fontReferences: RegExp[];
-  sizeReferences: RegExp[];
+  colorReferences: RegExp;
+  fontReferences: RegExp;
+  sizeReferences: RegExp;
 }
 
 class MessageIntelligenceService {
@@ -191,7 +191,7 @@ class MessageIntelligenceService {
     };
   }
 
-  private categorizeMessage(content: string, message: Message, conversation: Conversation): MessageCategory {
+  private categorizeMessage(content: string, message: Message, _conversation: Conversation): MessageCategory {
     // Check for design feedback
     if (this.hasKeywords(content, this.patterns.feedbackKeywords) ||
         this.hasKeywords(content, this.patterns.designTerms)) {
@@ -247,7 +247,7 @@ class MessageIntelligenceService {
     return 'update';
   }
 
-  private determineIntent(content: string, message: Message): MessageIntent {
+  private determineIntent(content: string, _message: Message): MessageIntent {
     // Action required
     if (this.hasKeywords(content, this.patterns.actionVerbs) ||
         this.hasKeywords(content, ['please', 'can you', 'could you', 'need', 'require'])) {
@@ -278,7 +278,7 @@ class MessageIntelligenceService {
     return 'information-sharing';
   }
 
-  private assessUrgency(content: string, message: Message, conversation: Conversation): MessageUrgency {
+  private assessUrgency(content: string, _message: Message, conversation: Conversation): MessageUrgency {
     // Critical urgency
     if (this.hasKeywords(content, ['urgent', 'critical', 'emergency', 'asap', 'immediately'])) {
       return 'critical';
@@ -291,7 +291,7 @@ class MessageIntelligenceService {
     }
 
     // Check conversation context
-    if (conversation.priority === 'high' || conversation.priority === 'critical') {
+    if (conversation.metadata?.priority === 'high' || conversation.metadata?.priority === 'critical') {
       return 'high';
     }
 
@@ -304,7 +304,7 @@ class MessageIntelligenceService {
     return 'low';
   }
 
-  private extractStructuredData(content: string, message: Message) {
+  private extractStructuredData(content: string, _message: Message) {
     const data: MessageAnalysis['extractedData'] = {};
 
     // Extract action items
@@ -451,8 +451,8 @@ class MessageIntelligenceService {
 
   private generateSuggestedResponses(
     category: MessageCategory,
-    intent: MessageIntent,
-    extractedData: MessageAnalysis['extractedData']
+    _intent: MessageIntent,
+    _extractedData: MessageAnalysis['extractedData']
   ): string[] {
     const responses: string[] = [];
 
@@ -500,7 +500,7 @@ class MessageIntelligenceService {
     return responses.slice(0, 3); // Return top 3 suggestions
   }
 
-  private async findRelatedMessages(message: Message, conversation: Conversation): Promise<string[]> {
+  private async findRelatedMessages(_message: Message, _conversation: Conversation): Promise<string[]> {
     // This would integrate with the messaging service to find related messages
     // For now, return empty array - would be implemented with vector similarity search
     return [];

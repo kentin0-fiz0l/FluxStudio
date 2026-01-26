@@ -19,7 +19,6 @@ import { Badge } from './ui/badge';
 import {
   Search,
   Bell,
-  Plus,
   Settings,
   Home,
   Building2,

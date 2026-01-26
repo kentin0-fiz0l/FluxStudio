@@ -12,6 +12,7 @@ interface SocketContextType {
   // Connection state
   isConnected: boolean;
   connectionError: string | null;
+  socket: typeof import('../services/socketService').socketService | null;
 
   // Real-time messaging
   sendMessage: (messageData: {
@@ -299,13 +300,13 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   // Project presence management
   const joinProject = useCallback((projectId: string) => {
     if (!user) return;
-    const userName = user.name || user.userEmail?.split('@')[0] || 'Unknown';
+    const userName = user.name || user.email?.split('@')[0] || 'Unknown';
     socketService.joinProject(projectId, { userName });
   }, [user]);
 
   const leaveProject = useCallback((projectId: string) => {
     if (!user) return;
-    const userName = user.name || user.userEmail?.split('@')[0] || 'Unknown';
+    const userName = user.name || user.email?.split('@')[0] || 'Unknown';
     socketService.leaveProject(projectId, { userName });
   }, [user]);
 
@@ -361,7 +362,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     joinProject,
     leaveProject,
     onProjectPresence,
-    onPulseEvent
+    onPulseEvent,
+
+    // Socket service reference
+    socket: socketService
   };
 
   return (

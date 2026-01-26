@@ -3,28 +3,21 @@
  * Smart conversation grouping, context detection, and workflow insights
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain,
   TrendingUp,
   Clock,
   Users,
-  FileText,
-  AlertCircle,
   CheckCircle,
   MessageSquare,
-  Tag,
-  Filter,
   Search,
-  BarChart3,
-  Calendar,
   Target,
-  Zap,
-  Lightbulb,
   ArrowRight,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -75,7 +68,7 @@ export function ConversationIntelligencePanel({
   conversations,
   messages,
   messageAnalyses,
-  currentUserId,
+  currentUserId: _currentUserId,
   className,
   onConversationSelect,
   onActionTrigger
@@ -212,7 +205,7 @@ export function ConversationIntelligencePanel({
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(insight =>
         insight.conversation.name.toLowerCase().includes(query) ||
-        insight.conversation.participants.some(p => p.toLowerCase().includes(query))
+        insight.conversation.participants.some(p => p.name.toLowerCase().includes(query))
       );
     }
 
@@ -236,7 +229,7 @@ export function ConversationIntelligencePanel({
   }, [conversationInsights, searchQuery, filterType]);
 
   // Helper functions
-  function hasSubsequentResponse(conversationId: string, analysis: MessageAnalysis): boolean {
+  function hasSubsequentResponse(_conversationId: string, _analysis: MessageAnalysis): boolean {
     // This would check if there's a response after the question
     // For now, return false to show all questions as unanswered
     return false;
@@ -264,7 +257,7 @@ export function ConversationIntelligencePanel({
     return 'low';
   }
 
-  function calculateAverageResponseTime(messages: Message[]): number {
+  function calculateAverageResponseTime(_messages: Message[]): number {
     // Calculate average response time between messages
     // For now, return a mock value
     return Math.random() * 24; // 0-24 hours

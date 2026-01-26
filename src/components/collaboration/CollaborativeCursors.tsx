@@ -10,7 +10,7 @@ import { useCollaborators, useCollaboration } from '@/store';
 import { realtime } from '@/services/realtime';
 
 interface CollaborativeCursorsProps {
-  canvasRef: React.RefObject<HTMLElement>;
+  canvasRef: React.RefObject<HTMLElement | null>;
   sessionId?: string;
   className?: string;
 }

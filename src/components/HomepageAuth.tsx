@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, forwardRef } from 'react';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '65518208813-f4rgudom5b57qad0jlhjtsocsrb26mfc.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '882884563054-813d51d0anok4n1jt3d2j78oiltrhd2f.apps.googleusercontent.com';
 
 // ForwardRef wrapper for React Router Link to fix Slot ref warnings
 const ForwardedLink = forwardRef<HTMLAnchorElement, React.ComponentProps<typeof Link>>((props, ref) => (

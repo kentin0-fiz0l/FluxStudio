@@ -4,13 +4,9 @@ import {
   Plus,
   Download,
   Share2,
-  Calendar,
-  Filter,
   BarChart3,
   PieChart,
   TrendingUp,
-  Users,
-  Clock,
   Save,
   Play,
 } from 'lucide-react';

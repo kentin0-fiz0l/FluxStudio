@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Plus, Upload, X, CheckCircle, AlertCircle, File, Image, Video, FileText } from 'lucide-react';
+import { Plus, Upload, CheckCircle, AlertCircle, File, Image, Video, FileText } from 'lucide-react';
 import { useFileUpload, UploadProgress } from '../hooks/useFileUpload';
 
 interface FileUploadProps {

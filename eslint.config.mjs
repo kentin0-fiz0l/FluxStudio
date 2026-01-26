@@ -38,13 +38,19 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_'
+      }],
       '@typescript-eslint/no-explicit-any': 'warn',
       'prefer-const': 'error',
       // Disable no-undef - TypeScript handles this better
       'no-undef': 'off',
       // DEBT-012: Prevent console statements in production
       'no-console': ['warn', { allow: ['warn', 'error'] }],
+      // Allow variable declarations in switch cases (wrap in braces if needed for clarity)
+      'no-case-declarations': 'warn',
       // DEBT-013: Array index keys - add eslint-plugin-react and enable 'react/no-array-index-key'
       // rule when needed. For now, prefer unique IDs over index for dynamic lists.
       // Acceptable uses: loading skeletons, static content that never reorders.

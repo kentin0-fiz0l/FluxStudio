@@ -71,7 +71,7 @@ function formatDate(dateString: string): string {
  * Get status badge variant and icon
  */
 function getStatusInfo(status: PrintJobStatus): {
-  variant: 'success' | 'destructive' | 'secondary' | 'default';
+  variant: 'success' | 'error' | 'secondary' | 'default';
   icon: React.ReactNode;
   label: string;
 } {
@@ -84,7 +84,7 @@ function getStatusInfo(status: PrintJobStatus): {
       };
     case 'failed':
       return {
-        variant: 'destructive',
+        variant: 'error',
         icon: <XCircle className="w-4 h-4" />,
         label: 'Failed',
       };

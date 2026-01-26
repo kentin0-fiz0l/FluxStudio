@@ -33,6 +33,9 @@ interface Channel {
     id: string;
     name: string;
     role?: string;
+    avatar?: string;
+    userType?: 'client' | 'designer' | 'admin';
+    isOnline?: boolean;
   }>;
   createdAt: string;
   updatedAt: string;

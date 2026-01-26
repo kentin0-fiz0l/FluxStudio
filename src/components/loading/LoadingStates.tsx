@@ -3,7 +3,7 @@
  * Improved perceived performance with progressive loading
  */
 
-import React from 'react';
+// React import not needed with JSX transform
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '../../lib/utils';

@@ -1,24 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Users,
   Save,
-  Download,
   Eye,
   Edit,
   MessageCircle,
   Activity,
   Clock,
-  GitBranch,
   Lock,
   Unlock,
-  Share2,
-  History,
   Type,
-  Bold,
-  Italic,
-  List,
-  Link,
-  Image,
   Code,
   Undo,
   Redo
@@ -55,7 +46,7 @@ interface Comment {
 }
 
 export function CollaborativeEditor({
-  fileId,
+  fileId: _fileId,
   fileName,
   content: initialContent,
   mimeType,

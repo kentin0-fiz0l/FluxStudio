@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
@@ -12,7 +12,6 @@ import {
   FolderOpen,
   ChevronRight,
   Clock,
-  Users,
   Calendar,
   Plus,
   Filter,
@@ -23,6 +22,17 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react';
+
+interface ProjectData {
+  id: string;
+  name: string;
+  status: string;
+  progress: number;
+  dueDate: string;
+  team: string;
+  priority: string;
+  lastActivity: string;
+}
 
 export function ProjectOverviewWidget(props: WidgetProps) {
   const navigate = useNavigate();
@@ -38,7 +48,7 @@ export function ProjectOverviewWidget(props: WidgetProps) {
   // Use real-time data or fallback to empty array
   const projectsData = realTimeProjects || [];
 
-  const filteredProjects = projectsData.filter(project => {
+  const filteredProjects = projectsData.filter((project: ProjectData) => {
     if (filter === 'all') return true;
     if (filter === 'active') return project.status === 'active';
     if (filter === 'pending') return project.status === 'review' || project.status === 'planning';
@@ -89,10 +99,10 @@ export function ProjectOverviewWidget(props: WidgetProps) {
 
   const stats = {
     total: projectsData.length,
-    active: projectsData.filter(p => p.status === 'active').length,
-    pending: projectsData.filter(p => p.status === 'review' || p.status === 'planning').length,
+    active: projectsData.filter((p: ProjectData) => p.status === 'active').length,
+    pending: projectsData.filter((p: ProjectData) => p.status === 'review' || p.status === 'planning').length,
     avgProgress: projectsData.length > 0
-      ? Math.round(projectsData.reduce((sum, p) => sum + p.progress, 0) / projectsData.length)
+      ? Math.round(projectsData.reduce((sum: number, p: ProjectData) => sum + p.progress, 0) / projectsData.length)
       : 0,
   };
 
@@ -183,7 +193,7 @@ export function ProjectOverviewWidget(props: WidgetProps) {
 
       {/* Projects List */}
       <div className="space-y-3">
-        {filteredProjects.slice(0, 3).map((project) => (
+        {filteredProjects.slice(0, 3).map((project: ProjectData) => (
           <div
             key={project.id}
             className="p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 cursor-pointer transition-colors group"

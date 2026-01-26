@@ -3,8 +3,8 @@
  * Dialog for creating new conversations with different types and settings
  */
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Users, MessageCircle, Folder, Bell, Search, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Users, MessageCircle, Folder, Bell, Search, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { ConversationType, Priority, MessageUser, Conversation } from '../../types/messaging';
 import { messagingService } from '../../services/messagingService';
 import { useOrganization } from '../../contexts/OrganizationContext';
@@ -341,7 +340,7 @@ export function CreateConversationDialog({
           <DialogTitle>Create New Conversation</DialogTitle>
           <div className="flex items-center gap-2 mt-2">
             <Button
-              variant={showTemplates ? "default" : "outline"}
+              variant={showTemplates ? "primary" : "outline"}
               size="sm"
               onClick={() => setShowTemplates(true)}
               className="text-xs"
@@ -349,7 +348,7 @@ export function CreateConversationDialog({
               Quick Templates
             </Button>
             <Button
-              variant={showTemplates ? "outline" : "default"}
+              variant={showTemplates ? "outline" : "primary"}
               size="sm"
               onClick={() => setShowTemplates(false)}
               className="text-xs"
@@ -393,8 +392,8 @@ export function CreateConversationDialog({
                               {template.type}
                             </Badge>
                             <Badge variant={
-                              template.priority === 'high' ? 'destructive' :
-                              template.priority === 'critical' ? 'destructive' :
+                              template.priority === 'high' ? 'error' :
+                              template.priority === 'critical' ? 'error' :
                               'default'
                             } className="text-xs capitalize">
                               {template.priority}

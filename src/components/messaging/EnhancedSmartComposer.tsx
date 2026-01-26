@@ -10,29 +10,12 @@ import {
   Paperclip,
   Image as ImageIcon,
   Mic,
-  Smile,
   AtSign,
-  Hash,
-  Calendar,
-  Zap,
   X,
-  Plus,
   FileText,
-  Camera,
   Video,
-  Volume2,
-  Palette,
-  CheckCircle,
-  AlertCircle,
   Clock,
-  Star,
-  Users,
-  Search,
-  Bot,
-  Sparkles,
-  MessageSquare,
-  UserPlus,
-  Settings
+  Sparkles
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
@@ -43,7 +26,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Message, MessageUser, Conversation, Priority, MessageType } from '../../types/messaging';
 import { UserSearch, UserSearchResult } from '../search/UserSearch';
-import { useMessaging } from '../../hooks/useMessaging';
 import { cn } from '../../lib/utils';
 
 interface EnhancedSmartComposerProps {
@@ -100,7 +82,7 @@ export const EnhancedSmartComposer: React.FC<EnhancedSmartComposerProps> = ({
   const [scheduledFor, setScheduledFor] = useState<Date | null>(null);
 
   // Smart features
-  const [showRecipientSelector, setShowRecipientSelector] = useState(false);
+  const [_showRecipientSelector, _setShowRecipientSelector] = useState(false);
   const [additionalRecipients, setAdditionalRecipients] = useState<UserSearchResult[]>([]);
   const [smartSuggestions, setSmartSuggestions] = useState<string[]>([]);
 
@@ -207,7 +189,7 @@ export const EnhancedSmartComposer: React.FC<EnhancedSmartComposerProps> = ({
         replyTo: replyingTo?.id,
         mentions: mentions.map(m => m.id),
         scheduledFor: scheduledFor || undefined,
-        projectId: conversation?.metadata?.projectId
+        projectId: conversation?.projectId
       };
 
       await onSend(content, options);
@@ -589,7 +571,7 @@ const AttachmentPreview: React.FC<{ file: File; onRemove: () => void }> = ({
       </Card>
       <Button
         size="sm"
-        variant="destructive"
+        variant="danger"
         className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={onRemove}
       >

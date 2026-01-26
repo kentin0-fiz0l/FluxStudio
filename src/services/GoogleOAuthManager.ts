@@ -152,10 +152,11 @@ class GoogleOAuthManager {
 
     // Listen for resource load errors (like 403 from iframes)
     window.addEventListener('error', (event) => {
-      if (event.target &&
-          (event.target as HTMLElement).tagName === 'IFRAME' &&
-          event.target.getAttribute &&
-          event.target.getAttribute('src')?.includes('accounts.google.com')) {
+      const target = event.target as HTMLElement;
+      if (target &&
+          target.tagName === 'IFRAME' &&
+          target.getAttribute &&
+          target.getAttribute('src')?.includes('accounts.google.com')) {
         this.hasConfigurationError = true;
         console.warn('Google OAuth iframe failed to load - likely configuration error');
       }

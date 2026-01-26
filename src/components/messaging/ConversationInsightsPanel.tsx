@@ -3,14 +3,13 @@
  * Display context-aware conversation insights and analytics
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3,
   TrendingUp,
   TrendingDown,
   Users,
-  Clock,
   CheckCircle,
   AlertTriangle,
   Lightbulb,
@@ -97,7 +96,7 @@ export function ConversationInsightsPanel({
 
   const getPriorityColor = (priority: 'high' | 'medium' | 'low') => {
     switch (priority) {
-      case 'high': return 'destructive';
+      case 'high': return 'error';
       case 'medium': return 'default';
       case 'low': return 'secondary';
     }
@@ -281,7 +280,7 @@ export function ConversationInsightsPanel({
                               <div className="flex justify-between text-sm mb-1">
                                 <span>Engagement Level</span>
                                 <Badge variant={
-                                  insights.insights.engagementLevel === 'high' ? 'default' :
+                                  insights.insights.engagementLevel === 'high' ? 'success' :
                                   insights.insights.engagementLevel === 'medium' ? 'secondary' : 'outline'
                                 }>
                                   {insights.insights.engagementLevel}
@@ -486,7 +485,7 @@ export function ConversationInsightsPanel({
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      {insights.recommendations.slice(0, 3).map((rec, index) => (
+                      {insights.recommendations.slice(0, 3).map((rec) => (
                         <div key={rec.id} className="border rounded-lg p-3">
                           <div className="flex items-start justify-between mb-2">
                             <h4 className="text-sm font-medium">{rec.title}</h4>
@@ -520,7 +519,7 @@ export function ConversationInsightsPanel({
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-2">
-                        {insights.insights.actionItems.slice(0, 5).map((item, index) => (
+                        {insights.insights.actionItems.slice(0, 5).map((item) => (
                           <div key={item.id} className="flex items-start space-x-2 text-sm">
                             <div className="mt-1">
                               <div className={`w-2 h-2 rounded-full ${

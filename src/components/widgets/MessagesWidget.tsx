@@ -308,7 +308,7 @@ export function MessagesWidget(props: WidgetProps) {
     deleteMessage,
     setTyping,
     isLoading,
-    error,
+    error: _error,
   } = useMessaging();
 
   const [messageText, setMessageText] = useState('');

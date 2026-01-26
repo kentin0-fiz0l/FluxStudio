@@ -3,9 +3,8 @@
  * Orchestrates automated task sequences and cross-feature workflows
  */
 
-import { Project } from '../types/project';
 import { Conversation, MessageUser } from '../types/messaging';
-import { Organization, Team } from '../types/organization';
+import { Organization, Team, Project } from '../types/organization';
 
 export interface WorkflowStep {
   id: string;
@@ -63,6 +62,18 @@ export interface WorkflowError {
   timestamp: Date;
   details?: any;
 }
+
+export type StepHandler = (
+  step: WorkflowStep,
+  context: WorkflowContext
+) => Promise<{
+  success: boolean;
+  nextStep?: string;
+  waiting?: boolean;
+  timeout?: number;
+  results?: any[];
+  error?: string;
+}>;
 
 export class WorkflowEngine {
   private templates: Map<string, WorkflowTemplate> = new Map();
@@ -293,13 +304,13 @@ export class WorkflowEngine {
    */
   private registerStepHandlers() {
     // Action handler
-    this.stepHandlers.set('action', async (step, context) => {
+    this.stepHandlers.set('action', async (step: WorkflowStep, context: WorkflowContext) => {
       const { action, ...params } = step.config;
       return await this.executeAction(action, params, context);
     });
 
     // Condition handler
-    this.stepHandlers.set('condition', async (step, context) => {
+    this.stepHandlers.set('condition', async (step: WorkflowStep, context: WorkflowContext) => {
       const { condition } = step.config;
       const result = await this.evaluateCondition(condition, context);
       return {
@@ -309,7 +320,7 @@ export class WorkflowEngine {
     });
 
     // Wait handler
-    this.stepHandlers.set('wait', async (step, context) => {
+    this.stepHandlers.set('wait', async (step: WorkflowStep, context: WorkflowContext) => {
       const { waitFor, timeout } = step.config;
       // In production, this would set up actual timers/watchers
       return {
@@ -320,8 +331,8 @@ export class WorkflowEngine {
     });
 
     // Parallel handler
-    this.stepHandlers.set('parallel', async (step, context) => {
-      const promises = (step.nextSteps || []).map(stepId =>
+    this.stepHandlers.set('parallel', async (step: WorkflowStep, context: WorkflowContext) => {
+      const promises = (step.nextSteps || []).map((stepId: string) =>
         this.executeStep(stepId, context)
       );
       const results = await Promise.allSettled(promises);
@@ -332,7 +343,7 @@ export class WorkflowEngine {
     });
 
     // Sequential handler
-    this.stepHandlers.set('sequential', async (step, context) => {
+    this.stepHandlers.set('sequential', async (step: WorkflowStep, context: WorkflowContext) => {
       const results = [];
       for (const stepId of step.nextSteps || []) {
         const result = await this.executeStep(stepId, context);
@@ -511,7 +522,7 @@ export class WorkflowEngine {
 
       // Check role requirements
       if (template.requiredRoles?.some(role =>
-        context.user.userType === role || context.user.role === role
+        context.user.userType === role
       )) {
         if (!suggestions.includes(template)) {
           suggestions.push(template);

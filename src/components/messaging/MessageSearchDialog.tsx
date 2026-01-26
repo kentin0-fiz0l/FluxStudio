@@ -3,15 +3,14 @@
  * Advanced search functionality for messages across conversations
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Calendar, User, FileText, Image, Video, X, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Filter, User, FileText, Image, Video, X, ArrowRight } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { ScrollArea } from '../ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { DatePicker } from '../ui/date-picker';
 import { Message, MessageSearchOptions, MessageType, Priority } from '../../types/messaging';
@@ -155,7 +154,7 @@ export function MessageSearchDialog({
               {formatDate(message.createdAt)} at {formatTime(message.createdAt)}
             </span>
             {message.metadata?.priority && message.metadata.priority !== 'medium' && (
-              <Badge variant={message.metadata.priority === 'high' ? 'destructive' : 'secondary'} className="text-xs">
+              <Badge variant={message.metadata.priority === 'high' ? 'error' : 'secondary'} className="text-xs">
                 {message.metadata.priority}
               </Badge>
             )}

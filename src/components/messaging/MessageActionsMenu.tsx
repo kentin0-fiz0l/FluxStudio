@@ -3,7 +3,7 @@
  * Dropdown menu for message actions (reply, react, pin, copy, delete)
  */
 
-import React from 'react';
+// React import not needed with JSX transform
 import {
   Reply,
   Smile,
