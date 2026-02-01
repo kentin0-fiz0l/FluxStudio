@@ -8,7 +8,7 @@ import { Edit2, Trash2, Check, AlertCircle } from 'lucide-react';
 import { Button, Badge } from '../ui';
 import { EditableCell } from './EditableCell';
 import { getStatusDisplay, getPriorityDisplay } from './TaskFilterPanel';
-import type { Task } from '../../hooks/useTasks';
+import type { Task } from './types';
 
 interface TaskTableRowProps {
   task: Task;
@@ -16,7 +16,7 @@ interface TaskTableRowProps {
   isEditing: (taskId: string, field: keyof Task) => boolean;
   isLoading: (taskId: string) => boolean;
   editValue: string;
-  editInputRef: React.RefObject<HTMLInputElement | HTMLSelectElement>;
+  editInputRef: React.RefObject<HTMLInputElement | HTMLSelectElement | null>;
   deleteConfirm: string | null;
   onStartEdit: (taskId: string, field: keyof Task, currentValue: string) => void;
   onEditValueChange: (value: string) => void;

@@ -7,7 +7,7 @@ import React from 'react';
 import { Edit2, Trash2, Check, AlertCircle } from 'lucide-react';
 import { Button, Badge } from '../ui';
 import { getStatusDisplay, getPriorityDisplay } from './TaskFilterPanel';
-import type { Task } from '../../hooks/useTasks';
+import type { Task } from './types';
 
 interface TaskMobileCardProps {
   task: Task;

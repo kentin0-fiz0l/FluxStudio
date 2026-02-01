@@ -21,24 +21,21 @@
  */
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Button, Badge } from '../ui';
+import { Button } from '../ui';
 import {
-  Edit2,
-  Trash2,
-  Check,
-  X,
-  ChevronUp,
-  ChevronDown,
-  Filter,
-  Plus,
   AlertCircle,
   CheckCircle2,
-  Clock,
-  Circle,
-  Eye,
+  Plus,
+  X,
 } from 'lucide-react';
 import { TaskDetailModal } from './TaskDetailModal';
-import type { Task } from '../../hooks/useTasks';
+import { TaskListControls } from './TaskListControls';
+import { TaskFilterPanel } from './TaskFilterPanel';
+import { TaskTableHeader } from './TaskTableHeader';
+import { TaskTableRow } from './TaskTableRow';
+import { TaskMobileCard } from './TaskMobileCard';
+import type { Task, SortField, SortDirection, FilterState, EditState } from './types';
+import { sortTasks } from './utils';
 
 // Re-export Task type for consumers
 export type { Task };
@@ -55,132 +52,6 @@ export interface TaskListViewProps {
   onTaskCreate: () => void;
   loading?: boolean;
 }
-
-type SortField = 'status' | 'priority' | 'dueDate' | 'title';
-type SortDirection = 'asc' | 'desc';
-
-interface FilterState {
-  status: Task['status'][];
-  priority: Task['priority'][];
-  assignee: string[];
-}
-
-interface EditState {
-  taskId: string | null;
-  field: keyof Task | null;
-  value: string;
-}
-
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-/**
- * Get badge variant and icon for task status
- */
-const getStatusDisplay = (status: Task['status']) => {
-  const config = {
-    todo: {
-      label: 'To Do',
-      variant: 'default' as const,
-      icon: Circle,
-    },
-    'in_progress': {
-      label: 'In Progress',
-      variant: 'info' as const,
-      icon: Clock,
-    },
-    review: {
-      label: 'Review',
-      variant: 'warning' as const,
-      icon: Eye,
-    },
-    completed: {
-      label: 'Completed',
-      variant: 'success' as const,
-      icon: CheckCircle2,
-    },
-  };
-  return config[status];
-};
-
-/**
- * Get badge variant for task priority
- */
-const getPriorityDisplay = (priority: Task['priority']) => {
-  const config = {
-    low: { label: 'Low', variant: 'default' as const },
-    medium: { label: 'Medium', variant: 'info' as const },
-    high: { label: 'High', variant: 'warning' as const },
-    critical: { label: 'Critical', variant: 'error' as const },
-  };
-  return config[priority];
-};
-
-/**
- * Format date for display
- */
-const formatDate = (dateString: string | null): string => {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffDays = Math.floor((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Tomorrow';
-  if (diffDays === -1) return 'Yesterday';
-  if (diffDays > 0 && diffDays <= 7) return `In ${diffDays} days`;
-  if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)} days ago`;
-
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-};
-
-/**
- * Check if task is overdue
- */
-const isOverdue = (dueDate: string | null, status: Task['status']): boolean => {
-  if (!dueDate || status === 'completed') return false;
-  return new Date(dueDate) < new Date();
-};
-
-/**
- * Sort tasks by field and direction
- */
-const sortTasks = (tasks: Task[], field: SortField, direction: SortDirection): Task[] => {
-  return [...tasks].sort((a, b) => {
-    let aValue: string | number;
-    let bValue: string | number;
-
-    switch (field) {
-      case 'status':
-        // Custom order: todo, in-progress, review, completed
-        const statusOrder = { todo: 0, 'in_progress': 1, review: 2, completed: 3 };
-        aValue = statusOrder[a.status];
-        bValue = statusOrder[b.status];
-        break;
-      case 'priority':
-        // Custom order: critical, high, medium, low
-        const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-        aValue = priorityOrder[a.priority];
-        bValue = priorityOrder[b.priority];
-        break;
-      case 'dueDate':
-        aValue = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
-        bValue = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-        break;
-      case 'title':
-        aValue = a.title.toLowerCase();
-        bValue = b.title.toLowerCase();
-        break;
-      default:
-        return 0;
-    }
-
-    if (aValue < bValue) return direction === 'asc' ? -1 : 1;
-    if (aValue > bValue) return direction === 'asc' ? 1 : -1;
-    return 0;
-  });
-};
 
 // ============================================================================
 // MAIN COMPONENT
@@ -302,14 +173,15 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
     value: FilterState[K][number]
   ) => {
     setFilters(prev => {
-      const current = prev[key] as FilterState[K];
-      const exists = current.includes(value);
+      const current = prev[key];
+      const valueToCheck = value as typeof current[number];
+      const exists = (current as readonly (typeof valueToCheck)[]).includes(valueToCheck);
 
       return {
         ...prev,
         [key]: exists
-          ? current.filter(v => v !== value)
-          : [...current, value],
+          ? current.filter((v): v is typeof valueToCheck => v !== valueToCheck)
+          : [...current, valueToCheck],
       };
     });
   }, []);
@@ -454,273 +326,28 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   }, [onTaskDelete]);
 
   // ============================================================================
-  // RENDER HELPERS
-  // ============================================================================
-
-  /**
-   * Render sort indicator in column header
-   */
-  const renderSortIndicator = (field: SortField) => {
-    if (sortField !== field) return null;
-
-    return sortDirection === 'asc' ? (
-      <ChevronUp className="w-4 h-4" aria-label="Sorted ascending" />
-    ) : (
-      <ChevronDown className="w-4 h-4" aria-label="Sorted descending" />
-    );
-  };
-
-  /**
-   * Render editable cell
-   */
-  const renderEditableCell = (
-    task: Task,
-    field: keyof Task,
-    display: React.ReactNode,
-    editType: 'input' | 'select' = 'input',
-    options?: { value: string; label: string }[]
-  ) => {
-    const isEditing = editState.taskId === task.id && editState.field === field;
-    const isLoading = loadingStates[task.id];
-
-    if (isLoading) {
-      return (
-        <div className="flex items-center gap-2" role="status" aria-live="polite">
-          <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-neutral-500">Saving...</span>
-        </div>
-      );
-    }
-
-    if (isEditing) {
-      if (editType === 'select' && options) {
-        return (
-          <div className="flex items-center gap-2">
-            <select
-              ref={editInputRef as React.RefObject<HTMLSelectElement>}
-              value={editState.value}
-              onChange={e => setEditState(prev => ({ ...prev, value: e.target.value }))}
-              onKeyDown={handleEditKeyDown}
-              onBlur={saveEdit}
-              className="px-2 py-1 border border-primary-500 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
-              aria-label={`Edit ${field}`}
-            >
-              {options.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={saveEdit}
-              aria-label="Save changes"
-              className="h-8 px-2"
-            >
-              <Check className="w-4 h-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={cancelEdit}
-              aria-label="Cancel editing"
-              className="h-8 px-2"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        );
-      }
-
-      return (
-        <div className="flex items-center gap-2">
-          <input
-            ref={editInputRef as React.RefObject<HTMLInputElement>}
-            type={field === 'dueDate' ? 'date' : 'text'}
-            value={editState.value}
-            onChange={e => setEditState(prev => ({ ...prev, value: e.target.value }))}
-            onKeyDown={handleEditKeyDown}
-            onBlur={saveEdit}
-            className="px-2 py-1 border border-primary-500 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
-            aria-label={`Edit ${field}`}
-          />
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={saveEdit}
-            aria-label="Save changes"
-            className="h-8 px-2"
-          >
-            <Check className="w-4 h-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={cancelEdit}
-            aria-label="Cancel editing"
-            className="h-8 px-2"
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-      );
-    }
-
-    return (
-      <button
-        onClick={() => startEdit(task.id, field, String(task[field] || ''))}
-        className="text-left hover:bg-neutral-50 px-2 py-1 -mx-2 -my-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
-        aria-label={`Click to edit ${field}`}
-      >
-        {display}
-      </button>
-    );
-  };
-
-  // ============================================================================
   // RENDER
   // ============================================================================
 
   return (
     <div className="space-y-4" ref={tableRef}>
-      {/* Header with Filters */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            icon={<Filter className="w-4 h-4" />}
-            aria-expanded={showFilters}
-            aria-label="Toggle filters"
-          >
-            Filters
-            {hasActiveFilters && (
-              <Badge variant="solidPrimary" size="sm" className="ml-1">
-                {filters.status.length + filters.priority.length + filters.assignee.length}
-              </Badge>
-            )}
-          </Button>
+      {/* Header with Filters - Extracted Component */}
+      <TaskListControls
+        showFilters={showFilters}
+        hasActiveFilters={hasActiveFilters}
+        activeFilterCount={filters.status.length + filters.priority.length + filters.assignee.length}
+        onToggleFilters={() => setShowFilters(!showFilters)}
+        onClearFilters={clearFilters}
+        onTaskCreate={onTaskCreate}
+      />
 
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              icon={<X className="w-4 h-4" />}
-              aria-label="Clear all filters"
-            >
-              Clear
-            </Button>
-          )}
-        </div>
-
-        <Button
-          onClick={onTaskCreate}
-          icon={<Plus className="w-4 h-4" />}
-          aria-label="Create new task"
-        >
-          New Task
-        </Button>
-      </div>
-
-      {/* Filter Panel */}
+      {/* Filter Panel - Extracted Component */}
       {showFilters && (
-        <div
-          className="p-4 bg-neutral-50 rounded-lg border border-neutral-200 space-y-4"
-          role="region"
-          aria-label="Task filters"
-        >
-          {/* Status Filters */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-2">
-              Status
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {(['todo', 'in_progress', 'review', 'completed'] as Task['status'][]).map(status => {
-                const { label, variant, icon: Icon } = getStatusDisplay(status);
-                const isActive = filters.status.includes(status);
-
-                return (
-                  <button
-                    key={status}
-                    onClick={() => toggleFilter('status', status)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                      isActive
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50'
-                    }`}
-                    aria-pressed={isActive}
-                    aria-label={`Filter by ${label} status`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Priority Filters */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-2">
-              Priority
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {(['low', 'medium', 'high', 'critical'] as Task['priority'][]).map(priority => {
-                const { label } = getPriorityDisplay(priority);
-                const isActive = filters.priority.includes(priority);
-
-                return (
-                  <button
-                    key={priority}
-                    onClick={() => toggleFilter('priority', priority)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                      isActive
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50'
-                    }`}
-                    aria-pressed={isActive}
-                    aria-label={`Filter by ${label} priority`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Assignee Filters */}
-          {uniqueAssignees.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Assignee
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {uniqueAssignees.map(assignee => {
-                  const isActive = filters.assignee.includes(assignee);
-
-                  return (
-                    <button
-                      key={assignee}
-                      onClick={() => toggleFilter('assignee', assignee)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                        isActive
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50'
-                      }`}
-                      aria-pressed={isActive}
-                      aria-label={`Filter by assignee ${assignee}`}
-                    >
-                      {assignee}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+        <TaskFilterPanel
+          filters={filters}
+          uniqueAssignees={uniqueAssignees}
+          onToggleFilter={toggleFilter}
+        />
       )}
 
       {/* Loading State */}
@@ -773,306 +400,51 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
           <div className="hidden md:block bg-white rounded-lg border border-neutral-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full" role="table" aria-label="Task list">
-                <thead>
-                  <tr className="bg-neutral-50 border-b border-neutral-200">
-                    <th
-                      scope="col"
-                      className="px-4 py-3 text-left text-sm font-semibold text-neutral-700 w-12"
-                    >
-                      <span className="sr-only">Complete</span>
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 py-3 text-left text-sm font-semibold text-neutral-700"
-                    >
-                      <button
-                        onClick={() => handleSort('status')}
-                        className="flex items-center gap-2 hover:text-primary-600 transition-colors focus:outline-none focus:text-primary-600"
-                        aria-label={`Sort by status ${sortField === 'status' ? (sortDirection === 'asc' ? 'descending' : 'ascending') : ''}`}
-                      >
-                        Status
-                        {renderSortIndicator('status')}
-                      </button>
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 py-3 text-left text-sm font-semibold text-neutral-700"
-                    >
-                      <button
-                        onClick={() => handleSort('title')}
-                        className="flex items-center gap-2 hover:text-primary-600 transition-colors focus:outline-none focus:text-primary-600"
-                        aria-label={`Sort by title ${sortField === 'title' ? (sortDirection === 'asc' ? 'descending' : 'ascending') : ''}`}
-                      >
-                        Title
-                        {renderSortIndicator('title')}
-                      </button>
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 py-3 text-left text-sm font-semibold text-neutral-700"
-                    >
-                      <button
-                        onClick={() => handleSort('priority')}
-                        className="flex items-center gap-2 hover:text-primary-600 transition-colors focus:outline-none focus:text-primary-600"
-                        aria-label={`Sort by priority ${sortField === 'priority' ? (sortDirection === 'asc' ? 'descending' : 'ascending') : ''}`}
-                      >
-                        Priority
-                        {renderSortIndicator('priority')}
-                      </button>
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 py-3 text-left text-sm font-semibold text-neutral-700"
-                    >
-                      Assignee
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 py-3 text-left text-sm font-semibold text-neutral-700"
-                    >
-                      <button
-                        onClick={() => handleSort('dueDate')}
-                        className="flex items-center gap-2 hover:text-primary-600 transition-colors focus:outline-none focus:text-primary-600"
-                        aria-label={`Sort by due date ${sortField === 'dueDate' ? (sortDirection === 'asc' ? 'descending' : 'ascending') : ''}`}
-                      >
-                        Due Date
-                        {renderSortIndicator('dueDate')}
-                      </button>
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 py-3 text-right text-sm font-semibold text-neutral-700 w-32"
-                    >
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
+                {/* Table Header - Extracted Component */}
+                <TaskTableHeader
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                />
+                {/* Table Body - Extracted Row Component */}
                 <tbody>
-                  {processedTasks.map((task, index) => {
-                    const statusDisplay = getStatusDisplay(task.status);
-                    const priorityDisplay = getPriorityDisplay(task.priority);
-                    const StatusIcon = statusDisplay.icon;
-                    const overdue = isOverdue(task.dueDate, task.status);
-
-                    return (
-                      <tr
-                        key={task.id}
-                        className={`border-b border-neutral-100 hover:bg-neutral-50 transition-colors ${
-                          index % 2 === 0 ? 'bg-white' : 'bg-neutral-50/50'
-                        }`}
-                        role="row"
-                      >
-                        {/* Complete Checkbox */}
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => toggleComplete(task)}
-                            disabled={loadingStates[task.id]}
-                            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
-                              task.status === 'completed'
-                                ? 'bg-success-600 border-success-600'
-                                : 'border-neutral-300 hover:border-primary-500'
-                            }`}
-                            aria-label={task.status === 'completed' ? 'Mark as incomplete' : 'Mark as complete'}
-                            aria-pressed={task.status === 'completed'}
-                          >
-                            {task.status === 'completed' && (
-                              <Check className="w-3 h-3 text-white" />
-                            )}
-                          </button>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-4 py-3">
-                          {renderEditableCell(
-                            task,
-                            'status',
-                            <Badge variant={statusDisplay.variant} size="sm" className="w-fit">
-                              <StatusIcon className="w-3 h-3" />
-                              {statusDisplay.label}
-                            </Badge>,
-                            'select',
-                            [
-                              { value: 'todo', label: 'To Do' },
-                              { value: 'in_progress', label: 'In Progress' },
-                              { value: 'review', label: 'Review' },
-                              { value: 'completed', label: 'Completed' },
-                            ]
-                          )}
-                        </td>
-
-                        {/* Title */}
-                        <td className="px-4 py-3">
-                          {renderEditableCell(
-                            task,
-                            'title',
-                            <span className="font-medium text-neutral-900">{task.title}</span>
-                          )}
-                        </td>
-
-                        {/* Priority */}
-                        <td className="px-4 py-3">
-                          {renderEditableCell(
-                            task,
-                            'priority',
-                            <Badge variant={priorityDisplay.variant} size="sm" className="w-fit">
-                              {priorityDisplay.label}
-                            </Badge>,
-                            'select',
-                            [
-                              { value: 'low', label: 'Low' },
-                              { value: 'medium', label: 'Medium' },
-                              { value: 'high', label: 'High' },
-                              { value: 'critical', label: 'Critical' },
-                            ]
-                          )}
-                        </td>
-
-                        {/* Assignee */}
-                        <td className="px-4 py-3">
-                          {renderEditableCell(
-                            task,
-                            'assignedTo',
-                            task.assignedTo ? (
-                              <span className="text-neutral-700">{task.assignedTo}</span>
-                            ) : (
-                              <span className="text-neutral-400 italic">Unassigned</span>
-                            )
-                          )}
-                        </td>
-
-                        {/* Due Date */}
-                        <td className="px-4 py-3">
-                          {renderEditableCell(
-                            task,
-                            'dueDate',
-                            <span className={overdue ? 'text-error-600 font-medium' : 'text-neutral-700'}>
-                              {formatDate(task.dueDate)}
-                              {overdue && (
-                                <AlertCircle className="w-4 h-4 inline-block ml-1" aria-label="Overdue" />
-                              )}
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleOpenEditModal(task)}
-                              icon={<Edit2 className="w-4 h-4" />}
-                              aria-label={`Edit ${task.title}`}
-                              className="h-8 px-2"
-                            />
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDelete(task.id)}
-                              icon={<Trash2 className="w-4 h-4" />}
-                              aria-label={deleteConfirm === task.id ? `Confirm delete ${task.title}` : `Delete ${task.title}`}
-                              className={`h-8 px-2 ${
-                                deleteConfirm === task.id ? 'text-error-600 hover:text-error-700' : ''
-                              }`}
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {processedTasks.map((task, index) => (
+                    <TaskTableRow
+                      key={task.id}
+                      task={task}
+                      index={index}
+                      isEditing={(taskId, field) => editState.taskId === taskId && editState.field === field}
+                      isLoading={(taskId) => !!loadingStates[taskId]}
+                      editValue={editState.value}
+                      editInputRef={editInputRef}
+                      deleteConfirm={deleteConfirm}
+                      onStartEdit={startEdit}
+                      onEditValueChange={(value) => setEditState(prev => ({ ...prev, value }))}
+                      onSaveEdit={saveEdit}
+                      onCancelEdit={cancelEdit}
+                      onEditKeyDown={handleEditKeyDown}
+                      onToggleComplete={toggleComplete}
+                      onOpenEditModal={handleOpenEditModal}
+                      onDelete={handleDelete}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* Mobile Card View */}
+          {/* Mobile Card View - Extracted Component */}
           <div className="md:hidden space-y-3" role="list" aria-label="Task list">
-            {processedTasks.map(task => {
-              const statusDisplay = getStatusDisplay(task.status);
-              const priorityDisplay = getPriorityDisplay(task.priority);
-              const StatusIcon = statusDisplay.icon;
-              const overdue = isOverdue(task.dueDate, task.status);
-
-              return (
-                <div
-                  key={task.id}
-                  className="bg-white rounded-lg border border-neutral-200 p-4 space-y-3"
-                  role="listitem"
-                >
-                  {/* Header Row */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => toggleComplete(task)}
-                          disabled={loadingStates[task.id]}
-                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
-                            task.status === 'completed'
-                              ? 'bg-success-600 border-success-600'
-                              : 'border-neutral-300'
-                          }`}
-                          aria-label={task.status === 'completed' ? 'Mark as incomplete' : 'Mark as complete'}
-                        >
-                          {task.status === 'completed' && (
-                            <Check className="w-3 h-3 text-white" />
-                          )}
-                        </button>
-                        <h3 className="font-semibold text-neutral-900">{task.title}</h3>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant={statusDisplay.variant} size="sm">
-                          <StatusIcon className="w-3 h-3" />
-                          {statusDisplay.label}
-                        </Badge>
-                        <Badge variant={priorityDisplay.variant} size="sm">
-                          {priorityDisplay.label}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleOpenEditModal(task)}
-                        icon={<Edit2 className="w-4 h-4" />}
-                        aria-label={`Edit ${task.title}`}
-                        className="h-9 w-9 p-0"
-                      />
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDelete(task.id)}
-                        icon={<Trash2 className="w-4 h-4" />}
-                        aria-label={`Delete ${task.title}`}
-                        className="h-9 w-9 p-0"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Details */}
-                  <div className="space-y-1 text-sm">
-                    {task.assignedTo && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-neutral-500 w-20">Assignee:</span>
-                        <span className="text-neutral-900">{task.assignedTo}</span>
-                      </div>
-                    )}
-                    {task.dueDate && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-neutral-500 w-20">Due Date:</span>
-                        <span className={overdue ? 'text-error-600 font-medium' : 'text-neutral-900'}>
-                          {formatDate(task.dueDate)}
-                          {overdue && <AlertCircle className="w-4 h-4 inline-block ml-1" />}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {processedTasks.map(task => (
+              <TaskMobileCard
+                key={task.id}
+                task={task}
+                isLoading={!!loadingStates[task.id]}
+                onToggleComplete={toggleComplete}
+                onOpenEditModal={handleOpenEditModal}
+                onDelete={handleDelete}
+              />
+            ))}
           </div>
 
           {/* Results Summary */}

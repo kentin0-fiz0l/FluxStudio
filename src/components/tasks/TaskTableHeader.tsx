@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
-import type { SortField, SortDirection } from '../../hooks/useTaskSorting';
+import type { SortField, SortDirection } from './types';
 
 interface TaskTableHeaderProps {
   sortField: SortField;

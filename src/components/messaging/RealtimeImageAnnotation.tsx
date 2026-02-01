@@ -1,45 +1,23 @@
 /**
  * RealtimeImageAnnotation Component
  * Enhanced image annotation with real-time collaboration capabilities
+ *
+ * Refactored to use extracted components from ./annotation/
  */
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Pencil,
-  Square,
-  Circle,
-  ArrowRight,
-  Type,
-  Save,
-  Trash2,
-  Users,
-  Eye,
-  EyeOff,
-  Wifi,
-  WifiOff,
-  Clock,
-  MessageCircle,
-  Layers,
-  Undo,
-  Redo,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw
-} from 'lucide-react';
-import { Button } from '../ui/button';
-// Input not currently used
-import { Textarea } from '../ui/textarea';
-import { Badge } from '../ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Separator } from '../ui/separator';
-import { Slider } from '../ui/slider';
-// Switch not currently used
-import { Label } from '../ui/label';
 import { ImageAnnotation, MessageUser } from '../../types/messaging';
 import { cn } from '../../lib/utils';
+import {
+  AnnotationToolbar,
+  AnnotationsList,
+  LayersPanel,
+  CommentDialog,
+  AnnotationType,
+  annotationTools,
+  defaultColors,
+  AnnotationLayer
+} from './annotation';
 
 interface RealtimeImageAnnotationProps {
   imageUrl: string;
@@ -55,21 +33,13 @@ interface RealtimeImageAnnotationProps {
   onAnnotationSelect?: (annotation: ImageAnnotation) => void;
 }
 
+// Types imported from ./annotation
 interface CollaboratorCursor {
   userId: string;
   user: MessageUser;
   position: { x: number; y: number };
   lastSeen: Date;
   isActive: boolean;
-}
-
-interface AnnotationLayer {
-  id: string;
-  name: string;
-  visible: boolean;
-  locked: boolean;
-  annotations: string[];
-  color: string;
 }
 
 interface AnnotationHistory {
@@ -79,23 +49,6 @@ interface AnnotationHistory {
   timestamp: Date;
   userId: string;
 }
-
-type AnnotationType = 'point' | 'rectangle' | 'circle' | 'arrow' | 'text' | 'freehand';
-
-const annotationTools = [
-  { type: 'point' as AnnotationType, icon: Pencil, label: 'Point' },
-  { type: 'rectangle' as AnnotationType, icon: Square, label: 'Rectangle' },
-  { type: 'circle' as AnnotationType, icon: Circle, label: 'Circle' },
-  { type: 'arrow' as AnnotationType, icon: ArrowRight, label: 'Arrow' },
-  { type: 'text' as AnnotationType, icon: Type, label: 'Text' },
-  { type: 'freehand' as AnnotationType, icon: Pencil, label: 'Freehand' },
-];
-
-const defaultColors = [
-  '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF',
-  '#FFA500', '#800080', '#008000', '#800000', '#000080', '#808000',
-  '#FF69B4', '#32CD32', '#1E90FF', '#FFD700', '#DC143C', '#00CED1'
-];
 
 export function RealtimeImageAnnotation({
   imageUrl,
@@ -751,187 +704,29 @@ export function RealtimeImageAnnotation({
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      {/* Toolbar */}
+      {/* Toolbar - Extracted Component */}
       {!readOnly && (
-        <Card className="border-b rounded-none">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {/* Tools */}
-                <div className="flex gap-2">
-                  {annotationTools.map(tool => (
-                    <Button
-                      key={tool.type}
-                      variant={selectedTool === tool.type ? 'primary' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedTool(tool.type)}
-                      className="h-9"
-                    >
-                      <tool.icon className="w-4 h-4 mr-2" />
-                      {tool.label}
-                    </Button>
-                  ))}
-                </div>
-
-                <Separator orientation="vertical" className="h-6" />
-
-                {/* Color and Brush Size */}
-                <div className="flex items-center gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-9 h-9 p-0">
-                        <div
-                          className="w-5 h-5 rounded border"
-                          style={{ backgroundColor: selectedColor }}
-                        />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-3">
-                      <div className="grid grid-cols-6 gap-2">
-                        {defaultColors.map(color => (
-                          <button
-                            key={color}
-                            className="w-6 h-6 rounded border hover:scale-110 transition-transform"
-                            style={{ backgroundColor: color }}
-                            onClick={() => setSelectedColor(color)}
-                          />
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="brush-size" className="text-sm whitespace-nowrap">
-                      Size:
-                    </Label>
-                    <Slider
-                      id="brush-size"
-                      min={1}
-                      max={10}
-                      step={1}
-                      value={[brushSize]}
-                      onValueChange={(value) => setBrushSize(value[0])}
-                      className="w-20"
-                    />
-                    <span className="text-sm text-gray-500 w-6">{brushSize}</span>
-                  </div>
-                </div>
-
-                <Separator orientation="vertical" className="h-6" />
-
-                {/* History Controls */}
-                <div className="flex gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={undo}
-                    disabled={historyIndex < 0}
-                    className="h-9"
-                  >
-                    <Undo className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={redo}
-                    disabled={historyIndex >= annotationHistory.length - 1}
-                    className="h-9"
-                  >
-                    <Redo className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                <Separator orientation="vertical" className="h-6" />
-
-                {/* Zoom Controls */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setZoom(prev => Math.max(0.1, prev - 0.1))}
-                    className="h-9"
-                  >
-                    <ZoomOut className="w-4 h-4" />
-                  </Button>
-                  <span className="text-sm font-medium w-12 text-center">
-                    {Math.round(zoom * 100)}%
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setZoom(prev => Math.min(3, prev + 0.1))}
-                    className="h-9"
-                  >
-                    <ZoomIn className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}
-                    className="h-9"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Right side controls */}
-              <div className="flex items-center gap-2">
-                {/* Connection Status */}
-                <div className="flex items-center gap-2">
-                  {isConnected ? (
-                    <Wifi className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <WifiOff className="w-4 h-4 text-red-500" />
-                  )}
-                  <span className="text-sm text-gray-500">
-                    {isConnected ? 'Connected' : 'Offline'}
-                  </span>
-                </div>
-
-                {/* Collaborators */}
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <div className="flex -space-x-2">
-                    {collaborators.slice(0, 3).map(user => (
-                      <Avatar key={user.id} className="w-6 h-6 border-2 border-white">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback className="text-xs">
-                          {user.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                    ))}
-                    {collaborators.length > 3 && (
-                      <div className="w-6 h-6 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-xs">
-                        +{collaborators.length - 3}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Toggle Controls */}
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowCollaborators(!showCollaborators)}
-                    className={cn("h-9", showCollaborators && "bg-blue-50")}
-                  >
-                    {showCollaborators ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowLayers(!showLayers)}
-                    className={cn("h-9", showLayers && "bg-blue-50")}
-                  >
-                    <Layers className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <AnnotationToolbar
+          selectedTool={selectedTool}
+          onToolChange={setSelectedTool}
+          selectedColor={selectedColor}
+          onColorChange={setSelectedColor}
+          brushSize={brushSize}
+          onBrushSizeChange={setBrushSize}
+          zoom={zoom}
+          onZoomChange={setZoom}
+          onResetView={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}
+          canUndo={historyIndex >= 0}
+          canRedo={historyIndex < annotationHistory.length - 1}
+          onUndo={undo}
+          onRedo={redo}
+          isConnected={isConnected}
+          collaborators={collaborators}
+          showCollaborators={showCollaborators}
+          onToggleCollaborators={() => setShowCollaborators(!showCollaborators)}
+          showLayers={showLayers}
+          onToggleLayers={() => setShowLayers(!showLayers)}
+        />
       )}
 
       {/* Main Content */}
@@ -960,241 +755,42 @@ export function RealtimeImageAnnotation({
           />
         </div>
 
-        {/* Layers Panel */}
-        <AnimatePresence>
-          {showLayers && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 280, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              className="border-l bg-background overflow-hidden"
-            >
-              <Card className="h-full rounded-none border-0">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm">Layers</CardTitle>
-                    <Button
-                      size="sm"
-                      onClick={createNewLayer}
-                      className="h-7"
-                    >
-                      <Layers className="w-3 h-3 mr-1" />
-                      Add
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {layers.map(layer => (
-                    <div
-                      key={layer.id}
-                      className={cn(
-                        "p-2 border rounded cursor-pointer transition-colors",
-                        activeLayer === layer.id ? "border-blue-500 bg-blue-50" : "border-gray-200"
-                      )}
-                      onClick={() => setActiveLayer(layer.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded"
-                            style={{ backgroundColor: layer.color }}
-                          />
-                          <span className="text-sm font-medium">{layer.name}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleLayerVisibility(layer.id);
-                          }}
-                        >
-                          {layer.visible ? (
-                            <Eye className="w-3 h-3" />
-                          ) : (
-                            <EyeOff className="w-3 h-3" />
-                          )}
-                        </Button>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {layer.annotations.length} annotations
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Layers Panel - Extracted Component */}
+        <LayersPanel
+          isOpen={showLayers}
+          layers={layers}
+          activeLayer={activeLayer}
+          onLayerSelect={setActiveLayer}
+          onCreateLayer={createNewLayer}
+          onToggleVisibility={toggleLayerVisibility}
+        />
 
-        {/* Annotations Sidebar */}
-        <div className="w-80 border-l bg-background">
-          <Card className="h-full rounded-none border-0">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  Annotations
-                  <Badge variant="secondary">{filteredAnnotations.length}</Badge>
-                </CardTitle>
-                <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs text-gray-500">Real-time</span>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-3">
-              {filteredAnnotations.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  <Pencil className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>No annotations yet</p>
-                  <p className="text-sm">Click on the image to add feedback</p>
-                </div>
-              ) : (
-                filteredAnnotations.map((annotation, index) => (
-                  <motion.div
-                    key={annotation.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={cn(
-                      "p-3 border rounded-lg cursor-pointer transition-all",
-                      selectedAnnotation === annotation.id
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                    )}
-                    onClick={() => {
-                      setSelectedAnnotation(annotation.id);
-                      onAnnotationSelect?.(annotation);
-                    }}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-4 h-4 rounded-full text-white text-xs flex items-center justify-center font-bold"
-                          style={{ backgroundColor: annotation.color }}
-                        >
-                          {index + 1}
-                        </div>
-                        <span className="text-sm font-medium capitalize">
-                          {annotation.type}
-                        </span>
-                        {annotation.type === 'freehand' && (
-                          <Badge variant="outline" className="text-xs">
-                            Drawing
-                          </Badge>
-                        )}
-                      </div>
-
-                      {!readOnly && selectedAnnotation === annotation.id && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteAnnotation(annotation.id);
-                          }}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      )}
-                    </div>
-
-                    {annotation.content && (
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {annotation.content}
-                      </p>
-                    )}
-
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Avatar className="w-4 h-4">
-                        <AvatarImage src={annotation.createdBy.avatar} />
-                        <AvatarFallback className="text-xs">
-                          {annotation.createdBy.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span>{annotation.createdBy.name}</span>
-                      <span>•</span>
-                      <span>{new Date(annotation.createdAt).toLocaleDateString()}</span>
-                    </div>
-
-                    {/* Real-time indicators */}
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center gap-1">
-                        {isConnected && (
-                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
-                            <Wifi className="w-2 h-2 mr-1" />
-                            Synced
-                          </Badge>
-                        )}
-                      </div>
-
-                      {annotation.id.startsWith('temp-') && (
-                        <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
-                          Saving...
-                        </Badge>
-                      )}
-                    </div>
-                  </motion.div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/* Annotations Sidebar - Extracted Component */}
+        <AnnotationsList
+          annotations={filteredAnnotations}
+          selectedAnnotation={selectedAnnotation}
+          onAnnotationSelect={(annotation) => {
+            setSelectedAnnotation(annotation.id);
+            onAnnotationSelect?.(annotation);
+          }}
+          onAnnotationDelete={handleDeleteAnnotation}
+          isConnected={isConnected}
+          readOnly={readOnly}
+        />
       </div>
 
-      {/* Comment Dialog */}
-      <AnimatePresence>
-        {showCommentDialog && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-background border rounded-lg p-4 w-96 max-w-[90vw]"
-            >
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <MessageCircle className="w-4 h-4" />
-                Add Comment
-              </h3>
-              <Textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Describe your feedback..."
-                rows={3}
-                className="mb-3"
-                autoFocus
-              />
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowCommentDialog(false);
-                    setCurrentAnnotation(null);
-                    setFreehandPath([]);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveComment}
-                  disabled={!commentText.trim()}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Save
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Comment Dialog - Extracted Component */}
+      <CommentDialog
+        isOpen={showCommentDialog}
+        commentText={commentText}
+        onCommentChange={setCommentText}
+        onSave={handleSaveComment}
+        onCancel={() => {
+          setShowCommentDialog(false);
+          setCurrentAnnotation(null);
+          setFreehandPath([]);
+        }}
+      />
     </div>
   );
 }

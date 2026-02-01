@@ -6,7 +6,7 @@
 import React from 'react';
 import { Check, X } from 'lucide-react';
 import { Button } from '../ui';
-import type { Task } from '../../hooks/useTasks';
+import type { Task } from './types';
 
 interface SelectOption {
   value: string;
@@ -22,7 +22,7 @@ interface EditableCellProps {
   isEditing: boolean;
   isLoading: boolean;
   editValue: string;
-  editInputRef: React.RefObject<HTMLInputElement | HTMLSelectElement>;
+  editInputRef: React.RefObject<HTMLInputElement | HTMLSelectElement | null>;
   onStartEdit: (taskId: string, field: keyof Task, currentValue: string) => void;
   onEditValueChange: (value: string) => void;
   onSave: () => void;

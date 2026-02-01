@@ -5,8 +5,7 @@
 
 import React from 'react';
 import { Circle, Clock, Eye, CheckCircle2 } from 'lucide-react';
-import type { Task } from '../../hooks/useTasks';
-import type { FilterState } from '../../hooks/useTaskFiltering';
+import type { Task, FilterState } from './types';
 
 interface TaskFilterPanelProps {
   filters: FilterState;
