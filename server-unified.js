@@ -688,6 +688,7 @@ const documentsRoutes = require('./routes/documents');
 app.use('/api', documentsRoutes);
 
 // Mount modular route files (Phase 1 refactoring)
+const authRoutes = require('./routes/auth');
 const filesRoutes = require('./routes/files');
 const notificationsRoutes = require('./routes/notifications');
 const teamsRoutes = require('./routes/teams');
@@ -697,6 +698,19 @@ const designBoardsRoutes = require('./routes/design-boards');
 const connectorsRoutes = require('./routes/connectors');
 const messagingRoutes = require('./routes/messaging');
 const messagesRoutes = require('./routes/messages');
+
+// Initialize auth routes with database helper
+authRoutes.setAuthHelper({
+  authenticateToken,
+  getUsers,
+  saveUsers,
+  getUserByEmail,
+  generateAuthResponse
+});
+
+// Mount auth routes at both paths for compatibility
+app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 
 app.use('/api/files', filesRoutes);
 app.use('/api/notifications', notificationsRoutes);
@@ -738,230 +752,8 @@ app.get('/organizations', authenticateToken, async (req, res) => {
 });
 
 // ========================================
-// PHASE 1: Auth & Core Routes
+// Auth routes moved to routes/auth.js
 // ========================================
-
-// User signup
-app.post('/auth/signup',
-  authRateLimit,
-  validateInput.email,
-  validateInput.password,
-  validateInput.sanitizeInput,
-  async (req, res) => {
-  try {
-    const { email, password, name, userType = 'client' } = req.body;
-
-    // Check if IP is blocked
-    const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
-    if (isBlocked) {
-      return res.status(429).json({
-        message: 'Too many requests. Please try again later.'
-      });
-    }
-
-    // Check for suspicious user agent
-    const isSuspicious = anomalyDetector.checkSuspiciousUserAgent(req.get('user-agent'));
-    if (isSuspicious) {
-      await securityLogger.logEvent(
-        'suspicious_user_agent_detected',
-        securityLogger.SEVERITY.WARNING,
-        {
-          email,
-          ipAddress: req.ip,
-          userAgent: req.get('user-agent'),
-          endpoint: '/auth/signup'
-        }
-      );
-    }
-
-    // Check for rapid signup requests
-    const isRapidRequest = await anomalyDetector.checkRequestRate(req.ip, '/auth/signup');
-    if (isRapidRequest) {
-      await anomalyDetector.blockIpAddress(req.ip, 1800, 'rapid_signup_requests');
-      return res.status(429).json({
-        message: 'Too many signup attempts. Please try again later.'
-      });
-    }
-
-    // Validation
-    if (!email || !password || !name) {
-      return res.status(400).json({ message: 'All fields are required' });
-    }
-
-    // Validate userType
-    const validUserTypes = ['client', 'designer', 'admin'];
-    if (!validUserTypes.includes(userType)) {
-      return res.status(400).json({ message: 'Invalid user type' });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({ message: 'Password must be at least 8 characters' });
-    }
-
-    // Check if user exists
-    const users = await getUsers();
-    if (users.find(u => u.email === email)) {
-      return res.status(400).json({ message: 'Email already registered' });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const newUser = {
-      id: uuidv4(),
-      email,
-      name,
-      userType,
-      password: hashedPassword,
-      createdAt: new Date().toISOString()
-    };
-
-    users.push(newUser);
-    await saveUsers(users);
-
-    // Generate token pair
-    const authResponse = await generateAuthResponse(newUser, req);
-
-    // Log successful signup
-    await securityLogger.logSignupSuccess(newUser.id, email, req, {
-      userType,
-      name
-    });
-
-    res.json(authResponse);
-  } catch (error) {
-    console.error('Signup error:', error);
-
-    // Capture error in Sentry
-    captureAuthError(error, {
-      endpoint: '/auth/signup',
-      email: req.body.email,
-      ipAddress: req.ip,
-      userAgent: req.get('user-agent')
-    });
-
-    // Log failed signup
-    await securityLogger.logSignupFailure(req.body.email, error.message, req, {
-      error: error.message
-    });
-
-    res.status(500).json({ message: 'Server error during signup' });
-  }
-});
-
-// User login
-app.post('/auth/login',
-  authRateLimit,
-  validateInput.email,
-  validateInput.sanitizeInput,
-  async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Check if IP is blocked
-    const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
-    if (isBlocked) {
-      return res.status(429).json({
-        message: 'Too many failed attempts. Please try again later.'
-      });
-    }
-
-    // Find user
-    const user = await getUserByEmail(email);
-
-    if (!user) {
-      // Check for brute force
-      const isBruteForce = await anomalyDetector.checkFailedLoginRate(email, req.ip);
-      if (isBruteForce) {
-        await anomalyDetector.blockIpAddress(req.ip, 3600, 'brute_force_login');
-        return res.status(429).json({
-          message: 'Too many failed attempts. Your IP has been temporarily blocked.'
-        });
-      }
-
-      await securityLogger.logLoginFailure(email, 'User not found', req);
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
-
-    // Check password
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      // Check for brute force
-      const isBruteForce = await anomalyDetector.checkFailedLoginRate(email, req.ip);
-      if (isBruteForce) {
-        await anomalyDetector.blockIpAddress(req.ip, 3600, 'brute_force_login');
-        return res.status(429).json({
-          message: 'Too many failed attempts. Your IP has been temporarily blocked.'
-        });
-      }
-
-      await securityLogger.logLoginFailure(email, 'Invalid password', req, {
-        userId: user.id
-      });
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
-
-    // Reset failed login counter
-    await anomalyDetector.resetFailedLoginCounter(email, req.ip);
-
-    // Generate token pair
-    const authResponse = await generateAuthResponse(user, req);
-
-    // Log successful login
-    await securityLogger.logLoginSuccess(user.id, req, {
-      email: user.email,
-      userType: user.userType
-    });
-
-    res.json(authResponse);
-  } catch (error) {
-    console.error('Login error:', error);
-
-    // Capture error in Sentry
-    captureAuthError(error, {
-      endpoint: '/auth/login',
-      email: req.body.email,
-      ipAddress: req.ip,
-      userAgent: req.get('user-agent')
-    });
-
-    await securityLogger.logLoginFailure(req.body.email, `Server error: ${error.message}`, req);
-    res.status(500).json({ message: 'Server error during login' });
-  }
-});
-
-// Get current user
-app.get('/auth/me', authenticateToken, async (req, res) => {
-  const users = await getUsers();
-  const user = users.find(u => u.id === req.user.id);
-
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
-
-  // Remove both password fields (FluxStudio and MetMap compatible)
-  const { password: _p, passwordHash: _ph, ...userWithoutPassword } = user;
-  res.json(userWithoutPassword);
-});
-
-// Logout
-app.post('/auth/logout', authenticateToken, (req, res) => {
-  res.json({ message: 'Logged out successfully' });
-});
-
-// Apple OAuth (placeholder)
-app.post('/auth/apple', async (req, res) => {
-  try {
-    res.status(501).json({
-      message: 'Apple Sign In integration is in development. Please use email/password authentication for now.',
-      error: 'OAuth not yet implemented'
-    });
-  } catch (error) {
-    console.error('Apple OAuth error:', error);
-    res.status(500).json({ message: 'Apple authentication error' });
-  }
-});
 
 // ========================================
 // PHASE 2: File Management Routes

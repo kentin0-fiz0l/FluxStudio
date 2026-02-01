@@ -64,6 +64,14 @@ router.setAuthHelper = (helper) => {
   authHelper = helper;
 };
 
+// Lazy authentication middleware wrapper (evaluates authHelper at runtime)
+const requireAuth = (req, res, next) => {
+  if (!authHelper || !requireAuth) {
+    return res.status(500).json({ message: 'Auth system not initialized' });
+  }
+  return requireAuth(req, res, next);
+};
+
 // CSRF token endpoint - must be called before making state-changing requests
 router.get('/csrf-token', getCsrfToken);
 
@@ -281,7 +289,7 @@ router.post('/login',
   });
 
 // Get current user endpoint
-router.get('/me', authHelper.authenticateToken, async (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
   const users = await authHelper.getUsers();
   const user = users.find(u => u.id === req.user.id);
 
@@ -294,7 +302,7 @@ router.get('/me', authHelper.authenticateToken, async (req, res) => {
 });
 
 // Logout endpoint
-router.post('/logout', authHelper.authenticateToken, (req, res) => {
+router.post('/logout', requireAuth, (req, res) => {
   // In a real app, you might want to invalidate the token server-side
   res.json({ message: 'Logged out successfully' });
 });
