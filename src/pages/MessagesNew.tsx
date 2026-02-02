@@ -17,14 +17,17 @@
  * - Voice message UI
  * - Message search
  * - Forward messages
+ *
+ * Refactored for Phase 4.2 Technical Debt Resolution:
+ * - Types imported from @/components/messaging/types
+ * - Components extracted to @/components/messaging/
  */
 
 import * as React from 'react';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
-import { Button, Card, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui';
-import { cn } from '../lib/utils';
+import { Button, Card } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useActiveProjectOptional } from '../contexts/ActiveProjectContext';
 import { useConversationRealtime } from '../hooks/useConversationRealtime';
@@ -39,26 +42,35 @@ import {
   X,
   ArrowLeft,
   MessageCircle,
-  Check,
   RefreshCw,
   Pin,
   BellOff,
-  Users,
   AlertCircle,
   Loader2,
   Sparkles,
 } from 'lucide-react';
 
+// Types - imported from extracted types file
+import type {
+  Message,
+  MessageUser,
+  Conversation,
+  ConversationListItem,
+  ConversationFilter,
+  PendingAttachment,
+} from '../components/messaging/types';
+
 // Extracted messaging components
 import {
-  ChatMessageBubble as ExtractedMessageBubble,
-  ChatAvatar as ExtractedChatAvatar,
-  MessageComposer as ExtractedMessageComposer,
-  ConversationItem as ExtractedConversationItem,
-  EmptyMessagesState as ExtractedEmptyMessagesState,
-  PinnedMessagesPanel as ExtractedPinnedMessagesPanel,
-  getInitials as extractedGetInitials,
-  type PendingAttachment,
+  ChatMessageBubble as MessageBubble,
+  ChatAvatar as Avatar,
+  MessageComposer as MessageInput,
+  ConversationItem,
+  EmptyMessagesState,
+  PinnedMessagesPanel,
+  NewConversationDialog,
+  ForwardMessageDialog,
+  getInitials,
 } from '../components/messaging';
 
 import { MessageSearchPanel } from '../components/messaging/MessageSearchPanel';
@@ -68,144 +80,6 @@ import { ConversationHeaderPresence } from '../components/messaging/PresenceIndi
 import { ConversationSummary } from '../components/messaging/ConversationSummary';
 import { EmptyState, emptyStateConfigs } from '../components/common/EmptyState';
 import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
-
-// Types
-interface MessageUser {
-  id: string;
-  name: string;
-  avatar?: string;
-  initials: string;
-  isOnline?: boolean;
-  lastSeen?: Date;
-}
-
-interface MessageAttachment {
-  id: string;
-  name: string;
-  url: string;
-  type: 'image' | 'video' | 'audio' | 'file' | 'document';
-  size: number;
-  mimeType?: string;
-  thumbnailUrl?: string;
-}
-
-interface LinkPreview {
-  url: string;
-  title?: string;
-  description?: string;
-  imageUrl?: string;
-  siteName?: string;
-  faviconUrl?: string;
-}
-
-interface ReactionCount {
-  emoji: string;
-  count: number;
-  userIds: string[];
-}
-
-interface MessageAsset {
-  id: string;
-  name: string;
-  kind: 'image' | 'video' | 'audio' | 'pdf' | 'document' | 'other';
-  ownerId?: string;
-  organizationId?: string;
-  description?: string;
-  createdAt?: string;
-  file: {
-    id: string;
-    name: string;
-    originalName: string;
-    mimeType: string;
-    sizeBytes: number;
-    url: string;
-    thumbnailUrl?: string;
-    storageKey?: string;
-  };
-}
-
-interface Message {
-  id: string;
-  content: string;
-  author: MessageUser;
-  timestamp: Date;
-  isCurrentUser: boolean;
-  status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
-  isEdited?: boolean;
-  editedAt?: Date;
-  isDeleted?: boolean;
-  isSystemMessage?: boolean;
-  replyTo?: {
-    id: string;
-    content: string;
-    author: MessageUser;
-  };
-  attachments?: MessageAttachment[];
-  asset?: MessageAsset | null;
-  linkPreviews?: LinkPreview[];
-  reactions?: ReactionCount[];
-  isPinned?: boolean;
-  isForwarded?: boolean;
-  voiceMessage?: {
-    duration: number;
-    waveform: number[];
-    url: string;
-  };
-  threadReplyCount?: number;
-  threadRootMessageId?: string | null;
-  threadLastReplyAt?: Date;
-}
-
-interface Conversation {
-  id: string;
-  title: string;
-  type: 'direct' | 'group' | 'channel';
-  participant: MessageUser;
-  participants?: MessageUser[];
-  lastMessage?: Message;
-  unreadCount: number;
-  isPinned?: boolean;
-  isArchived?: boolean;
-  isMuted?: boolean;
-  isTyping?: boolean;
-  typingUsers?: string[];
-  // Project context for project-scoped conversations
-  projectId?: string | null;
-  projectName?: string | null;
-}
-
-type ConversationFilter = 'all' | 'unread' | 'archived' | 'starred' | 'muted';
-
-// API response type for conversations (renamed to avoid conflict with ConversationSummary component)
-interface ConversationListItem {
-  id: string;
-  organizationId: string | null;
-  name: string | null;
-  isGroup: boolean;
-  createdAt: string;
-  updatedAt: string;
-  lastMessageAt: string | null;
-  lastMessagePreview: string | null;
-  unreadCount: number;
-  // Project context for project-scoped conversations
-  // See docs/project-context-followups.md for backend integration
-  projectId?: string | null;
-  projectName?: string | null;
-  members?: Array<{
-    id: string;
-    conversationId: string;
-    userId: string;
-    role: string;
-    user?: {
-      id: string;
-      email: string;
-      name?: string;
-    };
-  }>;
-}
-
-// Utility functions - using extracted versions from @/components/messaging
-const getInitials = extractedGetInitials;
 
 // Date separator for message grouping
 const getDateSeparator = (date: Date) => {
@@ -218,10 +92,10 @@ const getDateSeparator = (date: Date) => {
   return date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 };
 
-// Components
-
-// Typing Indicator - collapses when > 3 users
+// Typing Indicator - simple version for inline display
 function TypingIndicator({ users }: { users: string[] }) {
+  if (users.length === 0) return null;
+
   let text: string;
   if (users.length === 1) {
     text = `${users[0]} is typing...`;
@@ -230,7 +104,6 @@ function TypingIndicator({ users }: { users: string[] }) {
   } else if (users.length === 3) {
     text = `${users[0]}, ${users[1]}, and ${users[2]} are typing...`;
   } else {
-    // > 3 users: show first 2 + count
     text = `${users[0]}, ${users[1]}, + ${users.length - 2} others are typing...`;
   }
 
@@ -246,9 +119,6 @@ function TypingIndicator({ users }: { users: string[] }) {
   );
 }
 
-// Avatar Component - now using extracted ChatAvatar from @/components/messaging
-const Avatar = ExtractedChatAvatar;
-
 // Date Separator
 function DateSeparator({ date }: { date: Date }) {
   return (
@@ -261,21 +131,6 @@ function DateSeparator({ date }: { date: Date }) {
     </div>
   );
 }
-
-// Message Bubble - now using extracted component from @/components/messaging
-const MessageBubble = ExtractedMessageBubble;
-
-// Conversation List Item - now using extracted component from @/components/messaging
-const ConversationItem = ExtractedConversationItem;
-
-// Empty State - now using extracted component from @/components/messaging
-const EmptyMessagesState = ExtractedEmptyMessagesState;
-
-// Message Input Component - now using extracted component from @/components/messaging
-const MessageInput = ExtractedMessageComposer;
-
-// Pinned Messages Panel - now using extracted component from @/components/messaging
-const PinnedMessagesPanel = ExtractedPinnedMessagesPanel;
 
 // Main Messages Component
 function MessagesNew() {
@@ -1711,231 +1566,40 @@ function MessagesNew() {
         )}
       </div>
 
-      {/* New Conversation Dialog */}
-      <Dialog open={showNewConversation} onOpenChange={(open) => {
-        setShowNewConversation(open);
-        if (!open) {
-          setSelectedUsers([]);
-          setUserSearchTerm('');
-          setNewConversationName('');
-        }
-      }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-primary-600" />
-              New Conversation
-            </DialogTitle>
-            <DialogDescription>
-              Search for team members to start a conversation
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            {/* Selected users chips */}
-            {selectedUsers.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {selectedUsers.map((u) => (
-                  <div
-                    key={u.id}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full text-sm"
-                  >
-                    <span>{u.name}</span>
-                    <button
-                      onClick={() => toggleUserSelection(u)}
-                      className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-primary-200 dark:hover:bg-primary-800"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+      {/* New Conversation Dialog - using extracted component */}
+      <NewConversationDialog
+        open={showNewConversation}
+        onOpenChange={(open) => {
+          setShowNewConversation(open);
+          if (!open) {
+            setSelectedUsers([]);
+            setUserSearchTerm('');
+            setNewConversationName('');
+          }
+        }}
+        selectedUsers={selectedUsers}
+        onToggleUser={toggleUserSelection}
+        searchTerm={userSearchTerm}
+        onSearchChange={setUserSearchTerm}
+        groupName={newConversationName}
+        onGroupNameChange={setNewConversationName}
+        availableUsers={availableUsers}
+        isLoading={loadingUsers}
+        onCreateConversation={handleCreateConversation}
+      />
 
-            {/* Group name input (when multiple users selected) */}
-            {selectedUsers.length > 1 && (
-              <div>
-                <label className="block text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-1">
-                  Group Name (optional)
-                </label>
-                <input
-                  type="text"
-                  value={newConversationName}
-                  onChange={(e) => setNewConversationName(e.target.value)}
-                  placeholder="Enter group name..."
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            )}
-
-            {/* Search input */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-              <input
-                type="text"
-                value={userSearchTerm}
-                onChange={(e) => setUserSearchTerm(e.target.value)}
-                placeholder="Search by name or email..."
-                className="w-full pl-10 pr-4 py-2 text-sm border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-
-            {/* User list */}
-            <div>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
-                {userSearchTerm ? 'Search Results' : 'Team Members'}
-              </p>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {loadingUsers ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
-                  </div>
-                ) : availableUsers.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Users className="w-10 h-10 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" />
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                      {userSearchTerm ? 'No users found' : 'No team members available'}
-                    </p>
-                  </div>
-                ) : (
-                  availableUsers.map((u) => {
-                    const isSelected = selectedUsers.some(s => s.id === u.id);
-                    return (
-                      <button
-                        key={u.id}
-                        className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                          isSelected
-                            ? 'bg-primary-50 dark:bg-primary-900/20 ring-2 ring-primary-500'
-                            : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'
-                        }`}
-                        onClick={() => toggleUserSelection(u)}
-                      >
-                        <Avatar user={u} size="md" showStatus />
-                        <div className="flex-1 text-left">
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{u.name}</p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                            {u.isOnline ? (
-                              <span className="text-green-600 dark:text-green-400">Online</span>
-                            ) : (
-                              'Offline'
-                            )}
-                          </p>
-                        </div>
-                        {isSelected && (
-                          <div className="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center">
-                            <Check className="w-4 h-4 text-white" />
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <Button variant="outline" onClick={() => setShowNewConversation(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreateConversation}
-                disabled={selectedUsers.length === 0}
-              >
-                {selectedUsers.length > 1 ? (
-                  <>
-                    <Users className="w-4 h-4 mr-2" />
-                    Create Group
-                  </>
-                ) : (
-                  <>
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Start Chat
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Forward Message Modal */}
-      <Dialog open={isForwardModalOpen} onOpenChange={setIsForwardModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Forward message</DialogTitle>
-            <DialogDescription>
-              Select a conversation to forward this message to.
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Message preview */}
-          {forwardSourceMessage?.content && (
-            <div className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg mb-4">
-              <p className="text-xs text-neutral-500 mb-1">Message preview:</p>
-              <p className="text-sm text-neutral-700 dark:text-neutral-300 line-clamp-3">
-                {forwardSourceMessage.content}
-              </p>
-            </div>
-          )}
-
-          {/* Conversation list */}
-          <div className="max-h-64 overflow-y-auto space-y-1">
-            {conversations
-              .filter(c => c.id !== selectedConversation?.id)
-              .map(conv => (
-                <button
-                  key={conv.id}
-                  onClick={() => setForwardTargetConversationId(conv.id)}
-                  className={cn(
-                    'w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left',
-                    forwardTargetConversationId === conv.id
-                      ? 'bg-primary-100 dark:bg-primary-900 border border-primary-300'
-                      : 'hover:bg-neutral-100 dark:hover:bg-neutral-700 border border-transparent'
-                  )}
-                >
-                  <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-300 font-medium">
-                    {conv.type === 'group' ? (
-                      <Users className="w-5 h-5" />
-                    ) : (
-                      conv.participant?.initials || conv.participants?.[0]?.initials || '?'
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                      {conv.title}
-                    </p>
-                    {conv.lastMessage && (
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                        {conv.lastMessage.content}
-                      </p>
-                    )}
-                  </div>
-                  {forwardTargetConversationId === conv.id && (
-                    <Check className="w-5 h-5 text-primary-600" />
-                  )}
-                </button>
-              ))}
-
-            {conversations.filter(c => c.id !== selectedConversation?.id).length === 0 && (
-              <p className="text-center text-sm text-neutral-500 py-4">
-                No other conversations available
-              </p>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="ghost" onClick={handleCancelForward}>
-              Cancel
-            </Button>
-            <Button
-              disabled={!forwardTargetConversationId}
-              onClick={handleConfirmForward}
-            >
-              Forward
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Forward Message Dialog - using extracted component */}
+      <ForwardMessageDialog
+        open={isForwardModalOpen}
+        onOpenChange={setIsForwardModalOpen}
+        sourceMessage={forwardSourceMessage}
+        conversations={conversations}
+        currentConversationId={selectedConversation?.id}
+        targetConversationId={forwardTargetConversationId}
+        onSelectTarget={setForwardTargetConversationId}
+        onCancel={handleCancelForward}
+        onConfirm={handleConfirmForward}
+      />
     </DashboardLayout>
   );
 }
