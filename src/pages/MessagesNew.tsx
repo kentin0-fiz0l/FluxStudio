@@ -32,6 +32,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { useActiveProjectOptional } from '../contexts/ActiveProjectContext';
 import { useConversationRealtime } from '../hooks/useConversationRealtime';
 import { ConversationMessage } from '../services/messagingSocketService';
+// Extracted messaging hooks (Phase 4.2)
+import {
+  useNewConversation,
+  useFileUpload,
+} from '../hooks/messaging';
 import {
   Search,
   Phone,
@@ -53,11 +58,9 @@ import {
 // Types - imported from extracted types file
 import type {
   Message,
-  MessageUser,
   Conversation,
   ConversationListItem,
   ConversationFilter,
-  PendingAttachment,
 } from '../components/messaging/types';
 
 // Extracted messaging components
@@ -210,7 +213,6 @@ function MessagesNew() {
   const [newMessage, setNewMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<ConversationFilter>('all');
-  const [showNewConversation, setShowNewConversation] = useState(false);
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [replyTo, setReplyTo] = useState<Message['replyTo'] | undefined>();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -228,6 +230,11 @@ function MessagesNew() {
 
   // Summary panel state
   const [isSummaryPanelOpen, setIsSummaryPanelOpen] = useState(false);
+
+  // Typing debounce refs
+  const lastTypingSentRef = useRef<number>(0);
+  const isTypingRef = useRef<boolean>(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Thread micro-hint (shown for first-time users)
   const THREAD_MICRO_HINT_KEY = 'fx_message_thread_hint_dismissed_v1';
@@ -251,26 +258,46 @@ function MessagesNew() {
   const [readReceiptsEnabled, _setReadReceiptsEnabled] = useState(true);
   const lastReadMessageIdRef = useRef<string | null>(null);
 
-  // Pending attachments state
-  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  // ========================================
+  // EXTRACTED HOOKS (Phase 4.2)
+  // ========================================
 
-  // Typing debounce state
-  const lastTypingSentRef = useRef<number>(0);
-  const isTypingRef = useRef<boolean>(false);
+  // File upload hook
+  const {
+    pendingAttachments,
+    setPendingAttachments,
+    fileInputRef,
+    handleAttach,
+    handleFileSelect,
+    handleFileDrop,
+    handleRemoveAttachment,
+  } = useFileUpload({ conversationId: selectedConversationId });
 
-  // User search state for new conversations
-  const [availableUsers, setAvailableUsers] = useState<MessageUser[]>([]);
-  const [userSearchTerm, setUserSearchTerm] = useState('');
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<MessageUser[]>([]);
-  const [newConversationName, setNewConversationName] = useState('');
-
-  // Typing debounce
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // New conversation hook
+  const {
+    showNewConversation,
+    setShowNewConversation,
+    availableUsers,
+    userSearchTerm,
+    setUserSearchTerm,
+    loadingUsers,
+    selectedUsers,
+    newConversationName,
+    setNewConversationName,
+    toggleUserSelection,
+    handleCreateConversation,
+    resetDialog: resetNewConversationDialog,
+  } = useNewConversation({
+    currentUserId: user?.id,
+    onConversationCreated: async (conversationId) => {
+      setSelectedConversationId(conversationId);
+      setShowMobileChat(true);
+      await loadConversations();
+    },
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
 
   // ========================================
@@ -324,55 +351,7 @@ function MessagesNew() {
     loadConversations();
   }, [loadConversations]);
 
-  // ========================================
-  // FETCH USERS FOR NEW CONVERSATION
-  // ========================================
-  useEffect(() => {
-    if (showNewConversation) {
-      fetchUsers();
-    }
-  }, [showNewConversation]);
-
-  const fetchUsers = async (search?: string) => {
-    setLoadingUsers(true);
-    try {
-      const token = localStorage.getItem('auth_token');
-      const url = search ? `/api/users?search=${encodeURIComponent(search)}` : '/api/users';
-      const res = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const users = (data.users || data || []).map((u: any) => ({
-          id: u.id,
-          name: u.name || u.email?.split('@')[0] || 'Unknown',
-          avatar: u.avatar,
-          initials: getInitials(u.name || u.email?.split('@')[0] || 'U'),
-          isOnline: u.isOnline || false,
-        }));
-        setAvailableUsers(users.filter((u: MessageUser) => u.id !== user?.id));
-      }
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
-    } finally {
-      setLoadingUsers(false);
-    }
-  };
-
-  // Debounced user search
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (userSearchTerm) {
-        fetchUsers(userSearchTerm);
-      } else if (showNewConversation) {
-        fetchUsers();
-      }
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [userSearchTerm, showNewConversation]);
+  // NOTE: User fetching for new conversations is now handled by useNewConversation hook
 
   // ========================================
   // TRANSFORM DATA FOR UI
@@ -965,151 +944,14 @@ function MessagesNew() {
     setThreadMessages(prev => [...prev, newMessage]);
   }, [selectedConversationId, activeThreadRootId, realtime, user]);
 
-  const handleAttach = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !selectedConversationId) return;
-
-    const token = localStorage.getItem('auth_token');
-
-    for (const file of Array.from(files)) {
-      const attachmentId = `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      let preview: string | undefined;
-
-      // Generate preview for images
-      if (file.type.startsWith('image/')) {
-        preview = URL.createObjectURL(file);
-      }
-
-      // Add to pending with uploading state
-      setPendingAttachments(prev => [...prev, {
-        id: attachmentId,
-        file,
-        preview,
-        uploading: true,
-        progress: 0
-      }]);
-
-      // Upload file
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch(`/api/conversations/${selectedConversationId}/upload`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          body: formData
-        });
-
-        if (!response.ok) {
-          throw new Error('Upload failed');
-        }
-
-        const data = await response.json();
-
-        // Update attachment with assetId and completed state
-        setPendingAttachments(prev => prev.map(a =>
-          a.id === attachmentId
-            ? { ...a, uploading: false, assetId: data.asset.id, asset: data.asset }
-            : a
-        ));
-      } catch (error) {
-        console.error('Failed to upload file:', error);
-        // Mark as error
-        setPendingAttachments(prev => prev.map(a =>
-          a.id === attachmentId
-            ? { ...a, uploading: false, error: 'Upload failed' }
-            : a
-        ));
-      }
-    }
-
-    // Clear the input
-    e.target.value = '';
-  };
-
-  // Handle dropped files (for drag & drop support)
-  const handleFileDrop = async (files: FileList) => {
-    if (!selectedConversationId) return;
-
-    const token = localStorage.getItem('auth_token');
-
-    for (const file of Array.from(files)) {
-      const attachmentId = `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      let preview: string | undefined;
-
-      // Generate preview for images
-      if (file.type.startsWith('image/')) {
-        preview = URL.createObjectURL(file);
-      }
-
-      // Add to pending with uploading state
-      setPendingAttachments(prev => [...prev, {
-        id: attachmentId,
-        file,
-        preview,
-        uploading: true,
-        progress: 0
-      }]);
-
-      // Upload file
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch(`/api/conversations/${selectedConversationId}/upload`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          body: formData
-        });
-
-        if (!response.ok) {
-          throw new Error('Upload failed');
-        }
-
-        const data = await response.json();
-
-        // Update attachment with assetId and completed state
-        setPendingAttachments(prev => prev.map(a =>
-          a.id === attachmentId
-            ? { ...a, uploading: false, assetId: data.asset.id, asset: data.asset }
-            : a
-        ));
-      } catch (error) {
-        console.error('Failed to upload dropped file:', error);
-        // Mark as error
-        setPendingAttachments(prev => prev.map(a =>
-          a.id === attachmentId
-            ? { ...a, uploading: false, error: 'Upload failed' }
-            : a
-        ));
-      }
-    }
-  };
+  // NOTE: handleAttach, handleFileSelect, handleFileDrop, handleRemoveAttachment
+  // are now provided by useFileUpload hook
 
   // Handle viewing attachment in Files app
   const handleViewInFiles = useCallback((assetId: string) => {
     // Navigate to Assets page with the asset selected
     navigate(`/assets?highlight=${assetId}`);
   }, [navigate]);
-
-  const handleRemoveAttachment = (id: string) => {
-    setPendingAttachments(prev => {
-      const attachment = prev.find(a => a.id === id);
-      // Revoke object URL to free memory
-      if (attachment?.preview) {
-        URL.revokeObjectURL(attachment.preview);
-      }
-      return prev.filter(a => a.id !== id);
-    });
-  };
 
   const handleConversationClick = (conversation: Conversation) => {
     setSelectedConversationId(conversation.id);
@@ -1118,62 +960,8 @@ function MessagesNew() {
     reportConversation(conversation.id);
   };
 
-  // Create new conversation via REST API
-  const handleCreateConversation = async () => {
-    if (selectedUsers.length === 0) return;
-
-    try {
-      const isGroup = selectedUsers.length > 1;
-      const name = isGroup ? newConversationName || `Group with ${selectedUsers.map(u => u.name).join(', ')}` : null;
-
-      const token = localStorage.getItem('auth_token');
-      const res = await fetch('/api/conversations', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          isGroup,
-          memberIds: selectedUsers.map(u => u.id),
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to create conversation');
-      }
-
-      const data = await res.json();
-      const conversationId = data.conversation?.id;
-
-      // Close dialog and open new conversation
-      setShowNewConversation(false);
-      setSelectedUsers([]);
-      setNewConversationName('');
-      setUserSearchTerm('');
-
-      if (conversationId) {
-        setSelectedConversationId(conversationId);
-        setShowMobileChat(true);
-        // Refresh conversation list
-        await loadConversations();
-      }
-    } catch (error) {
-      console.error('Failed to create conversation:', error);
-    }
-  };
-
-  // Toggle user selection for new conversation
-  const toggleUserSelection = (user: MessageUser) => {
-    setSelectedUsers(prev => {
-      const exists = prev.find(u => u.id === user.id);
-      if (exists) {
-        return prev.filter(u => u.id !== user.id);
-      }
-      return [...prev, user];
-    });
-  };
+  // NOTE: handleCreateConversation and toggleUserSelection
+  // are now provided by useNewConversation hook
 
   // Calculate stats
   const unreadCount = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
@@ -1570,11 +1358,10 @@ function MessagesNew() {
       <NewConversationDialog
         open={showNewConversation}
         onOpenChange={(open) => {
-          setShowNewConversation(open);
-          if (!open) {
-            setSelectedUsers([]);
-            setUserSearchTerm('');
-            setNewConversationName('');
+          if (open) {
+            setShowNewConversation(true);
+          } else {
+            resetNewConversationDialog();
           }
         }}
         selectedUsers={selectedUsers}
