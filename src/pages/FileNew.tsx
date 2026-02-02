@@ -42,7 +42,6 @@ import {
   Pencil,
   Trash2,
   Link2,
-  ExternalLink,
   MoreVertical,
   ChevronLeft,
   ChevronRight,

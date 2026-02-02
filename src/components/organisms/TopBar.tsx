@@ -14,7 +14,7 @@
 
 import * as React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Bell, Menu, X, Check, CheckCheck, Trash2 } from 'lucide-react';
+import { ChevronRight, Bell, Menu, X, CheckCheck, Trash2 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { SearchBar } from '@/components/molecules';
 import { cn } from '@/lib/utils';

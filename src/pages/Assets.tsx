@@ -217,7 +217,7 @@ export default function Assets() {
   const [searchParams, setSearchParams] = useSearchParams();
   const {
     state: { assets, loading, error, filters, pagination, stats, popularTags },
-    refreshAssets,
+    refreshAssets: _refreshAssets,
     fetchStats,
     fetchPopularTags,
     setFilters,

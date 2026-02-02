@@ -68,7 +68,7 @@ class LinearRegressionModel {
 
     // Convert timestamps to numeric x values (days from first point)
     const firstTime = data[0].timestamp.getTime();
-    const points = data.map((d, i) => ({
+    const points = data.map((d, _i) => ({
       x: (d.timestamp.getTime() - firstTime) / (1000 * 60 * 60 * 24),
       y: d.value,
     }));

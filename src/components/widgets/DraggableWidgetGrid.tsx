@@ -81,7 +81,7 @@ export function DraggableWidgetGrid({
   }), []);
 
   // Handle layout changes
-  const handleLayoutChange = useCallback((layout: Layout[], allLayouts: Record<string, Layout[]>) => {
+  const handleLayoutChange = useCallback((_layout: Layout[], allLayouts: Record<string, Layout[]>) => {
     // Save the layout for the current breakpoint
     Object.entries(allLayouts).forEach(([breakpoint, breakpointLayout]) => {
       saveLayout(breakpoint, breakpointLayout);

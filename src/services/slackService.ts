@@ -106,7 +106,7 @@ interface SlackError extends Error {
 
 class SlackService {
   private client: WebClient | null = null;
-  private accessToken: string | null = null;
+  private _accessToken: string | null = null;
 
   constructor(accessToken?: string) {
     if (accessToken) {
@@ -119,7 +119,7 @@ class SlackService {
    * @param accessToken - Slack OAuth access token
    */
   setAccessToken(accessToken: string): void {
-    this.accessToken = accessToken;
+    this._accessToken = accessToken;
     this.client = new WebClient(accessToken);
   }
 

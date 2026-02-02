@@ -9,14 +9,11 @@ import {
   Search,
   X,
   Filter,
-  User,
   FileText,
-  Hash,
   Clock,
   Star,
   History,
   Trash2,
-  ChevronDown,
   Loader2
 } from 'lucide-react';
 import { Button } from '../ui/button';

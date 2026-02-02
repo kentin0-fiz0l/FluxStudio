@@ -3,7 +3,6 @@
  * Modal dialog for adding comments to annotations
  */
 
-import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, Save } from 'lucide-react';
 import { Button } from '../../ui/button';

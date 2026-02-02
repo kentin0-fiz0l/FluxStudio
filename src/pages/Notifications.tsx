@@ -35,9 +35,9 @@ import {
   Settings,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
-import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
+import { Card, CardContent, Badge, Button } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNotifications, Notification, NotificationType, NotificationPriority } from '@/contexts/NotificationContext';
+import { useNotifications, Notification, NotificationPriority } from '@/contexts/NotificationContext';
 import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
 import { useProjectContextOptional } from '@/contexts/ProjectContext';
 import { cn } from '@/lib/utils';

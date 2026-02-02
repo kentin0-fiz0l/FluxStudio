@@ -1,12 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Tag,
   X,
   Plus,
   TrendingUp,
   Hash,
   Search,
-  Edit2,
   Check,
   Sparkles,
   BarChart3,
@@ -121,12 +119,12 @@ const mockSuggestions: TagSuggestion[] = [
 ];
 
 export const SmartTagging: React.FC<SmartTaggingProps> = ({
-  fileId,
+  fileId: _fileId,
   tags: initialTags = [],
   onTagsChange,
   showAnalytics = true,
   showHierarchy = true,
-  allowBulkOperations = false,
+  allowBulkOperations: _allowBulkOperations = false,
 }) => {
   const [allTags, setAllTags] = useState<TagData[]>(mockTags);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
@@ -137,7 +135,7 @@ export const SmartTagging: React.FC<SmartTaggingProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'count' | 'recent'>('count');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['all']));
-  const [editingTag, setEditingTag] = useState<string | null>(null);
+  const [_editingTag, _setEditingTag] = useState<string | null>(null);
 
   // Build tag hierarchy
   const tagHierarchy = useMemo(() => {

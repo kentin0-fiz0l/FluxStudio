@@ -10,14 +10,11 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Progress } from '../ui/progress';
 import { Skeleton } from '../ui/skeleton';
 import {
   Printer,
   CheckCircle,
-  XCircle,
   Clock,
-  Package,
   AlertCircle,
   FileText,
   Weight,

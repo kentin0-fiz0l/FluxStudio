@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/templates';
-import { ProjectCard, UserCard, SearchBar } from '../components/molecules';
-import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Badge, EmptyState } from '../components/ui';
+import { ProjectCard } from '../components/molecules';
+import { Button, Card, CardHeader, CardTitle, CardContent, Badge, EmptyState } from '../components/ui';
 import { Logo3D } from '../components/Logo3D';
 import { GettingStartedCard } from '../components/common/GettingStartedCard';
 import { useFirstTimeExperience } from '../hooks/useFirstTimeExperience';
@@ -11,7 +11,6 @@ import {
   Briefcase,
   Folder,
   Users as UsersIcon,
-  MessageSquare,
   Clock,
   ArrowRight,
   Sparkles,
@@ -31,7 +30,7 @@ export function Home() {
       navigate('/login', { replace: true });
     }
   }, [user, navigate]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [_searchTerm, setSearchTerm] = useState('');
 
   // Get real project data for first-time detection
   const { projects, loading: projectsLoading } = useProjects();

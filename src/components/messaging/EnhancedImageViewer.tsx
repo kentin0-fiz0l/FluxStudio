@@ -4,14 +4,12 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import {
   ZoomIn,
   ZoomOut,
   Maximize2,
   RotateCw,
   Download,
-  Share2,
   Grid3x3,
   Move,
   MousePointer,
@@ -43,7 +41,7 @@ interface ViewportState {
   rotation: number;
 }
 
-const ZOOM_LEVELS = [25, 50, 75, 100, 125, 150, 200, 300, 400];
+const _ZOOM_LEVELS = [25, 50, 75, 100, 125, 150, 200, 300, 400];
 const MIN_ZOOM = 10;
 const MAX_ZOOM = 500;
 const ZOOM_STEP = 25;
@@ -75,7 +73,7 @@ export function EnhancedImageViewer({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [lastPan, setLastPan] = useState({ x: 0, y: 0 });
   const [showGrid, setShowGrid] = useState(initialShowGrid);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [_isFullscreen, setIsFullscreen] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const [hoveredAnnotation, setHoveredAnnotation] = useState<string | null>(null);
@@ -477,7 +475,7 @@ export function EnhancedImageViewer({
 
   const handleZoomIn = () => handleZoom(viewport.zoom + ZOOM_STEP);
   const handleZoomOut = () => handleZoom(viewport.zoom - ZOOM_STEP);
-  const handleZoomReset = () => {
+  const _handleZoomReset = () => {
     setViewport({
       zoom: 100,
       panX: 0,

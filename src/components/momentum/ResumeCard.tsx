@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { Play, Clock, FileText, MessageSquare, Image, Layout, X } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { useWorkingContext, WorkingContextData, LastEntity } from '@/contexts/WorkingContext';
+import { useWorkingContext, LastEntity } from '@/contexts/WorkingContext';
 import { IntentNoteInline } from './IntentNoteInline';
 
 export interface ResumeCardProps {

@@ -1,6 +1,4 @@
-import { Button } from './ui/button';
 import { ArrowRight, Play } from 'lucide-react';
-import { Text3D } from './Text3D';
 import { useResponsive, TouchButton, AnimationWrapper } from './PerformanceOptimizer';
 import { HomepageAuth } from './HomepageAuth';
 import { useAuth } from '../contexts/AuthContext';

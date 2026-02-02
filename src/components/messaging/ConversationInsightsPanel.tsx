@@ -28,7 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { conversationInsightsService, InsightSummary, ActionItem, Recommendation } from '../../services/conversationInsightsService';
+import { conversationInsightsService, InsightSummary } from '../../services/conversationInsightsService';
 import { Message, Conversation, MessageUser } from '../../types/messaging';
 
 interface ConversationInsightsPanelProps {
@@ -43,7 +43,7 @@ interface ConversationInsightsPanelProps {
 export function ConversationInsightsPanel({
   conversation,
   messages,
-  currentUser,
+  currentUser: _currentUser,
   isVisible,
   onToggleVisibility,
   className = ''

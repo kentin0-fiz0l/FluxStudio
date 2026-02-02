@@ -5,7 +5,7 @@
  * tempo gradual increase, and repetition tracking.
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Section } from '../../contexts/MetMapContext';
 
 interface PracticeModeProps {

@@ -8,7 +8,6 @@
 import { useState } from 'react';
 import { Smile, Plus } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import {
   Popover,
   PopoverContent,

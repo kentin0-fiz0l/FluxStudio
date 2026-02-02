@@ -6,7 +6,7 @@ export function EnoBackground() {
   const { theme } = useTheme();
   const [scrollProgress, setScrollProgress] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
   const particlesRef = useRef<any[]>([]);
   const timeRef = useRef(0);
 

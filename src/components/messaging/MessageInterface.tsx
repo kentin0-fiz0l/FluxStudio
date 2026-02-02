@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Smile, Paperclip, Image, Mic, MoreVertical, Reply } from 'lucide-react';
+import { Send, MoreVertical, Reply } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -35,7 +35,7 @@ export function MessageInterface({ conversation, currentUser, className }: Messa
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -174,7 +174,7 @@ export function MessageInterface({ conversation, currentUser, className }: Messa
     messageInputRef.current?.focus();
   };
 
-  const formatDate = (date: Date) => {
+  const _formatDate = (date: Date) => {
     const now = new Date();
     const messageDate = new Date(date);
 

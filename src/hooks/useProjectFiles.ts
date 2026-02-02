@@ -227,7 +227,7 @@ export function useProjectFiles(
 
       return { previousFiles };
     },
-    onError: (error: Error, fileId, context) => {
+    onError: (error: Error, _fileId, context) => {
       // Rollback on error
       if (context?.previousFiles) {
         queryClient.setQueryData(['project-files', projectId], context.previousFiles);

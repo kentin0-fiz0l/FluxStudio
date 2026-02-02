@@ -35,7 +35,6 @@ import {
   ChevronDown,
   Loader2,
   Clock,
-  User,
 } from 'lucide-react';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -54,7 +53,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useActivitiesQuery, useAuth } from '@/hooks/useActivities';
+import { useActivitiesQuery } from '@/hooks/useActivities';
 
 // ============================================================================
 // Type Definitions

@@ -92,7 +92,7 @@ const createNavigationItems = (unreadCount: number): NavigationItem[] => [
 ];
 
 // Default items for when context is not available
-const defaultNavigationItems: NavigationItem[] = createNavigationItems(0);
+const _defaultNavigationItems: NavigationItem[] = createNavigationItems(0);
 
 export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSidebarProps>(
   (

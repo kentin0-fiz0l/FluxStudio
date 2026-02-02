@@ -12,7 +12,6 @@ import {
   Activity,
   PieChart,
   BarChart3,
-  Eye,
   Download,
   Share2,
   CheckCircle,
@@ -33,7 +32,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
 
 // Types
@@ -173,9 +171,9 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 };
 
 export const ContentInsights: React.FC<ContentInsightsProps> = ({
-  projectId,
+  projectId: _projectId,
   timeRange = '30d',
-  showDetailedMetrics = true,
+  showDetailedMetrics: _showDetailedMetrics = true,
 }) => {
   const [stats] = useState<FileStats>(mockStats);
   const [selectedView, setSelectedView] = useState<'overview' | 'trends' | 'quality'>(

@@ -108,7 +108,7 @@ export const RealTimeCollaboration: React.FC<RealTimeCollaborationProps> = ({
   onStartScreenShare
 }) => {
   const [cursors, setCursors] = useState<CollaboratorCursor[]>([]);
-  const [_recentEdits, _setRecentEdits] = useState<RealTimeEdit[]>([]);
+  const [recentEdits] = useState<RealTimeEdit[]>([]);
   const [showParticipants, setShowParticipants] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [message, setMessage] = useState('');

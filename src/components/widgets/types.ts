@@ -1,4 +1,3 @@
-import { ReactNode } from 'react';
 import { UserType } from '../../contexts/AuthContext';
 
 export interface WidgetConfig {

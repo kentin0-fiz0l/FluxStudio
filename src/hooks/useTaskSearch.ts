@@ -272,7 +272,7 @@ export interface UseTaskSearchReturn {
 
 export function useTaskSearch(
   tasks: Task[],
-  teamMembers: TeamMember[],
+  _teamMembers: TeamMember[],
   currentUserId: string,
   options: UseTaskSearchOptions = {}
 ): UseTaskSearchReturn {

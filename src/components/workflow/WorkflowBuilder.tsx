@@ -12,7 +12,7 @@ interface WorkflowNode {
 }
 
 export const WorkflowBuilder: React.FC = () => {
-  const [nodes, setNodes] = useState<WorkflowNode[]>([]);
+  const [_nodes, _setNodes] = useState<WorkflowNode[]>([]);
 
   const nodeTypes = [
     { type: 'trigger', label: 'File Upload', icon: Zap, color: 'blue' },

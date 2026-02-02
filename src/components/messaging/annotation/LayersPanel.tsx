@@ -3,7 +3,6 @@
  * Layer management for organizing annotations
  */
 
-import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Layers, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../../ui/button';

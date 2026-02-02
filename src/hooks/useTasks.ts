@@ -214,7 +214,7 @@ export const useCreateTaskMutation = (projectId: string) => {
     },
 
     // On error: Rollback to previous state
-    onError: (error, newTask, context) => {
+    onError: (error, _newTask, context) => {
       queryClient.setQueryData(queryKeys.tasks.list(projectId), context?.previousTasks);
       toast.error(error.message || 'Failed to create task');
     },
@@ -403,7 +403,7 @@ export const useDeleteTaskMutation = (projectId: string) => {
     },
 
     // On error: Rollback to previous state
-    onError: (error, taskId, context) => {
+    onError: (error, _taskId, context) => {
       queryClient.setQueryData(queryKeys.tasks.list(projectId), context?.previousTasks);
       toast.error(error.message || 'Failed to delete task');
     },
@@ -488,7 +488,7 @@ export const useBatchUpdateTasksMutation = (projectId: string) => {
       return { previousTasks };
     },
 
-    onError: (error, variables, context) => {
+    onError: (error, _variables, context) => {
       queryClient.setQueryData(queryKeys.tasks.list(projectId), context?.previousTasks);
       toast.error(error.message || 'Failed to update tasks');
     },

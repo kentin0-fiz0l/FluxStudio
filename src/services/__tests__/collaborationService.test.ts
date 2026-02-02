@@ -27,7 +27,7 @@ vi.stubGlobal('import', {
 });
 
 // Import after mocks
-import { collaborationService, CollaboratorPresence } from '../collaborationService';
+import { collaborationService } from '../collaborationService';
 
 describe('CollaborationService', () => {
   const mockUser = {

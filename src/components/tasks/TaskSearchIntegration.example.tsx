@@ -321,7 +321,7 @@ export const TaskManagementPage: React.FC = () => {
 // ============================================================================
 
 export const TaskManagementWithSidebar: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
+  const [tasks, _setTasks] = useState<Task[]>(mockTasks);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(mockTasks);
   const currentUserId = 'alice-123';
 

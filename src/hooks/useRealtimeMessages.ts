@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Message, Conversation, MessageUser } from '../types/messaging';
+import { Message, MessageUser } from '../types/messaging';
 import { realtimeCollaborationService } from '../services/realtimeCollaborationService';
 
 interface MessageUpdate {

@@ -80,6 +80,8 @@ export function SecureVideoPlayer({
   onLoadedMetadata,
   onError,
 }: SecureVideoPlayerProps) {
+  // Mark fileId as intentionally unused (available for future DRM features)
+  void fileId;
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -92,13 +94,13 @@ export function SecureVideoPlayer({
   const [volume, setVolume] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, _setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const [playbackRate, setPlaybackRate] = useState(1);
+  const [_playbackRate, _setPlaybackRate] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
   // HLS/DRM state
-  const [hlsSupported, setHlsSupported] = useState(false);
+  const [_hlsSupported, setHlsSupported] = useState(false);
   const [qualityLevels, setQualityLevels] = useState<QualityLevel[]>([]);
   const [currentQuality, setCurrentQuality] = useState(-1); // -1 = auto
   const [showQualityMenu, setShowQualityMenu] = useState(false);
@@ -226,7 +228,7 @@ export function SecureVideoPlayer({
       video.addEventListener('webkitneedkey', async (event: any) => {
         console.log('[FairPlay] Need key event triggered');
 
-        const contentId = fileId;
+        const _contentId = fileId;
         const initData = event.initData;
 
         try {

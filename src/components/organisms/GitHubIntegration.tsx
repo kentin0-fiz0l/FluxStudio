@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { Github, GitBranch, GitPullRequest, GitCommit, Star, GitFork, AlertCircle } from 'lucide-react';
+import { Github, GitBranch, Star, GitFork, AlertCircle } from 'lucide-react';
 import { IntegrationCard } from './IntegrationCard';
 import { Button } from '@/components/ui/button';
 import type { Integration } from '@/types/integrations';
@@ -94,7 +94,7 @@ export function GitHubIntegration() {
     }
   };
 
-  const handleSuccess = (integration: Integration) => {
+  const handleSuccess = (_integration: Integration) => {
     // Auto-load repositories when connected
     loadRepos();
   };

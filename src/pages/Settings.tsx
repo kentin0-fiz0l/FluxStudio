@@ -17,7 +17,6 @@ import {
   Globe,
   Zap,
   Shield,
-  Mail,
   Moon,
   Sun,
   Save,

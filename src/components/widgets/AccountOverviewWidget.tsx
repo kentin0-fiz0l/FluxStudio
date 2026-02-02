@@ -13,7 +13,6 @@ import {
   Star,
   Shield,
   Mail,
-  MapPin,
 } from 'lucide-react';
 
 export function AccountOverviewWidget(props: WidgetProps) {

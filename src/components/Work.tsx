@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { ExternalLink, Calendar, MapPin } from 'lucide-react';
+import { Calendar, MapPin } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 // ForwardRef wrapper for anchor elements to fix Slot ref warnings

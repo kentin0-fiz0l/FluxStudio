@@ -52,7 +52,7 @@ interface QualityLevel {
 }
 
 export function HLSVideoPlayer({
-  fileId,
+  fileId: _fileId,
   hlsUrl,
   fallbackUrl,
   poster,
@@ -76,7 +76,7 @@ export function HLSVideoPlayer({
   const [isLoading, setIsLoading] = useState(true);
 
   // HLS state
-  const [hlsSupported, setHlsSupported] = useState(false);
+  const [_hlsSupported, setHlsSupported] = useState(false);
   const [qualityLevels, setQualityLevels] = useState<QualityLevel[]>([]);
   const [currentQuality, setCurrentQuality] = useState(-1); // -1 = auto
   const [showQualityMenu, setShowQualityMenu] = useState(false);

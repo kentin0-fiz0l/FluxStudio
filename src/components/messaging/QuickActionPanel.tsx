@@ -7,20 +7,15 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
-  MessageCircle,
   Users,
-  Folder,
-  Bell,
   Calendar,
   Star,
   Zap,
-  Camera,
   Palette,
   CheckCircle,
   AlertCircle,
   Clock,
   Send,
-  UserPlus,
   Search,
   ArrowRight,
   Sparkles
@@ -220,7 +215,7 @@ export function QuickActionPanel({ isOpen, onClose, currentUser }: QuickActionPa
           ? `${currentUser.name} & ${selectedParticipants[0].name}`
           : selectedTemplate.name;
 
-      const conversationId = await createConversation({
+      const _conversationId = await createConversation({
         type: selectedTemplate.type,
         name: conversationName,
         description: selectedTemplate.description,

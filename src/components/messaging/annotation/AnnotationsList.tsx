@@ -3,7 +3,6 @@
  * Sidebar displaying list of annotations with selection and deletion
  */
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Pencil, Trash2, Clock, Wifi } from 'lucide-react';
 import { Button } from '../../ui/button';

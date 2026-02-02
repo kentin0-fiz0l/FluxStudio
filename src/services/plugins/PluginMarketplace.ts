@@ -169,7 +169,7 @@ Configure the plugin in Settings > Plugins.
     return readme;
   }
 
-  async getPluginReviews(pluginId: string, page = 1): Promise<{ reviews: PluginReview[]; total: number }> {
+  async getPluginReviews(pluginId: string, _page = 1): Promise<{ reviews: PluginReview[]; total: number }> {
     // Simulated reviews
     return {
       reviews: [
@@ -207,7 +207,7 @@ Configure the plugin in Settings > Plugins.
     return `${this.baseUrl}/download/${pluginId}${version ? `@${version}` : ''}`;
   }
 
-  async getVersions(pluginId: string): Promise<{ version: string; publishedAt: string; changelog?: string }[]> {
+  async getVersions(_pluginId: string): Promise<{ version: string; publishedAt: string; changelog?: string }[]> {
     // Simulated versions
     return [
       { version: '1.2.0', publishedAt: new Date().toISOString(), changelog: 'Added new features' },

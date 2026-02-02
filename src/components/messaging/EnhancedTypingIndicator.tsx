@@ -4,7 +4,7 @@
  */
 
 // React import not needed with JSX transform
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { MessageUser } from '../../types/messaging';

@@ -9,7 +9,6 @@
  * Part of Project Pulse: "Here's what's happening and what needs you."
  */
 
-import * as React from 'react';
 import { Users, Circle, Eye, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TeamMember } from '@/hooks/useProjectPulse';

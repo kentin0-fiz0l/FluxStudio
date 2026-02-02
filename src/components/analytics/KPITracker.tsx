@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, TrendingUp, TrendingDown, CheckCircle } from 'lucide-react';
+import { Target, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';

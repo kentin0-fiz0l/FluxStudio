@@ -10,11 +10,9 @@ import {
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
-  UniqueIdentifier,
   PointerActivationConstraint,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
@@ -312,7 +310,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
 
 // Main Kanban Board Component
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
-  projectId,
+  projectId: _projectId,
   tasks,
   onTaskUpdate,
   onTaskClick,
@@ -379,7 +377,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   // Handle drag end
   const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
+    const { active: _active, over } = event;
 
     if (!over || !activeTask) {
       setActiveTask(null);

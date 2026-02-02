@@ -15,7 +15,7 @@ interface WidgetLayoutHook {
 }
 
 const STORAGE_KEY_PREFIX = 'flux-widget-layout';
-const DEFAULT_BREAKPOINTS = {
+const _DEFAULT_BREAKPOINTS = {
   lg: 1200,
   md: 996,
   sm: 768,
@@ -44,7 +44,7 @@ export function useWidgetLayout(): WidgetLayoutHook {
   }, [user?.id]);
 
   // Convert WidgetLayout to react-grid-layout Layout
-  const convertToGridLayout = useCallback((widgetLayouts: WidgetLayout[]): Layout[] => {
+  const _convertToGridLayout = useCallback((widgetLayouts: WidgetLayout[]): Layout[] => {
     return widgetLayouts.map(widget => ({
       i: widget.id,
       x: widget.x,

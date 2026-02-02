@@ -37,7 +37,7 @@ export function FigmaIntegration() {
     }
   };
 
-  const handleSuccess = (integration: Integration) => {
+  const handleSuccess = (_integration: Integration) => {
     // Auto-load files when connected
     loadFigmaFiles();
   };

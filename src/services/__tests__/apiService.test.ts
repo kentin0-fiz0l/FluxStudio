@@ -17,7 +17,7 @@ vi.mock('../../config/environment', () => ({
 
 // Mock validation
 vi.mock('../apiValidation', () => ({
-  validate: (schema: any, data: any) => data,
+  validate: (_schema: any, data: any) => data,
   createOrganizationSchema: {},
   updateOrganizationSchema: {},
   createTeamSchema: {},
@@ -30,7 +30,7 @@ vi.mock('../apiValidation', () => ({
 }));
 
 // Import after mocks
-import { apiService, ApiResponse } from '../apiService';
+import { apiService } from '../apiService';
 
 describe('ApiService', () => {
   const mockFetch = vi.fn();

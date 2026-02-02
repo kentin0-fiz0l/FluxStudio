@@ -12,7 +12,6 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MessageSquare,
   X,
   Send,
   Paperclip,
@@ -20,9 +19,6 @@ import {
   User,
   Bot,
   Loader2,
-  ChevronDown,
-  Trash2,
-  MoreVertical,
   Copy,
   RefreshCw,
   Settings,

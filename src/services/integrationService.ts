@@ -5,10 +5,7 @@
 
 import type {
   Integration,
-  IntegrationProvider,
-  FigmaIntegration,
-  SlackIntegration,
-  GitHubIntegration
+  IntegrationProvider
 } from '../types/integrations';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://fluxstudio.art/api';

@@ -16,7 +16,7 @@ interface LiveMetric {
 }
 
 export const RealTimeAnalytics: React.FC = () => {
-  const [metrics, setMetrics] = useState<LiveMetric[]>([
+  const [metrics, _setMetrics] = useState<LiveMetric[]>([
     { id: '1', label: 'Active Users', value: 42, unit: '', trend: 12, icon: Users, color: 'blue' },
     { id: '2', label: 'Files Processed', value: 156, unit: '', trend: 8, icon: Activity, color: 'green' },
     { id: '3', label: 'Avg Response Time', value: 245, unit: 'ms', trend: -5, icon: Clock, color: 'purple' },

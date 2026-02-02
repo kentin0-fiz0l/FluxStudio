@@ -4,7 +4,7 @@
  */
 
 import { io, Socket } from 'socket.io-client';
-import { MessageUser, Message, TypingIndicator, UserPresence } from '../types/messaging';
+import { MessageUser, Message, UserPresence } from '../types/messaging';
 
 // Project presence member
 export interface ProjectPresenceMember {

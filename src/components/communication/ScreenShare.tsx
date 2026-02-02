@@ -64,7 +64,7 @@ export function ScreenShare({
   const [showControls, setShowControls] = useState(true);
   const [annotationMode, setAnnotationMode] = useState<'none' | 'pointer' | 'draw'>('none');
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Attach stream to video element
   useEffect(() => {

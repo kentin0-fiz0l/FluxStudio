@@ -6,12 +6,9 @@ import {
   Check,
   Star,
   Calendar,
-  DollarSign,
   Users,
-  Music,
   Palette,
   FileText,
-  MessageSquare,
   CreditCard,
   Sparkles
 } from 'lucide-react';

@@ -7,7 +7,6 @@
 import {
   ProjectTemplate,
   TemplateCategory,
-  TemplateComplexity,
   TemplateFilter,
   TemplateSearchResult,
   TemplateVariable,
@@ -529,7 +528,7 @@ class TemplateService {
     ];
   }
 
-  private generatePresets(request: AITemplateRequest): ProjectTemplate['presets'] {
+  private generatePresets(_request: AITemplateRequest): ProjectTemplate['presets'] {
     return [
       {
         id: 'minimal',

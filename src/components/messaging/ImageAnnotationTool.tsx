@@ -3,10 +3,9 @@
  * Interactive image annotation for design feedback and collaboration
  */
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Pencil, Square, Circle, ArrowRight, Type, Palette, Save, Trash2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Pencil, Square, Circle, ArrowRight, Type, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Badge } from '../ui/badge';
@@ -52,7 +51,7 @@ export function ImageAnnotationTool({
   const [currentAnnotation, setCurrentAnnotation] = useState<Partial<ImageAnnotation> | null>(null);
   const [selectedAnnotation, setSelectedAnnotation] = useState<string | null>(null);
   const [showCommentDialog, setShowCommentDialog] = useState(false);
-  const [commentPosition, setCommentPosition] = useState({ x: 0, y: 0 });
+  const [_commentPosition, setCommentPosition] = useState({ x: 0, y: 0 });
   const [commentText, setCommentText] = useState('');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);

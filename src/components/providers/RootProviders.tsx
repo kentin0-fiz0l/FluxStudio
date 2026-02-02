@@ -13,7 +13,6 @@
 
 import React from 'react';
 import { AuthProvider } from '../../contexts/AuthContext';
-import { ThemeProvider } from '../../contexts/ThemeContext';
 import { SocketProvider } from '../../contexts/SocketContext';
 import { MessagingProvider } from '../../contexts/MessagingContext';
 import { NotificationProvider } from '../../contexts/NotificationContext';

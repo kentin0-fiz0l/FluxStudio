@@ -23,7 +23,6 @@ import {
   HardDrive,
   Figma,
   MessageSquare,
-  CheckCircle,
   XCircle,
   AlertCircle,
   RefreshCw,
@@ -556,7 +555,7 @@ export default function Connectors() {
     fetchFiles,
     importFile,
     fetchImportedFiles,
-    linkFileToProject,
+    linkFileToProject: _linkFileToProject,
     navigateToFolder,
     navigateBack,
   } = useConnectors();

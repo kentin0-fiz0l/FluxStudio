@@ -51,7 +51,7 @@ const attentionLabels: Record<AttentionItem['type'], string> = {
 };
 
 // Priority colors
-const priorityColors: Record<AttentionItem['priority'], string> = {
+const _priorityColors: Record<AttentionItem['priority'], string> = {
   urgent: 'text-red-600 dark:text-red-400',
   high: 'text-amber-600 dark:text-amber-400',
   medium: 'text-neutral-600 dark:text-neutral-400',

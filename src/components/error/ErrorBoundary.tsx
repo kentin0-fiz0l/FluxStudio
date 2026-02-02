@@ -16,7 +16,6 @@ import {
   Home,
   Bug,
   Mail,
-  ExternalLink,
   Copy,
   ChevronDown,
   ChevronRight

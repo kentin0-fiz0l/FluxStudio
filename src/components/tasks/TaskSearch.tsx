@@ -38,7 +38,6 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Input } from '../ui/input';
 import { cn } from '@/lib/utils';
 import { useTaskSearch, Task, TeamMember, DueDateFilter, SortOption } from '@/hooks/useTaskSearch';
 

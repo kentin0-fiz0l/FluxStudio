@@ -92,7 +92,7 @@ class AIDesignFeedbackService {
   /**
    * Analyze design image using AI-powered analysis
    */
-  async analyzeDesign(imageUrl: string, context?: any): Promise<DesignAnalysis> {
+  async analyzeDesign(imageUrl: string, _context?: any): Promise<DesignAnalysis> {
     // Check cache first
     const cacheKey = this.generateCacheKey(imageUrl, context);
     if (this.analysisCache.has(cacheKey)) {
@@ -117,7 +117,7 @@ class AIDesignFeedbackService {
   /**
    * Generate contextual feedback suggestions
    */
-  async generateFeedback(analysis: DesignAnalysis, userContext?: any): Promise<FeedbackSuggestion[]> {
+  async generateFeedback(analysis: DesignAnalysis, _userContext?: any): Promise<FeedbackSuggestion[]> {
     const suggestions: FeedbackSuggestion[] = [];
 
     // Generate suggestions based on analysis
@@ -190,7 +190,7 @@ class AIDesignFeedbackService {
   /**
    * Simulate AI analysis (replace with actual AI service in production)
    */
-  private async simulateAIAnalysis(imageUrl: string, context?: any): Promise<DesignAnalysis> {
+  private async simulateAIAnalysis(imageUrl: string, _context?: any): Promise<DesignAnalysis> {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -252,7 +252,7 @@ class AIDesignFeedbackService {
     };
   }
 
-  private generateElementFeedback(element: DesignElement, analysis: DesignAnalysis, index: number): FeedbackSuggestion | null {
+  private generateElementFeedback(element: DesignElement, _analysis: DesignAnalysis, index: number): FeedbackSuggestion | null {
     const templates = this.feedbackTemplates[element.type];
     if (!templates || templates.length === 0) return null;
 
@@ -300,7 +300,7 @@ class AIDesignFeedbackService {
     return ['Consider iterating on this aspect of the design'];
   }
 
-  private getIndustryInsights(industry: string, analysis: DesignAnalysis): ContextualInsight[] {
+  private getIndustryInsights(industry: string, _analysis: DesignAnalysis): ContextualInsight[] {
     const industryInsights: Record<string, ContextualInsight[]> = {
       'tech': [
         {
@@ -337,7 +337,7 @@ class AIDesignFeedbackService {
     return industryInsights[industry.toLowerCase()] || [];
   }
 
-  private getTrendInsights(analysis: DesignAnalysis): ContextualInsight[] {
+  private getTrendInsights(_analysis: DesignAnalysis): ContextualInsight[] {
     return [
       {
         id: 'trend-minimalism',
@@ -358,7 +358,7 @@ class AIDesignFeedbackService {
     ];
   }
 
-  private getBestPracticeInsights(analysis: DesignAnalysis): ContextualInsight[] {
+  private getBestPracticeInsights(_analysis: DesignAnalysis): ContextualInsight[] {
     return [
       {
         id: 'practice-hierarchy',

@@ -14,7 +14,6 @@ import { realtime } from '@/services/realtime';
 import { CollaborativeCursors } from './CollaborativeCursors';
 import { PresenceIndicator } from './PresenceIndicator';
 import { SelectionHighlights } from './SelectionHighlights';
-import { Lock } from 'lucide-react';
 
 interface CollaborativeCanvasProps {
   entityType: 'board' | 'metmap' | 'document' | 'project';

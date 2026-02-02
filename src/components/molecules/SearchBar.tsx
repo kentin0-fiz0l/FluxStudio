@@ -88,7 +88,7 @@ export const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
       autoFocus = false,
       loading = false,
     },
-    ref
+    _ref
   ) => {
     const [internalValue, setInternalValue] = React.useState('');
     const [showDropdown, setShowDropdown] = React.useState(false);
@@ -167,7 +167,7 @@ export const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
           onFocus={() => showRecent && recentSearches.length > 0 && setShowDropdown(true)}
           size={size}
           autoFocus={autoFocus}
-          icon={loading ? <div className="animate-spin">ó</div> : <Search className="h-4 w-4" />}
+          icon={loading ? <div className="animate-spin">ï¿½</div> : <Search className="h-4 w-4" />}
           iconRight={
             value ? (
               <button

@@ -8,8 +8,7 @@ import {
   Conversation,
   ConversationType,
   Priority,
-  MessageUser,
-  MessageType
+  MessageUser
 } from '../types/messaging';
 
 export interface ContextAnalysis {
@@ -102,15 +101,15 @@ class ContextDetectionService {
   suggestConversationContext(
     messageContent: string,
     participants: MessageUser[],
-    currentUser: MessageUser,
-    existingConversations: Conversation[] = []
+    _currentUser: MessageUser,
+    _existingConversations: Conversation[] = []
   ): ContextAnalysis {
     const messageIntent = this.analyzeMessageIntent(messageContent);
     const normalizedContent = messageContent.toLowerCase();
 
     // Analyze participant types
     const hasClients = participants.some(p => p.userType === 'client');
-    const hasDesigners = participants.some(p => p.userType === 'designer');
+    const _hasDesigners = participants.some(p => p.userType === 'designer');
     const hasMultipleUsers = participants.length > 1;
 
     // Determine conversation type
@@ -261,7 +260,7 @@ class ContextDetectionService {
   smartRoute(
     message: Partial<Message>,
     availableConversations: Conversation[],
-    currentUser: MessageUser
+    _currentUser: MessageUser
   ): {
     suggestedConversation?: Conversation;
     shouldCreateNew: boolean;

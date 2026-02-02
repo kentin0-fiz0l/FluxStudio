@@ -83,7 +83,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
-  const [isTyping, setIsTyping] = useState(false);
+  const [isTyping, _setIsTyping] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

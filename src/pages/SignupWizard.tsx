@@ -9,9 +9,7 @@ import {
   User,
   Briefcase,
   CheckCircle,
-  Mail,
   Lock,
-  Building,
   Sparkles
 } from 'lucide-react';
 
@@ -171,7 +169,7 @@ export function SignupWizard() {
     }
   };
 
-  const handleGoogleSignup = async (response: any) => {
+  const _handleGoogleSignup = async (response: any) => {
     setError('');
     if (!response.credential) {
       setError('Google authentication failed - no credential received');
@@ -189,12 +187,12 @@ export function SignupWizard() {
     }
   };
 
-  const handleGoogleError = (error?: any) => {
+  const _handleGoogleError = (error?: any) => {
     console.error('Google OAuth Error:', error);
     setError('Google authentication failed - please try again');
   };
 
-  const progress = ((currentStep + 1) / steps.length) * 100;
+  const _progress = ((currentStep + 1) / steps.length) * 100;
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center px-4">

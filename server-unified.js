@@ -698,6 +698,9 @@ const designBoardsRoutes = require('./routes/design-boards');
 const connectorsRoutes = require('./routes/connectors');
 const messagingRoutes = require('./routes/messaging');
 const messagesRoutes = require('./routes/messages');
+const metmapRoutes = require('./routes/metmap');
+const pushRoutes = require('./routes/push');
+const printingRoutes = require('./routes/printing');
 
 // Initialize auth routes with database helper
 authRoutes.setAuthHelper({
@@ -721,6 +724,9 @@ app.use('/api/boards', designBoardsRoutes);
 app.use('/api/connectors', connectorsRoutes);
 app.use('/api/conversations', messagingRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/metmap', metmapRoutes);
+app.use('/api/push', pushRoutes);
+app.use('/api/printing', printingRoutes);
 
 // Set Socket.IO namespace for messaging routes (for real-time broadcasts)
 messagingRoutes.setMessagingNamespace(messagingNamespace);
@@ -4801,7 +4807,10 @@ app.get('/api/projects/:projectId/notifications', authenticateToken, async (req,
 });
 
 // ========================================
-// METMAP API (Musical Timeline Tool)
+// METMAP API - DEPRECATED: Moved to routes/metmap.js
+// These routes are kept for reference but not executed
+// (modular routes registered earlier take precedence)
+// TODO: Remove in next cleanup sprint
 // ========================================
 
 const metmapAdapter = require('./database/metmap-adapter');
@@ -5111,7 +5120,10 @@ app.get('/api/metmap/songs/:songId/practice-history', authenticateToken, async (
 });
 
 // ========================================
-// PUSH NOTIFICATIONS API
+// PUSH NOTIFICATIONS API - DEPRECATED: Moved to routes/push.js
+// These routes are kept for reference but not executed
+// (modular routes registered earlier take precedence)
+// TODO: Remove in next cleanup sprint
 // ========================================
 
 // Subscribe to push notifications
@@ -7711,7 +7723,10 @@ require('./sockets/printing-socket')(printingNamespace, JWT_SECRET); // Phase 3A
 require('./sockets/design-boards-socket')(designBoardsNamespace, designBoardsAdapter, JWT_SECRET); // Design boards real-time collaboration
 
 // ============================================================================
-// FluxPrint Integration - 3D Printing Proxy Layer (Phase 1 + Phase 2.5)
+// FluxPrint Integration - DEPRECATED: Moved to routes/printing.js
+// These routes are kept for reference but not executed
+// (modular routes registered earlier take precedence)
+// TODO: Remove in next cleanup sprint
 // ============================================================================
 // Proxies requests to FluxPrint microservice running on localhost:5001
 // Enables seamless 3D printing capabilities within FluxStudio workflow

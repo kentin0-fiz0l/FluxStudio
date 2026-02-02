@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Bell, Check, Info, AlertCircle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 
 interface Notification {

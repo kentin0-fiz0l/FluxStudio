@@ -10,7 +10,6 @@ import {
   Layout,
   Monitor,
   Zap,
-  Settings,
   RefreshCw,
 } from 'lucide-react';
 

@@ -14,13 +14,11 @@ import {
   Send,
   Plus,
   Search,
-  MoreVertical,
   Paperclip,
   Smile,
   Phone,
   Video,
   Info,
-  Archive,
   VolumeX,
   Pin,
   RefreshCw,
@@ -37,7 +35,7 @@ import {
   Hash,
   Globe,
 } from 'lucide-react';
-import { Message, Conversation, ConversationType } from '../../types/messaging';
+import { Message, Conversation } from '../../types/messaging';
 
 interface MessageBubbleProps {
   message: Message;
@@ -295,8 +293,8 @@ function ConversationItem({ conversation, isActive, onClick }: ConversationItemP
   );
 }
 
-export function MessagesWidget(props: WidgetProps) {
-  const navigate = useNavigate();
+export function MessagesWidget(_props: WidgetProps) {
+  const _navigate = useNavigate();
   const { user } = useAuth();
   const {
     conversations,
@@ -313,7 +311,7 @@ export function MessagesWidget(props: WidgetProps) {
 
   const [messageText, setMessageText] = useState('');
   const [showConversationList, setShowConversationList] = useState(true);
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [_editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -353,7 +351,7 @@ export function MessagesWidget(props: WidgetProps) {
     }
   };
 
-  const handleEditMessage = (messageId: string, newContent: string) => {
+  const _handleEditMessage = (messageId: string, newContent: string) => {
     editMessage(messageId, newContent);
     setEditingMessageId(null);
   };

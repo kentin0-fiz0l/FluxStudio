@@ -23,7 +23,6 @@ import {
   User,
   ListChecks,
   MessageSquare,
-  Star,
   HelpCircle,
 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';

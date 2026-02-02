@@ -13,7 +13,6 @@
  * WCAG 2.1 Level A Compliant
  */
 
-import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/templates/DashboardLayout';

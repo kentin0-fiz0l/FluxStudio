@@ -29,7 +29,7 @@ export function ModernSignup() {
     setIsLoading(true);
 
     try {
-      const user = await signup(formData.email, formData.password, formData.name, formData.userType);
+      const _user = await signup(formData.email, formData.password, formData.name, formData.userType);
       navigate('/home');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');

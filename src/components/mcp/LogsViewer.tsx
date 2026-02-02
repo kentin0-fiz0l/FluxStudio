@@ -2,7 +2,7 @@
  * Logs Viewer - View workflow run logs and status
  */
 import { useState } from 'react';
-import { FileText, Loader2, RefreshCw, ExternalLink } from 'lucide-react';
+import { FileText, Loader2, RefreshCw } from 'lucide-react';
 import { getMCPClient } from '../../lib/mcpClient';
 
 export default function LogsViewer() {

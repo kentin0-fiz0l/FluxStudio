@@ -29,7 +29,7 @@ export class RecommendationEngine {
    * Generate personalized recommendations based on user behavior
    */
   async generateRecommendations(
-    userId: string,
+    _userId: string,
     behavior: UserBehavior,
     limit: number = 10
   ): Promise<RecommendationItem[]> {

@@ -14,7 +14,6 @@ import {
   TesterInfo,
   TaskOutcome,
   UserTestFeedback,
-  ConfusionReport,
 } from '@/services/userTestLogger';
 
 export interface UseUserTestModeReturn {

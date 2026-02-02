@@ -3,18 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { useAuth } from '../../contexts/AuthContext';
-import { useOrganization } from '../../contexts/OrganizationContext';
 import { useCommandPalette } from '../../hooks/useCommandPalette';
 import { useProjectsData, useActivityData } from '../../hooks/useRealTimeData';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { Separator } from '../ui/separator';
 import { cn } from '../ui/utils';
 import {
   Search,
   Command,
-  ArrowRight,
   Hash,
   FolderOpen,
   Settings,
@@ -49,7 +46,7 @@ interface CommandPaletteProps {
   className?: string;
 }
 
-export function CommandPalette({ className }: CommandPaletteProps) {
+export function CommandPalette({ className: _className }: CommandPaletteProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isOpen, close } = useCommandPalette();

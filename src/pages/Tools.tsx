@@ -13,7 +13,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMetMap } from '../contexts/MetMapContext';
 import { useActiveProjectOptional } from '../contexts/ActiveProjectContext';
 import {
-  Map,
   ExternalLink,
   ArrowRight,
   Wrench,

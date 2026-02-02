@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { File, Image, Video, FileText, Download, Trash2, Edit3, MoreVertical, Eye, Share2 } from 'lucide-react';
+import { File, Image, Video, FileText, Download, Trash2, Edit3, Eye, Share2 } from 'lucide-react';
 import { FileUpload } from '../hooks/useFileUpload';
 import { getFileUrl } from '../utils/apiHelpers';
 

@@ -31,8 +31,6 @@ import {
   Zap,
   Clock,
   CheckCircle,
-  XCircle,
-  AlertTriangle,
   Crown,
   Info,
 } from 'lucide-react';

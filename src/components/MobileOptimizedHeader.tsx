@@ -23,7 +23,7 @@ export function MobileOptimizedHeader() {
   }
 
   const location = useLocation();
-  const isHomePage = location.pathname === '/';
+  const _isHomePage = location.pathname === '/';
 
   // Handle scroll for header appearance
   useEffect(() => {

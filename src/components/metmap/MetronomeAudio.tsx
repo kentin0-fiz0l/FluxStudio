@@ -5,7 +5,7 @@
  * Uses Web Audio API for precise timing.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 export type ClickSound = 'classic' | 'wood' | 'digital' | 'soft' | 'cowbell' | 'hi-hat';
 

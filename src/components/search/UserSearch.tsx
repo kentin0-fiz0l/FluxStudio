@@ -7,12 +7,9 @@ import {
   X,
   User,
   Users,
-  Building2,
   Check,
   UserPlus,
-  Mail,
-  MapPin,
-  Briefcase
+  Mail
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 

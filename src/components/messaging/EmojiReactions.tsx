@@ -41,7 +41,7 @@ const EMOJI_CATEGORIES = {
 };
 
 export function EmojiReactions({
-  messageId,
+  messageId: _messageId,
   reactions = new Map(),
   currentUser,
   onReact,

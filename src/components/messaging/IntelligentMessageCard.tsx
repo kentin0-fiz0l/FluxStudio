@@ -3,7 +3,7 @@
  * Enhanced message display with AI-powered analysis and smart interactions
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain,
@@ -12,8 +12,6 @@ import {
   CheckCircle,
   MessageSquare,
   FileText,
-  User,
-  Tag,
   Zap,
   Heart,
   ThumbsUp,
@@ -21,7 +19,6 @@ import {
   AlertTriangle,
   Lightbulb,
   Target,
-  ChevronDown,
   Sparkles
 } from 'lucide-react';
 import { Button } from '../ui/button';

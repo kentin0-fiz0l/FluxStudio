@@ -42,11 +42,11 @@ export function ProjectsNew() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { projects, loading, error, createProject, deleteProject, updateProject, fetchProjects } = useProjects();
+  const { projects, loading, error, createProject, deleteProject, updateProject, fetchProjects: _fetchProjects } = useProjects();
   const { teams } = useTeams();
   const { currentOrganization } = useOrganizations();
   const activeProjectContext = useActiveProjectOptional();
-  const activeProject = activeProjectContext?.activeProject ?? null;
+  const _activeProject = activeProjectContext?.activeProject ?? null;
   const setActiveProject = activeProjectContext?.setActiveProject ?? (() => {});
   const isProjectFocused = activeProjectContext?.isProjectFocused ?? (() => false);
 
@@ -74,8 +74,8 @@ export function ProjectsNew() {
 
   // Bulk selection state
   const [selectedProjects, setSelectedProjects] = useState<Set<string>>(new Set());
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-  const [isBulkArchiving, setIsBulkArchiving] = useState(false);
+  const [_isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [_isBulkArchiving, setIsBulkArchiving] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showTagDialog, setShowTagDialog] = useState(false);
   const [selectedTeamForMove, setSelectedTeamForMove] = useState<string>('');

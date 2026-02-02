@@ -14,7 +14,7 @@ import { Task, TeamMember } from '@/hooks/useTaskSearch';
 // ============================================================================
 
 export const BasicTaskSearchExample: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([
+  const [tasks, _setTasks] = useState<Task[]>([
     {
       id: '1',
       title: 'Design homepage mockups',
@@ -210,7 +210,7 @@ export const IntegratedExample: React.FC = () => {
 
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
 
-  const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
+  const _handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
     // Update task in state
     setTasks(prev =>
       prev.map(task =>
@@ -221,11 +221,11 @@ export const IntegratedExample: React.FC = () => {
     );
   };
 
-  const handleTaskDelete = async (taskId: string) => {
+  const _handleTaskDelete = async (taskId: string) => {
     setTasks(prev => prev.filter(task => task.id !== taskId));
   };
 
-  const handleTaskCreate = () => {
+  const _handleTaskCreate = () => {
     // Open create modal or form
     console.log('Create new task');
   };
@@ -330,11 +330,12 @@ export const DirectHookExample: React.FC = () => {
     filteredTasks,
     filters,
     updateFilter,
-    toggleFilter,
+    toggleFilter: _toggleFilterFn,
     clearAllFilters,
     activeFilterCount,
     resultCount,
     applyPreset,
+    toggleFilter: _toggleFilter,
   } = useTaskSearch(tasks, teamMembers, 'user-1', {
     syncWithURL: false,
     debounceDelay: 500,

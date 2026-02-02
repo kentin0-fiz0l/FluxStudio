@@ -138,7 +138,7 @@ export class MCPClient {
     } else {
       console.error('[MCP Client] Max reconnection attempts reached');
       // Reject all pending requests
-      for (const [id, pending] of this.pendingRequests.entries()) {
+      for (const [_id, pending] of this.pendingRequests.entries()) {
         clearTimeout(pending.timeout);
         pending.reject(new Error('Connection lost'));
       }
@@ -228,7 +228,7 @@ export class MCPClient {
       this.ws = null;
     }
     // Clear all pending requests with their timeouts
-    for (const [id, pending] of this.pendingRequests.entries()) {
+    for (const [_id, pending] of this.pendingRequests.entries()) {
       clearTimeout(pending.timeout);
       pending.reject(new Error('Client disconnected'));
     }

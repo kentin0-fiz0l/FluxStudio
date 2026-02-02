@@ -110,7 +110,7 @@ class AIContentGenerationService {
     }
   };
 
-  private responsePatterns = {
+  private _responsePatterns = {
     agreement: [
       "That sounds great!",
       "Perfect, I'm on board with that.",
@@ -350,7 +350,7 @@ class AIContentGenerationService {
     return content.trim();
   }
 
-  private expandPrompt(prompt: string, context: ContentGenerationContext): string {
+  private expandPrompt(prompt: string, _context: ContentGenerationContext): string {
     // Simple expansion based on keywords and context
     const promptLower = prompt.toLowerCase();
 
@@ -426,7 +426,7 @@ class AIContentGenerationService {
     return content + '\n\nLet me know if you need any additional details or if there\'s anything specific you\'d like me to elaborate on.';
   }
 
-  private generateCompletions(currentText: string, context: ContentGenerationContext): SmartSuggestion[] {
+  private generateCompletions(currentText: string, _context: ContentGenerationContext): SmartSuggestion[] {
     const suggestions: SmartSuggestion[] = [];
 
     // Common completions based on current text
@@ -499,7 +499,7 @@ class AIContentGenerationService {
     return suggestions;
   }
 
-  private getTemplateSuggestions(currentText: string, context: ContentGenerationContext): SmartSuggestion[] {
+  private getTemplateSuggestions(currentText: string, _context: ContentGenerationContext): SmartSuggestion[] {
     const suggestions: SmartSuggestion[] = [];
 
     // Project update template
@@ -685,7 +685,7 @@ class AIContentGenerationService {
     return content;
   }
 
-  private explainGeneration(intent: string, tone: string, context: ContentGenerationContext): string {
+  private explainGeneration(intent: string, tone: string, _context: ContentGenerationContext): string {
     return `Generated ${tone} content for ${intent} based on conversation context and user preferences.`;
   }
 }

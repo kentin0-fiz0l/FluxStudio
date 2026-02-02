@@ -3,7 +3,6 @@
  * Tool selection, color picker, brush size, zoom, and history controls
  */
 
-import React from 'react';
 import {
   Pencil,
   Square,

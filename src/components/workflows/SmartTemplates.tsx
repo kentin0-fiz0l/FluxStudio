@@ -4,10 +4,9 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { ScrollArea } from '../ui/scroll-area';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import {
@@ -20,8 +19,6 @@ import {
 } from '../ui/dialog';
 import {
   Play,
-  Pause,
-  RotateCcw,
   CheckCircle,
   XCircle,
   Clock,
@@ -34,7 +31,6 @@ import {
   TrendingUp,
   Search,
   Star,
-  Copy,
   Edit,
   Plus
 } from 'lucide-react';

@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { MessageSquare, Hash, Loader2, RefreshCw, Users } from 'lucide-react';
 import { IntegrationCard } from './IntegrationCard';
 import { Button } from '@/components/ui/button';
-import type { Integration, SlackIntegration as SlackIntegrationType, SlackWorkspace } from '@/types/integrations';
+import type { Integration, SlackIntegration as SlackIntegrationType } from '@/types/integrations';
 import { integrationService } from '@/services/integrationService';
 
 interface SlackChannel {

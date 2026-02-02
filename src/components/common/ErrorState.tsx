@@ -238,7 +238,7 @@ export function ErrorState({
 }
 
 // Pre-configured error states for common scenarios
-export function UnauthorizedState({ onLogin }: { onLogin?: () => void }) {
+export function UnauthorizedState({ onLogin: _onLogin }: { onLogin?: () => void }) {
   return (
     <ErrorState
       type="unauthorized"

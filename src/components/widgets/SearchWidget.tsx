@@ -141,7 +141,7 @@ export function SearchWidget(props: WidgetProps) {
     }
   };
 
-  const getCategoryIcon = (category: string) => {
+  const _getCategoryIcon = (category: string) => {
     switch (category) {
       case 'project': return FolderOpen;
       case 'activity': return Activity;

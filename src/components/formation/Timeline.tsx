@@ -16,7 +16,6 @@ import {
   Minus,
   Repeat,
   Clock,
-  ChevronLeft,
 } from 'lucide-react';
 import { Keyframe, PlaybackState } from '../../services/formationService';
 

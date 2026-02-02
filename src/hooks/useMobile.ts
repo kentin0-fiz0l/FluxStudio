@@ -5,7 +5,7 @@
  * Provides hooks for mobile detection, viewport handling, and responsive design
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 // Breakpoints matching Tailwind defaults
 export const BREAKPOINTS = {

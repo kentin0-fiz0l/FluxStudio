@@ -13,7 +13,7 @@
  */
 
 import * as React from 'react';
-import { Activity, Bell } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { useProjectPulse } from '@/hooks/useProjectPulse';

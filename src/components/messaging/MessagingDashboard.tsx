@@ -4,11 +4,11 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Plus, Bell, Search, Users } from 'lucide-react';
+import { Plus, Bell, Users } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Conversation, MessageUser, ConversationType } from '../../types/messaging';
+import { Conversation, MessageUser } from '../../types/messaging';
 import { messagingService } from '../../services/messagingService';
 import ConversationList from './ConversationList';
 import MessageInterface from './MessageInterface';
@@ -68,7 +68,7 @@ export function MessagingDashboard({ currentUser, className }: MessagingDashboar
 
   const setupRealtimeListeners = () => {
     // Listen for new notifications
-    messagingService.onMentionReceived((notification) => {
+    messagingService.onMentionReceived((_notification) => {
       setUnreadNotifications(prev => prev + 1);
     });
 

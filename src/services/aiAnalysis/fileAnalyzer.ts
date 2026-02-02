@@ -179,7 +179,7 @@ function categorizeFile(metadata: FileMetadata): FileCategory {
  * Generate basic tags from file metadata
  */
 async function generateBasicTags(
-  file: File,
+  _file: File,
   metadata: FileMetadata,
   category: FileCategory
 ): Promise<string[]> {
@@ -454,7 +454,7 @@ function extractTopics(text: string): string[] {
  */
 function generateInsights(
   metadata: FileMetadata,
-  category: FileCategory,
+  _category: FileCategory,
   imageAnalysis?: ImageAnalysis,
   textAnalysis?: TextAnalysis
 ): string[] {

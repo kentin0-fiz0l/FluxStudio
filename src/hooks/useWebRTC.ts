@@ -11,7 +11,6 @@ import {
   CallState,
   CallParticipant,
   CallOptions,
-  SignalingMessage,
 } from '../services/webrtcService';
 
 // ============================================================================
@@ -52,7 +51,7 @@ export interface UseWebRTCReturn {
 // ============================================================================
 
 export function useWebRTC(options: UseWebRTCOptions): UseWebRTCReturn {
-  const { userId, onIncomingCall } = options;
+  const { userId, onIncomingCall: _onIncomingCall } = options;
 
   const [callState, setCallState] = useState<CallState>('idle');
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);

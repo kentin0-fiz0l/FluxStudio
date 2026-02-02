@@ -13,7 +13,6 @@
 
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { getApiUrl } from '../utils/apiHelpers';
-import { queryKeys } from '../lib/queryClient';
 
 // Re-export useAuth for convenience
 export { useAuth } from '../contexts/AuthContext';

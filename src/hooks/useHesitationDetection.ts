@@ -40,7 +40,7 @@ export function useHesitationDetection(options: UseHesitationDetectionOptions): 
     enabled,
     routeHesitationMs = DEFAULT_ROUTE_HESITATION_MS,
     panelHesitationMs = DEFAULT_PANEL_HESITATION_MS,
-    focusedProjectId,
+    focusedProjectId: _focusedProjectId,
   } = options;
 
   const location = useLocation();

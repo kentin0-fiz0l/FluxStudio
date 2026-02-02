@@ -7,7 +7,6 @@ import {
   Download,
   ZoomIn,
   ZoomOut,
-  RotateCw,
   Play,
   Pause,
   Volume2,

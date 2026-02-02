@@ -248,7 +248,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {
 export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   isOpen,
   onClose,
-  projectId, // Used by parent component for API calls, not used internally
+  projectId: _projectId, // Used by parent component for API calls, not used internally
   task,
   onSave,
   onDelete,

@@ -4,7 +4,6 @@
  * User profile and account management using DashboardLayout.
  */
 
-import * as React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button, Card } from '@/components/ui';

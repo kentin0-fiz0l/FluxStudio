@@ -13,8 +13,6 @@ import {
   MicOff,
   PhoneOff,
   Users,
-  Volume2,
-  VolumeX,
   Phone,
 } from 'lucide-react';
 

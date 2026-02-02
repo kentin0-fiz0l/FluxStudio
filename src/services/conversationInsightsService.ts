@@ -98,7 +98,7 @@ interface TrendAnalysis {
 
 class ConversationInsightsService {
   private insightsCache = new Map<string, InsightSummary>();
-  private readonly ANALYSIS_WINDOW_DAYS = 7;
+  private readonly _ANALYSIS_WINDOW_DAYS = 7;
   private readonly MIN_MESSAGES_FOR_ANALYSIS = 5;
 
   /**
@@ -140,7 +140,7 @@ class ConversationInsightsService {
   /**
    * Get real-time insights for active conversation
    */
-  async getRealTimeInsights(conversationId: string, recentMessages: Message[]): Promise<Partial<InsightSummary>> {
+  async getRealTimeInsights(_conversationId: string, recentMessages: Message[]): Promise<Partial<InsightSummary>> {
     if (recentMessages.length === 0) return {};
 
     const quickMetrics = await this.calculateQuickMetrics(recentMessages);
@@ -184,7 +184,7 @@ class ConversationInsightsService {
   /**
    * Analyze project progress from conversation context
    */
-  async analyzeProjectProgress(messages: Message[], projectContext?: any): Promise<ProjectProgressInsight> {
+  async analyzeProjectProgress(messages: Message[], _projectContext?: any): Promise<ProjectProgressInsight> {
     const progressIndicators = this.extractProgressIndicators(messages);
     const blockers = this.identifyBlockers(messages);
     const momentum = this.calculateMomentum(messages);
@@ -756,7 +756,7 @@ class ConversationInsightsService {
     return 'planning';
   }
 
-  private estimateCompletion(indicators: string[], momentum: string): number {
+  private estimateCompletion(_indicators: string[], momentum: string): number {
     let baseEstimate = 0.5; // 50% default
 
     // Adjust based on momentum

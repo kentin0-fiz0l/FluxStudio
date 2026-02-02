@@ -5,27 +5,22 @@
  * Simplified from 267 lines to ~350 lines with modern design system.
  */
 
-import * as React from 'react';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { UserCard } from '@/components/molecules';
 import { Button, Card, Badge, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
-import { useTeams } from '@/hooks/useTeams';
 import {
   Users,
   UserPlus,
   Crown,
   Shield,
   User,
-  Search,
   Grid3x3,
   List,
   Settings,
   Mail,
-  MoreVertical,
-  CheckCircle2,
   XCircle,
   Clock
 } from 'lucide-react';
@@ -142,7 +137,7 @@ const mockTeams: Team[] = [
 
 export function TeamNew() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
 
   // State
   const [teams] = useState<Team[]>(mockTeams);

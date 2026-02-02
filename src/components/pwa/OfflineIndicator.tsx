@@ -13,7 +13,6 @@
  * WCAG 2.1 Level A Compliant
  */
 
-import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { usePWA } from '../../hooks/usePWA';
 

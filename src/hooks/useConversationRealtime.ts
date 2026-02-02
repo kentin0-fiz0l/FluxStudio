@@ -11,10 +11,8 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   messagingSocketService,
   ConversationMessage,
-  Conversation,
   Notification,
   MessageReactionSummary,
-  PinnedMessage,
   ConversationPinsUpdatedPayload,
 } from '../services/messagingSocketService';
 

@@ -5,7 +5,6 @@
  * Unobtrusive design that doesn't interfere with normal usage.
  */
 
-import * as React from 'react';
 import { Beaker } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUserTestMode } from '@/hooks/useUserTestMode';

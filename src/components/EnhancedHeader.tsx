@@ -14,13 +14,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import {
   Search,
-  Bell,
   Settings,
-  Home,
   Building2,
   Users,
   FolderOpen,
@@ -54,11 +51,11 @@ interface EnhancedHeaderProps {
 }
 
 export function EnhancedHeader({ openCommandPalette, className, activeView = 'organizations', onViewChange, onMessagingToggle }: EnhancedHeaderProps) {
-  const location = useLocation();
+  const _location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { organizations, teams, projects } = useOrganization();
-  const { isMobile } = useBreakpoint();
+  const { isMobile: _isMobile } = useBreakpoint();
   const { unreadCount } = useMessaging();
   const { files } = useFiles();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);

@@ -320,8 +320,8 @@ export class WorkflowEngine {
     });
 
     // Wait handler
-    this.stepHandlers.set('wait', async (step: WorkflowStep, context: WorkflowContext) => {
-      const { waitFor, timeout } = step.config;
+    this.stepHandlers.set('wait', async (step: WorkflowStep, _context: WorkflowContext) => {
+      const { waitFor: _waitFor, timeout } = step.config;
       // In production, this would set up actual timers/watchers
       return {
         success: true,

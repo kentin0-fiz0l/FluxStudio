@@ -15,8 +15,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
-  User,
-  Shield,
   LogIn,
   LogOut,
   Plus,

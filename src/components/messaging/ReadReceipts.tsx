@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Check, CheckCheck, Eye, Clock } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
@@ -35,7 +35,7 @@ interface ReadReceiptsProps {
 }
 
 export function ReadReceipts({
-  messageId,
+  messageId: _messageId,
   messageStatus,
   author,
   readBy = [],
@@ -44,7 +44,7 @@ export function ReadReceipts({
   isOwn,
   className
 }: ReadReceiptsProps) {
-  const [showDetails, setShowDetails] = useState(false);
+  const [_showDetails, _setShowDetails] = useState(false);
 
   // Filter out the author from read receipts
   const receipts = readBy.filter(receipt => receipt.userId !== author.id);

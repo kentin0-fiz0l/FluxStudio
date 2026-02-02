@@ -3,8 +3,8 @@
  * Advanced search functionality for messages across conversations
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, User, FileText, Image, Video, X, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Filter, FileText, Image, Video, X, ArrowRight } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';

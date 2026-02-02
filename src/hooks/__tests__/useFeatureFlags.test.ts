@@ -174,7 +174,7 @@ describe('useFeatureFlag', () => {
   it('should use default value', () => {
     mockFlags.isEnabled.mockReturnValue(false);
 
-    const { result } = renderHook(() => useFeatureFlag('missing_flag', true));
+    const { result: _result } = renderHook(() => useFeatureFlag('missing_flag', true));
 
     expect(mockFlags.isEnabled).toHaveBeenCalledWith('missing_flag', true);
   });
@@ -196,7 +196,7 @@ describe('useExperimentVariant', () => {
   it('should use default variant', () => {
     mockFlags.getVariant.mockReturnValue('baseline');
 
-    const { result } = renderHook(() => useExperimentVariant('test_experiment', 'baseline'));
+    const { result: _result } = renderHook(() => useExperimentVariant('test_experiment', 'baseline'));
 
     expect(mockFlags.getVariant).toHaveBeenCalledWith('test_experiment', 'baseline');
   });

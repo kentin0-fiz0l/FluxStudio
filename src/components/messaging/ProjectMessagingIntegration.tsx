@@ -4,12 +4,12 @@
  */
 
 import { useEffect, useState } from 'react';
-import { MessageCircle, Bell, Plus } from 'lucide-react';
+import { MessageCircle, Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { MessagingDashboard, useMessaging, CreateConversationDialog } from './index';
+import { useMessaging, CreateConversationDialog } from './index';
 import { MessageUser, ConversationType } from '../../types/messaging';
 
 interface ProjectMessagingIntegrationProps {
@@ -41,7 +41,7 @@ export function ProjectMessagingIntegration({
 
   const loadProjectConversations = async () => {
     try {
-      const conversations = await actions.loadConversations();
+      const _conversations = await actions.loadConversations();
       const filtered = state.conversations.filter(conv => conv.projectId === projectId);
       setProjectConversations(filtered);
     } catch (error) {

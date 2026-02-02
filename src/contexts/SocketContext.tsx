@@ -6,7 +6,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { socketService, ProjectPresenceMember, PulseEvent } from '../services/socketService';
 import { useAuth } from './AuthContext';
-import { Message, MessageUser, UserPresence, TypingIndicator } from '../types/messaging';
+import { Message, MessageUser, UserPresence } from '../types/messaging';
 
 interface SocketContextType {
   // Connection state

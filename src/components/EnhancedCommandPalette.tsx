@@ -351,8 +351,8 @@ export function EnhancedCommandPalette() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [actions]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getCategoryIcon = (category: string) => {
+
+  const _getCategoryIcon = (category: string) => {
     switch (category) {
       case 'navigation': return ArrowRight;
       case 'actions': return Zap;

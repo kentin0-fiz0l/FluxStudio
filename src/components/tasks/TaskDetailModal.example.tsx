@@ -91,7 +91,7 @@ export const EditTaskExample: React.FC = () => {
 export const CreateTaskExample: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleSave = async (taskId: string | null, taskData: Partial<Task>) => {
+  const handleSave = async (_taskId: string | null, taskData: Partial<Task>) => {
     console.log('Creating new task:', taskData);
 
     // Simulate API call
@@ -106,7 +106,7 @@ export const CreateTaskExample: React.FC = () => {
     // const newTask = await response.json();
   };
 
-  const handleDelete = async (taskId: string) => {
+  const handleDelete = async (_taskId: string) => {
     // Not used in create mode
     console.log('Delete called but task does not exist yet');
   };

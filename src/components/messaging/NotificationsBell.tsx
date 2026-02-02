@@ -8,7 +8,7 @@
 
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, BellOff, Check, MoreVertical, ExternalLink } from 'lucide-react';
+import { Bell, BellOff, Check, ExternalLink } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import {
@@ -92,7 +92,7 @@ export function NotificationsBell({ className }: NotificationsBellProps) {
     isLoading,
     markAsRead,
     markAllAsRead,
-    refresh,
+    refresh: _refresh,
   } = useNotifications({
     autoConnect: true,
     autoLoad: true,

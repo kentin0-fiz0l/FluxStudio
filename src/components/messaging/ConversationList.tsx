@@ -4,13 +4,13 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Plus, Filter, Archive, MessageCircle, Users, Folder, Bell, BellOff } from 'lucide-react';
+import { Search, Plus, Filter, MessageCircle, Users, Folder, Bell, BellOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { Conversation, ConversationFilter, ConversationType, Priority } from '../../types/messaging';
+import { Conversation, ConversationFilter, ConversationType } from '../../types/messaging';
 import { messagingService } from '../../services/messagingService';
 import { cn } from '../../lib/utils';
 

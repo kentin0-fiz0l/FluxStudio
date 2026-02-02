@@ -91,13 +91,13 @@ export function useProjectPulse(): UseProjectPulseReturn {
   const activeProjectContext = useActiveProjectOptional();
   const activeProject = activeProjectContext?.activeProject ?? null;
   const hasFocus = activeProjectContext?.hasFocus ?? false;
-  const { session, markAsSeen, getTimeSinceLastSeen } = useSession();
+  const { session, markAsSeen, getTimeSinceLastSeen: _getTimeSinceLastSeen } = useSession();
   const { state: notificationState } = useNotifications();
   const { tasks } = useTasks(activeProject?.id);
   const { user } = useAuth();
 
   const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, _setError] = React.useState<string | null>(null);
 
   // Build activity stream from notifications
   const activityStream = React.useMemo((): ActivityItem[] => {

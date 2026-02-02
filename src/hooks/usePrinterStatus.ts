@@ -114,7 +114,7 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
   const {
     connectionStatus: wsConnectionStatus,
     data: wsData,
-    requestStatus: wsRequestStatus,
+    requestStatus: _wsRequestStatus,
   } = usePrintWebSocket({
     enabled: opts.enableWebSocket,
     autoReconnect: true,

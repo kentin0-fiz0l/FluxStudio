@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useWorkingContextOptional, LastEntity } from '../contexts/WorkingContext';
 import { useActiveProjectOptional } from '../contexts/ActiveProjectContext';
 

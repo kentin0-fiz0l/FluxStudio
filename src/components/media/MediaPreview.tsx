@@ -123,10 +123,10 @@ export function MediaPreview({
             src={file.url}
             poster={file.thumbnailUrl}
             className="w-full max-h-[70vh]"
-            onTimeUpdate={(currentTime, duration) => {
+            onTimeUpdate={(_currentTime, _duration) => {
               // Optional: track viewing progress
             }}
-            onLoadedMetadata={(duration) => {
+            onLoadedMetadata={(_duration) => {
               // Optional: update file metadata
             }}
           />
@@ -139,10 +139,10 @@ export function MediaPreview({
             title={file.metadata?.title || file.name}
             artist={file.metadata?.artist}
             className="w-full"
-            onTimeUpdate={(currentTime, duration) => {
+            onTimeUpdate={(_currentTime, _duration) => {
               // Optional: track listening progress
             }}
-            onLoadedMetadata={(duration) => {
+            onLoadedMetadata={(_duration) => {
               // Optional: update file metadata
             }}
           />
@@ -151,7 +151,7 @@ export function MediaPreview({
       case 'image':
         return (
           <EnhancedImageViewer
-            attachment={{ id: file.id, type: 'image', url: file.url, name: file.name, size: file.size || 0, mimeType: file.mimeType || 'image/*', uploadedAt: new Date() }}
+            attachment={{ id: file.id, type: 'image', url: file.url, name: file.name, size: file.size || 0, mimeType: file.type || 'image/*', uploadedAt: new Date() }}
             className="w-full max-h-[70vh]"
           />
         );

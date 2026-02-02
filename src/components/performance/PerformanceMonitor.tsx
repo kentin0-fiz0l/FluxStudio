@@ -11,7 +11,6 @@ import {
   Clock,
   TrendingUp,
   TrendingDown,
-  Database,
   Wifi,
   HardDrive,
   Gauge,

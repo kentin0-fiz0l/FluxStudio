@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Wifi, WifiOff, Download } from 'lucide-react';
+import { X, WifiOff, Download } from 'lucide-react';
 import { Button } from './ui/button';
 
 export function ServiceWorkerManager() {
@@ -10,7 +10,7 @@ export function ServiceWorkerManager() {
 
   useEffect(() => {
     // Skip service worker in development/preview environments
-    const isDevelopment = window.location.hostname === 'localhost' ||
+    const _isDevelopment = window.location.hostname === 'localhost' ||
                          window.location.hostname.includes('figma') ||
                          window.location.hostname.includes('127.0.0.1') ||
                          window.location.hostname.includes('preview');
@@ -44,7 +44,7 @@ export function ServiceWorkerManager() {
     };
   }, []);
 
-  const registerServiceWorker = async () => {
+  const _registerServiceWorker = async () => {
     try {
       const registration = await navigator.serviceWorker.register('./sw.js');
       

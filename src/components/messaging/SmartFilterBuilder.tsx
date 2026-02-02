@@ -12,7 +12,6 @@ import {
   Save,
   Download,
   Trash2,
-  Copy,
   Check
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -28,7 +27,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '../ui/card';

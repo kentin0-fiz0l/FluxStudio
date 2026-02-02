@@ -17,7 +17,6 @@
  */
 
 import * as React from 'react';
-import { Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { Check, CheckCheck, Paperclip, MoreVertical } from 'lucide-react';
 

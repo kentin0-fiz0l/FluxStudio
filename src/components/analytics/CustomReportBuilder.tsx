@@ -3,11 +3,8 @@ import {
   FileText,
   Plus,
   Download,
-  Share2,
   BarChart3,
-  PieChart,
   TrendingUp,
-  Save,
   Play,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -32,7 +29,7 @@ interface Report {
 }
 
 export const CustomReportBuilder: React.FC = () => {
-  const [reports, setReports] = useState<Report[]>([
+  const [reports, _setReports] = useState<Report[]>([
     {
       id: '1',
       name: 'Weekly Performance Report',
@@ -43,7 +40,7 @@ export const CustomReportBuilder: React.FC = () => {
     },
   ]);
 
-  const [selectedReport, setSelectedReport] = useState<string | null>(reports[0]?.id || null);
+  const [_selectedReport, _setSelectedReport] = useState<string | null>(reports[0]?.id || null);
 
   const widgetTypes = [
     { type: 'metric', icon: TrendingUp, label: 'Metric Card', color: 'blue' },

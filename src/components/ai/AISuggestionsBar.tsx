@@ -12,10 +12,8 @@ import {
   Sparkles,
   X,
   ChevronRight,
-  Palette,
   Layout,
   Type,
-  Eye,
   Zap,
   AlertTriangle,
 } from 'lucide-react';

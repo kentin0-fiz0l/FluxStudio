@@ -37,7 +37,7 @@ interface ProjectData {
 export function ProjectOverviewWidget(props: WidgetProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { projects, navigateTo } = useOrganization();
+  const { projects: _projects, navigateTo } = useOrganization();
   const [filter, setFilter] = useState<'all' | 'active' | 'pending' | 'completed'>('all');
 
   // Real-time project data

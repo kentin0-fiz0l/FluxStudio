@@ -15,8 +15,7 @@ import {
   MoreVertical,
   Paperclip,
   Smile,
-  Bell,
-  BellOff
+  Bell
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -24,7 +23,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
-import { Separator } from '../ui/separator';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,10 +54,10 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
     conversationMessages,
     setActiveConversation,
     sendMessage: sendMessageToConversation,
-    createConversation,
+    createConversation: _createConversation,
     setTyping,
     userPresence,
-    refresh
+    refresh: _refresh
   } = useMessaging();
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');

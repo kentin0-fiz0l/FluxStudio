@@ -5,7 +5,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useMemo } from 'react';
 import { Organization, Team, Project } from '../types/organization';
-import { Conversation, Message, MessageUser } from '../types/messaging';
+import { Conversation } from '../types/messaging';
 import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationContext';
 import { useMessaging } from './MessagingContext';
@@ -276,9 +276,9 @@ interface WorkspaceProviderProps {
 
 export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const [state, dispatch] = useReducer(workspaceReducer, initialState);
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const { currentOrganization, currentTeam, currentProject } = useOrganization();
-  const { state: messagingState } = useMessaging();
+  const { state: _messagingState } = useMessaging();
 
   // Sync with organization context
   useEffect(() => {

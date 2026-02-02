@@ -28,7 +28,7 @@ export function MessageSystemIntegration() {
   };
 
   // Sample conversations
-  const [conversations, setConversations] = useState<Conversation[]>([
+  const [conversations, _setConversations] = useState<Conversation[]>([
     {
       id: 'conv-1',
       name: 'Website Redesign Project',
@@ -126,7 +126,7 @@ export function MessageSystemIntegration() {
     }
   ]);
 
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [_selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [isAIProcessing, setIsAIProcessing] = useState(false);
   const [automationStatus, setAutomationStatus] = useState<string>('');
 

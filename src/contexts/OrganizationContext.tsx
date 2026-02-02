@@ -4,7 +4,6 @@ import {
   Team,
   Project,
   ProjectFile,
-  OrganizationContext as OrgContextType,
   OrganizationStats,
   TeamStats,
   ProjectStats,

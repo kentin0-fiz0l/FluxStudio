@@ -126,8 +126,8 @@ export function DashboardShell({ children: _children }: DashboardShellProps) {
   if (!user) return null;
 
   // Navigation items based on user role and context
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getNavigationItems = () => {
+
+  const _getNavigationItems = () => {
     const baseItems = [
       {
         title: "Organizations",
@@ -211,8 +211,8 @@ export function DashboardShell({ children: _children }: DashboardShellProps) {
   };
 
   // Get contextual navigation based on current context
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getContextualItems = () => {
+
+  const _getContextualItems = () => {
     const contextualItems = [];
 
     if (currentOrganization) {

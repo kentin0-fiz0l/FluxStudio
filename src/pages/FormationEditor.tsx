@@ -21,7 +21,7 @@ export default function FormationEditor() {
     formationId?: string;
   }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const { addNotification } = useNotification();
 
   // Handle save

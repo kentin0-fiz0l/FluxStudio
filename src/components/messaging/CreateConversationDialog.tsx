@@ -124,7 +124,7 @@ export function CreateConversationDialog({
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
 
-  const { projects: orgProjects, teams, organizations } = useOrganization();
+  const { projects: orgProjects, teams: _teams, organizations: _organizations } = useOrganization();
 
   useEffect(() => {
     if (isOpen) {

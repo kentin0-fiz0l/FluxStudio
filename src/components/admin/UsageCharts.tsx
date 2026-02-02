@@ -12,7 +12,6 @@ import {
   TrendingDown,
   Download,
   Users,
-  FolderKanban,
   Eye,
   Clock,
 } from 'lucide-react';

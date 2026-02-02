@@ -113,7 +113,7 @@ export function ProjectWorkflow({
   onMilestoneUpdate,
   isEditable = false
 }: ProjectWorkflowProps) {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const [milestones, setMilestones] = useState<Milestone[]>(project.milestones || []);
   const [isEditingProject, setIsEditingProject] = useState(false);
   const [editingMilestone, setEditingMilestone] = useState<Milestone | null>(null);

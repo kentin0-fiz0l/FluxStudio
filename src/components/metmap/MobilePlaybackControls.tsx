@@ -28,7 +28,7 @@ interface MobilePlaybackControlsProps {
 
 export function MobilePlaybackControls({
   isPlaying,
-  isPaused,
+  isPaused: _isPaused,
   currentBar,
   currentBeat,
   totalBars,

@@ -15,7 +15,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Command,
   Search,
   Plus,
   CheckSquare,
@@ -28,7 +27,6 @@ import {
   Target,
   ArrowRight,
 } from 'lucide-react';
-import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
 

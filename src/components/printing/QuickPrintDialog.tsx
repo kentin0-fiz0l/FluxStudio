@@ -30,9 +30,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 import {
   Printer,
   Clock,
-  DollarSign,
   Layers,
-  Box,
   Zap,
   CheckCircle2,
   AlertCircle,
@@ -338,7 +336,7 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
   filename,
   fileSize,
   onPrint,
-  projectId,
+  projectId: _projectId,
   estimate: providedEstimate,
   analysis,
 }) => {

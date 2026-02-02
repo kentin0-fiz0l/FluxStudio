@@ -5,11 +5,10 @@
  * Simplified from 836 lines to ~400 lines with clean modern design.
  */
 
-import * as React from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
-import { Button, Card, Badge, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui';
+import { Button, Card, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Building2,

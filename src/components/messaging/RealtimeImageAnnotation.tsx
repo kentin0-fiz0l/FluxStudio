@@ -14,7 +14,6 @@ import {
   LayersPanel,
   CommentDialog,
   AnnotationType,
-  annotationTools,
   defaultColors,
   AnnotationLayer
 } from './annotation';

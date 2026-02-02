@@ -8,10 +8,10 @@ import { renderHook, act } from '@testing-library/react';
 import { useNetworkStatus } from '../useNetworkStatus';
 
 describe('useNetworkStatus', () => {
-  const originalNavigator = global.navigator;
+  const _originalNavigator = global.navigator;
   let onlineEventListener: (() => void) | null = null;
   let offlineEventListener: (() => void) | null = null;
-  let connectionChangeListener: (() => void) | null = null;
+  let _connectionChangeListener: (() => void) | null = null;
 
   const mockAddEventListener = vi.fn((event: string, handler: () => void) => {
     if (event === 'online') onlineEventListener = handler;

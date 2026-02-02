@@ -8,7 +8,6 @@ import {
   VolumeX,
   SkipBack,
   SkipForward,
-  RotateCcw,
   Bookmark,
   Download,
   Share,
@@ -39,7 +38,7 @@ export function AudioPlayer({
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -50,7 +49,7 @@ export function AudioPlayer({
   const [isLoading, setIsLoading] = useState(true);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
-  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [_audioContext, setAudioContext] = useState<AudioContext | null>(null);
 
   // Initialize Web Audio API for waveform visualization
   useEffect(() => {

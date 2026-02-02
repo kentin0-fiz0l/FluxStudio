@@ -3,7 +3,6 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Upload, CheckCircle, AlertTriangle, Shield, FileIcon } from 'lucide-react';
 

@@ -9,7 +9,6 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Progress } from '../ui/progress';
-import { Separator } from '../ui/separator';
 import { ScrollArea } from '../ui/scroll-area';
 import {
   Lightbulb,
@@ -48,7 +47,7 @@ export function AIDesignAssistant({
   const [colorPalettes, setColorPalettes] = useState<ColorPalette[]>([]);
   const [layoutAnalysis, setLayoutAnalysis] = useState<LayoutAnalysis | null>(null);
   const [collaborationInsights, setCollaborationInsights] = useState<CollaborationInsight[]>([]);
-  const [realTimeSuggestions, setRealTimeSuggestions] = useState<DesignSuggestion[]>([]);
+  const [_realTimeSuggestions, _setRealTimeSuggestions] = useState<DesignSuggestion[]>([]);
 
   // Auto-analyze design when it changes
   useEffect(() => {

@@ -11,9 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   Notification as MessagingNotification,
   NotificationType,
-  Priority,
-  NotificationAction,
-  MessageUser
+  Priority
 } from '../types/messaging';
 import {
   messagingSocketService,

@@ -4,8 +4,6 @@ import {
   Users,
   UserPlus,
   Mail,
-  Shield,
-  MoreVertical,
   Search,
   Crown,
   Edit,
@@ -17,7 +15,6 @@ import {
   Award,
   Activity,
   Eye,
-  EyeOff,
   X
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -108,7 +105,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   currentUser,
   onInviteUser,
   onInviteUsers,
-  onUpdateMember,
+  onUpdateMember: _onUpdateMember,
   onRemoveMember,
   onResendInvite
 }) => {

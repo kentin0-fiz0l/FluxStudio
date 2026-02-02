@@ -12,7 +12,6 @@
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import { getApiUrl } from '../utils/apiHelpers';
 import { useAuth } from '../contexts/AuthContext';
-import { queryKeys } from '../lib/queryClient';
 import { toast } from '../lib/toast';
 
 // ============================================================================
@@ -261,13 +260,13 @@ export const useCreateCommentMutation = (projectId: string, taskId: string) => {
     },
 
     // On error: Rollback to previous state
-    onError: (error, newComment, context) => {
+    onError: (error, _newComment, context) => {
       queryClient.setQueryData(commentKeys.list(projectId, taskId), context?.previousComments);
       toast.error(error.message || 'Failed to create comment');
     },
 
     // On success: Replace temporary comment with real comment and show success toast
-    onSuccess: (createdComment) => {
+    onSuccess: (_createdComment) => {
       // Invalidate queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: commentKeys.list(projectId, taskId) });
       toast.success('Comment posted successfully');
@@ -443,7 +442,7 @@ export const useDeleteCommentMutation = (projectId: string, taskId: string) => {
     },
 
     // On error: Rollback to previous state
-    onError: (error, commentId, context) => {
+    onError: (error, _commentId, context) => {
       queryClient.setQueryData(commentKeys.list(projectId, taskId), context?.previousComments);
       toast.error(error.message || 'Failed to delete comment');
     },

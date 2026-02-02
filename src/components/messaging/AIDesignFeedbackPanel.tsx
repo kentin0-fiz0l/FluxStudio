@@ -9,7 +9,6 @@ import {
   Brain,
   Sparkles,
   TrendingUp,
-  CheckCircle,
   AlertCircle,
   Lightbulb,
   Target,
@@ -30,9 +29,8 @@ import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
-import { Separator } from '../ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { TooltipProvider } from '../ui/tooltip';
 import { cn } from '../../lib/utils';
 import {
   aiDesignFeedbackService,
