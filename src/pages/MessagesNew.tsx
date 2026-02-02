@@ -23,7 +23,6 @@
  * - Components extracted to @/components/messaging/
  */
 
-import * as React from 'react';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
@@ -38,21 +37,10 @@ import {
   useFileUpload,
 } from '../hooks/messaging';
 import {
-  Search,
-  Phone,
-  Video,
-  MoreVertical,
-  UserPlus,
-  Star,
   X,
-  ArrowLeft,
-  MessageCircle,
   RefreshCw,
-  Pin,
-  BellOff,
   AlertCircle,
   Loader2,
-  Sparkles,
 } from 'lucide-react';
 
 // Types - imported from extracted types file
@@ -65,75 +53,23 @@ import type {
 
 // Extracted messaging components
 import {
-  ChatMessageBubble as MessageBubble,
-  ChatAvatar as Avatar,
   MessageComposer as MessageInput,
-  ConversationItem,
   EmptyMessagesState,
   PinnedMessagesPanel,
   NewConversationDialog,
   ForwardMessageDialog,
+  ChatSidebar,
+  ChatHeader,
+  MessageListView,
   getInitials,
 } from '../components/messaging';
+import type { MessageListViewRef } from '../components/messaging';
 
 import { MessageSearchPanel } from '../components/messaging/MessageSearchPanel';
 import { MessageSearchResult } from '../hooks/useMessageSearch';
 import { ThreadPanel } from '../components/messaging/ThreadPanel';
-import { ConversationHeaderPresence } from '../components/messaging/PresenceIndicator';
 import { ConversationSummary } from '../components/messaging/ConversationSummary';
-import { EmptyState, emptyStateConfigs } from '../components/common/EmptyState';
 import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
-
-// Date separator for message grouping
-const getDateSeparator = (date: Date) => {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (date.toDateString() === today.toDateString()) return 'Today';
-  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
-  return date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-};
-
-// Typing Indicator - simple version for inline display
-function TypingIndicator({ users }: { users: string[] }) {
-  if (users.length === 0) return null;
-
-  let text: string;
-  if (users.length === 1) {
-    text = `${users[0]} is typing...`;
-  } else if (users.length === 2) {
-    text = `${users[0]} and ${users[1]} are typing...`;
-  } else if (users.length === 3) {
-    text = `${users[0]}, ${users[1]}, and ${users[2]} are typing...`;
-  } else {
-    text = `${users[0]}, ${users[1]}, + ${users.length - 2} others are typing...`;
-  }
-
-  return (
-    <div className="flex items-center gap-2 px-4 py-2 text-sm text-neutral-500 dark:text-neutral-400">
-      <div className="flex gap-1">
-        <span className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <span className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <span className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-      </div>
-      <span className="text-xs">{text}</span>
-    </div>
-  );
-}
-
-// Date Separator
-function DateSeparator({ date }: { date: Date }) {
-  return (
-    <div className="flex items-center justify-center py-4">
-      <div className="px-3 py-1 bg-neutral-100 dark:bg-neutral-800 rounded-full">
-        <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-          {getDateSeparator(date)}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 // Main Messages Component
 function MessagesNew() {
@@ -296,8 +232,7 @@ function MessagesNew() {
     },
   });
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messageListRef = useRef<MessageListViewRef>(null);
   const composerRef = useRef<HTMLDivElement>(null);
 
   // ========================================
@@ -524,15 +459,14 @@ function MessagesNew() {
 
   // Auto-scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messageListRef.current?.scrollToEnd();
   }, [messages]);
 
   // Mark messages as read when they scroll into view (IntersectionObserver)
   useEffect(() => {
     if (!selectedConversationId || !messages.length || !readReceiptsEnabled) return;
-    if (!messagesContainerRef.current) return;
-
-    const container = messagesContainerRef.current;
+    const container = messageListRef.current?.container;
+    if (!container) return;
     const observedMessages = new Map<Element, string>();
 
     const observer = new IntersectionObserver(
@@ -779,7 +713,7 @@ function MessagesNew() {
 
   // Jump to original message (for reply threading)
   const handleJumpToMessage = useCallback((messageId: string) => {
-    const container = messagesContainerRef.current;
+    const container = messageListRef.current?.container;
     if (!container) return;
 
     const el = container.querySelector<HTMLElement>(
@@ -1012,158 +946,40 @@ function MessagesNew() {
       )}
 
       <div className="h-[calc(100vh-4rem)] flex gap-0 md:gap-6 md:p-6">
-        {/* Conversations Sidebar */}
-        <Card className={`w-full md:w-96 flex flex-col overflow-hidden border-0 md:border ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
-          {/* Header */}
-          <div className="p-4 border-b border-neutral-200 dark:border-neutral-700">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">Messages</h2>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  {onlineCount} online · {unreadCount} unread
-                </p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => setShowNewConversation(true)}>
-                <UserPlus className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Search */}
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-              <input
-                type="text"
-                placeholder="Search conversations..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-sm border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-
-            {/* Filters */}
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {(['all', 'unread', 'starred', 'muted'] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-3 py-1 text-xs rounded-full whitespace-nowrap transition-all ${
-                    filter === f
-                      ? 'bg-primary-600 text-white shadow-md'
-                      : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                  }`}
-                >
-                  {f === 'starred' && <Star className="w-3 h-3 inline mr-1" />}
-                  {f === 'muted' && <BellOff className="w-3 h-3 inline mr-1" />}
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                  {f === 'unread' && unreadCount > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-white/20 rounded-full">{unreadCount}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Conversation List */}
-          <div className="flex-1 overflow-y-auto">
-            {isLoadingConversations && conversations.length === 0 ? (
-              <div className="flex items-center justify-center h-32">
-                <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
-              </div>
-            ) : filteredConversations.length === 0 ? (
-              searchTerm ? (
-                <div className="p-8 text-center">
-                  <MessageCircle className="w-12 h-12 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" />
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                    No conversations match your search
-                  </p>
-                </div>
-              ) : (
-                <EmptyState
-                  icon={MessageCircle}
-                  title={emptyStateConfigs.messages.title}
-                  description={emptyStateConfigs.messages.description}
-                  primaryCtaLabel={emptyStateConfigs.messages.primaryCtaLabel}
-                  onPrimaryCta={() => setShowNewConversation(true)}
-                  secondaryCtaLabel="Go to Projects"
-                  onSecondaryCta={() => navigate('/projects')}
-                  learnMoreItems={emptyStateConfigs.messages.learnMoreItems as unknown as string[]}
-                  size="sm"
-                />
-              )
-            ) : (
-              filteredConversations.map((conversation) => (
-                <ConversationItem
-                  key={conversation.id}
-                  conversation={conversation}
-                  isSelected={selectedConversation?.id === conversation.id}
-                  onClick={() => handleConversationClick(conversation)}
-                />
-              ))
-            )}
-          </div>
-        </Card>
+        {/* Conversations Sidebar - extracted component */}
+        <ChatSidebar
+          conversations={conversations}
+          filteredConversations={filteredConversations}
+          selectedConversation={selectedConversation}
+          isLoading={isLoadingConversations}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filter={filter}
+          onFilterChange={setFilter}
+          onConversationClick={handleConversationClick}
+          onNewConversation={() => setShowNewConversation(true)}
+          onNavigateToProjects={() => navigate('/projects')}
+          showMobileChat={showMobileChat}
+          onlineCount={onlineCount}
+          unreadCount={unreadCount}
+        />
 
         {/* Chat Area */}
         <Card className={`flex-1 flex flex-col overflow-hidden border-0 md:border ${!showMobileChat ? 'hidden md:flex' : 'flex'}`}>
           {selectedConversation ? (
             <>
-              {/* Chat Header */}
-              <div className="p-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between bg-white dark:bg-neutral-900">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setShowMobileChat(false)}
-                    className="md:hidden p-2 -ml-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
-                  >
-                    <ArrowLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
-                  </button>
-                  <Avatar user={selectedConversation.participant} size="md" showStatus />
-                  <div>
-                    <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">
-                      {selectedConversation.title}
-                    </h3>
-                    <ConversationHeaderPresence
-                      isOnline={selectedConversation.participant.isOnline}
-                      lastSeen={selectedConversation.participant.lastSeen}
-                      isTyping={realtime.typingUsers.some(t => t.userId === selectedConversation.participant.id)}
-                      isGroup={selectedConversation.type === 'group'}
-                      memberCount={selectedConversation.participants?.length}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setShowMessageSearch(!showMessageSearch)}
-                    className={`p-2 rounded-lg transition-colors ${showMessageSearch ? 'bg-primary-100 dark:bg-primary-900/30' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
-                    title="Search messages (Ctrl+F)"
-                  >
-                    <Search className={`w-5 h-5 ${showMessageSearch ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'}`} />
-                  </button>
-                  <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="Voice call">
-                    <Phone className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
-                  </button>
-                  <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="Video call">
-                    <Video className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
-                  </button>
-                  <button
-                    onClick={() => setShowPinnedMessages(!showPinnedMessages)}
-                    className={`p-2 rounded-lg transition-colors ${showPinnedMessages ? 'bg-accent-100 dark:bg-accent-900/30' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
-                    title="Pinned messages"
-                  >
-                    <Pin className={`w-5 h-5 ${showPinnedMessages ? 'text-accent-600' : 'text-neutral-600 dark:text-neutral-400'}`} />
-                  </button>
-                  <button
-                    onClick={() => setIsSummaryPanelOpen(!isSummaryPanelOpen)}
-                    className={`p-2 rounded-lg transition-colors ${isSummaryPanelOpen ? 'bg-primary-100 dark:bg-primary-900/30' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
-                    title="Conversation summary"
-                  >
-                    <Sparkles className={`w-5 h-5 ${isSummaryPanelOpen ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'}`} />
-                  </button>
-                  <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="More options">
-                    <MoreVertical className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
-                  </button>
-                </div>
-              </div>
+              {/* Chat Header - extracted component */}
+              <ChatHeader
+                conversation={selectedConversation}
+                isTyping={realtime.typingUsers.some(t => t.userId === selectedConversation.participant.id)}
+                onBack={() => setShowMobileChat(false)}
+                showMessageSearch={showMessageSearch}
+                onToggleSearch={() => setShowMessageSearch(!showMessageSearch)}
+                showPinnedMessages={showPinnedMessages}
+                onTogglePinned={() => setShowPinnedMessages(!showPinnedMessages)}
+                showSummary={isSummaryPanelOpen}
+                onToggleSummary={() => setIsSummaryPanelOpen(!isSummaryPanelOpen)}
+              />
 
               {/* Pinned Messages Panel */}
               {showPinnedMessages && (
@@ -1214,87 +1030,32 @@ function MessagesNew() {
                 </div>
               )}
 
-              {/* Messages */}
-              <div
-                ref={messagesContainerRef}
-                className="flex-1 overflow-y-auto py-4"
-              >
-                {messages.length === 0 ? (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-100 to-indigo-100 dark:from-primary-900/30 dark:to-indigo-900/30 flex items-center justify-center mx-auto mb-4">
-                        <MessageCircle className="w-8 h-8 text-primary-600 dark:text-primary-400" />
-                      </div>
-                      <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                        Start the conversation!
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {messages.map((message, index) => {
-                      const prevMessage = messages[index - 1];
-                      const showDateSeparator = !prevMessage ||
-                        message.timestamp.toDateString() !== prevMessage.timestamp.toDateString();
-                      const isGrouped = prevMessage &&
-                        prevMessage.author.id === message.author.id &&
-                        message.timestamp.getTime() - prevMessage.timestamp.getTime() < 60000;
-
-                      // Look up parent message for reply threading
-                      const parentMessage = message.replyTo?.id
-                        ? messageById.get(message.replyTo.id)
-                        : undefined;
-
-                      // Enrich message with parent data if available
-                      const enrichedMessage = parentMessage && message.replyTo
-                        ? {
-                            ...message,
-                            replyTo: {
-                              id: parentMessage.id,
-                              content: parentMessage.content,
-                              author: parentMessage.author,
-                            },
-                          }
-                        : message;
-
-                      return (
-                        <React.Fragment key={message.id}>
-                          {showDateSeparator && <DateSeparator date={message.timestamp} />}
-                          <MessageBubble
-                            message={enrichedMessage}
-                            onReply={() => handleReply(message)}
-                            onEdit={() => handleStartEdit(message)}
-                            onDelete={() => handleDeleteMessage(message.id)}
-                            onPin={() => handlePinMessage(message.id)}
-                            onCopy={() => handleCopyMessage(message.id)}
-                            onJumpToMessage={handleJumpToMessage}
-                            onForward={() => handleStartForward(message)}
-                            onReact={(emoji) => handleReact(message.id, emoji)}
-                            onOpenThread={() => handleOpenThread(message.id)}
-                            onViewInFiles={handleViewInFiles}
-                            isGrouped={isGrouped}
-                            currentUserId={user?.id}
-                            isPinned={realtime.pinnedMessageIds.includes(message.id)}
-                            isHighlighted={highlightedMessageId === message.id || threadHighlightId === message.id}
-                            isEditing={editingMessageId === message.id}
-                            editingDraft={editingMessageId === message.id ? editingDraft : ''}
-                            onChangeEditingDraft={setEditingDraft}
-                            onSubmitEdit={handleSubmitEdit}
-                            onCancelEdit={handleCancelEdit}
-                          />
-                        </React.Fragment>
-                      );
-                    })}
-
-                    {/* Typing indicator - from real-time hook (uses userName for better display) */}
-                    {realtime.typingUsers.length > 0 && (
-                      <TypingIndicator users={realtime.typingUsers.map(u => u.userName || u.userEmail?.split('@')[0] || 'Someone')} />
-                    )}
-
-                    <div ref={messagesEndRef} />
-                  </>
-                )}
-              </div>
+              {/* Messages - extracted component */}
+              <MessageListView
+                ref={messageListRef}
+                messages={messages}
+                messageById={messageById}
+                currentUserId={user?.id}
+                pinnedMessageIds={realtime.pinnedMessageIds}
+                highlightedMessageId={highlightedMessageId}
+                threadHighlightId={threadHighlightId}
+                editingMessageId={editingMessageId}
+                editingDraft={editingDraft}
+                typingUserNames={realtime.typingUsers.map(u => u.userName || u.userEmail?.split('@')[0] || 'Someone')}
+                onReply={handleReply}
+                onEdit={handleStartEdit}
+                onDelete={handleDeleteMessage}
+                onPin={handlePinMessage}
+                onCopy={handleCopyMessage}
+                onJumpToMessage={handleJumpToMessage}
+                onForward={handleStartForward}
+                onReact={handleReact}
+                onOpenThread={handleOpenThread}
+                onViewInFiles={handleViewInFiles}
+                onChangeEditingDraft={setEditingDraft}
+                onSubmitEdit={handleSubmitEdit}
+                onCancelEdit={handleCancelEdit}
+              />
 
               {/* Message Input - with typing indicators */}
               <div ref={composerRef}>

@@ -22,7 +22,7 @@ interface UseFileUploadReturn {
   // State
   pendingAttachments: PendingAttachment[];
   setPendingAttachments: React.Dispatch<React.SetStateAction<PendingAttachment[]>>;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
 
   // Handlers
   handleAttach: () => void;

@@ -42,6 +42,15 @@ export type { NewConversationDialogProps } from './NewConversationDialog';
 export { ForwardMessageDialog } from './ForwardMessageDialog';
 export type { ForwardMessageDialogProps } from './ForwardMessageDialog';
 
+export { ChatSidebar } from './ChatSidebar';
+export type { ChatSidebarProps } from './ChatSidebar';
+
+export { ChatHeader } from './ChatHeader';
+export type { ChatHeaderProps } from './ChatHeader';
+
+export { MessageListView } from './MessageListView';
+export type { MessageListViewProps, MessageListViewRef } from './MessageListView';
+
 export { default as ThreadPanel } from './ThreadPanel';
 
 // NEW: Local types and utilities (explicitly named to avoid conflicts)
