@@ -57,7 +57,7 @@ export function CollaborationOverlay({
   const { user } = useAuth();
   const [collaborators, setCollaborators] = useState<CollaboratorPresence[]>([]);
   const [remoteCursors, setRemoteCursors] = useState<Map<string, RemoteCursor>>(new Map());
-  const [remoteSelections, setRemoteSelections] = useState<Map<string, RemoteSelection>>(new Map());
+  const [remoteSelections, _setRemoteSelections] = useState<Map<string, RemoteSelection>>(new Map());
   const [showPresence, setShowPresence] = useState(true);
   const [showChat, setShowChat] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -152,19 +152,8 @@ export function CollaborationOverlay({
     }
   };
 
-  const _handleSelectionChange = ({ userId, selection }: { userId: string; selection: SelectionRange }) => {
-    if (userId === user?.id) return;
-
-    const collaborator = collaborators.find(c => c.userId === userId);
-    if (collaborator) {
-      setRemoteSelections(prev => new Map(prev.set(userId, {
-        userId,
-        name: collaborator.user.name,
-        color: collaborator.color,
-        selection
-      })));
-    }
-  };
+  // Remote selection change handler reserved for future WebRTC integration
+  // Handles: userId, selection range from collaborators
 
   const handleCommentAdd = (comment: any) => {
     setMessages(prev => [...prev, comment]);

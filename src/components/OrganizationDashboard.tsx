@@ -113,7 +113,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
           requireApproval: false
         },
         metadata: {
-          projectType: 'other',
+          projectType: 'show-concept',
           tags: []
         }
       });

@@ -89,18 +89,6 @@ export function WorkflowAutomationPanel({
     }
   };
 
-  const _toggleSection = (sectionId: string) => {
-    setExpandedSections(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(sectionId)) {
-        newSet.delete(sectionId);
-      } else {
-        newSet.add(sectionId);
-      }
-      return newSet;
-    });
-  };
-
   const handleToggleTrigger = async (triggerId: string, enabled: boolean) => {
     const success = workflowAutomationService.updateTriggerStatus(triggerId, enabled);
     if (success) {

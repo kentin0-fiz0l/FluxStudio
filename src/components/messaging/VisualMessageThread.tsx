@@ -58,8 +58,6 @@ interface MessageReaction {
   users: string[];
 }
 
-const _commonReactions = ['👍', '❤️', '🎨', '✨', '🔥', '💯'];
-
 export function VisualMessageThread({
   conversation,
   messages: initialMessages = [],

@@ -41,7 +41,7 @@ export function ProjectMessagingIntegration({
 
   const loadProjectConversations = async () => {
     try {
-      const _conversations = await actions.loadConversations();
+      await actions.loadConversations();
       const filtered = state.conversations.filter(conv => conv.projectId === projectId);
       setProjectConversations(filtered);
     } catch (error) {

@@ -174,17 +174,6 @@ export function MessageInterface({ conversation, currentUser, className }: Messa
     messageInputRef.current?.focus();
   };
 
-  const _formatDate = (date: Date) => {
-    const now = new Date();
-    const messageDate = new Date(date);
-
-    if (messageDate.toDateString() === now.toDateString()) {
-      return messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else {
-      return messageDate.toLocaleDateString();
-    }
-  };
-
   // Group messages by date
   const groupedMessages = messages.reduce((groups, message) => {
     const date = new Date(message.createdAt).toDateString();

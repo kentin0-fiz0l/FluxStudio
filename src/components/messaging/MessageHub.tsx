@@ -59,17 +59,7 @@ export function MessageHub({ className }: MessageHubProps) {
 
   // Smart context detection - group conversations by context
   const contextualConversations = useMemo(() => {
-    const _filtered = conversations.filter(conv => {
-      // Apply search filter
-      if (searchQuery) {
-        const searchLower = searchQuery.toLowerCase();
-        return conv.name.toLowerCase().includes(searchLower) ||
-               conv.lastMessage?.content.toLowerCase().includes(searchLower);
-      }
-      return true;
-    });
-
-    // Apply type filters
+    // Apply type filters (search is applied within filterConversations)
     const typeFiltered = filterConversations({
       hasUnread: filterType === 'unread',
       // Add more filter logic here

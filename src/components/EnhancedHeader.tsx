@@ -34,14 +34,6 @@ import {
 import { UnifiedNotificationCenter } from './notifications/UnifiedNotificationCenter';
 import { cn } from '../lib/utils';
 
-interface PageAction {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  onClick: () => void;
-  variant?: 'default' | 'ghost' | 'outline';
-  className?: string;
-}
-
 interface EnhancedHeaderProps {
   openCommandPalette: () => void;
   className?: string;
@@ -51,7 +43,7 @@ interface EnhancedHeaderProps {
 }
 
 export function EnhancedHeader({ openCommandPalette, className, activeView = 'organizations', onViewChange, onMessagingToggle }: EnhancedHeaderProps) {
-  const _location = useLocation();
+  useLocation(); // Reserved for location-based features
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { organizations, teams, projects } = useOrganization();

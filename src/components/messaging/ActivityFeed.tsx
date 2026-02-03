@@ -96,7 +96,6 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
     // Add notifications
     notifications.forEach(notif => {
       let activityType: ActivityItem['type'] = 'notification';
-      const _icon = Bell;
 
       // Map notification types to activity types
       switch (notif.type) {

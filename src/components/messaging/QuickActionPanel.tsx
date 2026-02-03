@@ -215,7 +215,7 @@ export function QuickActionPanel({ isOpen, onClose, currentUser }: QuickActionPa
           ? `${currentUser.name} & ${selectedParticipants[0].name}`
           : selectedTemplate.name;
 
-      const _conversationId = await createConversation({
+      await createConversation({
         type: selectedTemplate.type,
         name: conversationName,
         description: selectedTemplate.description,
@@ -223,14 +223,7 @@ export function QuickActionPanel({ isOpen, onClose, currentUser }: QuickActionPa
         priority: selectedTemplate.priority
       });
 
-      // If template has an auto-message, send it
-      if (selectedTemplate.autoMessage) {
-        // This would trigger sending the auto-message
-        // await sendMessage(conversationId, {
-        //   content: selectedTemplate.autoMessage,
-        //   type: 'text'
-        // });
-      }
+      // Note: Auto-message feature reserved for future implementation
 
       handleClose();
     } catch (error) {

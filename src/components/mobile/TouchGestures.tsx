@@ -49,7 +49,7 @@ export const TouchGestures: React.FC<TouchGesturesProps> = ({
     if (!container) return;
 
     let touches: Touch[] = [];
-    let __isLongPressing = false;
+    let _isLongPressing = false;
 
     const getTouchDistance = (touch1: Touch, touch2: Touch) => {
       const dx = touch1.clientX - touch2.clientX;

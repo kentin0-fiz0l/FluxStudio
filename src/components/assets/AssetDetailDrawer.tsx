@@ -78,7 +78,6 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
     updateAsset
   } = useAssets();
   const filesContext = useFilesOptional();
-  const _filesState = filesContext?.state;
   const uploadFiles = filesContext?.uploadFiles ?? (async () => []);
   const { addNotification } = useNotifications();
 

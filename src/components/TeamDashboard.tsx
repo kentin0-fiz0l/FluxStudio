@@ -92,7 +92,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
           requireApproval: false
         },
         metadata: {
-          projectType: 'other',
+          projectType: 'show-concept',
           tags: []
         }
       });

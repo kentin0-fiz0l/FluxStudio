@@ -89,10 +89,8 @@ interface RealTimeCollaborationProps {
   onStartScreenShare?: () => void;
 }
 
-const _userColors = [
-  '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
-  '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
-];
+// User colors for collaborator avatars - reserved for future use
+// const userColors = ['#3B82F6', '#EF4444', '#10B981', ...];
 
 export const RealTimeCollaboration: React.FC<RealTimeCollaborationProps> = ({
   session,
@@ -127,12 +125,12 @@ export const RealTimeCollaboration: React.FC<RealTimeCollaborationProps> = ({
     const handleMouseMove = (e: MouseEvent) => {
       if (!isConnected || !containerRef.current) return;
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const _x = ((e.clientX - rect.left) / rect.width) * 100;
-      const _y = ((e.clientY - rect.top) / rect.height) * 100;
-
+      // Calculate cursor position for WebSocket emission
+      // const rect = containerRef.current.getBoundingClientRect();
+      // const x = ((e.clientX - rect.left) / rect.width) * 100;
+      // const y = ((e.clientY - rect.top) / rect.height) * 100;
       // In real implementation, this would emit to websocket
-      // For demo, we'll just update local state occasionally
+      void e; // Acknowledge event parameter
     };
 
     document.addEventListener('mousemove', handleMouseMove);

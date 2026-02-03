@@ -16,13 +16,6 @@ import {
   Building2,
   Users,
   FolderOpen,
-  Palette,
-  Briefcase,
-  BarChart3,
-  Shield,
-  FileText,
-  MessageSquare,
-  Printer,
 } from 'lucide-react';
 
 // ForwardRef wrapper for button elements to fix Slot ref warnings
@@ -44,7 +37,7 @@ interface DashboardShellProps {
 export function DashboardShell({ children: _children }: DashboardShellProps) {
   // Navigation and auth hooks - some reserved for future use
   useNavigate(); // Reserved for navigation
-  const location = useLocation();
+  useLocation(); // Reserved for location-based navigation
   const { user } = useAuth();
   const {
     currentOrganization,
@@ -56,8 +49,8 @@ export function DashboardShell({ children: _children }: DashboardShellProps) {
   } = useOrganization();
   const { isOpen: isCommandPaletteOpen, open: openCommandPalette, close: closeCommandPalette } = useCommandPalette();
   useBreakpoint(); // Reserved for responsive behavior
-  const { unreadCount } = useMessaging();
-  const { files } = useFiles();
+  useMessaging(); // Reserved for unread count display
+  useFiles(); // Reserved for file count display
   const [, setIsLoading] = useState(true);
   const [activeView, setActiveView] = useState('organizations');
   const [isMessagingOpen, setIsMessagingOpen] = useState(false);

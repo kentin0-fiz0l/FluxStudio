@@ -22,8 +22,7 @@ export function MobileOptimizedHeader() {
     console.warn('Auth context not available, using fallback values');
   }
 
-  const location = useLocation();
-  const _isHomePage = location.pathname === '/';
+  useLocation(); // Reserved for location-based features
 
   // Handle scroll for header appearance
   useEffect(() => {
