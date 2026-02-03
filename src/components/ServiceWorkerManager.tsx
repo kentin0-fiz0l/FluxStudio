@@ -9,17 +9,8 @@ export function ServiceWorkerManager() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    // Skip service worker in development/preview environments
-    const _isDevelopment = window.location.hostname === 'localhost' ||
-                         window.location.hostname.includes('figma') ||
-                         window.location.hostname.includes('127.0.0.1') ||
-                         window.location.hostname.includes('preview');
-
     // TEMPORARILY DISABLED: Service worker registration causes caching issues in development
-    // Register service worker only in production
-    // if ('serviceWorker' in navigator && !isDevelopment) {
-    //   registerServiceWorker();
-    // }
+    // To re-enable, check for development environment and call registerServiceWorker()
 
     // Handle online/offline status
     const handleOnline = () => setIsOnline(true);
@@ -44,28 +35,7 @@ export function ServiceWorkerManager() {
     };
   }, []);
 
-  const _registerServiceWorker = async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('./sw.js');
-      
-      // Check for updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              setShowUpdatePrompt(true);
-            }
-          });
-        }
-      });
-
-      console.log('Service Worker registered successfully');
-    } catch (error) {
-      console.log('Service Worker not available in this environment');
-      // Gracefully handle the error without showing it to users
-    }
-  };
+  // Note: Service worker registration temporarily disabled - see useEffect
 
   const handleInstallApp = async () => {
     if (deferredPrompt) {

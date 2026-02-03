@@ -29,16 +29,13 @@ interface TeamDashboardProps {
 
 export function TeamDashboard({ teamId }: TeamDashboardProps) {
   const navigate = useNavigate();
-  const { user: _user } = useAuth();
+  useAuth(); // Reserved for auth context features
   const {
     currentTeam,
     currentOrganization,
     projects,
-    isLoading: _isLoading,
     isLoadingProjects,
     navigateTo,
-    fetchProjects: _fetchProjects,
-    createProject,
     getTeamStats,
     getTeamMembers
   } = useOrganization();
@@ -76,31 +73,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
     }
   };
 
-  const _handleCreateProject = async (name: string, description?: string) => {
-    if (!currentTeam || !currentOrganization) return;
-    try {
-      await createProject({
-        name,
-        description,
-        organizationId: currentOrganization.id,
-        teamId: currentTeam.id,
-        status: 'planning',
-        priority: 'medium',
-        settings: {
-          isPrivate: false,
-          allowFileSharing: true,
-          requireApproval: false
-        },
-        metadata: {
-          projectType: 'show-concept',
-          tags: []
-        }
-      });
-      setShowCreateProject(false);
-    } catch (error) {
-      console.error('Error creating project:', error);
-    }
-  };
+  // Note: Project creation handler removed - using setShowCreateProject for dialog state
 
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase())

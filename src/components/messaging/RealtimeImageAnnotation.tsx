@@ -72,7 +72,7 @@ export function RealtimeImageAnnotation({
 
   // UI state
   const [showCommentDialog, setShowCommentDialog] = useState(false);
-  const [commentPosition, setCommentPosition] = useState({ x: 0, y: 0 });
+  const [, setCommentPosition] = useState({ x: 0, y: 0 });
   const [commentText, setCommentText] = useState('');
   const [showCollaborators, setShowCollaborators] = useState(true);
   const [showLayers, setShowLayers] = useState(false);

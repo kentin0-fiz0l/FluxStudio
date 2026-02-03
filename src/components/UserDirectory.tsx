@@ -268,14 +268,6 @@ export const UserDirectory: React.FC<UserDirectoryProps> = ({
     Array.isArray(filter) ? filter.length > 0 : filter !== undefined
   );
 
-  const _formatJoinDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long'
-    });
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

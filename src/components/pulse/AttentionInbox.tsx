@@ -50,14 +50,6 @@ const attentionLabels: Record<AttentionItem['type'], string> = {
   approval: 'Approval',
 };
 
-// Priority colors
-const _priorityColors: Record<AttentionItem['priority'], string> = {
-  urgent: 'text-red-600 dark:text-red-400',
-  high: 'text-amber-600 dark:text-amber-400',
-  medium: 'text-neutral-600 dark:text-neutral-400',
-  low: 'text-neutral-500 dark:text-neutral-500',
-};
-
 const priorityBadgeVariants: Record<AttentionItem['priority'], string> = {
   urgent: 'error',
   high: 'warning',
