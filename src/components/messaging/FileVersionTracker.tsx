@@ -51,14 +51,6 @@ interface FileVersion {
   approvalStatus?: 'pending' | 'approved' | 'rejected';
 }
 
-interface FileVersionGroup {
-  baseFilename: string;
-  versions: FileVersion[];
-  totalVersions: number;
-  latestVersion: FileVersion;
-  conversationIds: string[];
-}
-
 interface FileVersionTrackerProps {
   conversationId: string;
   className?: string;

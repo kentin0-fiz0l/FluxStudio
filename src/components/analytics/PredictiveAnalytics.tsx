@@ -28,15 +28,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 
 // Types
-interface PredictiveMetrics {
-  trend: 'up' | 'down' | 'stable';
-  currentValue: number;
-  predictedValue: number;
-  confidence: number; // 0-1
-  changePercent: number;
-  timeframe: string;
-}
-
 interface Prediction {
   id: string;
   metric: string;

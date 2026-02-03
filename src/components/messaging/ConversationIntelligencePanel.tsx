@@ -39,21 +39,6 @@ interface ConversationIntelligencePanelProps {
   onActionTrigger?: (action: string, data?: any) => void;
 }
 
-interface ConversationInsight {
-  id: string;
-  conversation: Conversation;
-  insights: {
-    urgentMessages: number;
-    pendingActions: number;
-    unansweredQuestions: number;
-    approvalRequests: number;
-    overallSentiment: 'positive' | 'neutral' | 'negative';
-    activityLevel: 'high' | 'medium' | 'low';
-    responseTime: number; // in hours
-    lastActivity: Date;
-  };
-}
-
 interface WorkflowSuggestion {
   id: string;
   type: 'deadline-reminder' | 'approval-needed' | 'follow-up' | 'escalation';

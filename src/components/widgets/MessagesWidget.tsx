@@ -294,7 +294,7 @@ function ConversationItem({ conversation, isActive, onClick }: ConversationItemP
 }
 
 export function MessagesWidget(_props: WidgetProps) {
-  const _navigate = useNavigate();
+  useNavigate(); // Reserved for navigation features
   const { user } = useAuth();
   const {
     conversations,
@@ -306,12 +306,11 @@ export function MessagesWidget(_props: WidgetProps) {
     deleteMessage,
     setTyping,
     isLoading,
-    error: _error,
   } = useMessaging();
 
   const [messageText, setMessageText] = useState('');
   const [showConversationList, setShowConversationList] = useState(true);
-  const [_editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [, setEditingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -349,11 +348,6 @@ export function MessagesWidget(_props: WidgetProps) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
-
-  const _handleEditMessage = (messageId: string, newContent: string) => {
-    editMessage(messageId, newContent);
-    setEditingMessageId(null);
   };
 
   const shouldShowAvatar = (message: Message, index: number): boolean => {

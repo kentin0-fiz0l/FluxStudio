@@ -9,17 +9,6 @@ import { useEffect, useRef, useCallback } from 'react';
 
 export type ClickSound = 'classic' | 'wood' | 'digital' | 'soft' | 'cowbell' | 'hi-hat';
 
-interface MetronomeAudioProps {
-  isPlaying: boolean;
-  bpm: number;
-  beatsPerBar: number;
-  currentBeat: number;
-  volume: number;
-  sound: ClickSound;
-  accentFirstBeat: boolean;
-  onBeatTick?: (beat: number) => void;
-}
-
 // Sound configurations
 const SOUND_CONFIGS: Record<ClickSound, { name: string; freq: number; freqAccent: number; type: OscillatorType; decay: number }> = {
   classic: { name: 'Classic', freq: 800, freqAccent: 1200, type: 'sine', decay: 0.05 },
