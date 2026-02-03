@@ -653,12 +653,13 @@ export function SmartComposer({
         />
 
         {/* Visual Feedback Templates Modal */}
-        <VisualFeedbackTemplates
-          isOpen={showFeedbackTemplates}
-          onClose={() => setShowFeedbackTemplates(false)}
-          onSubmitFeedback={(feedback) => {
-            // Convert feedback to a structured message
-            const feedbackMessage = `**${feedback.templateName} Feedback**
+        {currentUser && (
+          <VisualFeedbackTemplates
+            isOpen={showFeedbackTemplates}
+            onClose={() => setShowFeedbackTemplates(false)}
+            onSubmitFeedback={(feedback) => {
+              // Convert feedback to a structured message
+              const feedbackMessage = `**${feedback.templateName} Feedback**
 
 **Overall Rating:** ${feedback.overallRating}/5 stars
 **Weighted Score:** ${feedback.weightedScore.toFixed(1)}/5.0
@@ -674,14 +675,15 @@ ${Object.entries(feedback.customFieldValues).map(([field, value]) => `• ${fiel
 ${feedback.additionalComments ? `**Comments:**
 ${feedback.additionalComments}` : ''}`;
 
-            setContent(feedbackMessage);
-            setPriority(feedback.overallRating >= 4 ? 'medium' : feedback.overallRating >= 2 ? 'high' : 'critical');
-            setShowFeedbackTemplates(false);
-            textareaRef.current?.focus();
-          }}
-          currentUser={currentUser}
-          attachmentUrl={attachments.length > 0 ? URL.createObjectURL(attachments[0]) : undefined}
-        />
+              setContent(feedbackMessage);
+              setPriority(feedback.overallRating >= 4 ? 'medium' : feedback.overallRating >= 2 ? 'high' : 'critical');
+              setShowFeedbackTemplates(false);
+              textareaRef.current?.focus();
+            }}
+            currentUser={currentUser}
+            attachmentUrl={attachments.length > 0 ? URL.createObjectURL(attachments[0]) : undefined}
+          />
+        )}
       </div>
     </TooltipProvider>
   );

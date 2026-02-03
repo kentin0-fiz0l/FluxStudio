@@ -109,7 +109,6 @@ class ContextDetectionService {
 
     // Analyze participant types
     const hasClients = participants.some(p => p.userType === 'client');
-    const _hasDesigners = participants.some(p => p.userType === 'designer');
     const hasMultipleUsers = participants.length > 1;
 
     // Determine conversation type

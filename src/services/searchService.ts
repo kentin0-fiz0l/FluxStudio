@@ -87,13 +87,11 @@ export interface SavedSearch {
 // ============================================================================
 
 class SearchService {
-  private _baseUrl: string;
   private searchHistory: string[] = [];
   private readonly maxHistoryItems = 20;
   private savedSearches: SavedSearch[] = [];
 
   constructor() {
-    this._baseUrl = '';
     this.loadSearchHistory();
     this.loadSavedSearches();
   }

@@ -65,18 +65,15 @@ export interface CollaborationInsight {
 }
 
 class AIDesignAssistant {
-  private _apiKey: string | null = null;
-  private _baseUrl: string;
+  // API configuration (properties reserved for future AI service integration)
 
   constructor() {
-    this._baseUrl = config.API_BASE_URL;
     this.initializeAPI();
   }
 
   private async initializeAPI() {
-    // In a real implementation, you'd get the API key from your backend
+    // Reserved for future AI API key initialization
     // For now, we'll simulate AI responses
-    this._apiKey = 'simulated-ai-key';
   }
 
   /**

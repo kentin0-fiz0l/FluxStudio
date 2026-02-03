@@ -39,14 +39,7 @@ export function DashboardShell({ children: _children }: DashboardShellProps) {
   useNavigate(); // Reserved for navigation
   useLocation(); // Reserved for location-based navigation
   const { user } = useAuth();
-  const {
-    currentOrganization,
-    currentTeam,
-    currentProject,
-    organizations,
-    teams,
-    projects,
-  } = useOrganization();
+  useOrganization(); // Reserved for organization context features
   const { isOpen: isCommandPaletteOpen, open: openCommandPalette, close: closeCommandPalette } = useCommandPalette();
   useBreakpoint(); // Reserved for responsive behavior
   useMessaging(); // Reserved for unread count display

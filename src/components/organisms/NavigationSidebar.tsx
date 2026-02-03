@@ -91,8 +91,7 @@ const createNavigationItems = (unreadCount: number): NavigationItem[] => [
   { label: 'Settings', icon: <Settings className="h-5 w-5" aria-hidden="true" />, path: '/settings' },
 ];
 
-// Default items for when context is not available
-const _defaultNavigationItems: NavigationItem[] = createNavigationItems(0);
+// Navigation items are created dynamically via createNavigationItems()
 
 export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSidebarProps>(
   (

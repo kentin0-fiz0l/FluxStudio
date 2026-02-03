@@ -15,12 +15,10 @@ import {
   Users,
   Zap,
   Target,
-  ArrowRight,
   Clock,
   Plus,
   Activity,
-  Building2,
-  Command
+  Building2
 } from 'lucide-react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -351,18 +349,6 @@ export function EnhancedCommandPalette() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [actions]);
 
-
-  const _getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'navigation': return ArrowRight;
-      case 'actions': return Zap;
-      case 'create': return Plus;
-      case 'search': return Search;
-      case 'workflows': return Target;
-      case 'recent': return Clock;
-      default: return Command;
-    }
-  };
 
   const getCategoryColor = (category: string) => {
     switch (category) {

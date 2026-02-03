@@ -92,7 +92,7 @@ class AIDesignFeedbackService {
   /**
    * Analyze design image using AI-powered analysis
    */
-  async analyzeDesign(imageUrl: string, _context?: any): Promise<DesignAnalysis> {
+  async analyzeDesign(imageUrl: string, context?: any): Promise<DesignAnalysis> {
     // Check cache first
     const cacheKey = this.generateCacheKey(imageUrl, context);
     if (this.analysisCache.has(cacheKey)) {

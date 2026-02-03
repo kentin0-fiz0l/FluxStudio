@@ -40,7 +40,7 @@ export function PluginManager() {
   const [installedPlugins, setInstalledPlugins] = React.useState<PluginInstance[]>([]);
   const [marketplacePlugins, setMarketplacePlugins] = React.useState<MarketplacePlugin[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [_selectedPlugin, _setSelectedPlugin] = React.useState<string | null>(null);
+  const [selectedPlugin, setSelectedPlugin] = React.useState<string | null>(null);
 
   // Load installed plugins
   React.useEffect(() => {

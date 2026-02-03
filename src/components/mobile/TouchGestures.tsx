@@ -49,7 +49,6 @@ export const TouchGestures: React.FC<TouchGesturesProps> = ({
     if (!container) return;
 
     let touches: Touch[] = [];
-    let _isLongPressing = false;
 
     const getTouchDistance = (touch1: Touch, touch2: Touch) => {
       const dx = touch1.clientX - touch2.clientX;
@@ -62,10 +61,8 @@ export const TouchGestures: React.FC<TouchGesturesProps> = ({
 
       // Single touch - check for long press
       if (touches.length === 1) {
-        _isLongPressing = false;
         if (onLongPress) {
           const timer = setTimeout(() => {
-            _isLongPressing = true;
             onLongPress();
             navigator.vibrate?.(50); // Haptic feedback
           }, longPressDelay);

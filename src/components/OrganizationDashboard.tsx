@@ -27,21 +27,16 @@ interface OrganizationDashboardProps {
 }
 
 export function OrganizationDashboard({ organizationId }: OrganizationDashboardProps) {
-  const _navigate = useNavigate();
-  const { user: _user } = useAuth();
+  useNavigate(); // Reserved for navigation features
+  const { } = useAuth();
   const {
     currentOrganization,
     organizations,
     teams,
     projects,
-    isLoading: _isLoading,
     isLoadingTeams,
     isLoadingProjects,
     navigateTo,
-    fetchTeams: _fetchTeams,
-    fetchProjects: _fetchProjects,
-    createTeam,
-    createProject,
     getOrganizationStats
   } = useOrganization();
 
@@ -79,49 +74,8 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
     }
   };
 
-  const _handleCreateTeam = async (name: string, description?: string) => {
-    if (!currentOrganization) return;
-    try {
-      await createTeam(currentOrganization.id, {
-        name,
-        description,
-        settings: {
-          isPrivate: false,
-          allowProjectCreation: true,
-          defaultProjectRole: 'contributor'
-        }
-      });
-      setShowCreateTeam(false);
-    } catch (error) {
-      console.error('Error creating team:', error);
-    }
-  };
-
-  const _handleCreateProject = async (name: string, description?: string, teamId?: string) => {
-    if (!currentOrganization) return;
-    try {
-      await createProject({
-        name,
-        description,
-        organizationId: currentOrganization.id,
-        teamId,
-        status: 'planning',
-        priority: 'medium',
-        settings: {
-          isPrivate: false,
-          allowFileSharing: true,
-          requireApproval: false
-        },
-        metadata: {
-          projectType: 'show-concept',
-          tags: []
-        }
-      });
-      setShowCreateProject(false);
-    } catch (error) {
-      console.error('Error creating project:', error);
-    }
-  };
+  // Note: Team/Project creation handlers removed - using setShowCreateTeam/setShowCreateProject
+  // for dialog state, full implementation planned for future sprint
 
   const filteredTeams = teams.filter(team =>
     (filterType === 'all' || filterType === 'teams') &&

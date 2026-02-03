@@ -64,15 +64,7 @@ class PluginMarketplace {
   // ============================================================================
 
   async search(options: MarketplaceSearchOptions = {}): Promise<MarketplaceSearchResult> {
-    const {
-      query = '',
-      category,
-      sortBy = 'downloads',
-      page = 1,
-      limit = 20,
-      featured,
-      verified,
-    } = options;
+    // Options are used directly via options.property in simulateSearch
 
     const cacheKey = JSON.stringify(options);
     const cached = this.getFromCache<MarketplaceSearchResult>(cacheKey);

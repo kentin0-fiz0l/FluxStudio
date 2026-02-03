@@ -228,7 +228,6 @@ export function SecureVideoPlayer({
       video.addEventListener('webkitneedkey', async (event: any) => {
         console.log('[FairPlay] Need key event triggered');
 
-        const _contentId = fileId;
         const initData = event.initData;
 
         try {

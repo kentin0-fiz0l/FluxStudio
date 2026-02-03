@@ -110,34 +110,6 @@ class AIContentGenerationService {
     }
   };
 
-  private _responsePatterns = {
-    agreement: [
-      "That sounds great!",
-      "Perfect, I'm on board with that.",
-      "Excellent approach.",
-      "Love this direction.",
-      "That's exactly what I was thinking."
-    ],
-    questions: [
-      "Could you elaborate on {topic}?",
-      "What's the timeline for {item}?",
-      "How do you see this fitting with {context}?",
-      "What are your thoughts on {aspect}?"
-    ],
-    concerns: [
-      "I have a few concerns about {item}:",
-      "One thing to consider is {concern}.",
-      "We might want to think about {aspect}.",
-      "Let's make sure we address {issue}."
-    ],
-    next_steps: [
-      "Next steps would be:",
-      "Here's what I propose:",
-      "Moving forward, we should:",
-      "Action items:"
-    ]
-  };
-
   /**
    * Generate contextual message content
    */

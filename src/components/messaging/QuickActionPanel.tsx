@@ -121,7 +121,7 @@ const quickTemplates: QuickTemplate[] = [
 
 export function QuickActionPanel({ isOpen, onClose, currentUser }: QuickActionPanelProps) {
   const { createConversation } = useMessaging();
-  const { projects, teams } = useOrganization();
+  useOrganization(); // Reserved for project/team context features
   const [selectedTemplate, setSelectedTemplate] = useState<QuickTemplate | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedParticipants, setSelectedParticipants] = useState<MessageUser[]>([]);

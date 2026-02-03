@@ -41,7 +41,6 @@ interface ViewportState {
   rotation: number;
 }
 
-const _ZOOM_LEVELS = [25, 50, 75, 100, 125, 150, 200, 300, 400];
 const MIN_ZOOM = 10;
 const MAX_ZOOM = 500;
 const ZOOM_STEP = 25;
@@ -475,15 +474,6 @@ export function EnhancedImageViewer({
 
   const handleZoomIn = () => handleZoom(viewport.zoom + ZOOM_STEP);
   const handleZoomOut = () => handleZoom(viewport.zoom - ZOOM_STEP);
-  const _handleZoomReset = () => {
-    setViewport({
-      zoom: 100,
-      panX: 0,
-      panY: 0,
-      rotation: 0
-    });
-    centerImage();
-  };
 
   const handleZoomFit = () => {
     if (!containerRef.current || !imageRef.current) return;

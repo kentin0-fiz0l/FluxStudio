@@ -74,7 +74,6 @@ export interface PlaybackState {
 
 class FormationService {
   private formations: Map<string, Formation> = new Map();
-  private _currentFormation: Formation | null = null;
   private playbackState: PlaybackState = {
     isPlaying: false,
     currentTime: 0,

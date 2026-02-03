@@ -98,7 +98,6 @@ interface TrendAnalysis {
 
 class ConversationInsightsService {
   private insightsCache = new Map<string, InsightSummary>();
-  private readonly _ANALYSIS_WINDOW_DAYS = 7;
   private readonly MIN_MESSAGES_FOR_ANALYSIS = 5;
 
   /**

@@ -54,7 +54,6 @@ export function WorkflowAutomationPanel({
   const [activeTriggers, setActiveTriggers] = useState<WorkflowTrigger[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('suggestions');
-  const [_expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['suggestions']));
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [analytics, setAnalytics] = useState<any>(null);
 
@@ -324,7 +323,6 @@ export function WorkflowAutomationPanel({
                               <Switch
                                 checked={trigger.enabled}
                                 onCheckedChange={(enabled) => handleToggleTrigger(trigger.id, enabled)}
-                                size="sm"
                               />
                             </div>
                           </div>
