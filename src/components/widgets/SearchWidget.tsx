@@ -141,16 +141,6 @@ export function SearchWidget(props: WidgetProps) {
     }
   };
 
-  const _getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'project': return FolderOpen;
-      case 'activity': return Activity;
-      case 'navigation': return Settings;
-      case 'action': return Zap;
-      default: return FileText;
-    }
-  };
-
   return (
     <BaseWidget
       {...props}

@@ -206,32 +206,7 @@ export const WorkspaceManager: React.FC<WorkspaceManagerProps> = ({
     addToHistory(newElements);
   };
 
-  const _handleElementDelete = () => {
-    if (readOnly || state.selectedElements.length === 0) return;
-
-    const newElements = state.elements.filter(el => !state.selectedElements.includes(el.id));
-    addToHistory(newElements);
-    setState(prev => ({ ...prev, selectedElements: [] }));
-  };
-
-  const _handleElementCopy = () => {
-    const elementsToCopy = state.elements.filter(el => state.selectedElements.includes(el.id));
-    setState(prev => ({ ...prev, clipboard: elementsToCopy }));
-  };
-
-  const _handleElementPaste = () => {
-    if (readOnly || state.clipboard.length === 0) return;
-
-    const newElements = state.clipboard.map(el => ({
-      ...el,
-      id: `${el.id}_copy_${Date.now()}`,
-      x: el.x + 20,
-      y: el.y + 20
-    }));
-
-    addToHistory([...state.elements, ...newElements]);
-    setState(prev => ({ ...prev, selectedElements: newElements.map(el => el.id) }));
-  };
+  // Note: Element delete/copy/paste handlers reserved for future keyboard shortcuts
 
   const handleViewModeChange = (mode: 'desktop' | 'tablet' | 'mobile') => {
     const modeConfig = viewModes.find(m => m.id === mode);

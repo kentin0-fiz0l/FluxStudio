@@ -407,8 +407,6 @@ export function ProjectCommunicationWidget({
     }
   ];
 
-  const _activeTabData = tabs.find(tab => tab.id === activeTab);
-
   const renderTabContent = () => {
     switch (activeTab) {
       case 'activity':

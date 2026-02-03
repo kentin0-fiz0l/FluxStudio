@@ -302,7 +302,6 @@ export function MessagesWidget(_props: WidgetProps) {
     conversationMessages,
     sendMessage,
     setActiveConversation,
-    editMessage,
     deleteMessage,
     setTyping,
     isLoading,
