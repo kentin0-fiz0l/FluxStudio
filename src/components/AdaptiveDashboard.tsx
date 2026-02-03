@@ -70,41 +70,8 @@ export function AdaptiveDashboard() {
   }, [projects, conversations, files, updateData]);
 
   // Adaptive layout based on current context and user role
-   
-  const _getDashboardLayout = () => {
-    const baseWidgets = [
-      'search',
-      'quick-actions',
-      'recent-activity',
-      'notifications'
-    ];
-
-    const roleSpecificWidgets = {
-      client: ['project-overview', 'messages', 'design-review'],
-      designer: ['project-overview', 'messages', 'design-tools', 'activity'],
-      admin: ['stats', 'organization-overview', 'users', 'project-communication']
-    };
-
-    const contextSpecificWidgets = {
-      project: ['project-details', 'project-messages', 'project-files', 'project-timeline'],
-      conversation: ['conversation-details', 'related-projects', 'participants'],
-      organization: ['org-overview', 'teams', 'projects', 'members']
-    };
-
-    const allWidgets = [...baseWidgets];
-
-    // Add role-specific widgets
-    if (user?.userType && roleSpecificWidgets[user.userType as keyof typeof roleSpecificWidgets]) {
-      allWidgets.push(...roleSpecificWidgets[user.userType as keyof typeof roleSpecificWidgets]);
-    }
-
-    // Add context-specific widgets
-    if (contextSpecificWidgets[state.currentContext as keyof typeof contextSpecificWidgets]) {
-      allWidgets.push(...contextSpecificWidgets[state.currentContext as keyof typeof contextSpecificWidgets]);
-    }
-
-    return allWidgets;
-  };
+  // Note: getDashboardLayout is available for future widget customization
+  // const getDashboardLayout = () => { ... };
 
   const getWelcomeMessage = () => {
     const timeOfDay = new Date().getHours() < 12 ? 'morning' :

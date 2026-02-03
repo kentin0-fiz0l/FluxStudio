@@ -101,7 +101,7 @@ export function AnnotationToolbar({
               {annotationTools.map(tool => (
                 <Button
                   key={tool.type}
-                  variant={selectedTool === tool.type ? 'default' : 'outline'}
+                  variant={selectedTool === tool.type ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => onToolChange(tool.type)}
                   className="h-9"

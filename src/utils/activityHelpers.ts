@@ -13,7 +13,6 @@ import {
 } from '../types/activity';
 // Re-export types for convenience
 export type { ActivityDateRange, ActivityStats } from '../types/activity';
-export { filterActivities } from '../types/activity';
 
 // ============================================================================
 // Date Formatting

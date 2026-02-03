@@ -258,7 +258,7 @@ export function Dashboard() {
             <div>
               <p className="text-gray-400 text-sm mb-2">Memory Usage</p>
               <p className="text-2xl font-bold text-white">
-                {(performanceData.system?.currentMemory / 1024 / 1024).toFixed(0) || 0} MB
+                {((performanceData.system?.currentMemory ?? 0) / 1024 / 1024).toFixed(0)} MB
               </p>
               <p className="text-sm text-gray-500 mt-1">
                 CPU: {performanceData.system?.currentCpu?.toFixed(1) || 0}%

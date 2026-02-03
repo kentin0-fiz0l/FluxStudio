@@ -52,7 +52,7 @@ export function IntelligentMessageCard({
   const [showDetails, setShowDetails] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const isOwnMessage = message.authorId === currentUserId;
+  const isOwnMessage = message.author.id === currentUserId;
 
   // Analyze message on mount and when message changes
   useEffect(() => {

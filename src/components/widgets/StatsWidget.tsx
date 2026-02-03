@@ -63,9 +63,13 @@ export function StatsWidget(props: WidgetProps) {
           {/* Connection Status */}
           <div className="flex items-center gap-1">
             {error ? (
-              <WifiOff className="h-3 w-3 text-red-400" title={`Error: ${error}`} />
+              <span title={`Error: ${error}`}>
+                <WifiOff className="h-3 w-3 text-red-400" />
+              </span>
             ) : (
-              <Wifi className="h-3 w-3 text-green-400" title={`Last updated: ${lastUpdated?.toLocaleTimeString()}`} />
+              <span title={`Last updated: ${lastUpdated?.toLocaleTimeString()}`}>
+                <Wifi className="h-3 w-3 text-green-400" />
+              </span>
             )}
           </div>
 

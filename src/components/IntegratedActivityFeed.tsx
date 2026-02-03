@@ -156,7 +156,7 @@ export function IntegratedActivityFeed() {
         },
         context: {
           organizationId: project.organizationId,
-          teamId: project.teamId,
+          teamId: project.primaryTeamId || project.teamIds[0],
           projectId: project.id
         },
         metadata: {

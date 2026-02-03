@@ -143,7 +143,6 @@ export function ChatInterface({
 
   const handleReaction = (messageId: string, emoji: string) => {
     onAddReaction?.(messageId, emoji);
-    setShowEmojiPicker(null);
   };
 
   const quickEmojis = ['👍', '❤️', '😂', '🎉', '🤔', '👀'];
@@ -214,12 +213,12 @@ export function ChatInterface({
                             src={`${process.env.NODE_ENV === 'production' ? 'https://fluxstudio.art:3003' : 'http://localhost:3003'}${msg.file.url}`}
                             alt={msg.file.originalName}
                             className="max-w-xs rounded-lg cursor-pointer hover:opacity-80"
-                            onClick={() => window.open(`${process.env.NODE_ENV === 'production' ? 'https://fluxstudio.art:3003' : 'http://localhost:3003'}${msg.file.url}`, '_blank')}
+                            onClick={() => msg.file && window.open(`${process.env.NODE_ENV === 'production' ? 'https://fluxstudio.art:3003' : 'http://localhost:3003'}${msg.file.url}`, '_blank')}
                           />
                         ) : (
                           <div
                             className="flex items-center space-x-2 p-2 bg-white/10 rounded-lg cursor-pointer hover:bg-white/20 transition-colors"
-                            onClick={() => window.open(`${process.env.NODE_ENV === 'production' ? 'https://fluxstudio.art:3003' : 'http://localhost:3003'}${msg.file.url}`, '_blank')}
+                            onClick={() => msg.file && window.open(`${process.env.NODE_ENV === 'production' ? 'https://fluxstudio.art:3003' : 'http://localhost:3003'}${msg.file.url}`, '_blank')}
                           >
                             <Paperclip className="w-4 h-4" />
                             <div className="flex-1 min-w-0">

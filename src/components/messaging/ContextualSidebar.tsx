@@ -80,7 +80,7 @@ export function ContextualSidebar({
           )),
           isActive: project?.status === 'active',
           priority: conv.metadata.priority === 'high' ? 'high' : 'medium',
-          status: project?.status || 'active'
+          status: project?.status === 'completed' ? 'completed' : project?.status === 'active' ? 'active' : 'pending'
         });
       }
 
