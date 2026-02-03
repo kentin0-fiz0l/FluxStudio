@@ -42,11 +42,10 @@ export function ProjectsNew() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { projects, loading, error, createProject, deleteProject, updateProject, fetchProjects: _fetchProjects } = useProjects();
+  const { projects, loading, error, createProject, deleteProject, updateProject } = useProjects();
   const { teams } = useTeams();
   const { currentOrganization } = useOrganizations();
   const activeProjectContext = useActiveProjectOptional();
-  const _activeProject = activeProjectContext?.activeProject ?? null;
   const setActiveProject = activeProjectContext?.setActiveProject ?? (() => {});
   const isProjectFocused = activeProjectContext?.isProjectFocused ?? (() => false);
 

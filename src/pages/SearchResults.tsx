@@ -38,8 +38,8 @@ import {
 
 export function SearchResults() {
   const { t } = useTranslation('common');
-  const _navigate = useNavigate();
-  const [_searchParams] = useSearchParams();
+  useNavigate(); // Reserved for navigation features
+  useSearchParams(); // Reserved for URL search params
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [showFilters, setShowFilters] = useState(true);
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
