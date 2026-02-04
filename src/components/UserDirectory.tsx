@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
@@ -133,7 +133,6 @@ export const UserDirectory: React.FC<UserDirectoryProps> = ({
   onViewProfile: _onViewProfile
 }) => {
   const [users, _setUsers] = useState<UserSearchResult[]>(mockUsers);
-  const [filteredUsers, setFilteredUsers] = useState<UserSearchResult[]>(mockUsers);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortBy, setSortBy] = useState<SortOption>('name');
@@ -158,8 +157,8 @@ export const UserDirectory: React.FC<UserDirectoryProps> = ({
     skills: [...new Set(users.flatMap(u => u.skills || []))] as string[]
   };
 
-  // Apply filters and search
-  useEffect(() => {
+  // Apply filters and search using useMemo to avoid cascading renders
+  const filteredUsers = useMemo(() => {
     const filtered = users.filter(user => {
       // Exclude current user
       if (user.id === currentUserId) return false;
@@ -230,7 +229,7 @@ export const UserDirectory: React.FC<UserDirectoryProps> = ({
       return sortDirection === 'desc' ? -comparison : comparison;
     });
 
-    setFilteredUsers(filtered);
+    return filtered;
   }, [users, searchQuery, filters, sortBy, sortDirection, currentUserId]);
 
   const toggleFilter = (filterType: keyof FilterOptions, value: string | boolean) => {

@@ -14,25 +14,28 @@ interface Notification {
 }
 
 export const SmartNotifications: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'ai',
-      title: 'AI Analysis Complete',
-      message: '15 files have been analyzed and tagged',
-      timestamp: new Date(),
-      read: false,
-      actionable: true,
-    },
-    {
-      id: '2',
-      type: 'success',
-      title: 'Upload Successful',
-      message: 'Your files have been uploaded successfully',
-      timestamp: new Date(Date.now() - 300000),
-      read: false,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    const now = Date.now();
+    return [
+      {
+        id: '1',
+        type: 'ai',
+        title: 'AI Analysis Complete',
+        message: '15 files have been analyzed and tagged',
+        timestamp: new Date(now),
+        read: false,
+        actionable: true,
+      },
+      {
+        id: '2',
+        type: 'success',
+        title: 'Upload Successful',
+        message: 'Your files have been uploaded successfully',
+        timestamp: new Date(now - 300000),
+        read: false,
+      },
+    ];
+  });
 
   const [isOpen, setIsOpen] = useState(false);
 

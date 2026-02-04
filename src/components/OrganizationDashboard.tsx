@@ -28,7 +28,7 @@ interface OrganizationDashboardProps {
 
 export function OrganizationDashboard({ organizationId }: OrganizationDashboardProps) {
   useNavigate(); // Reserved for navigation features
-  const { } = useAuth();
+  useAuth(); // Reserved for auth context features
   const {
     currentOrganization,
     organizations,
@@ -57,13 +57,6 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
     }
   }, [organizationId, organizations, navigateTo]);
 
-  // Load stats when organization changes
-  useEffect(() => {
-    if (currentOrganization) {
-      loadStats();
-    }
-  }, [currentOrganization]);
-
   const loadStats = async () => {
     if (!currentOrganization) return;
     try {
@@ -73,6 +66,14 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
       console.error('Error loading organization stats:', error);
     }
   };
+
+  // Load stats when organization changes
+  useEffect(() => {
+    if (currentOrganization) {
+      loadStats();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentOrganization]);
 
   // Note: Team/Project creation handlers removed - using setShowCreateTeam/setShowCreateProject
   // for dialog state, full implementation planned for future sprint

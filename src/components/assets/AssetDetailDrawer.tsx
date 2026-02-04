@@ -143,7 +143,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
             setCommentsState(c);
             break;
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('Error loading data:', error);
       } finally {
         setLoading(false);
@@ -163,7 +163,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
         title: 'Asset Updated',
         message: 'Asset details have been updated'
       });
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: 'error',
         title: 'Error',
@@ -198,7 +198,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
           message: `Version ${version.versionNumber} has been created`
         });
       }
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: 'error',
         title: 'Error',
@@ -222,7 +222,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
         title: 'Asset Reverted',
         message: `Reverted to version ${versionNumber}`
       });
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: 'error',
         title: 'Error',
@@ -241,7 +241,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
         setTagsState(prev => [...prev, tag]);
         setNewTag('');
       }
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: 'error',
         title: 'Error',
@@ -255,7 +255,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
     try {
       await removeTag(asset.id, tag);
       setTagsState(prev => prev.filter(t => t.tag !== tag));
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: 'error',
         title: 'Error',
@@ -275,7 +275,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
         setNewMetaKey('');
         setNewMetaValue('');
       }
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: 'error',
         title: 'Error',
@@ -289,7 +289,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
     try {
       await deleteMetadata(asset.id, key);
       setMetadataState(prev => prev.filter(m => m.key !== key));
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: 'error',
         title: 'Error',
@@ -308,7 +308,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
         setCommentsState(prev => [...prev, comment]);
         setNewComment('');
       }
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: 'error',
         title: 'Error',
@@ -324,7 +324,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
       if (comment) {
         setCommentsState(prev => prev.map(c => c.id === commentId ? comment : c));
       }
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: 'error',
         title: 'Error',
@@ -347,7 +347,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
         setShowAddRelation(false);
         setNewRelationTarget('');
       }
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: 'error',
         title: 'Error',
@@ -361,7 +361,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
     try {
       await deleteRelation(relationId);
       setRelations(prev => prev.filter(r => r.id !== relationId));
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: 'error',
         title: 'Error',

@@ -12,25 +12,37 @@ import {
   Environment,
   PerspectiveCamera
 } from '@react-three/drei';
-import { useRef, useState, useEffect, Suspense } from 'react';
+import { useRef, useState, useEffect, Suspense, useMemo } from 'react';
 import * as THREE from 'three';
 
+// Seeded random for deterministic results
+const seededRandom = (seed: number) => {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+};
+
 // Individual 3D object components
-function FloatingGeometry({ 
-  position, 
-  geometry, 
-  color, 
-  speed = 1, 
-  intensity = 1 
+function FloatingGeometry({
+  position,
+  geometry,
+  color,
+  speed = 1,
+  intensity = 1,
+  seed = 0
 }: {
   position: [number, number, number];
   geometry: string;
   color: string;
   speed?: number;
   intensity?: number;
+  seed?: number;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  
+
+  // Use seeded random for stable scale
+  const scale = useMemo(() => 0.5 + seededRandom(seed) * 0.5, [seed]);
+  const showWireframe = useMemo(() => seededRandom(seed + 100) > 0.7, [seed]);
+
   useFrame((state) => {
     if (meshRef.current) {
       meshRef.current.rotation.x += 0.01 * speed;
@@ -43,7 +55,7 @@ function FloatingGeometry({
     const props = {
       ref: meshRef,
       position,
-      scale: 0.5 + Math.random() * 0.5,
+      scale,
     };
 
     switch (geometry) {
@@ -108,7 +120,7 @@ function FloatingGeometry({
               color={color}
               roughness={0.4}
               metalness={0.6}
-              wireframe={Math.random() > 0.7}
+              wireframe={showWireframe}
             />
           </Icosahedron>
         );
@@ -194,45 +206,63 @@ function DynamicLighting({ scrollProgress }: { scrollProgress: number }) {
 function ParticleField({ count = 50, scrollProgress }: { count?: number; scrollProgress: number }) {
   const { viewport } = useThree();
   const particlesRef = useRef<THREE.Points>(null);
-  
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  
-  for (let i = 0; i < count; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * viewport.width * 2;
-    positions[i * 3 + 1] = (Math.random() - 0.5) * viewport.height * 2;
-    positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
-    
-    // Dynamic colors based on scroll
+
+  // Generate stable particle positions using useMemo with seeded random
+  const particleData = useMemo(() => {
+    const positions = new Float32Array(count * 3);
+    const baseColors = new Float32Array(count * 3);
+
+    for (let i = 0; i < count; i++) {
+      // Use seeded random for stable positions
+      positions[i * 3] = (seededRandom(i * 3) - 0.5) * viewport.width * 2;
+      positions[i * 3 + 1] = (seededRandom(i * 3 + 1) - 0.5) * viewport.height * 2;
+      positions[i * 3 + 2] = (seededRandom(i * 3 + 2) - 0.5) * 20;
+
+      // Initialize base colors
+      baseColors[i * 3] = 1;
+      baseColors[i * 3 + 1] = 0.8;
+      baseColors[i * 3 + 2] = 0.3;
+    }
+
+    return { positions, baseColors };
+  }, [count, viewport.width, viewport.height]);
+
+  // Update colors based on scroll progress
+  const colors = useMemo(() => {
+    const updatedColors = new Float32Array(count * 3);
     const colorIndex = Math.floor(scrollProgress * 4);
     const gradientColors = [
       [1, 0.8, 0.3], // Yellow
-      [0.9, 0.3, 0.6], // Pink  
+      [0.9, 0.3, 0.6], // Pink
       [0.5, 0.4, 1], // Purple
       [0.1, 0.7, 0.8], // Cyan
       [0.1, 0.7, 0.5], // Green
     ];
-    
+
     const currentColor = gradientColors[colorIndex] || gradientColors[0];
-    colors[i * 3] = currentColor[0];
-    colors[i * 3 + 1] = currentColor[1];
-    colors[i * 3 + 2] = currentColor[2];
-  }
-  
+    for (let i = 0; i < count; i++) {
+      updatedColors[i * 3] = currentColor[0];
+      updatedColors[i * 3 + 1] = currentColor[1];
+      updatedColors[i * 3 + 2] = currentColor[2];
+    }
+
+    return updatedColors;
+  }, [count, scrollProgress]);
+
   useFrame(() => {
     if (particlesRef.current) {
       particlesRef.current.rotation.y += 0.001;
       particlesRef.current.rotation.x += 0.0005;
     }
   });
-  
+
   return (
     <points ref={particlesRef}>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={positions.length / 3}
-          array={positions}
+          count={particleData.positions.length / 3}
+          array={particleData.positions}
           itemSize={3}
         />
         <bufferAttribute
@@ -302,6 +332,7 @@ function Scene({ scrollProgress }: { scrollProgress: number }) {
           color={obj.color}
           speed={obj.speed}
           intensity={obj.intensity}
+          seed={index}
         />
       ))}
       

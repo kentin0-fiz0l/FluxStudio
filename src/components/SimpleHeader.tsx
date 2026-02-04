@@ -13,7 +13,7 @@ export function SimpleHeader() {
     user = auth.user;
     isAuthenticated = auth.isAuthenticated;
     logout = auth.logout;
-  } catch (error) {
+  } catch (_error) {
     console.warn('Auth context not available, using fallback values');
   }
 
@@ -21,8 +21,8 @@ export function SimpleHeader() {
     if (logout) {
       try {
         await logout();
-      } catch (error) {
-        console.error('Logout failed:', error);
+      } catch (_error) {
+        console.error('Logout failed:', _error);
       }
     }
   };

@@ -184,6 +184,9 @@ export const SmartTagging: React.FC<SmartTaggingProps> = ({
     return Array.from(cats);
   }, [allTags]);
 
+  // Store mount time for stable trending calculation
+  const [mountTime] = useState(() => Date.now());
+
   // Analytics data
   const analytics = useMemo(() => {
     const totalTags = allTags.length;
@@ -193,7 +196,7 @@ export const SmartTagging: React.FC<SmartTaggingProps> = ({
     const trending = [...allTags]
       .filter((t) => {
         const daysSinceUsed =
-          (Date.now() - t.lastUsed.getTime()) / (1000 * 60 * 60 * 24);
+          (mountTime - t.lastUsed.getTime()) / (1000 * 60 * 60 * 24);
         return daysSinceUsed <= 7;
       })
       .sort((a, b) => b.count - a.count)
@@ -206,7 +209,7 @@ export const SmartTagging: React.FC<SmartTaggingProps> = ({
       mostUsed,
       trending,
     };
-  }, [allTags]);
+  }, [allTags, mountTime]);
 
   // Handle tag selection
   const handleToggleTag = (tagName: string) => {
@@ -218,12 +221,15 @@ export const SmartTagging: React.FC<SmartTaggingProps> = ({
     onTagsChange?.(newTags);
   };
 
+  // Counter for unique IDs
+  const [tagIdCounter, setTagIdCounter] = useState(() => Date.now());
+
   // Handle add custom tag
   const handleAddTag = () => {
     if (!newTagName.trim()) return;
 
     const newTag: TagData = {
-      id: Date.now().toString(),
+      id: (tagIdCounter + 1).toString(),
       name: newTagName.trim().toLowerCase().replace(/\s+/g, '-'),
       category: selectedCategory !== 'all' ? selectedCategory : undefined,
       count: 1,
@@ -231,6 +237,7 @@ export const SmartTagging: React.FC<SmartTaggingProps> = ({
       createdAt: new Date(),
       lastUsed: new Date(),
     };
+    setTagIdCounter(prev => prev + 1);
 
     setAllTags([...allTags, newTag]);
     setSelectedTags([...selectedTags, newTag.name]);
@@ -245,7 +252,7 @@ export const SmartTagging: React.FC<SmartTaggingProps> = ({
 
     if (!existingTag) {
       const newTag: TagData = {
-        id: Date.now().toString(),
+        id: (tagIdCounter + 1).toString(),
         name: suggestion.name,
         confidence: suggestion.confidence,
         count: 1,
@@ -253,6 +260,7 @@ export const SmartTagging: React.FC<SmartTaggingProps> = ({
         createdAt: new Date(),
         lastUsed: new Date(),
       };
+      setTagIdCounter(prev => prev + 1);
       setAllTags([...allTags, newTag]);
     }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 
 // 3D Asset Library - CSS-based procedural 3D shapes
 const create3DShapes = () => {
@@ -409,29 +409,40 @@ export function Modern3DBackground() {
 
   const config = getSceneConfig(scrollProgress);
 
-  // Generate positions for objects
-  const generateObjects = () => {
-    const objects = [];
-    for (let i = 0; i < config.density; i++) {
-      const shapeType = config.shapes[i % config.shapes.length];
-      const color = config.colors[i % config.colors.length];
-      const size = 24 + Math.random() * 32;
-      
-      objects.push({
+  // Memoize object positions to avoid random calls during render
+  const objects = useMemo(() => {
+    const result = [];
+    const maxDensity = 14; // Maximum density from config
+    for (let i = 0; i < maxDensity; i++) {
+      // Use deterministic pseudo-random values based on index
+      const seedX = ((i * 17 + 31) % 100);
+      const seedY = ((i * 23 + 47) % 100);
+      const seedZ = ((i * 13 + 59) % 100);
+      const seedSize = 24 + ((i * 19 + 37) % 32);
+      const seedOpacity = 0.4 + ((i * 11 + 29) % 40) / 100;
+
+      result.push({
         id: i,
-        shape: shapeType,
-        color,
-        size,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        z: Math.random() * 100,
-        opacity: 0.4 + Math.random() * 0.4
+        shape: '', // Will be set based on config during render
+        color: '', // Will be set based on config during render
+        size: seedSize,
+        x: seedX,
+        y: seedY,
+        z: seedZ,
+        opacity: seedOpacity
       });
     }
-    return objects;
-  };
+    return result;
+  }, []);
 
-  const [objects] = useState(generateObjects);
+  // Memoize particle positions
+  const particlePositions = useMemo(() => {
+    return [...Array(50)].map((_, i) => ({
+      cx: ((i * 7 + 13) % 100),
+      cy: ((i * 11 + 17) % 100),
+      dur: 3 + ((i * 3 + 5) % 4)
+    }));
+  }, []);
 
   return (
     <div 
@@ -441,9 +452,11 @@ export function Modern3DBackground() {
     >
       {/* Main 3D objects */}
       <div className="absolute inset-0">
-        {objects.map((obj) => {
-          const ShapeComponent = shapes[obj.shape as keyof typeof shapes];
-          
+        {objects.slice(0, config.density).map((obj, idx) => {
+          const shapeType = config.shapes[idx % config.shapes.length];
+          const color = config.colors[idx % config.colors.length];
+          const ShapeComponent = shapes[shapeType as keyof typeof shapes];
+
           return (
             <div
               key={obj.id}
@@ -457,7 +470,7 @@ export function Modern3DBackground() {
                 zIndex: Math.floor(obj.z / 10)
               }}
             >
-              {ShapeComponent(obj.size, obj.color, obj.id)}
+              {ShapeComponent(obj.size, color, obj.id)}
             </div>
           );
         })}
@@ -466,11 +479,11 @@ export function Modern3DBackground() {
       {/* Ambient particle field */}
       <div className="absolute inset-0">
         <svg className="w-full h-full opacity-30">
-          {Array.from({ length: 50 }, (_, i) => (
+          {particlePositions.map((pos, i) => (
             <circle
               key={i}
-              cx={`${Math.random() * 100}%`}
-              cy={`${Math.random() * 100}%`}
+              cx={`${pos.cx}%`}
+              cy={`${pos.cy}%`}
               r="1"
               fill={config.colors[i % config.colors.length]}
               opacity="0.6"
@@ -478,7 +491,7 @@ export function Modern3DBackground() {
               <animate
                 attributeName="opacity"
                 values="0.2;0.8;0.2"
-                dur={`${3 + Math.random() * 4}s`}
+                dur={`${pos.dur}s`}
                 repeatCount="indefinite"
               />
             </circle>

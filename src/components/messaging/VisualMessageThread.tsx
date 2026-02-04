@@ -124,7 +124,8 @@ export function VisualMessageThread({
         return <CheckCheck size={14} className="text-blue-500" />;
       case 'failed':
         return <AlertCircle size={14} className="text-red-500" />;
-      return null;
+      default:
+        return null;
     }
   };
 

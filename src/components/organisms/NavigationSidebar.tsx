@@ -113,7 +113,7 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
     try {
       const { unreadCount } = useMessaging();
       unreadCountValue = unreadCount || 0;
-    } catch {
+    } catch (_error) {
       // Context not available, use default count
     }
 

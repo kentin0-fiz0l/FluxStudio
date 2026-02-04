@@ -35,7 +35,7 @@ export interface ChatMessageAttachment {
   url: string;
 }
 
-export interface ChatMessage {
+export interface ChatMessageData {
   id: string;
   text: string;
   sender: ChatMessageSender;
@@ -49,7 +49,7 @@ export interface ChatMessageProps {
   /**
    * Message data
    */
-  message: ChatMessage;
+  message: ChatMessageData;
 
   /**
    * Show avatar
@@ -74,7 +74,7 @@ export interface ChatMessageProps {
   /**
    * Message click handler
    */
-  onClick?: (message: ChatMessage) => void;
+  onClick?: (message: ChatMessageData) => void;
 
   /**
    * Attachment click handler
@@ -84,7 +84,7 @@ export interface ChatMessageProps {
   /**
    * More options handler
    */
-  onMoreOptions?: (message: ChatMessage) => void;
+  onMoreOptions?: (message: ChatMessageData) => void;
 
   /**
    * Custom className

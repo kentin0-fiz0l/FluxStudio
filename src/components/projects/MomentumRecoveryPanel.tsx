@@ -75,14 +75,15 @@ export function MomentumRecoveryPanel({
   const navigate = useNavigate();
 
   // Get step status helper
-  const getStepStatus = (stepId: string): NextStepStatus => {
+  const getStepStatus = React.useCallback((stepId: string): NextStepStatus => {
     return nextStepStates[stepId] || 'suggested';
-  };
+  }, [nextStepStates]);
 
   // Get actionable steps (accepted first, then suggested, max 3)
   const actionableSteps = React.useMemo(() => {
-    const accepted = nextSteps.filter(s => getStepStatus(s.id) === 'accepted');
-    const suggested = nextSteps.filter(s => getStepStatus(s.id) === 'suggested');
+    const getStatus = (stepId: string): NextStepStatus => nextStepStates[stepId] || 'suggested';
+    const accepted = nextSteps.filter(s => getStatus(s.id) === 'accepted');
+    const suggested = nextSteps.filter(s => getStatus(s.id) === 'suggested');
 
     // Prioritize by priority within each group
     const sortByPriority = (a: NextStep, b: NextStep) => {

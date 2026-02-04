@@ -23,7 +23,7 @@ interface AudioPlayerProps {
   onLoadedMetadata?: (duration: number) => void;
 }
 
-interface Bookmark {
+interface AudioBookmark {
   time: number;
   label: string;
 }
@@ -47,7 +47,7 @@ export function AudioPlayer({
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [bookmarks, setBookmarks] = useState<AudioBookmark[]>([]);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const [_audioContext, setAudioContext] = useState<AudioContext | null>(null);
 

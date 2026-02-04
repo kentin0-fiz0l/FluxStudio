@@ -68,13 +68,6 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
     }
   }, [projectId, navigateTo]);
 
-  // Load stats and members when project changes
-  useEffect(() => {
-    if (currentProject) {
-      loadProjectData();
-    }
-  }, [currentProject]);
-
   const loadProjectData = async () => {
     if (!currentProject) return;
     try {
@@ -88,6 +81,14 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
       console.error('Error loading project data:', error);
     }
   };
+
+  // Load stats and members when project changes
+  useEffect(() => {
+    if (currentProject) {
+      loadProjectData();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProject]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

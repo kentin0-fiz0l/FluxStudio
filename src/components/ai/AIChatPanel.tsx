@@ -63,7 +63,7 @@ export function AIChatPanel({
       page: aiContext.page,
       recentActions: aiContext.recentActions.slice(0, 5),
     };
-  }, [projectContext?.currentProject, aiContext.page, aiContext.recentActions]);
+  }, [projectContext, aiContext]);
 
   // Scroll to bottom on new messages
   React.useEffect(() => {

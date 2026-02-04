@@ -201,9 +201,12 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
     return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
   };
 
+  // Store current time on mount for stable time ago calculations
+  const [mountTime] = useState(() => Date.now());
+
   // Format time ago
   const formatTimeAgo = (date: Date): string => {
-    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    const seconds = Math.floor((mountTime - date.getTime()) / 1000);
     if (seconds < 60) return 'just now';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;

@@ -23,12 +23,17 @@ export const RealTimeAnalytics: React.FC = () => {
     { id: '4', label: 'AI Operations', value: 89, unit: '/min', trend: 15, icon: Zap, color: 'orange' },
   ]);
 
-  const [activityData, setActivityData] = useState(
-    Array.from({ length: 20 }, (_, i) => ({
+  const [activityData, setActivityData] = useState(() => {
+    // Use seeded random for initial data
+    const seededRandom = (seed: number) => {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    };
+    return Array.from({ length: 20 }, (_, i) => ({
       time: i,
-      value: Math.floor(Math.random() * 100) + 50,
-    }))
-  );
+      value: Math.floor(seededRandom(i) * 100) + 50,
+    }));
+  });
 
   // Simulate real-time updates
   useEffect(() => {

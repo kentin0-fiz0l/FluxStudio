@@ -52,13 +52,6 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
     }
   }, [teamId, currentOrganization, navigateTo]);
 
-  // Load stats and members when team changes
-  useEffect(() => {
-    if (currentTeam) {
-      loadTeamData();
-    }
-  }, [currentTeam]);
-
   const loadTeamData = async () => {
     if (!currentTeam) return;
     try {
@@ -72,6 +65,14 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
       console.error('Error loading team data:', error);
     }
   };
+
+  // Load stats and members when team changes
+  useEffect(() => {
+    if (currentTeam) {
+      loadTeamData();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTeam]);
 
   // Note: Project creation handler removed - using setShowCreateProject for dialog state
 

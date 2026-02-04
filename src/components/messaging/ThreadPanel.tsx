@@ -209,6 +209,12 @@ function ThreadComposer({
 // localStorage key for thread hint dismissal
 const THREAD_HINT_DISMISSED_KEY = 'fx_thread_hint_dismissed_v1';
 
+// Helper to check if hint was dismissed (runs only on client)
+function getInitialHintState(): boolean {
+  if (typeof window === 'undefined') return false;
+  return !localStorage.getItem(THREAD_HINT_DISMISSED_KEY);
+}
+
 // Main ThreadPanel
 export function ThreadPanel({
   rootMessage,
@@ -220,15 +226,7 @@ export function ThreadPanel({
   className,
 }: ThreadPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [showFirstTimeHint, setShowFirstTimeHint] = useState(false);
-
-  // Check if this is the first time opening a thread
-  useEffect(() => {
-    const dismissed = localStorage.getItem(THREAD_HINT_DISMISSED_KEY);
-    if (!dismissed) {
-      setShowFirstTimeHint(true);
-    }
-  }, []);
+  const [showFirstTimeHint, setShowFirstTimeHint] = useState(getInitialHintState);
 
   // Dismiss the hint
   const dismissHint = () => {

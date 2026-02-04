@@ -81,7 +81,17 @@ export function HLSVideoPlayer({
   const [currentQuality, setCurrentQuality] = useState(-1); // -1 = auto
   const [showQualityMenu, setShowQualityMenu] = useState(false);
 
+  // Helper function to get quality label - must be defined before useEffect that uses it
+  const getLevelLabel = (height: number): string => {
+    if (height >= 1080) return '1080p';
+    if (height >= 720) return '720p';
+    if (height >= 480) return '480p';
+    if (height >= 360) return '360p';
+    return `${height}p`;
+  };
+
   // Initialize HLS.js or native HLS support
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: syncing with external HLS library
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !hlsUrl) return;
@@ -166,16 +176,7 @@ export function HLSVideoPlayer({
         hlsRef.current = null;
       }
     };
-  }, [hlsUrl, fallbackUrl, onError]);
-
-  // Helper function to get quality label
-  const getLevelLabel = (height: number): string => {
-    if (height >= 1080) return '1080p';
-    if (height >= 720) return '720p';
-    if (height >= 480) return '480p';
-    if (height >= 360) return '360p';
-    return `${height}p`;
-  };
+  }, [hlsUrl, fallbackUrl, onError, getLevelLabel]);
 
   // Change quality level
   const changeQuality = (levelIndex: number) => {

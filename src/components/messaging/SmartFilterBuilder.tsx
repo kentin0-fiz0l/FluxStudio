@@ -3,7 +3,7 @@
  * Visual query builder for complex message filtering
  */
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -98,14 +98,23 @@ const OPERATOR_OPTIONS: Record<FilterField, { value: FilterOperator; label: stri
   ],
 };
 
+// Utility to generate unique IDs
+const generateId = () => Math.random().toString(36).substr(2, 9);
+
 export function SmartFilterBuilder({
   onApplyFilter,
   presetFilters = [],
   className
 }: SmartFilterBuilderProps) {
-  const [filterGroups, setFilterGroups] = useState<FilterGroup[]>([
+  const idCounterRef = useRef(0);
+  const getUniqueId = useCallback(() => {
+    idCounterRef.current += 1;
+    return `filter-${idCounterRef.current}-${generateId()}`;
+  }, []);
+
+  const [filterGroups, setFilterGroups] = useState<FilterGroup[]>(() => [
     {
-      id: Math.random().toString(36).substr(2, 9),
+      id: generateId(),
       operator: 'AND',
       conditions: []
     }
@@ -118,7 +127,7 @@ export function SmartFilterBuilder({
   // Add new group
   const addGroup = () => {
     const newGroup: FilterGroup = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: getUniqueId(),
       operator: 'AND',
       conditions: []
     };
@@ -133,7 +142,7 @@ export function SmartFilterBuilder({
   // Add condition to group
   const addCondition = (groupId: string) => {
     const newCondition: FilterCondition = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: getUniqueId(),
       field: 'content',
       operator: 'contains',
       value: ''
@@ -223,7 +232,7 @@ export function SmartFilterBuilder({
   // Clear all
   const clearAll = () => {
     setFilterGroups([{
-      id: Math.random().toString(36).substr(2, 9),
+      id: getUniqueId(),
       operator: 'AND',
       conditions: []
     }]);

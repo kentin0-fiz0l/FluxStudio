@@ -5,6 +5,7 @@
  */
 
 import * as React from 'react';
+import { useMemo } from 'react';
 import { Clip, Track } from '@/store';
 import { Film, Type, Sparkles, ImageIcon, FileText } from 'lucide-react';
 
@@ -35,6 +36,37 @@ const CLIP_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   transition: Sparkles,
   effect: Sparkles,
 };
+
+// Separate component to avoid calling Math.random during parent render
+function AudioWaveform({ track, width, clipId }: { track: Track; width: number; clipId: string }) {
+  // Generate stable waveform heights based on clip ID (seeded random)
+  const waveformHeights = useMemo(() => {
+    const count = Math.min(Math.floor(width / 4), 50);
+    const seededRandom = (seed: number) => {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    };
+    // Use clip ID hash as seed base
+    const seedBase = clipId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return Array.from({ length: count }, (_, i) => 20 + seededRandom(seedBase + i) * 80);
+  }, [width, clipId]);
+
+  if (track.type !== 'audio' || width <= 50) {
+    return null;
+  }
+
+  return (
+    <div className="absolute bottom-1 left-2 right-2 h-4 flex items-end gap-px opacity-30">
+      {waveformHeights.map((height, i) => (
+        <div
+          key={i}
+          className="flex-1 bg-white rounded-t"
+          style={{ height: `${height}%` }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function ClipComponent({
   clip,
@@ -107,17 +139,7 @@ export function ClipComponent({
       </div>
 
       {/* Waveform preview for audio (simplified) */}
-      {track.type === 'audio' && width > 50 && (
-        <div className="absolute bottom-1 left-2 right-2 h-4 flex items-end gap-px opacity-30">
-          {Array.from({ length: Math.min(Math.floor(width / 4), 50) }).map((_, i) => (
-            <div
-              key={i}
-              className="flex-1 bg-white rounded-t"
-              style={{ height: `${20 + Math.random() * 80}%` }}
-            />
-          ))}
-        </div>
-      )}
+      <AudioWaveform track={track} width={width} clipId={clip.id} />
 
       {/* Trim handles */}
       {!isLocked && (

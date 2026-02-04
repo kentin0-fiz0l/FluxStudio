@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 export function FloatingMotionGraphics() {
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   useEffect(() => {
     const handleScroll = () => {
@@ -13,6 +14,17 @@ export function FloatingMotionGraphics() {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Update time for animations at 60fps
+  useEffect(() => {
+    let animationId: number;
+    const updateTime = () => {
+      setCurrentTime(Date.now());
+      animationId = requestAnimationFrame(updateTime);
+    };
+    animationId = requestAnimationFrame(updateTime);
+    return () => cancelAnimationFrame(animationId);
   }, []);
 
   // Define motion characteristics based on scroll sections with 3D star objects and geometric shapes
@@ -79,7 +91,7 @@ export function FloatingMotionGraphics() {
 
   const getInteractionStyle = (interaction: string, index: number) => {
     // Enhanced 3D movement patterns
-    const time = Date.now() * 0.001;
+    const time = currentTime * 0.001;
     switch (interaction) {
       case 'gentle':
         return {
@@ -593,6 +605,14 @@ export function FloatingMotionGraphics() {
 
   const elementCount = getElementCount(characteristics.density);
 
+  // Memoize random positions for small particles to avoid recalculating during render
+  const smallParticlePositions = useMemo(() => {
+    return [...Array(16)].map((_, i) => ({
+      left: (i * 6.25 + (i % 3) * 15) % 100,
+      top: (i * 7.14 + (i % 4) * 10) % 100
+    }));
+  }, []);
+
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
       {/* Main floating elements */}
@@ -619,17 +639,17 @@ export function FloatingMotionGraphics() {
         })}
 
         {/* Small ambient 3D elements */}
-        {[...Array(elementCount.small)].map((_, i) => {
+        {smallParticlePositions.map((pos, i) => {
           const element = characteristics.elements[(i + 2) % characteristics.elements.length];
           const color = characteristics.colors[(i + 1) % characteristics.colors.length];
-          
+
           return (
             <div
               key={`particle-${i}`}
               className="absolute"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                left: `${pos.left}%`,
+                top: `${pos.top}%`,
                 zIndex: 1,
                 perspective: '800px'
               }}

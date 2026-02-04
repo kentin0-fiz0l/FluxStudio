@@ -587,7 +587,7 @@ const MessageScheduler: React.FC<{
   onSchedule: (date: Date | null) => void;
   onClose: () => void;
 }> = ({ scheduledFor, onSchedule, onClose }) => {
-  const [selectedDate, setSelectedDate] = useState(
+  const [selectedDate, setSelectedDate] = useState(() =>
     scheduledFor || new Date(Date.now() + 60 * 60 * 1000) // Default to 1 hour from now
   );
 

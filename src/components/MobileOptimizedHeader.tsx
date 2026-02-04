@@ -18,7 +18,7 @@ export function MobileOptimizedHeader() {
     const auth = useAuth();
     user = auth.user;
     isAuthenticated = auth.isAuthenticated;
-  } catch (error) {
+  } catch (_error) {
     console.warn('Auth context not available, using fallback values');
   }
 

@@ -41,25 +41,21 @@ const sizeConfig = {
   }
 };
 
-export function FluxStudioLogoExport({
-  size = 'md',
-  variant = 'horizontal',
-  showSubtitle = false,
-  className = ''
-}: FluxStudioLogoExportProps) {
-
-  const config = sizeConfig[size];
-
-  // 3D Text Component for individual letters
-  const Text3DLetter = ({ 
-    letter, 
-    color, 
-    shadowColor 
-  }: { 
-    letter: string; 
-    color: string; 
-    shadowColor: string; 
-  }) => (
+// 3D Text Component for individual letters - moved outside to avoid recreation during render
+function Text3DLetter({
+  letter,
+  color,
+  shadowColor,
+  fontSize,
+  depth
+}: {
+  letter: string;
+  color: string;
+  shadowColor: string;
+  fontSize: string;
+  depth: number;
+}) {
+  return (
     <div
       className="relative inline-block"
       style={{
@@ -77,7 +73,7 @@ export function FluxStudioLogoExport({
             className="relative z-20 font-black"
             style={{
               color: color,
-              fontSize: config.fontSize,
+              fontSize: fontSize,
               fontFamily: 'Orbitron, "PP Neue Machina", "Space Grotesk", sans-serif',
               textShadow: `0 0 20px ${color}40`,
               letterSpacing: '-0.02em'
@@ -85,15 +81,15 @@ export function FluxStudioLogoExport({
           >
             {letter}
           </div>
-          
+
           {/* 3D depth layers */}
-          {[...Array(config.depth)].map((_, i) => (
+          {[...Array(depth)].map((_, i) => (
             <div
               key={i}
               className="absolute top-0 left-0 font-black"
               style={{
                 color: shadowColor,
-                fontSize: config.fontSize,
+                fontSize: fontSize,
                 fontFamily: 'Orbitron, "PP Neue Machina", "Space Grotesk", sans-serif',
                 transform: `translateZ(-${i + 1}px) translateX(${i * 0.5}px) translateY(${i * 0.5}px)`,
                 opacity: Math.max(0.1, 1 - (i * 0.15)),
@@ -108,21 +104,25 @@ export function FluxStudioLogoExport({
       )}
     </div>
   );
+}
 
-  // Regular flat text component
-  const FlatText = ({ 
-    text, 
-    color, 
-    isGradient = false 
-  }: { 
-    text: string; 
-    color: string; 
-    isGradient?: boolean; 
-  }) => (
+// Regular flat text component - moved outside to avoid recreation during render
+function FlatText({
+  text,
+  color,
+  isGradient = false,
+  fontSize
+}: {
+  text: string;
+  color: string;
+  isGradient?: boolean;
+  fontSize: string;
+}) {
+  return (
     <span
       className="font-black"
       style={{
-        fontSize: config.fontSize,
+        fontSize: fontSize,
         fontFamily: '"PP Neue Machina", "Space Grotesk", sans-serif',
         letterSpacing: '-0.02em',
         color: isGradient ? 'transparent' : color,
@@ -130,7 +130,7 @@ export function FluxStudioLogoExport({
         WebkitBackgroundClip: isGradient ? 'text' : 'none',
         WebkitTextFillColor: isGradient ? 'transparent' : 'inherit',
         backgroundClip: isGradient ? 'text' : 'none',
-        textShadow: isGradient 
+        textShadow: isGradient
           ? `1px 1px 0 #8B5CF6, 2px 2px 0 #8B5CF6, 3px 3px 0 #8B5CF6, 4px 4px 8px rgba(139, 92, 246, 0.3)`
           : `1px 1px 0 #1a1a1a, 2px 2px 0 #1a1a1a, 3px 3px 0 #1a1a1a, 4px 4px 8px rgba(0, 0, 0, 0.5)`
       }}
@@ -138,6 +138,16 @@ export function FluxStudioLogoExport({
       {text}
     </span>
   );
+}
+
+export function FluxStudioLogoExport({
+  size = 'md',
+  variant = 'horizontal',
+  showSubtitle = false,
+  className = ''
+}: FluxStudioLogoExportProps) {
+
+  const config = sizeConfig[size];
 
   // Layout wrapper based on variant
   const layoutClasses = {
@@ -169,11 +179,13 @@ export function FluxStudioLogoExport({
                   letter={letter}
                   color="#f8f8f8"
                   shadowColor="#1a1a1a"
+                  fontSize={config.fontSize}
+                  depth={config.depth}
                 />
               ))}
             </div>
           ) : (
-            <FlatText text="FLUX" color="#f8f8f8" />
+            <FlatText text="FLUX" color="#f8f8f8" fontSize={config.fontSize} />
           )}
         </div>
 
@@ -187,11 +199,13 @@ export function FluxStudioLogoExport({
                   letter={letter}
                   color="#EC4899"
                   shadowColor="#8B5CF6"
+                  fontSize={config.fontSize}
+                  depth={config.depth}
                 />
               ))}
             </div>
           ) : (
-            <FlatText text="STUDIO" color="#EC4899" isGradient />
+            <FlatText text="STUDIO" color="#EC4899" isGradient fontSize={config.fontSize} />
           )}
         </div>
       </div>

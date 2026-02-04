@@ -10,6 +10,30 @@ import { Badge } from '../ui/badge';
 import { MessageUser } from '../../types/messaging';
 import { cn } from '../../lib/utils';
 
+// Typing dots animation component - moved outside to avoid recreation during render
+function TypingDots() {
+  return (
+    <div className="flex space-x-1">
+      {[0, 1, 2].map((i) => (
+        <motion.div
+          key={i}
+          className="w-2 h-2 bg-current rounded-full"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.5, 1, 0.5]
+          }}
+          transition={{
+            duration: 1,
+            repeat: Infinity,
+            delay: i * 0.15,
+            ease: 'easeInOut'
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 interface EnhancedTypingIndicatorProps {
   userIds: string[];
   participants: MessageUser[];
@@ -38,28 +62,6 @@ export function EnhancedTypingIndicator({
       return `${typingUsers[0].name} and ${typingUsers.length - 1} others are typing`;
     }
   };
-
-  // Typing dots animation component
-  const TypingDots = () => (
-    <div className="flex space-x-1">
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="w-2 h-2 bg-current rounded-full"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.5, 1, 0.5]
-          }}
-          transition={{
-            duration: 1,
-            repeat: Infinity,
-            delay: i * 0.15,
-            ease: 'easeInOut'
-          }}
-        />
-      ))}
-    </div>
-  );
 
   // Minimal variant - just the dots
   if (variant === 'minimal') {

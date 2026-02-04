@@ -108,6 +108,22 @@ export function RealTimeMetrics() {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [timeSinceUpdate, setTimeSinceUpdate] = useState(0);
+
+  const refreshMetrics = async () => {
+    setIsRefreshing(true);
+    // Simulate API call
+    setTimeout(() => {
+      // Update with random variations
+      setMetrics(prev => prev.map(m => ({
+        ...m,
+        value: m.value + (Math.random() * 10 - 5),
+        change: (Math.random() * 20 - 10)
+      })));
+      setLastUpdate(new Date());
+      setIsRefreshing(false);
+    }, 500);
+  };
 
   // Real-time updates via WebSocket
   useEffect(() => {
@@ -158,20 +174,13 @@ export function RealTimeMetrics() {
     return () => clearInterval(interval);
   }, []);
 
-  const refreshMetrics = async () => {
-    setIsRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      // Update with random variations
-      setMetrics(prev => prev.map(m => ({
-        ...m,
-        value: m.value + (Math.random() * 10 - 5),
-        change: (Math.random() * 20 - 10)
-      })));
-      setLastUpdate(new Date());
-      setIsRefreshing(false);
-    }, 500);
-  };
+  // Update time since last update every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeSinceUpdate(Math.floor((Date.now() - lastUpdate.getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lastUpdate]);
 
   const chartOptions = {
     responsive: true,
@@ -232,7 +241,7 @@ export function RealTimeMetrics() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">
-            Updated {Math.floor((Date.now() - lastUpdate.getTime()) / 1000)}s ago
+            Updated {timeSinceUpdate}s ago
           </span>
           <Button
             variant="outline"

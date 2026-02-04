@@ -3,7 +3,7 @@
  * Context-aware command interface that adapts to current workspace state
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent } from './ui/dialog';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
@@ -50,7 +50,6 @@ export function EnhancedCommandPalette() {
 
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [filteredCommands, setFilteredCommands] = useState<CommandItem[]>([]);
 
   // Generate dynamic commands based on current context
   const generateCommands = useCallback((): CommandItem[] => {
@@ -254,18 +253,16 @@ export function EnhancedCommandPalette() {
     return commands.sort((a, b) => (b.priority || 0) - (a.priority || 0));
   }, [state, organizations, projects, conversations, actions, navigate]);
 
-  // Filter commands based on query
-  useEffect(() => {
+  // Filter commands based on query - use useMemo to avoid setState in effect
+  const filteredCommands = useMemo(() => {
     const commands = generateCommands();
 
     if (!query.trim()) {
-      setFilteredCommands(commands.slice(0, 10));
-      setSelectedIndex(0);
-      return;
+      return commands.slice(0, 10);
     }
 
     const queryLower = query.toLowerCase();
-    const filtered = commands
+    return commands
       .map(command => {
         let score = 0;
 
@@ -297,10 +294,13 @@ export function EnhancedCommandPalette() {
       .filter(command => command.score > 0)
       .sort((a, b) => (b.score || 0) - (a.score || 0))
       .slice(0, 10);
-
-    setFilteredCommands(filtered);
-    setSelectedIndex(0);
   }, [query, generateCommands, state.currentContext]);
+
+  // Reset selection when query changes - callback wrapper instead of effect
+  const handleQueryChange = useCallback((newQuery: string) => {
+    setQuery(newQuery);
+    setSelectedIndex(0);
+  }, []);
 
   // Keyboard navigation
   useEffect(() => {
@@ -371,7 +371,7 @@ export function EnhancedCommandPalette() {
           <Search size={16} className="text-gray-400 mr-3" />
           <Input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
             placeholder="Search commands, projects, conversations..."
             className="border-0 outline-0 focus-visible:ring-0 text-base"
             autoFocus

@@ -65,6 +65,49 @@ export function CollaborationOverlay({
   const [inputMessage, setInputMessage] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Declare event handlers before useEffect to avoid "cannot access before declaration" errors
+  const handlePresenceUpdate = (presence: CollaboratorPresence) => {
+    setCollaborators(prev => {
+      const updated = [...prev];
+      const index = updated.findIndex(c => c.userId === presence.userId);
+      if (index >= 0) {
+        updated[index] = presence;
+      } else {
+        updated.push(presence);
+      }
+      return updated.filter(c => c.status !== 'offline');
+    });
+  };
+
+  const handleCursorMove = ({ userId, cursor }: { userId: string; cursor: CursorPosition }) => {
+    if (userId === user?.id) return;
+
+    setRemoteCursors(prev => {
+      // Find collaborator from current state
+      const currentCollaborators = collaborators;
+      const collaborator = currentCollaborators.find(c => c.userId === userId);
+      if (collaborator) {
+        return new Map(prev.set(userId, {
+          userId,
+          name: collaborator.user.name,
+          color: collaborator.color,
+          position: cursor
+        }));
+      }
+      return prev;
+    });
+  };
+
+  // Remote selection change handler - handles selection changes from collaborators
+  const handleSelectionChange = (_data: { userId: string; selection: unknown }) => {
+    // Reserved for future WebRTC integration
+    // Will handle: userId, selection range from collaborators
+  };
+
+  const handleCommentAdd = (comment: any) => {
+    setMessages(prev => [...prev, comment]);
+  };
+
   useEffect(() => {
     if (!user) return;
 
@@ -123,44 +166,8 @@ export function CollaborationOverlay({
       collaborationService.off('comment:add', handleCommentAdd);
       collaborationService.leaveSession(`${resourceType}_${resourceId}`);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, resourceId, resourceType]);
-
-  const handlePresenceUpdate = (presence: CollaboratorPresence) => {
-    setCollaborators(prev => {
-      const updated = [...prev];
-      const index = updated.findIndex(c => c.userId === presence.userId);
-      if (index >= 0) {
-        updated[index] = presence;
-      } else {
-        updated.push(presence);
-      }
-      return updated.filter(c => c.status !== 'offline');
-    });
-  };
-
-  const handleCursorMove = ({ userId, cursor }: { userId: string; cursor: CursorPosition }) => {
-    if (userId === user?.id) return;
-
-    const collaborator = collaborators.find(c => c.userId === userId);
-    if (collaborator) {
-      setRemoteCursors(prev => new Map(prev.set(userId, {
-        userId,
-        name: collaborator.user.name,
-        color: collaborator.color,
-        position: cursor
-      })));
-    }
-  };
-
-  // Remote selection change handler - handles selection changes from collaborators
-  const handleSelectionChange = (_data: { userId: string; selection: unknown }) => {
-    // Reserved for future WebRTC integration
-    // Will handle: userId, selection range from collaborators
-  };
-
-  const handleCommentAdd = (comment: any) => {
-    setMessages(prev => [...prev, comment]);
-  };
 
   const startScreenShare = async () => {
     const stream = await collaborationService.startScreenShare(`${resourceType}_${resourceId}`);

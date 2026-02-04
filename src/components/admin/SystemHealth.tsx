@@ -4,7 +4,7 @@
  * Displays system health status including API, database, cache, and other services.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Server,
@@ -40,68 +40,69 @@ interface SystemHealthProps {
 // COMPONENT
 // ============================================================================
 
+// Generate mock services - pure function for initial state
+function generateMockServices(): ServiceHealth[] {
+  return [
+    {
+      name: 'api',
+      status: 'healthy',
+      responseTime: 45,
+      lastChecked: new Date(),
+      details: 'All endpoints responding',
+    },
+    {
+      name: 'database',
+      status: 'healthy',
+      responseTime: 12,
+      lastChecked: new Date(),
+      details: 'PostgreSQL running normally',
+    },
+    {
+      name: 'cache',
+      status: 'healthy',
+      responseTime: 3,
+      lastChecked: new Date(),
+      details: 'Redis cache active',
+    },
+    {
+      name: 'storage',
+      status: 'healthy',
+      responseTime: 89,
+      lastChecked: new Date(),
+      details: '2.4 TB available',
+    },
+    {
+      name: 'websocket',
+      status: 'healthy',
+      responseTime: 8,
+      lastChecked: new Date(),
+      details: '143 active connections',
+    },
+  ];
+}
+
 export function SystemHealth({ onRefresh }: SystemHealthProps) {
   const { t } = useTranslation('admin');
-  const [services, setServices] = useState<ServiceHealth[]>([]);
+  const [services, setServices] = useState<ServiceHealth[]>(generateMockServices);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [uptime, setUptime] = useState<string>('--');
+  const [uptime, setUptime] = useState<string>('99.97%');
 
-  // Mock service health check
-  useEffect(() => {
-    checkHealth();
-    const interval = setInterval(checkHealth, 60000); // Check every minute
-    return () => clearInterval(interval);
-  }, []);
-
-  const checkHealth = async () => {
+  const checkHealth = useCallback(async () => {
     setIsRefreshing(true);
-
-    // Simulated health checks - in production, these would hit actual endpoints
-    const mockServices: ServiceHealth[] = [
-      {
-        name: 'api',
-        status: 'healthy',
-        responseTime: 45,
-        lastChecked: new Date(),
-        details: 'All endpoints responding',
-      },
-      {
-        name: 'database',
-        status: 'healthy',
-        responseTime: 12,
-        lastChecked: new Date(),
-        details: 'PostgreSQL running normally',
-      },
-      {
-        name: 'cache',
-        status: 'healthy',
-        responseTime: 3,
-        lastChecked: new Date(),
-        details: 'Redis cache active',
-      },
-      {
-        name: 'storage',
-        status: 'healthy',
-        responseTime: 89,
-        lastChecked: new Date(),
-        details: '2.4 TB available',
-      },
-      {
-        name: 'websocket',
-        status: 'healthy',
-        responseTime: 8,
-        lastChecked: new Date(),
-        details: '143 active connections',
-      },
-    ];
 
     // Simulate a slight delay
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    setServices(mockServices);
+    setServices(generateMockServices());
     setUptime('99.97%');
     setIsRefreshing(false);
-  };
+  }, []);
+
+  // Set up periodic health checks
+  useEffect(() => {
+    const interval = setInterval(checkHealth, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [checkHealth]);
 
   const handleRefresh = () => {
     checkHealth();

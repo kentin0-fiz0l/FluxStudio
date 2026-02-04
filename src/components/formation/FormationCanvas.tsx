@@ -5,7 +5,7 @@
  * Includes grid-based positioning, performer drag-drop, and keyframe animation.
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Plus,
@@ -67,6 +67,30 @@ const defaultColors = [
 // MAIN COMPONENT
 // ============================================================================
 
+// Helper to get initial formation data
+function getInitialFormationData(formationId: string | undefined, projectId: string, defaultTitle: string) {
+  if (formationId) {
+    const existing = formationService.getFormation(formationId);
+    if (existing) {
+      return {
+        formation: existing,
+        keyframeId: existing.keyframes[0]?.id || '',
+        positions: existing.keyframes.length > 0
+          ? new Map(existing.keyframes[0].positions)
+          : new Map<string, Position>(),
+      };
+    }
+  }
+  const newFormation = formationService.createFormation(defaultTitle, projectId, { createdBy: 'current-user' });
+  return {
+    formation: newFormation,
+    keyframeId: newFormation.keyframes[0]?.id || '',
+    positions: newFormation.keyframes.length > 0
+      ? new Map(newFormation.keyframes[0].positions)
+      : new Map<string, Position>(),
+  };
+}
+
 export function FormationCanvas({
   formationId,
   projectId,
@@ -76,11 +100,20 @@ export function FormationCanvas({
   const { t } = useTranslation('common');
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // Formation state
-  const [formation, setFormation] = useState<Formation | null>(null);
+  // Lazy initialization for formation state
+  const [formation, setFormation] = useState<Formation | null>(() => {
+    const data = getInitialFormationData(formationId, projectId, t('formation.untitled', 'Untitled Formation'));
+    return data.formation;
+  });
   const [selectedPerformerIds, setSelectedPerformerIds] = useState<Set<string>>(new Set());
-  const [selectedKeyframeId, setSelectedKeyframeId] = useState<string>('');
-  const [currentPositions, setCurrentPositions] = useState<Map<string, Position>>(new Map());
+  const [selectedKeyframeId, setSelectedKeyframeId] = useState<string>(() => {
+    const data = getInitialFormationData(formationId, projectId, t('formation.untitled', 'Untitled Formation'));
+    return data.keyframeId;
+  });
+  const [currentPositions, setCurrentPositions] = useState<Map<string, Position>>(() => {
+    const data = getInitialFormationData(formationId, projectId, t('formation.untitled', 'Untitled Formation'));
+    return data.positions;
+  });
 
   // UI state
   const [activeTool, setActiveTool] = useState<Tool>('select');
@@ -96,7 +129,7 @@ export function FormationCanvas({
   const [playbackState, setPlaybackState] = useState<PlaybackState>({
     isPlaying: false,
     currentTime: 0,
-    duration: 0,
+    duration: 5000, // Default 5 seconds
     loop: false,
     speed: 1,
   });
@@ -104,47 +137,14 @@ export function FormationCanvas({
   // History for undo/redo (simplified)
   const [_historyIndex, _setHistoryIndex] = useState(0);
 
-  // Initialize or load formation
-  useEffect(() => {
-    if (formationId) {
-      const existing = formationService.getFormation(formationId);
-      if (existing) {
-        setFormation(existing);
-        if (existing.keyframes.length > 0) {
-          setSelectedKeyframeId(existing.keyframes[0].id);
-          setCurrentPositions(new Map(existing.keyframes[0].positions));
-        }
-        return;
-      }
-    }
-
-    // Create new formation
-    const newFormation = formationService.createFormation(
-      t('formation.untitled', 'Untitled Formation'),
-      projectId,
-      { createdBy: 'current-user' }
-    );
-    setFormation(newFormation);
-    setSelectedKeyframeId(newFormation.keyframes[0].id);
-    setPlaybackState((prev) => ({
-      ...prev,
-      duration: 5000, // Default 5 seconds
-    }));
-  }, [formationId, projectId, t]);
-
-  // Update positions based on current time during playback
-  useEffect(() => {
-    if (!formation || !playbackState.isPlaying) return;
-
-    const positions = formationService.getPositionsAtTime(formation.id, playbackState.currentTime);
-    setCurrentPositions(positions);
-  }, [formation, playbackState.currentTime, playbackState.isPlaying]);
-
-  // Playback handlers
+  // Playback handlers - position updates happen in the callback from formationService
   const handlePlay = useCallback(() => {
     if (!formation) return;
     formationService.play(formation.id, (time) => {
       setPlaybackState((prev) => ({ ...prev, currentTime: time, isPlaying: true }));
+      // Update positions in the same callback to avoid separate effect
+      const positions = formationService.getPositionsAtTime(formation.id, time);
+      setCurrentPositions(positions);
     });
     setPlaybackState((prev) => ({ ...prev, isPlaying: true }));
   }, [formation]);

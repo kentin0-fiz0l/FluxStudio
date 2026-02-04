@@ -11,6 +11,16 @@ export function FileUpload({ onUploadComplete, className = '' }: FileUploadProps
   const { uploadFiles, uploads } = useFileUpload();
   const [dragActive, setDragActive] = useState(false);
 
+  // Define handleFiles first so other handlers can reference it
+  const handleFiles = useCallback(async (files: File[]) => {
+    try {
+      const uploadedFiles = await uploadFiles(files);
+      onUploadComplete?.(uploadedFiles);
+    } catch (error) {
+      console.error('Upload error:', error);
+    }
+  }, [uploadFiles, onUploadComplete]);
+
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -29,23 +39,14 @@ export function FileUpload({ onUploadComplete, className = '' }: FileUploadProps
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFiles(Array.from(e.dataTransfer.files));
     }
-  }, []);
+  }, [handleFiles]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     if (e.target.files && e.target.files[0]) {
       handleFiles(Array.from(e.target.files));
     }
-  }, []);
-
-  const handleFiles = useCallback(async (files: File[]) => {
-    try {
-      const uploadedFiles = await uploadFiles(files);
-      onUploadComplete?.(uploadedFiles);
-    } catch (error) {
-      console.error('Upload error:', error);
-    }
-  }, [uploadFiles, onUploadComplete]);
+  }, [handleFiles]);
 
   const getFileIcon = (file: File) => {
     if (file.type.startsWith('image/')) return <Image className="w-8 h-8" />;

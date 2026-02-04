@@ -115,6 +115,22 @@ export function AdvancedAnalyticsDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<AnalyticsData | null>(null);
 
+  // Generate stable time series data on mount
+  const [timeSeriesData] = useState<TimeSeriesData[]>(() => {
+    const now = Date.now();
+    const seededRandom = (seed: number) => {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    };
+    return Array.from({ length: 30 }, (_, i) => ({
+      date: new Date(now - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      projects: Math.floor(seededRandom(i) * 10) + 5,
+      revenue: Math.floor(seededRandom(i + 100) * 5000) + 8000,
+      users: Math.floor(seededRandom(i + 200) * 20) + 40,
+      satisfaction: seededRandom(i + 300) * 1 + 4,
+    }));
+  });
+
   // Mock data - in real implementation, this would come from API
   const mockData: AnalyticsData = useMemo(() => ({
     projectMetrics: {
@@ -186,13 +202,7 @@ export function AdvancedAnalyticsDashboard() {
         { metric: 'Efficiency', value: 87, change: -2.1, trend: 'down' },
       ],
     },
-    timeSeriesData: Array.from({ length: 30 }, (_, i) => ({
-      date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      projects: Math.floor(Math.random() * 10) + 5,
-      revenue: Math.floor(Math.random() * 5000) + 8000,
-      users: Math.floor(Math.random() * 20) + 40,
-      satisfaction: Math.random() * 1 + 4,
-    })),
+    timeSeriesData,
     userEngagement: {
       dailyActiveUsers: 142,
       sessionDuration: 28.5,
@@ -211,7 +221,7 @@ export function AdvancedAnalyticsDashboard() {
         { step: 'Active User', users: 280, conversion: 74 },
       ],
     },
-  }), []);
+  }), [timeSeriesData]);
 
   useEffect(() => {
     setData(mockData);

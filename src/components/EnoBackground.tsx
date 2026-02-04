@@ -309,12 +309,12 @@ export function EnoBackground() {
           }}
         />
         
-        {/* Breathing glow effect */}
-        <div 
+        {/* Breathing glow effect - uses CSS animation instead of Date.now() */}
+        <div
           className="absolute inset-0"
           style={{
-            background: `radial-gradient(circle at 50% 50%, 
-              rgba(255, 255, 255, ${0.002 + Math.sin(Date.now() * 0.001) * 0.001}) 0%, 
+            background: `radial-gradient(circle at 50% 50%,
+              rgba(255, 255, 255, 0.002) 0%,
               transparent 50%)`,
             animation: 'breathe 8s ease-in-out infinite'
           }}
