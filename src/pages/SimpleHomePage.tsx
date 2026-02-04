@@ -441,14 +441,14 @@ export function SimpleHomePage() {
             <div>
               <h3 className="font-semibold mb-4">Legal</h3>
               <ul className="space-y-2 text-gray-400 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Privacy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms</a></li>
+                <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link></li>
+                <li><Link to="/terms" className="hover:text-white transition-colors">Terms</Link></li>
                 <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-white/10 pt-8 text-center text-gray-400 text-sm">
-            <p>&copy; 2025 FluxStudio. All rights reserved.</p>
+            <p>&copy; 2026 FluxStudio. All rights reserved.</p>
           </div>
         </div>
       </footer>
