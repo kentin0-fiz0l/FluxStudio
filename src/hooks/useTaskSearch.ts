@@ -26,7 +26,7 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'todo' | 'in-progress' | 'review' | 'completed';
+  status: 'todo' | 'in_progress' | 'review' | 'completed';
   priority: 'low' | 'medium' | 'high' | 'critical';
   assignedTo: string | null;
   dueDate: string | null;
@@ -158,7 +158,7 @@ function sortTasks(tasks: Task[], sortBy: SortOption): Task[] {
       return sorted.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
     case 'status':
-      const statusOrder = { 'in-progress': 0, 'review': 1, 'todo': 2, 'completed': 3 };
+      const statusOrder = { 'in_progress': 0, 'review': 1, 'todo': 2, 'completed': 3 };
       return sorted.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
 
     default:
@@ -267,7 +267,7 @@ export interface UseTaskSearchReturn {
   hasActiveFilters: boolean;
 
   // Preset filters
-  applyPreset: (preset: 'my-tasks' | 'overdue' | 'high-priority' | 'in-progress') => void;
+  applyPreset: (preset: 'my-tasks' | 'overdue' | 'high-priority' | 'in_progress') => void;
 }
 
 export function useTaskSearch(
@@ -392,7 +392,7 @@ export function useTaskSearch(
   ) => {
     setFilters(prev => {
       const current = prev[key] as SearchFilters[K];
-      const exists = current.includes(value);
+      const exists = (current as unknown[]).includes(value);
 
       return {
         ...prev,
@@ -425,13 +425,13 @@ export function useTaskSearch(
   }, []);
 
   // Apply preset filters
-  const applyPreset = useCallback((preset: 'my-tasks' | 'overdue' | 'high-priority' | 'in-progress') => {
+  const applyPreset = useCallback((preset: 'my-tasks' | 'overdue' | 'high-priority' | 'in_progress') => {
     switch (preset) {
       case 'my-tasks':
         setFilters(prev => ({
           ...prev,
           assignedTo: [currentUserId],
-          status: ['todo', 'in-progress', 'review'],
+          status: ['todo', 'in_progress', 'review'],
         }));
         break;
 
@@ -439,7 +439,7 @@ export function useTaskSearch(
         setFilters(prev => ({
           ...prev,
           dueDate: 'overdue',
-          status: ['todo', 'in-progress', 'review'],
+          status: ['todo', 'in_progress', 'review'],
         }));
         break;
 
@@ -447,14 +447,14 @@ export function useTaskSearch(
         setFilters(prev => ({
           ...prev,
           priority: ['high', 'critical'],
-          status: ['todo', 'in-progress', 'review'],
+          status: ['todo', 'in_progress', 'review'],
         }));
         break;
 
-      case 'in-progress':
+      case 'in_progress':
         setFilters(prev => ({
           ...prev,
-          status: ['in-progress'],
+          status: ['in_progress'],
         }));
         break;
     }

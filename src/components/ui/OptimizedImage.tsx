@@ -15,7 +15,7 @@ import {
   lazyLoadImage,
 } from '../../utils/imageOptimization';
 
-interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+interface OptimizedImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'onError' | 'onLoad' | 'onDrag'> {
   src: string;
   alt: string;
   width?: number;
@@ -26,8 +26,8 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
   priority?: boolean;
   responsive?: boolean;
   className?: string;
-  onLoad?: () => void;
-  onError?: (error: Error) => void;
+  onImageLoad?: () => void;
+  onImageError?: (error: Error) => void;
 }
 
 export function OptimizedImage({
@@ -41,9 +41,8 @@ export function OptimizedImage({
   priority = false,
   responsive = true,
   className,
-  onLoad,
-  onError,
-  ...props
+  onImageLoad,
+  onImageError,
 }: OptimizedImageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -84,13 +83,13 @@ export function OptimizedImage({
 
   const handleLoad = () => {
     setIsLoading(false);
-    onLoad?.();
+    onImageLoad?.();
   };
 
   const handleError = () => {
     setIsLoading(false);
     setHasError(true);
-    onError?.(new Error('Failed to load image'));
+    onImageError?.(new Error('Failed to load image'));
   };
 
   // Generate responsive attributes
@@ -146,7 +145,6 @@ export function OptimizedImage({
           isLoading && 'blur-sm'
         )}
         {...responsiveAttrs}
-        {...props}
       />
     </div>
   );

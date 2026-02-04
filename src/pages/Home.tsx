@@ -121,7 +121,7 @@ export function Home() {
 
   return (
     <DashboardLayout
-      user={user}
+      user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
       breadcrumbs={[{ label: 'Dashboard' }]}
       onSearch={handleSearch}
       onLogout={logout}
@@ -212,7 +212,7 @@ export function Home() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {quickStats.map((stat, index) => (
-            <Card key={index} variant="outlined">
+            <Card key={index} variant="outline">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -318,7 +318,7 @@ export function Home() {
 
             {/* Quick Links (shown when onboarding is dismissed) */}
             {isDismissed && (
-              <Card variant="outlined">
+              <Card variant="outline">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Target className="w-5 h-5 text-primary-600" aria-hidden="true" />

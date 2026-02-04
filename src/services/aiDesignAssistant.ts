@@ -4,8 +4,6 @@
  * layout optimization, and collaborative feedback analysis
  */
 
-import { config } from '../config/environment';
-
 export interface DesignSuggestion {
   id: string;
   type: 'color' | 'layout' | 'typography' | 'spacing' | 'accessibility';

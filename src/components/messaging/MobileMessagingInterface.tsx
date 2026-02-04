@@ -303,7 +303,7 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
               </AnimatePresence>
 
               <motion.div
-                onLongPress={() => handleLongPress(message.id)}
+                onTapStart={() => handleLongPress(message.id)}
                 className={cn(
                   'rounded-2xl px-4 py-2 relative group cursor-pointer',
                   isMyMessage(message)

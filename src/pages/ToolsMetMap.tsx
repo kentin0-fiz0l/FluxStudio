@@ -17,7 +17,7 @@
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import DashboardLayout from '../components/templates/DashboardLayout';
+import { DashboardLayout } from '../components/templates/DashboardLayout';
 import { useMetMap, Song, Section, Chord } from '../contexts/MetMapContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { useProjectContextOptional } from '../contexts/ProjectContext';
@@ -53,14 +53,6 @@ function useIsMobile(breakpoint = 768) {
 }
 
 // ==================== Helper Functions ====================
-
-function _formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-}
 
 function formatDuration(minutes: number): string {
   if (minutes < 60) return `${minutes}m`;
@@ -897,7 +889,7 @@ export default function ToolsMetMap() {
           // Song still exists, navigate to it
           const params = new URLSearchParams();
           params.set('song', songId);
-          params.set('projectId', projectId);
+          if (projectId) params.set('projectId', projectId);
           navigate(`/tools/metmap?${params.toString()}`, { replace: true });
         } else {
           // Song doesn't exist, import it
@@ -916,7 +908,7 @@ export default function ToolsMetMap() {
 
             const params = new URLSearchParams();
             params.set('song', newSong.id);
-            params.set('projectId', projectId);
+            if (projectId) params.set('projectId', projectId);
             navigate(`/tools/metmap?${params.toString()}`, { replace: true });
 
             showNotification({
@@ -954,7 +946,7 @@ export default function ToolsMetMap() {
     if (song) {
       const params = new URLSearchParams();
       params.set('song', song.id);
-      if (projectId) params.set('projectId', projectId);
+      if (projectId) if (projectId) params.set('projectId', projectId);
       navigate(`/tools/metmap?${params.toString()}`);
     }
   };
@@ -965,7 +957,7 @@ export default function ToolsMetMap() {
     }
     const params = new URLSearchParams();
     params.set('song', song.id);
-    if (projectId) params.set('projectId', projectId);
+    if (projectId) if (projectId) params.set('projectId', projectId);
     navigate(`/tools/metmap?${params.toString()}`);
     // Close sidebar on mobile after selection
     if (isMobile) {
@@ -980,7 +972,7 @@ export default function ToolsMetMap() {
     const success = await deleteSong(currentSong.id);
     if (success) {
       const params = new URLSearchParams();
-      if (projectId) params.set('projectId', projectId);
+      if (projectId) if (projectId) params.set('projectId', projectId);
       navigate(`/tools/metmap?${params.toString()}`);
     }
   };
@@ -1028,7 +1020,7 @@ export default function ToolsMetMap() {
       }
       const params = new URLSearchParams();
       params.set('song', song.id);
-      if (projectId) params.set('projectId', projectId);
+      if (projectId) if (projectId) params.set('projectId', projectId);
       navigate(`/tools/metmap?${params.toString()}`);
     }
   };
@@ -1312,22 +1304,25 @@ export default function ToolsMetMap() {
                   <button
                     onClick={() => {
                       // Quick Start: Create a song with common sections
-                      const quickStartSong: Omit<Song, 'id' | 'createdAt' | 'updatedAt'> = {
+                      const quickStartSections: Section[] = [
+                        { id: crypto.randomUUID(), name: 'Intro', bars: 4, timeSignature: '4/4', tempoStart: 120, orderIndex: 0, startBar: 1 },
+                        { id: crypto.randomUUID(), name: 'Verse', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 1, startBar: 5 },
+                        { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 2, startBar: 13 },
+                        { id: crypto.randomUUID(), name: 'Verse', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 3, startBar: 21 },
+                        { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 4, startBar: 29 },
+                        { id: crypto.randomUUID(), name: 'Bridge', bars: 4, timeSignature: '4/4', tempoStart: 100, orderIndex: 5, startBar: 37 },
+                        { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 6, startBar: 41 },
+                        { id: crypto.randomUUID(), name: 'Outro', bars: 4, timeSignature: '4/4', tempoStart: 120, orderIndex: 7, startBar: 49 },
+                      ];
+                      const quickStartSong: Partial<Song> = {
                         title: 'My Song',
-                        artist: '',
-                        projectId: null,
-                        sections: [
-                          { id: crypto.randomUUID(), name: 'Intro', bars: 4, timeSignature: '4/4', tempoStart: 120 },
-                          { id: crypto.randomUUID(), name: 'Verse', bars: 8, timeSignature: '4/4', tempoStart: 120 },
-                          { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120 },
-                          { id: crypto.randomUUID(), name: 'Verse', bars: 8, timeSignature: '4/4', tempoStart: 120 },
-                          { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120 },
-                          { id: crypto.randomUUID(), name: 'Bridge', bars: 4, timeSignature: '4/4', tempoStart: 100 },
-                          { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120 },
-                          { id: crypto.randomUUID(), name: 'Outro', bars: 4, timeSignature: '4/4', tempoStart: 120 },
-                        ],
-                        chords: [],
-                        practiceNotes: '',
+                        projectId: undefined,
+                        bpmDefault: 120,
+                        timeSignatureDefault: '4/4',
+                        sectionCount: quickStartSections.length,
+                        totalBars: quickStartSections.reduce((sum, s) => sum + s.bars, 0),
+                        practiceCount: 0,
+                        sections: quickStartSections,
                       };
                       createSong(quickStartSong);
                     }}

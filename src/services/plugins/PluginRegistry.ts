@@ -15,6 +15,9 @@ import {
   FluxStudioAPI,
 } from './types';
 
+// Re-export PluginInstance type for consumers
+export type { PluginInstance } from './types';
+
 export interface PluginRegistryEvents {
   'plugin:installed': (plugin: PluginInstance) => void;
   'plugin:activated': (plugin: PluginInstance) => void;

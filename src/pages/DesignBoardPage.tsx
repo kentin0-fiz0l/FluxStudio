@@ -344,7 +344,7 @@ export default function DesignBoardPage() {
       const { userId, userEmail } = data as { userId: string; userEmail: string };
       if (userId !== user.id) {
         setCollaborators(prev => [...prev, { userId, userEmail }]);
-        showNotification(`${userEmail.split('@')[0]} joined the board`, 'info');
+        showNotification({ type: 'info', title: 'User Joined', message: `${userEmail.split('@')[0]} joined the board` });
       }
     });
 
@@ -437,12 +437,12 @@ export default function DesignBoardPage() {
             setIsLoading(false);
           }
         } else {
-          showNotification('Failed to load board', 'error');
+          showNotification({ type: 'error', title: 'Error', message: 'Failed to load board' });
           navigate(-1);
         }
       } catch (error) {
         console.error('Error fetching board:', error);
-        showNotification('Error loading board', 'error');
+        showNotification({ type: 'error', title: 'Error', message: 'Error loading board' });
       }
     };
 
@@ -544,7 +544,6 @@ export default function DesignBoardPage() {
   // Zoom controls
   const handleZoomIn = () => setScale(prev => Math.min(prev + 0.1, 2));
   const handleZoomOut = () => setScale(prev => Math.max(prev - 0.1, 0.5));
-  const _handleZoomReset = () => setScale(1);
 
   // Back navigation
   const handleBack = () => {
@@ -563,7 +562,7 @@ export default function DesignBoardPage() {
     <DashboardLayout
       user={user || undefined}
       breadcrumbs={[
-        { label: 'Projects', href: '/projects' },
+        { label: 'Projects', path: '/projects' },
         { label: board?.name || 'Board' },
       ]}
       onLogout={logout}

@@ -68,7 +68,7 @@ export interface UseProjectFilesReturn {
 
   /** Upload files mutation */
   uploadFiles: {
-    mutate: (files: FileList) => void;
+    mutate: (files: FileList, options?: { onSuccess?: (data: unknown) => void; onError?: (error: Error) => void }) => void;
     isLoading: boolean;
     error: Error | null;
   };
@@ -78,7 +78,7 @@ export interface UseProjectFilesReturn {
 
   /** Delete file mutation */
   deleteFile: {
-    mutate: (fileId: string) => void;
+    mutate: (fileId: string, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
     isLoading: boolean;
     error: Error | null;
   };

@@ -91,7 +91,7 @@ const QuickStats: React.FC<{ tasks: Task[] }> = ({ tasks }) => {
   const stats = React.useMemo(() => {
     const total = tasks.length;
     const completed = tasks.filter((t) => t.status === 'completed').length;
-    const inProgress = tasks.filter((t) => t.status === 'in-progress').length;
+    const inProgress = tasks.filter((t) => t.status === 'in_progress').length;
     const review = tasks.filter((t) => t.status === 'review').length;
     const todo = tasks.filter((t) => t.status === 'todo').length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -390,7 +390,10 @@ export const ProjectDetail = () => {
       if (taskId) {
         await updateTask.mutateAsync({ taskId, updates: taskData });
       } else {
-        await createTask.mutateAsync(taskData);
+        if (!taskData.title) {
+          throw new Error('Task title is required');
+        }
+        await createTask.mutateAsync({ ...taskData, title: taskData.title });
       }
       setIsTaskModalOpen(false);
     } catch (error) {

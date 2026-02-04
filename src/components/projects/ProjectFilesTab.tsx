@@ -333,17 +333,17 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
     if (!selectedFile) return;
 
     try {
-      const result = await apiService.quickPrint(
-        selectedFile.name,
-        project.id,
-        config
-      );
+      const result = await apiService.quickPrint({
+        filename: selectedFile.name,
+        projectId: project.id,
+        config: config as unknown as Parameters<typeof apiService.quickPrint>[0]['config']
+      });
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to queue print job');
       }
 
-      toast.success(`Print queued! Job #${result.data.queueId}`);
+      toast.success(`Print queued! Job #${(result.data as { queueId: string }).queueId}`);
 
       // Refetch files to update status
       refetch();
@@ -405,8 +405,9 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
       toast.info(`Uploading ${files.length} file(s)...`);
 
       uploadFiles.mutate(files, {
-        onSuccess: (data: { files: { length: number }[] }) => {
-          toast.success(`Uploaded ${data.files.length} file(s) successfully`);
+        onSuccess: (data) => {
+          const uploadData = data as { files: { length: number }[] };
+          toast.success(`Uploaded ${uploadData.files.length} file(s) successfully`);
         },
         onError: (error: Error) => {
           toast.error(`Upload failed: ${error.message}`);

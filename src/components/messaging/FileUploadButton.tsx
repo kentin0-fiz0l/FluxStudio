@@ -65,7 +65,7 @@ export function FileUploadButton({
     }
   };
 
-  const triggerFileInput = (inputRef: React.RefObject<HTMLInputElement>) => {
+  const triggerFileInput = (inputRef: React.RefObject<HTMLInputElement | null>) => {
     inputRef.current?.click();
   };
 

@@ -276,7 +276,7 @@ export interface PrintJobRecord {
   fileId?: string;              // FK to files
   fluxprintQueueId?: number;    // Reference to FluxPrint queue
   fileName: string;
-  status: QueueJobStatus;
+  status: PrintJobStatus;
   progress: number;             // 0.00 to 100.00
   queuedAt: string;             // ISO 8601
   startedAt?: string;           // ISO 8601
@@ -286,6 +286,7 @@ export interface PrintJobRecord {
   printerName: string;
   printSettings?: Record<string, any>;
   materialType?: string;
+  materialColor?: string;
   materialUsed?: number;
   errorMessage?: string;
   metadata?: Record<string, any>;

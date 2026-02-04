@@ -96,7 +96,7 @@ export function useOrganizations() {
         throw new Error(response.error || 'Failed to create organization');
       }
 
-      const newOrg = response.data.organization || response.data;
+      const newOrg = (response.data as any).organization || response.data;
 
       setOrganizations(prev => [...prev, newOrg]);
 

@@ -108,7 +108,7 @@ export const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
       if (userId) formData.append('userId', userId);
 
       // Send socket ID for progress tracking
-      if (socket) {
+      if (socket?.id) {
         formData.append('socketId', socket.id);
       }
 

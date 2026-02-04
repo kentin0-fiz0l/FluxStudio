@@ -133,9 +133,9 @@ export function ProjectWorkflow({
     if (!isEditable) return;
 
     try {
-      const updatedMilestone = {
+      const updatedMilestone: Milestone = {
         ...milestone,
-        completed_at: milestone.completed_at ? null : new Date().toISOString()
+        completed_at: milestone.completed_at ? undefined : new Date().toISOString()
       };
 
       // Update local state

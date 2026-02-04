@@ -83,8 +83,8 @@ describe('Mobile Hooks', () => {
       window.ontouchstart = {};
       const { result } = renderHook(() => useIsTouchDevice());
       expect(result.current).toBe(true);
-      // @ts-expect-error - Clean up
-      delete window.ontouchstart;
+      // Clean up
+      delete (window as { ontouchstart?: unknown }).ontouchstart;
     });
 
     it('should detect touch capability via maxTouchPoints', () => {

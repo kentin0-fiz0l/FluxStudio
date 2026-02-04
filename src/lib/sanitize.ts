@@ -82,30 +82,12 @@ export function sanitizeRichText(input: string | null | undefined): string {
       // Links
       'a'
     ],
-    ALLOWED_ATTR: {
-      'a': ['href', 'title', 'target', 'rel'],
-      'span': ['class'],
-      'div': ['class']
-    },
+    ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class'],
     ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
 
     // Add rel="noopener noreferrer" to external links
     ADD_ATTR: ['target', 'rel'],
-
-    // Transform external links to be safe
-    HOOKS: {
-      afterSanitizeAttributes: (node: Element) => {
-        if (node.tagName === 'A') {
-          const href = node.getAttribute('href');
-          if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
-            // External link - add security attributes
-            node.setAttribute('target', '_blank');
-            node.setAttribute('rel', 'noopener noreferrer');
-          }
-        }
-      }
-    }
-  });
+  } as Parameters<typeof DOMPurify.sanitize>[1]);
 }
 
 /**
@@ -126,23 +108,9 @@ export function sanitizeComment(input: string | null | undefined): string {
       'strong', 'b', 'em', 'i', 'u',
       'a', 'code'
     ],
-    ALLOWED_ATTR: {
-      'a': ['href', 'title', 'target', 'rel']
-    },
+    ALLOWED_ATTR: ['href', 'title', 'target', 'rel'],
     ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
-
-    HOOKS: {
-      afterSanitizeAttributes: (node: Element) => {
-        if (node.tagName === 'A') {
-          const href = node.getAttribute('href');
-          if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
-            node.setAttribute('target', '_blank');
-            node.setAttribute('rel', 'noopener noreferrer');
-          }
-        }
-      }
-    }
-  });
+  } as Parameters<typeof DOMPurify.sanitize>[1]);
 }
 
 /**
@@ -411,7 +379,7 @@ export function sanitizeForReact(input: string | null | undefined): { __html: st
  *
  * Global configuration for DOMPurify (optional customization).
  */
-export function configureSanitizer(config: DOMPurify.Config): void {
+export function configureSanitizer(config: Parameters<typeof DOMPurify.setConfig>[0]): void {
   DOMPurify.setConfig(config);
 }
 

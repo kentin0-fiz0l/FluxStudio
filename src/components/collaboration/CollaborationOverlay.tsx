@@ -97,7 +97,7 @@ export function CollaborationOverlay({
     };
 
     // Track local selection
-    const handleSelectionChange = () => {
+    const handleLocalSelectionChange = () => {
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
@@ -112,11 +112,11 @@ export function CollaborationOverlay({
     };
 
     document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('selectionchange', handleSelectionChange);
+    document.addEventListener('selectionchange', handleLocalSelectionChange);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('selectionchange', handleSelectionChange);
+      document.removeEventListener('selectionchange', handleLocalSelectionChange);
       collaborationService.off('presence:update', handlePresenceUpdate);
       collaborationService.off('cursor:move', handleCursorMove);
       collaborationService.off('selection:change', handleSelectionChange);
@@ -152,8 +152,11 @@ export function CollaborationOverlay({
     }
   };
 
-  // Remote selection change handler reserved for future WebRTC integration
-  // Handles: userId, selection range from collaborators
+  // Remote selection change handler - handles selection changes from collaborators
+  const handleSelectionChange = (_data: { userId: string; selection: unknown }) => {
+    // Reserved for future WebRTC integration
+    // Will handle: userId, selection range from collaborators
+  };
 
   const handleCommentAdd = (comment: any) => {
     setMessages(prev => [...prev, comment]);

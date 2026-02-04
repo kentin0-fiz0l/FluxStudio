@@ -566,13 +566,10 @@ export default function Connectors() {
     const notificationContext = useNotifications();
     showToast = (title, message, type = 'info') => {
       notificationContext.addToast({
-        id: `toast-${Date.now()}`,
-        type: type as any,
+        type: type as 'info' | 'success' | 'warning' | 'error',
         title,
         message,
         priority: 'medium',
-        isRead: false,
-        createdAt: new Date().toISOString(),
       });
     };
   } catch {

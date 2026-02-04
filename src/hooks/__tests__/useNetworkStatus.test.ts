@@ -8,23 +8,24 @@ import { renderHook, act } from '@testing-library/react';
 import { useNetworkStatus } from '../useNetworkStatus';
 
 describe('useNetworkStatus', () => {
-  const _originalNavigator = global.navigator;
   let onlineEventListener: (() => void) | null = null;
   let offlineEventListener: (() => void) | null = null;
-  let _connectionChangeListener: (() => void) | null = null;
+  // Used in mock connection listener callback (assigned but not read - intentional)
+  let connectionChangeListener: (() => void) | null = null;
+  void connectionChangeListener; // Suppress unused variable warning
 
-  const mockAddEventListener = vi.fn((event: string, handler: () => void) => {
-    if (event === 'online') onlineEventListener = handler;
-    if (event === 'offline') offlineEventListener = handler;
-  });
+  const mockAddEventListener = vi.fn((event: string, handler: EventListenerOrEventListenerObject) => {
+    const handlerFn = typeof handler === 'function' ? handler : handler.handleEvent.bind(handler);
+    if (event === 'online') onlineEventListener = handlerFn as () => void;
+    if (event === 'offline') offlineEventListener = handlerFn as () => void;
+  }) as unknown as typeof window.addEventListener;
 
-  const mockRemoveEventListener = vi.fn();
+  const mockRemoveEventListener = vi.fn() as unknown as typeof window.removeEventListener;
 
   beforeEach(() => {
     vi.clearAllMocks();
     onlineEventListener = null;
     offlineEventListener = null;
-    connectionChangeListener = null;
 
     // Mock window event listeners
     vi.spyOn(window, 'addEventListener').mockImplementation(mockAddEventListener);

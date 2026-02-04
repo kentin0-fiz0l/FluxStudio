@@ -19,7 +19,7 @@ interface UseTaskEditingOptions {
 interface UseTaskEditingReturn {
   editState: EditState;
   loadingStates: Record<string, boolean>;
-  editInputRef: React.RefObject<HTMLInputElement | HTMLSelectElement>;
+  editInputRef: React.RefObject<HTMLInputElement | HTMLSelectElement | null>;
   startEdit: (taskId: string, field: keyof Task, currentValue: string) => void;
   cancelEdit: () => void;
   saveEdit: () => Promise<void>;

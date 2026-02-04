@@ -497,10 +497,12 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
     async (fileList: FileList): Promise<FileUploadResponse> => {
       try {
         const formData = new FormData();
+        // Convert FileList to array using spread for better compatibility
+        const files: File[] = [...(fileList as unknown as File[])];
 
-        Array.from(fileList).forEach((file) => {
+        for (const file of files) {
           formData.append('files', file);
-        });
+        }
 
         const response = await fetch('/api/printing/files/upload', {
           method: 'POST',
@@ -575,8 +577,9 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
 
     // Update temperature history from WebSocket
     if (wsData.temperature) {
-      setTemperature((prev) => {
-        const readings = prev ? [...prev.readings, wsData.temperature] : [wsData.temperature];
+      const newReading = wsData.temperature;
+      setTemperature((prev): TemperatureHistory => {
+        const readings = prev ? [...prev.readings, newReading] : [newReading];
 
         // Keep only the last N readings
         if (readings.length > opts.maxTempReadings) {

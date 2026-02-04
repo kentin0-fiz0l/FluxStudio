@@ -20,7 +20,7 @@ const mockTasks: Task[] = [
     id: '1',
     title: 'Design homepage mockups',
     description: 'Create initial design concepts for the new homepage',
-    status: 'in-progress',
+    status: 'in_progress',
     priority: 'high',
     assignedTo: 'user-1',
     dueDate: '2025-10-20',
@@ -135,11 +135,11 @@ describe('useTaskSearch Hook', () => {
     );
 
     act(() => {
-      result.current.toggleFilter('status', 'in-progress');
+      result.current.toggleFilter('status', 'in_progress');
     });
 
     expect(result.current.filteredTasks).toHaveLength(1);
-    expect(result.current.filteredTasks[0].status).toBe('in-progress');
+    expect(result.current.filteredTasks[0].status).toBe('in_progress');
   });
 
   it('should filter by multiple statuses', () => {
@@ -149,7 +149,7 @@ describe('useTaskSearch Hook', () => {
     );
 
     act(() => {
-      result.current.toggleFilter('status', 'in-progress');
+      result.current.toggleFilter('status', 'in_progress');
       result.current.toggleFilter('status', 'todo');
     });
 
@@ -223,7 +223,7 @@ describe('useTaskSearch Hook', () => {
     expect(result.current.activeFilterCount).toBe(0);
 
     act(() => {
-      result.current.toggleFilter('status', 'in-progress');
+      result.current.toggleFilter('status', 'in_progress');
       result.current.toggleFilter('priority', 'high');
     });
 
@@ -237,7 +237,7 @@ describe('useTaskSearch Hook', () => {
     );
 
     act(() => {
-      result.current.toggleFilter('status', 'in-progress');
+      result.current.toggleFilter('status', 'in_progress');
       result.current.toggleFilter('priority', 'high');
       result.current.updateFilter('query', 'test');
     });
@@ -264,7 +264,7 @@ describe('useTaskSearch Hook', () => {
     });
 
     expect(result.current.filters.assignedTo).toEqual(['user-1']);
-    expect(result.current.filters.status).toContain('in-progress');
+    expect(result.current.filters.status).toContain('in_progress');
   });
 
   it('should apply "high priority" preset', () => {
@@ -287,7 +287,7 @@ describe('useTaskSearch Hook', () => {
     );
 
     act(() => {
-      result.current.toggleFilter('status', 'in-progress');
+      result.current.toggleFilter('status', 'in_progress');
       result.current.toggleFilter('priority', 'high');
     });
 

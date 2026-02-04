@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (token) {
         const response = await apiService.getMe();
         if (response.success && response.data) {
-          setUser(response.data);
+          setUser(response.data as User);
         } else {
           // Clear invalid token
           localStorage.removeItem('auth_token');
@@ -175,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await apiService.getMe();
       if (response.success && response.data) {
-        setUser(response.data);
+        setUser(response.data as User);
       }
     } catch (error) {
       console.error('Failed to fetch user after setting token:', error);

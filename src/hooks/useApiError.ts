@@ -62,7 +62,7 @@ export function useApiError() {
     if (errorType === 'unauthorized' && redirectOn401) {
       localStorage.removeItem('auth_token');
       if (showToast) {
-        toast.error('Session expired', 'Please sign in again to continue.');
+        toast.error('Session expired. Please sign in again to continue.');
       }
       navigate('/login', { state: { from: window.location.pathname } });
       return;
@@ -71,28 +71,28 @@ export function useApiError() {
     // Handle 403 - show forbidden
     if (errorType === 'forbidden') {
       if (showToast) {
-        toast.error('Access denied', "You don't have permission to view this.");
+        toast.error("Access denied. You don't have permission to view this.");
       }
     }
 
     // Handle 500 - server error
     if (errorType === 'server_error') {
       if (showToast) {
-        toast.error('Server error', "We're having technical difficulties. Please try again.");
+        toast.error("Server error. We're having technical difficulties. Please try again.");
       }
     }
 
     // Handle network error
     if (errorType === 'network') {
       if (showToast) {
-        toast.error('Connection issue', 'Please check your internet connection.');
+        toast.error('Connection issue. Please check your internet connection.');
       }
     }
 
     // Handle timeout
     if (errorType === 'timeout') {
       if (showToast) {
-        toast.error('Request timed out', 'Please try again.');
+        toast.error('Request timed out. Please try again.');
       }
     }
 

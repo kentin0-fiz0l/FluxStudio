@@ -236,7 +236,7 @@ class WorkflowAutomationService {
           triggerId,
           timestamp: new Date(),
           success: false,
-          context: { error: error.message }
+          context: { error: error instanceof Error ? error.message : 'Unknown error' }
         });
       }
     }

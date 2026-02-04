@@ -181,7 +181,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
           if (team) {
             setCurrentTeam(team);
             setCurrentProject(null);
-            await fetchProjects(team.organizationId, id);
+            await fetchProjects(team.primaryOrganizationId, id);
           }
           break;
 
@@ -319,8 +319,9 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 
   // CRUD operations - Projects
   const createProject = async (data: Partial<Project>): Promise<Project> => {
-    const endpoint = data.teamId
-      ? `/teams/${data.teamId}/projects`
+    const teamId = data.primaryTeamId || data.teamIds?.[0];
+    const endpoint = teamId
+      ? `/teams/${teamId}/projects`
       : `/organizations/${data.organizationId}/projects`;
     const response = await apiCall(endpoint, {
       method: 'POST',

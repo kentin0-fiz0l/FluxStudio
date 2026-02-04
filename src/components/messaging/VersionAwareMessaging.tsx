@@ -173,27 +173,30 @@ const mockVersionThreads: VersionThread[] = [
     conversations: [
       {
         id: 'conv1',
-        title: 'Logo Design - Initial Concept',
+        name: 'Logo Design - Initial Concept',
+        type: 'project' as const,
         participants: [
-          { id: 'u1', name: 'Sarah Designer', userType: 'designer', avatar: '/mock/sarah.jpg' },
-          { id: 'u2', name: 'John Client', userType: 'client', avatar: '/mock/john.jpg' }
+          { id: 'u1', name: 'Sarah Designer', userType: 'designer' as const, avatar: '/mock/sarah.jpg' },
+          { id: 'u2', name: 'John Client', userType: 'client' as const, avatar: '/mock/john.jpg' }
         ],
         lastMessage: {
           id: 'msg1',
           content: 'Here\'s the initial logo concept with multiple color variations.',
-          authorId: 'u1',
-          author: { id: 'u1', name: 'Sarah Designer', userType: 'designer', avatar: '/mock/sarah.jpg' },
+          author: { id: 'u1', name: 'Sarah Designer', userType: 'designer' as const, avatar: '/mock/sarah.jpg' },
           createdAt: new Date('2024-01-15T10:00:00Z'),
+          updatedAt: new Date('2024-01-15T10:00:00Z'),
           conversationId: 'conv1',
-          messageType: 'text'
+          type: 'text' as const,
+          status: 'sent' as const,
+          isEdited: false
         },
+        metadata: { priority: 'medium', tags: ['design', 'logo'], isArchived: false, isMuted: false, isPinned: false },
+        lastActivity: new Date('2024-01-15T16:30:00Z'),
+        unreadCount: 0,
+        permissions: { canWrite: true, canAddMembers: true, canArchive: true, canDelete: true },
+        createdBy: { id: 'u1', name: 'Sarah Designer', userType: 'designer' as const },
         createdAt: new Date('2024-01-15T10:00:00Z'),
-        updatedAt: new Date('2024-01-15T16:30:00Z'),
-        type: 'project',
-        status: 'active',
-        priority: 'medium',
-        tags: ['design', 'logo', 'initial'],
-        projectId: 'proj1'
+        updatedAt: new Date('2024-01-15T16:30:00Z')
       }
     ],
     totalMessages: 12,

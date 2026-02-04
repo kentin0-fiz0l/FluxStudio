@@ -25,18 +25,7 @@ import {
   Plus,
   GripVertical,
 } from 'lucide-react';
-
-// Types
-interface Task {
-  id: string;
-  title: string;
-  status: 'todo' | 'in-progress' | 'review' | 'completed';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  assignedTo: string | null;
-  dueDate: string | null;
-  description?: string;
-  projectId?: string;
-}
+import type { Task } from '@/hooks/useTasks';
 
 interface KanbanBoardProps {
   projectId: string;
@@ -63,7 +52,7 @@ const COLUMNS: Column[] = [
     headerBg: 'bg-neutral-100 border-neutral-300',
   },
   {
-    id: 'in-progress',
+    id: 'in_progress',
     label: 'In Progress',
     color: 'bg-blue-50',
     headerBg: 'bg-blue-100 border-blue-300',
@@ -329,7 +318,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const tasksByStatus = useMemo(() => {
     const grouped: Record<Task['status'], Task[]> = {
       todo: [],
-      'in-progress': [],
+      in_progress: [],
       review: [],
       completed: [],
     };

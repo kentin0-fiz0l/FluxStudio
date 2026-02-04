@@ -101,7 +101,7 @@ const getStatusDisplay = (status: Task['status']) => {
       variant: 'default' as const,
       icon: Circle,
     },
-    'in-progress': {
+    in_progress: {
       label: 'In Progress',
       variant: 'info' as const,
       icon: Clock,
@@ -256,7 +256,7 @@ export const TaskSearch: React.FC<TaskSearchProps> = ({
       { key: 'my-tasks' as const, label: 'My Tasks', icon: User },
       { key: 'overdue' as const, label: 'Overdue', icon: AlertCircle },
       { key: 'high-priority' as const, label: 'High Priority', icon: Sparkles },
-      { key: 'in-progress' as const, label: 'In Progress', icon: Clock },
+      { key: 'in_progress' as const, label: 'In Progress', icon: Clock },
     ];
 
     return (

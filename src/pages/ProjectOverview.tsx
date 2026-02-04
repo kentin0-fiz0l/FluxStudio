@@ -390,10 +390,10 @@ export default function ProjectOverview() {
   const isDataLoading = projectLoading || messagesLoading || assetsLoading || aiSummaryState === 'loading';
   useMomentumStallNotification(projectId, {
     projectName: project?.name,
-    recentMessages,
-    projectAssets,
-    metmapSessions: songs,
-    snapshot,
+    recentMessages: recentMessages as unknown as Array<{ id: string; createdAt: string; [key: string]: unknown }>,
+    projectAssets: projectAssets as unknown as Array<{ id: string; createdAt: string; updatedAt?: string; [key: string]: unknown }>,
+    metmapSessions: songs as unknown as Array<{ id: string; createdAt: string; updatedAt?: string; [key: string]: unknown }>,
+    snapshot: snapshot as unknown as { openQuestions?: Array<{ text: string; [key: string]: unknown }>; aiEnabled?: boolean; [key: string]: unknown } | null,
     nextStepStates,
     isLoading: isDataLoading,
   });

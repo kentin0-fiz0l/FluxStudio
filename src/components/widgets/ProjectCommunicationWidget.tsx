@@ -301,9 +301,11 @@ function ActivityFeed({ projectId }: { projectId: string }) {
     conv.projectId === projectId || conv.type === 'project'
   );
 
-  // Get recent messages from project conversations
-  const recentMessages = projectConversations
-    .flatMap(conv => conversationMessages[conv.id] || [])
+  // conversationMessages is for the active conversation only (Message[])
+  // Filter to show only messages from project conversations
+  const projectConversationIds = new Set(projectConversations.map(c => c.id));
+  const recentMessages = conversationMessages
+    .filter(msg => projectConversationIds.has(msg.conversationId))
     .sort((a, b) => {
       const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime();
       const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime();

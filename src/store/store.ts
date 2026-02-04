@@ -40,14 +40,14 @@ export const useStore = create<FluxStore>()(
     subscribeWithSelector(
       persist(
         immer((...args) => ({
-          ...createAuthSlice(...args),
-          ...createProjectSlice(...args),
-          ...createUISlice(...args),
-          ...createMessagingSlice(...args),
-          ...createOfflineSlice(...args),
-          ...createCollaborationSlice(...args),
-          ...createTimelineSlice(...args),
-          ...createAISlice(...args),
+          ...createAuthSlice(...(args as Parameters<typeof createAuthSlice>)),
+          ...createProjectSlice(...(args as Parameters<typeof createProjectSlice>)),
+          ...createUISlice(...(args as Parameters<typeof createUISlice>)),
+          ...createMessagingSlice(...(args as Parameters<typeof createMessagingSlice>)),
+          ...createOfflineSlice(...(args as Parameters<typeof createOfflineSlice>)),
+          ...createCollaborationSlice(...(args as Parameters<typeof createCollaborationSlice>)),
+          ...createTimelineSlice(...(args as Parameters<typeof createTimelineSlice>)),
+          ...createAISlice(...(args as Parameters<typeof createAISlice>)),
         })),
         {
           name: 'fluxstudio-store',

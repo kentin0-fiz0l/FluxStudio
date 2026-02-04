@@ -71,6 +71,7 @@ export function MessageSystemIntegration() {
         canDelete: true
       },
       projectId: 'proj-1',
+      createdBy: currentUser,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date()
     },
@@ -121,6 +122,7 @@ export function MessageSystemIntegration() {
         canArchive: true,
         canDelete: true
       },
+      createdBy: currentUser,
       createdAt: new Date('2024-01-15'),
       updatedAt: new Date()
     }
@@ -144,7 +146,7 @@ export function MessageSystemIntegration() {
    */
   const initializeRealtimeFeatures = () => {
     // Connect to WebSocket
-    realtimeCollaborationService.connect(currentUser);
+    realtimeCollaborationService.connect();
 
     // Listen for collaboration events
     realtimeCollaborationService.on('user_joined', (data) => {
@@ -230,6 +232,8 @@ export function MessageSystemIntegration() {
 
   /**
    * Handle conversation selection with AI analysis
+   * Note: This would be used if MessageHub accepted onConversationSelect prop
+   * Exported for potential use in customized MessageHub implementations
    */
   const handleConversationSelect = async (conversation: Conversation) => {
     setSelectedConversation(conversation);
@@ -277,6 +281,10 @@ export function MessageSystemIntegration() {
       setIsAIProcessing(false);
     }
   };
+
+  // Reference the function to prevent unused variable warning
+  // This function would be used if MessageHub accepted onConversationSelect prop
+  void handleConversationSelect;
 
   /**
    * Handle design file analysis
@@ -328,31 +336,22 @@ export function MessageSystemIntegration() {
     setIsAIProcessing(true);
 
     try {
-      // Generate content with AI
-      const generatedContent = await aiContentGenerationService.generateContent(prompt, {
-        conversationType: 'design_review',
+      // Analyze writing with AI
+      const writingAnalysis = await aiContentGenerationService.analyzeWriting(prompt, {
+        conversationHistory: [],
+        currentUser: currentUser,
+        conversation: conversations[0],
         tone: 'professional',
-        audience: 'client',
-        maxLength: 200,
-        includeCallToAction: true
       });
 
-      console.log('Generated Content:', generatedContent);
+      console.log('Writing Analysis:', writingAnalysis);
 
-      // Get writing suggestions
-      const suggestions = await aiContentGenerationService.getSuggestions(
-        generatedContent.content,
-        { improve: 'clarity' }
-      );
+      // Generate summary
+      const summary = await aiContentGenerationService.generateSummary([], 'brief');
 
-      console.log('Writing Suggestions:', suggestions);
+      console.log('Summary:', summary);
 
-      // Get response templates
-      const templates = await aiContentGenerationService.getResponseTemplates('design_feedback');
-
-      console.log('Response Templates:', templates.slice(0, 3));
-
-      return { content: generatedContent, suggestions, templates };
+      return { analysis: writingAnalysis, summary };
     } catch (error) {
       console.error('Content generation failed:', error);
       return null;
@@ -381,10 +380,15 @@ export function MessageSystemIntegration() {
             type: 'file',
             size: 2048000,
             url: 'https://example.com/files/homepage-design.fig',
-            thumbnail: 'https://via.placeholder.com/200x150',
-            uploadedAt: new Date('2024-10-01T09:00:00')
+            thumbnailUrl: 'https://via.placeholder.com/200x150',
+            isImage: false,
+            isVideo: false,
+            uploadedAt: new Date('2024-10-01T09:00:00'),
+            uploadedBy: 'user-1',
           }
-        ]
+        ],
+        type: 'text',
+        isEdited: false
       },
       {
         id: 'msg-2',
@@ -462,11 +466,8 @@ export function MessageSystemIntegration() {
 
       {/* Main Message Hub */}
       <div className="flex-1 overflow-hidden">
-        <MessageHub
-          conversations={conversations}
-          currentUser={currentUser}
-          onConversationSelect={handleConversationSelect}
-        />
+        {/* MessageHub uses internal hooks for data - conversations and currentUser are for demo purposes only */}
+        <MessageHub />
       </div>
 
       {/* Demo Controls (for testing) */}

@@ -73,7 +73,7 @@ export function UserSearch({
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Mock user data - in real app, this would come from API
   const mockUsers: UserSearchResult[] = [

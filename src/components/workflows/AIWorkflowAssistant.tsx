@@ -85,11 +85,9 @@ export function AIWorkflowAssistant() {
               action: () => {
                 // Enable project setup automation
                 actions.addActivity({
-                  id: 'enable-project-automation',
                   type: 'automation_enabled',
                   title: 'Project setup automation enabled',
                   description: 'New projects will now be set up automatically',
-                  timestamp: new Date(),
                   userId: user?.id || '',
                   userName: user?.name || ''
                 });
@@ -298,11 +296,9 @@ export function AIWorkflowAssistant() {
 
     // Learn from dismissal
     actions.addActivity({
-      id: `suggestion-dismissed-${id}`,
       type: 'ai_feedback',
       title: 'AI suggestion dismissed',
       description: 'Learning from your preferences',
-      timestamp: new Date(),
       userId: user?.id || '',
       userName: user?.name || '',
       metadata: { suggestionId: id, action: 'dismissed' }
@@ -315,11 +311,9 @@ export function AIWorkflowAssistant() {
 
     // Learn from acceptance
     actions.addActivity({
-      id: `suggestion-accepted-${suggestion.id}`,
       type: 'ai_feedback',
       title: 'AI suggestion accepted',
       description: suggestion.title,
-      timestamp: new Date(),
       userId: user?.id || '',
       userName: user?.name || '',
       metadata: { suggestionId: suggestion.id, action: 'accepted' }

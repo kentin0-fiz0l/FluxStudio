@@ -293,7 +293,7 @@ export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOvervi
               </CardTitle>
               {unreadCountValue > 0 && (
                 <Badge variant="solidError" size="sm" aria-label={`${unreadCountValue} unread messages`}>
-                  {unreadCountValue > 99 ? '99+' : unreadCount} new
+                  {unreadCountValue > 99 ? '99+' : unreadCountValue} new
                 </Badge>
               )}
             </div>

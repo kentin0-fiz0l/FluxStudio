@@ -327,7 +327,7 @@ class TemplateService {
         name: template.name || 'New Project',
         description: template.description || '',
         variables: template.variables || [],
-        structure: template.structure,
+        structure: template.structure || {},
       },
       confidence: 0.85,
       alternatives: this.generateAlternatives(request),

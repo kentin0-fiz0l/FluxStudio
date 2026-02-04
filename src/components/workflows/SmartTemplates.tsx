@@ -195,11 +195,9 @@ export function SmartTemplates() {
 
       // Show notification
       actions.addActivity({
-        id: `workflow-started-${instance.id}`,
-        type: 'workflow_started',
+        type: 'automation_enabled',
         title: `Started ${template.name}`,
         description: `Workflow is now running`,
-        timestamp: new Date(),
         userId: user?.id || '',
         userName: user?.name || ''
       });

@@ -353,8 +353,8 @@ export function CollaborativeAnnotationTool({
       };
       setCurrentAnnotation(updatedAnnotation);
 
-      // Send live preview to other users
-      realtimeCollaborationService.sendAnnotationEvent('preview', conversationId, updatedAnnotation);
+      // Send live preview to other users (using 'update' for preview updates)
+      realtimeCollaborationService.sendAnnotationEvent('update', conversationId, updatedAnnotation);
       redrawCanvas();
     }
   };

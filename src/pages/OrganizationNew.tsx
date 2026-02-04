@@ -138,7 +138,7 @@ export function OrganizationNew() {
 
   return (
     <DashboardLayout
-      user={user}
+      user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
       breadcrumbs={[{ label: 'Organization' }]}
       onLogout={logout}
     >

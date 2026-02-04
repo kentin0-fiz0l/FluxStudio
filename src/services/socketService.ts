@@ -137,7 +137,7 @@ class SocketService {
       this.reconnectAttempts = 0;
 
       // Re-authenticate if we have a user
-      if (this.currentUserId) {
+      if (this.currentUserId && this.socket) {
         this.socket.emit('user:join', {
           userId: this.currentUserId
         });

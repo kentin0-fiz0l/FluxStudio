@@ -499,3 +499,24 @@ export const useBatchUpdateTasksMutation = (projectId: string) => {
     },
   });
 };
+
+/**
+ * Convenience wrapper for useTasksQuery
+ *
+ * Returns tasks data with a simplified interface:
+ * - tasks: Task[] | undefined
+ * - isLoading: boolean
+ * - error: Error | null
+ *
+ * @param projectId - The ID of the project to fetch tasks for
+ */
+export const useTasks = (projectId: string | undefined) => {
+  const query = useTasksQuery(projectId);
+
+  return {
+    tasks: query.data,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};

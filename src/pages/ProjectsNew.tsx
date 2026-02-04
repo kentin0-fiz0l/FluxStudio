@@ -37,6 +37,19 @@ import { BulkActionBar } from '../components/BulkActionBar';
 
 type ViewMode = 'grid' | 'list';
 type StatusFilter = 'all' | Project['status'];
+type CardStatus = 'active' | 'completed' | 'archived' | 'on-hold';
+
+// Map backend project status to ProjectCard status
+const mapProjectStatus = (status: Project['status']): CardStatus => {
+  const statusMap: Record<Project['status'], CardStatus> = {
+    planning: 'active',
+    in_progress: 'active',
+    on_hold: 'on-hold',
+    completed: 'completed',
+    cancelled: 'archived',
+  };
+  return statusMap[status];
+};
 
 export function ProjectsNew() {
   const { user, logout } = useAuth();
@@ -384,7 +397,7 @@ export function ProjectsNew() {
 
   return (
     <DashboardLayout
-      user={user}
+      user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
       breadcrumbs={[{ label: 'Projects' }]}
       onSearch={setSearchTerm}
       onLogout={logout}
@@ -572,7 +585,7 @@ export function ProjectsNew() {
                 </div>
 
                 <ProjectCard
-                  project={project}
+                  project={{ ...project, status: mapProjectStatus(project.status) }}
                   variant={viewMode === 'list' ? 'compact' : 'default'}
                   showActions
                   showProgress

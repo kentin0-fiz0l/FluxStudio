@@ -162,6 +162,7 @@ const historicalDataTemplate = (baseValue: number, trend: 'up' | 'down' | 'stabl
 
     data.push({
       date: dateStr,
+      actual: 0, // Future predictions have no actual value yet
       predicted: Math.round(predictedValue),
       upper: Math.round(predictedValue + variance),
       lower: Math.round(predictedValue - variance),

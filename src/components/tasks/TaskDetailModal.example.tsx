@@ -23,7 +23,7 @@ const mockTask: Task = {
   id: 'task_123',
   title: 'Design new landing page',
   description: '<p>Create a modern, responsive landing page with:</p><ul><li>Hero section</li><li>Feature showcase</li><li>Call-to-action</li></ul>',
-  status: 'in-progress',
+  status: 'in_progress',
   priority: 'high',
   assignedTo: 'user_1',
   dueDate: '2025-11-01T00:00:00Z',

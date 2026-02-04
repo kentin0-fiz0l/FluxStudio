@@ -161,7 +161,7 @@ export const AdvancedMessageSearch: React.FC<AdvancedMessageSearchProps> = ({
         lastActivity: new Date('2024-01-15T10:30:00'),
         unreadCount: 0,
         permissions: { canWrite: true, canAddMembers: true, canArchive: true, canDelete: true },
-        createdBy: 'user1',
+        createdBy: { id: 'user1', name: 'Sarah Chen', userType: 'designer' },
         createdAt: new Date('2024-01-10'),
         updatedAt: new Date('2024-01-15T10:30:00')
       },
@@ -224,7 +224,7 @@ export const AdvancedMessageSearch: React.FC<AdvancedMessageSearchProps> = ({
         lastActivity: new Date('2024-01-14T15:45:00'),
         unreadCount: 0,
         permissions: { canWrite: true, canAddMembers: true, canArchive: true, canDelete: true },
-        createdBy: 'user2',
+        createdBy: { id: 'user2', name: 'Mike Johnson', userType: 'designer' },
         createdAt: new Date('2024-01-08'),
         updatedAt: new Date('2024-01-14T15:45:00')
       },

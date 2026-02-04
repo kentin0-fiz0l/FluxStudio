@@ -19,7 +19,7 @@ export const BasicTaskSearchExample: React.FC = () => {
       id: '1',
       title: 'Design homepage mockups',
       description: 'Create initial design concepts for the new homepage',
-      status: 'in-progress',
+      status: 'in_progress',
       priority: 'high',
       assignedTo: 'user-1',
       dueDate: '2025-10-20',
@@ -174,12 +174,12 @@ export const NoURLSyncExample: React.FC = () => {
 // ============================================================================
 
 export const IntegratedExample: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([
+  const [tasks] = useState<Task[]>([
     {
       id: '1',
       title: 'Design homepage mockups',
       description: 'Create initial design concepts for the new homepage',
-      status: 'in-progress',
+      status: 'in_progress',
       priority: 'high',
       assignedTo: 'user-1',
       dueDate: '2025-10-20',
@@ -209,26 +209,6 @@ export const IntegratedExample: React.FC = () => {
   ];
 
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
-
-  const _handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
-    // Update task in state
-    setTasks(prev =>
-      prev.map(task =>
-        task.id === taskId
-          ? { ...task, ...updates, updatedAt: new Date().toISOString() }
-          : task
-      )
-    );
-  };
-
-  const _handleTaskDelete = async (taskId: string) => {
-    setTasks(prev => prev.filter(task => task.id !== taskId));
-  };
-
-  const _handleTaskCreate = () => {
-    // Open create modal or form
-    console.log('Create new task');
-  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">

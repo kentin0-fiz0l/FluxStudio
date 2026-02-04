@@ -74,7 +74,7 @@ export function SignupWizard() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signup, loginWithGoogle } = useAuth();
+  const { signup } = useAuth();
   const navigate = useNavigate();
 
   // Initialize Google OAuth
@@ -168,31 +168,6 @@ export function SignupWizard() {
       setIsLoading(false);
     }
   };
-
-  const _handleGoogleSignup = async (response: any) => {
-    setError('');
-    if (!response.credential) {
-      setError('Google authentication failed - no credential received');
-      return;
-    }
-
-    try {
-      await loginWithGoogle(response.credential);
-      setCurrentStep(3); // Skip to success
-      setTimeout(() => {
-        navigate('/onboarding');
-      }, 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google authentication failed');
-    }
-  };
-
-  const _handleGoogleError = (error?: any) => {
-    console.error('Google OAuth Error:', error);
-    setError('Google authentication failed - please try again');
-  };
-
-  const _progress = ((currentStep + 1) / steps.length) * 100;
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center px-4">

@@ -257,10 +257,10 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{job.fileName}</div>
-                      {job.projectName && (
+                      {job.project_name && (
                         <div className="flex items-center gap-1 text-xs text-gray-600 mt-1">
                           <Folder className="w-3 h-3" />
-                          <span className="truncate">{job.projectName}</span>
+                          <span className="truncate">{job.project_name}</span>
                         </div>
                       )}
                     </div>
@@ -276,7 +276,7 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
                       <div className="text-gray-600 text-xs">Duration</div>
                       <div className="flex items-center gap-1 mt-0.5">
                         <Clock className="w-3 h-3 text-gray-500" />
-                        {formatDuration(job.durationSeconds)}
+                        {formatDuration(job.duration_seconds)}
                       </div>
                     </div>
 

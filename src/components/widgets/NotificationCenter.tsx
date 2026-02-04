@@ -255,7 +255,7 @@ function NotificationItem({
                     className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
                       action.variant === 'primary'
                         ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : action.variant === 'destructive'
+                        : action.variant === 'danger'
                         ? 'bg-red-600 text-white hover:bg-red-700'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}

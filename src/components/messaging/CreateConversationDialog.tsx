@@ -146,11 +146,11 @@ export function CreateConversationDialog({
     try {
       // In a real app, this would fetch from an API
       // Enhanced mock data with more realistic users
-      const mockUsers: MessageUser[] = [
+      const mockUsers: MessageUser[] = ([
         {
           id: 'client-1',
           name: 'Director Johnson',
-          userType: 'client',
+          userType: 'client' as const,
           avatar: '/avatars/director.jpg',
           isOnline: true,
           lastSeen: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
@@ -158,7 +158,7 @@ export function CreateConversationDialog({
         {
           id: 'sarah-designer',
           name: 'Sarah Designer',
-          userType: 'designer',
+          userType: 'designer' as const,
           avatar: '/avatars/sarah.jpg',
           isOnline: true,
           lastSeen: new Date(),
@@ -166,7 +166,7 @@ export function CreateConversationDialog({
         {
           id: 'mike-client',
           name: 'Mike Thompson',
-          userType: 'client',
+          userType: 'client' as const,
           avatar: '/avatars/mike.jpg',
           isOnline: false,
           lastSeen: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
@@ -174,7 +174,7 @@ export function CreateConversationDialog({
         {
           id: 'admin-user',
           name: 'Admin User',
-          userType: 'admin',
+          userType: 'admin' as const,
           avatar: '/avatars/admin.jpg',
           isOnline: true,
           lastSeen: new Date(),
@@ -182,12 +182,12 @@ export function CreateConversationDialog({
         {
           id: 'project-manager',
           name: 'Lisa Martinez',
-          userType: 'designer',
+          userType: 'designer' as const,
           avatar: '/avatars/lisa.jpg',
           isOnline: false,
           lastSeen: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
         },
-      ].filter(user => user.id !== currentUser.id);
+      ] as MessageUser[]).filter(user => user.id !== currentUser.id);
 
       setAvailableUsers(mockUsers);
     } catch (error) {

@@ -164,7 +164,6 @@ export function useProjectPulse(): UseProjectPulseReturn {
         .filter(
           (task: Task) =>
             task.assignedTo === user.id &&
-            task.status !== 'done' &&
             task.status !== 'completed'
         )
         .forEach((task: Task) => {

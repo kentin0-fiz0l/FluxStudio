@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
+// @ts-expect-error - react-grid-layout types are provided by the package
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
@@ -240,7 +241,7 @@ export function DraggableWidgetGrid({
       </ResponsiveGridLayout>
 
       {/* Add custom styles for grid layout */}
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .react-grid-layout {
           position: relative;
         }
@@ -296,7 +297,7 @@ export function DraggableWidgetGrid({
           height: 100%;
           width: 100%;
         }
-      `}</style>
+      ` }} />
     </div>
   );
 }

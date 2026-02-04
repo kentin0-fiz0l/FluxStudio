@@ -5,14 +5,14 @@
  * Main layout component with sidebar navigation and header
  */
 
-import { useState } from 'react';
+import { useState, ReactElement } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from './hooks/useAdminAuth';
 
 interface NavItem {
   name: string;
   path: string;
-  icon: JSX.Element;
+  icon: ReactElement;
   requiredLevel?: number;
 }
 

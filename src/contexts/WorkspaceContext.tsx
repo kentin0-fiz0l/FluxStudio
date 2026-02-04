@@ -45,7 +45,7 @@ export interface WorkspaceState {
 
 export interface WorkspaceActivity {
   id: string;
-  type: 'message' | 'file_upload' | 'project_update' | 'conversation_created' | 'review_completed';
+  type: 'message' | 'file_upload' | 'project_update' | 'project_created' | 'conversation_created' | 'review_completed' | 'automation_enabled' | 'ai_feedback';
   title: string;
   description: string;
   timestamp: Date;

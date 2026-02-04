@@ -198,11 +198,20 @@ class SlackService {
     }
 
     try {
-      const result = await this.client.chat.postMessage({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const messageArgs: any = {
         channel,
         text,
-        ...options
-      });
+        thread_ts: options.thread_ts,
+        reply_broadcast: options.reply_broadcast,
+      };
+      if (options.blocks) {
+        messageArgs.blocks = options.blocks;
+      }
+      if (options.attachments) {
+        messageArgs.attachments = options.attachments;
+      }
+      const result = await this.client.chat.postMessage(messageArgs);
 
       return {
         channel: result.channel as string,
@@ -334,7 +343,7 @@ class SlackService {
    */
   async uploadFile(
     channels: string,
-    file: Buffer | NodeJS.ReadableStream,
+    file: Buffer | import('stream').Readable,
     filename: string,
     options: {
       title?: string;

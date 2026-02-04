@@ -35,7 +35,7 @@ export function Profile() {
 
   return (
     <DashboardLayout
-      user={user}
+      user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
       breadcrumbs={[{ label: 'Profile' }]}
       onLogout={logout}
     >

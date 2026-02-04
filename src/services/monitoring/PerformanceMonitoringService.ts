@@ -194,7 +194,7 @@ export class PerformanceMonitoringService {
 
           this.addMetric(
             'dom_content_loaded',
-            navigation.domContentLoadedEventEnd - navigation.navigationStart,
+            navigation.domContentLoadedEventEnd - navigation.startTime,
             'navigation'
           );
         }

@@ -28,10 +28,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
   workflowAutomationService,
   WorkflowTrigger,
-  AutomationSuggestion
+  AutomationSuggestion,
+  WorkflowContext
 } from '../../services/workflowAutomationService';
 import { Message, Conversation, MessageUser } from '../../types/messaging';
-import { WorkflowContext } from '../../services/workflowEngine';
 
 interface WorkflowAutomationPanelProps {
   conversation: Conversation;

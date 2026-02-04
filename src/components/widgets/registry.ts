@@ -206,7 +206,7 @@ export const WIDGET_REGISTRY: WidgetRegistry = {
     id: 'project-communication',
     title: 'Project Communication',
     description: 'Project-specific messaging, milestones, and file collaboration',
-    component: ProjectCommunicationWidget as React.ComponentType<WidgetProps>,
+    component: ProjectCommunicationWidget as unknown as React.ComponentType<WidgetProps>,
     category: 'collaboration',
     size: 'large',
     permissions: ['client', 'designer', 'admin'],

@@ -57,7 +57,7 @@ export function Signup() {
     setIsLoading(true);
 
     try {
-      await signup(email, password, name);
+      await signup(email, password, name, 'designer');
       navigate(callbackUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');

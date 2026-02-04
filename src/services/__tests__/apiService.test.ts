@@ -66,7 +66,7 @@ describe('ApiService', () => {
           })
         );
         expect(result.success).toBe(true);
-        expect(result.data.token).toBe('test-token');
+        expect((result.data as { token: string }).token).toBe('test-token');
       });
 
       it('should handle login failure', async () => {
@@ -215,7 +215,7 @@ describe('ApiService', () => {
         const result = await apiService.createOrganization({ name: 'New Org' });
 
         expect(result.success).toBe(true);
-        expect(result.data.name).toBe('New Org');
+        expect((result.data as { name: string }).name).toBe('New Org');
       });
     });
 
@@ -232,7 +232,7 @@ describe('ApiService', () => {
         const result = await apiService.updateOrganization('1', { name: 'Updated Org' });
 
         expect(result.success).toBe(true);
-        expect(result.data.name).toBe('Updated Org');
+        expect((result.data as { name: string }).name).toBe('Updated Org');
       });
     });
 
@@ -304,11 +304,12 @@ describe('ApiService', () => {
 
         const result = await apiService.createProject({
           name: 'New Project',
+          type: 'development',
           organizationId: 'org-1',
         });
 
         expect(result.success).toBe(true);
-        expect(result.data.name).toBe('New Project');
+        expect((result.data as { name: string }).name).toBe('New Project');
       });
     });
   });
@@ -429,12 +430,12 @@ describe('ApiService', () => {
           .mockResolvedValueOnce(mockResponse);
 
         const result = await apiService.sendMessage({
-          channelId: 'channel-1',
+          conversationId: 'conv-1',
           content: 'Test message',
         });
 
         expect(result.success).toBe(true);
-        expect(result.data.content).toBe('Test message');
+        expect((result.data as { content: string }).content).toBe('Test message');
       });
     });
   });
@@ -471,7 +472,7 @@ describe('ApiService', () => {
       await expect(apiService.getMe()).rejects.toThrow('Authentication required');
 
       // Cleanup
-      window.location = originalLocation;
+      (window as { location: Location }).location = originalLocation;
     });
 
     it('should handle timeout errors', async () => {
@@ -504,7 +505,7 @@ describe('ApiService', () => {
       const result = await apiService.healthCheck();
 
       expect(result.success).toBe(true);
-      expect(result.data.status).toBe('healthy');
+      expect((result.data as { status: string }).status).toBe('healthy');
     });
   });
 });

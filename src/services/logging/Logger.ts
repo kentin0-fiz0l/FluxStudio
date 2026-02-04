@@ -161,8 +161,8 @@ export class Logger {
    */
   private sendToRemote(entry: LogEntry): void {
     // Sentry integration
-    if (typeof window !== 'undefined' && (window as Window & { Sentry?: SentryLike }).Sentry) {
-      const Sentry = (window as Window & { Sentry: SentryLike }).Sentry;
+    if (typeof window !== 'undefined' && (window as unknown as Window & { Sentry?: SentryLike }).Sentry) {
+      const Sentry = (window as unknown as Window & { Sentry: SentryLike }).Sentry;
 
       if (entry.error) {
         Sentry.captureException(entry.error, {

@@ -11,13 +11,13 @@ import {
   Mic,
   MicOff,
   VideoOff,
-  Screen,
+  Monitor,
   MessageSquare,
   Eye,
   Volume2,
   VolumeX,
   PhoneOff,
-  Record,
+  Circle,
   StopCircle,
   Maximize2,
   Minimize2,
@@ -323,7 +323,7 @@ export function VisualCollaborationHub({
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'host': return Crown;
-      case 'presenter': return Screen;
+      case 'presenter': return Monitor;
       case 'reviewer': return Eye;
       case 'observer': return Users;
       default: return Users;
@@ -381,7 +381,7 @@ export function VisualCollaborationHub({
                 <MicOff className="w-4 h-4 text-gray-400" />
               )}
               {participant.isScreenSharing && (
-                <Screen className="w-4 h-4 text-blue-500" />
+                <Monitor className="w-4 h-4 text-blue-500" />
               )}
             </div>
           </div>
@@ -415,7 +415,7 @@ export function VisualCollaborationHub({
                   </span>
                   {session.isRecording && (
                     <Badge className="bg-red-600 text-white">
-                      <Record className="w-3 h-3 mr-1" />
+                      <Circle className="w-3 h-3 mr-1" />
                       Recording
                     </Badge>
                   )}
@@ -460,7 +460,7 @@ export function VisualCollaborationHub({
                   onClick={() => setViewMode('presentation')}
                   className="rounded-l-none"
                 >
-                  <Screen className="w-4 h-4" />
+                  <Monitor className="w-4 h-4" />
                 </Button>
               </div>
 
@@ -678,7 +678,7 @@ export function VisualCollaborationHub({
                   size="sm"
                   onClick={handleScreenShare}
                 >
-                  <Screen className="w-4 h-4" />
+                  <Monitor className="w-4 h-4" />
                 </Button>
               )}
 
@@ -714,7 +714,7 @@ export function VisualCollaborationHub({
                   {session.isRecording ? (
                     <StopCircle className="w-4 h-4" />
                   ) : (
-                    <Record className="w-4 h-4" />
+                    <Circle className="w-4 h-4" />
                   )}
                 </Button>
               )}

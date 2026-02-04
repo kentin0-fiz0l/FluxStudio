@@ -398,6 +398,7 @@ class ConversationInsightsService {
       return {
         id: mentionMatch[1],
         name: mentionMatch[1],
+        userType: 'designer' as const,
         email: `${mentionMatch[1]}@example.com`,
         avatar: ''
       };

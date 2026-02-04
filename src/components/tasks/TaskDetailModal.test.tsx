@@ -27,7 +27,7 @@ const mockTask: Task = {
   id: 'task_123',
   title: 'Test Task',
   description: '<p>Test description</p>',
-  status: 'in-progress',
+  status: 'in_progress',
   priority: 'high',
   assignedTo: 'user_1',
   dueDate: '2025-11-01T00:00:00Z',
@@ -207,7 +207,7 @@ describe('TaskDetailModal', () => {
 
     it('shows loading state while saving', async () => {
       const user = userEvent.setup();
-      const slowSave = vi.fn(() => new Promise((resolve) => setTimeout(resolve, 1000)));
+      const slowSave = vi.fn(() => new Promise((resolve) => setTimeout(resolve, 1000))) as unknown as (taskId: string | null, taskData: Partial<import('@/hooks/useTasks').Task>) => Promise<void>;
 
       render(<TaskDetailModal {...defaultProps} onSave={slowSave} />);
 
@@ -400,7 +400,7 @@ describe('TaskDetailModal', () => {
         expect(defaultProps.onSave).toHaveBeenCalledWith(
           'task_123',
           expect.objectContaining({
-            status: 'in-progress',
+            status: 'in_progress',
           })
         );
       });

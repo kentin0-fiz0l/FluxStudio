@@ -151,7 +151,7 @@ export function MediaPreview({
       case 'image':
         return (
           <EnhancedImageViewer
-            attachment={{ id: file.id, type: 'image', url: file.url, name: file.name, size: file.size || 0, mimeType: file.type || 'image/*', uploadedAt: new Date() }}
+            attachment={{ id: file.id, type: file.type || 'image/*', url: file.url, name: file.name, size: file.size || 0, isImage: true, isVideo: false, uploadedAt: new Date(), uploadedBy: 'user' }}
             className="w-full max-h-[70vh]"
           />
         );

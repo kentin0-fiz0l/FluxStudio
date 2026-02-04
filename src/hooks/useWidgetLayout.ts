@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useDebounce } from 'use-debounce';
-import { WidgetLayout, DashboardLayout } from '../components/widgets/types';
+import { DashboardLayout } from '../components/widgets/types';
+// @ts-expect-error - react-grid-layout types are provided by the package
 import { Layout } from 'react-grid-layout';
 
 interface WidgetLayoutHook {
@@ -157,7 +158,7 @@ export function useWidgetLayout(): WidgetLayoutHook {
             isResizable: lgLayout?.isResizable,
           };
         }),
-        breakpoints: layoutsToSave,
+        breakpoints: layoutsToSave as DashboardLayout['breakpoints'],
       };
 
       localStorage.setItem(getStorageKey(), JSON.stringify(dashboardLayout));

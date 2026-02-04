@@ -293,7 +293,7 @@ function ConversationItem({ conversation, isActive, onClick }: ConversationItemP
   );
 }
 
-export function MessagesWidget(_props: WidgetProps) {
+export function MessagesWidget(props: WidgetProps) {
   useNavigate(); // Reserved for navigation features
   const { user } = useAuth();
   const {

@@ -21,7 +21,7 @@ const mockTasks: Task[] = [
     id: '1',
     title: 'Design homepage mockups',
     description: 'Create initial design concepts for the new homepage with focus on user experience and accessibility',
-    status: 'in-progress',
+    status: 'in_progress',
     priority: 'high',
     assignedTo: 'alice-123',
     dueDate: '2025-10-20',
@@ -73,7 +73,7 @@ const mockTasks: Task[] = [
     id: '5',
     title: 'Optimize database queries',
     description: 'Improve database query performance by adding indexes and optimizing slow queries',
-    status: 'in-progress',
+    status: 'in_progress',
     priority: 'high',
     assignedTo: 'bob-456',
     dueDate: '2025-10-22',
@@ -299,7 +299,7 @@ export const TaskManagementPage: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-neutral-600">In Progress</p>
                 <p className="text-2xl font-bold text-info-600 mt-1">
-                  {tasks.filter(t => t.status === 'in-progress').length}
+                  {tasks.filter(t => t.status === 'in_progress').length}
                 </p>
               </div>
               <div>

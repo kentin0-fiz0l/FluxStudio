@@ -29,17 +29,6 @@ interface PreviewResult {
   head_branch: string;
 }
 
-interface LogsResult {
-  run_id: number;
-  name: string;
-  status: string;
-  conclusion: string | null;
-  html_url: string;
-  logs_url: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export class MCPClient {
   private ws: WebSocket | null = null;
   private url: string;

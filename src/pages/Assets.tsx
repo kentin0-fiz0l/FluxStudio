@@ -18,7 +18,7 @@
 
 import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import DashboardLayout from '../components/templates/DashboardLayout';
+import { DashboardLayout } from '../components/templates/DashboardLayout';
 import { useAssets, AssetRecord, AssetType } from '../contexts/AssetsContext';
 import { useFilesOptional } from '../contexts/FilesContext';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -345,10 +345,7 @@ export default function Assets() {
   };
 
   return (
-    <DashboardLayout
-      title="Assets"
-      description="Manage your creative assets with versioning and lineage tracking"
-    >
+    <DashboardLayout>
       <div className="space-y-6">
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

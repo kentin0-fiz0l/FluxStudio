@@ -137,7 +137,7 @@ const mockTeams: Team[] = [
 
 export function TeamNew() {
   const { user, logout } = useAuth();
-  const _navigate = useNavigate();
+  useNavigate(); // Reserved for navigation
 
   // State
   const [teams] = useState<Team[]>(mockTeams);
@@ -182,7 +182,7 @@ export function TeamNew() {
     email: member.email,
     avatar: member.avatar,
     role: member.role,
-    status: member.status
+    status: member.status === 'active' ? 'online' : member.status as 'offline' | 'away' | 'busy' | undefined
   });
 
   const getRoleIcon = (role: string) => {
@@ -222,7 +222,7 @@ export function TeamNew() {
 
   return (
     <DashboardLayout
-      user={user}
+      user={user || undefined}
       breadcrumbs={[{ label: 'Team' }]}
       onSearch={setSearchTerm}
       onLogout={logout}

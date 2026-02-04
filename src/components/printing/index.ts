@@ -19,6 +19,7 @@ export { default as ProjectPrintStats } from './ProjectPrintStats';
 export { QuickPrintDialog } from './QuickPrintDialog';
 
 // Re-export types for convenience
+// Note: ProjectPrintStats is exported as a component above, import type from @/types/printing
 export type {
   PrinterStatusCardProps,
   TemperatureMonitorProps,
@@ -28,7 +29,6 @@ export type {
   PrintJobRecord,
   PrintJobHistoryItem,
   ActivePrintJob,
-  ProjectPrintStats,
   PrintJobStatus,
   QuickPrintDialogProps,
   QuickPrintConfig,

@@ -130,9 +130,9 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
           }
         );
 
-        if (response.success) {
+        if (response.success && response.data) {
           setState('success');
-          setResult(response);
+          setResult(response.data);
 
           // Message parent window if popup
           if (popup) {

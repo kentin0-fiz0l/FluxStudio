@@ -69,6 +69,13 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
   const [messageAnalyses, setMessageAnalyses] = useState<Record<string, MessageAnalysis>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // Convert conversationMessages array to Record<string, Message[]> for compatibility
+  // This maps the active conversation's messages to its ID
+  const messagesByConversation = useMemo((): Record<string, Message[]> => {
+    if (!activeConversation) return {};
+    return { [activeConversation.id]: conversationMessages };
+  }, [activeConversation, conversationMessages]);
+
   // Analyze messages for intelligence features
   useEffect(() => {
     const analyzeAllMessages = async () => {
@@ -79,7 +86,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
 
       try {
         for (const conversation of conversations) {
-          const messages = conversationMessages[conversation.id] || [];
+          const messages = messagesByConversation[conversation.id] || [];
           for (const message of messages) {
             if (!newAnalyses[message.id]) {
               const analysis = await messageIntelligenceService.analyzeMessage(message, conversation);
@@ -96,7 +103,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
     };
 
     analyzeAllMessages();
-  }, [conversations, conversationMessages]);
+  }, [conversations, messagesByConversation]);
 
   // Smart context detection - enhanced grouping with AI insights
   const contextualConversations = useMemo(() => {
@@ -131,7 +138,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
           console.error('[EnhancedMessageHub] Invalid conversation in urgent filter:', conv);
           return false;
         }
-        const messages = conversationMessages[conv.id] || [];
+        const messages = messagesByConversation[conv.id] || [];
         return messages.some((msg: Message) => {
           if (!msg || !msg.id) {
             console.error('[EnhancedMessageHub] Invalid message in urgent filter for conv:', conv.id, msg);
@@ -149,7 +156,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
           console.error('[EnhancedMessageHub] Invalid conversation in pending filter:', conv);
           return false;
         }
-        const messages = conversationMessages[conv.id] || [];
+        const messages = messagesByConversation[conv.id] || [];
         return messages.some((msg: Message) => {
           if (!msg || !msg.id) {
             console.error('[EnhancedMessageHub] Invalid message in pending filter for conv:', conv.id, msg);
@@ -187,7 +194,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
       const lastActivity = new Date(conv.lastActivity);
 
       // Check for AI-detected urgency
-      const hasUrgentMessages = (conversationMessages[conv.id] || []).some((msg: Message) => {
+      const hasUrgentMessages = (messagesByConversation[conv.id] || []).some((msg: Message) => {
         if (!msg || !msg.id) {
           console.error('[EnhancedMessageHub] Invalid message in urgency check:', msg);
           return false;
@@ -197,7 +204,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
       });
 
       // Check for pending actions
-      const hasPendingActions = (conversationMessages[conv.id] || []).some((msg: Message) => {
+      const hasPendingActions = (messagesByConversation[conv.id] || []).some((msg: Message) => {
         if (!msg || !msg.id) {
           console.error('[EnhancedMessageHub] Invalid message in pending check:', msg);
           return false;
@@ -272,7 +279,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
     conversation: Conversation;
     isActive?: boolean;
   }) => {
-    const messages = conversationMessages[conversation.id] || [];
+    const messages = messagesByConversation[conversation.id] || [];
     const urgentCount = messages.filter((msg: Message) => {
       if (!msg || !msg.id) {
         console.error('[EnhancedMessageHub] Invalid message in urgentCount filter:', msg);
@@ -463,12 +470,8 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
     return date.toLocaleDateString();
   };
 
-  const handleResponseSelect = (response: string) => {
-    // This would integrate with the SmartComposer to populate the response
-    console.log('Selected response:', response);
-  };
-
-  const handleActionTrigger = (action: string, data?: any) => {
+  // Used by ConversationIntelligencePanel for workflow automation
+  const handleActionTrigger = (action: string, data?: unknown) => {
     // Handle workflow automation triggers
     console.log('Action triggered:', action, data);
   };
@@ -676,7 +679,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
             <div className="flex-1 p-6 overflow-y-auto">
               <ConversationIntelligencePanel
                 conversations={conversations}
-                messages={conversationMessages}
+                messages={messagesByConversation}
                 messageAnalyses={messageAnalyses}
                 currentUserId={user?.id || ''}
                 onConversationSelect={(id) => {
@@ -692,11 +695,8 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
               <div className="flex-1 overflow-hidden">
                 <VisualMessageThread
                   conversation={activeConversation}
-                  messages={conversationMessages[activeConversation.id] || []}
+                  messages={messagesByConversation[activeConversation.id] || []}
                   currentUser={user as MessageUser}
-                  messageAnalyses={messageAnalyses}
-                  onResponseSelect={handleResponseSelect}
-                  onActionTrigger={handleActionTrigger}
                 />
               </div>
 
@@ -760,7 +760,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
               <div className="p-4 h-full overflow-y-auto">
                 <ConversationIntelligencePanel
                   conversations={conversations}
-                  messages={conversationMessages}
+                  messages={messagesByConversation}
                   messageAnalyses={messageAnalyses}
                   currentUserId={user?.id || ''}
                   onConversationSelect={(id) => {
