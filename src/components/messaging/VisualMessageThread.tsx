@@ -70,12 +70,18 @@ export function VisualMessageThread({
     isConnected: _isConnected,
     syncStatus: _syncStatus,
     sendMessage: _sendMessage,
-    retryMessage: _retryMessage
+    retryMessage: _retryMessage,
   } = useRealtimeMessages({
     conversationId: conversation.id,
     currentUser,
     enabled: true
   });
+
+  // Suppress unused variable warnings - these are available for future use
+  void _isConnected;
+  void _syncStatus;
+  void _sendMessage;
+  void _retryMessage;
 
   // Use real-time messages or fallback to initial messages
   const messages = realtimeMessages.length > 0 ? realtimeMessages : initialMessages;
@@ -328,7 +334,7 @@ export function VisualMessageThread({
     isOwn: boolean;
     showAvatar: boolean;
   }) => {
-    const [reactions, _setReactions] = useState<MessageReaction[]>([
+    const [reactions] = useState<MessageReaction[]>([
       { emoji: '👍', count: 0, hasReacted: false, users: [] }
     ]);
 

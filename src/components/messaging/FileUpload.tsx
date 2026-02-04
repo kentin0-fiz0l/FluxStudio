@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -46,7 +46,7 @@ export function FileUpload({
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+  const onDrop = async (acceptedFiles: File[]) => {
     if (disabled) return;
 
     // Check max files
@@ -55,9 +55,10 @@ export function FileUpload({
       return;
     }
 
-    // Create file objects
-    const newFiles: UploadedFile[] = acceptedFiles.map(file => ({
-      id: Math.random().toString(36).substr(2, 9),
+    // Create file objects with unique IDs
+    const timestamp = Date.now();
+    const newFiles: UploadedFile[] = acceptedFiles.map((file, index) => ({
+      id: `${timestamp}-${index}-${file.name.replace(/\W/g, '')}`.slice(0, 20),
       file,
       preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
       progress: 0,
@@ -86,7 +87,7 @@ export function FileUpload({
             f.id === fileObj.id ? { ...f, status: 'success' } : f
           )
         );
-      } catch (error) {
+      } catch (_error) {
         setUploadedFiles(prev =>
           prev.map(f =>
             f.id === fileObj.id
@@ -102,10 +103,10 @@ export function FileUpload({
     // Call onUpload callback
     try {
       await onUpload(acceptedFiles);
-    } catch (error) {
-      console.error('Upload error:', error);
+    } catch (_error) {
+      console.error('Upload error');
     }
-  }, [uploadedFiles, disabled, maxFiles, onUpload]);
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

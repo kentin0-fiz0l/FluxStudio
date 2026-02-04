@@ -57,9 +57,13 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
     setActiveConversation,
     filterConversations,
     sendMessage,
-    createConversation: _createConversation,
-    isLoading: _isLoading
+    createConversation,
+    isLoading,
   } = useMessaging();
+
+  // Suppress unused variable warnings - available for future use
+  void createConversation;
+  void isLoading;
 
   const [viewMode, setViewMode] = useState<ViewMode>('unified');
   const [filterType, setFilterType] = useState<FilterType>('all');
@@ -273,7 +277,7 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
     });
 
     return grouped;
-  }, [conversations, searchQuery, filterType, conversationMessages, messageAnalyses]);
+  }, [conversations, searchQuery, filterType, messagesByConversation, messageAnalyses, filterConversations]);
 
   const ConversationCard = ({ conversation, isActive }: {
     conversation: Conversation;

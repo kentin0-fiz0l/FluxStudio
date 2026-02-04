@@ -100,9 +100,12 @@ export const truncateText = (text: string, maxLength: number): string => {
 
 /**
  * Generate a unique ID for pending items
+ * Note: This should only be called from event handlers, not during render
  */
+let tempIdCounter = 0;
 export const generateTempId = (): string => {
-  return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  tempIdCounter += 1;
+  return `temp_${Date.now()}_${tempIdCounter.toString(36)}`;
 };
 
 /**

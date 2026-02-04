@@ -1,4 +1,5 @@
-// @ts-nocheck - React Three Fiber JSX types are handled by the Canvas component
+// @ts-nocheck - React Three Fiber JSX intrinsic elements require global augmentation that conflicts with strict TS
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import {
   Float,
@@ -285,10 +286,10 @@ function ParticleField({ count = 50, scrollProgress }: { count?: number; scrollP
 
 // Main scene component
 function Scene({ scrollProgress }: { scrollProgress: number }) {
-  const { viewport } = useThree();
+  const { viewport: _viewport } = useThree();
   
-  // Generate positions for 3D objects
-  const generatePositions = (count: number) => {
+  // Generate positions for 3D objects using seeded random for stability
+  const [objects] = useState(() => {
     const positions: Array<{
       position: [number, number, number];
       geometry: string;
@@ -296,28 +297,26 @@ function Scene({ scrollProgress }: { scrollProgress: number }) {
       speed: number;
       intensity: number;
     }> = [];
-    
+
     const geometries = ['sphere', 'cube', 'octahedron', 'dodecahedron', 'icosahedron', 'tetrahedron'];
     const gradientColors = ['#FCD34D', '#EC4899', '#8B5CF6', '#06B6D4', '#10B981'];
-    
-    for (let i = 0; i < count; i++) {
+
+    for (let i = 0; i < 12; i++) {
       positions.push({
         position: [
-          (Math.random() - 0.5) * viewport.width * 1.5,
-          (Math.random() - 0.5) * viewport.height * 1.5,
-          (Math.random() - 0.5) * 15
+          (seededRandom(i * 10) - 0.5) * 20 * 1.5,
+          (seededRandom(i * 10 + 1) - 0.5) * 15 * 1.5,
+          (seededRandom(i * 10 + 2) - 0.5) * 15
         ] as [number, number, number],
-        geometry: geometries[Math.floor(Math.random() * geometries.length)],
-        color: gradientColors[Math.floor(Math.random() * gradientColors.length)],
-        speed: 0.5 + Math.random() * 1.5,
-        intensity: 0.5 + Math.random() * 1
+        geometry: geometries[Math.floor(seededRandom(i * 10 + 3) * geometries.length)],
+        color: gradientColors[Math.floor(seededRandom(i * 10 + 4) * gradientColors.length)],
+        speed: 0.5 + seededRandom(i * 10 + 5) * 1.5,
+        intensity: 0.5 + seededRandom(i * 10 + 6) * 1
       });
     }
-    
+
     return positions;
-  };
-  
-  const [objects] = useState(() => generatePositions(12));
+  });
   
   return (
     <>

@@ -141,8 +141,8 @@ export function DesignReviewWorkflow({
   const [isAddingAnnotation, setIsAddingAnnotation] = useState(false);
   const [annotationType, setAnnotationType] = useState<Annotation['type']>('comment');
   const [zoom, setZoom] = useState(1);
-  const [_isDragging, _setIsDragging] = useState(false);
-  const [panPosition, _setPanPosition] = useState({ x: 0, y: 0 });
+  const [, /* isDragging */] = useState(false);
+  const [panPosition] = useState({ x: 0, y: 0 });
   const [selectedAnnotation, setSelectedAnnotation] = useState<string | null>(null);
   const imageRef = useRef<HTMLDivElement>(null);
 
@@ -548,8 +548,9 @@ function AnnotationPanel({
 
   const handleAddReply = () => {
     if (replyContent.trim()) {
+      const timestamp = Date.now();
       const newReply: AnnotationReply = {
-        id: `reply-${Date.now()}`,
+        id: `reply-${timestamp}`,
         content: replyContent.trim(),
         author: {
           id: user?.id || '',
