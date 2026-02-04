@@ -11,6 +11,7 @@ import {
   TeamMember,
   ProjectMember
 } from '../types/organization';
+import { useAuth } from './AuthContext';
 
 interface OrganizationContextProps {
   // Current state
@@ -83,6 +84,8 @@ interface OrganizationContextProps {
 const OrganizationContext = createContext<OrganizationContextProps | undefined>(undefined);
 
 export function OrganizationProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated, user } = useAuth();
+
   // State management
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
@@ -143,7 +146,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 
   // Utility function for API calls
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers: {
@@ -367,7 +370,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       formData.append('metadata', JSON.stringify(metadata));
     }
 
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     const response = await fetch(`${API_BASE}/projects/${projectId}/files`, {
       method: 'POST',
       headers: {
@@ -433,10 +436,18 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     return apiCall(`/projects/${id}/members`);
   };
 
-  // Initialize data on mount
+  // Fetch organizations when user authenticates
   useEffect(() => {
-    fetchOrganizations();
-  }, []);
+    if (isAuthenticated && user) {
+      fetchOrganizations();
+    } else {
+      // Clear data when logged out
+      setOrganizations([]);
+      setCurrentOrganization(null);
+      setCurrentTeam(null);
+      setCurrentProject(null);
+    }
+  }, [isAuthenticated, user]);
 
   const contextValue: OrganizationContextProps = {
     // Current state
