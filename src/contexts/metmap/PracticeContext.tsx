@@ -59,7 +59,7 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await apiCall(`/api/metmap/songs/${state.currentSong.id}/practice-history`);
       dispatch({ type: 'SET_PRACTICE_HISTORY', payload: data.sessions });
-    } catch (error) {
+    } catch (_error) {
       dispatch({ type: 'SET_PRACTICE_HISTORY', payload: [] });
     }
   }, [token, state.currentSong, apiCall, dispatch]);
@@ -70,7 +70,7 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
     try {
       const stats = await apiCall('/api/metmap/stats');
       dispatch({ type: 'SET_STATS', payload: stats });
-    } catch (error) {
+    } catch (_error) {
       // Silently fail for stats
     }
   }, [token, apiCall, dispatch]);

@@ -144,7 +144,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
             break;
         }
       } catch (_error) {
-        console.error('Error loading data:', error);
+        console.error('Error loading data:', _error);
       } finally {
         setLoading(false);
       }
