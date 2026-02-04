@@ -278,16 +278,146 @@ router.get('/documents/:documentId/versions/:versionNumber', authenticateToken, 
 });
 
 /**
+ * Simple line-based diff algorithm
+ * Computes the differences between two text strings
+ */
+function computeTextDiff(text1, text2) {
+  const lines1 = text1.split('\n');
+  const lines2 = text2.split('\n');
+
+  const changes = [];
+  let i = 0;
+  let j = 0;
+
+  // Simple LCS-based diff
+  while (i < lines1.length || j < lines2.length) {
+    if (i >= lines1.length) {
+      // Remaining lines in text2 are additions
+      changes.push({ type: 'add', line: j + 1, content: lines2[j] });
+      j++;
+    } else if (j >= lines2.length) {
+      // Remaining lines in text1 are deletions
+      changes.push({ type: 'remove', line: i + 1, content: lines1[i] });
+      i++;
+    } else if (lines1[i] === lines2[j]) {
+      // Lines match - no change
+      changes.push({ type: 'unchanged', line: i + 1, content: lines1[i] });
+      i++;
+      j++;
+    } else {
+      // Lines differ - check if it's a modification or add/remove
+      // Look ahead to find matching lines
+      let foundInText2 = lines2.slice(j, j + 5).indexOf(lines1[i]);
+      let foundInText1 = lines1.slice(i, i + 5).indexOf(lines2[j]);
+
+      if (foundInText2 > 0 && (foundInText1 < 0 || foundInText2 <= foundInText1)) {
+        // Line from text1 found ahead in text2 - lines were added
+        changes.push({ type: 'add', line: j + 1, content: lines2[j] });
+        j++;
+      } else if (foundInText1 > 0) {
+        // Line from text2 found ahead in text1 - lines were removed
+        changes.push({ type: 'remove', line: i + 1, content: lines1[i] });
+        i++;
+      } else {
+        // Line was modified
+        changes.push({ type: 'remove', line: i + 1, content: lines1[i] });
+        changes.push({ type: 'add', line: j + 1, content: lines2[j] });
+        i++;
+        j++;
+      }
+    }
+  }
+
+  // Compute statistics
+  const stats = {
+    additions: changes.filter(c => c.type === 'add').length,
+    deletions: changes.filter(c => c.type === 'remove').length,
+    unchanged: changes.filter(c => c.type === 'unchanged').length
+  };
+
+  return { changes, stats };
+}
+
+/**
+ * Extract text content from Yjs document snapshot
+ * Handles common Yjs text structures
+ */
+function extractTextFromSnapshot(snapshot) {
+  if (!snapshot || !Buffer.isBuffer(snapshot)) {
+    return '';
+  }
+
+  try {
+    // Try to decode the snapshot and extract text
+    // Yjs snapshots are binary, so we need to decode them
+    const Y = require('yjs');
+    const ydoc = new Y.Doc();
+
+    // Apply the snapshot to the doc
+    Y.applyUpdate(ydoc, snapshot);
+
+    // Try to extract text from common structures
+    const ytext = ydoc.getText('content');
+    if (ytext && ytext.toString()) {
+      return ytext.toString();
+    }
+
+    // Try prosemirror/tiptap structure
+    const yxml = ydoc.getXmlFragment('prosemirror');
+    if (yxml) {
+      return extractTextFromXmlFragment(yxml);
+    }
+
+    return '';
+  } catch (error) {
+    console.warn('Could not extract text from snapshot:', error.message);
+    return '';
+  }
+}
+
+/**
+ * Extract text from Yjs XmlFragment (for Tiptap/Prosemirror docs)
+ */
+function extractTextFromXmlFragment(fragment) {
+  let text = '';
+
+  const traverse = (node) => {
+    if (!node) return;
+
+    if (typeof node === 'string') {
+      text += node;
+      return;
+    }
+
+    if (node.toString) {
+      const str = node.toString();
+      if (str && typeof str === 'string') {
+        text += str;
+      }
+    }
+
+    // Traverse children if available
+    if (node._content) {
+      for (const child of node._content) {
+        traverse(child);
+      }
+    }
+  };
+
+  traverse(fragment);
+  return text;
+}
+
+/**
  * GET /api/documents/:documentId/versions/:v1/diff/:v2
- * Get diff between two versions (TODO: Implement text comparison)
+ * Get diff between two versions
  */
 router.get('/documents/:documentId/versions/:v1/diff/:v2', authenticateToken, async (req, res) => {
   try {
     const { documentId, v1, v2 } = req.params;
     const userId = req.user.id;
 
-    // TODO: Load both versions, apply to Yjs docs, extract text, calculate diff
-    // For now, return version metadata
+    // Get version metadata
     const versions = await documentsAdapter.getDocumentVersions(documentId, userId, {
       limit: 100,
       offset: 0
@@ -303,12 +433,52 @@ router.get('/documents/:documentId/versions/:v1/diff/:v2', authenticateToken, as
       });
     }
 
+    // Load both version snapshots
+    let text1 = '';
+    let text2 = '';
+
+    try {
+      const snapshot1 = await documentsAdapter.getVersionSnapshot(
+        documentId,
+        parseInt(v1),
+        userId
+      );
+      text1 = extractTextFromSnapshot(snapshot1);
+    } catch (err) {
+      console.warn(`Could not load snapshot for version ${v1}:`, err.message);
+    }
+
+    try {
+      const snapshot2 = await documentsAdapter.getVersionSnapshot(
+        documentId,
+        parseInt(v2),
+        userId
+      );
+      text2 = extractTextFromSnapshot(snapshot2);
+    } catch (err) {
+      console.warn(`Could not load snapshot for version ${v2}:`, err.message);
+    }
+
+    // Compute diff
+    const diff = computeTextDiff(text1, text2);
+
     res.json({
       success: true,
       diff: {
-        v1: version1,
-        v2: version2,
-        note: 'Diff computation not yet implemented - returns version metadata only'
+        v1: {
+          versionNumber: version1.versionNumber,
+          createdAt: version1.createdAt,
+          createdBy: version1.createdBy,
+          textLength: text1.length
+        },
+        v2: {
+          versionNumber: version2.versionNumber,
+          createdAt: version2.createdAt,
+          createdBy: version2.createdBy,
+          textLength: text2.length
+        },
+        changes: diff.changes,
+        stats: diff.stats
       }
     });
   } catch (error) {

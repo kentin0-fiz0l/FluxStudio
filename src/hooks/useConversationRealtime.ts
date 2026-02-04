@@ -57,7 +57,7 @@ interface UseConversationRealtimeOptions {
   onThreadSummaryUpdate?: (data: ThreadSummary & { conversationId: string }) => void;
 }
 
-interface UseConversationRealtimeReturn {
+export interface UseConversationRealtimeReturn {
   // Connection state
   isConnected: boolean;
 

@@ -990,12 +990,29 @@ app.get('/media/transcode/:fileId', authenticateToken, async (req, res) => {
   }
 });
 
-// Admin endpoint: Monitor all in-progress transcoding jobs
-app.post('/media/monitor-jobs', authenticateToken, async (req, res) => {
-  try {
-    // TODO: Add admin check middleware
-    // For now, restrict to specific user emails or admin role
+/**
+ * Middleware to verify user has admin role
+ * Checks JWT role claim for 'admin', 'moderator', or 'analyst'
+ */
+const requireAdmin = (req, res, next) => {
+  const userRole = req.user?.role;
 
+  // Check if user has an admin role
+  const adminRoles = ['admin', 'moderator', 'analyst'];
+  if (!userRole || !adminRoles.includes(userRole)) {
+    return res.status(403).json({
+      success: false,
+      error: 'Admin access required',
+      code: 'ADMIN_REQUIRED'
+    });
+  }
+
+  next();
+};
+
+// Admin endpoint: Monitor all in-progress transcoding jobs
+app.post('/media/monitor-jobs', authenticateToken, requireAdmin, async (req, res) => {
+  try {
     const result = await transcodingService.monitorJobs();
 
     res.json({
@@ -1033,8 +1050,36 @@ app.get('/media/:fileId/manifest', authenticateToken, async (req, res) => {
 
     // Check access permissions
     if (!file.is_public && file.uploaded_by !== req.user.id) {
-      // TODO: Check organization/project membership
-      return res.status(403).json({ error: 'Access denied' });
+      // Check organization/project membership
+      const membershipCheck = await query(
+        `SELECT 1 FROM (
+          -- Check if user is a member of a project that has this file
+          SELECT 1 FROM project_members pm
+          JOIN files f ON f.project_id = pm.project_id
+          WHERE f.id = $1 AND pm.user_id = $2
+
+          UNION
+
+          -- Check if user is a member of the organization that owns the project
+          SELECT 1 FROM organization_members om
+          JOIN projects p ON p.organization_id = om.organization_id
+          JOIN files f ON f.project_id = p.id
+          WHERE f.id = $1 AND om.user_id = $2
+
+          UNION
+
+          -- Check if user owns the project directly
+          SELECT 1 FROM projects p
+          JOIN files f ON f.project_id = p.id
+          WHERE f.id = $1 AND p.owner_id = $2
+        ) AS access_check
+        LIMIT 1`,
+        [fileId, req.user.id]
+      );
+
+      if (membershipCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
     }
 
     if (!file.hls_manifest_url) {

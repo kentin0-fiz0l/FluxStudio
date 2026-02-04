@@ -66,12 +66,76 @@ class GitHubSyncService {
   }
 
   /**
-   * Decrypt access token (placeholder - implement based on your encryption method)
+   * Decrypt access token using AES-256-GCM
+   * Compatible with the encryption used in oauth-manager.js
    */
   decryptToken(encryptedToken) {
-    // TODO: Implement decryption based on your encryption method
-    // For now, assuming tokens might be stored as-is or need decryption
+    // If token is not a Buffer, it may be stored as plaintext (legacy)
+    if (!encryptedToken) return null;
+    if (typeof encryptedToken === 'string') {
+      // Check if it's a base64-encoded encrypted token or plaintext
+      // Legacy tokens are stored as plaintext strings
+      if (!encryptedToken.includes('gho_') && !encryptedToken.includes('ghp_')) {
+        // Try to decode as base64 Buffer
+        try {
+          const buffer = Buffer.from(encryptedToken, 'base64');
+          if (buffer.length > 32) {
+            // Likely encrypted, try to decrypt
+            return this.decryptBuffer(buffer);
+          }
+        } catch {
+          // Not valid base64, return as-is (plaintext token)
+        }
+      }
+      return encryptedToken;
+    }
+
+    // If it's a Buffer, decrypt it
+    if (Buffer.isBuffer(encryptedToken)) {
+      return this.decryptBuffer(encryptedToken);
+    }
+
     return encryptedToken;
+  }
+
+  /**
+   * Decrypt a Buffer using AES-256-GCM
+   * Format: [16 bytes IV][16 bytes Auth Tag][encrypted data]
+   */
+  decryptBuffer(encryptedBuffer) {
+    const crypto = require('crypto');
+
+    // Get encryption key from environment
+    const encryptionKey = process.env.OAUTH_ENCRYPTION_KEY;
+    if (!encryptionKey || encryptionKey.length < 32) {
+      console.warn('[GitHubSyncService] OAUTH_ENCRYPTION_KEY not set, assuming plaintext token');
+      return encryptedBuffer.toString('utf8');
+    }
+
+    try {
+      // Derive a 32-byte key from the encryption key
+      const key = crypto.createHash('sha256').update(encryptionKey).digest();
+
+      // Extract components from encrypted data
+      // Format: [16 bytes IV][16 bytes Auth Tag][encrypted data]
+      const iv = encryptedBuffer.slice(0, 16);
+      const authTag = encryptedBuffer.slice(16, 32);
+      const encrypted = encryptedBuffer.slice(32);
+
+      // Create decipher
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      decipher.setAuthTag(authTag);
+
+      // Decrypt the token
+      let decrypted = decipher.update(encrypted);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+
+      return decrypted.toString('utf8');
+    } catch (error) {
+      console.error('[GitHubSyncService] Token decryption error:', error.message);
+      // Fall back to treating as plaintext if decryption fails
+      return encryptedBuffer.toString('utf8');
+    }
   }
 
   /**

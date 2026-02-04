@@ -35,6 +35,8 @@ import { ConversationMessage } from '../services/messagingSocketService';
 import {
   useNewConversation,
   useFileUpload,
+  useMessageTransformers,
+  useMessageHandlers,
 } from '../hooks/messaging';
 import {
   X,
@@ -61,7 +63,6 @@ import {
   ChatSidebar,
   ChatHeader,
   MessageListView,
-  getInitials,
 } from '../components/messaging';
 import type { MessageListViewRef } from '../components/messaging';
 
@@ -144,20 +145,30 @@ function MessagesNew() {
   });
 
   // ========================================
+  // MESSAGE TRANSFORMERS (Phase 4.2)
+  // ========================================
+  const {
+    transformSummaryToConversation,
+    transformRealtimeMessage,
+  } = useMessageTransformers({
+    userId: user?.id,
+    pinnedMessageIds: realtime.pinnedMessageIds,
+    typingUsers: realtime.typingUsers,
+  });
+
+  // Compute messages early so useMessageHandlers can use them
+  const messages: Message[] = useMemo(() =>
+    realtime.messages.map(transformRealtimeMessage),
+    [realtime.messages, transformRealtimeMessage]
+  );
+
+  // ========================================
   // LOCAL UI STATE
   // ========================================
-  const [newMessage, setNewMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<ConversationFilter>('all');
   const [showMobileChat, setShowMobileChat] = useState(false);
-  const [replyTo, setReplyTo] = useState<Message['replyTo'] | undefined>();
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [editingDraft, setEditingDraft] = useState<string>('');
-  const [forwardSourceMessage, setForwardSourceMessage] = useState<Message | null>(null);
-  const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
-  const [forwardTargetConversationId, setForwardTargetConversationId] = useState<string | null>(null);
   const [showPinnedMessages, setShowPinnedMessages] = useState(false);
-  const [isSending, setIsSending] = useState(false);
   const [showMessageSearch, setShowMessageSearch] = useState(false);
 
   // Additional thread panel state
@@ -166,11 +177,6 @@ function MessagesNew() {
 
   // Summary panel state
   const [isSummaryPanelOpen, setIsSummaryPanelOpen] = useState(false);
-
-  // Typing debounce refs
-  const lastTypingSentRef = useRef<number>(0);
-  const isTypingRef = useRef<boolean>(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Thread micro-hint (shown for first-time users)
   const THREAD_MICRO_HINT_KEY = 'fx_message_thread_hint_dismissed_v1';
@@ -208,6 +214,42 @@ function MessagesNew() {
     handleFileDrop,
     handleRemoveAttachment,
   } = useFileUpload({ conversationId: selectedConversationId });
+
+  // Message handlers hook (Phase 4.2)
+  const {
+    newMessage,
+    replyTo,
+    editingMessageId,
+    editingDraft,
+    isSending,
+    forwardSourceMessage,
+    isForwardModalOpen,
+    forwardTargetConversationId,
+    setReplyTo,
+    setEditingDraft,
+    setForwardTargetConversationId,
+    setIsForwardModalOpen,
+    handleSendMessage,
+    handleInputChange,
+    handleReply,
+    handleReact,
+    handlePinMessage,
+    handleCopyMessage,
+    handleStartEdit,
+    handleSubmitEdit,
+    handleCancelEdit,
+    handleDeleteMessage,
+    handleStartForward,
+    handleConfirmForward,
+    handleCancelForward,
+  } = useMessageHandlers({
+    selectedConversationId,
+    messages,
+    userId: user?.id,
+    realtime,
+    pendingAttachments,
+    setPendingAttachments,
+  });
 
   // New conversation hook
   const {
@@ -287,104 +329,7 @@ function MessagesNew() {
   }, [loadConversations]);
 
   // NOTE: User fetching for new conversations is now handled by useNewConversation hook
-
-  // ========================================
-  // TRANSFORM DATA FOR UI
-  // ========================================
-
-  // Transform ConversationListItem to Conversation for UI
-  const transformSummaryToConversation = useCallback((summary: ConversationListItem): Conversation => {
-    const members = summary.members || [];
-    const otherMember = members.find(m => m.userId !== user?.id) || members[0];
-    const otherUser = otherMember?.user;
-
-    return {
-      id: summary.id,
-      title: summary.name || otherUser?.name || otherUser?.email?.split('@')[0] || 'Conversation',
-      type: summary.isGroup ? 'group' : 'direct',
-      participant: {
-        id: otherUser?.id || otherMember?.userId || '',
-        name: otherUser?.name || otherUser?.email?.split('@')[0] || 'Unknown',
-        initials: getInitials(otherUser?.name || otherUser?.email?.split('@')[0] || 'U'),
-        isOnline: false,
-      },
-      participants: members.map(m => ({
-        id: m.user?.id || m.userId,
-        name: m.user?.name || m.user?.email?.split('@')[0] || 'Unknown',
-        initials: getInitials(m.user?.name || m.user?.email?.split('@')[0] || 'U'),
-        isOnline: false,
-      })),
-      lastMessage: summary.lastMessagePreview ? {
-        id: '',
-        content: summary.lastMessagePreview,
-        author: { id: '', name: '', initials: '' },
-        timestamp: summary.lastMessageAt ? new Date(summary.lastMessageAt) : new Date(),
-        isCurrentUser: false,
-      } : undefined,
-      unreadCount: summary.unreadCount || 0,
-      isPinned: false,
-      isArchived: false,
-      isMuted: false,
-      isTyping: realtime.typingUsers.some(t => t.conversationId === summary.id),
-      typingUsers: realtime.typingUsers
-        .filter(t => t.conversationId === summary.id)
-        .map(t => t.userEmail),
-      // Project context
-      projectId: summary.projectId || null,
-      projectName: summary.projectName || null,
-    };
-  }, [user?.id, realtime.typingUsers]);
-
-  // Transform ConversationMessage to Message for UI
-  const transformRealtimeMessage = useCallback((msg: ConversationMessage): Message => {
-    // Get user ID from different possible fields
-    const authorId = msg.authorId || msg.userId || '';
-    // Get content from different possible fields
-    const content = msg.content || msg.text || '';
-    // Get author name from different possible sources
-    const authorName = msg.author?.displayName || msg.author?.email?.split('@')[0] || msg.userName || 'Unknown';
-
-    return {
-      id: msg.id,
-      content,
-      author: {
-        id: authorId,
-        name: authorName,
-        initials: getInitials(authorName || 'U'),
-        isOnline: false,
-        avatar: msg.userAvatar,
-      },
-      timestamp: new Date(msg.createdAt),
-      isCurrentUser: authorId === user?.id,
-      status: 'sent',
-      isEdited: !!msg.editedAt,
-      editedAt: msg.editedAt ? new Date(msg.editedAt) : undefined,
-      isDeleted: false,
-      replyTo: msg.replyToMessageId ? {
-        id: msg.replyToMessageId,
-        content: '',
-        author: { id: '', name: '', initials: '' },
-      } : undefined,
-      attachments: [],
-      asset: msg.asset ? {
-        id: msg.asset.id,
-        name: msg.asset.name,
-        kind: msg.asset.kind,
-        ownerId: msg.asset.ownerId,
-        organizationId: msg.asset.organizationId,
-        description: msg.asset.description,
-        createdAt: msg.asset.createdAt,
-        file: msg.asset.file,
-      } : undefined,
-      reactions: msg.reactions || [],
-      isPinned: realtime.pinnedMessageIds.includes(msg.id),
-      isForwarded: false,
-      isSystemMessage: msg.isSystemMessage,
-      threadReplyCount: msg.threadReplyCount,
-      threadRootMessageId: msg.threadRootMessageId,
-      threadLastReplyAt: msg.threadLastReplyAt ? new Date(msg.threadLastReplyAt) : undefined,
-    };
-  }, [user?.id, realtime.pinnedMessageIds]);
+  // NOTE: Transform functions now provided by useMessageTransformers hook (Phase 4.2)
 
   // Transformed data for UI
   const conversations: Conversation[] = useMemo(() =>
@@ -396,11 +341,6 @@ function MessagesNew() {
     const summary = conversationSummaries.find(c => c.id === selectedConversationId);
     return summary ? transformSummaryToConversation(summary) : null;
   }, [conversationSummaries, selectedConversationId, transformSummaryToConversation]);
-
-  const messages: Message[] = useMemo(() =>
-    realtime.messages.map(transformRealtimeMessage),
-    [realtime.messages, transformRealtimeMessage]
-  );
 
   // Message lookup map for finding parent messages (used for reply threading)
   const messageById = useMemo(
@@ -554,162 +494,7 @@ function MessagesNew() {
   }, [selectedConversationId]);
 
   // NOTE: Deep-link highlight useEffect is placed after handleJumpToMessage definition below
-
-  // ========================================
-  // MESSAGE HANDLERS (WebSocket based)
-  // ========================================
-
-  const handleSendMessage = async () => {
-    // Get uploaded attachments (those with assetId and no error)
-    const uploadedAttachments = pendingAttachments.filter(a => a.assetId && !a.error && !a.uploading);
-    const hasText = newMessage.trim().length > 0;
-    const hasAttachments = uploadedAttachments.length > 0;
-
-    // Need either text or attachments
-    if ((!hasText && !hasAttachments) || !selectedConversationId || isSending) return;
-
-    setIsSending(true);
-    try {
-      // Send attachments first (one message per attachment)
-      for (let i = 0; i < uploadedAttachments.length; i++) {
-        const attachment = uploadedAttachments[i];
-        // For the first attachment, include any text
-        const messageText = (i === 0 && hasText) ? newMessage.trim() : '';
-
-        realtime.sendMessage(messageText, {
-          replyToMessageId: i === 0 ? replyTo?.id : undefined,
-          assetId: attachment.assetId,
-        });
-      }
-
-      // If we have text but no attachments, send text-only message
-      if (hasText && !hasAttachments) {
-        realtime.sendMessage(newMessage.trim(), {
-          replyToMessageId: replyTo?.id,
-        });
-      }
-
-      // Clear state
-      setNewMessage('');
-      setReplyTo(undefined);
-      // Clean up pending attachments (revoke object URLs)
-      pendingAttachments.forEach(a => {
-        if (a.preview) URL.revokeObjectURL(a.preview);
-      });
-      setPendingAttachments([]);
-      // Stop typing indicator
-      realtime.stopTyping();
-    } catch (error) {
-      console.error('Failed to send message:', error);
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  // Handle typing indicator with debouncing (max 1 event per second)
-  const handleInputChange = (value: string) => {
-    setNewMessage(value);
-
-    // Start typing indicator with debouncing
-    if (value.trim()) {
-      const now = Date.now();
-      // Only send typing event at most once per second
-      if (now - lastTypingSentRef.current > 1000) {
-        realtime.startTyping();
-        lastTypingSentRef.current = now;
-        isTypingRef.current = true;
-      }
-
-      // Clear previous timeout
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-
-      // Stop typing after 5 seconds of no input
-      typingTimeoutRef.current = setTimeout(() => {
-        if (isTypingRef.current) {
-          realtime.stopTyping();
-          isTypingRef.current = false;
-        }
-      }, 5000);
-    } else {
-      // Text cleared - stop typing immediately
-      if (isTypingRef.current) {
-        realtime.stopTyping();
-        isTypingRef.current = false;
-      }
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    }
-  };
-
-  const handleReply = (message: Message) => {
-    setReplyTo({
-      id: message.id,
-      content: message.content,
-      author: message.author
-    });
-    // Scroll composer into view
-    setTimeout(() => {
-      composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 100);
-  };
-
-  const handleReact = async (messageId: string, emoji: string) => {
-    // Find the message to check if user has already reacted
-    const msg = messages.find(m => m.id === messageId);
-    const reactions = msg?.reactions || [];
-    const existingReaction = reactions.find(r => r.emoji === emoji);
-    const hasUserReacted = existingReaction?.userIds?.includes(user?.id || '') || false;
-
-    if (hasUserReacted) {
-      realtime.removeReaction(messageId, emoji);
-    } else {
-      realtime.addReaction(messageId, emoji);
-    }
-  };
-
-  const handlePinMessage = async (messageId: string) => {
-    // Check if message is already pinned
-    const isPinned = realtime.pinnedMessageIds.includes(messageId);
-    if (isPinned) {
-      realtime.unpinMessage(messageId);
-    } else {
-      realtime.pinMessage(messageId);
-    }
-  };
-
-  const handleCopyMessage = async (messageId: string) => {
-    const msg = messages.find(m => m.id === messageId);
-    if (!msg?.content) return;
-    try {
-      await navigator.clipboard.writeText(msg.content);
-      // Could add a toast notification here
-    } catch (err) {
-      console.error('Failed to copy message:', err);
-    }
-  };
-
-  // Start editing a message
-  const handleStartEdit = (message: Message) => {
-    setEditingMessageId(message.id);
-    setEditingDraft(message.content || '');
-  };
-
-  // Submit edited message
-  const handleSubmitEdit = () => {
-    if (!editingMessageId || !editingDraft.trim()) return;
-    realtime.editMessage(editingMessageId, editingDraft.trim());
-    setEditingMessageId(null);
-    setEditingDraft('');
-  };
-
-  // Cancel editing
-  const handleCancelEdit = () => {
-    setEditingMessageId(null);
-    setEditingDraft('');
-  };
+  // NOTE: Message handlers (send, reply, edit, delete, react, pin, forward) now provided by useMessageHandlers hook (Phase 4.2)
 
   // Jump to original message (for reply threading)
   const handleJumpToMessage = useCallback((messageId: string) => {
@@ -765,39 +550,6 @@ function MessagesNew() {
     }
     setShowMessageSearch(false);
   }, [selectedConversationId, handleJumpToMessage]);
-
-  const handleDeleteMessage = async (messageId: string) => {
-    if (!selectedConversationId) return;
-    try {
-      realtime.deleteMessage(messageId);
-    } catch (error) {
-      console.error('Failed to delete message:', error);
-    }
-  };
-
-  // Start forward flow - open modal
-  const handleStartForward = (message: Message) => {
-    setForwardSourceMessage(message);
-    setForwardTargetConversationId(null);
-    setIsForwardModalOpen(true);
-  };
-
-  // Confirm forward - send to selected conversation
-  const handleConfirmForward = () => {
-    if (!forwardSourceMessage || !forwardTargetConversationId) return;
-
-    realtime.forwardMessage(forwardTargetConversationId, forwardSourceMessage.id);
-    setIsForwardModalOpen(false);
-    setForwardSourceMessage(null);
-    setForwardTargetConversationId(null);
-  };
-
-  // Close forward modal
-  const handleCancelForward = () => {
-    setIsForwardModalOpen(false);
-    setForwardSourceMessage(null);
-    setForwardTargetConversationId(null);
-  };
 
   // ========================================
   // THREAD HANDLERS
