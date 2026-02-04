@@ -3,7 +3,7 @@
  * Lazy loading, responsive images, blur placeholder, and caching
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ImageIcon, AlertCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -46,24 +46,34 @@ export function OptimizedImage({
 }: OptimizedImageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [imageSrc, setImageSrc] = useState<string>(
-    blurPlaceholder ? generateBlurPlaceholder(src) : ''
-  );
 
-  const imgRef = useRef<HTMLImageElement>(null);
-  const observerRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
-    if (!imgRef.current) return;
-
-    // Priority images load immediately
+  // Compute initial image source - priority images get optimized URL immediately
+  const initialImageSrc = useMemo(() => {
     if (priority || !lazy) {
-      const optimizedSrc = optimizeImageUrl(src, {
+      return optimizeImageUrl(src, {
         quality,
         maxWidth: width,
         maxHeight: height,
       });
-      setImageSrc(optimizedSrc);
+    }
+    return blurPlaceholder ? generateBlurPlaceholder(src) : '';
+  }, [src, priority, lazy, quality, width, height, blurPlaceholder]);
+
+  const [imageSrc, setImageSrc] = useState<string>(initialImageSrc);
+
+  const imgRef = useRef<HTMLImageElement>(null);
+  const observerRef = useRef<(() => void) | null>(null);
+
+  // Update imageSrc when initialImageSrc changes (e.g., when props change)
+  useEffect(() => {
+    setImageSrc(initialImageSrc);
+  }, [initialImageSrc]);
+
+  useEffect(() => {
+    if (!imgRef.current) return;
+
+    // Priority images are already handled via useMemo
+    if (priority || !lazy) {
       return;
     }
 

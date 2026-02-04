@@ -72,7 +72,7 @@ export const getDateSeparator = (date: Date): string => {
  * Extract URLs from text content
  */
 export const extractUrls = (text: string): string[] => {
-  const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/gi;
+  const urlRegex = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi;
   return text.match(urlRegex) || [];
 };
 

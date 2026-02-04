@@ -102,34 +102,40 @@ export interface ActivityFeedProps {
 // Activity Icon and Color Mapping
 // ============================================================================
 
-const getActivityIcon = (type: ActivityType) => {
-  const iconMap: Record<ActivityType, React.ElementType> = {
-    'task.created': PlusCircle,
-    'task.updated': Edit,
-    'task.deleted': Trash2,
-    'task.completed': CheckCircle2,
-    'comment.created': MessageSquare,
-    'comment.deleted': Trash2,
-    'member.added': UserPlus,
-    'milestone.created': Flag,
-    'milestone.completed': FlagCheck,
-  };
-  return iconMap[type] || ActivityIcon;
+// Icon map defined at module level to avoid recreation during render
+const ACTIVITY_ICON_MAP: Record<ActivityType, React.ElementType> = {
+  'task.created': PlusCircle,
+  'task.updated': Edit,
+  'task.deleted': Trash2,
+  'task.completed': CheckCircle2,
+  'comment.created': MessageSquare,
+  'comment.deleted': Trash2,
+  'member.added': UserPlus,
+  'milestone.created': Flag,
+  'milestone.completed': FlagCheck,
+};
+
+// Color map defined at module level to avoid recreation during render
+const ACTIVITY_COLOR_MAP: Record<ActivityType, string> = {
+  'task.created': 'text-blue-600 bg-blue-100',
+  'task.updated': 'text-purple-600 bg-purple-100',
+  'task.deleted': 'text-red-600 bg-red-100',
+  'task.completed': 'text-success-600 bg-success-100',
+  'comment.created': 'text-accent-600 bg-accent-100',
+  'comment.deleted': 'text-red-600 bg-red-100',
+  'member.added': 'text-primary-600 bg-primary-100',
+  'milestone.created': 'text-secondary-600 bg-secondary-100',
+  'milestone.completed': 'text-success-600 bg-success-100',
 };
 
 const getActivityColor = (type: ActivityType): string => {
-  const colorMap: Record<ActivityType, string> = {
-    'task.created': 'text-blue-600 bg-blue-100',
-    'task.updated': 'text-purple-600 bg-purple-100',
-    'task.deleted': 'text-red-600 bg-red-100',
-    'task.completed': 'text-success-600 bg-success-100',
-    'comment.created': 'text-accent-600 bg-accent-100',
-    'comment.deleted': 'text-red-600 bg-red-100',
-    'member.added': 'text-primary-600 bg-primary-100',
-    'milestone.created': 'text-secondary-600 bg-secondary-100',
-    'milestone.completed': 'text-success-600 bg-success-100',
-  };
-  return colorMap[type] || 'text-neutral-600 bg-neutral-100';
+  return ACTIVITY_COLOR_MAP[type] || 'text-neutral-600 bg-neutral-100';
+};
+
+// Dedicated component to render activity type icons - avoids dynamic component creation during render
+const ActivityTypeIcon: React.FC<{ type: ActivityType; className?: string }> = ({ type, className }) => {
+  const Icon = ACTIVITY_ICON_MAP[type] || ActivityIcon;
+  return <Icon className={className} />;
 };
 
 // ============================================================================
@@ -320,7 +326,6 @@ interface ActivityItemProps {
 }
 
 const ActivityItem: React.FC<ActivityItemProps> = ({ activity, compact = false }) => {
-  const Icon = getActivityIcon(activity.type);
   const colorClass = getActivityColor(activity.type);
   const [showFullTimestamp, setShowFullTimestamp] = React.useState(false);
 
@@ -371,7 +376,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity, compact = false }
               colorClass
             )}
           >
-            <Icon className="h-3.5 w-3.5" />
+            <ActivityTypeIcon type={activity.type} className="h-3.5 w-3.5" />
           </div>
 
           {/* Description */}
