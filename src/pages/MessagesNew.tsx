@@ -78,11 +78,6 @@ function MessagesNew() {
   const activeProjectContext = useActiveProjectOptional();
   const navigate = useNavigate();
 
-  // Guard: If auth context indicates no user, return null and let ProtectedRoute redirect
-  if (!user) {
-    return null;
-  }
-
   // Safe destructure with fallback values (handles hydration and 401 race conditions)
   const activeProject = activeProjectContext?.activeProject ?? null;
   const hasFocus = activeProjectContext?.hasFocus ?? false;
@@ -652,6 +647,12 @@ function MessagesNew() {
   // Calculate stats
   const unreadCount = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
   const onlineCount = conversations.filter(c => c.participant?.isOnline).length;
+
+  // Guard: If auth context indicates no user, return null and let ProtectedRoute redirect
+  // This check is AFTER all hooks to satisfy React's rules of hooks
+  if (!user) {
+    return null;
+  }
 
   return (
     <DashboardLayout

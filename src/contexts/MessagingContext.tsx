@@ -455,4 +455,10 @@ export function useMessaging() {
   return context;
 }
 
+// Optional hook - returns null if not within MessagingProvider
+// Use this for components that may render outside the provider
+export function useMessagingOptional() {
+  return useContext(MessagingContext);
+}
+
 export default MessagingContext;

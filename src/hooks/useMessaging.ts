@@ -3,7 +3,7 @@
  * Simplified wrapper around MessagingContext for backward compatibility
  */
 
-import { useMessaging as useMessagingContext } from '../contexts/MessagingContext';
+import { useMessaging as useMessagingContext, useMessagingOptional as useMessagingContextOptional } from '../contexts/MessagingContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect } from 'react';
 import {
@@ -80,6 +80,68 @@ interface UseMessagingReturn {
 
   // Unread counts
   unreadCount: number;
+}
+
+// Default values for when context is not available
+const defaultReturn: UseMessagingReturn = {
+  conversations: [],
+  activeConversation: null,
+  conversationMessages: [],
+  typingIndicators: [],
+  userPresence: {},
+  createConversation: async () => '',
+  sendMessage: async () => {},
+  editMessage: async () => {},
+  deleteMessage: async () => {},
+  setActiveConversation: () => {},
+  joinConversation: () => {},
+  leaveConversation: () => {},
+  addParticipant: () => {},
+  removeParticipant: () => {},
+  searchMessages: () => [],
+  filterConversations: () => [],
+  uploadFile: async () => ({
+    id: '',
+    name: '',
+    type: '',
+    size: 0,
+    url: '',
+    isImage: false,
+    isVideo: false,
+    uploadedAt: new Date(),
+    uploadedBy: '',
+  }),
+  setTyping: () => {},
+  isLoading: false,
+  error: null,
+  lastUpdated: null,
+  refresh: async () => {},
+  unreadCount: 0,
+};
+
+/**
+ * Optional messaging hook that returns default values when context is not available
+ * Use this in components that may render outside the MessagingProvider
+ */
+export function useMessagingOptional(): UseMessagingReturn {
+  const context = useMessagingContextOptional();
+
+  // If context is not available, return defaults
+  if (!context) {
+    return defaultReturn;
+  }
+
+  // Delegate to the full hook logic via a wrapper
+  // Note: We can't call useMessaging() here because it would throw
+  // Instead, we duplicate the minimal logic needed
+  const { state } = context;
+
+  return {
+    ...defaultReturn,
+    conversations: state.conversations,
+    unreadCount: state.unreadCounts?.messages || 0,
+    isLoading: state.loading.conversations || state.loading.notifications || false,
+  };
 }
 
 export function useMessaging(): UseMessagingReturn {

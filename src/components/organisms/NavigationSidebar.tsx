@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { useMessaging } from '@/hooks/useMessaging';
+import { useMessagingOptional } from '@/hooks/useMessaging';
 import { ProjectSwitcher } from '@/components/projects/ProjectSwitcher';
 
 export interface NavigationItem {
@@ -109,13 +109,9 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
     const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set());
 
     // Get unread message counts from MessagingContext
-    let unreadCountValue = 0;
-    try {
-      const { unreadCount } = useMessaging();
-      unreadCountValue = unreadCount || 0;
-    } catch (_error) {
-      // Context not available, use default count
-    }
+    // Uses optional hook that returns defaults when context is unavailable
+    const { unreadCount } = useMessagingOptional();
+    const unreadCountValue = unreadCount || 0;
 
     // Use provided items or create default with dynamic unread count
     const navigationItems = items || createNavigationItems(unreadCountValue);

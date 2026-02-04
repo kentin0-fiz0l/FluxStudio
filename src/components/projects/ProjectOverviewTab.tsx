@@ -24,7 +24,7 @@ import { Calendar, Users, Clock, TrendingUp, Map, Pencil, FileAudio, Box, ArrowR
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
 import { Project } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
-import { useMessaging } from '@/hooks/useMessaging';
+import { useMessagingOptional } from '@/hooks/useMessaging';
 import { useUserTestMode } from '@/hooks/useUserTestMode';
 import { useClarityState } from '@/hooks/useClarityState';
 import { buildClarityAwareSummary, getReframingPrompt } from '@/services/clarityAwareSummary';
@@ -38,16 +38,11 @@ export interface ProjectOverviewTabProps {
 export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOverviewTabProps>(
   ({ project, className }, ref) => {
     // Get messaging context for project conversation
-    let projectConversation = null;
-    let unreadCountValue = 0;
-    try {
-      const { conversations } = useMessaging();
-      // Find conversation linked to this project
-      projectConversation = conversations.find((c: Conversation) => c.projectId === project.id);
-      unreadCountValue = projectConversation?.unreadCount || 0;
-    } catch {
-      // Context not available
-    }
+    // Uses optional hook that returns defaults when context is unavailable
+    const { conversations } = useMessagingOptional();
+    // Find conversation linked to this project
+    const projectConversation = conversations.find((c: Conversation) => c.projectId === project.id) ?? null;
+    const unreadCountValue = projectConversation?.unreadCount || 0;
 
     // Clarity-aware summary (test mode only)
     const { isEnabled: isTestMode } = useUserTestMode();

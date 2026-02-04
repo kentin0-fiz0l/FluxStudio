@@ -105,11 +105,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     },
     ref
   ) => {
+    // Generate ID unconditionally (React hooks must not be called conditionally)
+    const generatedId = React.useId();
+
     // Determine state based on props
     const state = error ? 'error' : success ? 'success' : stateProp;
 
-    // Generate ID if not provided
-    const inputId = id || React.useId();
+    // Use provided ID or fall back to generated ID
+    const inputId = id || generatedId;
 
     return (
       <div className={cn('w-full space-y-1.5', wrapperClassName)}>

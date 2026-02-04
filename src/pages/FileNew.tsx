@@ -351,24 +351,18 @@ export function FileNew() {
   const projectContext = useProjectContextOptional();
   const currentProject = projectContext?.currentProject ?? null;
 
-  // Guard: If context not available, return null (handled by ProtectedRoute)
-  if (!filesContext || !user) {
-    return null;
-  }
+  // Extract values from context (with defaults for when context is unavailable)
+  const state = filesContext?.state;
+  const refreshFiles = filesContext?.refreshFiles;
+  const uploadFiles = filesContext?.uploadFiles;
+  const renameFile = filesContext?.renameFile;
+  const deleteFile = filesContext?.deleteFile;
+  const linkFileToProject = filesContext?.linkFileToProject;
+  const setFilters = filesContext?.setFilters;
+  const setPage = filesContext?.setPage;
+  const setSelectedFile = filesContext?.setSelectedFile;
 
-  const {
-    state,
-    refreshFiles,
-    uploadFiles,
-    renameFile,
-    deleteFile,
-    linkFileToProject,
-    setFilters,
-    setPage,
-    setSelectedFile
-  } = filesContext;
-
-  // UI State
+  // UI State - ALL hooks must be called before any early returns
   const [viewMode, setViewMode] = React.useState<ViewMode>('grid');
   const [showUploadDialog, setShowUploadDialog] = React.useState(false);
   const [showRenameDialog, setShowRenameDialog] = React.useState(false);
@@ -392,13 +386,13 @@ export function FileNew() {
     const effectiveProjectId = currentProject?.id || urlProjectId;
 
     if (effectiveProjectId || source) {
-      setFilters({
+      setFilters?.({
         projectId: effectiveProjectId || undefined,
         source: source || 'all'
       });
     } else {
       // Clear project filter when no project context
-      setFilters({
+      setFilters?.({
         projectId: undefined,
         source: source || 'all'
       });
@@ -408,12 +402,20 @@ export function FileNew() {
   // Debounced search
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      if (localSearch !== state.filters.search) {
-        setFilters({ search: localSearch });
+      if (localSearch !== state?.filters.search) {
+        setFilters?.({ search: localSearch });
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [localSearch, state.filters.search, setFilters]);
+  }, [localSearch, state?.filters.search, setFilters]);
+
+  // Guard: If context not available, return null (handled by ProtectedRoute)
+  // This check is AFTER all hooks to satisfy React's rules of hooks
+  if (!filesContext || !user || !state || !refreshFiles || !uploadFiles ||
+      !renameFile || !deleteFile || !linkFileToProject || !setFilters ||
+      !setPage || !setSelectedFile) {
+    return null;
+  }
 
   // Drag and drop handlers
   const handleDragEnter = (e: React.DragEvent) => {
