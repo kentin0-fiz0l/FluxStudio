@@ -34,7 +34,7 @@ export default function PreviewForm() {
       if (payload.trim()) {
         try {
           payloadObj = JSON.parse(payload);
-        } catch (err) {
+        } catch (_err) {
           throw new Error('Invalid JSON payload');
         }
       }

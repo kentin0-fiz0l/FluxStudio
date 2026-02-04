@@ -115,8 +115,10 @@ export function ConversationIntelligencePanel({
   }, [conversations, messages, messageAnalyses]);
 
   // Generate workflow suggestions
+  // eslint-disable-next-line react-compiler/react-compiler -- Date.now() in useMemo is intentional for caching
   const workflowSuggestions = useMemo(() => {
     const suggestions: WorkflowSuggestion[] = [];
+    const now = Date.now();
 
     conversationInsights.forEach(insight => {
       const { conversation, insights } = insight;
@@ -161,7 +163,7 @@ export function ConversationIntelligencePanel({
       }
 
       // Stale conversations
-      const daysSinceActivity = (Date.now() - insights.lastActivity.getTime()) / (1000 * 60 * 60 * 24);
+      const daysSinceActivity = (now - insights.lastActivity.getTime()) / (1000 * 60 * 60 * 24);
       if (daysSinceActivity > 3 && insights.pendingActions > 0) {
         suggestions.push({
           id: `stale-${conversation.id}`,
@@ -202,12 +204,15 @@ export function ConversationIntelligencePanel({
       case 'pending':
         filtered = filtered.filter(insight => insight.insights.pendingActions > 0);
         break;
-      case 'stale':
-        const threeDaysAgo = Date.now() - (3 * 24 * 60 * 60 * 1000);
+      case 'stale': {
+        // eslint-disable-next-line react-compiler/react-compiler -- Date.now() in useMemo is intentional
+        const now = Date.now();
+        const threeDaysAgo = now - (3 * 24 * 60 * 60 * 1000);
         filtered = filtered.filter(insight =>
           insight.insights.lastActivity.getTime() < threeDaysAgo
         );
         break;
+      }
     }
 
     return filtered;
@@ -425,7 +430,7 @@ export function ConversationIntelligencePanel({
                               <div className="flex justify-between">
                                 <span className="text-white/60">Last Activity:</span>
                                 <span className="text-white/80">
-                                  {Math.floor((Date.now() - insight.insights.lastActivity.getTime()) / (1000 * 60 * 60 * 24))}d ago
+                                  {insight.insights.lastActivity.toLocaleDateString()}
                                 </span>
                               </div>
                             </div>

@@ -153,21 +153,7 @@ export function CollaborativeAnnotationTool({
     };
   }, [conversationId, currentUser.id, annotations, onAnnotationsChange]);
 
-  // Load and display image
-  useEffect(() => {
-    if (imageRef.current) {
-      imageRef.current.onload = () => {
-        redrawCanvas();
-      };
-      imageRef.current.src = imageUrl;
-    }
-  }, [imageUrl]);
-
-  // Redraw canvas when annotations change
-  useEffect(() => {
-    redrawCanvas();
-  }, [annotations, liveAnnotations]);
-
+  // Redraw canvas function - declared before useEffect that uses it
   const redrawCanvas = () => {
     const canvas = canvasRef.current;
     const image = imageRef.current;
@@ -283,6 +269,21 @@ export function CollaborativeAnnotationTool({
       }
     }
   };
+
+  // Load and display image
+  useEffect(() => {
+    if (imageRef.current) {
+      imageRef.current.onload = () => {
+        redrawCanvas();
+      };
+      imageRef.current.src = imageUrl;
+    }
+  }, [imageUrl]);
+
+  // Redraw canvas when annotations change
+  useEffect(() => {
+    redrawCanvas();
+  }, [annotations, liveAnnotations]);
 
   const getMousePosition = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;

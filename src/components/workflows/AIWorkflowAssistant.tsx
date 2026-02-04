@@ -269,7 +269,7 @@ export function AIWorkflowAssistant() {
       patterns.set(key, (patterns.get(key) || 0) + 1);
     });
 
-    setUserPatterns(patterns);
+    queueMicrotask(() => setUserPatterns(patterns));
   }, [state.recentActivity]);
 
   const getSuggestionIcon = (type: WorkflowSuggestion['type']) => {

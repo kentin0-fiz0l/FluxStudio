@@ -176,10 +176,14 @@ function ConsultationCard({
   const StatusIcon = statusConfig.icon;
   const TypeIcon = typeConfig.icon;
 
-  const isUpcoming = consultation.scheduledAt > new Date() && consultation.status === 'scheduled';
-  const isToday = consultation.scheduledAt.toDateString() === new Date().toDateString();
+  // Use useState with lazy initializer to avoid Date.now() during render
+  const [currentTime] = useState(() => Date.now());
+  const [today] = useState(() => new Date());
+
+  const isUpcoming = consultation.scheduledAt > today && consultation.status === 'scheduled';
+  const isToday = consultation.scheduledAt.toDateString() === today.toDateString();
   const canJoin = consultation.status === 'scheduled' &&
-    Math.abs(consultation.scheduledAt.getTime() - Date.now()) <= 15 * 60 * 1000; // Within 15 minutes
+    Math.abs(consultation.scheduledAt.getTime() - currentTime) <= 15 * 60 * 1000; // Within 15 minutes
 
   const formatDateTime = (date: Date) => {
     return {

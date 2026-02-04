@@ -1,5 +1,5 @@
 // React import not needed with JSX transform
-import { useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
@@ -21,13 +21,13 @@ export function AccountOverviewWidget(props: WidgetProps) {
   const { user } = useAuth();
   const { organizations, projects } = useOrganization();
 
-  // Calculate user stats - memoize to avoid calling Date.now() during render
-  const { memberSince, daysSinceMember } = useMemo(() => {
+  // Calculate user stats - useState with lazy initializer avoids Date.now() during render
+  const [{ memberSince, daysSinceMember }] = useState(() => {
     if (!user) return { memberSince: new Date(), daysSinceMember: 0 };
     const since = new Date(user.createdAt);
     const days = Math.floor((Date.now() - since.getTime()) / (1000 * 60 * 60 * 24));
     return { memberSince: since, daysSinceMember: days };
-  }, [user?.createdAt]);
+  });
 
   if (!user) return null;
 

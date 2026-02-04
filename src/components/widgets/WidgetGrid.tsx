@@ -14,18 +14,7 @@ export function WidgetGrid({ className, maxColumns = 3 }: WidgetGridProps) {
   const [widgets, setWidgets] = useState<string[]>([]);
   const [layouts, setLayouts] = useState<WidgetLayout[]>([]);
 
-  useEffect(() => {
-    if (user) {
-      // Load user's widget configuration or use defaults
-      const defaultWidgets = getDefaultWidgets(user.userType);
-      setWidgets(defaultWidgets);
-
-      // Generate basic grid layout
-      const gridLayout = generateGridLayout(defaultWidgets, maxColumns);
-      setLayouts(gridLayout);
-    }
-  }, [user, maxColumns]);
-
+  // Define generateGridLayout before useEffect to fix "Cannot access variable before declared"
   const generateGridLayout = (widgetIds: string[], cols: number): WidgetLayout[] => {
     let currentX = 0;
     let currentY = 0;
@@ -64,6 +53,22 @@ export function WidgetGrid({ className, maxColumns = 3 }: WidgetGridProps) {
       return layout;
     });
   };
+
+  useEffect(() => {
+    if (user) {
+      // Load user's widget configuration or use defaults
+      const defaultWidgets = getDefaultWidgets(user.userType);
+
+      // Generate basic grid layout
+      const gridLayout = generateGridLayout(defaultWidgets, maxColumns);
+
+      // Use queueMicrotask to avoid setState synchronously in effect
+      queueMicrotask(() => {
+        setWidgets(defaultWidgets);
+        setLayouts(gridLayout);
+      });
+    }
+  }, [user, maxColumns]);
 
   const removeWidget = (widgetId: string) => {
     setWidgets(prev => prev.filter(id => id !== widgetId));

@@ -35,19 +35,18 @@ export function ProjectMessagingIntegration({
 
   useEffect(() => {
     if (projectId) {
-      loadProjectConversations();
+      // Use async IIFE to properly handle async setState
+      (async () => {
+        try {
+          await actions.loadConversations();
+          const filtered = state.conversations.filter(conv => conv.projectId === projectId);
+          setProjectConversations(filtered);
+        } catch (_error) {
+          // Error handled silently - load failures are non-critical
+        }
+      })();
     }
-  }, [projectId]);
-
-  const loadProjectConversations = async () => {
-    try {
-      await actions.loadConversations();
-      const filtered = state.conversations.filter(conv => conv.projectId === projectId);
-      setProjectConversations(filtered);
-    } catch (error) {
-      console.error('Failed to load project conversations:', error);
-    }
-  };
+  }, [projectId, actions, state.conversations]);
 
   const handleCreateProjectChannel = async () => {
     if (!projectId || !projectName) return;

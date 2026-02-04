@@ -152,6 +152,264 @@ interface WorkflowOrchestratorProps {
   onTaskComplete?: (taskId: string) => void;
 }
 
+// Helper functions moved outside component
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'completed': return 'bg-green-100 text-green-800 border-green-200';
+    case 'in_progress': return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'blocked': return 'bg-red-100 text-red-800 border-red-200';
+    case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    default: return 'bg-gray-100 text-gray-600 border-gray-200';
+  }
+};
+
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case 'critical': return 'text-red-600';
+    case 'high': return 'text-orange-600';
+    case 'medium': return 'text-yellow-600';
+    case 'low': return 'text-green-600';
+    default: return 'text-gray-600';
+  }
+};
+
+// Render task icon based on type
+const renderTaskIcon = (type: string, className: string) => {
+  const props = { className };
+  switch (type) {
+    case 'design': return <FileText {...props} />;
+    case 'review': return <Eye {...props} />;
+    case 'approval': return <CheckCircle {...props} />;
+    case 'feedback': return <MessageSquare {...props} />;
+    case 'delivery': return <Download {...props} />;
+    case 'meeting': return <Calendar {...props} />;
+    case 'research': return <Brain {...props} />;
+    default: return <Target {...props} />;
+  }
+};
+
+const formatDuration = (minutes: number) => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+};
+
+// TaskCard component extracted outside parent
+interface TaskCardProps {
+  task: WorkflowTask;
+  onTaskComplete?: (taskId: string) => void;
+}
+
+function TaskCard({ task, onTaskComplete }: TaskCardProps) {
+  const isOverdue = task.dueDate < new Date() && task.status !== 'completed';
+
+  return (
+    <Card className={cn(
+      "mb-4 transition-all duration-200 hover:shadow-md",
+      isOverdue && "border-red-300 bg-red-50"
+    )}>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className={cn(
+            "w-10 h-10 rounded-lg flex items-center justify-center",
+            task.status === 'completed' ? "bg-green-100 text-green-600" :
+            task.status === 'in_progress' ? "bg-blue-100 text-blue-600" :
+            task.status === 'blocked' ? "bg-red-100 text-red-600" :
+            "bg-gray-100 text-gray-600"
+          )}>
+            {renderTaskIcon(task.type, "w-5 h-5")}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-lg">{task.title}</h4>
+              <div className="flex items-center gap-2">
+                <Badge className={getStatusColor(task.status)}>
+                  {task.status.replace('_', ' ')}
+                </Badge>
+                <div className={cn("w-2 h-2 rounded-full", getPriorityColor(task.priority))} />
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-3">{task.description}</p>
+
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-4">
+                {task.assignee && (
+                  <div className="flex items-center gap-2">
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src={task.assignee.avatar} />
+                      <AvatarFallback className="text-xs">
+                        {task.assignee.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-gray-600">{task.assignee.name}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1 text-gray-500">
+                  <Clock className="w-4 h-4" />
+                  <span>{formatDuration(task.estimatedDuration)}</span>
+                </div>
+
+                {isOverdue && (
+                  <Badge variant="error" className="text-xs">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Overdue
+                  </Badge>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">
+                  Due: {task.dueDate.toLocaleDateString()}
+                </span>
+                {task.status === 'pending' && (
+                  <Button
+                    size="sm"
+                    onClick={() => onTaskComplete?.(task.id)}
+                  >
+                    <Play className="w-4 h-4 mr-1" />
+                    Start
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {task.tags.length > 0 && (
+              <div className="flex gap-2 mt-3">
+                {task.tags.map(tag => (
+                  <Badge key={tag} variant="outline" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// TemplateCard component extracted outside parent
+interface TemplateCardProps {
+  template: WorkflowTemplate;
+  selectedTemplate: string | null;
+  onSelect: (id: string) => void;
+  onWorkflowStart?: (id: string) => void;
+}
+
+function TemplateCard({ template, selectedTemplate, onSelect, onWorkflowStart }: TemplateCardProps) {
+  return (
+    <Card
+      className={cn(
+        "cursor-pointer transition-all duration-200 hover:shadow-md",
+        selectedTemplate === template.id && "border-blue-500 bg-blue-50"
+      )}
+      onClick={() => onSelect(template.id)}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <h4 className="font-semibold text-lg mb-1">{template.name}</h4>
+            <p className="text-sm text-gray-600 mb-2">{template.description}</p>
+
+            <div className="flex items-center gap-4 text-sm text-gray-500">
+              <span className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                {template.estimatedDuration}h
+              </span>
+              <span className="flex items-center gap-1">
+                <Target className="w-4 h-4" />
+                {template.tasks.length} tasks
+              </span>
+              <span className="flex items-center gap-1">
+                <Users className="w-4 h-4" />
+                {template.usageCount} uses
+              </span>
+              <span className="flex items-center gap-1">
+                <Star className="w-4 h-4" />
+                {template.rating}
+              </span>
+            </div>
+          </div>
+
+          <Badge className={cn(
+            template.complexity === 'simple' ? 'bg-green-100 text-green-800' :
+            template.complexity === 'moderate' ? 'bg-yellow-100 text-yellow-800' :
+            'bg-red-100 text-red-800'
+          )}>
+            {template.complexity}
+          </Badge>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex gap-1">
+            {template.tags.slice(0, 3).map(tag => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+            {template.tags.length > 3 && (
+              <Badge variant="outline" className="text-xs">
+                +{template.tags.length - 3}
+              </Badge>
+            )}
+          </div>
+
+          <Button
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onWorkflowStart?.(template.id);
+            }}
+          >
+            <Play className="w-4 h-4 mr-1" />
+            Start
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// MetricsCard component extracted outside parent
+interface MetricsCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  color: string;
+  change?: number;
+}
+
+function MetricsCard({ title, value, icon: Icon, color, change }: MetricsCardProps) {
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600">{title}</p>
+            <p className="text-2xl font-bold">{value}</p>
+            {change !== undefined && (
+              <p className={cn(
+                "text-sm flex items-center gap-1 mt-1",
+                change >= 0 ? "text-green-600" : "text-red-600"
+              )}>
+                <TrendingUp className="w-3 h-3" />
+                {change >= 0 ? '+' : ''}{change}% from last period
+              </p>
+            )}
+          </div>
+          <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center", color)}>
+            <Icon className="w-6 h-6" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Mock workflow templates
 const mockTemplates: WorkflowTemplate[] = [
   {
@@ -466,241 +724,6 @@ export function WorkflowOrchestrator({
     });
   }, [execution.tasks, searchQuery, filterStatus]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'in_progress': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'blocked': return 'bg-red-100 text-red-800 border-red-200';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-600 border-gray-200';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'critical': return 'text-red-600';
-      case 'high': return 'text-orange-600';
-      case 'medium': return 'text-yellow-600';
-      case 'low': return 'text-green-600';
-      default: return 'text-gray-600';
-    }
-  };
-
-  const getTaskIcon = (type: string) => {
-    switch (type) {
-      case 'design': return FileText;
-      case 'review': return Eye;
-      case 'approval': return CheckCircle;
-      case 'feedback': return MessageSquare;
-      case 'delivery': return Download;
-      case 'meeting': return Calendar;
-      case 'research': return Brain;
-      default: return Target;
-    }
-  };
-
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
-  const TaskCard = ({ task }: { task: WorkflowTask }) => {
-    const Icon = getTaskIcon(task.type);
-    const isOverdue = task.dueDate < new Date() && task.status !== 'completed';
-
-    return (
-      <Card className={cn(
-        "mb-4 transition-all duration-200 hover:shadow-md",
-        isOverdue && "border-red-300 bg-red-50"
-      )}>
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <div className={cn(
-              "w-10 h-10 rounded-lg flex items-center justify-center",
-              task.status === 'completed' ? "bg-green-100 text-green-600" :
-              task.status === 'in_progress' ? "bg-blue-100 text-blue-600" :
-              task.status === 'blocked' ? "bg-red-100 text-red-600" :
-              "bg-gray-100 text-gray-600"
-            )}>
-              <Icon className="w-5 h-5" />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-lg">{task.title}</h4>
-                <div className="flex items-center gap-2">
-                  <Badge className={getStatusColor(task.status)}>
-                    {task.status.replace('_', ' ')}
-                  </Badge>
-                  <div className={cn("w-2 h-2 rounded-full", getPriorityColor(task.priority))} />
-                </div>
-              </div>
-
-              <p className="text-sm text-gray-600 mb-3">{task.description}</p>
-
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-4">
-                  {task.assignee && (
-                    <div className="flex items-center gap-2">
-                      <Avatar className="w-6 h-6">
-                        <AvatarImage src={task.assignee.avatar} />
-                        <AvatarFallback className="text-xs">
-                          {task.assignee.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-gray-600">{task.assignee.name}</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-1 text-gray-500">
-                    <Clock className="w-4 h-4" />
-                    <span>{formatDuration(task.estimatedDuration)}</span>
-                  </div>
-
-                  {isOverdue && (
-                    <Badge variant="error" className="text-xs">
-                      <AlertTriangle className="w-3 h-3 mr-1" />
-                      Overdue
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-500">
-                    Due: {task.dueDate.toLocaleDateString()}
-                  </span>
-                  {task.status === 'pending' && (
-                    <Button
-                      size="sm"
-                      onClick={() => onTaskComplete?.(task.id)}
-                    >
-                      <Play className="w-4 h-4 mr-1" />
-                      Start
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {task.tags.length > 0 && (
-                <div className="flex gap-2 mt-3">
-                  {task.tags.map(tag => (
-                    <Badge key={tag} variant="outline" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const TemplateCard = ({ template }: { template: WorkflowTemplate }) => (
-    <Card
-      className={cn(
-        "cursor-pointer transition-all duration-200 hover:shadow-md",
-        selectedTemplate === template.id && "border-blue-500 bg-blue-50"
-      )}
-      onClick={() => setSelectedTemplate(template.id)}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <h4 className="font-semibold text-lg mb-1">{template.name}</h4>
-            <p className="text-sm text-gray-600 mb-2">{template.description}</p>
-
-            <div className="flex items-center gap-4 text-sm text-gray-500">
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {template.estimatedDuration}h
-              </span>
-              <span className="flex items-center gap-1">
-                <Target className="w-4 h-4" />
-                {template.tasks.length} tasks
-              </span>
-              <span className="flex items-center gap-1">
-                <Users className="w-4 h-4" />
-                {template.usageCount} uses
-              </span>
-              <span className="flex items-center gap-1">
-                <Star className="w-4 h-4" />
-                {template.rating}
-              </span>
-            </div>
-          </div>
-
-          <Badge className={cn(
-            template.complexity === 'simple' ? 'bg-green-100 text-green-800' :
-            template.complexity === 'moderate' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-red-100 text-red-800'
-          )}>
-            {template.complexity}
-          </Badge>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="flex gap-1">
-            {template.tags.slice(0, 3).map(tag => (
-              <Badge key={tag} variant="outline" className="text-xs">
-                {tag}
-              </Badge>
-            ))}
-            {template.tags.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{template.tags.length - 3}
-              </Badge>
-            )}
-          </div>
-
-          <Button
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onWorkflowStart?.(template.id);
-            }}
-          >
-            <Play className="w-4 h-4 mr-1" />
-            Start
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  const MetricsCard = ({ title, value, icon: Icon, color, change }: {
-    title: string;
-    value: string | number;
-    icon: any;
-    color: string;
-    change?: number;
-  }) => (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className="text-2xl font-bold">{value}</p>
-            {change !== undefined && (
-              <p className={cn(
-                "text-sm flex items-center gap-1 mt-1",
-                change >= 0 ? "text-green-600" : "text-red-600"
-              )}>
-                <TrendingUp className="w-3 h-3" />
-                {change >= 0 ? '+' : ''}{change}% from last period
-              </p>
-            )}
-          </div>
-          <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center", color)}>
-            <Icon className="w-6 h-6" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
   return (
     <div className={cn("flex flex-col h-full", className)}>
       {/* Header */}
@@ -832,7 +855,7 @@ export function WorkflowOrchestrator({
                 <CardContent>
                   <div className="space-y-3">
                     {execution.tasks.slice(0, 3).map(task => (
-                      <TaskCard key={task.id} task={task} />
+                      <TaskCard key={task.id} task={task} onTaskComplete={onTaskComplete} />
                     ))}
                   </div>
                 </CardContent>
@@ -853,7 +876,13 @@ export function WorkflowOrchestrator({
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {mockTemplates.map(template => (
-                  <TemplateCard key={template.id} template={template} />
+                  <TemplateCard
+                    key={template.id}
+                    template={template}
+                    selectedTemplate={selectedTemplate}
+                    onSelect={setSelectedTemplate}
+                    onWorkflowStart={onWorkflowStart}
+                  />
                 ))}
               </div>
             </div>
@@ -890,7 +919,7 @@ export function WorkflowOrchestrator({
               {/* Task List */}
               <div className="space-y-4">
                 {filteredTasks.map(task => (
-                  <TaskCard key={task.id} task={task} />
+                  <TaskCard key={task.id} task={task} onTaskComplete={onTaskComplete} />
                 ))}
               </div>
             </div>

@@ -399,7 +399,9 @@ export function DesignReviewWidget({
     }
   };
 
-  const timeUntilDeadline = review.deadline ? review.deadline.getTime() - Date.now() : 0;
+  // Use useState with lazy initializer to avoid Date.now() during render
+  const [currentTime] = useState(() => Date.now());
+  const timeUntilDeadline = review.deadline ? review.deadline.getTime() - currentTime : 0;
   const hoursUntilDeadline = Math.max(0, Math.ceil(timeUntilDeadline / (1000 * 60 * 60)));
   const isDeadlineNear = hoursUntilDeadline <= 24;
 

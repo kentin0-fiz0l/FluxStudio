@@ -41,6 +41,170 @@ interface MessageHubProps {
 type ViewMode = 'unified' | 'projects' | 'clients' | 'teams' | 'activity';
 type FilterType = 'all' | 'unread' | 'priority' | 'mentions' | 'files';
 
+// Helper functions moved outside component
+const formatTimeAgo = (date: Date) => {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  if (minutes < 1) return 'Now';
+  if (minutes < 60) return `${minutes}m`;
+  if (hours < 24) return `${hours}h`;
+  if (days < 7) return `${days}d`;
+  return date.toLocaleDateString();
+};
+
+// Render icon based on conversation type
+const renderConversationIcon = (type: ConversationType, size: number, className: string) => {
+  const props = { size, className };
+  switch (type) {
+    case 'direct': return <MessageCircle {...props} />;
+    case 'project': return <Folder {...props} />;
+    case 'team': return <Users {...props} />;
+    case 'consultation': return <Bell {...props} />;
+    case 'support': return <MessageSquare {...props} />;
+    case 'broadcast': return <Bell {...props} />;
+    default: return <MessageCircle {...props} />;
+  }
+};
+
+const getPriorityColor = (priority: Priority) => {
+  switch (priority) {
+    case 'critical': return 'bg-red-500';
+    case 'high': return 'bg-orange-500';
+    case 'medium': return 'bg-blue-500';
+    case 'low': return 'bg-gray-400';
+    default: return 'bg-gray-400';
+  }
+};
+
+// ConversationCard component extracted outside parent
+interface ConversationCardProps {
+  conversation: Conversation;
+  isActive: boolean;
+  onSelect: (id: string) => void;
+}
+
+function ConversationCard({ conversation, isActive, onSelect }: ConversationCardProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ scale: 1.02 }}
+      onClick={() => onSelect(conversation.id)}
+      className={cn(
+        'relative p-4 rounded-lg border cursor-pointer transition-all duration-200',
+        'hover:shadow-md hover:border-blue-300',
+        isActive
+          ? 'bg-blue-50 border-blue-300 shadow-md'
+          : 'bg-white border-gray-200 hover:bg-gray-50'
+      )}
+    >
+      {/* Priority indicator */}
+      <div className={cn(
+        'absolute top-2 right-2 w-3 h-3 rounded-full',
+        getPriorityColor(conversation.metadata.priority)
+      )} />
+
+      <div className="flex items-start gap-3">
+        {/* Icon/Avatar */}
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          {renderConversationIcon(conversation.type, 18, "text-white")}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold text-sm text-gray-900 truncate">
+              {conversation.name}
+            </h3>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {conversation.metadata.isPinned && (
+                <Star size={12} className="text-yellow-500 fill-current" />
+              )}
+              <span className="text-xs text-gray-500">
+                {formatTimeAgo(new Date(conversation.lastActivity))}
+              </span>
+            </div>
+          </div>
+
+          {/* Last message preview */}
+          {conversation.lastMessage && (
+            <div className="flex items-center gap-2 mb-2">
+              <Avatar className="w-5 h-5">
+                <AvatarImage src={conversation.lastMessage.author.avatar} />
+                <AvatarFallback className="text-xs">
+                  {conversation.lastMessage.author.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <p className="text-xs text-gray-600 truncate flex-1">
+                {conversation.lastMessage.content}
+              </p>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                {conversation.type}
+              </Badge>
+              {conversation.lastMessage?.attachments && conversation.lastMessage.attachments.length > 0 && (
+                <FileImage size={12} className="text-gray-400" />
+              )}
+            </div>
+
+            {conversation.unreadCount > 0 && (
+              <Badge className="bg-blue-600 text-white text-xs min-w-[18px] h-[18px] flex items-center justify-center p-0">
+                {conversation.unreadCount}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ConversationSection component extracted outside parent
+interface ConversationSectionProps {
+  title: string;
+  conversations: Conversation[];
+  icon?: React.ElementType;
+  activeConversationId?: string;
+  onSelect: (id: string) => void;
+}
+
+function ConversationSection({ title, conversations, icon: Icon, activeConversationId, onSelect }: ConversationSectionProps) {
+  if (conversations.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        {Icon && <Icon size={16} className="text-gray-600" />}
+        <h2 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">
+          {title}
+        </h2>
+        <Badge variant="outline" className="text-xs">
+          {conversations.length}
+        </Badge>
+      </div>
+      <div className="space-y-2">
+        {conversations.map(conv => (
+          <ConversationCard
+            key={conv.id}
+            conversation={conv}
+            isActive={activeConversationId === conv.id}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function MessageHub({ className }: MessageHubProps) {
   const { user } = useAuth();
   const {
@@ -119,156 +283,6 @@ export function MessageHub({ className }: MessageHubProps) {
     return grouped;
   }, [conversations, filterConversations, searchQuery, filterType]);
 
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 1) return 'Now';
-    if (minutes < 60) return `${minutes}m`;
-    if (hours < 24) return `${hours}h`;
-    if (days < 7) return `${days}d`;
-    return date.toLocaleDateString();
-  };
-
-  const getConversationIcon = (type: ConversationType) => {
-    switch (type) {
-      case 'direct': return MessageCircle;
-      case 'project': return Folder;
-      case 'team': return Users;
-      case 'consultation': return Bell;
-      case 'support': return MessageSquare;
-      case 'broadcast': return Bell;
-      default: return MessageCircle;
-    }
-  };
-
-  const getPriorityColor = (priority: Priority) => {
-    switch (priority) {
-      case 'critical': return 'bg-red-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-blue-500';
-      case 'low': return 'bg-gray-400';
-      default: return 'bg-gray-400';
-    }
-  };
-
-  const ConversationCard = ({ conversation, isActive }: { conversation: Conversation; isActive: boolean }) => {
-    const Icon = getConversationIcon(conversation.type);
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ scale: 1.02 }}
-        onClick={() => setActiveConversation(conversation.id)}
-        className={cn(
-          'relative p-4 rounded-lg border cursor-pointer transition-all duration-200',
-          'hover:shadow-md hover:border-blue-300',
-          isActive
-            ? 'bg-blue-50 border-blue-300 shadow-md'
-            : 'bg-white border-gray-200 hover:bg-gray-50'
-        )}
-      >
-        {/* Priority indicator */}
-        <div className={cn(
-          'absolute top-2 right-2 w-3 h-3 rounded-full',
-          getPriorityColor(conversation.metadata.priority)
-        )} />
-
-        <div className="flex items-start gap-3">
-          {/* Icon/Avatar */}
-          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <Icon size={18} className="text-white" />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-semibold text-sm text-gray-900 truncate">
-                {conversation.name}
-              </h3>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                {conversation.metadata.isPinned && (
-                  <Star size={12} className="text-yellow-500 fill-current" />
-                )}
-                <span className="text-xs text-gray-500">
-                  {formatTimeAgo(new Date(conversation.lastActivity))}
-                </span>
-              </div>
-            </div>
-
-            {/* Last message preview */}
-            {conversation.lastMessage && (
-              <div className="flex items-center gap-2 mb-2">
-                <Avatar className="w-5 h-5">
-                  <AvatarImage src={conversation.lastMessage.author.avatar} />
-                  <AvatarFallback className="text-xs">
-                    {conversation.lastMessage.author.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <p className="text-xs text-gray-600 truncate flex-1">
-                  {conversation.lastMessage.content}
-                </p>
-              </div>
-            )}
-
-            {/* Footer */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  {conversation.type}
-                </Badge>
-                {conversation.lastMessage?.attachments && conversation.lastMessage.attachments.length > 0 && (
-                  <FileImage size={12} className="text-gray-400" />
-                )}
-              </div>
-
-              {conversation.unreadCount > 0 && (
-                <Badge className="bg-blue-600 text-white text-xs min-w-[18px] h-[18px] flex items-center justify-center p-0">
-                  {conversation.unreadCount}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    );
-  };
-
-  const ConversationSection = ({ title, conversations, icon: Icon }: {
-    title: string;
-    conversations: Conversation[];
-    icon?: React.ElementType;
-  }) => {
-    if (conversations.length === 0) return null;
-
-    return (
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          {Icon && <Icon size={16} className="text-gray-600" />}
-          <h2 className="font-semibold text-sm text-gray-700 uppercase tracking-wide">
-            {title}
-          </h2>
-          <Badge variant="outline" className="text-xs">
-            {conversations.length}
-          </Badge>
-        </div>
-        <div className="space-y-2">
-          {conversations.map(conv => (
-            <ConversationCard
-              key={conv.id}
-              conversation={conv}
-              isActive={activeConversation?.id === conv.id}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className={cn('h-full bg-gray-50 flex', className)}>
       {/* Contextual Sidebar */}
@@ -344,24 +358,34 @@ export function MessageHub({ className }: MessageHubProps) {
                     title="Pinned"
                     conversations={contextualConversations.pinned}
                     icon={Star}
+                    activeConversationId={activeConversation?.id}
+                    onSelect={setActiveConversation}
                   />
                   <ConversationSection
                     title="Today"
                     conversations={contextualConversations.today}
                     icon={Clock}
+                    activeConversationId={activeConversation?.id}
+                    onSelect={setActiveConversation}
                   />
                   <ConversationSection
                     title="Yesterday"
                     conversations={contextualConversations.yesterday}
+                    activeConversationId={activeConversation?.id}
+                    onSelect={setActiveConversation}
                   />
                   <ConversationSection
                     title="This Week"
                     conversations={contextualConversations.thisWeek}
+                    activeConversationId={activeConversation?.id}
+                    onSelect={setActiveConversation}
                   />
                   <ConversationSection
                     title="Older"
                     conversations={contextualConversations.older}
                     icon={Archive}
+                    activeConversationId={activeConversation?.id}
+                    onSelect={setActiveConversation}
                   />
                 </>
               )}

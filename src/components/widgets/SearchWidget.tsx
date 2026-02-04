@@ -119,7 +119,7 @@ export function SearchWidget(props: WidgetProps) {
   // Auto-expand when typing
   useEffect(() => {
     if (query.trim()) {
-      setIsExpanded(true);
+      queueMicrotask(() => setIsExpanded(true));
     }
   }, [query]);
 

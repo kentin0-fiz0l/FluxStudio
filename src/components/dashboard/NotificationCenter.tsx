@@ -34,15 +34,16 @@ interface Notification {
   metadata?: any;
 }
 
-export function NotificationCenter() {
-  const { socket, isConnected } = useSocket();
-  const [notifications, setNotifications] = useState<Notification[]>([
+// Factory function to generate initial notifications - called once
+const createInitialNotifications = (): Notification[] => {
+  const now = Date.now();
+  return [
     {
       id: '1',
       type: 'message',
       title: 'New message from Sarah',
       message: 'Hey! Can you review the latest design mockups?',
-      timestamp: new Date(Date.now() - 300000),
+      timestamp: new Date(now - 300000),
       read: false,
       actionUrl: '/messages/sarah',
       actionLabel: 'View Message',
@@ -53,7 +54,7 @@ export function NotificationCenter() {
       type: 'mention',
       title: 'You were mentioned in Project Alpha',
       message: '@you Please check the timeline for Q4 deliverables',
-      timestamp: new Date(Date.now() - 600000),
+      timestamp: new Date(now - 600000),
       read: false,
       actionUrl: '/projects/alpha',
       actionLabel: 'View Project',
@@ -64,7 +65,7 @@ export function NotificationCenter() {
       type: 'update',
       title: 'Project status updated',
       message: 'Project Beta moved to "In Review" status',
-      timestamp: new Date(Date.now() - 900000),
+      timestamp: new Date(now - 900000),
       read: true,
       priority: 'low'
     },
@@ -73,13 +74,18 @@ export function NotificationCenter() {
       type: 'alert',
       title: 'Deadline approaching',
       message: 'Project Gamma deadline in 2 days',
-      timestamp: new Date(Date.now() - 1800000),
+      timestamp: new Date(now - 1800000),
       read: false,
       actionUrl: '/projects/gamma',
       actionLabel: 'View Project',
       priority: 'high'
     }
-  ]);
+  ];
+};
+
+export function NotificationCenter() {
+  const { socket, isConnected } = useSocket();
+  const [notifications, setNotifications] = useState<Notification[]>(createInitialNotifications);
 
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread' | 'mentions'>('all');
@@ -187,8 +193,18 @@ export function NotificationCenter() {
     }
   };
 
+  // Current time for formatting - useState with lazy initializer
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  // Update current time when notifications change
+  useEffect(() => {
+    queueMicrotask(() => {
+      setCurrentTime(Date.now());
+    });
+  }, [notifications]);
+
   const formatTime = (timestamp: Date) => {
-    const seconds = Math.floor((Date.now() - timestamp.getTime()) / 1000);
+    const seconds = Math.floor((currentTime - timestamp.getTime()) / 1000);
     if (seconds < 60) return 'Just now';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;

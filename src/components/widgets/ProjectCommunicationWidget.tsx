@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
@@ -241,13 +241,12 @@ function FileCard({ file }: { file: ProjectFile }) {
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const getFileIcon = (type: string) => {
-    if (type.startsWith('image/')) return Image;
-    if (type.startsWith('video/')) return Video;
+  // Memoize the icon component to avoid creating during render
+  const FileIcon = useMemo(() => {
+    if (file.type.startsWith('image/')) return Image;
+    if (file.type.startsWith('video/')) return Video;
     return FileText;
-  };
-
-  const FileIcon = getFileIcon(file.type);
+  }, [file.type]);
 
   return (
     <motion.div

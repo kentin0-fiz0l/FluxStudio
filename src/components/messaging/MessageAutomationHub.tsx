@@ -95,128 +95,139 @@ export const MessageAutomationHub: React.FC<MessageAutomationHubProps> = ({
   const [showNewTemplate, setShowNewTemplate] = useState(false);
   const [showNewAutomation, setShowNewAutomation] = useState(false);
 
-  // Mock data
-  const mockScheduledMessages: ScheduledMessage[] = [
-    {
-      id: '1',
-      content: 'Weekly project update: We\'ve completed the initial design phase and are moving to development.',
-      recipients: [
-        { id: 'user1', name: 'Sarah Chen', email: 'sarah@client.com' },
-        { id: 'user2', name: 'Mike Johnson', email: 'mike@team.com' }
-      ],
-      scheduledFor: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
-      type: 'text',
-      priority: 'medium',
-      status: 'pending',
-      templateId: 'template1',
-      createdAt: new Date(),
-      repeatPattern: 'weekly'
-    },
-    {
-      id: '2',
-      content: 'Design review meeting reminder: Tomorrow at 2 PM in the main conference room.',
-      recipients: [
-        { id: 'user3', name: 'Alex Rodriguez', email: 'alex@team.com' }
-      ],
-      scheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-      type: 'text',
-      priority: 'high',
-      status: 'pending',
-      createdAt: new Date(),
-      repeatPattern: 'none'
-    }
-  ];
-
-  const mockTemplates: MessageTemplate[] = [
-    {
-      id: 'template1',
-      name: 'Weekly Project Update',
-      content: 'Weekly project update: {{status}}. Next steps: {{next_steps}}',
-      category: 'update',
-      tags: ['project', 'weekly', 'status'],
-      variables: ['status', 'next_steps'],
-      usage: 24,
-      lastUsed: new Date(),
-      isPublic: true,
-      createdBy: 'current-user'
-    },
-    {
-      id: 'template2',
-      name: 'Design Approval Request',
-      content: 'Hi {{client_name}}, please review the attached designs and let us know your feedback by {{deadline}}.',
-      category: 'approval',
-      tags: ['design', 'approval', 'client'],
-      variables: ['client_name', 'deadline'],
-      usage: 18,
-      lastUsed: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      isPublic: true,
-      createdBy: 'current-user'
-    },
-    {
-      id: 'template3',
-      name: 'Meeting Reminder',
-      content: 'Reminder: {{meeting_type}} meeting tomorrow at {{time}} in {{location}}.',
-      category: 'reminder',
-      tags: ['meeting', 'reminder'],
-      variables: ['meeting_type', 'time', 'location'],
-      usage: 15,
-      lastUsed: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      isPublic: false,
-      createdBy: 'current-user'
-    }
-  ];
-
-  const mockAutomationRules: AutomationRule[] = [
-    {
-      id: 'rule1',
-      name: 'Client Response Follow-up',
-      description: 'Automatically send a follow-up message if client doesn\'t respond within 24 hours',
-      trigger: {
-        type: 'time',
-        conditions: { delay: '24h', event: 'no-response' }
+  // Factory functions to create mock data (called once during initialization)
+  const createMockScheduledMessages = (): ScheduledMessage[] => {
+    const now = Date.now();
+    return [
+      {
+        id: '1',
+        content: 'Weekly project update: We\'ve completed the initial design phase and are moving to development.',
+        recipients: [
+          { id: 'user1', name: 'Sarah Chen', email: 'sarah@client.com' },
+          { id: 'user2', name: 'Mike Johnson', email: 'mike@team.com' }
+        ],
+        scheduledFor: new Date(now + 2 * 60 * 60 * 1000), // 2 hours from now
+        type: 'text',
+        priority: 'medium',
+        status: 'pending',
+        templateId: 'template1',
+        createdAt: new Date(),
+        repeatPattern: 'weekly'
       },
-      actions: [
-        {
-          type: 'send-message',
-          config: {
-            templateId: 'follow-up-template',
-            priority: 'medium'
-          }
-        }
-      ],
-      isActive: true,
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      lastTriggered: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      triggerCount: 12
-    },
-    {
-      id: 'rule2',
-      name: 'Urgent Message Escalation',
-      description: 'Notify team lead when urgent messages are received outside business hours',
-      trigger: {
-        type: 'event',
-        conditions: { priority: 'critical', time: 'after-hours' }
+      {
+        id: '2',
+        content: 'Design review meeting reminder: Tomorrow at 2 PM in the main conference room.',
+        recipients: [
+          { id: 'user3', name: 'Alex Rodriguez', email: 'alex@team.com' }
+        ],
+        scheduledFor: new Date(now + 24 * 60 * 60 * 1000), // Tomorrow
+        type: 'text',
+        priority: 'high',
+        status: 'pending',
+        createdAt: new Date(),
+        repeatPattern: 'none'
+      }
+    ];
+  };
+
+  const createMockTemplates = (): MessageTemplate[] => {
+    const now = Date.now();
+    return [
+      {
+        id: 'template1',
+        name: 'Weekly Project Update',
+        content: 'Weekly project update: {{status}}. Next steps: {{next_steps}}',
+        category: 'update',
+        tags: ['project', 'weekly', 'status'],
+        variables: ['status', 'next_steps'],
+        usage: 24,
+        lastUsed: new Date(),
+        isPublic: true,
+        createdBy: 'current-user'
       },
-      actions: [
-        {
-          type: 'notify-team',
-          config: {
-            recipients: ['team-lead'],
-            method: 'push-notification'
+      {
+        id: 'template2',
+        name: 'Design Approval Request',
+        content: 'Hi {{client_name}}, please review the attached designs and let us know your feedback by {{deadline}}.',
+        category: 'approval',
+        tags: ['design', 'approval', 'client'],
+        variables: ['client_name', 'deadline'],
+        usage: 18,
+        lastUsed: new Date(now - 2 * 24 * 60 * 60 * 1000),
+        isPublic: true,
+        createdBy: 'current-user'
+      },
+      {
+        id: 'template3',
+        name: 'Meeting Reminder',
+        content: 'Reminder: {{meeting_type}} meeting tomorrow at {{time}} in {{location}}.',
+        category: 'reminder',
+        tags: ['meeting', 'reminder'],
+        variables: ['meeting_type', 'time', 'location'],
+        usage: 15,
+        lastUsed: new Date(now - 5 * 24 * 60 * 60 * 1000),
+        isPublic: false,
+        createdBy: 'current-user'
+      }
+    ];
+  };
+
+  const createMockAutomationRules = (): AutomationRule[] => {
+    const now = Date.now();
+    return [
+      {
+        id: 'rule1',
+        name: 'Client Response Follow-up',
+        description: 'Automatically send a follow-up message if client doesn\'t respond within 24 hours',
+        trigger: {
+          type: 'time',
+          conditions: { delay: '24h', event: 'no-response' }
+        },
+        actions: [
+          {
+            type: 'send-message',
+            config: {
+              templateId: 'follow-up-template',
+              priority: 'medium'
+            }
           }
-        }
-      ],
-      isActive: true,
-      createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-      lastTriggered: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-      triggerCount: 8
-    }
-  ];
+        ],
+        isActive: true,
+        createdAt: new Date(now - 7 * 24 * 60 * 60 * 1000),
+        lastTriggered: new Date(now - 2 * 24 * 60 * 60 * 1000),
+        triggerCount: 12
+      },
+      {
+        id: 'rule2',
+        name: 'Urgent Message Escalation',
+        description: 'Notify team lead when urgent messages are received outside business hours',
+        trigger: {
+          type: 'event',
+          conditions: { priority: 'critical', time: 'after-hours' }
+        },
+        actions: [
+          {
+            type: 'notify-team',
+            config: {
+              recipients: ['team-lead'],
+              method: 'push-notification'
+            }
+          }
+        ],
+        isActive: true,
+        createdAt: new Date(now - 14 * 24 * 60 * 60 * 1000),
+        lastTriggered: new Date(now - 3 * 24 * 60 * 60 * 1000),
+        triggerCount: 8
+      }
+    ];
+  };
 
   useEffect(() => {
-    setScheduledMessages(mockScheduledMessages);
-    setTemplates(mockTemplates);
-    setAutomationRules(mockAutomationRules);
+    queueMicrotask(() => {
+      setScheduledMessages(createMockScheduledMessages());
+      setTemplates(createMockTemplates());
+      setAutomationRules(createMockAutomationRules());
+    });
   }, []);
 
   return (

@@ -32,6 +32,32 @@ interface VoiceCallProps {
 }
 
 // ============================================================================
+// AUDIO VISUALIZATION COMPONENT - Extracted to avoid Math.random() during render
+// ============================================================================
+
+function AudioVisualization() {
+  // Generate random heights once using useState with lazy initializer
+  const [barHeights] = useState(() =>
+    Array.from({ length: 5 }, () => Math.random() * 20 + 10)
+  );
+
+  return (
+    <div className="absolute bottom-32 flex items-center gap-1">
+      {barHeights.map((height, i) => (
+        <div
+          key={i}
+          className="w-1 bg-blue-400 rounded-full animate-pulse"
+          style={{
+            height: `${height}px`,
+            animationDelay: `${i * 100}ms`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ============================================================================
 // PARTICIPANT AVATAR COMPONENT
 // ============================================================================
 
@@ -235,18 +261,7 @@ export function VoiceCall({
 
       {/* Audio Visualization */}
       {callState === 'connected' && (
-        <div className="absolute bottom-32 flex items-center gap-1">
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="w-1 bg-blue-400 rounded-full animate-pulse"
-              style={{
-                height: `${Math.random() * 20 + 10}px`,
-                animationDelay: `${i * 100}ms`,
-              }}
-            />
-          ))}
-        </div>
+        <AudioVisualization />
       )}
 
       {/* Error Toast */}
