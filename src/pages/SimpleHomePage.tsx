@@ -370,6 +370,70 @@ export function SimpleHomePage() {
           </div>
         </section>
 
+        {/* Pricing Section */}
+        <section id="pricing" className="py-20 bg-gradient-to-b from-transparent to-white/5">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-5xl font-bold mb-4">
+                Simple, Transparent Pricing
+              </h2>
+              <p className="text-xl text-gray-400">
+                Start free, scale as you grow
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {/* Free Tier */}
+              <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-8 border border-white/10 hover:bg-white/10 transition-all duration-300">
+                <div className="text-center mb-6">
+                  <h3 className="text-xl font-semibold mb-2">Free</h3>
+                  <div className="text-4xl font-bold mb-2">$0</div>
+                  <p className="text-gray-400 text-sm">Forever free</p>
+                </div>
+                <ul className="space-y-3 mb-8 text-gray-300">
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Up to 3 projects</li>
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> 1 GB storage</li>
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Basic collaboration</li>
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Community support</li>
+                </ul>
+                <Link to="/signup" className="block w-full text-center border-2 border-white/20 py-3 rounded-full hover:bg-white/10 transition-all">Get Started</Link>
+              </div>
+              {/* Pro Tier */}
+              <div className="bg-gradient-to-b from-blue-500/20 to-purple-600/20 backdrop-blur-lg rounded-2xl p-8 border border-blue-400/30 hover:border-blue-400/50 transition-all duration-300 relative">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-1 rounded-full text-sm font-semibold">Most Popular</div>
+                <div className="text-center mb-6">
+                  <h3 className="text-xl font-semibold mb-2">Pro</h3>
+                  <div className="text-4xl font-bold mb-2">$19<span className="text-lg font-normal text-gray-400">/mo</span></div>
+                  <p className="text-gray-400 text-sm">Per user, billed annually</p>
+                </div>
+                <ul className="space-y-3 mb-8 text-gray-300">
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Unlimited projects</li>
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> 100 GB storage</li>
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Advanced collaboration</li>
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Priority support</li>
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Version history</li>
+                </ul>
+                <Link to="/signup" className="block w-full text-center bg-gradient-to-r from-blue-500 to-purple-600 py-3 rounded-full hover:shadow-lg transition-all">Start Free Trial</Link>
+              </div>
+              {/* Enterprise Tier */}
+              <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-8 border border-white/10 hover:bg-white/10 transition-all duration-300">
+                <div className="text-center mb-6">
+                  <h3 className="text-xl font-semibold mb-2">Enterprise</h3>
+                  <div className="text-4xl font-bold mb-2">Custom</div>
+                  <p className="text-gray-400 text-sm">Contact us for pricing</p>
+                </div>
+                <ul className="space-y-3 mb-8 text-gray-300">
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Everything in Pro</li>
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Unlimited storage</li>
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> SSO & SAML</li>
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Dedicated support</li>
+                  <li className="flex items-center"><span className="text-green-400 mr-2">✓</span> Custom integrations</li>
+                </ul>
+                <a href="mailto:sales@fluxstudio.art" className="block w-full text-center border-2 border-white/20 py-3 rounded-full hover:bg-white/10 transition-all">Contact Sales</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* CTA Section */}
         <section className="py-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
