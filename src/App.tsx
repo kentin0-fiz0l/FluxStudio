@@ -72,6 +72,10 @@ const { Component: CreateOrganization } = lazyLoadWithRetry(() => import('./page
 
 // Lazy load comprehensive platform components
 const { Component: ClientOnboarding } = lazyLoadWithRetry(() => import('./components/onboarding/ClientOnboarding'));
+
+// Legal pages
+const { Component: Terms } = lazyLoadWithRetry(() => import('./pages/Terms'));
+const { Component: Privacy } = lazyLoadWithRetry(() => import('./pages/Privacy'));
 // Future: Route components for advanced features - see docs/ROUTE_WRAPPERS.md for implementation guide
 
 // FluxPrint Integration - 3D Printing Dashboard
@@ -135,6 +139,10 @@ function AuthenticatedRoutes() {
                   <Route path="/auth/callback/figma" element={<OAuthCallback provider="figma" />} />
                   <Route path="/auth/callback/slack" element={<OAuthCallback provider="slack" />} />
                   <Route path="/auth/callback/github" element={<OAuthCallback provider="github" />} />
+
+                  {/* Legal pages - public */}
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/privacy" element={<Privacy />} />
 
                   {/* Redesigned Page Routes (Flux Design Language) - Protected with Error Boundaries */}
                   <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
