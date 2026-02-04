@@ -56,6 +56,15 @@ export function CommandPalette({
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  // Wrapper to reset state when closing - avoids setState in effect
+  const handleOpenChange = useCallback((isOpen: boolean) => {
+    if (!isOpen) {
+      setSearch('');
+      setSelectedIndex(0);
+    }
+    onOpenChange(isOpen);
+  }, [onOpenChange]);
+
   // Define commands
   const commands: Command[] = useMemo(() => {
     const baseCommands: Command[] = [
@@ -68,7 +77,7 @@ export function CommandPalette({
         keywords: ['home', 'dashboard', 'overview'],
         action: () => {
           navigate('/home');
-          onOpenChange(false);
+          handleOpenChange(false);
         },
       },
       {
@@ -79,7 +88,7 @@ export function CommandPalette({
         keywords: ['projects', 'work'],
         action: () => {
           navigate('/projects');
-          onOpenChange(false);
+          handleOpenChange(false);
         },
       },
       {
@@ -90,7 +99,7 @@ export function CommandPalette({
         keywords: ['files', 'documents', 'storage'],
         action: () => {
           navigate('/file');
-          onOpenChange(false);
+          handleOpenChange(false);
         },
       },
       {
@@ -101,7 +110,7 @@ export function CommandPalette({
         keywords: ['assets', 'media', 'images'],
         action: () => {
           navigate('/assets');
-          onOpenChange(false);
+          handleOpenChange(false);
         },
       },
       {
@@ -112,7 +121,7 @@ export function CommandPalette({
         keywords: ['team', 'members', 'people'],
         action: () => {
           navigate('/team');
-          onOpenChange(false);
+          handleOpenChange(false);
         },
       },
       {
@@ -123,7 +132,7 @@ export function CommandPalette({
         keywords: ['messages', 'chat', 'communication'],
         action: () => {
           navigate('/messages');
-          onOpenChange(false);
+          handleOpenChange(false);
         },
       },
       {
@@ -134,7 +143,7 @@ export function CommandPalette({
         keywords: ['organization', 'company', 'org'],
         action: () => {
           navigate('/organization');
-          onOpenChange(false);
+          handleOpenChange(false);
         },
       },
       {
@@ -145,7 +154,7 @@ export function CommandPalette({
         keywords: ['tools', 'utilities'],
         action: () => {
           navigate('/tools');
-          onOpenChange(false);
+          handleOpenChange(false);
         },
       },
       {
@@ -156,7 +165,7 @@ export function CommandPalette({
         keywords: ['settings', 'preferences', 'config'],
         action: () => {
           navigate('/settings');
-          onOpenChange(false);
+          handleOpenChange(false);
         },
       },
 
@@ -170,7 +179,7 @@ export function CommandPalette({
         shortcut: ['⌘', 'N'],
         keywords: ['create', 'new', 'project', 'add'],
         action: () => {
-          onOpenChange(false);
+          handleOpenChange(false);
           setTimeout(() => onCreateProject?.(), 100);
         },
       },
@@ -183,7 +192,7 @@ export function CommandPalette({
         shortcut: ['⌘', 'F'],
         keywords: ['search', 'find', 'look'],
         action: () => {
-          onOpenChange(false);
+          handleOpenChange(false);
         },
       },
     ];
@@ -198,12 +207,12 @@ export function CommandPalette({
       keywords: ['project', project.name.toLowerCase()],
       action: () => {
         navigate(`/projects/${project.id}`);
-        onOpenChange(false);
+        handleOpenChange(false);
       },
     }));
 
     return [...baseCommands, ...projectCommands];
-  }, [navigate, onOpenChange, onCreateProject, projects]);
+  }, [navigate, handleOpenChange, onCreateProject, projects]);
 
   // Filter commands based on search
   const filteredCommands = useMemo(() => {
@@ -242,13 +251,6 @@ export function CommandPalette({
     setSelectedIndex(0);
   }, [search]);
 
-  // Reset search when closing
-  useLayoutEffect(() => {
-    if (!open) {
-      setSearch('');
-      setSelectedIndex(0);
-    }
-  }, [open]);
 
   // Keyboard navigation
   const handleKeyDown = useCallback(
@@ -263,10 +265,10 @@ export function CommandPalette({
         e.preventDefault();
         filteredCommands[selectedIndex]?.action();
       } else if (e.key === 'Escape') {
-        onOpenChange(false);
+        handleOpenChange(false);
       }
     },
-    [filteredCommands, selectedIndex, onOpenChange]
+    [filteredCommands, selectedIndex, handleOpenChange]
   );
 
   // Execute command
@@ -281,7 +283,7 @@ export function CommandPalette({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="p-0 gap-0 max-w-2xl" aria-describedby="command-palette-description">
         <div className="sr-only" id="command-palette-description">
           Command palette for quick navigation and actions
