@@ -3,7 +3,7 @@
  * Main dashboard that combines all messaging features into a unified interface
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Bell, Users } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -31,42 +31,8 @@ export function MessagingDashboard({ currentUser, className }: MessagingDashboar
   const [isMobile, setIsMobile] = useState(false);
   const [activeTab, setActiveTab] = useState('conversations');
 
-  useEffect(() => {
-    // Set current user in messaging service
-    messagingService.setCurrentUser(currentUser);
-
-    // Check if mobile
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-
-    // Load initial data
-    loadUnreadNotifications();
-
-    // Set up real-time listeners
-    setupRealtimeListeners();
-
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-      cleanupRealtimeListeners();
-    };
-  }, [currentUser]);
-
-  const loadUnreadNotifications = async () => {
-    try {
-      const notifications = await messagingService.getNotifications({
-        unreadOnly: true,
-        limit: 1,
-      });
-      setUnreadNotifications(notifications.length);
-    } catch (error) {
-      console.error('Failed to load unread notifications:', error);
-    }
-  };
-
-  const setupRealtimeListeners = () => {
+  // Define functions before useEffect that calls them
+  const setupRealtimeListeners = useCallback(() => {
     // Listen for new notifications
     messagingService.onMentionReceived((_notification) => {
       setUnreadNotifications(prev => prev + 1);
@@ -83,14 +49,54 @@ export function MessagingDashboard({ currentUser, className }: MessagingDashboar
     messagingService.onUserOffline((user) => {
       setOnlineUsers(prev => prev.filter(u => u.id !== user.userId));
     });
-  };
+  }, []);
 
-  const cleanupRealtimeListeners = () => {
+  const cleanupRealtimeListeners = useCallback(() => {
     // Remove listeners when component unmounts
     messagingService.off('notification:mention', () => {});
     messagingService.off('user:online', () => {});
     messagingService.off('user:offline', () => {});
-  };
+  }, []);
+
+  useEffect(() => {
+    // Set current user in messaging service
+    messagingService.setCurrentUser(currentUser);
+
+    // Check if mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    let cancelled = false;
+
+    // Load initial data
+    const fetchNotifications = async () => {
+      try {
+        const notifications = await messagingService.getNotifications({
+          unreadOnly: true,
+          limit: 1,
+        });
+        if (!cancelled) {
+          setUnreadNotifications(notifications.length);
+        }
+      } catch (error) {
+        console.error('Failed to load unread notifications:', error);
+      }
+    };
+
+    fetchNotifications();
+
+    // Set up real-time listeners
+    setupRealtimeListeners();
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('resize', checkMobile);
+      cleanupRealtimeListeners();
+    };
+  }, [currentUser, setupRealtimeListeners, cleanupRealtimeListeners]);
 
   const handleConversationSelect = (conversation: Conversation) => {
     setSelectedConversation(conversation);

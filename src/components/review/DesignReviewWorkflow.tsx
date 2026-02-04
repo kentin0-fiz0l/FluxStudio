@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
@@ -141,7 +141,6 @@ export function DesignReviewWorkflow({
   const [isAddingAnnotation, setIsAddingAnnotation] = useState(false);
   const [annotationType, setAnnotationType] = useState<Annotation['type']>('comment');
   const [zoom, setZoom] = useState(1);
-  const [, /* isDragging */] = useState(false);
   const [panPosition] = useState({ x: 0, y: 0 });
   const [selectedAnnotation, setSelectedAnnotation] = useState<string | null>(null);
   const imageRef = useRef<HTMLDivElement>(null);
@@ -501,9 +500,9 @@ export function DesignReviewWorkflow({
 
       {/* Annotation Panel */}
       <AnimatePresence>
-        {selectedAnnotation && (
+        {selectedAnnotation && selectedFile.annotations?.find(a => a.id === selectedAnnotation) && (
           <AnnotationPanel
-            annotation={selectedFile.annotations?.find(a => a.id === selectedAnnotation)!}
+            annotation={selectedFile.annotations.find(a => a.id === selectedAnnotation)!}
             onClose={() => setSelectedAnnotation(null)}
             onUpdate={(updates) => {
               if (onAnnotationUpdate) {
@@ -546,11 +545,10 @@ function AnnotationPanel({
     }
   };
 
-  const handleAddReply = () => {
+  const handleAddReply = useCallback(() => {
     if (replyContent.trim()) {
-      const timestamp = Date.now();
       const newReply: AnnotationReply = {
-        id: `reply-${timestamp}`,
+        id: `reply-${crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2)}`,
         content: replyContent.trim(),
         author: {
           id: user?.id || '',
@@ -566,7 +564,7 @@ function AnnotationPanel({
       });
       setReplyContent('');
     }
-  };
+  }, [replyContent, user, annotation.replies, onUpdate]);
 
   const handleStatusChange = (status: Annotation['status']) => {
     onUpdate({ status });

@@ -45,6 +45,233 @@ interface EnhancedMessageHubProps {
   className?: string;
 }
 
+// Helper function to format time ago
+const formatTimeAgo = (date: Date) => {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
+};
+
+// Extracted ConversationCard component
+interface ConversationCardProps {
+  conversation: Conversation;
+  isActive?: boolean;
+  messagesByConversation: Record<string, Message[]>;
+  messageAnalyses: Record<string, MessageAnalysis>;
+  onSelect: (conversationId: string) => void;
+}
+
+const ConversationCard = ({
+  conversation,
+  isActive,
+  messagesByConversation,
+  messageAnalyses,
+  onSelect
+}: ConversationCardProps) => {
+  const messages = messagesByConversation[conversation.id] || [];
+  const urgentCount = messages.filter((msg: Message) => {
+    if (!msg || !msg.id) {
+      console.error('[EnhancedMessageHub] Invalid message in urgentCount filter:', msg);
+      return false;
+    }
+    const analysis = messageAnalyses[msg.id];
+    return analysis && (analysis.urgency === 'critical' || analysis.urgency === 'high');
+  }).length;
+
+  const pendingCount = messages.filter((msg: Message) => {
+    if (!msg || !msg.id) {
+      console.error('[EnhancedMessageHub] Invalid message in pendingCount filter:', msg);
+      return false;
+    }
+    const analysis = messageAnalyses[msg.id];
+    return analysis && (
+      analysis.intent === 'action-required' ||
+      analysis.category === 'approval-request'
+    );
+  }).length;
+
+  const questionCount = messages.filter((msg: Message) => {
+    if (!msg || !msg.id) {
+      console.error('[EnhancedMessageHub] Invalid message in questionCount filter:', msg);
+      return false;
+    }
+    const analysis = messageAnalyses[msg.id];
+    return analysis && analysis.category === 'question';
+  }).length;
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={cn(
+        'p-3 rounded-lg border cursor-pointer transition-all duration-200',
+        isActive
+          ? 'bg-blue-50 border-blue-200 shadow-sm'
+          : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+      )}
+      onClick={() => onSelect(conversation.id)}
+    >
+      <div className="flex gap-3">
+        {/* Conversation Type Icon */}
+        <div className={cn(
+          'flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center',
+          conversation.type === 'project' ? 'bg-gradient-to-br from-blue-500 to-purple-600' :
+          conversation.type === 'direct' ? 'bg-gradient-to-br from-green-500 to-teal-600' :
+          conversation.type === 'team' ? 'bg-gradient-to-br from-orange-500 to-red-600' :
+          'bg-gradient-to-br from-gray-500 to-gray-600'
+        )}>
+          {conversation.type === 'project' && <Folder size={18} className="text-white" />}
+          {conversation.type === 'direct' && <MessageSquare size={18} className="text-white" />}
+          {conversation.type === 'team' && <Users size={18} className="text-white" />}
+          {conversation.type === 'support' && <Bell size={18} className="text-white" />}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          {/* Header with AI insights */}
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold text-sm text-gray-900 truncate">
+              {conversation.name}
+            </h3>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {/* AI-powered indicators */}
+              {urgentCount > 0 && (
+                <Badge className="bg-red-500/20 text-red-600 border-red-500/30 text-xs">
+                  {urgentCount} urgent
+                </Badge>
+              )}
+              {pendingCount > 0 && (
+                <Badge className="bg-orange-500/20 text-orange-600 border-orange-500/30 text-xs">
+                  {pendingCount} pending
+                </Badge>
+              )}
+              {questionCount > 0 && (
+                <Badge className="bg-blue-500/20 text-blue-600 border-blue-500/30 text-xs">
+                  {questionCount} ?
+                </Badge>
+              )}
+              {conversation.metadata?.isPinned && (
+                <Star size={12} className="text-yellow-500 fill-current" />
+              )}
+              <span className="text-xs text-gray-500">
+                {formatTimeAgo(new Date(conversation.lastActivity))}
+              </span>
+            </div>
+          </div>
+
+          {/* Last message preview with sentiment */}
+          {conversation.lastMessage && (
+            <div className="flex items-center gap-2 mb-2">
+              <Avatar className="w-5 h-5">
+                <AvatarImage src={conversation.lastMessage.author?.avatar} />
+                <AvatarFallback className="text-xs">
+                  {conversation.lastMessage.author?.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <p className="text-xs text-gray-600 truncate flex-1">
+                {conversation.lastMessage.content}
+              </p>
+              {/* Sentiment indicator */}
+              {messageAnalyses[conversation.lastMessage.id] && (
+                <div className="flex-shrink-0">
+                  {messageAnalyses[conversation.lastMessage.id].extractedData.emotions?.includes('positive') && (
+                    <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                  )}
+                  {messageAnalyses[conversation.lastMessage.id].extractedData.emotions?.includes('concerned') && (
+                    <div className="w-2 h-2 rounded-full bg-orange-400"></div>
+                  )}
+                  {messageAnalyses[conversation.lastMessage.id].extractedData.emotions?.includes('negative') && (
+                    <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Footer with enhanced metadata */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                {conversation.type}
+              </Badge>
+              {conversation.lastMessage?.attachments && conversation.lastMessage.attachments.length > 0 && (
+                <FileImage size={12} className="text-gray-400" />
+              )}
+            </div>
+
+            {conversation.unreadCount > 0 && (
+              <Badge className="bg-blue-600 text-white text-xs min-w-[18px] h-[18px] flex items-center justify-center p-0">
+                {conversation.unreadCount}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Extracted ConversationSection component
+interface ConversationSectionProps {
+  title: string;
+  conversations: Conversation[];
+  icon?: React.ElementType;
+  color?: string;
+  activeConversationId?: string;
+  messagesByConversation: Record<string, Message[]>;
+  messageAnalyses: Record<string, MessageAnalysis>;
+  onSelect: (conversationId: string) => void;
+}
+
+const ConversationSection = ({
+  title,
+  conversations,
+  icon: Icon,
+  color,
+  activeConversationId,
+  messagesByConversation,
+  messageAnalyses,
+  onSelect
+}: ConversationSectionProps) => {
+  if (conversations.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        {Icon && <Icon size={16} className={cn('text-gray-600', color && `text-${color}`)} />}
+        <h2 className={cn(
+          'font-semibold text-sm uppercase tracking-wide',
+          color ? `text-${color}` : 'text-gray-700'
+        )}>
+          {title}
+        </h2>
+        <Badge variant="outline" className="text-xs">
+          {conversations.length}
+        </Badge>
+      </div>
+      <div className="space-y-2">
+        {conversations.map(conv => (
+          <ConversationCard
+            key={conv.id}
+            conversation={conv}
+            isActive={activeConversationId === conv.id}
+            messagesByConversation={messagesByConversation}
+            messageAnalyses={messageAnalyses}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 type ViewMode = 'unified' | 'projects' | 'clients' | 'teams' | 'activity' | 'intelligence';
 type FilterType = 'all' | 'unread' | 'priority' | 'mentions' | 'files' | 'urgent' | 'pending';
 
@@ -279,201 +506,6 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
     return grouped;
   }, [conversations, searchQuery, filterType, messagesByConversation, messageAnalyses, filterConversations]);
 
-  const ConversationCard = ({ conversation, isActive }: {
-    conversation: Conversation;
-    isActive?: boolean;
-  }) => {
-    const messages = messagesByConversation[conversation.id] || [];
-    const urgentCount = messages.filter((msg: Message) => {
-      if (!msg || !msg.id) {
-        console.error('[EnhancedMessageHub] Invalid message in urgentCount filter:', msg);
-        return false;
-      }
-      const analysis = messageAnalyses[msg.id];
-      return analysis && (analysis.urgency === 'critical' || analysis.urgency === 'high');
-    }).length;
-
-    const pendingCount = messages.filter((msg: Message) => {
-      if (!msg || !msg.id) {
-        console.error('[EnhancedMessageHub] Invalid message in pendingCount filter:', msg);
-        return false;
-      }
-      const analysis = messageAnalyses[msg.id];
-      return analysis && (
-        analysis.intent === 'action-required' ||
-        analysis.category === 'approval-request'
-      );
-    }).length;
-
-    const questionCount = messages.filter((msg: Message) => {
-      if (!msg || !msg.id) {
-        console.error('[EnhancedMessageHub] Invalid message in questionCount filter:', msg);
-        return false;
-      }
-      const analysis = messageAnalyses[msg.id];
-      return analysis && analysis.category === 'question';
-    }).length;
-
-    return (
-      <motion.div
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        className={cn(
-          'p-3 rounded-lg border cursor-pointer transition-all duration-200',
-          isActive
-            ? 'bg-blue-50 border-blue-200 shadow-sm'
-            : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-        )}
-        onClick={() => setActiveConversation(conversation.id)}
-      >
-        <div className="flex gap-3">
-          {/* Conversation Type Icon */}
-          <div className={cn(
-            'flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center',
-            conversation.type === 'project' ? 'bg-gradient-to-br from-blue-500 to-purple-600' :
-            conversation.type === 'direct' ? 'bg-gradient-to-br from-green-500 to-teal-600' :
-            conversation.type === 'team' ? 'bg-gradient-to-br from-orange-500 to-red-600' :
-            'bg-gradient-to-br from-gray-500 to-gray-600'
-          )}>
-            {conversation.type === 'project' && <Folder size={18} className="text-white" />}
-            {conversation.type === 'direct' && <MessageSquare size={18} className="text-white" />}
-            {conversation.type === 'team' && <Users size={18} className="text-white" />}
-            {conversation.type === 'support' && <Bell size={18} className="text-white" />}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            {/* Header with AI insights */}
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-semibold text-sm text-gray-900 truncate">
-                {conversation.name}
-              </h3>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                {/* AI-powered indicators */}
-                {urgentCount > 0 && (
-                  <Badge className="bg-red-500/20 text-red-600 border-red-500/30 text-xs">
-                    {urgentCount} urgent
-                  </Badge>
-                )}
-                {pendingCount > 0 && (
-                  <Badge className="bg-orange-500/20 text-orange-600 border-orange-500/30 text-xs">
-                    {pendingCount} pending
-                  </Badge>
-                )}
-                {questionCount > 0 && (
-                  <Badge className="bg-blue-500/20 text-blue-600 border-blue-500/30 text-xs">
-                    {questionCount} ?
-                  </Badge>
-                )}
-                {conversation.metadata?.isPinned && (
-                  <Star size={12} className="text-yellow-500 fill-current" />
-                )}
-                <span className="text-xs text-gray-500">
-                  {formatTimeAgo(new Date(conversation.lastActivity))}
-                </span>
-              </div>
-            </div>
-
-            {/* Last message preview with sentiment */}
-            {conversation.lastMessage && (
-              <div className="flex items-center gap-2 mb-2">
-                <Avatar className="w-5 h-5">
-                  <AvatarImage src={conversation.lastMessage.author?.avatar} />
-                  <AvatarFallback className="text-xs">
-                    {conversation.lastMessage.author?.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <p className="text-xs text-gray-600 truncate flex-1">
-                  {conversation.lastMessage.content}
-                </p>
-                {/* Sentiment indicator */}
-                {messageAnalyses[conversation.lastMessage.id] && (
-                  <div className="flex-shrink-0">
-                    {messageAnalyses[conversation.lastMessage.id].extractedData.emotions?.includes('positive') && (
-                      <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                    )}
-                    {messageAnalyses[conversation.lastMessage.id].extractedData.emotions?.includes('concerned') && (
-                      <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-                    )}
-                    {messageAnalyses[conversation.lastMessage.id].extractedData.emotions?.includes('negative') && (
-                      <div className="w-2 h-2 rounded-full bg-red-400"></div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Footer with enhanced metadata */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  {conversation.type}
-                </Badge>
-                {conversation.lastMessage?.attachments && conversation.lastMessage.attachments.length > 0 && (
-                  <FileImage size={12} className="text-gray-400" />
-                )}
-              </div>
-
-              {conversation.unreadCount > 0 && (
-                <Badge className="bg-blue-600 text-white text-xs min-w-[18px] h-[18px] flex items-center justify-center p-0">
-                  {conversation.unreadCount}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    );
-  };
-
-  const ConversationSection = ({ title, conversations, icon: Icon, color }: {
-    title: string;
-    conversations: Conversation[];
-    icon?: React.ElementType;
-    color?: string;
-  }) => {
-    if (conversations.length === 0) return null;
-
-    return (
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          {Icon && <Icon size={16} className={cn('text-gray-600', color && `text-${color}`)} />}
-          <h2 className={cn(
-            'font-semibold text-sm uppercase tracking-wide',
-            color ? `text-${color}` : 'text-gray-700'
-          )}>
-            {title}
-          </h2>
-          <Badge variant="outline" className="text-xs">
-            {conversations.length}
-          </Badge>
-        </div>
-        <div className="space-y-2">
-          {conversations.map(conv => (
-            <ConversationCard
-              key={conv.id}
-              conversation={conv}
-              isActive={activeConversation?.id === conv.id}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
-  };
-
   // Used by ConversationIntelligencePanel for workflow automation
   const handleActionTrigger = (action: string, data?: unknown) => {
     // Handle workflow automation triggers
@@ -625,36 +657,64 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
                     conversations={contextualConversations.urgent}
                     icon={Zap}
                     color="red-600"
+                    activeConversationId={activeConversation?.id}
+                    messagesByConversation={messagesByConversation}
+                    messageAnalyses={messageAnalyses}
+                    onSelect={setActiveConversation}
                   />
                   <ConversationSection
                     title="Pending Actions"
                     conversations={contextualConversations.pending}
                     icon={Target}
                     color="orange-600"
+                    activeConversationId={activeConversation?.id}
+                    messagesByConversation={messagesByConversation}
+                    messageAnalyses={messageAnalyses}
+                    onSelect={setActiveConversation}
                   />
                   <ConversationSection
                     title="Pinned"
                     conversations={contextualConversations.pinned}
                     icon={Star}
                     color="yellow-600"
+                    activeConversationId={activeConversation?.id}
+                    messagesByConversation={messagesByConversation}
+                    messageAnalyses={messageAnalyses}
+                    onSelect={setActiveConversation}
                   />
                   <ConversationSection
                     title="Today"
                     conversations={contextualConversations.today}
                     icon={Clock}
+                    activeConversationId={activeConversation?.id}
+                    messagesByConversation={messagesByConversation}
+                    messageAnalyses={messageAnalyses}
+                    onSelect={setActiveConversation}
                   />
                   <ConversationSection
                     title="Yesterday"
                     conversations={contextualConversations.yesterday}
+                    activeConversationId={activeConversation?.id}
+                    messagesByConversation={messagesByConversation}
+                    messageAnalyses={messageAnalyses}
+                    onSelect={setActiveConversation}
                   />
                   <ConversationSection
                     title="This Week"
                     conversations={contextualConversations.thisWeek}
+                    activeConversationId={activeConversation?.id}
+                    messagesByConversation={messagesByConversation}
+                    messageAnalyses={messageAnalyses}
+                    onSelect={setActiveConversation}
                   />
                   <ConversationSection
                     title="Older"
                     conversations={contextualConversations.older}
                     icon={Archive}
+                    activeConversationId={activeConversation?.id}
+                    messagesByConversation={messagesByConversation}
+                    messageAnalyses={messageAnalyses}
+                    onSelect={setActiveConversation}
                   />
                 </>
               )}
@@ -667,6 +727,10 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
                       title={`Project: ${projectId}`}
                       conversations={convs}
                       icon={Folder}
+                      activeConversationId={activeConversation?.id}
+                      messagesByConversation={messagesByConversation}
+                      messageAnalyses={messageAnalyses}
+                      onSelect={setActiveConversation}
                     />
                   ))}
                 </>

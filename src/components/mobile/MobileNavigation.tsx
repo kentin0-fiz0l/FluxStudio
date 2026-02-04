@@ -61,7 +61,11 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
   // Close menu on page navigation
   useEffect(() => {
-    setIsMenuOpen(false);
+    // Use setTimeout to move setState out of synchronous effect body
+    const timeout = setTimeout(() => {
+      setIsMenuOpen(false);
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [currentPage]);
 
   const handleNavigation = (page: string) => {

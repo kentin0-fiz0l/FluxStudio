@@ -3,7 +3,7 @@
  * Real-time performance metrics and monitoring dashboard
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Activity,
@@ -114,14 +114,17 @@ export function PerformanceMonitor() {
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
+  // Compute visibility statically to avoid setState in effect
+  const enableMonitoring = useMemo(() =>
+    process.env.NODE_ENV === 'development' ||
+    (typeof localStorage !== 'undefined' && localStorage.getItem('performance_monitoring') === 'true'),
+  []);
+
   useEffect(() => {
-    // Enable performance monitoring in development or with flag
-    const enableMonitoring =
-      process.env.NODE_ENV === 'development' ||
-      localStorage.getItem('performance_monitoring') === 'true';
-
     setIsVisible(enableMonitoring);
+  }, [enableMonitoring]);
 
+  useEffect(() => {
     if (!enableMonitoring) return;
 
     const collectMetrics = () => {

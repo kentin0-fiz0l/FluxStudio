@@ -5,7 +5,7 @@
  * Refactored to use extracted components from ./annotation/
  */
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { ImageAnnotation, MessageUser } from '../../types/messaging';
 import { cn } from '../../lib/utils';
 import {
@@ -103,6 +103,77 @@ export function RealtimeImageAnnotation({
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const websocketRef = useRef<WebSocket | null>(null);
+  const idCounterRef = useRef(0);
+
+  // Generate unique IDs without using Date.now() during render
+  const generateId = useCallback((prefix: string) => {
+    idCounterRef.current += 1;
+    return `${prefix}-${idCounterRef.current}-${Math.random().toString(36).substr(2, 9)}`;
+  }, []);
+
+  // Define WebSocket message handlers before the useEffect
+  const updateCollaboratorCursor = useCallback((userId: string, user: MessageUser, position: { x: number; y: number }) => {
+    setCollaboratorCursors(prev => {
+      const existing = prev.find(c => c.userId === userId);
+      if (existing) {
+        return prev.map(c =>
+          c.userId === userId
+            ? { ...c, position, lastSeen: new Date(), isActive: true }
+            : c
+        );
+      } else {
+        return [...prev, {
+          userId,
+          user,
+          position,
+          lastSeen: new Date(),
+          isActive: true
+        }];
+      }
+    });
+  }, []);
+
+  const addCollaborator = useCallback((_user: MessageUser) => {
+    // Add collaborator logic if needed
+  }, []);
+
+  const removeCollaborator = useCallback((userId: string) => {
+    setCollaboratorCursors(prev => prev.filter(c => c.userId !== userId));
+  }, []);
+
+  const addToHistory = useCallback((action: 'create' | 'update' | 'delete', annotation: ImageAnnotation) => {
+    const historyEntry: AnnotationHistory = {
+      id: generateId('history'),
+      action,
+      annotation,
+      timestamp: new Date(),
+      userId: currentUser.id
+    };
+
+    setAnnotationHistory(prev => [...prev.slice(0, historyIndex + 1), historyEntry]);
+    setHistoryIndex(prev => prev + 1);
+  }, [currentUser.id, historyIndex, generateId]);
+
+  const handleRemoteAnnotationCreate = useCallback((annotation: ImageAnnotation) => {
+    onAnnotationsChange([...annotations, annotation]);
+    addToHistory('create', annotation);
+  }, [annotations, onAnnotationsChange, addToHistory]);
+
+  const handleRemoteAnnotationUpdate = useCallback((updatedAnnotation: ImageAnnotation) => {
+    const newAnnotations = annotations.map(a =>
+      a.id === updatedAnnotation.id ? updatedAnnotation : a
+    );
+    onAnnotationsChange(newAnnotations);
+    addToHistory('update', updatedAnnotation);
+  }, [annotations, onAnnotationsChange, addToHistory]);
+
+  const handleRemoteAnnotationDelete = useCallback((annotationId: string) => {
+    const annotation = annotations.find(a => a.id === annotationId);
+    if (annotation) {
+      onAnnotationsChange(annotations.filter(a => a.id !== annotationId));
+      addToHistory('delete', annotation);
+    }
+  }, [annotations, onAnnotationsChange, addToHistory]);
 
   // WebSocket connection for real-time collaboration
   useEffect(() => {
@@ -152,194 +223,32 @@ export function RealtimeImageAnnotation({
       ws.close();
       websocketRef.current = null;
     };
-  }, [conversationId, currentUser.id]);
+  }, [conversationId, currentUser.id, readOnly, currentUser, updateCollaboratorCursor, handleRemoteAnnotationCreate, handleRemoteAnnotationUpdate, handleRemoteAnnotationDelete, addCollaborator, removeCollaborator]);
 
-  // Load and display image
-  useEffect(() => {
-    if (imageRef.current) {
-      imageRef.current.onload = () => {
-        redrawCanvas();
-      };
-      imageRef.current.src = imageUrl;
-    }
-  }, [imageUrl]);
+  // Drawing helper functions - declared before useEffects that use them
+  const drawCollaboratorCursor = useCallback((ctx: CanvasRenderingContext2D, cursor: CollaboratorCursor) => {
+    const { position, user } = cursor;
 
-  // Redraw canvas when annotations, zoom, or pan changes
-  useEffect(() => {
-    redrawCanvas();
-  }, [annotations, zoom, pan, layers, selectedAnnotation, freehandPath]);
+    // Draw cursor
+    ctx.fillStyle = user.color || '#3B82F6';
+    ctx.beginPath();
+    ctx.moveTo(position.x, position.y);
+    ctx.lineTo(position.x + 12, position.y + 12);
+    ctx.lineTo(position.x + 5, position.y + 12);
+    ctx.lineTo(position.x, position.y + 17);
+    ctx.fill();
 
-  const updateCollaboratorCursor = (userId: string, user: MessageUser, position: { x: number; y: number }) => {
-    setCollaboratorCursors(prev => {
-      const existing = prev.find(c => c.userId === userId);
-      if (existing) {
-        return prev.map(c =>
-          c.userId === userId
-            ? { ...c, position, lastSeen: new Date(), isActive: true }
-            : c
-        );
-      } else {
-        return [...prev, {
-          userId,
-          user,
-          position,
-          lastSeen: new Date(),
-          isActive: true
-        }];
-      }
-    });
-  };
+    // Draw user name
+    ctx.fillStyle = '#000';
+    ctx.font = '12px Arial';
+    const nameWidth = ctx.measureText(user.name).width;
+    ctx.fillStyle = user.color || '#3B82F6';
+    ctx.fillRect(position.x + 15, position.y - 5, nameWidth + 8, 20);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(user.name, position.x + 19, position.y + 8);
+  }, []);
 
-  const handleRemoteAnnotationCreate = (annotation: ImageAnnotation) => {
-    onAnnotationsChange([...annotations, annotation]);
-    addToHistory('create', annotation);
-  };
-
-  const handleRemoteAnnotationUpdate = (updatedAnnotation: ImageAnnotation) => {
-    const newAnnotations = annotations.map(a =>
-      a.id === updatedAnnotation.id ? updatedAnnotation : a
-    );
-    onAnnotationsChange(newAnnotations);
-    addToHistory('update', updatedAnnotation);
-  };
-
-  const handleRemoteAnnotationDelete = (annotationId: string) => {
-    const annotation = annotations.find(a => a.id === annotationId);
-    if (annotation) {
-      onAnnotationsChange(annotations.filter(a => a.id !== annotationId));
-      addToHistory('delete', annotation);
-    }
-  };
-
-  const addCollaborator = (_user: MessageUser) => {
-    // Add collaborator logic if needed
-  };
-
-  const removeCollaborator = (userId: string) => {
-    setCollaboratorCursors(prev => prev.filter(c => c.userId !== userId));
-  };
-
-  const addToHistory = (action: 'create' | 'update' | 'delete', annotation: ImageAnnotation) => {
-    const historyEntry: AnnotationHistory = {
-      id: `history-${Date.now()}`,
-      action,
-      annotation,
-      timestamp: new Date(),
-      userId: currentUser.id
-    };
-
-    setAnnotationHistory(prev => [...prev.slice(0, historyIndex + 1), historyEntry]);
-    setHistoryIndex(prev => prev + 1);
-  };
-
-  const undo = () => {
-    if (historyIndex >= 0) {
-      const entry = annotationHistory[historyIndex];
-
-      switch (entry.action) {
-        case 'create':
-          onAnnotationsChange(annotations.filter(a => a.id !== entry.annotation.id));
-          break;
-        case 'delete':
-          onAnnotationsChange([...annotations, entry.annotation]);
-          break;
-        case 'update':
-          // Would need previous state for proper undo
-          break;
-      }
-
-      setHistoryIndex(prev => prev - 1);
-    }
-  };
-
-  const redo = () => {
-    if (historyIndex < annotationHistory.length - 1) {
-      setHistoryIndex(prev => prev + 1);
-      const entry = annotationHistory[historyIndex + 1];
-
-      switch (entry.action) {
-        case 'create':
-          onAnnotationsChange([...annotations, entry.annotation]);
-          break;
-        case 'delete':
-          onAnnotationsChange(annotations.filter(a => a.id !== entry.annotation.id));
-          break;
-        case 'update':
-          const updated = annotations.map(a =>
-            a.id === entry.annotation.id ? entry.annotation : a
-          );
-          onAnnotationsChange(updated);
-          break;
-      }
-    }
-  };
-
-  const redrawCanvas = () => {
-    const canvas = canvasRef.current;
-    const image = imageRef.current;
-    if (!canvas || !image) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Set canvas size
-    canvas.width = image.naturalWidth * zoom;
-    canvas.height = image.naturalHeight * zoom;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Apply zoom and pan
-    ctx.save();
-    ctx.scale(zoom, zoom);
-    ctx.translate(pan.x, pan.y);
-
-    // Draw annotations by layer
-    layers.forEach(layer => {
-      if (!layer.visible) return;
-
-      const layerAnnotations = annotations.filter(a => layer.annotations.includes(a.id));
-      layerAnnotations.forEach(annotation => {
-        drawAnnotation(ctx, annotation, annotation.id === selectedAnnotation);
-      });
-    });
-
-    // Draw current annotation if drawing
-    if (currentAnnotation && isDrawing) {
-      drawAnnotation(ctx, currentAnnotation as ImageAnnotation, true);
-    }
-
-    // Draw freehand path if drawing
-    if (selectedTool === 'freehand' && freehandPath.length > 0) {
-      ctx.strokeStyle = selectedColor;
-      ctx.lineWidth = brushSize;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      ctx.beginPath();
-      freehandPath.forEach((point, index) => {
-        if (index === 0) {
-          ctx.moveTo(point.x, point.y);
-        } else {
-          ctx.lineTo(point.x, point.y);
-        }
-      });
-      ctx.stroke();
-    }
-
-    ctx.restore();
-
-    // Draw collaborator cursors (not affected by zoom/pan)
-    if (showCollaborators) {
-      collaboratorCursors
-        .filter(cursor => cursor.isActive && cursor.userId !== currentUser.id)
-        .forEach(cursor => {
-          drawCollaboratorCursor(ctx, cursor);
-        });
-    }
-  };
-
-  const drawAnnotation = (
+  const drawAnnotation = useCallback((
     ctx: CanvasRenderingContext2D,
     annotation: ImageAnnotation | Partial<ImageAnnotation>,
     isSelected: boolean = false
@@ -433,7 +342,7 @@ export function RealtimeImageAnnotation({
           ctx.lineJoin = 'round';
 
           ctx.beginPath();
-          annotation.path.forEach((point: any, index: number) => {
+          annotation.path.forEach((point: { x: number; y: number }, index: number) => {
             if (index === 0) {
               ctx.moveTo(point.x, point.y);
             } else {
@@ -454,28 +363,128 @@ export function RealtimeImageAnnotation({
         ctx.fillText((annotationIndex + 1).toString(), annotation.x - 15, annotation.y - 10);
       }
     }
+  }, [annotations, brushSize]);
+
+  const redrawCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const image = imageRef.current;
+    if (!canvas || !image) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size
+    canvas.width = image.naturalWidth * zoom;
+    canvas.height = image.naturalHeight * zoom;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Apply zoom and pan
+    ctx.save();
+    ctx.scale(zoom, zoom);
+    ctx.translate(pan.x, pan.y);
+
+    // Draw annotations by layer
+    layers.forEach(layer => {
+      if (!layer.visible) return;
+
+      const layerAnnotations = annotations.filter(a => layer.annotations.includes(a.id));
+      layerAnnotations.forEach(annotation => {
+        drawAnnotation(ctx, annotation, annotation.id === selectedAnnotation);
+      });
+    });
+
+    // Draw current annotation if drawing
+    if (currentAnnotation && isDrawing) {
+      drawAnnotation(ctx, currentAnnotation as ImageAnnotation, true);
+    }
+
+    // Draw freehand path if drawing
+    if (selectedTool === 'freehand' && freehandPath.length > 0) {
+      ctx.strokeStyle = selectedColor;
+      ctx.lineWidth = brushSize;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      ctx.beginPath();
+      freehandPath.forEach((point, index) => {
+        if (index === 0) {
+          ctx.moveTo(point.x, point.y);
+        } else {
+          ctx.lineTo(point.x, point.y);
+        }
+      });
+      ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // Draw collaborator cursors (not affected by zoom/pan)
+    if (showCollaborators) {
+      collaboratorCursors
+        .filter(cursor => cursor.isActive && cursor.userId !== currentUser.id)
+        .forEach(cursor => {
+          drawCollaboratorCursor(ctx, cursor);
+        });
+    }
+  }, [annotations, zoom, pan, layers, selectedAnnotation, currentAnnotation, isDrawing, selectedTool, freehandPath, selectedColor, brushSize, showCollaborators, collaboratorCursors, currentUser.id, drawAnnotation, drawCollaboratorCursor]);
+
+  // Load and display image
+  useEffect(() => {
+    if (imageRef.current) {
+      imageRef.current.onload = () => {
+        redrawCanvas();
+      };
+      imageRef.current.src = imageUrl;
+    }
+  }, [imageUrl, redrawCanvas]);
+
+  // Redraw canvas when annotations, zoom, or pan changes
+  useEffect(() => {
+    redrawCanvas();
+  }, [redrawCanvas]);
+
+  const undo = () => {
+    if (historyIndex >= 0) {
+      const entry = annotationHistory[historyIndex];
+
+      switch (entry.action) {
+        case 'create':
+          onAnnotationsChange(annotations.filter(a => a.id !== entry.annotation.id));
+          break;
+        case 'delete':
+          onAnnotationsChange([...annotations, entry.annotation]);
+          break;
+        case 'update':
+          // Would need previous state for proper undo
+          break;
+      }
+
+      setHistoryIndex(prev => prev - 1);
+    }
   };
 
-  const drawCollaboratorCursor = (ctx: CanvasRenderingContext2D, cursor: CollaboratorCursor) => {
-    const { position, user } = cursor;
+  const redo = () => {
+    if (historyIndex < annotationHistory.length - 1) {
+      setHistoryIndex(prev => prev + 1);
+      const entry = annotationHistory[historyIndex + 1];
 
-    // Draw cursor
-    ctx.fillStyle = user.color || '#3B82F6';
-    ctx.beginPath();
-    ctx.moveTo(position.x, position.y);
-    ctx.lineTo(position.x + 12, position.y + 12);
-    ctx.lineTo(position.x + 5, position.y + 12);
-    ctx.lineTo(position.x, position.y + 17);
-    ctx.fill();
-
-    // Draw user name
-    ctx.fillStyle = '#000';
-    ctx.font = '12px Arial';
-    const nameWidth = ctx.measureText(user.name).width;
-    ctx.fillStyle = user.color || '#3B82F6';
-    ctx.fillRect(position.x + 15, position.y - 5, nameWidth + 8, 20);
-    ctx.fillStyle = '#fff';
-    ctx.fillText(user.name, position.x + 19, position.y + 8);
+      switch (entry.action) {
+        case 'create':
+          onAnnotationsChange([...annotations, entry.annotation]);
+          break;
+        case 'delete':
+          onAnnotationsChange(annotations.filter(a => a.id !== entry.annotation.id));
+          break;
+        case 'update':
+          const updated = annotations.map(a =>
+            a.id === entry.annotation.id ? entry.annotation : a
+          );
+          onAnnotationsChange(updated);
+          break;
+      }
+    }
   };
 
   const getMousePosition = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -517,7 +526,7 @@ export function RealtimeImageAnnotation({
     }
 
     const newAnnotation: Partial<ImageAnnotation> = {
-      id: `temp-${Date.now()}`,
+      id: generateId('temp'),
       x: position.x,
       y: position.y,
       type: selectedTool,
@@ -538,7 +547,7 @@ export function RealtimeImageAnnotation({
         newAnnotation.content = text;
         const finalAnnotation = {
           ...newAnnotation,
-          id: `annotation-${Date.now()}`,
+          id: generateId('annotation'),
         } as ImageAnnotation;
 
         onAnnotationsChange([...annotations, finalAnnotation]);
@@ -579,7 +588,7 @@ export function RealtimeImageAnnotation({
     if (selectedTool === 'freehand' && currentAnnotation && freehandPath.length > 1) {
       const finalAnnotation: ImageAnnotation = {
         ...currentAnnotation,
-        id: `annotation-${Date.now()}`,
+        id: generateId('annotation'),
         type: 'freehand',
         path: freehandPath,
         content: `Freehand drawing (${freehandPath.length} points)`
@@ -651,7 +660,7 @@ export function RealtimeImageAnnotation({
 
     const finalAnnotation: ImageAnnotation = {
       ...currentAnnotation,
-      id: `annotation-${Date.now()}`,
+      id: generateId('annotation'),
       content: commentText,
       path: selectedTool === 'freehand' ? freehandPath : undefined
     } as ImageAnnotation;
@@ -678,7 +687,7 @@ export function RealtimeImageAnnotation({
 
   const createNewLayer = () => {
     const newLayer: AnnotationLayer = {
-      id: `layer-${Date.now()}`,
+      id: generateId('layer'),
       name: `Layer ${layers.length + 1}`,
       visible: true,
       locked: false,

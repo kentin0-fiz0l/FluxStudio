@@ -4,7 +4,7 @@
  * Supports nested replies, thread navigation, and real-time updates
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
@@ -60,12 +60,72 @@ export function MessageThread({
     isSubmitting: false
   });
 
-  // Load thread replies when expanded
-  useEffect(() => {
-    if (state.isExpanded && rootMessage.threadId) {
-      loadThreadReplies();
+  const loadThreadReplies = useCallback(async () => {
+    if (!rootMessage.threadId) return;
+
+    try {
+      setState(prev => ({ ...prev, loading: true }));
+
+      const replies = await messagingService.getThreadReplies(rootMessage.threadId, {
+        limit: 50,
+        offset: 0
+      });
+
+      setState(prev => ({
+        ...prev,
+        replies: replies.filter(msg => msg.id !== rootMessage.id),
+        loading: false,
+        hasMore: replies.length === 50
+      }));
+    } catch (error) {
+      console.error('Failed to load thread replies:', error);
+      setState(prev => ({ ...prev, loading: false }));
     }
-  }, [state.isExpanded, rootMessage.threadId]);
+  }, [rootMessage.threadId, rootMessage.id]);
+
+  // Load thread replies when expanded - use a ref to track loading state to avoid sync setState
+  const loadingRef = useRef(false);
+
+  useEffect(() => {
+    if (!state.isExpanded || !rootMessage.threadId) return;
+    if (loadingRef.current) return;
+
+    let cancelled = false;
+    loadingRef.current = true;
+
+    const fetchReplies = async () => {
+      try {
+        const replies = await messagingService.getThreadReplies(rootMessage.threadId!, {
+          limit: 50,
+          offset: 0
+        });
+
+        if (!cancelled) {
+          setState(prev => ({
+            ...prev,
+            replies: replies.filter(msg => msg.id !== rootMessage.id),
+            loading: false,
+            hasMore: replies.length === 50
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to load thread replies:', error);
+        if (!cancelled) {
+          setState(prev => ({ ...prev, loading: false }));
+        }
+      } finally {
+        loadingRef.current = false;
+      }
+    };
+
+    // Set loading state via the fetch function's first promise tick
+    fetchReplies();
+
+    return () => {
+      cancelled = true;
+      loadingRef.current = false;
+    };
+  }, [state.isExpanded, rootMessage.threadId, rootMessage.id]);
 
   // Listen for new replies in real-time
   useEffect(() => {
@@ -88,29 +148,6 @@ export function MessageThread({
       messagingService.off('message:received', handleNewReply);
     };
   }, [rootMessage.threadId]);
-
-  const loadThreadReplies = async () => {
-    if (!rootMessage.threadId) return;
-
-    try {
-      setState(prev => ({ ...prev, loading: true }));
-
-      const replies = await messagingService.getThreadReplies(rootMessage.threadId, {
-        limit: 50,
-        offset: 0
-      });
-
-      setState(prev => ({
-        ...prev,
-        replies: replies.filter(msg => msg.id !== rootMessage.id),
-        loading: false,
-        hasMore: replies.length === 50
-      }));
-    } catch (error) {
-      console.error('Failed to load thread replies:', error);
-      setState(prev => ({ ...prev, loading: false }));
-    }
-  };
 
   const toggleThread = useCallback(() => {
     setState(prev => ({ ...prev, isExpanded: !prev.isExpanded }));

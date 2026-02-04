@@ -72,34 +72,11 @@ export function EnhancedImageViewer({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [lastPan, setLastPan] = useState({ x: 0, y: 0 });
   const [showGrid, setShowGrid] = useState(initialShowGrid);
-  const [_isFullscreen, setIsFullscreen] = useState(false);
+  const [, setIsFullscreen] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const [hoveredAnnotation, setHoveredAnnotation] = useState<string | null>(null);
   const [cursorMode, setCursorMode] = useState<'pan' | 'select'>('select');
-
-  // Load image
-  useEffect(() => {
-    const img = new Image();
-    img.onload = () => {
-      imageRef.current = img;
-      setImageDimensions({ width: img.width, height: img.height });
-      setImageLoaded(true);
-      centerImage();
-      renderCanvas();
-      renderMinimap();
-    };
-    img.onerror = () => {
-      console.error('Failed to load image:', attachment.url);
-    };
-    img.src = attachment.url;
-
-    return () => {
-      if (imageRef.current) {
-        imageRef.current = null;
-      }
-    };
-  }, [attachment.url]);
 
   // Center image on load or container resize
   const centerImage = useCallback(() => {
@@ -358,6 +335,29 @@ export function EnhancedImageViewer({
       ctx.fillRect(indicatorX, indicatorY, indicatorWidth, indicatorHeight);
     }
   }, [viewport, showMinimap]);
+
+  // Load image - must be after centerImage, renderCanvas, renderMinimap are declared
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      imageRef.current = img;
+      setImageDimensions({ width: img.width, height: img.height });
+      setImageLoaded(true);
+      centerImage();
+      renderCanvas();
+      renderMinimap();
+    };
+    img.onerror = () => {
+      console.error('Failed to load image:', attachment.url);
+    };
+    img.src = attachment.url;
+
+    return () => {
+      if (imageRef.current) {
+        imageRef.current = null;
+      }
+    };
+  }, [attachment.url, centerImage, renderCanvas, renderMinimap]);
 
   // Update renders when viewport changes
   useEffect(() => {

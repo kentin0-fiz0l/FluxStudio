@@ -53,6 +53,144 @@ type ActivityItem = {
   }>;
 };
 
+// Icon mapping - defined at module level to avoid dynamic component creation during render
+const activityIconMap: Record<ActivityItem['type'], React.ComponentType<{ size?: number }>> = {
+  message: MessageSquare,
+  notification: Bell,
+  project_update: Folder,
+  milestone: Star,
+  file_shared: FileText,
+  approval: CheckCircle,
+  meeting: Calendar,
+};
+
+// Color mapping function - defined at module level
+const getActivityColorForItem = (type: ActivityItem['type'], priority?: string): string => {
+  if (priority === 'critical') return 'text-red-600 bg-red-100';
+  if (priority === 'high') return 'text-orange-600 bg-orange-100';
+
+  switch (type) {
+    case 'message': return 'text-blue-600 bg-blue-100';
+    case 'notification': return 'text-purple-600 bg-purple-100';
+    case 'project_update': return 'text-green-600 bg-green-100';
+    case 'milestone': return 'text-yellow-600 bg-yellow-100';
+    case 'file_shared': return 'text-indigo-600 bg-indigo-100';
+    case 'approval': return 'text-emerald-600 bg-emerald-100';
+    case 'meeting': return 'text-cyan-600 bg-cyan-100';
+    default: return 'text-gray-600 bg-gray-100';
+  }
+};
+
+// ActivityItemCard component - extracted outside parent to avoid creating during render
+const ActivityItemCard = ({
+  item,
+  formatTimestamp
+}: {
+  item: ActivityItem;
+  formatTimestamp: (date: Date) => string;
+}) => {
+  const Icon = activityIconMap[item.type] || Activity;
+  const colorClasses = getActivityColorForItem(item.type, item.metadata?.priority);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        'group relative p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all duration-200',
+        item.metadata?.isUnread ? 'bg-blue-50 border-blue-200' : 'bg-white'
+      )}
+    >
+      <div className="flex items-start gap-3">
+        {/* Activity Icon */}
+        <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', colorClasses)}>
+          <Icon size={16} />
+        </div>
+
+        {/* User Avatar */}
+        <Avatar className="w-8 h-8 flex-shrink-0">
+          <AvatarImage src={item.user.avatar} />
+          <AvatarFallback className="text-xs">
+            {item.user.name.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-medium text-sm text-gray-900">
+              {item.user.name}
+            </span>
+            <Badge variant="secondary" className="text-xs capitalize">
+              {item.type.replace('_', ' ')}
+            </Badge>
+            <span className="text-xs text-gray-500">
+              {formatTimestamp(item.timestamp)}
+            </span>
+            {item.metadata?.isUnread && (
+              <div className="w-2 h-2 bg-blue-600 rounded-full" />
+            )}
+          </div>
+
+          <p className="text-sm text-gray-700 mb-2 line-clamp-2">
+            {item.content}
+          </p>
+
+          {/* Metadata */}
+          {(item.metadata?.conversationName || item.metadata?.projectName) && (
+            <div className="flex items-center gap-2 mb-2">
+              {item.metadata.conversationName && (
+                <Badge variant="outline" className="text-xs">
+                  <MessageSquare size={10} className="mr-1" />
+                  {item.metadata.conversationName}
+                </Badge>
+              )}
+              {item.metadata.projectName && (
+                <Badge variant="outline" className="text-xs">
+                  <Folder size={10} className="mr-1" />
+                  {item.metadata.projectName}
+                </Badge>
+              )}
+              {item.metadata.attachments && item.metadata.attachments > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  <FileText size={10} className="mr-1" />
+                  {item.metadata.attachments} files
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
+          {item.actions && item.actions.length > 0 && (
+            <div className="flex gap-2">
+              {item.actions.map((action, index) => (
+                <Button
+                  key={index}
+                  size="sm"
+                  variant={action.variant || 'outline'}
+                  onClick={action.action}
+                  className="text-xs h-7"
+                >
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* More actions */}
+        <Button
+          size="sm"
+          variant="ghost"
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1"
+        >
+          <MoreHorizontal size={14} />
+        </Button>
+      </div>
+    </motion.div>
+  );
+};
+
 export function ActivityFeed({ className }: ActivityFeedProps) {
   const { conversations } = useMessaging();
   const { notifications } = useNotifications();
@@ -202,35 +340,6 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
     return filtered;
   }, [activityItems, searchQuery, filterType, timeFilter]);
 
-  const getActivityIcon = (type: ActivityItem['type']) => {
-    switch (type) {
-      case 'message': return MessageSquare;
-      case 'notification': return Bell;
-      case 'project_update': return Folder;
-      case 'milestone': return Star;
-      case 'file_shared': return FileText;
-      case 'approval': return CheckCircle;
-      case 'meeting': return Calendar;
-      default: return Activity;
-    }
-  };
-
-  const getActivityColor = (type: ActivityItem['type'], priority?: string) => {
-    if (priority === 'critical') return 'text-red-600 bg-red-100';
-    if (priority === 'high') return 'text-orange-600 bg-orange-100';
-
-    switch (type) {
-      case 'message': return 'text-blue-600 bg-blue-100';
-      case 'notification': return 'text-purple-600 bg-purple-100';
-      case 'project_update': return 'text-green-600 bg-green-100';
-      case 'milestone': return 'text-yellow-600 bg-yellow-100';
-      case 'file_shared': return 'text-indigo-600 bg-indigo-100';
-      case 'approval': return 'text-emerald-600 bg-emerald-100';
-      case 'meeting': return 'text-cyan-600 bg-cyan-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
-
   const formatTimestamp = (date: Date) => {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
@@ -244,109 +353,6 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
     if (days === 1) return 'Yesterday';
     if (days < 7) return `${days}d ago`;
     return date.toLocaleDateString();
-  };
-
-  const ActivityItemCard = ({ item }: { item: ActivityItem }) => {
-    const Icon = getActivityIcon(item.type);
-    const colorClasses = getActivityColor(item.type, item.metadata?.priority);
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={cn(
-          'group relative p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all duration-200',
-          item.metadata?.isUnread ? 'bg-blue-50 border-blue-200' : 'bg-white'
-        )}
-      >
-        <div className="flex items-start gap-3">
-          {/* Activity Icon */}
-          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', colorClasses)}>
-            <Icon size={16} />
-          </div>
-
-          {/* User Avatar */}
-          <Avatar className="w-8 h-8 flex-shrink-0">
-            <AvatarImage src={item.user.avatar} />
-            <AvatarFallback className="text-xs">
-              {item.user.name.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium text-sm text-gray-900">
-                {item.user.name}
-              </span>
-              <Badge variant="secondary" className="text-xs capitalize">
-                {item.type.replace('_', ' ')}
-              </Badge>
-              <span className="text-xs text-gray-500">
-                {formatTimestamp(item.timestamp)}
-              </span>
-              {item.metadata?.isUnread && (
-                <div className="w-2 h-2 bg-blue-600 rounded-full" />
-              )}
-            </div>
-
-            <p className="text-sm text-gray-700 mb-2 line-clamp-2">
-              {item.content}
-            </p>
-
-            {/* Metadata */}
-            {(item.metadata?.conversationName || item.metadata?.projectName) && (
-              <div className="flex items-center gap-2 mb-2">
-                {item.metadata.conversationName && (
-                  <Badge variant="outline" className="text-xs">
-                    <MessageSquare size={10} className="mr-1" />
-                    {item.metadata.conversationName}
-                  </Badge>
-                )}
-                {item.metadata.projectName && (
-                  <Badge variant="outline" className="text-xs">
-                    <Folder size={10} className="mr-1" />
-                    {item.metadata.projectName}
-                  </Badge>
-                )}
-                {item.metadata.attachments && item.metadata.attachments > 0 && (
-                  <Badge variant="outline" className="text-xs">
-                    <FileText size={10} className="mr-1" />
-                    {item.metadata.attachments} files
-                  </Badge>
-                )}
-              </div>
-            )}
-
-            {/* Actions */}
-            {item.actions && item.actions.length > 0 && (
-              <div className="flex gap-2">
-                {item.actions.map((action, index) => (
-                  <Button
-                    key={index}
-                    size="sm"
-                    variant={action.variant || 'outline'}
-                    onClick={action.action}
-                    className="text-xs h-7"
-                  >
-                    {action.label}
-                  </Button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* More actions */}
-          <Button
-            size="sm"
-            variant="ghost"
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1"
-          >
-            <MoreHorizontal size={14} />
-          </Button>
-        </div>
-      </motion.div>
-    );
   };
 
   return (
@@ -439,7 +445,11 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
                 </div>
                 <div className="space-y-3">
                   {items.map(item => (
-                    <ActivityItemCard key={item.id} item={item} />
+                    <ActivityItemCard
+                      key={item.id}
+                      item={item}
+                      formatTimestamp={formatTimestamp}
+                    />
                   ))}
                 </div>
               </div>

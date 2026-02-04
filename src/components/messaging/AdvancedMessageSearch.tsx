@@ -345,10 +345,12 @@ export const AdvancedMessageSearch: React.FC<AdvancedMessageSearchProps> = ({
     setIsSearching(false);
   };
 
-  // Load analytics
+  // Load analytics - using useMemo to avoid setState in effect
+  const analyticsData = useMemo(() => mockAnalytics, []);
+
   useEffect(() => {
-    setAnalytics(mockAnalytics);
-  }, []);
+    setAnalytics(analyticsData);
+  }, [analyticsData]);
 
   // Trigger search when filters change
   useEffect(() => {

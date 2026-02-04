@@ -52,7 +52,10 @@ export function OfflineIndicator({
         setShowOfflineBanner(true);
       }, 500);
     } else {
-      setShowOfflineBanner(false);
+      // Use setTimeout with 0 delay to move out of synchronous effect body
+      timeout = setTimeout(() => {
+        setShowOfflineBanner(false);
+      }, 0);
     }
 
     return () => clearTimeout(timeout);
@@ -73,7 +76,11 @@ export function OfflineIndicator({
   // Show update banner
   useEffect(() => {
     if (isUpdateAvailable && showUpdatePrompt && !dismissedUpdate) {
-      setShowUpdateBanner(true);
+      // Use setTimeout to move out of synchronous effect body
+      const timeout = setTimeout(() => {
+        setShowUpdateBanner(true);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [isUpdateAvailable, showUpdatePrompt, dismissedUpdate]);
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import {
   X,
@@ -66,6 +66,26 @@ export const MobileGallery: React.FC<MobileGalleryProps> = ({
 
   const currentItem = items[currentIndex];
 
+  // Define navigation functions before useEffect
+  const goToNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % items.length);
+  }, [items.length]);
+
+  const goToPrevious = useCallback(() => {
+    setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
+  }, [items.length]);
+
+  const togglePlayback = useCallback(() => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  }, [isPlaying]);
+
   // Auto-hide controls
   useEffect(() => {
     if (!showControls) return;
@@ -103,35 +123,20 @@ export const MobileGallery: React.FC<MobileGalleryProps> = ({
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [isOpen, currentIndex]);
+  }, [isOpen, currentIndex, onClose, goToPrevious, goToNext, currentItem.type, togglePlayback]);
 
   // Reset zoom and video state when changing items
   useEffect(() => {
-    setZoom(1);
-    setIsPlaying(false);
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-    }
-  }, [currentIndex]);
-
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % items.length);
-  };
-
-  const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
-  };
-
-  const togglePlayback = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
+    // Use setTimeout to move setState out of synchronous effect body
+    const timeout = setTimeout(() => {
+      setZoom(1);
+      setIsPlaying(false);
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
       }
-      setIsPlaying(!isPlaying);
-    }
-  };
+    }, 0);
+    return () => clearTimeout(timeout);
+  }, [currentIndex]);
 
   const toggleMute = () => {
     if (videoRef.current) {
@@ -148,7 +153,7 @@ export const MobileGallery: React.FC<MobileGalleryProps> = ({
     setZoom(prev => Math.max(prev / 1.5, 0.5));
   };
 
-  const handlePan = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handlePan = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // Handle swipe gestures
     if (Math.abs(info.offset.x) > 100) {
       if (info.offset.x > 0) {

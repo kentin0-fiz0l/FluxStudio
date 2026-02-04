@@ -3,7 +3,7 @@
  * Interactive image annotation for design feedback and collaboration
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Pencil, Square, Circle, ArrowRight, Type, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
@@ -51,55 +51,15 @@ export function ImageAnnotationTool({
   const [currentAnnotation, setCurrentAnnotation] = useState<Partial<ImageAnnotation> | null>(null);
   const [selectedAnnotation, setSelectedAnnotation] = useState<string | null>(null);
   const [showCommentDialog, setShowCommentDialog] = useState(false);
-  const [_commentPosition, setCommentPosition] = useState({ x: 0, y: 0 });
+  const [, setCommentPosition] = useState({ x: 0, y: 0 });
   const [commentText, setCommentText] = useState('');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Load and display image
-  useEffect(() => {
-    if (imageRef.current) {
-      imageRef.current.onload = () => {
-        redrawCanvas();
-      };
-      imageRef.current.src = imageUrl;
-    }
-  }, [imageUrl]);
-
-  // Redraw canvas when annotations change
-  useEffect(() => {
-    redrawCanvas();
-  }, [annotations]);
-
-  const redrawCanvas = () => {
-    const canvas = canvasRef.current;
-    const image = imageRef.current;
-    if (!canvas || !image) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Set canvas size to match image
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw annotations
-    annotations.forEach(annotation => {
-      drawAnnotation(ctx, annotation);
-    });
-
-    // Draw current annotation if drawing
-    if (currentAnnotation && isDrawing) {
-      drawAnnotation(ctx, currentAnnotation as ImageAnnotation);
-    }
-  };
-
-  const drawAnnotation = (ctx: CanvasRenderingContext2D, annotation: ImageAnnotation | Partial<ImageAnnotation>) => {
+  // Helper function to draw a single annotation
+  const drawAnnotation = useCallback((ctx: CanvasRenderingContext2D, annotation: ImageAnnotation | Partial<ImageAnnotation>) => {
     if (!annotation.x || !annotation.y || !annotation.color) return;
 
     ctx.strokeStyle = annotation.color;
@@ -174,7 +134,49 @@ export function ImageAnnotationTool({
         ctx.fillText((annotationIndex + 1).toString(), annotation.x - 10, annotation.y - 10);
       }
     }
-  };
+  }, [annotations]);
+
+  // Define redrawCanvas - depends on drawAnnotation
+  const redrawCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const image = imageRef.current;
+    if (!canvas || !image) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size to match image
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw annotations
+    annotations.forEach(annotation => {
+      drawAnnotation(ctx, annotation);
+    });
+
+    // Draw current annotation if drawing
+    if (currentAnnotation && isDrawing) {
+      drawAnnotation(ctx, currentAnnotation as ImageAnnotation);
+    }
+  }, [annotations, currentAnnotation, isDrawing, drawAnnotation]);
+
+  // Load and display image
+  useEffect(() => {
+    if (imageRef.current) {
+      imageRef.current.onload = () => {
+        redrawCanvas();
+      };
+      imageRef.current.src = imageUrl;
+    }
+  }, [imageUrl, redrawCanvas]);
+
+  // Redraw canvas when annotations change
+  useEffect(() => {
+    redrawCanvas();
+  }, [redrawCanvas]);
 
   const getMousePosition = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
