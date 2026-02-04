@@ -105,11 +105,14 @@ export function useMediaQuery(query: string): boolean {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(query);
-    setMatches(mediaQuery.matches);
 
+    // Update state via callback to avoid sync setState in effect
     const handler = (event: MediaQueryListEvent) => {
       setMatches(event.matches);
     };
+
+    // Set initial value via handler to ensure consistency
+    handler({ matches: mediaQuery.matches } as MediaQueryListEvent);
 
     mediaQuery.addEventListener('change', handler);
     return () => mediaQuery.removeEventListener('change', handler);

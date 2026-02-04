@@ -249,11 +249,13 @@ export function useFirstTimeExperience(
     });
   }, []);
 
-  // Auto-complete when all steps done
+  // Auto-complete when all steps done - use queueMicrotask to avoid sync setState in effect
   useEffect(() => {
     if (completedCount === totalSteps && !isCompleted) {
-      setIsCompleted(true);
-      setStorageItem(STORAGE_KEYS.completed, 'true');
+      queueMicrotask(() => {
+        setIsCompleted(true);
+        setStorageItem(STORAGE_KEYS.completed, 'true');
+      });
     }
   }, [completedCount, totalSteps, isCompleted]);
 

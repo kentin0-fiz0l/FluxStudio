@@ -28,21 +28,23 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'flux-studio-theme';
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = useState<ThemeSettings>(defaultSettings);
-
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setSettings({ ...defaultSettings, ...parsed });
-      }
-    } catch (error) {
-      console.warn('Failed to load theme settings:', error);
+// Helper to load settings from localStorage
+function loadSettingsFromStorage(): ThemeSettings {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return { ...defaultSettings, ...parsed };
     }
-  }, []);
+  } catch (error) {
+    console.warn('Failed to load theme settings:', error);
+  }
+  return defaultSettings;
+}
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  // Initialize state from localStorage using lazy initialization
+  const [settings, setSettings] = useState<ThemeSettings>(() => loadSettingsFromStorage());
 
   // Apply theme classes to document
   useEffect(() => {

@@ -118,13 +118,24 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  // Track current time for returning session calculation
+  const [currentTime, setCurrentTime] = React.useState(() => Date.now());
+
+  // Update current time periodically for returning session calculation
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
   // Determine if this is a "returning" session (was away for a while)
   const isReturningSession = React.useMemo(() => {
     if (!session.lastActivityTimestamp) return false;
     const lastActivity = new Date(session.lastActivityTimestamp).getTime();
-    const timeSinceActivity = Date.now() - lastActivity;
+    const timeSinceActivity = currentTime - lastActivity;
     return timeSinceActivity > SESSION_TIMEOUT_MS;
-  }, [session.lastActivityTimestamp]);
+  }, [session.lastActivityTimestamp, currentTime]);
 
   const clearSession = React.useCallback(() => {
     setSession(defaultSession);

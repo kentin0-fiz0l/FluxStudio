@@ -241,9 +241,6 @@ export function useMessaging(): UseMessagingReturn {
   };
 
   const filterConversations = (filter: ConversationFilter): Conversation[] => {
-    console.log('[useMessaging] filterConversations called with:', filter);
-    console.log('[useMessaging] state.conversations:', state.conversations);
-
     try {
       return state.conversations.filter(conv => {
         if (!conv) {
@@ -313,12 +310,10 @@ export function useMessaging(): UseMessagingReturn {
 
   const editMessage = async (_messageId: string, _content: string): Promise<void> => {
     // TODO: Implement message editing via API
-    console.log('Edit message:', _messageId, _content);
   };
 
   const deleteMessage = async (_messageId: string): Promise<void> => {
     // TODO: Implement message deletion via API
-    console.log('Delete message:', _messageId);
   };
 
   return {

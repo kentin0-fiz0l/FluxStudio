@@ -123,7 +123,7 @@ export function useIsTouchDevice(): boolean {
       setIsTouch(
         'ontouchstart' in window ||
         navigator.maxTouchPoints > 0 ||
-        // @ts-ignore
+        // @ts-expect-error - legacy property for older browsers
         navigator.msMaxTouchPoints > 0
       );
     };

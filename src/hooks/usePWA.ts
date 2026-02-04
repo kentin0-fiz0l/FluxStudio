@@ -53,6 +53,28 @@ export function usePWA(): UsePWAReturn {
   const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
   const swRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
+  // Sync offline data - defined before the effect that uses it
+  const syncOfflineData = useCallback(async () => {
+    if (!token || !isOnline) return;
+
+    try {
+      const apiBaseUrl = getApiUrl('');
+      const result = await processPendingSync(token, apiBaseUrl);
+
+      // Log sync results for debugging
+      if (result.failed > 0) {
+        console.warn(`Sync complete: ${result.success} succeeded, ${result.failed} failed`);
+      }
+
+      // Update stats
+      const stats = await getCacheStats();
+      setPendingSyncCount(stats.pendingSyncCount);
+      setLastSyncTime(Date.now());
+    } catch (error) {
+      console.error('Failed to sync offline data:', error);
+    }
+  }, [token, isOnline]);
+
   // Handle online/offline events
   useEffect(() => {
     const handleOnline = () => {
@@ -74,7 +96,7 @@ export function usePWA(): UsePWAReturn {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [token]);
+  }, [token, syncOfflineData]);
 
   // Handle install prompt
   useEffect(() => {
@@ -93,14 +115,20 @@ export function usePWA(): UsePWAReturn {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
-    }
+    // Check if already installed - use media query listener pattern
+    const standaloneQuery = window.matchMedia('(display-mode: standalone)');
+    const handleStandaloneChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches) {
+        setIsInstalled(true);
+      }
+    };
+    handleStandaloneChange(standaloneQuery);
+    standaloneQuery.addEventListener('change', handleStandaloneChange);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      standaloneQuery.removeEventListener('change', handleStandaloneChange);
     };
   }, []);
 
@@ -179,25 +207,6 @@ export function usePWA(): UsePWAReturn {
       swRegistrationRef.current.waiting.postMessage({ type: 'SKIP_WAITING' });
     }
   }, []);
-
-  // Sync offline data
-  const syncOfflineData = useCallback(async () => {
-    if (!token || !isOnline) return;
-
-    try {
-      const apiBaseUrl = getApiUrl('');
-      const result = await processPendingSync(token, apiBaseUrl);
-
-      console.log(`Sync complete: ${result.success} succeeded, ${result.failed} failed`);
-
-      // Update stats
-      const stats = await getCacheStats();
-      setPendingSyncCount(stats.pendingSyncCount);
-      setLastSyncTime(Date.now());
-    } catch (error) {
-      console.error('Failed to sync offline data:', error);
-    }
-  }, [token, isOnline]);
 
   // Check for updates
   const checkForUpdates = useCallback(async () => {

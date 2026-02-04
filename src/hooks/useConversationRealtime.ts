@@ -378,10 +378,10 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
 
     // Message notification (for other conversations)
     unsubscribers.push(
-      messagingSocketService.on('conversation:message:notify', (data: unknown) => {
-        const typedData = data as { conversationId: string; message: ConversationMessage; senderEmail: string };
-        // Could show a toast notification here
-        console.log(`[Realtime] New message in ${typedData.conversationId} from ${typedData.senderEmail}`);
+      messagingSocketService.on('conversation:message:notify', (_data: unknown) => {
+        // Could show a toast notification here for:
+        // { conversationId: string; message: ConversationMessage; senderEmail: string }
+        // Notification handled silently - toast could be added if needed
       })
     );
 
@@ -542,10 +542,11 @@ export function useConversationRealtime(options: UseConversationRealtimeOptions 
     }
 
     // Cleanup
+    const timeouts = typingTimeouts.current;
     return () => {
       unsubscribers.forEach(unsub => unsub());
-      typingTimeouts.current.forEach(timeout => clearTimeout(timeout));
-      typingTimeouts.current.clear();
+      timeouts.forEach(timeout => clearTimeout(timeout));
+      timeouts.clear();
     };
   }, [
     user,

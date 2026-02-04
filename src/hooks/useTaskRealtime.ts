@@ -89,7 +89,10 @@ export const useTaskRealtime = (
 
     // Join project room
     taskSocketService.joinProject(projectId);
-    setIsConnected(taskSocketService.isSocketConnected());
+    // Use queueMicrotask to avoid calling setState synchronously in effect
+    queueMicrotask(() => {
+      setIsConnected(taskSocketService.isSocketConnected());
+    });
 
     // Handler: Task created by another user
     const handleTaskCreated = (payload: TaskUpdatePayload) => {

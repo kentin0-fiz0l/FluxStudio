@@ -44,22 +44,22 @@ export function useFeatureFlags(): UseFeatureFlagsReturn {
   const setFlag = React.useCallback((flagName: string, enabled: boolean) => {
     observability.flags.setFlag(flagName, enabled);
     setVersion(v => v + 1);
-  }, []);
+  }, [setVersion]);
 
   const setVariant = React.useCallback((experimentName: string, variant: string) => {
     observability.flags.setVariant(experimentName, variant);
     setVersion(v => v + 1);
-  }, []);
+  }, [setVersion]);
 
   const override = React.useCallback((flagName: string, enabled: boolean) => {
     observability.flags.override(flagName, enabled);
     setVersion(v => v + 1);
-  }, []);
+  }, [setVersion]);
 
   const clearOverrides = React.useCallback(() => {
     observability.flags.clearOverrides();
     setVersion(v => v + 1);
-  }, []);
+  }, [setVersion]);
 
   const getAllFlags = React.useCallback(() => {
     return observability.flags.getAllFlags();

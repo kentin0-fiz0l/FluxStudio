@@ -8,7 +8,7 @@
  * - Cleans up on unmount
  */
 
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 
 interface UseTypingIndicatorOptions {
   /** Callback when typing starts (debounced) */
@@ -37,8 +37,10 @@ export function useTypingIndicator({
   timeoutMs = 5000,
 }: UseTypingIndicatorOptions): UseTypingIndicatorReturn {
   const lastTypingSentRef = useRef<number>(0);
-  const isTypingRef = useRef<boolean>(false);
+  const [isTyping, setIsTyping] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Keep a ref to track typing state for callbacks that shouldn't trigger re-renders
+  const isTypingRef = useRef<boolean>(false);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -57,6 +59,7 @@ export function useTypingIndicator({
     if (isTypingRef.current) {
       onStopTyping();
       isTypingRef.current = false;
+      setIsTyping(false);
     }
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -73,6 +76,7 @@ export function useTypingIndicator({
         onStartTyping();
         lastTypingSentRef.current = now;
         isTypingRef.current = true;
+        setIsTyping(true);
       }
 
       // Clear previous timeout
@@ -85,6 +89,7 @@ export function useTypingIndicator({
         if (isTypingRef.current) {
           onStopTyping();
           isTypingRef.current = false;
+          setIsTyping(false);
         }
       }, timeoutMs);
     } else {
@@ -95,7 +100,7 @@ export function useTypingIndicator({
 
   return {
     handleInputChange,
-    isTyping: isTypingRef.current,
+    isTyping,
     stopTyping,
   };
 }

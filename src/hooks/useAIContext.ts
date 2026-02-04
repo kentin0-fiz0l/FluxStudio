@@ -62,6 +62,9 @@ export function useAIContext(options: UseAIContextOptions = {}) {
   const params = useParams();
   const store = useStore();
 
+  // Initialize session start time using useState to avoid impure function during render
+  const [sessionStart] = React.useState(() => Date.now());
+
   const [context, setContext] = React.useState<AIContext>({
     page: '',
     route: '',
@@ -74,8 +77,22 @@ export function useAIContext(options: UseAIContextOptions = {}) {
     lastActivityAt: new Date().toISOString(),
   });
 
-  const sessionStartRef = React.useRef(Date.now());
+  const sessionStartRef = React.useRef(sessionStart);
   const recentActionsRef = React.useRef<string[]>([]);
+
+  // Add action to recent actions - moved before useEffect that uses it
+  const addAction = React.useCallback((action: string) => {
+    recentActionsRef.current = [
+      action,
+      ...recentActionsRef.current.slice(0, maxRecentActions - 1),
+    ];
+
+    setContext((prev) => ({
+      ...prev,
+      recentActions: recentActionsRef.current,
+      lastActivityAt: new Date().toISOString(),
+    }));
+  }, [maxRecentActions]);
 
   // Track page changes
   React.useEffect(() => {
@@ -91,7 +108,7 @@ export function useAIContext(options: UseAIContextOptions = {}) {
     if (trackActions) {
       addAction(`Navigated to ${pageName}`);
     }
-  }, [location.pathname, params, trackActions]);
+  }, [location.pathname, params, trackActions, addAction]);
 
   // Track active project
   React.useEffect(() => {
@@ -106,7 +123,7 @@ export function useAIContext(options: UseAIContextOptions = {}) {
           activeProject: {
             id: project.id,
             name: project.name || 'Untitled',
-            type: (project as any).type || 'general',
+            type: (project as { type?: string }).type || 'general',
           },
         }));
       }
@@ -160,20 +177,6 @@ export function useAIContext(options: UseAIContextOptions = {}) {
 
     return () => clearInterval(interval);
   }, [updateInterval]);
-
-  // Add action to recent actions
-  const addAction = React.useCallback((action: string) => {
-    recentActionsRef.current = [
-      action,
-      ...recentActionsRef.current.slice(0, maxRecentActions - 1),
-    ];
-
-    setContext((prev) => ({
-      ...prev,
-      recentActions: recentActionsRef.current,
-      lastActivityAt: new Date().toISOString(),
-    }));
-  }, [maxRecentActions]);
 
   // Set selected element
   const setSelectedElement = React.useCallback((element: AIContext['selectedElement']) => {

@@ -158,12 +158,12 @@ export function usePrintWebSocket(
    */
   const connect = useCallback(() => {
     if (socketRef.current?.connected) {
-      console.log('WebSocket already connected');
+      // WebSocket already connected, skip
       return;
     }
 
     if (!enabled) {
-      console.log('WebSocket disabled');
+      // WebSocket disabled, skip
       return;
     }
 
@@ -180,7 +180,7 @@ export function usePrintWebSocket(
       return;
     }
 
-    console.log('Connecting to printer WebSocket:', WEBSOCKET_URL);
+    // Connecting to printer WebSocket
 
     setConnectionStatus((prev) => ({
       ...prev,
@@ -206,7 +206,7 @@ export function usePrintWebSocket(
 
     // Connection event handlers
     socket.on('connect', () => {
-      console.log('✅ Connected to printer WebSocket');
+      // Connected to printer WebSocket
 
       setConnectionStatus({
         connected: true,
@@ -220,7 +220,7 @@ export function usePrintWebSocket(
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('❌ Disconnected from printer WebSocket:', reason);
+      console.warn('Disconnected from printer WebSocket:', reason);
 
       setConnectionStatus((prev) => ({
         ...prev,
@@ -283,7 +283,7 @@ export function usePrintWebSocket(
     });
 
     socket.on('printer:job_complete', (event: JobEvent) => {
-      console.log('🎉 Print job completed:', event.filename);
+      // Print job completed
 
       if (onJobComplete) {
         onJobComplete(event);
@@ -313,7 +313,7 @@ export function usePrintWebSocket(
     });
 
     socket.on('printer:connection', (event: ConnectionEvent) => {
-      console.log('🔌 Printer connection status:', event.connected ? 'Connected' : 'Disconnected');
+      // Printer connection status updated
 
       if (onConnectionChange) {
         onConnectionChange(event);
@@ -329,7 +329,7 @@ export function usePrintWebSocket(
     });
 
     socket.on('printer:subscribed', () => {
-      console.log('✅ Subscribed to printer updates');
+      // Subscribed to printer updates
     });
   }, [enabled, autoReconnect, onJobComplete, onJobFailed, onConnectionChange]);
 
@@ -338,7 +338,7 @@ export function usePrintWebSocket(
    */
   const disconnect = useCallback(() => {
     if (socketRef.current) {
-      console.log('Disconnecting from printer WebSocket');
+      // Disconnecting from printer WebSocket
       socketRef.current.disconnect();
       socketRef.current = null;
     }
@@ -361,7 +361,7 @@ export function usePrintWebSocket(
    */
   const requestStatus = useCallback(() => {
     if (socketRef.current?.connected) {
-      console.log('📊 Requesting printer status');
+      // Requesting printer status
       socketRef.current.emit('printer:request_status');
     }
   }, []);
@@ -369,7 +369,10 @@ export function usePrintWebSocket(
   // Auto-connect on mount if enabled
   useEffect(() => {
     if (enabled) {
-      connect();
+      // Use queueMicrotask to avoid calling setState synchronously in effect
+      queueMicrotask(() => {
+        connect();
+      });
     }
 
     // Cleanup on unmount

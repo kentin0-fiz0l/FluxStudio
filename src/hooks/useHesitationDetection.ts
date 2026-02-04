@@ -44,8 +44,12 @@ export function useHesitationDetection(options: UseHesitationDetectionOptions): 
   } = options;
 
   const location = useLocation();
-  const lastActivityRef = React.useRef<number>(Date.now());
-  const routeEntryTimeRef = React.useRef<number>(Date.now());
+
+  // Use useState with lazy initialization to avoid impure function during render
+  const [initialTime] = React.useState(() => Date.now());
+
+  const lastActivityRef = React.useRef<number>(initialTime);
+  const routeEntryTimeRef = React.useRef<number>(initialTime);
   const routeHesitationLoggedRef = React.useRef<boolean>(false);
   const panelTimersRef = React.useRef<Map<string, NodeJS.Timeout>>(new Map());
   const panelOpenTimesRef = React.useRef<Map<string, number>>(new Map());
@@ -158,9 +162,10 @@ export function useHesitationDetection(options: UseHesitationDetectionOptions): 
 
   // Cleanup timers on unmount
   React.useEffect(() => {
+    const timers = panelTimersRef.current;
     return () => {
-      panelTimersRef.current.forEach((timer) => clearTimeout(timer));
-      panelTimersRef.current.clear();
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
     };
   }, []);
 

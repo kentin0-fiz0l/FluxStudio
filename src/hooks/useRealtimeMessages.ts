@@ -38,72 +38,12 @@ export function useRealtimeMessages({
   const [isConnected, setIsConnected] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
   const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error'>('synced');
+  const [queuedMessageCount, setQueuedMessageCount] = useState(0);
 
   const messageQueueRef = useRef<MessageUpdate[]>([]);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize real-time connection
-  useEffect(() => {
-    if (!enabled || !conversationId) return;
-
-    const handleConnectionStatus = (status: { connected: boolean }) => {
-      setIsConnected(status.connected);
-      if (status.connected) {
-        // Process queued messages when reconnected
-        processMessageQueue();
-        setSyncStatus('synced');
-      } else {
-        setSyncStatus('error');
-      }
-    };
-
-    const handleMessageEvent = (event: any) => {
-      if (event.conversationId !== conversationId) return;
-
-      switch (event.type) {
-        case 'message_send':
-          if (event.userId !== currentUser.id) {
-            handleIncomingMessage(event.data);
-          }
-          break;
-
-        case 'message_update':
-          if (event.userId !== currentUser.id) {
-            handleMessageUpdate(event.data);
-          }
-          break;
-
-        case 'message_delete':
-          if (event.userId !== currentUser.id) {
-            handleMessageDelete(event.data.id);
-          }
-          break;
-
-        case 'message_reaction':
-          if (event.userId !== currentUser.id) {
-            handleMessageReaction(event.data);
-          }
-          break;
-      }
-    };
-
-    realtimeCollaborationService.on('connection_status', handleConnectionStatus);
-    realtimeCollaborationService.on('message_event', handleMessageEvent);
-
-    // Join conversation
-    realtimeCollaborationService.joinConversation(conversationId);
-
-    return () => {
-      realtimeCollaborationService.off('connection_status', handleConnectionStatus);
-      realtimeCollaborationService.off('message_event', handleMessageEvent);
-      realtimeCollaborationService.leaveConversation(conversationId);
-
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-      }
-    };
-  }, [conversationId, currentUser.id, enabled]);
-
+  // Define all handlers before the useEffect that uses them
   const handleIncomingMessage = useCallback((message: Message) => {
     setMessages(prev => {
       // Check if message already exists (avoid duplicates)
@@ -137,7 +77,7 @@ export function useRealtimeMessages({
     setLastSyncTime(new Date());
   }, []);
 
-  const handleMessageReaction = useCallback((reactionData: any) => {
+  const handleMessageReaction = useCallback((reactionData: { messageId: string; reactions: unknown }) => {
     setMessages(prev =>
       prev.map(m => {
         if (m.id === reactionData.messageId) {
@@ -153,6 +93,12 @@ export function useRealtimeMessages({
     setLastSyncTime(new Date());
   }, []);
 
+  const sendMessageToServer = useCallback(async (update: MessageUpdate): Promise<void> => {
+    // In a real implementation, this would make an API call
+    // For now, we'll simulate with WebSocket
+    realtimeCollaborationService.sendMessageEvent(update.conversationId, update.message);
+  }, []);
+
   const processMessageQueue = useCallback(async () => {
     if (messageQueueRef.current.length === 0) return;
 
@@ -162,6 +108,7 @@ export function useRealtimeMessages({
       // Process queued messages
       const queue = [...messageQueueRef.current];
       messageQueueRef.current = [];
+      setQueuedMessageCount(0);
 
       for (const update of queue) {
         await sendMessageToServer(update);
@@ -171,27 +118,71 @@ export function useRealtimeMessages({
     } catch (error) {
       console.error('Failed to process message queue:', error);
       setSyncStatus('error');
-      scheduleRetry();
+      // Schedule retry handled below
     }
-  }, []);
+  }, [sendMessageToServer]);
 
-  const scheduleRetry = useCallback(() => {
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current);
-    }
+  // Initialize real-time connection - after all handlers are defined
+  useEffect(() => {
+    if (!enabled || !conversationId) return;
 
-    retryTimeoutRef.current = setTimeout(() => {
-      if (isConnected) {
+    const handleConnectionStatus = (status: { connected: boolean }) => {
+      setIsConnected(status.connected);
+      if (status.connected) {
+        // Process queued messages when reconnected
         processMessageQueue();
+        setSyncStatus('synced');
+      } else {
+        setSyncStatus('error');
       }
-    }, 5000); // Retry after 5 seconds
-  }, [isConnected, processMessageQueue]);
+    };
 
-  const sendMessageToServer = async (update: MessageUpdate): Promise<void> => {
-    // In a real implementation, this would make an API call
-    // For now, we'll simulate with WebSocket
-    realtimeCollaborationService.sendMessageEvent(update.conversationId, update.message);
-  };
+    const handleMessageEvent = (event: { conversationId: string; type: string; userId: string; data: Message & { id: string } }) => {
+      if (event.conversationId !== conversationId) return;
+
+      switch (event.type) {
+        case 'message_send':
+          if (event.userId !== currentUser.id) {
+            handleIncomingMessage(event.data);
+          }
+          break;
+
+        case 'message_update':
+          if (event.userId !== currentUser.id) {
+            handleMessageUpdate(event.data);
+          }
+          break;
+
+        case 'message_delete':
+          if (event.userId !== currentUser.id) {
+            handleMessageDelete(event.data.id);
+          }
+          break;
+
+        case 'message_reaction':
+          if (event.userId !== currentUser.id) {
+            handleMessageReaction(event.data as unknown as { messageId: string; reactions: unknown });
+          }
+          break;
+      }
+    };
+
+    realtimeCollaborationService.on('connection_status', handleConnectionStatus);
+    realtimeCollaborationService.on('message_event', handleMessageEvent);
+
+    // Join conversation
+    realtimeCollaborationService.joinConversation(conversationId);
+
+    return () => {
+      realtimeCollaborationService.off('connection_status', handleConnectionStatus);
+      realtimeCollaborationService.off('message_event', handleMessageEvent);
+      realtimeCollaborationService.leaveConversation(conversationId);
+
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, [conversationId, currentUser.id, enabled, handleIncomingMessage, handleMessageUpdate, handleMessageDelete, handleMessageReaction, processMessageQueue]);
 
   const sendMessage = useCallback(async (messageData: Omit<Message, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!conversationId) return;
@@ -231,6 +222,7 @@ export function useRealtimeMessages({
       } else {
         // Queue message for later sending
         messageQueueRef.current.push(messageUpdate);
+        setQueuedMessageCount(prev => prev + 1);
 
         // Update optimistic message to show queued state
         setOptimisticMessages(prev =>
@@ -253,7 +245,7 @@ export function useRealtimeMessages({
         )
       );
     }
-  }, [conversationId, currentUser, isConnected]);
+  }, [conversationId, currentUser, isConnected, sendMessageToServer]);
 
   const retryMessage = useCallback((messageId: string) => {
     const optimisticMessage = optimisticMessages.find(m => m.id === messageId);
@@ -277,6 +269,7 @@ export function useRealtimeMessages({
     };
 
     messageQueueRef.current.push(messageUpdate);
+    setQueuedMessageCount(prev => prev + 1);
     processMessageQueue();
   }, [optimisticMessages, conversationId, currentUser.id, processMessageQueue]);
 
@@ -310,8 +303,9 @@ export function useRealtimeMessages({
       }
     } else {
       messageQueueRef.current.push(messageUpdate);
+      setQueuedMessageCount(prev => prev + 1);
     }
-  }, [conversationId, currentUser.id, isConnected]);
+  }, [conversationId, currentUser.id, isConnected, sendMessageToServer]);
 
   const deleteMessage = useCallback(async (messageId: string) => {
     if (!conversationId) return;
@@ -336,8 +330,9 @@ export function useRealtimeMessages({
       }
     } else {
       messageQueueRef.current.push(messageUpdate);
+      setQueuedMessageCount(prev => prev + 1);
     }
-  }, [conversationId, currentUser.id, isConnected]);
+  }, [conversationId, currentUser.id, isConnected, sendMessageToServer]);
 
   // Combine real messages with optimistic messages
   const allMessages = [...messages, ...optimisticMessages].sort((a, b) =>
@@ -349,7 +344,7 @@ export function useRealtimeMessages({
     isConnected,
     syncStatus,
     lastSyncTime,
-    queuedMessages: messageQueueRef.current.length,
+    queuedMessages: queuedMessageCount,
     sendMessage,
     updateMessage,
     deleteMessage,

@@ -93,12 +93,12 @@ export function useOAuth(
               if (popup && (popup.closed || !popup.location)) {
                 blocked = true;
               }
-            } catch (e) {
+            } catch (_e) {
               // Some browsers throw when accessing popup.location if blocked
               blocked = true;
             }
           }, 100);
-        } catch (e) {
+        } catch (_e) {
           blocked = true;
         }
 
@@ -106,12 +106,12 @@ export function useOAuth(
         if (popup && typeof popup.focus === 'function') {
           try {
             popup.focus();
-          } catch (e) {
+          } catch (_e) {
             blocked = true;
           }
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // Exception thrown when opening popup = definitely blocked
       blocked = true;
     }
@@ -190,55 +190,50 @@ export function useOAuth(
 
         if (blocked || !popup) {
           // Popup blocked - try fallback to new tab
-          try {
-            const newTab = window.open(authorizationUrl, '_blank');
+          const newTab = window.open(authorizationUrl, '_blank');
 
-            if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
-              // New tab also blocked
-              throw {
-                code: 'POPUP_BLOCKED',
-                message: 'Popup blocker detected. Please allow popups for FluxStudio and try again.',
-                details: {
-                  instructions: [
-                    'Click the popup blocker icon in your browser address bar',
-                    'Select "Always allow popups from fluxstudio.art"',
-                    'Click "Try Again" to reconnect'
-                  ]
-                }
-              };
-            }
-
-            setStatusMessage('Please complete authorization in the new tab');
-
-            // Store tab reference for monitoring
-            const checkTabClosed = setInterval(() => {
-              try {
-                if (newTab.closed) {
-                  clearInterval(checkTabClosed);
-
-                  setState(prev => {
-                    if (prev.isConnecting) {
-                      return {
-                        ...prev,
-                        isConnecting: false,
-                        error: {
-                          code: 'AUTHORIZATION_DENIED',
-                          message: 'Authorization tab was closed before completing'
-                        }
-                      };
-                    }
-                    return prev;
-                  });
-                }
-              } catch (e) {
-                // Tab closed or inaccessible
-                clearInterval(checkTabClosed);
+          if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
+            // New tab also blocked
+            throw {
+              code: 'POPUP_BLOCKED',
+              message: 'Popup blocker detected. Please allow popups for FluxStudio and try again.',
+              details: {
+                instructions: [
+                  'Click the popup blocker icon in your browser address bar',
+                  'Select "Always allow popups from fluxstudio.art"',
+                  'Click "Try Again" to reconnect'
+                ]
               }
-            }, 500);
-          } catch (tabError: any) {
-            // Both popup and new tab failed
-            throw tabError;
+            };
           }
+
+          setStatusMessage('Please complete authorization in the new tab');
+
+          // Store tab reference for monitoring
+          const checkTabClosed = setInterval(() => {
+            try {
+              if (newTab.closed) {
+                clearInterval(checkTabClosed);
+
+                setState(prev => {
+                  if (prev.isConnecting) {
+                    return {
+                      ...prev,
+                      isConnecting: false,
+                      error: {
+                        code: 'AUTHORIZATION_DENIED',
+                        message: 'Authorization tab was closed before completing'
+                      }
+                    };
+                  }
+                  return prev;
+                });
+              }
+            } catch (_e) {
+              // Tab closed or inaccessible
+              clearInterval(checkTabClosed);
+            }
+          }, 500);
         } else {
           setStatusMessage('Opening authorization window...');
 
@@ -263,17 +258,22 @@ export function useOAuth(
                   return prev;
                 });
               }
-            } catch (e) {
+            } catch (_e) {
               // Popup closed or inaccessible
               clearInterval(checkPopupClosed);
             }
           }, 500);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorWithCode = error as { code?: string; message?: string };
+      const validCodes = ['POPUP_BLOCKED', 'AUTHORIZATION_DENIED', 'NETWORK_ERROR', 'TOKEN_EXPIRED', 'UNKNOWN'] as const;
+      const code = validCodes.includes(errorWithCode.code as typeof validCodes[number])
+        ? (errorWithCode.code as OAuthError['code'])
+        : 'NETWORK_ERROR';
       const oauthError: OAuthError = {
-        code: error.code || 'NETWORK_ERROR',
-        message: error.message || 'Failed to start authorization',
+        code,
+        message: errorWithCode.message || 'Failed to start authorization',
         details: error
       };
 
@@ -304,10 +304,11 @@ export function useOAuth(
         error: null,
         integration: null
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorWithMessage = error as { message?: string };
       const oauthError: OAuthError = {
         code: 'NETWORK_ERROR',
-        message: error.message || 'Failed to disconnect',
+        message: errorWithMessage.message || 'Failed to disconnect',
         details: error
       };
 
@@ -340,7 +341,7 @@ export function useOAuth(
       if (options.onSuccess) {
         options.onSuccess(integration);
       }
-    } catch (error: any) {
+    } catch (_error: unknown) {
       // If refresh fails, fall back to full OAuth flow
       connect();
     }
