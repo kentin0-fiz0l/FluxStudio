@@ -665,7 +665,7 @@ export class PerformanceMonitoringService {
       });
       observer.observe({ entryTypes: [entryType] });
       this.observers.set(entryType, observer);
-    } catch (error) {
+    } catch (_error) {
       console.warn(`Performance observer for ${entryType} not supported`);
     }
   }

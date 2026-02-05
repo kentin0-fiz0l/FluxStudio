@@ -143,7 +143,7 @@ export function sanitizeURL(input: string | null | undefined): string {
       ALLOWED_TAGS: [] as string[],
       ALLOWED_ATTR: [] as string[]
     });
-  } catch (err) {
+  } catch (_err) {
     // Invalid URL
     console.warn('Invalid URL:', trimmed);
     return '';

@@ -43,7 +43,7 @@ export function EmailVerification() {
         setStatus('error');
         setMessage(data.message || 'Verification failed. Please try again.');
       }
-    } catch (error) {
+    } catch (_error) {
       setStatus('error');
       setMessage('An error occurred during verification. Please try again.');
     }
@@ -76,7 +76,7 @@ export function EmailVerification() {
         setStatus('error');
         setMessage(data.message || 'Failed to resend verification email.');
       }
-    } catch (error) {
+    } catch (_error) {
       setStatus('error');
       setMessage('An error occurred. Please try again.');
     }

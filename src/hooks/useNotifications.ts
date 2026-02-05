@@ -738,7 +738,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       try {
         const parsed = JSON.parse(stored);
         setPreferences(prev => ({ ...prev, ...parsed }));
-      } catch (error) {
+      } catch (_error) {
         console.warn('Failed to parse stored notification preferences');
       }
     }

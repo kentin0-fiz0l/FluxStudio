@@ -130,7 +130,7 @@ export function useFiles(projectId?: string) {
               setFiles(prev => [...validUploadedFiles, ...prev]);
               setUploadProgress(0);
               resolve(validUploadedFiles);
-            } catch (parseError) {
+            } catch (_parseError) {
               reject(new Error('Invalid response format'));
             }
           } else {

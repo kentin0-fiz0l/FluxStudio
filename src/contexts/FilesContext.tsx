@@ -339,7 +339,7 @@ export function FilesProvider({ children }: { children: React.ReactNode }) {
 
               dispatch({ type: 'ADD_FILES', payload: uploadedFiles });
               resolve(uploadedFiles);
-            } catch (parseError) {
+            } catch (_parseError) {
               reject(new Error('Invalid response format'));
             }
           } else {
