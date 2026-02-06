@@ -93,6 +93,11 @@ function csrfProtection(options = {}) {
       return next();
     }
 
+    // Always skip CSRF for auth endpoints (OAuth callbacks need this)
+    if (req.path.includes('/auth/')) {
+      return next();
+    }
+
     // Get CSRF token from cookie
     const cookieToken = req.cookies?.[CSRF_COOKIE_NAME];
 
