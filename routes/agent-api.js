@@ -19,15 +19,8 @@ const {
   agentPermissions,
   auditLog,
   agentRateLimit,
-  validateSession,
 } = require('../lib/agent/middleware');
 const agentService = require('../services/agent-service');
-const Anthropic = require('@anthropic-ai/sdk');
-
-// Initialize Anthropic client for streaming
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 // ============================================================================
 // Read-Only Skill Endpoints
@@ -74,6 +67,40 @@ router.get('/search_projects',
 );
 
 /**
+ * GET /api/agent/list_projects
+ * List user's projects
+ */
+router.get('/list_projects',
+  authenticateToken,
+  agentRateLimit(60, 60000),
+  agentPermissions('read:projects'),
+  auditLog('list_projects'),
+  async (req, res) => {
+    try {
+      const { status, limit = 20, offset = 0 } = req.query;
+
+      const projects = await agentService.listProjects(req.user.id, {
+        status,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+      });
+
+      res.json({
+        success: true,
+        data: projects,
+        count: projects.length,
+      });
+    } catch (error) {
+      console.error('[AgentAPI] list_projects error:', error);
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Failed to list projects',
+      });
+    }
+  }
+);
+
+/**
  * GET /api/agent/get_project/:id
  * Get project details
  */
@@ -110,41 +137,6 @@ router.get('/get_project/:id',
 );
 
 /**
- * GET /api/agent/list_assets/:projectId
- * List assets for a project
- */
-router.get('/list_assets/:projectId',
-  authenticateToken,
-  agentRateLimit(60, 60000),
-  agentPermissions('read:assets'),
-  auditLog('list_assets'),
-  async (req, res) => {
-    try {
-      const { projectId } = req.params;
-      const { kind, limit = 20, offset = 0 } = req.query;
-
-      const assets = await agentService.listAssets(req.user.id, projectId, {
-        kind,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-      });
-
-      res.json({
-        success: true,
-        data: assets,
-        count: assets.length,
-      });
-    } catch (error) {
-      console.error('[AgentAPI] list_assets error:', error);
-      res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to list assets',
-      });
-    }
-  }
-);
-
-/**
  * GET /api/agent/activity_feed
  * Get recent activity feed
  */
@@ -155,12 +147,10 @@ router.get('/activity_feed',
   auditLog('activity_feed'),
   async (req, res) => {
     try {
-      const { projectId, limit = 30, offset = 0, since } = req.query;
+      const { limit = 30, since } = req.query;
 
       const activity = await agentService.getActivityFeed(req.user.id, {
-        projectId,
         limit: parseInt(limit),
-        offset: parseInt(offset),
         since,
       });
 
@@ -209,60 +199,17 @@ router.get('/what_changed',
 );
 
 /**
- * GET /api/agent/summarize_changes/:projectId
- * AI-generated summary of recent project changes
- */
-router.get('/summarize_changes/:projectId',
-  authenticateToken,
-  agentRateLimit(10, 60000),
-  agentPermissions('read:projects'),
-  auditLog('summarize_changes'),
-  async (req, res) => {
-    try {
-      const { projectId } = req.params;
-
-      const summary = await agentService.summarizeRecentChanges(req.user.id, projectId);
-
-      if (summary.error) {
-        return res.status(400).json({
-          error: 'Bad request',
-          message: summary.error,
-        });
-      }
-
-      res.json({
-        success: true,
-        data: summary,
-      });
-    } catch (error) {
-      console.error('[AgentAPI] summarize_changes error:', error);
-      res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to generate summary',
-      });
-    }
-  }
-);
-
-/**
  * GET /api/agent/daily_brief
- * AI-generated daily brief across all projects
+ * Generate daily brief
  */
 router.get('/daily_brief',
   authenticateToken,
-  agentRateLimit(5, 60000),
+  agentRateLimit(10, 60000),
   agentPermissions('read:activity'),
   auditLog('daily_brief'),
   async (req, res) => {
     try {
       const brief = await agentService.generateDailyBrief(req.user.id);
-
-      if (brief.error) {
-        return res.status(500).json({
-          error: 'Generation failed',
-          message: brief.error,
-        });
-      }
 
       res.json({
         success: true,
@@ -279,234 +226,53 @@ router.get('/daily_brief',
 );
 
 // ============================================================================
-// Chat Endpoint (SSE Streaming)
+// Chat Endpoint with SSE Streaming
 // ============================================================================
 
 /**
  * POST /api/agent/chat
- * Stream chat response with SSE
+ * Chat with agent using SSE streaming
  */
 router.post('/chat',
   authenticateToken,
-  agentRateLimit(30, 60000),
-  agentPermissions('read:activity'),
+  agentRateLimit(20, 60000),
   async (req, res) => {
-    const { message, sessionId, projectId, context = {} } = req.body;
-    const userId = req.user.id;
+    const { message, sessionId, projectId } = req.body;
 
-    if (!message || typeof message !== 'string') {
+    if (!message) {
       return res.status(400).json({
         error: 'Bad request',
         message: 'Message is required',
       });
     }
 
-    // Set SSE headers
+    // Set up SSE
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
-    res.flushHeaders();
-
-    const startTime = Date.now();
 
     try {
-      // Get or create session
-      let session;
-      if (sessionId) {
-        session = await agentService.getSession(sessionId, userId);
-      }
-      if (!session) {
-        session = await agentService.createSession(userId, projectId);
-      }
+      // Send start event
+      res.write(`data: ${JSON.stringify({ type: 'start', sessionId })}\n\n`);
 
-      // Build tools
-      const tools = [
-        {
-          name: 'search_projects',
-          description: 'Search for projects by name or description',
-          input_schema: {
-            type: 'object',
-            properties: {
-              query: { type: 'string', description: 'Search query' },
-            },
-            required: ['query'],
-          },
-        },
-        {
-          name: 'get_project',
-          description: 'Get detailed information about a specific project',
-          input_schema: {
-            type: 'object',
-            properties: {
-              projectId: { type: 'string', description: 'Project ID' },
-            },
-            required: ['projectId'],
-          },
-        },
-        {
-          name: 'list_assets',
-          description: 'List assets for a project',
-          input_schema: {
-            type: 'object',
-            properties: {
-              projectId: { type: 'string', description: 'Project ID' },
-              kind: { type: 'string', description: 'Asset type filter' },
-            },
-            required: ['projectId'],
-          },
-        },
-        {
-          name: 'get_activity',
-          description: 'Get recent activity and notifications',
-          input_schema: {
-            type: 'object',
-            properties: {
-              projectId: { type: 'string', description: 'Optional project ID to filter by' },
-            },
-          },
-        },
-        {
-          name: 'what_changed',
-          description: 'Get changes since a specific time',
-          input_schema: {
-            type: 'object',
-            properties: {
-              since: { type: 'string', description: 'ISO timestamp' },
-            },
-          },
-        },
-        {
-          name: 'daily_brief',
-          description: 'Generate a daily brief summarizing all project activity',
-          input_schema: { type: 'object', properties: {} },
-        },
-      ];
+      // Get response from agent service
+      const response = await agentService.chat(req.user.id, sessionId, message, { projectId });
 
-      // Build messages
-      const messages = session.messages || [];
-      messages.push({ role: 'user', content: message });
+      // Send the response
+      res.write(`data: ${JSON.stringify({ type: 'chunk', content: response.content })}\n\n`);
 
-      // System prompt
-      const systemPrompt = `You are FluxStudio's AI assistant. You help users manage their creative projects, track progress, and stay organized.
-
-You have access to tools to search projects, view assets, check activity, and generate summaries. Use these tools to answer user questions accurately.
-
-Be concise and helpful. When showing lists, format them nicely. When summarizing, highlight key points.
-
-${projectId ? `Currently viewing project: ${projectId}` : ''}`;
-
-      // Send session ID
-      res.write(`data: ${JSON.stringify({ type: 'start', sessionId: session.id })}\n\n`);
-
-      // Stream response
-      const stream = await anthropic.messages.stream({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2048,
-        system: systemPrompt,
-        tools,
-        messages: messages.slice(-20),
-      });
-
-      let fullContent = '';
-      let toolCalls = [];
-
-      for await (const event of stream) {
-        if (event.type === 'content_block_delta') {
-          if (event.delta?.text) {
-            const chunk = event.delta.text;
-            fullContent += chunk;
-            res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
-          }
-        } else if (event.type === 'content_block_start') {
-          if (event.content_block?.type === 'tool_use') {
-            toolCalls.push({
-              id: event.content_block.id,
-              name: event.content_block.name,
-              input: {},
-            });
-          }
-        } else if (event.type === 'content_block_delta' && event.delta?.partial_json) {
-          // Accumulate tool input
-          if (toolCalls.length > 0) {
-            const lastTool = toolCalls[toolCalls.length - 1];
-            try {
-              const partialInput = JSON.parse(event.delta.partial_json);
-              Object.assign(lastTool.input, partialInput);
-            } catch (_e) {
-              // Partial JSON, will be complete later
-            }
-          }
-        }
+      // Send tools used
+      if (response.toolsUsed && response.toolsUsed.length > 0) {
+        res.write(`data: ${JSON.stringify({ type: 'tools', tools: response.toolsUsed })}\n\n`);
       }
 
-      // Handle tool calls if any
-      if (toolCalls.length > 0) {
-        res.write(`data: ${JSON.stringify({ type: 'tools', tools: toolCalls.map(t => t.name) })}\n\n`);
-
-        // Execute tools and get results
-        for (const toolCall of toolCalls) {
-          const result = await agentService.executeToolCall(userId, toolCall.name, toolCall.input);
-          res.write(`data: ${JSON.stringify({
-            type: 'tool_result',
-            tool: toolCall.name,
-            result: typeof result === 'object' ? JSON.stringify(result).substring(0, 500) : result,
-          })}\n\n`);
-        }
-
-        // Continue with tool results (non-streaming for simplicity)
-        const toolResults = [];
-        for (const toolCall of toolCalls) {
-          const result = await agentService.executeToolCall(userId, toolCall.name, toolCall.input);
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: toolCall.id,
-            content: JSON.stringify(result),
-          });
-        }
-
-        // Get final response
-        const finalResponse = await anthropic.messages.create({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2048,
-          system: systemPrompt,
-          tools,
-          messages: [
-            ...messages.slice(-20),
-            { role: 'assistant', content: [{ type: 'text', text: fullContent }, ...toolCalls.map(t => ({ type: 'tool_use', id: t.id, name: t.name, input: t.input }))] },
-            { role: 'user', content: toolResults },
-          ],
-        });
-
-        const finalText = finalResponse.content.find(b => b.type === 'text')?.text || '';
-        if (finalText) {
-          res.write(`data: ${JSON.stringify({ type: 'chunk', content: '\n\n' + finalText })}\n\n`);
-          fullContent += '\n\n' + finalText;
-        }
-      }
-
-      // Update session
-      messages.push({ role: 'assistant', content: fullContent });
-      await agentService.updateSessionMessages(session.id, messages);
-
-      // Log action
-      const latencyMs = Date.now() - startTime;
-      await agentService.logAction(session.id, userId, 'chat', null, { message }, { response: fullContent.substring(0, 500) }, latencyMs);
-
-      // Send completion
-      res.write(`data: ${JSON.stringify({
-        type: 'done',
-        sessionId: session.id,
-        latencyMs,
-      })}\n\n`);
-
+      // Send done event
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
       res.end();
     } catch (error) {
       console.error('[AgentAPI] chat error:', error);
-      res.write(`data: ${JSON.stringify({
-        type: 'error',
-        error: error.message || 'Failed to process chat',
-      })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'error', error: error.message || 'Chat failed' })}\n\n`);
       res.end();
     }
   }
@@ -522,10 +288,10 @@ ${projectId ? `Currently viewing project: ${projectId}` : ''}`;
  */
 router.post('/session',
   authenticateToken,
-  agentRateLimit(20, 60000),
   async (req, res) => {
     try {
       const { projectId } = req.body;
+
       const session = await agentService.createSession(req.user.id, projectId);
 
       res.json({
@@ -533,7 +299,7 @@ router.post('/session',
         data: session,
       });
     } catch (error) {
-      console.error('[AgentAPI] create session error:', error);
+      console.error('[AgentAPI] create_session error:', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to create session',
@@ -548,12 +314,11 @@ router.post('/session',
  */
 router.get('/session/:id',
   authenticateToken,
-  validateSession(),
   async (req, res) => {
     try {
-      const session = await agentService.getSession(req.params.id, req.user.id);
+      const session = await agentService.getSession(req.params.id);
 
-      if (!session) {
+      if (!session || session.user_id !== req.user.id) {
         return res.status(404).json({
           error: 'Not found',
           message: 'Session not found',
@@ -565,7 +330,7 @@ router.get('/session/:id',
         data: session,
       });
     } catch (error) {
-      console.error('[AgentAPI] get session error:', error);
+      console.error('[AgentAPI] get_session error:', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to get session',
@@ -580,18 +345,13 @@ router.get('/session/:id',
 
 /**
  * GET /api/agent/pending_actions
- * Get pending actions requiring approval
+ * Get user's pending actions
  */
 router.get('/pending_actions',
   authenticateToken,
   async (req, res) => {
     try {
-      const { status = 'pending', limit = 20 } = req.query;
-
-      const actions = await agentService.getPendingActions(req.user.id, {
-        status,
-        limit: parseInt(limit),
-      });
+      const actions = await agentService.getPendingActions(req.user.id);
 
       res.json({
         success: true,
@@ -599,7 +359,7 @@ router.get('/pending_actions',
         count: actions.length,
       });
     } catch (error) {
-      console.error('[AgentAPI] get pending_actions error:', error);
+      console.error('[AgentAPI] pending_actions error:', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to get pending actions',
@@ -614,24 +374,16 @@ router.get('/pending_actions',
  */
 router.post('/pending_action/:id/approve',
   authenticateToken,
-  auditLog('approve_action'),
   async (req, res) => {
     try {
-      const result = await agentService.resolvePendingAction(req.params.id, req.user.id, true);
-
-      if (result.error) {
-        return res.status(400).json({
-          error: 'Bad request',
-          message: result.error,
-        });
-      }
+      await agentService.resolvePendingAction(req.params.id, 'approved', req.user.id);
 
       res.json({
         success: true,
-        data: result,
+        message: 'Action approved',
       });
     } catch (error) {
-      console.error('[AgentAPI] approve action error:', error);
+      console.error('[AgentAPI] approve_action error:', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to approve action',
@@ -646,24 +398,16 @@ router.post('/pending_action/:id/approve',
  */
 router.post('/pending_action/:id/reject',
   authenticateToken,
-  auditLog('reject_action'),
   async (req, res) => {
     try {
-      const result = await agentService.resolvePendingAction(req.params.id, req.user.id, false);
-
-      if (result.error) {
-        return res.status(400).json({
-          error: 'Bad request',
-          message: result.error,
-        });
-      }
+      await agentService.resolvePendingAction(req.params.id, 'rejected', req.user.id);
 
       res.json({
         success: true,
-        data: result,
+        message: 'Action rejected',
       });
     } catch (error) {
-      console.error('[AgentAPI] reject action error:', error);
+      console.error('[AgentAPI] reject_action error:', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to reject action',
@@ -671,22 +415,5 @@ router.post('/pending_action/:id/reject',
     }
   }
 );
-
-// ============================================================================
-// Health Check
-// ============================================================================
-
-/**
- * GET /api/agent/health
- * Agent service health check
- */
-router.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    service: 'agent-api',
-    hasApiKey: !!process.env.ANTHROPIC_API_KEY,
-    timestamp: new Date().toISOString(),
-  });
-});
 
 module.exports = router;
