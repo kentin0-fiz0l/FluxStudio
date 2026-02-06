@@ -75,7 +75,8 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
             });
 
             // Redirect to dashboard after brief success display
-            setTimeout(() => navigate('/projects'), 1500);
+            // Use replace to prevent back-button issues
+            setTimeout(() => navigate('/projects', { replace: true }), 1500);
             return;
           }
         }
@@ -111,7 +112,7 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
             setTimeout(() => window.close(), 2000);
           } else {
             // Redirect to settings after 3 seconds
-            setTimeout(() => navigate('/settings'), 3000);
+            setTimeout(() => navigate('/settings', { replace: true }), 3000);
           }
           return;
         }
@@ -150,7 +151,7 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
             setTimeout(() => window.close(), 1500);
           } else {
             // Redirect to settings after 2 seconds
-            setTimeout(() => navigate('/settings'), 2000);
+            setTimeout(() => navigate('/settings', { replace: true }), 2000);
           }
         } else {
           throw new Error(response.message || 'Failed to complete OAuth flow');
