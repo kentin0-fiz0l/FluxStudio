@@ -439,8 +439,18 @@ router.post('/google/callback', async (req, res) => {
       return res.redirect(`${config.FRONTEND_URL || 'https://fluxstudio.art'}/login?error=google_not_configured`);
     }
 
+    // Log credential details for debugging
+    console.log('[GoogleOAuth] Credential details:', {
+      credentialType: typeof credential,
+      credentialLength: credential?.length,
+      credentialPrefix: credential?.substring(0, 50),
+      credentialSuffix: credential?.substring(credential.length - 20),
+      clientIdLength: GOOGLE_CLIENT_ID?.length,
+      clientIdPrefix: GOOGLE_CLIENT_ID?.substring(0, 20)
+    });
+
     // Verify the Google ID token
-    console.log('Verifying Google ID token from redirect callback...', { clientId: GOOGLE_CLIENT_ID ? 'set' : 'missing' });
+    console.log('[GoogleOAuth] Calling verifyIdToken...');
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: GOOGLE_CLIENT_ID,
