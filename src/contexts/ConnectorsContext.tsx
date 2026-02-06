@@ -454,7 +454,13 @@ export function ConnectorsProvider({ children }: { children: React.ReactNode }) 
   }, [user, fetchConnectors]);
 
   // Handle OAuth callback success/error from URL params
+  // Only process when on the /connectors page to avoid interfering with other OAuth flows
   React.useEffect(() => {
+    // Only handle connector OAuth callbacks when on the connectors page
+    if (!window.location.pathname.startsWith('/connectors')) {
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const success = params.get('success');
     const error = params.get('error');
@@ -465,7 +471,8 @@ export function ConnectorsProvider({ children }: { children: React.ReactNode }) 
       fetchConnectors();
       // Clean URL
       window.history.replaceState({}, '', '/connectors');
-    } else if (error) {
+    } else if (error && provider) {
+      // Only handle errors that include a provider (connector-specific errors)
       dispatch({ type: 'SET_ERROR', payload: decodeURIComponent(error) });
       // Clean URL
       window.history.replaceState({}, '', '/connectors');
