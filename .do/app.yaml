@@ -11,30 +11,9 @@ region: nyc
 
 # Ingress Rules (Path-based routing)
 # Note: Order matters! More specific paths should come first.
+# OAuth callbacks now handled by Express CORS middleware (accepts origin: null)
 ingress:
   rules:
-    # OAuth callback routes (no CORS - these are browser redirects from OAuth providers)
-    # Must be before /api to handle OAuth redirect callbacks with origin: null
-    - component:
-        name: unified-backend
-      match:
-        path:
-          prefix: /api/auth/google/callback
-    - component:
-        name: unified-backend
-      match:
-        path:
-          prefix: /api/auth/github/callback
-    - component:
-        name: unified-backend
-      match:
-        path:
-          prefix: /api/auth/figma/callback
-    - component:
-        name: unified-backend
-      match:
-        path:
-          prefix: /api/auth/slack/callback
     # Socket.IO WebSocket route (must be before /api to catch /api/socket.io)
     - component:
         name: unified-backend
@@ -56,28 +35,12 @@ ingress:
           - Connection
         allow_credentials: true
     # Main API routes (includes Socket.IO at /api/socket.io)
+    # CORS handled by Express middleware (supports OAuth origin: null)
     - component:
         name: unified-backend
       match:
         path:
           prefix: /api
-      cors:
-        allow_origins:
-          - exact: https://fluxstudio.art
-          - exact: https://www.fluxstudio.art
-          - exact: https://fluxstudio-
-        allow_methods:
-          - GET
-          - POST
-          - PUT
-          - DELETE
-          - OPTIONS
-        allow_headers:
-          - Content-Type
-          - Authorization
-          - Upgrade
-          - Connection
-        allow_credentials: true
     - component:
         name: collaboration
       match:

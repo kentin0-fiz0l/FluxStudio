@@ -65,16 +65,6 @@ function csrfProtection(options = {}) {
   } = options;
 
   return function csrf(req, res, next) {
-    // TEMPORARY: Skip all CSRF checks for debugging
-    // TODO: Remove this after fixing OAuth
-    console.log('CSRF DEBUG - Path info:', {
-      path: req.path,
-      originalUrl: req.originalUrl,
-      url: req.url,
-      method: req.method
-    });
-    return next();
-
     // Skip CSRF check for ignored methods
     if (ignoreMethods.includes(req.method)) {
       // Generate and set CSRF token for GET requests
@@ -111,12 +101,8 @@ function csrfProtection(options = {}) {
         req.url?.includes('/auth/');
 
     if (isAuthPath) {
-      console.log('CSRF: Skipping auth path:', { path: req.path, url: req.url, originalUrl: req.originalUrl });
       return next();
     }
-
-    // Log when CSRF check is performed (for debugging)
-    console.log('CSRF: Checking path:', { path: req.path, method: req.method });
 
     // Get CSRF token from cookie
     const cookieToken = req.cookies?.[CSRF_COOKIE_NAME];
