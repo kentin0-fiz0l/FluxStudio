@@ -449,6 +449,30 @@ router.post('/google/callback', async (req, res) => {
       clientIdPrefix: GOOGLE_CLIENT_ID?.substring(0, 20)
     });
 
+    // Try to decode the JWT to see its claims (without verification)
+    try {
+      const parts = credential.split('.');
+      if (parts.length === 3) {
+        const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+        console.log('[GoogleOAuth] JWT Header:', header);
+        console.log('[GoogleOAuth] JWT Payload:', {
+          iss: payload.iss,
+          aud: payload.aud,
+          exp: payload.exp,
+          iat: payload.iat,
+          email: payload.email,
+          email_verified: payload.email_verified,
+          azp: payload.azp
+        });
+        console.log('[GoogleOAuth] Expected audience:', GOOGLE_CLIENT_ID);
+        console.log('[GoogleOAuth] Token audience matches:', payload.aud === GOOGLE_CLIENT_ID);
+        console.log('[GoogleOAuth] Token expired:', Date.now() / 1000 > payload.exp);
+      }
+    } catch (decodeError) {
+      console.error('[GoogleOAuth] Failed to decode JWT:', decodeError.message);
+    }
+
     // Verify the Google ID token
     console.log('[GoogleOAuth] Calling verifyIdToken...');
     const ticket = await googleClient.verifyIdToken({
