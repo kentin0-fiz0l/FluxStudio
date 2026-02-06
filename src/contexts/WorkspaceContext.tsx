@@ -442,7 +442,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     },
 
     getContextualActions: () => {
-      return state.contextualSuggestions.filter(suggestion =>
+      const suggestions = state.contextualSuggestions || [];
+      return suggestions.filter(suggestion =>
         suggestion.context.includes(state.currentContext)
       );
     },

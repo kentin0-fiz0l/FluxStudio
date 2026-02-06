@@ -142,7 +142,7 @@ export function AdaptiveDashboard() {
     }
 
     // Show suggestions
-    const topSuggestions = actions.getContextualActions().slice(0, 3);
+    const topSuggestions = (actions.getContextualActions() || []).slice(0, 3);
     topSuggestions.forEach((suggestion, index) => {
       cards.push({
         id: `suggestion-${index}`,
