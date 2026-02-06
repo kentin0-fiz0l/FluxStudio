@@ -66,10 +66,10 @@ router.setAuthHelper = (helper) => {
 
 // Lazy authentication middleware wrapper (evaluates authHelper at runtime)
 const requireAuth = (req, res, next) => {
-  if (!authHelper || !authHelper.requireAuth) {
+  if (!authHelper || !authHelper.authenticateToken) {
     return res.status(500).json({ message: 'Auth system not initialized' });
   }
-  return authHelper.requireAuth(req, res, next);
+  return authHelper.authenticateToken(req, res, next);
 };
 
 // CSRF token endpoint - must be called before making state-changing requests
@@ -290,15 +290,20 @@ router.post('/login',
 
 // Get current user endpoint
 router.get('/me', requireAuth, async (req, res) => {
-  const users = await authHelper.getUsers();
-  const user = users.find(u => u.id === req.user.id);
+  try {
+    const users = await authHelper.getUsers();
+    const user = users.find(u => u.id === req.user.id);
 
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { password: _, ...userWithoutPassword } = user;
+    res.json(userWithoutPassword);
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    res.status(500).json({ message: 'Failed to fetch user data' });
   }
-
-  const { password: _, ...userWithoutPassword } = user;
-  res.json(userWithoutPassword);
 });
 
 // Logout endpoint
