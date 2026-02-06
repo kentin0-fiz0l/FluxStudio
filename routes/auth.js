@@ -433,8 +433,14 @@ router.post('/google/callback', async (req, res) => {
       return res.redirect(`${config.FRONTEND_URL || 'https://fluxstudio.art'}/login?error=no_credential`);
     }
 
+    // Check if Google client is configured
+    if (!googleClient) {
+      console.error('Google OAuth client not configured - GOOGLE_CLIENT_ID may be missing');
+      return res.redirect(`${config.FRONTEND_URL || 'https://fluxstudio.art'}/login?error=google_not_configured`);
+    }
+
     // Verify the Google ID token
-    console.log('Verifying Google ID token from redirect callback...');
+    console.log('Verifying Google ID token from redirect callback...', { clientId: GOOGLE_CLIENT_ID ? 'set' : 'missing' });
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: GOOGLE_CLIENT_ID,
@@ -492,11 +498,23 @@ router.post('/google/callback', async (req, res) => {
     res.redirect(`${frontendUrl}/auth/callback/google?token=${encodeURIComponent(token)}`);
 
   } catch (error) {
-    console.error('[GoogleOAuth] Redirect callback failed:', error.message);
+    // Log detailed error for debugging
+    console.error('[GoogleOAuth] Redirect callback failed:', {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n'),
+      clientIdSet: !!GOOGLE_CLIENT_ID,
+      clientIdLength: GOOGLE_CLIENT_ID?.length,
+      hasCredential: !!req.body?.credential,
+      credentialLength: req.body?.credential?.length
+    });
 
     await securityLogger.logOAuthFailure('google', error.message, req, {
       flow: 'redirect',
-      errorMessage: error.message
+      errorMessage: error.message,
+      errorName: error.name,
+      errorCode: error.code
     });
 
     const frontendUrl = config.FRONTEND_URL || 'https://fluxstudio.art';
