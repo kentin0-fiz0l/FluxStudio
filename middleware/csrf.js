@@ -94,9 +94,19 @@ function csrfProtection(options = {}) {
     }
 
     // Always skip CSRF for auth endpoints (OAuth callbacks need this)
-    if (req.path.includes('/auth/')) {
+    // Check multiple patterns to handle different path formats
+    const isAuthPath = req.path.includes('/auth/') ||
+        req.path.includes('/auth') ||
+        req.originalUrl?.includes('/auth/') ||
+        req.url?.includes('/auth/');
+
+    if (isAuthPath) {
+      console.log('CSRF: Skipping auth path:', { path: req.path, url: req.url, originalUrl: req.originalUrl });
       return next();
     }
+
+    // Log when CSRF check is performed (for debugging)
+    console.log('CSRF: Checking path:', { path: req.path, method: req.method });
 
     // Get CSRF token from cookie
     const cookieToken = req.cookies?.[CSRF_COOKIE_NAME];
