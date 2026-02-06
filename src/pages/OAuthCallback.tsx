@@ -65,8 +65,8 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
           }
 
           if (token) {
-            // Store the token and redirect to dashboard
-            setAuthToken(token);
+            // Store the token and fetch user info - MUST await to complete before navigation
+            await setAuthToken(token);
             setState('success');
             setResult({
               success: true,
