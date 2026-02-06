@@ -11,6 +11,7 @@
  */
 
 import axios, { AxiosInstance } from 'axios';
+import crypto from 'crypto';
 
 interface FigmaFile {
   key: string;
@@ -260,7 +261,6 @@ class FigmaService {
    * @returns True if valid
    */
   static verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
-    const crypto = require('crypto');
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(payload);
     const expectedSignature = hmac.digest('hex');

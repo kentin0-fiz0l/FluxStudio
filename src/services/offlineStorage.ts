@@ -235,7 +235,7 @@ export const pendingActions = {
         // Cast to include sync property (Background Sync API)
         const syncManager = (registration as ServiceWorkerRegistration & { sync: SyncManager }).sync;
         await syncManager.register('sync-pending-actions');
-      } catch (e) {
+      } catch (_e) {
         console.log('[OfflineStorage] Background sync not available');
       }
     }

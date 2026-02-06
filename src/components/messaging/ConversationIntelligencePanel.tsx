@@ -3,7 +3,7 @@
  * Smart conversation grouping, context detection, and workflow insights
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain,
@@ -49,6 +49,53 @@ interface WorkflowSuggestion {
   actionData?: any;
 }
 
+// Helper functions moved outside component for React Compiler optimization
+function hasSubsequentResponse(_conversationId: string, _analysis: MessageAnalysis): boolean {
+  // This would check if there's a response after the question
+  // For now, return false to show all questions as unanswered
+  return false;
+}
+
+function calculateOverallSentiment(emotions: string[]): 'positive' | 'neutral' | 'negative' {
+  const positive = emotions.filter(e => e === 'positive' || e === 'excited').length;
+  const negative = emotions.filter(e => e === 'negative' || e === 'concerned').length;
+
+  if (positive > negative) return 'positive';
+  if (negative > positive) return 'negative';
+  return 'neutral';
+}
+
+function calculateActivityLevel(messages: Message[], now: number): 'high' | 'medium' | 'low' {
+  const oneDayAgo = now - (24 * 60 * 60 * 1000);
+  const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000);
+
+  const recentMessages = messages.filter(m => m.createdAt.getTime() > oneDayAgo).length;
+  const weeklyMessages = messages.filter(m => m.createdAt.getTime() > oneWeekAgo).length;
+
+  if (recentMessages >= 5 || weeklyMessages >= 20) return 'high';
+  if (recentMessages >= 2 || weeklyMessages >= 10) return 'medium';
+  return 'low';
+}
+
+function calculateAverageResponseTime(messages: Message[]): number {
+  // Calculate average response time between messages
+  if (messages.length < 2) return 0;
+
+  let totalTime = 0;
+  let count = 0;
+
+  for (let i = 1; i < messages.length; i++) {
+    const timeDiff = messages[i].createdAt.getTime() - messages[i - 1].createdAt.getTime();
+    // Only count response times under 24 hours as valid responses
+    if (timeDiff > 0 && timeDiff < 24 * 60 * 60 * 1000) {
+      totalTime += timeDiff;
+      count++;
+    }
+  }
+
+  return count > 0 ? (totalTime / count) / (1000 * 60 * 60) : 0; // Return hours
+}
+
 export function ConversationIntelligencePanel({
   conversations,
   messages,
@@ -62,6 +109,15 @@ export function ConversationIntelligencePanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'urgent' | 'pending' | 'stale'>('all');
   const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
+
+  // Stable timestamp for memoized calculations - refreshes every minute
+  const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTimestamp(Date.now());
+    }, 60000); // Refresh every minute
+    return () => clearInterval(interval);
+  }, []);
 
   // Generate conversation insights
   const conversationInsights = useMemo(() => {
@@ -91,7 +147,7 @@ export function ConversationIntelligencePanel({
       const sentiments = analyses.flatMap(a => a.extractedData.emotions || []);
       const overallSentiment = calculateOverallSentiment(sentiments);
 
-      const activityLevel = calculateActivityLevel(conversationMessages);
+      const activityLevel = calculateActivityLevel(conversationMessages, currentTimestamp);
       const responseTime = calculateAverageResponseTime(conversationMessages);
       const lastActivity = conversationMessages.length > 0
         ? new Date(Math.max(...conversationMessages.map(m => m.createdAt.getTime())))
@@ -112,13 +168,12 @@ export function ConversationIntelligencePanel({
         }
       };
     });
-  }, [conversations, messages, messageAnalyses]);
+  }, [conversations, messages, messageAnalyses, currentTimestamp]);
 
   // Generate workflow suggestions
-  // eslint-disable-next-line react-compiler/react-compiler -- Date.now() in useMemo is intentional for caching
   const workflowSuggestions = useMemo(() => {
     const suggestions: WorkflowSuggestion[] = [];
-    const now = Date.now();
+    const now = currentTimestamp;
 
     conversationInsights.forEach(insight => {
       const { conversation, insights } = insight;
@@ -181,7 +236,7 @@ export function ConversationIntelligencePanel({
       const priorityOrder = { high: 3, medium: 2, low: 1 };
       return priorityOrder[b.priority] - priorityOrder[a.priority];
     });
-  }, [conversationInsights]);
+  }, [conversationInsights, currentTimestamp]);
 
   // Filter insights based on search and filter type
   const filteredInsights = useMemo(() => {
@@ -205,9 +260,7 @@ export function ConversationIntelligencePanel({
         filtered = filtered.filter(insight => insight.insights.pendingActions > 0);
         break;
       case 'stale': {
-        // eslint-disable-next-line react-compiler/react-compiler -- Date.now() in useMemo is intentional
-        const now = Date.now();
-        const threeDaysAgo = now - (3 * 24 * 60 * 60 * 1000);
+        const threeDaysAgo = currentTimestamp - (3 * 24 * 60 * 60 * 1000);
         filtered = filtered.filter(insight =>
           insight.insights.lastActivity.getTime() < threeDaysAgo
         );
@@ -216,42 +269,7 @@ export function ConversationIntelligencePanel({
     }
 
     return filtered;
-  }, [conversationInsights, searchQuery, filterType]);
-
-  // Helper functions
-  function hasSubsequentResponse(_conversationId: string, _analysis: MessageAnalysis): boolean {
-    // This would check if there's a response after the question
-    // For now, return false to show all questions as unanswered
-    return false;
-  }
-
-  function calculateOverallSentiment(emotions: string[]): 'positive' | 'neutral' | 'negative' {
-    const positive = emotions.filter(e => e === 'positive' || e === 'excited').length;
-    const negative = emotions.filter(e => e === 'negative' || e === 'concerned').length;
-
-    if (positive > negative) return 'positive';
-    if (negative > positive) return 'negative';
-    return 'neutral';
-  }
-
-  function calculateActivityLevel(messages: Message[]): 'high' | 'medium' | 'low' {
-    const now = Date.now();
-    const oneDayAgo = now - (24 * 60 * 60 * 1000);
-    const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000);
-
-    const recentMessages = messages.filter(m => m.createdAt.getTime() > oneDayAgo).length;
-    const weeklyMessages = messages.filter(m => m.createdAt.getTime() > oneWeekAgo).length;
-
-    if (recentMessages >= 5 || weeklyMessages >= 20) return 'high';
-    if (recentMessages >= 2 || weeklyMessages >= 10) return 'medium';
-    return 'low';
-  }
-
-  function calculateAverageResponseTime(_messages: Message[]): number {
-    // Calculate average response time between messages
-    // For now, return a mock value
-    return Math.random() * 24; // 0-24 hours
-  }
+  }, [conversationInsights, searchQuery, filterType, currentTimestamp]);
 
   const toggleInsightExpansion = (insightId: string) => {
     const newExpanded = new Set(expandedInsights);

@@ -73,6 +73,7 @@ class TaskSocketService {
   private currentUserName: string | null = null;
 
   // Store event listeners for cleanup
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private eventListeners = new Map<string, Set<Function>>();
 
   /**
@@ -401,6 +402,7 @@ class TaskSocketService {
   /**
    * Add an event listener
    */
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private addEventListener(event: string, callback: Function) {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Set());
@@ -411,6 +413,7 @@ class TaskSocketService {
   /**
    * Remove an event listener
    */
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private removeEventListener(event: string, callback: Function) {
     const listeners = this.eventListeners.get(event);
     if (listeners) {

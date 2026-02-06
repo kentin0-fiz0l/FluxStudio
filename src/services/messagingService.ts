@@ -643,6 +643,7 @@ class MessagingService {
   /**
    * Remove event listeners
    */
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   off(event: string, callback: Function) {
     socketService.off(event as any, callback as any);
   }

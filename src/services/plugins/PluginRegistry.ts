@@ -320,22 +320,18 @@ class PluginRegistry {
   private async loadPluginModule(manifest: PluginManifest): Promise<PluginModule> {
     // In production, this would load from a CDN or local file
     // For now, we simulate dynamic import
-    try {
-      // This would be something like:
-      // return await import(/* webpackIgnore: true */ manifest.main);
+    // This would be something like:
+    // return await import(/* webpackIgnore: true */ manifest.main);
 
-      // For simulation, return a no-op module
-      return {
-        activate: async () => {
-          console.log(`Plugin ${manifest.id} activated`);
-        },
-        deactivate: async () => {
-          console.log(`Plugin ${manifest.id} deactivated`);
-        },
-      };
-    } catch (error) {
-      throw new Error(`Failed to load plugin module: ${error}`);
-    }
+    // For simulation, return a no-op module
+    return {
+      activate: async () => {
+        console.log(`Plugin ${manifest.id} activated`);
+      },
+      deactivate: async () => {
+        console.log(`Plugin ${manifest.id} deactivated`);
+      },
+    };
   }
 
   private createPluginContext(plugin: PluginInstance): PluginContext {

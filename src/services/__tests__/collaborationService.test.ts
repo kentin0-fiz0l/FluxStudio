@@ -13,8 +13,10 @@ const mockSocket = {
   connected: true,
 };
 
+const mockIo = vi.fn(() => mockSocket);
+
 vi.mock('socket.io-client', () => ({
-  io: vi.fn(() => mockSocket),
+  io: mockIo,
 }));
 
 // Mock import.meta.env
@@ -49,10 +51,8 @@ describe('CollaborationService', () => {
 
   describe('Socket Initialization', () => {
     it('should initialize socket with correct configuration', () => {
-      const { io } = require('socket.io-client');
-
       // Service initializes on import, verify configuration
-      expect(io).toHaveBeenCalledWith(
+      expect(mockIo).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           transports: ['websocket'],

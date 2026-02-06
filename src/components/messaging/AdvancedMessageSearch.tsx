@@ -3,7 +3,7 @@
  * Semantic search, analytics, and intelligent filtering for messages
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,

@@ -29,6 +29,49 @@ import type { IntegrationProvider, Integration } from '@/types/integrations';
 import { INTEGRATION_CONFIGS } from '@/types/integrations';
 import { useOAuth } from '@/hooks/useOAuth';
 
+// Status indicator component - extracted to module level
+interface StatusIndicatorProps {
+  isConnecting: boolean;
+  isExpired: boolean;
+  isConnected: boolean;
+}
+
+const StatusIndicator: React.FC<StatusIndicatorProps> = ({ isConnecting, isExpired, isConnected }) => {
+  if (isConnecting) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Connecting...</span>
+      </div>
+    );
+  }
+
+  if (isExpired) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-error-600 dark:text-error-400">
+        <XCircle className="h-4 w-4" />
+        <span>Connection expired</span>
+      </div>
+    );
+  }
+
+  if (isConnected) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-success-600 dark:text-success-400">
+        <CheckCircle className="h-4 w-4" />
+        <span>Connected</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
+      <div className="h-2 w-2 rounded-full bg-neutral-400" />
+      <span>Not connected</span>
+    </div>
+  );
+};
+
 interface IntegrationCardProps {
   provider: IntegrationProvider;
   onSuccess?: (integration: Integration) => void;
@@ -102,42 +145,6 @@ export function IntegrationCard({
     await connect();
   };
 
-  // Status indicator component
-  const StatusIndicator = () => {
-    if (isConnecting) {
-      return (
-        <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Connecting...</span>
-        </div>
-      );
-    }
-
-    if (isExpired) {
-      return (
-        <div className="flex items-center gap-2 text-sm text-error-600 dark:text-error-400">
-          <XCircle className="h-4 w-4" />
-          <span>Connection expired</span>
-        </div>
-      );
-    }
-
-    if (isConnected) {
-      return (
-        <div className="flex items-center gap-2 text-sm text-success-600 dark:text-success-400">
-          <CheckCircle className="h-4 w-4" />
-          <span>Connected</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
-        <div className="h-2 w-2 rounded-full bg-neutral-400" />
-        <span>Not connected</span>
-      </div>
-    );
-  };
 
   return (
     <Card className="p-4 md:p-6 relative">
@@ -172,7 +179,7 @@ export function IntegrationCard({
           </div>
         </div>
 
-        <StatusIndicator />
+        <StatusIndicator isConnecting={isConnecting} isExpired={isExpired} isConnected={isConnected} />
       </div>
 
       {/* Error state */}

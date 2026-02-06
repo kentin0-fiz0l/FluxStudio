@@ -460,13 +460,13 @@ class ApiService {
       formData.append('files', file);
     });
 
+    // Get headers with auth and CSRF token before creating Promise
+    const headers = await this.getDefaultHeaders(true, true, false);
+
     // Use XMLHttpRequest for progress tracking
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       const url = buildApiUrl(`/projects/${projectId}/files/upload`);
-
-      // Get headers with auth and CSRF token
-      const headers = await this.getDefaultHeaders(true, true, false);
 
       // Setup progress tracking
       if (onProgress) {
@@ -488,7 +488,7 @@ class ApiService {
               data,
               message: data.message,
             });
-          } catch (error) {
+          } catch (_error) {
             reject(new Error('Invalid response format'));
           }
         } else {

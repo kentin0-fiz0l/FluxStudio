@@ -484,22 +484,23 @@ const getStatusColor = (status: ScheduledMessage['status']) => {
   }
 };
 
-const getCategoryIcon = (category: MessageTemplate['category']) => {
+// Category icon component to avoid creating components during render
+const CategoryIconComponent: React.FC<{ category: MessageTemplate['category']; className?: string }> = ({ category, className }) => {
   switch (category) {
     case 'approval':
-      return CheckCircle;
+      return <CheckCircle className={className} />;
     case 'feedback':
-      return MessageSquare;
+      return <MessageSquare className={className} />;
     case 'update':
-      return TrendingUp;
+      return <TrendingUp className={className} />;
     case 'reminder':
-      return Clock;
+      return <Clock className={className} />;
     case 'greeting':
-      return Heart;
+      return <Heart className={className} />;
     case 'follow-up':
-      return RotateCcw;
+      return <RotateCcw className={className} />;
     default:
-      return MessageSquare;
+      return <MessageSquare className={className} />;
   }
 };
 
@@ -565,14 +566,12 @@ const TemplateCard: React.FC<{
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }> = ({ template, onUse, onEdit, onDelete }) => {
-  const CategoryIcon = getCategoryIcon(template.category);
-
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <CategoryIcon className="w-4 h-4 text-blue-600" />
+            <CategoryIconComponent category={template.category} className="w-4 h-4 text-blue-600" />
             <CardTitle className="text-sm">{template.name}</CardTitle>
           </div>
           <div className="flex items-center gap-1">

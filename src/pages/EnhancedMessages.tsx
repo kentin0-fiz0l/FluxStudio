@@ -3,7 +3,7 @@
  * Integrates all new messaging features: user search, advanced search, mobile optimization, and automation
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
@@ -49,125 +49,131 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
 
-  // Mock conversations for demonstration
-  const mockConversations: Conversation[] = [
-    {
-      id: 'conv1',
-      name: 'Brand Redesign Project',
-      type: 'project',
-      projectId: 'project1',
-      participants: [
-        {
-          id: 'user1',
-          name: 'Sarah Chen',
-          userType: 'client',
-          avatar: undefined,
-          isOnline: true,
-          lastSeen: new Date()
+  // Stable timestamp for mock data - computed once on mount
+  const [initialTimestamp] = useState(() => Date.now());
+
+  // Mock conversations for demonstration - wrapped in useMemo to avoid recreating on every render
+  const mockConversations: Conversation[] = useMemo(() => {
+    const now = initialTimestamp;
+    return [
+      {
+        id: 'conv1',
+        name: 'Brand Redesign Project',
+        type: 'project',
+        projectId: 'project1',
+        participants: [
+          {
+            id: 'user1',
+            name: 'Sarah Chen',
+            userType: 'client',
+            avatar: undefined,
+            isOnline: true,
+            lastSeen: new Date()
+          },
+          {
+            id: 'user2',
+            name: 'Mike Johnson',
+            userType: 'designer',
+            avatar: undefined,
+            isOnline: false,
+            lastSeen: new Date(now - 30 * 60 * 1000)
+          }
+        ],
+        lastMessage: {
+          id: 'msg1',
+          content: 'The latest color palette looks fantastic! Can we schedule a review meeting?',
+          author: {
+            id: 'user1',
+            name: 'Sarah Chen',
+            userType: 'client'
+          },
+          createdAt: new Date(now - 15 * 60 * 1000),
+          updatedAt: new Date(now - 15 * 60 * 1000),
+          type: 'text',
+          status: 'read',
+          conversationId: 'conv1',
+          mentions: [],
+          isEdited: false
         },
-        {
-          id: 'user2',
-          name: 'Mike Johnson',
-          userType: 'designer',
-          avatar: undefined,
-          isOnline: false,
-          lastSeen: new Date(Date.now() - 30 * 60 * 1000)
-        }
-      ],
-      lastMessage: {
-        id: 'msg1',
-        content: 'The latest color palette looks fantastic! Can we schedule a review meeting?',
-        author: {
+        createdAt: new Date(now - 7 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now - 15 * 60 * 1000),
+        lastActivity: new Date(now - 15 * 60 * 1000),
+        unreadCount: 2,
+        metadata: {
+          isArchived: false,
+          isMuted: false,
+          isPinned: false,
+          priority: 'medium',
+          tags: ['design', 'branding']
+        },
+        permissions: {
+          canWrite: true,
+          canAddMembers: true,
+          canArchive: true,
+          canDelete: false
+        },
+        createdBy: {
           id: 'user1',
           name: 'Sarah Chen',
           userType: 'client'
-        },
-        createdAt: new Date(Date.now() - 15 * 60 * 1000),
-        updatedAt: new Date(Date.now() - 15 * 60 * 1000),
-        type: 'text',
-        status: 'read',
-        conversationId: 'conv1',
-        mentions: [],
-        isEdited: false
-      },
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 15 * 60 * 1000),
-      lastActivity: new Date(Date.now() - 15 * 60 * 1000),
-      unreadCount: 2,
-      metadata: {
-        isArchived: false,
-        isMuted: false,
-        isPinned: false,
-        priority: 'medium',
-        tags: ['design', 'branding']
-      },
-      permissions: {
-        canWrite: true,
-        canAddMembers: true,
-        canArchive: true,
-        canDelete: false
-      },
-      createdBy: {
-        id: 'user1',
-        name: 'Sarah Chen',
-        userType: 'client'
-      }
-    },
-    {
-      id: 'conv2',
-      name: 'Mobile App Design',
-      type: 'project',
-      projectId: 'project2',
-      participants: [
-        {
-          id: 'user3',
-          name: 'Alex Rodriguez',
-          userType: 'designer',
-          avatar: undefined,
-          isOnline: true,
-          lastSeen: new Date()
         }
-      ],
-      lastMessage: {
-        id: 'msg2',
-        content: 'I\'ve uploaded the wireframes for the checkout flow. Please review when you have a chance.',
-        author: {
+      },
+      {
+        id: 'conv2',
+        name: 'Mobile App Design',
+        type: 'project',
+        projectId: 'project2',
+        participants: [
+          {
+            id: 'user3',
+            name: 'Alex Rodriguez',
+            userType: 'designer',
+            avatar: undefined,
+            isOnline: true,
+            lastSeen: new Date()
+          }
+        ],
+        lastMessage: {
+          id: 'msg2',
+          content: 'I\'ve uploaded the wireframes for the checkout flow. Please review when you have a chance.',
+          author: {
+            id: 'user3',
+            name: 'Alex Rodriguez',
+            userType: 'designer'
+          },
+          createdAt: new Date(now - 2 * 60 * 60 * 1000),
+          updatedAt: new Date(now - 2 * 60 * 60 * 1000),
+          type: 'text',
+          status: 'delivered',
+          conversationId: 'conv2',
+          mentions: [],
+          isEdited: false
+        },
+        createdAt: new Date(now - 14 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now - 2 * 60 * 60 * 1000),
+        lastActivity: new Date(now - 2 * 60 * 60 * 1000),
+        unreadCount: 0,
+        metadata: {
+          isArchived: false,
+          isMuted: false,
+          isPinned: false,
+          priority: 'medium',
+          tags: ['mobile', 'app', 'ux']
+        },
+        permissions: {
+          canWrite: true,
+          canAddMembers: true,
+          canArchive: true,
+          canDelete: false
+        },
+        createdBy: {
           id: 'user3',
           name: 'Alex Rodriguez',
           userType: 'designer'
-        },
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        type: 'text',
-        status: 'delivered',
-        conversationId: 'conv2',
-        mentions: [],
-        isEdited: false
-      },
-      createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      lastActivity: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      unreadCount: 0,
-      metadata: {
-        isArchived: false,
-        isMuted: false,
-        isPinned: false,
-        priority: 'medium',
-        tags: ['mobile', 'app', 'ux']
-      },
-      permissions: {
-        canWrite: true,
-        canAddMembers: true,
-        canArchive: true,
-        canDelete: false
-      },
-      createdBy: {
-        id: 'user3',
-        name: 'Alex Rodriguez',
-        userType: 'designer'
+        }
       }
-    }
-  ];
+    ];
+  }, [initialTimestamp]);
 
   const [activeConversations, _setActiveConversations] = useState(mockConversations);
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);

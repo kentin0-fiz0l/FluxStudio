@@ -124,7 +124,8 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
   ];
 
   useEffect(() => {
-    setMessages(mockMessages);
+    queueMicrotask(() => setMessages(mockMessages));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation]);
 
   // Auto-scroll to bottom when new messages arrive
@@ -139,6 +140,28 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
     { type: 'star', icon: Star, color: 'bg-yellow-500', threshold: 80 },
     { type: 'delete', icon: Trash2, color: 'bg-red-500', threshold: 120 }
   ];
+
+  // Handle message actions - must be defined before handleMessageSwipe
+  const handleMessageAction = useCallback((messageId: string, action: string) => {
+    switch (action) {
+      case 'reply':
+        // Handle reply
+        console.log('Reply to message:', messageId);
+        break;
+      case 'forward':
+        // Handle forward
+        console.log('Forward message:', messageId);
+        break;
+      case 'star':
+        // Handle star/bookmark
+        console.log('Star message:', messageId);
+        break;
+      case 'delete':
+        // Handle delete
+        setMessages(prev => prev.filter(m => m.id !== messageId));
+        break;
+    }
+  }, []);
 
   // Handle message swipe
   const handleMessageSwipe = useCallback((messageId: string, info: PanInfo) => {
@@ -161,29 +184,7 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
       setDraggedMessage(null);
       setSwipeAction(null);
     }
-  }, []);
-
-  // Handle message actions
-  const handleMessageAction = (messageId: string, action: string) => {
-    switch (action) {
-      case 'reply':
-        // Handle reply
-        console.log('Reply to message:', messageId);
-        break;
-      case 'forward':
-        // Handle forward
-        console.log('Forward message:', messageId);
-        break;
-      case 'star':
-        // Handle star/bookmark
-        console.log('Star message:', messageId);
-        break;
-      case 'delete':
-        // Handle delete
-        setMessages(prev => prev.filter(m => m.id !== messageId));
-        break;
-    }
-  };
+  }, [handleMessageAction, swipeActions]);
 
   // Long press handler for message options
   const handleLongPress = (messageId: string) => {

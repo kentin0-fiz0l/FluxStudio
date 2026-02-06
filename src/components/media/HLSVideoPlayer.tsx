@@ -91,7 +91,6 @@ export function HLSVideoPlayer({
   };
 
   // Initialize HLS.js or native HLS support
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: syncing with external HLS library
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !hlsUrl) return;
@@ -101,13 +100,15 @@ export function HLSVideoPlayer({
 
     if (canPlayHLS) {
       // Native HLS support (iOS/macOS Safari)
-      setHlsSupported(true);
+      queueMicrotask(() => {
+        setHlsSupported(true);
+        setIsLoading(false);
+      });
       video.src = hlsUrl;
-      setIsLoading(false);
 
     } else if (Hls.isSupported()) {
       // HLS.js for browsers without native support
-      setHlsSupported(true);
+      queueMicrotask(() => setHlsSupported(true));
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
@@ -161,10 +162,10 @@ export function HLSVideoPlayer({
 
     } else {
       // No HLS support, use fallback
-      setHlsSupported(false);
+      queueMicrotask(() => setHlsSupported(false));
       if (fallbackUrl) {
         video.src = fallbackUrl;
-        setIsLoading(false);
+        queueMicrotask(() => setIsLoading(false));
       } else {
         onError?.(new Error('HLS not supported in this browser'));
       }

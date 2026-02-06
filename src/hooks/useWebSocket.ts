@@ -34,6 +34,7 @@ export function useWebSocket(
 ): UseWebSocketReturn {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const optionsRef = useRef({ ...DEFAULT_OPTIONS, ...options });
 
@@ -83,6 +84,7 @@ export function useWebSocket(
       });
 
       socketRef.current = socket;
+      setSocket(socket);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create WebSocket connection';
       console.error('WebSocket connection error:', errorMessage);
@@ -94,6 +96,7 @@ export function useWebSocket(
     if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
+      setSocket(null);
       setConnected(false);
     }
   }, []);
@@ -133,7 +136,7 @@ export function useWebSocket(
   }, [connect, disconnect]);
 
   return {
-    socket: socketRef.current,
+    socket,
     connected,
     error,
     connect,

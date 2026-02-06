@@ -320,7 +320,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
 
   // Reset selection when results change
   useEffect(() => {
-    setSelectedIndex(0);
+    queueMicrotask(() => setSelectedIndex(0));
   }, [query]);
 
   // Focus input when opened

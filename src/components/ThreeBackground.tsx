@@ -1,5 +1,5 @@
-// @ts-nocheck - React Three Fiber JSX intrinsic elements require global augmentation that conflicts with strict TS
 /* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck - React Three Fiber intrinsic elements require special JSX type augmentation
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import {
   Float,

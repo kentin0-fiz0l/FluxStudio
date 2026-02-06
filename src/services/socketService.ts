@@ -82,6 +82,7 @@ class SocketService {
   private isConnected = false;
   private authFailed = false;
   private currentUserId: string | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private eventListeners = new Map<string, Set<Function>>();
 
   constructor() {

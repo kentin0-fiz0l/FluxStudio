@@ -171,7 +171,8 @@ export function sanitizeFilename(input: string | null | undefined): string {
   // Remove special shell characters
   safe = safe.replace(/[<>:"|?*]/g, '');
 
-  // Remove control characters
+  // Remove control characters (intentional security sanitization)
+  // eslint-disable-next-line no-control-regex
   safe = safe.replace(/[\x00-\x1f\x80-\x9f]/g, '');
 
   // Trim and limit length

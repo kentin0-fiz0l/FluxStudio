@@ -11,31 +11,21 @@ export function EmailVerification() {
   const token = searchParams.get('token');
   const email = searchParams.get('email');
 
-  useEffect(() => {
-    if (token) {
-      verifyEmail(token);
-    } else {
-      setStatus('error');
-      setMessage('No verification token provided');
-    }
-  }, [token]);
-
-  const verifyEmail = async (token: string) => {
+  const verifyEmail = async (verificationToken: string) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://fluxstudio.art'}/api/auth/verify-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token: verificationToken }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
         setStatus('success');
-        setMessage('Your email has been verified successfully!');
-        // Redirect to dashboard after 3 seconds
+        setMessage('Email verified successfully! Redirecting to dashboard...');
         setTimeout(() => {
           navigate('/dashboard');
         }, 3000);
@@ -48,6 +38,16 @@ export function EmailVerification() {
       setMessage('An error occurred during verification. Please try again.');
     }
   };
+
+  useEffect(() => {
+    if (token) {
+      verifyEmail(token);
+    } else {
+      setStatus('error');
+      setMessage('No verification token provided');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const handleResendEmail = async () => {
     if (!email) {

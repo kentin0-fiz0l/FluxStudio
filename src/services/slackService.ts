@@ -11,6 +11,7 @@
  */
 
 import { WebClient, Block, KnownBlock, MessageAttachment } from '@slack/web-api';
+import crypto from 'crypto';
 
 // ============================================================================
 // Type Definitions
@@ -498,8 +499,6 @@ class SlackService {
     body: string,
     signature: string
   ): boolean {
-    const crypto = require('crypto');
-
     // Check if timestamp is within 5 minutes
     const now = Math.floor(Date.now() / 1000);
     if (Math.abs(now - parseInt(timestamp)) > 60 * 5) {
