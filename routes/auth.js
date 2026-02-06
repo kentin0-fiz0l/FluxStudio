@@ -47,7 +47,12 @@ function uuidv4() {
 // Simple auth response without database (fallback when USE_DATABASE=false)
 function simpleAuthResponse(user) {
   const token = jwt.sign(
-    { id: user.id, email: user.email, userType: user.userType },
+    {
+      id: user.id,
+      email: user.email,
+      userType: user.userType,
+      type: 'access'  // Required by tokenService.verifyAccessToken()
+    },
     JWT_SECRET,
     { expiresIn: '7d' }
   );

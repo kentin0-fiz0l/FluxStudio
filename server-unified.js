@@ -512,7 +512,7 @@ async function saveChannels(channels) {
 
 function generateToken(user) {
   return jwt.sign(
-    { id: user.id, email: user.email, userType: user.userType },
+    { id: user.id, email: user.email, userType: user.userType, type: 'access' },
     JWT_SECRET,
     { expiresIn: '7d' }
   );
