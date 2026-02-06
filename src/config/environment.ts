@@ -31,7 +31,7 @@ const getEnvVar = (key: string, fallback: string = ''): string => {
 // Base configuration
 const baseConfig = {
   NODE_ENV: import.meta.env.MODE || 'development',
-  GOOGLE_CLIENT_ID: getEnvVar('VITE_GOOGLE_CLIENT_ID', '65518208813-9ipe2nakc6sind9tbdppl6kr3dnh2gjb.apps.googleusercontent.com'),
+  GOOGLE_CLIENT_ID: getEnvVar('VITE_GOOGLE_CLIENT_ID', '65518208813-f4rgudom5b57qad0jlhjtsocsrb26mfc.apps.googleusercontent.com'),
   ENABLE_DEBUG: isDevelopment,
   API_TIMEOUT: 30000, // 30 seconds
   MAX_FILE_SIZE: 104857600, // 100MB
