@@ -25,7 +25,7 @@ import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 import { SimpleHomePage } from './pages/SimpleHomePage';
 import { Login } from './pages/Login';
 import OAuthCallback from './pages/OAuthCallback';
-import { useAuth } from './contexts/AuthContext';
+import { useAuth, AuthProvider } from './contexts/AuthContext';
 
 // Large pages - lazy loaded for better initial bundle
 const { Component: Settings } = lazyLoadWithRetry(() => import('./pages/Settings'));
@@ -98,6 +98,21 @@ function RootRedirect() {
   return <SimpleHomePage />;
 }
 
+// OAuth callback routes wrapper - minimal providers (only AuthProvider)
+// This avoids ConnectorsContext which interferes with Google login OAuth
+function OAuthCallbackRoutes() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="google" element={<OAuthCallback provider="google" />} />
+        <Route path="figma" element={<OAuthCallback provider="figma" />} />
+        <Route path="slack" element={<OAuthCallback provider="slack" />} />
+        <Route path="github" element={<OAuthCallback provider="github" />} />
+      </Routes>
+    </AuthProvider>
+  );
+}
+
 // Global Quick Actions wrapper - provides keyboard shortcut handler
 function GlobalQuickActions({ children }: { children: React.ReactNode }) {
   const quickActions = useQuickActions();
@@ -134,11 +149,7 @@ function AuthenticatedRoutes() {
                   <Route path="/verify-email" element={<EmailVerification />} />
                   <Route path="/welcome" element={<WelcomeFlow />} />
 
-                  {/* OAuth callback routes */}
-                  <Route path="/auth/callback/google" element={<OAuthCallback provider="google" />} />
-                  <Route path="/auth/callback/figma" element={<OAuthCallback provider="figma" />} />
-                  <Route path="/auth/callback/slack" element={<OAuthCallback provider="slack" />} />
-                  <Route path="/auth/callback/github" element={<OAuthCallback provider="github" />} />
+                  {/* OAuth callback routes moved to App level to avoid ConnectorsContext interference */}
 
                   {/* Legal pages - public */}
                   <Route path="/terms" element={<Terms />} />
@@ -257,7 +268,9 @@ export default function App() {
               projects={[]}
             />
             <Routes>
-              {/* All routes go through authenticated providers */}
+              {/* OAuth callback routes - minimal providers to avoid ConnectorsContext interference */}
+              <Route path="/auth/callback/*" element={<OAuthCallbackRoutes />} />
+              {/* All other routes go through authenticated providers */}
               <Route path="/*" element={<AuthenticatedRoutes />} />
             </Routes>
           </ThemeProvider>
