@@ -737,7 +737,8 @@ app.use('/api/messages', messagesRoutes);
 app.use('/api/metmap', metmapRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/printing', printingRoutes);
-app.use('/api/agent', agentRoutes);
+app.use('/agent', agentRoutes);  // Direct path (DO ingress strips /api prefix)
+app.use('/api/agent', agentRoutes);  // Also support full path for local dev
 
 // Set Socket.IO namespace for messaging routes (for real-time broadcasts)
 messagingRoutes.setMessagingNamespace(messagingNamespace);
