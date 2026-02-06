@@ -4,7 +4,7 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../contexts/AuthContext';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '65518208813-9ipe2nakc6sind9tbdppl6kr3dnh2gjb.apps.googleusercontent.com';
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.fluxstudio.art';
+const API_URL = import.meta.env.VITE_API_URL || 'https://fluxstudio.art';
 const GOOGLE_LOGIN_URI = `${API_URL}/api/auth/google/callback`;
 
 export function Login() {
