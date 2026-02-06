@@ -117,6 +117,23 @@ function initializeEnvironment() {
 
   validateEnvironment();
 
+  // CRITICAL FIX: Update config object with any auto-generated values
+  // This ensures config.JWT_SECRET matches process.env.JWT_SECRET
+  // after validateEnvironment() may have auto-generated missing secrets
+  config.JWT_SECRET = process.env.JWT_SECRET;
+  config.SESSION_SECRET = process.env.SESSION_SECRET || config.SESSION_SECRET;
+
+  // Validate JWT_SECRET in production
+  if (config.isProduction) {
+    if (!config.JWT_SECRET || config.JWT_SECRET.length < 32) {
+      console.error('❌ CRITICAL: JWT_SECRET is missing or too short in production!');
+      console.error('❌ Set JWT_SECRET as an environment secret in DigitalOcean App Platform');
+      // Don't throw in case auto-generated value works, but warn loudly
+    } else {
+      console.log('✅ JWT_SECRET is properly configured');
+    }
+  }
+
   // Log configuration (without sensitive data)
   if (config.isDevelopment) {
     const safeConfig = { ...config };
