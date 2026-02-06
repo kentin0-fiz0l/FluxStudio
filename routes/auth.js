@@ -66,10 +66,10 @@ router.setAuthHelper = (helper) => {
 
 // Lazy authentication middleware wrapper (evaluates authHelper at runtime)
 const requireAuth = (req, res, next) => {
-  if (!authHelper || !requireAuth) {
+  if (!authHelper || !authHelper.requireAuth) {
     return res.status(500).json({ message: 'Auth system not initialized' });
   }
-  return requireAuth(req, res, next);
+  return authHelper.requireAuth(req, res, next);
 };
 
 // CSRF token endpoint - must be called before making state-changing requests
