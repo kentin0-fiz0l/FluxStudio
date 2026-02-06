@@ -118,7 +118,7 @@ static_sites:
       - key: VITE_APP_URL
         value: https://fluxstudio.art
       - key: VITE_GOOGLE_CLIENT_ID
-        value: 882884563054-813d51d0anok4n1jt3d2j78oiltrhd2f.apps.googleusercontent.com
+        value: 65518208813-9ipe2nakc6sind9tbdppl6kr3dnh2gjb.apps.googleusercontent.com
       - key: VITE_MCP_WS_URL
         value: wss://fluxstudio.art/mcp
       - key: VITE_GITHUB_CONNECTED
@@ -210,7 +210,7 @@ services:
       # Google OAuth
       # Note: Client ID is public (same as frontend), but secret must be set in DO dashboard
       - key: GOOGLE_CLIENT_ID
-        value: 882884563054-813d51d0anok4n1jt3d2j78oiltrhd2f.apps.googleusercontent.com
+        value: 65518208813-9ipe2nakc6sind9tbdppl6kr3dnh2gjb.apps.googleusercontent.com
       - key: GOOGLE_CLIENT_SECRET
         scope: RUN_TIME
         type: SECRET
