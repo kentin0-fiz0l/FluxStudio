@@ -81,6 +81,9 @@ const { Component: Privacy } = lazyLoadWithRetry(() => import('./pages/Privacy')
 // FluxPrint Integration - 3D Printing Dashboard
 const PrintingDashboard = React.lazy(() => import('./components/printing/PrintingDashboard'));
 
+// AI Agent Panel
+const { Component: AgentPanel } = lazyLoadWithRetry(() => import('./components/agent/AgentPanel'));
+
 // Root redirect component - redirects authenticated users to Projects
 function RootRedirect() {
   const { user, isLoading } = useAuth();
@@ -135,6 +138,10 @@ function AuthenticatedRoutes() {
       <ProjectContextBar />
       {/* Work Momentum - passive context capture */}
       <MomentumCapture />
+      {/* AI Agent Panel - accessible from anywhere */}
+      <Suspense fallback={null}>
+        <AgentPanel />
+      </Suspense>
       {/* Global Quick Actions - Cmd/Ctrl+K to open */}
       <GlobalQuickActions>
         <Suspense fallback={<DefaultLoadingFallback />}>

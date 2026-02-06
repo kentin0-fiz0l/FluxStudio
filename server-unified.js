@@ -710,6 +710,7 @@ const messagesRoutes = require('./routes/messages');
 const metmapRoutes = require('./routes/metmap');
 const pushRoutes = require('./routes/push');
 const printingRoutes = require('./routes/printing');
+const agentRoutes = require('./routes/agent-api');
 
 // Initialize auth routes with database helper
 authRoutes.setAuthHelper({
@@ -736,6 +737,7 @@ app.use('/api/messages', messagesRoutes);
 app.use('/api/metmap', metmapRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/printing', printingRoutes);
+app.use('/api/agent', agentRoutes);
 
 // Set Socket.IO namespace for messaging routes (for real-time broadcasts)
 messagingRoutes.setMessagingNamespace(messagingNamespace);

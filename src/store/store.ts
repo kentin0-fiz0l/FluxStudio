@@ -17,6 +17,7 @@ import { createOfflineSlice, OfflineSlice } from './slices/offlineSlice';
 import { createCollaborationSlice, CollaborationSlice } from './slices/collaborationSlice';
 import { createTimelineSlice, TimelineSlice } from './slices/timelineSlice';
 import { createAISlice, AISlice } from './slices/aiSlice';
+import { createAgentSlice, AgentSlice } from './slices/agentSlice';
 
 // ============================================================================
 // Combined Store Type
@@ -29,7 +30,8 @@ export type FluxStore = AuthSlice &
   OfflineSlice &
   CollaborationSlice &
   TimelineSlice &
-  AISlice;
+  AISlice &
+  AgentSlice;
 
 // ============================================================================
 // Store Creation
@@ -48,6 +50,7 @@ export const useStore = create<FluxStore>()(
           ...createCollaborationSlice(...(args as Parameters<typeof createCollaborationSlice>)),
           ...createTimelineSlice(...(args as Parameters<typeof createTimelineSlice>)),
           ...createAISlice(...(args as Parameters<typeof createAISlice>)),
+          ...createAgentSlice(...(args as Parameters<typeof createAgentSlice>)),
         })),
         {
           name: 'fluxstudio-store',
@@ -88,6 +91,9 @@ export const useProjectStore = () => useStore((state) => state.projects);
 
 // UI
 export const useUIStore = () => useStore((state) => state.ui);
+
+// Agent
+export const useAgentStore = () => useStore((state) => state.agent);
 
 // ============================================================================
 // Store Utilities
