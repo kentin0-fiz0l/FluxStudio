@@ -549,12 +549,14 @@ router.post('/google/callback', async (req, res) => {
       flow: 'redirect'
     });
 
-    // Redirect to frontend with token in URL fragment (not query param for security)
+    // Redirect to frontend with tokens
     const frontendUrl = config.FRONTEND_URL || 'https://fluxstudio.art';
     const token = authResponse.token || authResponse.accessToken;
+    const refreshToken = authResponse.refreshToken;
 
-    // Use URL fragment to pass token (not logged in server logs)
-    res.redirect(`${frontendUrl}/auth/callback/google?token=${encodeURIComponent(token)}`);
+    // Pass both access and refresh tokens to frontend
+    const redirectUrl = `${frontendUrl}/auth/callback/google?token=${encodeURIComponent(token)}${refreshToken ? `&refreshToken=${encodeURIComponent(refreshToken)}` : ''}`;
+    res.redirect(redirectUrl);
 
   } catch (error) {
     // Log detailed error for debugging

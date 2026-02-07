@@ -49,6 +49,7 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
         // Handle Google auth redirect flow (token in URL)
         if (provider === 'google') {
           const token = searchParams.get('token');
+          const refreshToken = searchParams.get('refreshToken');
           const error = searchParams.get('error');
 
           if (error) {
@@ -65,8 +66,8 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
           }
 
           if (token) {
-            // Store the token and fetch user info - MUST await to complete before navigation
-            await setAuthToken(token);
+            // Store both access and refresh tokens, then fetch user info
+            await setAuthToken(token, refreshToken || undefined);
             setState('success');
             setResult({
               success: true,
