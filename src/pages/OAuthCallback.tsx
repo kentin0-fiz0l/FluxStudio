@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, XCircle, Loader2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -37,7 +37,25 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
   const [state, setState] = useState<CallbackState>('loading');
   const [result, setResult] = useState<CallbackResult | null>(null);
   const [isPopup, setIsPopup] = useState(false);
+  const [redirectUrl, setRedirectUrl] = useState<string>('/projects');
+  const [countdown, setCountdown] = useState(5);
   const { setAuthToken } = useAuth();
+
+  // Handle manual redirect - cancels auto-redirect
+  const handleContinue = useCallback(() => {
+    navigate(redirectUrl, { replace: true });
+  }, [navigate, redirectUrl]);
+
+  // Countdown timer for auto-redirect
+  useEffect(() => {
+    if (state === 'success' && countdown > 0 && !isPopup) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+    if (state === 'success' && countdown === 0 && !isPopup) {
+      navigate(redirectUrl, { replace: true });
+    }
+  }, [state, countdown, isPopup, navigate, redirectUrl]);
 
   useEffect(() => {
     // Detect if opened in popup vs. full window
@@ -74,10 +92,8 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
               message: 'Successfully signed in with Google',
               data: { provider: 'google', permissions: [] }
             });
-
-            // Redirect to dashboard after brief success display
-            // Use replace to prevent back-button issues
-            setTimeout(() => navigate('/projects', { replace: true }), 1500);
+            setRedirectUrl('/projects');
+            setCountdown(5);
             return;
           }
         }
@@ -135,6 +151,8 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
         if (response.success && response.data) {
           setState('success');
           setResult(response.data);
+          setRedirectUrl('/settings');
+          setCountdown(5);
 
           // Message parent window if popup
           if (popup) {
@@ -150,10 +168,8 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
 
             // Close popup after brief delay
             setTimeout(() => window.close(), 1500);
-          } else {
-            // Redirect to settings after 2 seconds
-            setTimeout(() => navigate('/settings', { replace: true }), 2000);
           }
+          // Non-popup redirect handled by countdown effect
         } else {
           throw new Error(response.message || 'Failed to complete OAuth flow');
         }
@@ -262,9 +278,18 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
                     This window will close automatically...
                   </p>
                 ) : (
-                  <p className="text-sm text-neutral-500 mt-4">
-                    Redirecting to Settings...
-                  </p>
+                  <div className="mt-6 w-full space-y-3">
+                    <button
+                      onClick={handleContinue}
+                      className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                    >
+                      Continue to {redirectUrl === '/projects' ? 'Dashboard' : 'Settings'}
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <p className="text-sm text-neutral-500 text-center">
+                      Auto-redirecting in {countdown}s...
+                    </p>
+                  </div>
                 )}
               </>
             )}

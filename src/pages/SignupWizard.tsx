@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth, UserType } from '../contexts/AuthContext';
@@ -10,7 +10,11 @@ import {
   Briefcase,
   CheckCircle,
   Lock,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff,
+  Check,
+  X
 } from 'lucide-react';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '65518208813-f4rgudom5b57qad0jlhjtsocsrb26mfc.apps.googleusercontent.com';
@@ -74,8 +78,30 @@ export function SignupWizard() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
+
+  // Password strength calculation
+  const passwordStrength = useMemo(() => {
+    const password = formData.password;
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    };
+    const passed = Object.values(checks).filter(Boolean).length;
+    return {
+      checks,
+      score: passed,
+      label: passed <= 1 ? 'Weak' : passed <= 3 ? 'Fair' : passed === 4 ? 'Good' : 'Strong',
+      color: passed <= 1 ? 'bg-red-500' : passed <= 3 ? 'bg-yellow-500' : passed === 4 ? 'bg-blue-500' : 'bg-green-500',
+      textColor: passed <= 1 ? 'text-red-400' : passed <= 3 ? 'text-yellow-400' : passed === 4 ? 'text-blue-400' : 'text-green-400',
+    };
+  }, [formData.password]);
 
   // Initialize Google OAuth
   const googleOAuth = useGoogleOAuth({
@@ -321,44 +347,103 @@ export function SignupWizard() {
                       <label className="block text-sm font-medium text-gray-300 mb-2">
                         Password *
                       </label>
-                      <input
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => updateFormData({ password: e.target.value })}
-                        className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white
-                                 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1
-                                 focus:ring-blue-500 transition-colors"
-                        placeholder="At least 8 characters"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Use 8+ characters with a mix of letters, numbers & symbols</p>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={formData.password}
+                          onChange={(e) => updateFormData({ password: e.target.value })}
+                          className="w-full px-4 py-3 pr-12 rounded-lg bg-white/5 border border-white/10 text-white
+                                   placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1
+                                   focus:ring-blue-500 transition-colors"
+                          placeholder="At least 8 characters"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                      </div>
+                      {/* Password strength indicator */}
+                      {formData.password && (
+                        <div className="mt-2 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${passwordStrength.color} transition-all duration-300`}
+                                style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                              />
+                            </div>
+                            <span className={`text-xs font-medium ${passwordStrength.textColor}`}>
+                              {passwordStrength.label}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1 text-xs">
+                            <div className={`flex items-center gap-1 ${passwordStrength.checks.length ? 'text-green-400' : 'text-gray-500'}`}>
+                              {passwordStrength.checks.length ? <Check size={12} /> : <X size={12} />}
+                              8+ characters
+                            </div>
+                            <div className={`flex items-center gap-1 ${passwordStrength.checks.uppercase ? 'text-green-400' : 'text-gray-500'}`}>
+                              {passwordStrength.checks.uppercase ? <Check size={12} /> : <X size={12} />}
+                              Uppercase
+                            </div>
+                            <div className={`flex items-center gap-1 ${passwordStrength.checks.lowercase ? 'text-green-400' : 'text-gray-500'}`}>
+                              {passwordStrength.checks.lowercase ? <Check size={12} /> : <X size={12} />}
+                              Lowercase
+                            </div>
+                            <div className={`flex items-center gap-1 ${passwordStrength.checks.number ? 'text-green-400' : 'text-gray-500'}`}>
+                              {passwordStrength.checks.number ? <Check size={12} /> : <X size={12} />}
+                              Number
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
                         Confirm Password *
                       </label>
-                      <input
-                        type="password"
-                        value={formData.confirmPassword}
-                        onChange={(e) => updateFormData({ confirmPassword: e.target.value })}
-                        className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white
-                                 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1
-                                 focus:ring-blue-500 transition-colors"
-                        placeholder="Re-enter your password"
-                      />
-                    </div>
-
-                    {/* Password strength indicator */}
-                    {formData.password.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2 text-xs">
-                          <div className={`h-1 flex-1 rounded ${formData.password.length >= 8 ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                          <span className={formData.password.length >= 8 ? 'text-green-400' : 'text-red-400'}>
-                            {formData.password.length >= 8 ? 'Strong' : 'Weak'}
-                          </span>
-                        </div>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          value={formData.confirmPassword}
+                          onChange={(e) => updateFormData({ confirmPassword: e.target.value })}
+                          className={`w-full px-4 py-3 pr-12 rounded-lg bg-white/5 border text-white
+                                   placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1
+                                   focus:ring-blue-500 transition-colors ${
+                                     formData.confirmPassword && formData.password !== formData.confirmPassword
+                                       ? 'border-red-500/50'
+                                       : formData.confirmPassword && formData.password === formData.confirmPassword
+                                       ? 'border-green-500/50'
+                                       : 'border-white/10'
+                                   }`}
+                          placeholder="Re-enter your password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                          aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
                       </div>
-                    )}
+                      {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                        <p className="mt-1 text-xs text-red-400 flex items-center gap-1">
+                          <X size={12} />
+                          Passwords do not match
+                        </p>
+                      )}
+                      {formData.confirmPassword && formData.password === formData.confirmPassword && formData.password && (
+                        <p className="mt-1 text-xs text-green-400 flex items-center gap-1">
+                          <Check size={12} />
+                          Passwords match
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
