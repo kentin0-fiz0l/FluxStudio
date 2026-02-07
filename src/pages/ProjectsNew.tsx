@@ -30,7 +30,9 @@ import {
   X,
   Link2,
   FileText,
-  FolderOpen
+  FolderOpen,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { EmptyState, emptyStateConfigs } from '../components/common/EmptyState';
 import { BulkActionBar } from '../components/BulkActionBar';
@@ -91,6 +93,7 @@ export function ProjectsNew() {
 
   // Bulk selection state
   const [selectedProjects, setSelectedProjects] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
   const [_isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [_isBulkArchiving, setIsBulkArchiving] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
@@ -492,12 +495,53 @@ export function ProjectsNew() {
             ))}
           </div>
 
-          {/* View Mode Toggle */}
-          <div
-            className="flex items-center gap-1 bg-neutral-100 rounded-lg p-1"
-            role="group"
-            aria-label="Toggle view mode"
-          >
+          <div className="flex items-center gap-3">
+            {/* Selection Mode Toggle */}
+            <button
+              onClick={() => {
+                if (selectionMode) {
+                  setSelectedProjects(new Set());
+                }
+                setSelectionMode(!selectionMode);
+              }}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectionMode
+                  ? 'bg-primary-100 text-primary-700 border border-primary-300'
+                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              }`}
+              aria-pressed={selectionMode}
+              aria-label={selectionMode ? 'Exit selection mode' : 'Enter selection mode'}
+            >
+              {selectionMode ? (
+                <CheckSquare className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <Square className="w-4 h-4" aria-hidden="true" />
+              )}
+              {selectionMode ? 'Cancel' : 'Select'}
+            </button>
+
+            {/* Select All (visible when in selection mode) */}
+            {selectionMode && filteredProjects.length > 0 && (
+              <button
+                onClick={() => {
+                  if (selectedProjects.size === filteredProjects.length) {
+                    setSelectedProjects(new Set());
+                  } else {
+                    setSelectedProjects(new Set(filteredProjects.map(p => p.id)));
+                  }
+                }}
+                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+              >
+                {selectedProjects.size === filteredProjects.length ? 'Deselect all' : 'Select all'}
+              </button>
+            )}
+
+            {/* View Mode Toggle */}
+            <div
+              className="flex items-center gap-1 bg-neutral-100 rounded-lg p-1"
+              role="group"
+              aria-label="Toggle view mode"
+            >
             <button
               onClick={() => setViewMode('grid')}
               onKeyDown={(e) => {
@@ -534,6 +578,7 @@ export function ProjectsNew() {
             >
               <ListIcon className="w-4 h-4" aria-hidden="true" />
             </button>
+          </div>
           </div>
         </div>
 
