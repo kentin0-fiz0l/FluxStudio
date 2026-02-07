@@ -8,6 +8,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button, Card } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import {
   User,
   Mail,
@@ -17,11 +18,13 @@ import {
   BarChart3,
   FileText,
   MessageSquare,
-  Edit
+  Edit,
+  Loader2
 } from 'lucide-react';
 
 export function Profile() {
   const { user, logout } = useAuth();
+  const { projects, isLoading: projectsLoading } = useOrganization();
   const navigate = useNavigate();
 
   const formatDate = (dateString?: string) => {
@@ -195,7 +198,11 @@ export function Profile() {
                     <FileText className="w-4 h-4" />
                     <span className="text-sm">Projects Created</span>
                   </div>
-                  <span className="text-xl font-bold text-primary-600">3</span>
+                  {projectsLoading ? (
+                    <Loader2 className="w-5 h-5 text-primary-600 animate-spin" />
+                  ) : (
+                    <span className="text-xl font-bold text-primary-600">{projects.length}</span>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-center py-3 border-b border-neutral-100">
@@ -203,7 +210,7 @@ export function Profile() {
                     <FileText className="w-4 h-4" />
                     <span className="text-sm">Files Uploaded</span>
                   </div>
-                  <span className="text-xl font-bold text-success-600">48</span>
+                  <span className="text-xl font-bold text-success-600 opacity-50" title="Coming soon">—</span>
                 </div>
 
                 <div className="flex justify-between items-center py-3">
@@ -211,7 +218,7 @@ export function Profile() {
                     <MessageSquare className="w-4 h-4" />
                     <span className="text-sm">Messages Sent</span>
                   </div>
-                  <span className="text-xl font-bold text-secondary-600">127</span>
+                  <span className="text-xl font-bold text-secondary-600 opacity-50" title="Coming soon">—</span>
                 </div>
               </div>
             </Card>
