@@ -12,7 +12,9 @@ module.exports = {
   // Test file patterns
   testMatch: [
     '<rootDir>/tests/**/*.test.js',
-    '<rootDir>/tests/**/*.integration.test.js'
+    '<rootDir>/tests/**/*.integration.test.js',
+    '<rootDir>/services/__tests__/*.test.js',
+    '<rootDir>/lib/**/__tests__/*.test.js'
   ],
 
   // Coverage configuration
@@ -20,9 +22,13 @@ module.exports = {
   collectCoverageFrom: [
     'database/**/*.js',
     'server-*.js',
+    'services/**/*.js',
+    'lib/**/*.js',
+    'routes/**/*.js',
     '!node_modules/**',
     '!tests/**',
-    '!coverage/**'
+    '!coverage/**',
+    '!**/__tests__/**'
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
