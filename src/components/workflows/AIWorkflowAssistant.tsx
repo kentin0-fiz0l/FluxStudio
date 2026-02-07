@@ -68,8 +68,11 @@ export function AIWorkflowAssistant() {
     const analyzeBehavior = () => {
       const newSuggestions: WorkflowSuggestion[] = [];
 
+      // Guard against undefined recentActivity
+      const recentActivity = Array.isArray(state.recentActivity) ? state.recentActivity : [];
+
       // Pattern: Frequent project creation without setup
-      if (state.recentActivity.filter(a => a.type === 'project_created').length > 2) {
+      if (recentActivity.filter(a => a.type === 'project_created').length > 2) {
         newSuggestions.push({
           id: 'automate-project-setup',
           type: 'automation',
@@ -109,7 +112,7 @@ export function AIWorkflowAssistant() {
       }
 
       // Pattern: Many messages without conversation organization
-      const messageCount = state.recentActivity.filter(a => a.type === 'message').length;
+      const messageCount = recentActivity.filter(a => a.type === 'message').length;
       if (messageCount > 10 && !state.activeConversation) {
         newSuggestions.push({
           id: 'organize-conversations',
@@ -168,7 +171,7 @@ export function AIWorkflowAssistant() {
       }
 
       // Pattern: Repetitive manual tasks
-      const activityTypes = state.recentActivity.map(a => a.type);
+      const activityTypes = recentActivity.map(a => a.type);
       const activityCounts = activityTypes.reduce((acc, type) => {
         acc[type] = (acc[type] || 0) + 1;
         return acc;
@@ -202,7 +205,7 @@ export function AIWorkflowAssistant() {
 
       // Pattern: Idle project detection
       if (state.activeProject) {
-        const lastActivity = state.recentActivity
+        const lastActivity = recentActivity
           .filter(a => a.projectId === state.activeProject?.id)
           .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
 
@@ -263,8 +266,9 @@ export function AIWorkflowAssistant() {
   // Track user patterns for learning
   useEffect(() => {
     const patterns = new Map<string, number>();
+    const recentActivity = Array.isArray(state.recentActivity) ? state.recentActivity : [];
 
-    state.recentActivity.forEach(activity => {
+    recentActivity.forEach(activity => {
       const key = `${activity.type}_${activity.projectId || 'global'}`;
       patterns.set(key, (patterns.get(key) || 0) + 1);
     });
