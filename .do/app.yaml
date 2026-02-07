@@ -295,6 +295,11 @@ services:
       - key: SPACES_CDN
         value: https://fluxstudio.sfo3.cdn.digitaloceanspaces.com
 
+      # Anthropic API Key (for AI Agent features)
+      - key: ANTHROPIC_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+
       # MCP Configuration (disable postgres until DATABASE_URL is properly set)
       - key: MCP_POSTGRES_ENABLED
         value: "false"
