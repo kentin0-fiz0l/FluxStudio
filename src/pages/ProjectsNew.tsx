@@ -84,6 +84,11 @@ export function ProjectsNew() {
   const [linkingFileId, setLinkingFileId] = useState<string | null>(null);
   const [isLinking, setIsLinking] = useState(false);
 
+  // Field-level validation state
+  const [nameError, setNameError] = useState<string>('');
+  const [dateError, setDateError] = useState<string>('');
+  const [nameTouched, setNameTouched] = useState(false);
+
   // Bulk selection state
   const [selectedProjects, setSelectedProjects] = useState<Set<string>>(new Set());
   const [_isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -238,6 +243,9 @@ export function ProjectsNew() {
   const handleModalClose = () => {
     setShowCreateModal(false);
     setFormError('');
+    setNameError('');
+    setDateError('');
+    setNameTouched(false);
     // Return focus to create button
     setTimeout(() => {
       createButtonRef.current?.focus();
@@ -631,26 +639,54 @@ export function ProjectsNew() {
           )}
 
           <form onSubmit={handleCreateProject} className="space-y-4" noValidate>
-            <Input
-              ref={modalFirstInputRef}
-              label="Project Name"
-              value={createForm.name}
-              onChange={(e) => {
-                setCreateForm(prev => ({ ...prev, name: e.target.value }));
-                setFormError('');
-              }}
-              placeholder="Enter project name"
-              required
-              aria-required="true"
-              aria-invalid={!!formError && !createForm.name.trim()}
-              aria-describedby={formError && !createForm.name.trim() ? "name-error" : undefined}
-              autoComplete="off"
-            />
-            {formError && !createForm.name.trim() && (
-              <p id="name-error" className="text-sm text-error-600 -mt-2">
-                {formError}
-              </p>
-            )}
+            <div>
+              <Input
+                ref={modalFirstInputRef}
+                label="Project Name"
+                value={createForm.name}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setCreateForm(prev => ({ ...prev, name: value }));
+                  setFormError('');
+                  // Real-time validation
+                  if (nameTouched) {
+                    if (!value.trim()) {
+                      setNameError('Project name is required');
+                    } else if (value.trim().length < 3) {
+                      setNameError('Name must be at least 3 characters');
+                    } else {
+                      setNameError('');
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  setNameTouched(true);
+                  if (!createForm.name.trim()) {
+                    setNameError('Project name is required');
+                  } else if (createForm.name.trim().length < 3) {
+                    setNameError('Name must be at least 3 characters');
+                  } else {
+                    setNameError('');
+                  }
+                }}
+                placeholder="Enter project name"
+                required
+                aria-required="true"
+                aria-invalid={!!nameError}
+                aria-describedby={nameError ? "name-error" : "name-hint"}
+                autoComplete="off"
+              />
+              {nameError ? (
+                <p id="name-error" className="text-sm text-error-600 mt-1 flex items-center gap-1">
+                  <span className="inline-block w-1 h-1 bg-error-600 rounded-full" />
+                  {nameError}
+                </p>
+              ) : (
+                <p id="name-hint" className="text-xs text-neutral-500 mt-1">
+                  {createForm.name.length}/3 minimum characters
+                </p>
+              )}
+            </div>
 
             <div>
               <label htmlFor="project-description" className="block text-sm font-medium text-neutral-700 mb-2">
@@ -711,23 +747,47 @@ export function ProjectsNew() {
                 label="Start Date"
                 value={createForm.startDate}
                 onChange={(e) => {
-                  setCreateForm(prev => ({ ...prev, startDate: e.target.value }));
+                  const value = e.target.value;
+                  setCreateForm(prev => ({ ...prev, startDate: value }));
                   setFormError('');
+                  // Validate date relationship
+                  if (createForm.dueDate && value && new Date(createForm.dueDate) < new Date(value)) {
+                    setDateError('Due date must be after start date');
+                  } else {
+                    setDateError('');
+                  }
                 }}
                 aria-label="Project start date"
                 aria-required="true"
               />
 
-              <Input
-                type="date"
-                label="Due Date"
-                value={createForm.dueDate}
-                onChange={(e) => {
-                  setCreateForm(prev => ({ ...prev, dueDate: e.target.value }));
-                  setFormError('');
-                }}
-                aria-label="Project due date (optional)"
-              />
+              <div>
+                <Input
+                  type="date"
+                  label="Due Date"
+                  value={createForm.dueDate}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setCreateForm(prev => ({ ...prev, dueDate: value }));
+                    setFormError('');
+                    // Validate date relationship
+                    if (value && createForm.startDate && new Date(value) < new Date(createForm.startDate)) {
+                      setDateError('Due date must be after start date');
+                    } else {
+                      setDateError('');
+                    }
+                  }}
+                  aria-label="Project due date (optional)"
+                  aria-invalid={!!dateError}
+                  aria-describedby={dateError ? "date-error" : undefined}
+                />
+                {dateError && (
+                  <p id="date-error" className="text-sm text-error-600 mt-1 flex items-center gap-1">
+                    <span className="inline-block w-1 h-1 bg-error-600 rounded-full" />
+                    {dateError}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
@@ -742,7 +802,7 @@ export function ProjectsNew() {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !createForm.name.trim()}
+                disabled={isSubmitting || !createForm.name.trim() || createForm.name.trim().length < 3 || !!dateError}
                 loading={isSubmitting}
                 aria-label={isSubmitting ? 'Creating project, please wait' : 'Create new project'}
               >
