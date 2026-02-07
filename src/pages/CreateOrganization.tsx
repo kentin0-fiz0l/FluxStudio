@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, MapPin, Phone, Mail } from 'lucide-react';
+import { toast } from '../lib/toast';
 
 export function CreateOrganization() {
   const navigate = useNavigate();
@@ -44,14 +45,17 @@ export function CreateOrganization() {
 
       if (response.ok && result.success) {
         // Successfully created organization
-        navigate('/dashboard/organizations', {
-          state: { message: `Organization "${formData.name}" created successfully!` }
-        });
+        toast.success(`Organization "${formData.name}" created successfully!`);
+        navigate('/dashboard/organizations');
       } else {
-        setError(result.message || 'Failed to create organization');
+        const errorMsg = result.message || 'Failed to create organization';
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      const errorMsg = 'Network error. Please try again.';
+      setError(errorMsg);
+      toast.error(errorMsg);
       console.error('Error creating organization:', err);
     } finally {
       setIsSubmitting(false);

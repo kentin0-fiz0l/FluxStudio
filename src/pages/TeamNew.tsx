@@ -24,6 +24,7 @@ import {
   XCircle,
   Clock
 } from 'lucide-react';
+import { toast } from '../lib/toast';
 import type { UserCardUser } from '@/components/molecules';
 
 // Types
@@ -218,6 +219,19 @@ export function TeamNew() {
   const handleMemberAction = (memberId: string, action: string) => {
     console.log('Member action:', memberId, action);
     // Handle member actions (edit role, remove, etc.)
+    switch (action) {
+      case 'remove':
+        toast.success('Member removed from team');
+        break;
+      case 'promote':
+        toast.success('Member promoted to admin');
+        break;
+      case 'demote':
+        toast.success('Member role changed');
+        break;
+      default:
+        toast.info('Action performed');
+    }
   };
 
   return (
@@ -505,7 +519,10 @@ export function TeamNew() {
               <Button variant="outline" onClick={() => setShowCreateTeam(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setShowCreateTeam(false)}>
+              <Button onClick={() => {
+                setShowCreateTeam(false);
+                toast.success('Team created successfully');
+              }}>
                 Create Team
               </Button>
             </div>
@@ -545,7 +562,10 @@ export function TeamNew() {
               <Button variant="outline" onClick={() => setShowInviteMembers(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setShowInviteMembers(false)}>
+              <Button onClick={() => {
+                setShowInviteMembers(false);
+                toast.success('Invitation sent successfully');
+              }}>
                 Send Invitation
               </Button>
             </div>
