@@ -14,9 +14,10 @@
  */
 
 import * as React from 'react';
+import { X } from 'lucide-react';
 import { NavigationSidebar, NavigationItem } from '@/components/organisms/NavigationSidebar';
 import { TopBar, Breadcrumb, Notification } from '@/components/organisms/TopBar';
-import { SkipLink } from '@/components/ui';
+import { SkipLink, Button } from '@/components/ui';
 import { AIChatPanel } from '@/components/ai/AIChatPanel';
 import { cn } from '@/lib/utils';
 
@@ -197,10 +198,23 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
           role="navigation"
           aria-label="Mobile navigation"
           className={cn(
-            'fixed inset-y-0 left-0 z-50 flex flex-col h-full transform transition-transform duration-300 lg:hidden',
+            'fixed inset-y-0 left-0 z-50 flex flex-col h-full transform transition-transform duration-300 ease-out lg:hidden',
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           )}
         >
+          {/* Close button - positioned outside the sidebar for touch accessibility */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileMenuOpen(false)}
+            className={cn(
+              'absolute top-4 -right-12 z-50 bg-white dark:bg-neutral-800 shadow-md rounded-full transition-opacity duration-200 min-h-[44px] min-w-[44px]',
+              mobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            )}
+            aria-label="Close navigation menu"
+          >
+            <X className="h-5 w-5" />
+          </Button>
           <NavigationSidebar
             user={user}
             items={navigationItems}

@@ -304,7 +304,7 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                 {/* Notifications Dropdown */}
                 {notificationsOpen && (
                   <div
-                    className="absolute right-0 mt-2 w-96 bg-white border border-neutral-200 rounded-lg shadow-dropdown overflow-hidden"
+                    className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-96 sm:w-96 bg-white border border-neutral-200 rounded-lg shadow-dropdown overflow-hidden"
                     role="dialog"
                     aria-label="Notifications"
                   >

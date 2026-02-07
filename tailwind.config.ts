@@ -204,6 +204,10 @@ export default {
         'bounce': 'bounce 1s infinite',
         'shimmer': 'shimmer 2s infinite',
 
+        // Accordion animations (for Radix UI Accordion)
+        'accordion-down': 'accordion-down 200ms ease-out',
+        'accordion-up': 'accordion-up 200ms ease-out',
+
         // Legacy animations (for backward compatibility)
         'gradient-x': 'gradient-x 3s ease infinite',
         'fade-in': 'fadeIn 0.5s ease-out',
@@ -299,6 +303,16 @@ export default {
         'expand': {
           '0%': { width: 'var(--sidebar-width-icon)' },
           '100%': { width: 'var(--sidebar-width)' },
+        },
+
+        // Accordion animations (for Radix UI Accordion)
+        'accordion-down': {
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
         },
       },
 

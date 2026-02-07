@@ -7,11 +7,12 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSearch } from '../hooks/useSearch';
 import { SearchFilters } from '../components/search/SearchFilters';
 import { SearchResultCard } from '../components/search/SearchResultCard';
 import { SearchResultType } from '../services/searchService';
+import { DashboardLayout } from '../components/templates';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Search,
   X,
@@ -38,8 +39,7 @@ import {
 
 export function SearchResults() {
   const { t } = useTranslation('common');
-  useNavigate(); // Reserved for navigation features
-  useSearchParams(); // Reserved for URL search params
+  const { user, logout } = useAuth();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [showFilters, setShowFilters] = useState(true);
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
@@ -133,7 +133,17 @@ export function SearchResults() {
     message: <MessageSquare className="w-4 h-4" />,
   };
 
+  // Build breadcrumbs - show query if present
+  const breadcrumbs = query.trim()
+    ? [{ label: 'Search' }, { label: `"${query}"` }]
+    : [{ label: 'Search' }];
+
   return (
+    <DashboardLayout
+      user={user || undefined}
+      breadcrumbs={breadcrumbs}
+      onLogout={logout}
+    >
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
@@ -492,6 +502,7 @@ export function SearchResults() {
         </div>
       )}
     </div>
+    </DashboardLayout>
   );
 }
 

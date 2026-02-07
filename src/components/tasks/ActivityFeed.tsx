@@ -350,7 +350,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity, compact = false }
   return (
     <div
       className={cn(
-        'flex gap-3 py-3',
+        'flex gap-3 py-3 animate-fadeIn',
         !compact && 'px-4 hover:bg-neutral-50 rounded-lg transition-colors'
       )}
     >
@@ -504,12 +504,6 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     return activities.filter((activity) => new Date(activity.timestamp) >= cutoff);
   }, [activities, dateRange]);
 
-  // Group activities by date
-  const groupedActivities = React.useMemo(
-    () => groupActivitiesByDate(filteredActivities),
-    [filteredActivities]
-  );
-
   // Get unique users for filter
   const uniqueUsers = React.useMemo(() => {
     const users = new Map<string, { id: string; name: string }>();
@@ -560,22 +554,59 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     );
   }
 
+  // Quick filter chip options
+  type QuickFilterType = 'all' | 'tasks' | 'comments' | 'members';
+  const [quickFilter, setQuickFilter] = React.useState<QuickFilterType>('all');
+
+  // Apply quick filter to activity type
+  React.useEffect(() => {
+    switch (quickFilter) {
+      case 'tasks':
+        setFilterType('all'); // Will show all task types
+        break;
+      case 'comments':
+        setFilterType('comment.created');
+        break;
+      case 'members':
+        setFilterType('member.added');
+        break;
+      default:
+        setFilterType('all');
+    }
+    setPage(1);
+  }, [quickFilter]);
+
+  // Filter activities by quick filter (for 'tasks' which includes multiple types)
+  const quickFilteredActivities = React.useMemo(() => {
+    if (quickFilter === 'tasks') {
+      return filteredActivities.filter((a) => a.type.startsWith('task.'));
+    }
+    return filteredActivities;
+  }, [filteredActivities, quickFilter]);
+
+  // Group activities by date (use quickFilteredActivities)
+  const groupedActivities = React.useMemo(
+    () => groupActivitiesByDate(quickFilteredActivities),
+    [quickFilteredActivities]
+  );
+
   return (
     <div className={cn('flex flex-col h-full', className)}>
       {/* Header with Filters */}
       {!compact && (
-        <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200">
-          <div className="flex items-center gap-2">
-            <ActivityIcon className="h-5 w-5 text-neutral-700" />
-            <h2 className="text-lg font-semibold text-neutral-900">Activity</h2>
-            {totalActivities > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {totalActivities}
-              </Badge>
-            )}
-          </div>
+        <div className="flex flex-col gap-3 px-4 py-3 border-b border-neutral-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ActivityIcon className="h-5 w-5 text-neutral-700" />
+              <h2 className="text-lg font-semibold text-neutral-900">Activity</h2>
+              {totalActivities > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {totalActivities}
+                </Badge>
+              )}
+            </div>
 
-          {/* Filter Popover */}
+            {/* Filter Popover */}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="sm" icon={<Filter className="h-4 w-4" />}>
@@ -669,6 +700,25 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
               </div>
             </PopoverContent>
           </Popover>
+          </div>
+
+          {/* Quick Filter Chips */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {(['all', 'tasks', 'comments', 'members'] as const).map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setQuickFilter(filter)}
+                className={cn(
+                  'px-3 py-1.5 text-sm rounded-full transition-colors capitalize',
+                  quickFilter === filter
+                    ? 'bg-primary-100 text-primary-700 border border-primary-200'
+                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 border border-transparent'
+                )}
+              >
+                {filter === 'all' ? 'All' : filter}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -676,7 +726,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <ActivityFeedSkeleton />
-        ) : filteredActivities.length === 0 ? (
+        ) : quickFilteredActivities.length === 0 ? (
           <EmptyState />
         ) : (
           <div className={cn('divide-y divide-neutral-100', compact ? 'space-y-1' : 'py-2')}>

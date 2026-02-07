@@ -84,6 +84,9 @@ const PrintingDashboard = React.lazy(() => import('./components/printing/Printin
 // AI Agent Panel
 const { Component: AgentPanel } = lazyLoadWithRetry(() => import('./components/agent/AgentPanel'));
 
+// 404 Not Found page
+const { Component: NotFound } = lazyLoadWithRetry(() => import('./pages/NotFound'));
+
 // Root redirect component - redirects authenticated users to Projects
 function RootRedirect() {
   const { user, isLoading } = useAuth();
@@ -225,6 +228,9 @@ function AuthenticatedRoutes() {
                   {/* FluxPrint Integration - 3D Printing - Protected */}
                   <Route path="/printing" element={<ProtectedRoute><PrintingDashboard /></ProtectedRoute>} />
                   <Route path="/dashboard/printing" element={<ProtectedRoute><PrintingDashboard /></ProtectedRoute>} />
+
+                  {/* 404 Not Found - catch all unmatched routes */}
+                  <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </GlobalQuickActions>

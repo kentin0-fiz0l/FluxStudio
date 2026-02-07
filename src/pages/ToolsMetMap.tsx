@@ -1156,7 +1156,12 @@ export default function ToolsMetMap() {
   }, !!currentSong);
 
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      breadcrumbs={[
+        { label: 'Tools', path: '/tools' },
+        { label: 'MetMap' }
+      ]}
+    >
       {/* Offline Indicator */}
       <OfflineIndicator position="top" />
 

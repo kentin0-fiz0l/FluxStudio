@@ -569,7 +569,12 @@ export default function ToolsAssets() {
   ].filter(Boolean).join(' \u00B7 ') : '';
 
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      breadcrumbs={[
+        { label: 'Tools', path: '/tools' },
+        { label: 'Assets' }
+      ]}
+    >
       <div className="h-full flex">
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}

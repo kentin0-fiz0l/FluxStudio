@@ -455,7 +455,12 @@ export default function ToolsFiles() {
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      breadcrumbs={[
+        { label: 'Tools', path: '/tools' },
+        { label: 'Files' }
+      ]}
+    >
       <div className="h-full flex">
         <div className="flex-1 flex flex-col min-w-0">
           <div className="p-4 border-b border-gray-200 bg-white">

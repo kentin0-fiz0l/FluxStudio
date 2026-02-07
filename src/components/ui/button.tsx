@@ -19,7 +19,8 @@ import { cn } from '@/lib/utils';
 // Button variants using class-variance-authority
 const buttonVariants = cva(
   // Base styles (always applied)
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition-all focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary-500/20 disabled:pointer-events-none disabled:opacity-50',
+  // Includes subtle scale animation on hover/active (respects prefers-reduced-motion via Tailwind defaults)
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition-all duration-150 ease-out hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary-500/20 disabled:pointer-events-none disabled:opacity-50 disabled:hover:scale-100 motion-reduce:hover:scale-100 motion-reduce:active:scale-100',
   {
     variants: {
       // Visual variants
