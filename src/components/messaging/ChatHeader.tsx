@@ -56,16 +56,16 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   return (
     <div className="p-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between bg-white dark:bg-neutral-900">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         <button
           onClick={onBack}
-          className="md:hidden p-2 -ml-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
+          className="md:hidden p-2 -ml-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg flex-shrink-0"
         >
           <ArrowLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
         </button>
         <Avatar user={conversation.participant} size="md" showStatus />
-        <div>
-          <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 truncate max-w-[200px] sm:max-w-[300px] md:max-w-none">
             {conversation.title}
           </h3>
           <ConversationHeaderPresence

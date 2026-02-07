@@ -20,13 +20,15 @@ import {
   Moon,
   Sun,
   Save,
-  Puzzle
+  Puzzle,
+  Loader2
 } from 'lucide-react';
 import { FigmaIntegration } from '@/components/organisms/FigmaIntegration';
 import { SlackIntegration } from '@/components/organisms/SlackIntegration';
 import { GitHubIntegration } from '@/components/organisms/GitHubIntegration';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
+import { toast } from '../lib/toast';
 
 function Settings() {
   const { user, logout } = useAuth();
@@ -52,9 +54,21 @@ function Settings() {
   const [darkMode, setDarkMode] = React.useState(true);
   const [autoSave, setAutoSave] = React.useState(true);
 
-  const handleSave = () => {
-    console.log('Saving settings...');
-    // Handle settings save
+  const [isSaving, setIsSaving] = React.useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Simulate API call to save settings
+      await new Promise(resolve => setTimeout(resolve, 500));
+      toast.success('Settings saved successfully');
+      console.log('Settings saved:', { notifications, emailDigest, darkMode, autoSave });
+    } catch (error) {
+      toast.error('Failed to save settings. Please try again.');
+      console.error('Error saving settings:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Don't render settings page if not authenticated
@@ -259,9 +273,18 @@ function Settings() {
 
         {/* Save Button */}
         <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-700">
-          <Button onClick={handleSave}>
-            <Save className="w-4 h-4 mr-2" aria-hidden="true" />
-            Save Changes
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" aria-hidden="true" />
+                Save Changes
+              </>
+            )}
           </Button>
         </div>
       </div>

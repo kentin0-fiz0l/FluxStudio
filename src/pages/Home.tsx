@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/templates';
 import { ProjectCard } from '../components/molecules';
 import { Button, Card, CardHeader, CardTitle, CardContent, Badge, EmptyState } from '../components/ui';
+import { ProjectCardSkeleton } from '../components/loading/LoadingStates';
 import { Logo3D } from '../components/Logo3D';
 import { GettingStartedCard } from '../components/common/GettingStartedCard';
 import { useFirstTimeExperience } from '../hooks/useFirstTimeExperience';
@@ -246,7 +247,14 @@ export function Home() {
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-              {recentProjects.length > 0 ? (
+              {projectsLoading ? (
+                // Show skeleton loaders while loading
+                <>
+                  <ProjectCardSkeleton />
+                  <ProjectCardSkeleton />
+                  <ProjectCardSkeleton />
+                </>
+              ) : recentProjects.length > 0 ? (
                 recentProjects.map((project) => (
                   <ProjectCard
                     key={project.id}
