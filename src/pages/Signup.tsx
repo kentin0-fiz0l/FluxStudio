@@ -148,8 +148,9 @@ export function Signup() {
             {/* Google OAuth Button */}
             <div className="mb-4">
               {googleOAuth.isLoading && (
-                <div className="h-12 bg-[#1a1a1a] rounded-lg animate-pulse flex items-center justify-center">
-                  <span className="text-gray-500 text-sm">Loading...</span>
+                <div className="h-12 bg-[#1a1a1a] rounded-lg flex items-center justify-center gap-2">
+                  <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                  <span className="text-gray-400 text-sm">Loading Google Sign-In...</span>
                 </div>
               )}
               <div

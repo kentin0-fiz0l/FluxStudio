@@ -578,7 +578,14 @@ export default function DesignBoardPage() {
 
             <div className="h-6 w-px bg-gray-200" />
 
-            <span className="font-medium text-gray-900">{board?.name || 'Loading...'}</span>
+            <span className="font-medium text-gray-900">
+              {board?.name || (
+                <span className="flex items-center gap-2 text-gray-500">
+                  <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                  Loading...
+                </span>
+              )}
+            </span>
 
             {!isConnected && (
               <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded">

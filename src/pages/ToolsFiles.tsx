@@ -590,7 +590,10 @@ export default function ToolsFiles() {
 
           <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
             {loading ? (
-              <div className="text-center py-12 text-gray-500">Loading...</div>
+              <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                <div className="animate-spin h-8 w-8 border-2 border-indigo-600 border-t-transparent rounded-full mb-3" />
+                <span className="text-sm">Loading files...</span>
+              </div>
             ) : files.length === 0 ? (
               searchQuery || typeFilter !== 'all' ? (
                 <div className="text-center py-12">
