@@ -48,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isRefreshingRef = useRef(false);
+  const refreshPromiseRef = useRef<Promise<boolean> | null>(null);
 
   const getUserDashboardPath = (userType: UserType): string => {
     switch (userType) {
@@ -80,9 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Refresh the access token using refresh token
   const refreshAccessToken = useCallback(async (): Promise<boolean> => {
-    // Prevent concurrent refresh attempts
-    if (isRefreshingRef.current) {
-      return false;
+    // If a refresh is already in progress, wait for it instead of failing
+    if (isRefreshingRef.current && refreshPromiseRef.current) {
+      console.log('[Auth] Refresh already in progress, waiting...');
+      return refreshPromiseRef.current;
     }
 
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
@@ -94,45 +96,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     isRefreshingRef.current = true;
 
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({ refreshToken }),
-      });
+    // Create and store the refresh promise so concurrent callers can wait
+    const doRefresh = async (): Promise<boolean> => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+          },
+          body: JSON.stringify({ refreshToken }),
+        });
 
-      if (!response.ok) {
-        console.warn('[Auth] Token refresh failed:', response.status);
+        if (!response.ok) {
+          console.warn('[Auth] Token refresh failed:', response.status);
+          return false;
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          const { token, accessToken: newAccessToken, refreshToken: newRefreshToken } = data.data;
+          const finalAccessToken = newAccessToken || token;
+
+          if (finalAccessToken) {
+            localStorage.setItem(ACCESS_TOKEN_KEY, finalAccessToken);
+          }
+          if (newRefreshToken) {
+            localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+          }
+
+          console.log('[Auth] Token refreshed successfully');
+          return true;
+        }
+
         return false;
+      } catch (error) {
+        console.error('[Auth] Token refresh error:', error);
+        return false;
+      } finally {
+        isRefreshingRef.current = false;
+        refreshPromiseRef.current = null;
       }
+    };
 
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        const { token, accessToken: newAccessToken, refreshToken: newRefreshToken } = data.data;
-        const finalAccessToken = newAccessToken || token;
-
-        if (finalAccessToken) {
-          localStorage.setItem(ACCESS_TOKEN_KEY, finalAccessToken);
-        }
-        if (newRefreshToken) {
-          localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
-        }
-
-        console.log('[Auth] Token refreshed successfully');
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('[Auth] Token refresh error:', error);
-      return false;
-    } finally {
-      isRefreshingRef.current = false;
-    }
+    refreshPromiseRef.current = doRefresh();
+    return refreshPromiseRef.current;
   }, []);
 
   // Start automatic token refresh
