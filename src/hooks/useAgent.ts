@@ -134,20 +134,36 @@ export function useAgentSession(options: ChatOptions = {}) {
     setError(null);
 
     try {
-      // Get auth token
-      const token = localStorage.getItem('accessToken');
+      // Get auth token (stored as 'auth_token' by AuthContext)
+      const token = localStorage.getItem('auth_token');
       if (!token) {
         throw new Error('Not authenticated');
       }
 
-      // Create EventSource for SSE
+      // Fetch CSRF token for POST request
       const baseUrl = import.meta.env.VITE_API_URL || '';
+      let csrfToken = '';
+      try {
+        const csrfResponse = await fetch(`${baseUrl}/api/csrf-token`, {
+          credentials: 'include',
+        });
+        if (csrfResponse.ok) {
+          const csrfData = await csrfResponse.json();
+          csrfToken = csrfData.csrfToken || '';
+        }
+      } catch (e) {
+        console.warn('[useAgentSession] Failed to fetch CSRF token:', e);
+      }
+
+      // Create EventSource for SSE
       const response = await fetch(`${baseUrl}/api/agent/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         },
+        credentials: 'include',
         body: JSON.stringify({
           message,
           sessionId,
