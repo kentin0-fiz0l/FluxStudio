@@ -15,11 +15,13 @@ import * as React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FileUp } from 'lucide-react';
+import axios, { AxiosProgressEvent } from 'axios';
 import { DashboardLayout } from '../components/templates/DashboardLayout';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/apiService';
 import { EmptyState, emptyStateConfigs } from '../components/common/EmptyState';
+import { buildApiUrl } from '../config/environment';
 
 // Types
 interface FileItem {
@@ -138,13 +140,52 @@ function FileCard({
   );
 }
 
+// Upload Progress Component
+function UploadProgress({
+  files,
+  progress
+}: {
+  files: string[];
+  progress: number;
+}) {
+  return (
+    <div className="border border-indigo-200 bg-indigo-50 rounded-lg p-4 mb-4">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full" />
+        <span className="text-sm font-medium text-indigo-900">
+          Uploading {files.length} file{files.length !== 1 ? 's' : ''}...
+        </span>
+        <span className="text-sm text-indigo-600 ml-auto">{Math.round(progress)}%</span>
+      </div>
+      <div className="w-full bg-indigo-100 rounded-full h-2 mb-3">
+        <div
+          className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <div className="space-y-1 max-h-24 overflow-y-auto">
+        {files.map((name, i) => (
+          <div key={i} className="text-xs text-indigo-700 truncate flex items-center gap-2">
+            <span className="text-indigo-400">•</span>
+            {name}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Upload Zone Component
 function UploadZone({
   onUpload,
-  uploading
+  uploading,
+  uploadingFiles,
+  uploadProgress
 }: {
   onUpload: (files: FileList) => void;
   uploading: boolean;
+  uploadingFiles?: string[];
+  uploadProgress?: number;
 }) {
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -175,37 +216,42 @@ function UploadZone({
   }, [onUpload]);
 
   return (
-    <div
-      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-        dragActive ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 hover:border-gray-400'
-      } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
-      onDragEnter={handleDrag}
-      onDragLeave={handleDrag}
-      onDragOver={handleDrag}
-      onDrop={handleDrop}
-    >
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        onChange={handleChange}
-        className="hidden"
-        accept="image/*,audio/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx"
-      />
-      <div className="text-4xl mb-3">📁</div>
-      <div className="text-gray-700 font-medium mb-1">
-        {uploading ? 'Uploading...' : 'Drop files here'}
-      </div>
-      <div className="text-sm text-gray-500 mb-3">or</div>
-      <button
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+    <div>
+      {uploading && uploadingFiles && uploadProgress !== undefined && (
+        <UploadProgress files={uploadingFiles} progress={uploadProgress} />
+      )}
+      <div
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+          dragActive ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 hover:border-gray-400'
+        } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
       >
-        Select Files
-      </button>
-      <div className="text-xs text-gray-400 mt-3">
-        Max 100MB per file. Images, audio, video, PDFs, and documents.
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          onChange={handleChange}
+          className="hidden"
+          accept="image/*,audio/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx"
+        />
+        <div className="text-4xl mb-3">📁</div>
+        <div className="text-gray-700 font-medium mb-1">
+          {uploading ? 'Upload in progress...' : 'Drop files here'}
+        </div>
+        <div className="text-sm text-gray-500 mb-3">or</div>
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+        >
+          Select Files
+        </button>
+        <div className="text-xs text-gray-400 mt-3">
+          Max 100MB per file. Images, audio, video, PDFs, and documents.
+        </div>
       </div>
     </div>
   );
@@ -337,6 +383,8 @@ export default function ToolsFiles() {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
@@ -400,14 +448,29 @@ export default function ToolsFiles() {
 
   const handleUpload = async (fileList: FileList) => {
     setUploading(true);
+    setUploadProgress(0);
+    setUploadingFiles(Array.from(fileList).map(f => f.name));
     try {
       const formData = new FormData();
       Array.from(fileList).forEach(file => formData.append('files', file));
-      const response = await apiService.post('/files/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+
+      // Use axios directly for progress tracking
+      const token = localStorage.getItem('authToken');
+      const response = await axios.post(buildApiUrl('/files/upload'), formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        onUploadProgress: (progressEvent: AxiosProgressEvent) => {
+          if (progressEvent.total) {
+            const percent = (progressEvent.loaded / progressEvent.total) * 100;
+            setUploadProgress(percent);
+          }
+        }
       });
+
       if (response.data.success) {
-        showNotification({ type: 'success', title: 'Files uploaded' });
+        showNotification({ type: 'success', title: `${fileList.length} file${fileList.length !== 1 ? 's' : ''} uploaded successfully` });
         setShowUpload(false);
         loadFiles();
         loadStats();
@@ -417,6 +480,8 @@ export default function ToolsFiles() {
       showNotification({ type: 'error', title: 'Failed to upload files' });
     } finally {
       setUploading(false);
+      setUploadProgress(0);
+      setUploadingFiles([]);
     }
   };
 
@@ -492,7 +557,12 @@ export default function ToolsFiles() {
 
             {showUpload && (
               <div className="mb-4">
-                <UploadZone onUpload={handleUpload} uploading={uploading} />
+                <UploadZone
+                  onUpload={handleUpload}
+                  uploading={uploading}
+                  uploadingFiles={uploadingFiles}
+                  uploadProgress={uploadProgress}
+                />
               </div>
             )}
 
