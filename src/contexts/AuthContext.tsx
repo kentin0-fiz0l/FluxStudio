@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { apiService } from '../services/apiService';
 
 export type UserType = 'client' | 'designer' | 'admin';
@@ -14,8 +14,18 @@ interface User {
 
 interface AuthResponse {
   token: string;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresIn?: number;
   user: User;
 }
+
+// Token storage keys
+const ACCESS_TOKEN_KEY = 'auth_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
+
+// Refresh token 2 minutes before expiry (access tokens last 15 min)
+const TOKEN_REFRESH_INTERVAL = 13 * 60 * 1000; // 13 minutes
 
 interface AuthContextType {
   user: User | null;
@@ -25,7 +35,7 @@ interface AuthContextType {
   loginWithGoogle: (credential: string) => Promise<User>;
   loginWithApple: () => Promise<User>;
   logout: () => Promise<void>;
-  setAuthToken: (token: string) => Promise<void>;
+  setAuthToken: (token: string, refreshToken?: string) => Promise<void>;
   isAuthenticated: boolean;
   getUserDashboardPath: (userType: UserType) => string;
   token: string | null;
@@ -36,6 +46,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isRefreshingRef = useRef(false);
 
   const getUserDashboardPath = (userType: UserType): string => {
     switch (userType) {
@@ -50,33 +62,156 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Clear all auth tokens
+  const clearTokens = useCallback(() => {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  }, []);
+
+  // Store tokens from auth response
+  const storeTokens = useCallback((response: AuthResponse) => {
+    const accessToken = response.accessToken || response.token;
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+
+    if (response.refreshToken) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
+    }
+  }, []);
+
+  // Refresh the access token using refresh token
+  const refreshAccessToken = useCallback(async (): Promise<boolean> => {
+    // Prevent concurrent refresh attempts
+    if (isRefreshingRef.current) {
+      return false;
+    }
+
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+
+    if (!refreshToken && !accessToken) {
+      return false;
+    }
+
+    isRefreshingRef.current = true;
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        console.warn('[Auth] Token refresh failed:', response.status);
+        return false;
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        const { token, accessToken: newAccessToken, refreshToken: newRefreshToken } = data.data;
+        const finalAccessToken = newAccessToken || token;
+
+        if (finalAccessToken) {
+          localStorage.setItem(ACCESS_TOKEN_KEY, finalAccessToken);
+        }
+        if (newRefreshToken) {
+          localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+        }
+
+        console.log('[Auth] Token refreshed successfully');
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('[Auth] Token refresh error:', error);
+      return false;
+    } finally {
+      isRefreshingRef.current = false;
+    }
+  }, []);
+
+  // Start automatic token refresh
+  const startTokenRefresh = useCallback(() => {
+    // Clear any existing interval
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+    }
+
+    // Set up periodic refresh (every 13 minutes for 15-minute tokens)
+    refreshIntervalRef.current = setInterval(async () => {
+      const success = await refreshAccessToken();
+      if (!success) {
+        console.warn('[Auth] Auto-refresh failed, user may need to re-login');
+      }
+    }, TOKEN_REFRESH_INTERVAL);
+
+    console.log('[Auth] Started token refresh interval');
+  }, [refreshAccessToken]);
+
+  // Stop automatic token refresh
+  const stopTokenRefresh = useCallback(() => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    }
+  }, []);
+
+  // Handle 401 unauthorized - try to refresh before giving up
+  const handleUnauthorized = useCallback(async () => {
+    console.log('[Auth] Received unauthorized event, attempting token refresh...');
+
+    const refreshed = await refreshAccessToken();
+
+    if (!refreshed) {
+      console.log('[Auth] Could not refresh token, logging out');
+      clearTokens();
+      setUser(null);
+      setIsLoading(false);
+      stopTokenRefresh();
+    }
+  }, [refreshAccessToken, clearTokens, stopTokenRefresh]);
+
   useEffect(() => {
     // Check for existing session
     checkAuth();
 
     // Listen for 401 unauthorized events from API service
-    const handleUnauthorized = () => {
-      // Immediately clear user state to trigger redirect via ProtectedRoute
-      setUser(null);
-      setIsLoading(false);
-    };
-
     window.addEventListener('auth:unauthorized', handleUnauthorized);
+
     return () => {
       window.removeEventListener('auth:unauthorized', handleUnauthorized);
+      stopTokenRefresh();
     };
-  }, []);
+  }, [handleUnauthorized, stopTokenRefresh]);
 
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem(ACCESS_TOKEN_KEY);
       if (token) {
         const response = await apiService.getMe();
         if (response.success && response.data) {
           setUser(response.data as User);
+          // Start token refresh for authenticated users
+          startTokenRefresh();
         } else {
-          // Clear invalid token
-          localStorage.removeItem('auth_token');
+          // Try to refresh the token before giving up
+          const refreshed = await refreshAccessToken();
+          if (refreshed) {
+            // Retry getting user info
+            const retryResponse = await apiService.getMe();
+            if (retryResponse.success && retryResponse.data) {
+              setUser(retryResponse.data as User);
+              startTokenRefresh();
+              return;
+            }
+          }
+          // Clear invalid tokens
+          clearTokens();
           setUser(null);
         }
       } else {
@@ -85,8 +220,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Auth check failed:', error);
-      // Clear any potentially corrupted token
-      localStorage.removeItem('auth_token');
+      // Try to refresh before giving up
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        try {
+          const retryResponse = await apiService.getMe();
+          if (retryResponse.success && retryResponse.data) {
+            setUser(retryResponse.data as User);
+            startTokenRefresh();
+            setIsLoading(false);
+            return;
+          }
+        } catch {
+          // Fall through to clear tokens
+        }
+      }
+      // Clear any potentially corrupted tokens
+      clearTokens();
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -100,12 +250,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(response.error || 'Login failed');
     }
 
-    const { token, user } = response.data as AuthResponse;
-    localStorage.setItem('auth_token', token);
-    setUser(user);
+    const authData = response.data as AuthResponse;
+    storeTokens(authData);
+    setUser(authData.user);
+    startTokenRefresh();
 
     // Navigation will be handled by the component
-    return user;
+    return authData.user;
   };
 
   const signup = async (email: string, password: string, name: string, userType: UserType) => {
@@ -115,12 +266,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(response.error || 'Signup failed');
     }
 
-    const { token, user } = response.data as AuthResponse;
-    localStorage.setItem('auth_token', token);
-    setUser(user);
+    const authData = response.data as AuthResponse;
+    storeTokens(authData);
+    setUser(authData.user);
+    startTokenRefresh();
 
     // Navigation will be handled by the component
-    return user;
+    return authData.user;
   };
 
   const loginWithGoogle = async (credential: string): Promise<User> => {
@@ -130,11 +282,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(response.error || 'Google login failed');
     }
 
-    const { token, user } = response.data as AuthResponse;
-    localStorage.setItem('auth_token', token);
-    setUser(user);
+    const authData = response.data as AuthResponse;
+    storeTokens(authData);
+    setUser(authData.user);
+    startTokenRefresh();
 
-    return user;
+    return authData.user;
   };
 
   const loginWithApple = async (): Promise<User> => {
@@ -150,32 +303,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(error.message || 'Apple login failed');
     }
 
-    const { token, user } = await response.json();
-    localStorage.setItem('auth_token', token);
-    setUser(user);
+    const data = await response.json();
+    const authData = data as AuthResponse;
+    storeTokens(authData);
+    setUser(authData.user);
+    startTokenRefresh();
 
-    return user;
+    return authData.user;
   };
 
   const logout = async () => {
+    stopTokenRefresh();
     try {
       await apiService.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('auth_token');
+      clearTokens();
       setUser(null);
     }
   };
 
   // Set auth token directly (for OAuth redirect flows)
-  const setAuthToken = async (token: string): Promise<void> => {
-    localStorage.setItem('auth_token', token);
+  const setAuthToken = async (token: string, refreshToken?: string): Promise<void> => {
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    if (refreshToken) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    }
     // Fetch user info with the new token
     try {
       const response = await apiService.getMe();
       if (response.success && response.data) {
         setUser(response.data as User);
+        startTokenRefresh();
       }
     } catch (error) {
       console.error('Failed to fetch user after setting token:', error);
@@ -194,7 +354,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthToken,
     isAuthenticated: !!user,
     getUserDashboardPath,
-    token: localStorage.getItem('auth_token'),
+    token: localStorage.getItem(ACCESS_TOKEN_KEY),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
