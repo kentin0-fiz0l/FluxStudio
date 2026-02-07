@@ -70,12 +70,10 @@ function AssetCard({
 
   if (isGrid) {
     return (
-      <div
-        className="group bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg hover:border-indigo-300 transition-all cursor-pointer"
+      <button
+        type="button"
+        className="group bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg hover:border-indigo-300 transition-all cursor-pointer text-left w-full"
         onClick={onClick}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && onClick()}
         aria-label={`Open asset ${asset.name}`}
       >
         {/* Thumbnail */}
@@ -118,18 +116,16 @@ function AssetCard({
             </p>
           )}
         </div>
-      </div>
+      </button>
     );
   }
 
   // List view
   return (
-    <div
-      className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer"
+    <button
+      type="button"
+      className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer text-left w-full"
       onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onClick()}
       aria-label={`Open asset ${asset.name}`}
     >
       {/* Thumbnail */}
@@ -189,7 +185,7 @@ function AssetCard({
           </button>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 

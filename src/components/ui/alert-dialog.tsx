@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
-import { cn } from "../../lib/utils";
+import { cn, focusRing } from "../../lib/utils";
 import { buttonVariants } from "./button";
 
 function AlertDialog({
@@ -15,8 +15,13 @@ function AlertDialog({
 const AlertDialogTrigger = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Trigger>,
   React.ComponentProps<typeof AlertDialogPrimitive.Trigger>
->(({ ...props }, ref) => (
-  <AlertDialogPrimitive.Trigger ref={ref} data-slot="alert-dialog-trigger" {...props} />
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Trigger
+    ref={ref}
+    data-slot="alert-dialog-trigger"
+    className={cn(focusRing, className)}
+    {...props}
+  />
 ));
 AlertDialogTrigger.displayName = "AlertDialogTrigger";
 

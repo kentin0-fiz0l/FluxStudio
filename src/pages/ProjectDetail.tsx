@@ -944,23 +944,16 @@ export const ProjectDetail = () => {
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {projectAssets.map((asset) => (
-                      <div
+                      <button
+                        type="button"
                         key={asset.id}
-                        className="group bg-white border border-neutral-200 rounded-lg overflow-hidden hover:shadow-lg hover:border-primary-300 transition-all cursor-pointer"
+                        className="group bg-white border border-neutral-200 rounded-lg overflow-hidden hover:shadow-lg hover:border-primary-300 transition-all cursor-pointer text-left w-full"
                         onClick={() => {
                           setSelectedAssetLocal(asset);
                           setSelectedAsset(asset);
                           setShowAssetDrawer(true);
                         }}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            setSelectedAssetLocal(asset);
-                            setSelectedAsset(asset);
-                            setShowAssetDrawer(true);
-                          }
-                        }}
+                        aria-label={`View asset: ${asset.name}`}
                       >
                         <div className="aspect-square bg-neutral-100 relative overflow-hidden">
                           {asset.thumbnailUrl ? (
@@ -984,7 +977,7 @@ export const ProjectDetail = () => {
                             {new Date(asset.updatedAt).toLocaleDateString()}
                           </p>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}

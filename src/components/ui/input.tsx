@@ -113,6 +113,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
     // Use provided ID or fall back to generated ID
     const inputId = id || generatedId;
+    const descriptionId = `${inputId}-description`;
+    const hasDescription = !!(error || success || helperText);
 
     return (
       <div className={cn('w-full space-y-1.5', wrapperClassName)}>
@@ -139,6 +141,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <input
             type={type}
             id={inputId}
+            aria-describedby={hasDescription ? descriptionId : undefined}
+            aria-invalid={!!error}
             className={cn(
               inputVariants({ state, size }),
               icon && 'pl-10',
@@ -158,8 +162,11 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         </div>
 
         {/* Helper text / Error / Success messages */}
-        {(error || success || helperText) && (
+        {hasDescription && (
           <p
+            id={descriptionId}
+            role={error ? 'alert' : undefined}
+            aria-live={error ? 'polite' : undefined}
             className={cn(
               'text-sm',
               error && 'text-error-600',

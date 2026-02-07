@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 
-import { cn } from "../../lib/utils";
+import { cn, focusRing } from "../../lib/utils";
 
 function Popover({
   ...props
@@ -14,8 +14,13 @@ function Popover({
 const PopoverTrigger = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Trigger>,
   React.ComponentProps<typeof PopoverPrimitive.Trigger>
->(({ ...props }, ref) => (
-  <PopoverPrimitive.Trigger ref={ref} data-slot="popover-trigger" {...props} />
+>(({ className, ...props }, ref) => (
+  <PopoverPrimitive.Trigger
+    ref={ref}
+    data-slot="popover-trigger"
+    className={cn(focusRing, className)}
+    {...props}
+  />
 ));
 PopoverTrigger.displayName = "PopoverTrigger";
 

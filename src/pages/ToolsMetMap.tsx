@@ -37,6 +37,9 @@ import { ExportImport } from '../components/metmap/ExportImport';
 import { useMetronomeAudio, ClickSound } from '../components/metmap/MetronomeAudio';
 import { useMetMapKeyboardShortcuts, ShortcutsHelp } from '../hooks/useMetMapKeyboardShortcuts';
 
+// Import accessibility utilities
+import { announceToScreenReader } from '../utils/accessibility';
+
 // Hook for detecting mobile viewport
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(
@@ -87,15 +90,13 @@ function SongListItem({
   onClick: () => void;
 }) {
   return (
-    <div
-      className={`p-3 border-b border-gray-100 cursor-pointer transition-colors ${
+    <button
+      type="button"
+      className={`p-3 border-b border-gray-100 cursor-pointer transition-colors text-left w-full ${
         isSelected ? 'bg-indigo-50 border-l-4 border-l-indigo-500' : 'hover:bg-gray-50'
       }`}
       onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onClick()}
-      aria-selected={isSelected}
+      aria-pressed={isSelected}
     >
       <div className="font-medium text-gray-900 truncate">{song.title}</div>
       <div className="text-sm text-gray-500 mt-1 flex items-center gap-2">
@@ -112,7 +113,7 @@ function SongListItem({
       {song.projectName && (
         <div className="text-xs text-indigo-600 mt-1 truncate">{song.projectName}</div>
       )}
-    </div>
+    </button>
   );
 }
 
@@ -406,7 +407,8 @@ function ChordGrid({
               const isSelected = selectedCell?.bar === bar && selectedCell?.beat === beat;
 
               return (
-                <div
+                <button
+                  type="button"
                   key={beatIndex}
                   onClick={() => handleCellClick(bar, beat)}
                   className={`w-12 h-8 flex items-center justify-center text-xs cursor-pointer transition-colors ${
@@ -416,12 +418,11 @@ function ChordGrid({
                         ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
                         : 'bg-gray-50 hover:bg-gray-100 text-gray-400'
                   } ${beatIndex > 0 ? 'border-l border-gray-200' : ''}`}
-                  role="button"
-                  tabIndex={0}
                   aria-label={`Bar ${bar}, Beat ${beat}${chord ? `: ${chord.symbol}` : ''}`}
+                  aria-pressed={isSelected}
                 >
                   {chord?.symbol || '-'}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -963,6 +964,8 @@ export default function ToolsMetMap() {
     if (isMobile) {
       setShowSongList(false);
     }
+    // Announce song selection to screen readers
+    announceToScreenReader(`Selected song: ${song.title}. ${song.sectionCount} sections, ${song.bpmDefault} BPM.`);
   };
 
   const handleDeleteSong = async () => {

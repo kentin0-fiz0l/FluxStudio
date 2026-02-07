@@ -42,7 +42,7 @@ const cardVariants = cva(
 
       // Interactive state
       interactive: {
-        true: 'cursor-pointer hover:shadow-card-hover hover:-translate-y-0.5 active:shadow-card-active active:translate-y-0',
+        true: 'cursor-pointer hover:shadow-card-hover hover:-translate-y-0.5 active:shadow-card-active active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2',
       },
     },
 

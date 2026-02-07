@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
-import { cn } from "../../lib/utils";
+import { cn, focusRing } from "../../lib/utils";
 
 function TooltipProvider({
   delayDuration = 0,
@@ -31,8 +31,13 @@ function Tooltip({
 const TooltipTrigger = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Trigger>,
   React.ComponentProps<typeof TooltipPrimitive.Trigger>
->(({ ...props }, ref) => (
-  <TooltipPrimitive.Trigger ref={ref} data-slot="tooltip-trigger" {...props} />
+>(({ className, ...props }, ref) => (
+  <TooltipPrimitive.Trigger
+    ref={ref}
+    data-slot="tooltip-trigger"
+    className={cn(focusRing, className)}
+    {...props}
+  />
 ));
 TooltipTrigger.displayName = "TooltipTrigger";
 

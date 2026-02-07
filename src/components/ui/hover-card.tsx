@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
 
-import { cn } from "../../lib/utils";
+import { cn, focusRing } from "../../lib/utils";
 
 function HoverCard({
   ...props
@@ -12,10 +12,15 @@ function HoverCard({
 }
 
 function HoverCardTrigger({
+  className,
   ...props
 }: React.ComponentProps<typeof HoverCardPrimitive.Trigger>) {
   return (
-    <HoverCardPrimitive.Trigger data-slot="hover-card-trigger" {...props} />
+    <HoverCardPrimitive.Trigger
+      data-slot="hover-card-trigger"
+      className={cn(focusRing, className)}
+      {...props}
+    />
   );
 }
 

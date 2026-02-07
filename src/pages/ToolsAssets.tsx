@@ -155,15 +155,13 @@ function AssetCard({
   const thumbnailUrl = asset.primaryFile?.thumbnailUrl || asset.primaryFile?.fileUrl;
 
   return (
-    <div
-      className={`group relative border rounded-lg overflow-hidden cursor-pointer transition-all hover:shadow-md ${
+    <button
+      type="button"
+      className={`group relative border rounded-lg overflow-hidden cursor-pointer transition-all hover:shadow-md text-left w-full ${
         isSelected ? 'ring-2 ring-indigo-500 border-indigo-500' : 'border-gray-200 hover:border-gray-300'
       }`}
       onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onClick()}
-      aria-selected={isSelected}
+      aria-pressed={isSelected}
     >
       <div className="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
         {isImage && thumbnailUrl ? (
@@ -204,7 +202,7 @@ function AssetCard({
           </div>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 

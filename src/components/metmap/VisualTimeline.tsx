@@ -105,16 +105,16 @@ export function VisualTimeline({
           const endHeight = hasTempoRamp ? getTempoHeight(section.tempoEnd!) : startHeight;
 
           return (
-            <div
+            <button
+              type="button"
               key={section.id || index}
               className={`relative group cursor-pointer transition-all ${
                 isCurrent ? 'ring-2 ring-indigo-500 ring-offset-1' : ''
               } ${isLooped ? 'ring-2 ring-yellow-500 ring-offset-1' : ''}`}
               style={{ width: `${widthPercent}%`, minWidth: '30px' }}
               onClick={() => onSectionClick?.(index)}
-              role="button"
-              tabIndex={0}
               aria-label={`${section.name}: ${section.bars} bars, ${section.tempoStart}${hasTempoRamp ? `-${section.tempoEnd}` : ''} BPM`}
+              aria-current={isCurrent ? 'true' : undefined}
             >
               {/* Tempo bar with gradient for ramps */}
               <div
@@ -152,7 +152,7 @@ export function VisualTimeline({
                   <span className="text-[8px]">🔁</span>
                 </div>
               )}
-            </div>
+            </button>
           );
         })}
       </div>

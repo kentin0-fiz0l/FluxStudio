@@ -111,3 +111,20 @@ export function throttle<T extends (...args: any[]) => any>(
     }
   };
 }
+
+/**
+ * Accessibility focus ring styles for consistent focus indicators
+ * Use these utilities to ensure all interactive elements have visible focus
+ */
+
+/** Standard focus ring with offset (for buttons, links, cards) */
+export const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+
+/** Inset focus ring (for list items, menu items in contained elements) */
+export const focusRingInset = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset";
+
+/** Primary focus ring (for primary actions) */
+export const focusRingPrimary = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2";
+
+/** Destructive focus ring (for delete/destructive actions) */
+export const focusRingDestructive = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2";

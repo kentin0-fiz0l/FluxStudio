@@ -4,7 +4,7 @@ import * as React from "react";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
 
-import { cn } from "../../lib/utils";
+import { cn, focusRing } from "../../lib/utils";
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;
@@ -13,8 +13,13 @@ function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
 const SheetTrigger = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Trigger>,
   React.ComponentProps<typeof SheetPrimitive.Trigger>
->(({ ...props }, ref) => (
-  <SheetPrimitive.Trigger ref={ref} data-slot="sheet-trigger" {...props} />
+>(({ className, ...props }, ref) => (
+  <SheetPrimitive.Trigger
+    ref={ref}
+    data-slot="sheet-trigger"
+    className={cn(focusRing, className)}
+    {...props}
+  />
 ));
 SheetTrigger.displayName = "SheetTrigger";
 

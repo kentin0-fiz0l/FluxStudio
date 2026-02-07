@@ -146,21 +146,14 @@ const TaskCard: React.FC<TaskCardInternalProps> = ({
   }, [task.dueDate]);
 
   return (
-    <div
+    <button
+      type="button"
       className={`
         bg-white rounded-lg border border-neutral-200 p-3 mb-2
-        shadow-sm hover:shadow-md transition-shadow cursor-pointer
+        shadow-sm hover:shadow-md transition-shadow cursor-pointer text-left w-full
         ${isDragging ? 'shadow-lg ring-2 ring-blue-500' : ''}
       `}
       onClick={() => onClick(task)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick(task);
-        }
-      }}
       aria-label={`Task: ${task.title}. Status: ${task.status}. Priority: ${task.priority}`}
     >
       <div className="flex items-start gap-2">
@@ -218,7 +211,7 @@ const TaskCard: React.FC<TaskCardInternalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 };
 
