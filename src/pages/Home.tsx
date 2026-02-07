@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
+import { DailyBriefWidget } from '../components/agent/DailyBriefWidget';
 
 export function Home() {
   const { user, logout } = useAuth();
@@ -289,6 +290,9 @@ export function Home() {
                 onStepComplete={markStepComplete}
               />
             )}
+
+            {/* AI Daily Brief */}
+            <DailyBriefWidget />
 
             {/* Recent Activity */}
             <Card>
