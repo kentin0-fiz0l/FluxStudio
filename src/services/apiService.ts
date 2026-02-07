@@ -244,17 +244,15 @@ class ApiService {
   }
 
   /**
-   * Handle authentication errors by clearing token and redirecting to login
+   * Handle authentication errors by notifying the auth context
+   * The AuthContext will attempt token refresh before deciding to log out
    */
   private handleAuthError(): void {
-    localStorage.removeItem('auth_token');
+    // Don't clear token here - let AuthContext try to refresh first
     this.clearCsrfToken();
-    // Dispatch custom event so app can respond (e.g., show toast, clear state)
+    // Dispatch custom event so AuthContext can attempt refresh
+    // If refresh fails, AuthContext will clear tokens and redirect
     window.dispatchEvent(new CustomEvent('auth:unauthorized'));
-    // Only redirect if not already on login page
-    if (!window.location.pathname.includes('/login')) {
-      window.location.href = '/login?reason=session_expired';
-    }
   }
 
   // Authentication API calls

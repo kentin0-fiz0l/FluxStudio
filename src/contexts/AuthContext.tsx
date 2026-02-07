@@ -182,6 +182,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setIsLoading(false);
       stopTokenRefresh();
+      // Redirect to login page if refresh failed and not already on login page
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login?reason=session_expired';
+      }
     }
   }, [refreshAccessToken, clearTokens, stopTokenRefresh]);
 
