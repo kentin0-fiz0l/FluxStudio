@@ -216,7 +216,7 @@ export function EnhancedCommandPalette() {
     });
 
     // Contextual suggestions as commands
-    actions.getContextualActions().forEach(suggestion => {
+    (actions.getContextualActions() || []).forEach(suggestion => {
       commands.push({
         id: `suggestion-${suggestion.id}`,
         title: suggestion.title,
