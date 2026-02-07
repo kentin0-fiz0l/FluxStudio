@@ -234,7 +234,12 @@ function Settings() {
               <button className="w-full p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-left">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-medium text-neutral-900 dark:text-neutral-100">Two-Factor Auth</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-neutral-900 dark:text-neutral-100">Two-Factor Auth</h3>
+                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300">
+                        Not enabled
+                      </span>
+                    </div>
                     <p className="text-sm text-neutral-600 dark:text-neutral-300">Add extra security</p>
                   </div>
                   <Shield className="w-5 h-5 text-neutral-400 dark:text-neutral-500" aria-hidden="true" />
