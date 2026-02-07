@@ -156,7 +156,7 @@ export function EnhancedCommandPalette() {
     }
 
     // Quick access to organizations, projects, conversations
-    organizations.forEach(org => {
+    (organizations || []).forEach(org => {
       commands.push({
         id: `org-${org.id}`,
         title: org.name,
