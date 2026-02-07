@@ -1296,7 +1296,10 @@ export default function ToolsMetMap() {
           {/* Song list */}
           <div className="flex-1 overflow-y-auto">
             {songsLoading && songs.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">Loading...</div>
+              <div className="p-6 flex flex-col items-center justify-center text-gray-500">
+                <div className="animate-spin h-8 w-8 border-2 border-indigo-600 border-t-transparent rounded-full mb-3" />
+                <span className="text-sm">Loading songs...</span>
+              </div>
             ) : songs.length === 0 ? (
               <div className="p-6 text-center">
                 <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
