@@ -8,6 +8,7 @@
 import { useState, useRef, useCallback } from 'react';
 import type { Message } from '@/components/messaging/types';
 import type { UseConversationRealtimeReturn } from '@/hooks/useConversationRealtime';
+import { toast } from '@/lib/toast';
 
 export interface PendingAttachment {
   id: string;
@@ -90,6 +91,7 @@ export function useMessageHandlers({
       realtime.stopTyping();
     } catch (error) {
       console.error('Failed to send message:', error);
+      toast.error('Failed to send message. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -167,8 +169,10 @@ export function useMessageHandlers({
     if (!msg?.content) return;
     try {
       await navigator.clipboard.writeText(msg.content);
+      toast.success('Message copied to clipboard');
     } catch (err) {
       console.error('Failed to copy message:', err);
+      toast.error('Failed to copy message');
     }
   }, [messages]);
 
@@ -197,6 +201,7 @@ export function useMessageHandlers({
       realtime.deleteMessage(messageId);
     } catch (error) {
       console.error('Failed to delete message:', error);
+      toast.error('Failed to delete message');
     }
   }, [selectedConversationId, realtime]);
 
