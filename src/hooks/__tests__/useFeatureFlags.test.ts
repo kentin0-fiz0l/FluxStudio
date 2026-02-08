@@ -5,24 +5,35 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useFeatureFlags, useFeatureFlag, useExperimentVariant } from '../useFeatureFlags';
 
-// Mock the observability service
-const mockFlags = {
-  isEnabled: vi.fn(),
-  getVariant: vi.fn(),
-  setFlag: vi.fn(),
-  setVariant: vi.fn(),
-  override: vi.fn(),
-  clearOverrides: vi.fn(),
-  getAllFlags: vi.fn(),
-};
-
+// Mock the observability service - inline mock functions to avoid hoisting issues
 vi.mock('@/services/observability', () => ({
   observability: {
-    flags: mockFlags,
+    flags: {
+      isEnabled: vi.fn(),
+      getVariant: vi.fn(),
+      setFlag: vi.fn(),
+      setVariant: vi.fn(),
+      override: vi.fn(),
+      clearOverrides: vi.fn(),
+      getAllFlags: vi.fn(() => ({})),
+    },
   },
 }));
+
+import { useFeatureFlags, useFeatureFlag, useExperimentVariant } from '../useFeatureFlags';
+import { observability } from '@/services/observability';
+
+// Reference the mocked flags for tests
+const mockFlags = observability.flags as unknown as {
+  isEnabled: ReturnType<typeof vi.fn>;
+  getVariant: ReturnType<typeof vi.fn>;
+  setFlag: ReturnType<typeof vi.fn>;
+  setVariant: ReturnType<typeof vi.fn>;
+  override: ReturnType<typeof vi.fn>;
+  clearOverrides: ReturnType<typeof vi.fn>;
+  getAllFlags: ReturnType<typeof vi.fn>;
+};
 
 describe('useFeatureFlags', () => {
   beforeEach(() => {

@@ -110,6 +110,14 @@ class ApiService {
     this.csrfTokenPromise = null;
   }
 
+  /**
+   * Reset internal state - useful for testing
+   */
+  resetState(): void {
+    this.csrfToken = null;
+    this.csrfTokenPromise = null;
+  }
+
   private getAuthToken(): string | null {
     return localStorage.getItem('auth_token');
   }

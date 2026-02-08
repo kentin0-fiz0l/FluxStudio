@@ -4,6 +4,7 @@
  */
 
 import { io, Socket } from 'socket.io-client';
+import { socketLogger } from '@/services/logging';
 
 interface CollaboratorPresence {
   userId: string;
@@ -60,12 +61,12 @@ class CollaborationService {
 
     // Connection events
     this.socket.on('connect', () => {
-      console.log('🔗 Collaboration service connected');
+      socketLogger.info('Collaboration service connected');
       this.sendPresenceUpdate();
     });
 
     this.socket.on('disconnect', () => {
-      console.log('🔌 Collaboration service disconnected');
+      socketLogger.info('Collaboration service disconnected');
       this.clearPresenceInterval();
     });
 

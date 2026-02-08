@@ -218,6 +218,19 @@ describe('Accessibility Utilities', () => {
       element.style.height = '40px';
       document.body.appendChild(element);
 
+      // Mock getBoundingClientRect since JSDOM doesn't compute layouts
+      element.getBoundingClientRect = vi.fn(() => ({
+        width: 100,
+        height: 40,
+        top: 0,
+        left: 0,
+        bottom: 40,
+        right: 100,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }));
+
       expect(isElementFocusable(element)).toBe(true);
     });
   });
@@ -234,11 +247,27 @@ describe('Accessibility Utilities', () => {
       document.body.innerHTML = '';
     });
 
+    // Helper to mock getBoundingClientRect for JSDOM
+    const mockVisibleElement = (element: HTMLElement) => {
+      element.getBoundingClientRect = vi.fn(() => ({
+        width: 100,
+        height: 40,
+        top: 0,
+        left: 0,
+        bottom: 40,
+        right: 100,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }));
+    };
+
     it('should find buttons', () => {
       container.innerHTML = '<button>Click me</button>';
       const button = container.querySelector('button') as HTMLElement;
       button.style.width = '100px';
       button.style.height = '40px';
+      mockVisibleElement(button);
 
       const focusable = getFocusableElements(container);
       expect(focusable).toContain(button);
@@ -249,6 +278,7 @@ describe('Accessibility Utilities', () => {
       const link = container.querySelector('a') as HTMLElement;
       link.style.width = '100px';
       link.style.height = '40px';
+      mockVisibleElement(link);
 
       const focusable = getFocusableElements(container);
       expect(focusable).toContain(link);
@@ -259,6 +289,7 @@ describe('Accessibility Utilities', () => {
       const input = container.querySelector('input') as HTMLElement;
       input.style.width = '100px';
       input.style.height = '40px';
+      mockVisibleElement(input);
 
       const focusable = getFocusableElements(container);
       expect(focusable).toContain(input);

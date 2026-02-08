@@ -4,6 +4,7 @@
 
 import { StateCreator } from 'zustand';
 import { FluxStore } from '../store';
+import { storeLogger } from '@/services/logging';
 
 // ============================================================================
 // Types
@@ -231,7 +232,7 @@ export const createMessagingSlice: StateCreator<
           state.messaging.messages[conversationId] = data.messages || data;
         });
       } catch (error) {
-        console.error('Failed to fetch messages:', error);
+        storeLogger.error('Failed to fetch messages', error);
       }
     },
 
@@ -252,7 +253,7 @@ export const createMessagingSlice: StateCreator<
         const message = await response.json();
         get().messaging.addMessage(message);
       } catch (error) {
-        console.error('Failed to send message:', error);
+        storeLogger.error('Failed to send message', error);
         throw error;
       }
     },

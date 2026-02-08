@@ -5,31 +5,36 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// Use vi.hoisted to ensure mocks are available during hoisting
+const { mockSocket, mockIo } = vi.hoisted(() => {
+  const mockSocket = {
+    on: vi.fn(),
+    emit: vi.fn(),
+    disconnect: vi.fn(),
+    connected: true,
+  };
+  const mockIo = vi.fn(() => mockSocket);
+  return { mockSocket, mockIo };
+});
+
 // Mock socket.io-client
-const mockSocket = {
-  on: vi.fn(),
-  emit: vi.fn(),
-  disconnect: vi.fn(),
-  connected: true,
-};
-
-const mockIo = vi.fn(() => mockSocket);
-
 vi.mock('socket.io-client', () => ({
   io: mockIo,
 }));
 
-// Mock import.meta.env
-vi.stubGlobal('import', {
-  meta: {
-    env: {
-      VITE_SERVER_URL: 'http://localhost:5000',
-    },
+// Mock socketLogger
+vi.mock('@/services/logging', () => ({
+  socketLogger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
   },
-});
+}));
 
 // Import after mocks
 import { collaborationService } from '../collaborationService';
+// io is mocked via vi.hoisted above
 
 describe('CollaborationService', () => {
   const mockUser = {

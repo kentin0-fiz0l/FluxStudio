@@ -5,6 +5,7 @@
 
 import { io, Socket } from 'socket.io-client';
 import { MessageUser, Message, UserPresence } from '../types/messaging';
+import { socketLogger } from '@/services/logging';
 
 // Project presence member
 export interface ProjectPresenceMember {
@@ -97,16 +98,16 @@ class SocketService {
     // Don't connect without auth token (auth_token is the primary key used by AuthContext)
     const authToken = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
     if (!authToken) {
-      console.log('⚠️ No auth token found, skipping Socket.IO connection');
+      socketLogger.warn('No auth token found, skipping Socket.IO connection');
       return;
     }
 
-    // Use the current origin for production, localhost:3001 for development
-    const isDevelopment = window.location.hostname === 'localhost';
+    // Use environment-based detection instead of hostname check
+    const isDevelopment = import.meta.env.DEV;
     // Socket.IO server is at /api/socket.io path, namespace is /messaging
     const socketUrl = isDevelopment ? 'http://localhost:3001' : window.location.origin;
 
-    console.log(`🔌 Connecting to Socket.IO at ${socketUrl}/messaging`);
+    socketLogger.info(`Connecting to Socket.IO at ${socketUrl}/messaging`);
 
     // Connect to /messaging namespace on unified backend
     this.socket = io(`${socketUrl}/messaging`, {
@@ -133,7 +134,7 @@ class SocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('✅ Connected to WebSocket server');
+      socketLogger.info('Connected to WebSocket server');
       this.isConnected = true;
       this.reconnectAttempts = 0;
 
@@ -142,14 +143,14 @@ class SocketService {
         this.socket.emit('user:join', {
           userId: this.currentUserId
         });
-        console.log(`🔐 Re-authenticated user: ${this.currentUserId}`);
+        socketLogger.debug(`Re-authenticated user: ${this.currentUserId}`);
       }
 
       this.emit('connect');
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('❌ Disconnected from WebSocket server:', reason);
+      socketLogger.info('Disconnected from WebSocket server', { reason });
       this.isConnected = false;
       this.emit('disconnect');
 
@@ -166,12 +167,12 @@ class SocketService {
           errorMessage.includes('Authentication') ||
           errorMessage.includes('Invalid token') ||
           errorMessage.includes('jwt')) {
-        console.error('🔴 Authentication error - stopping reconnection:', errorMessage);
+        socketLogger.error('Authentication error - stopping reconnection', { message: errorMessage });
         this.authFailed = true;
         this.disconnect();
         return;
       }
-      console.error('🔴 Connection error:', error);
+      socketLogger.error('Connection error', error);
       this.handleReconnection();
     });
 
@@ -246,7 +247,7 @@ class SocketService {
   private handleReconnection() {
     // Don't reconnect if auth failed
     if (this.authFailed) {
-      console.log('⚠️ Not reconnecting due to authentication failure');
+      socketLogger.warn('Not reconnecting due to authentication failure');
       return;
     }
 
@@ -254,7 +255,7 @@ class SocketService {
       this.reconnectAttempts++;
       const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
 
-      console.log(`🔄 Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
+      socketLogger.info(`Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
 
       setTimeout(() => {
         if (this.socket && !this.authFailed) {
@@ -262,7 +263,7 @@ class SocketService {
         }
       }, delay);
     } else {
-      console.error('🔴 Max reconnection attempts reached - falling back to REST API');
+      socketLogger.error('Max reconnection attempts reached - falling back to REST API');
     }
   }
 
@@ -286,7 +287,7 @@ class SocketService {
         userId,
         ...userData
       });
-      console.log(`🔐 Authenticated user: ${userId}`);
+      socketLogger.info(`Authenticated user: ${userId}`);
     }
     // Otherwise, authentication will happen in the connect handler
   }
@@ -298,7 +299,7 @@ class SocketService {
     if (!this.socket || !this.currentUserId) return;
 
     this.socket.emit('conversation:join', conversationId, this.currentUserId);
-    console.log(`🏠 Joined conversation: ${conversationId}`);
+    socketLogger.debug(`Joined conversation: ${conversationId}`);
   }
 
   /**
@@ -308,7 +309,7 @@ class SocketService {
     if (!this.socket || !this.currentUserId) return;
 
     this.socket.emit('conversation:leave', conversationId, this.currentUserId);
-    console.log(`🚪 Left conversation: ${conversationId}`);
+    socketLogger.debug(`Left conversation: ${conversationId}`);
   }
 
   /**
@@ -321,7 +322,7 @@ class SocketService {
       userId: this.currentUserId,
       userName: userData?.userName || 'Unknown',
     });
-    console.log(`🎯 Joined project: ${projectId}`);
+    socketLogger.debug(`Joined project: ${projectId}`);
   }
 
   /**
@@ -334,7 +335,7 @@ class SocketService {
       userId: this.currentUserId,
       userName: userData?.userName || 'Unknown',
     });
-    console.log(`👋 Left project: ${projectId}`);
+    socketLogger.debug(`Left project: ${projectId}`);
   }
 
   /**
@@ -430,7 +431,7 @@ class SocketService {
         try {
           callback(...args);
         } catch (error) {
-          console.error(`Error in ${event} listener:`, error);
+          socketLogger.error(`Error in ${event} listener`, error);
         }
       });
     }

@@ -354,7 +354,8 @@ class RealtimeManager {
 
     this.setStatus('connecting');
 
-    const isDev = window.location.hostname === 'localhost';
+    // Use environment-based detection instead of hostname check
+    const isDev = import.meta.env.DEV;
     const url = this.config.url || (isDev ? 'http://localhost:3001' : window.location.origin);
 
     this.socket = io(`${url}/messaging`, {

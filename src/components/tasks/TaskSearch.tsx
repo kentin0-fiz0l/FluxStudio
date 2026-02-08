@@ -441,7 +441,7 @@ export const TaskSearch: React.FC<TaskSearchProps> = ({
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              {(['todo', 'in-progress', 'review', 'completed'] as Task['status'][]).map(status => {
+              {(['todo', 'in_progress', 'review', 'completed'] as Task['status'][]).map(status => {
                 const { label, icon: Icon } = getStatusDisplay(status);
                 const isActive = filters.status.includes(status);
 

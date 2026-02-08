@@ -10,6 +10,7 @@
 
 import { io, Socket } from 'socket.io-client';
 import { MessageUser } from '../../types/messaging';
+import { createLogger } from '@/services/logging';
 import {
   CollaborationSession,
   CollaboratorPresence,
@@ -26,6 +27,8 @@ import {
 } from './types';
 
 // User colors for visual distinction
+const logger = createLogger('Collaboration');
+
 const USER_COLORS = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57',
   '#FF9FF3', '#54A0FF', '#48DBFB', '#00D2D3', '#6C5CE7',
@@ -79,7 +82,7 @@ export class CollaborationService {
 
       this.setupSocketListeners();
     } catch (error) {
-      console.warn('WebSocket initialization failed:', error);
+      logger.warn('WebSocket initialization failed', error);
       this.setupOfflineMode();
     }
   }
@@ -89,7 +92,7 @@ export class CollaborationService {
 
     // Connection events
     this.socket.on('connect', () => {
-      console.log('Connected to collaboration server');
+      logger.info('Connected to collaboration server');
       this.reconnectAttempts = 0;
       this.isOfflineMode = false;
       this.emitLocal('connection_status', { connected: true } as ConnectionStatus);
@@ -102,17 +105,17 @@ export class CollaborationService {
     });
 
     this.socket.on('disconnect', () => {
-      console.log('Disconnected from collaboration server');
+      logger.info('Disconnected from collaboration server');
       this.handleDisconnection();
       this.emitLocal('connection_status', { connected: false } as ConnectionStatus);
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
+      logger.error('Connection error', error);
       this.reconnectAttempts++;
 
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.warn('Max reconnection attempts reached, switching to offline mode');
+        logger.warn('Max reconnection attempts reached, switching to offline mode');
         this.setupOfflineMode();
       }
     });
@@ -187,7 +190,7 @@ export class CollaborationService {
   }
 
   private setupOfflineMode(): void {
-    console.log('Running in offline collaboration mode');
+    logger.info('Running in offline collaboration mode');
     this.isOfflineMode = true;
     this.emitLocal('connection_status', { connected: false, offline: true } as ConnectionStatus);
   }
@@ -226,7 +229,7 @@ export class CollaborationService {
     this.currentUser = user;
 
     if (!this.socket?.connected) {
-      console.warn('Socket not connected, user will be joined on connect');
+      logger.warn('Socket not connected, user will be joined on connect');
       return;
     }
 
@@ -333,7 +336,7 @@ export class CollaborationService {
 
   joinConversation(conversationId: string): void {
     if (!this.socket?.connected) {
-      console.warn('Socket not connected, cannot join conversation');
+      logger.warn('Socket not connected, cannot join conversation');
       return;
     }
 
@@ -561,7 +564,7 @@ export class CollaborationService {
 
       return stream;
     } catch (error) {
-      console.error('Failed to start screen share:', error);
+      logger.error('Failed to start screen share', error);
       return null;
     }
   }
@@ -605,7 +608,7 @@ export class CollaborationService {
         try {
           handler(data);
         } catch (error) {
-          console.error(`Error in collaboration event handler for ${event}:`, error);
+          logger.error(`Error in collaboration event handler for ${event}`, error);
         }
       });
     }

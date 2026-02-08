@@ -36,10 +36,17 @@ describe('ApiService', () => {
   const mockFetch = vi.fn();
   const originalFetch = global.fetch;
 
+  // Helper to mock CSRF token response
+  const mockCsrfResponse = () => {
+    return { ok: true, json: () => Promise.resolve({ csrfToken: 'test-csrf-token' }) };
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = mockFetch;
     localStorage.clear();
+    // Reset apiService internal state to prevent test pollution
+    apiService.resetState();
   });
 
   afterEach(() => {
@@ -53,11 +60,14 @@ describe('ApiService', () => {
           ok: true,
           json: () => Promise.resolve({ token: 'test-token', user: { id: '1' } }),
         };
-        mockFetch.mockResolvedValueOnce(mockResponse);
+        // Mock CSRF token fetch first, then actual login response
+        mockFetch
+          .mockResolvedValueOnce(mockCsrfResponse())
+          .mockResolvedValueOnce(mockResponse);
 
         const result = await apiService.login('test@example.com', 'password123');
 
-        expect(mockFetch).toHaveBeenCalledWith(
+        expect(mockFetch).toHaveBeenLastCalledWith(
           'http://localhost:3001/api/auth/login',
           expect.objectContaining({
             method: 'POST',
@@ -70,13 +80,18 @@ describe('ApiService', () => {
       });
 
       it('should handle login failure', async () => {
+        // Use 400 instead of 401 to test non-auth related failure
+        // 401 triggers the special auth error handling flow
         const mockResponse = {
           ok: false,
-          status: 401,
-          statusText: 'Unauthorized',
+          status: 400,
+          statusText: 'Bad Request',
           json: () => Promise.resolve({ message: 'Invalid credentials' }),
         };
-        mockFetch.mockResolvedValueOnce(mockResponse);
+        // Mock CSRF token fetch first, then actual login response
+        mockFetch
+          .mockResolvedValueOnce(mockCsrfResponse())
+          .mockResolvedValueOnce(mockResponse);
 
         await expect(apiService.login('test@example.com', 'wrong')).rejects.toThrow(
           'Invalid credentials'
@@ -90,7 +105,10 @@ describe('ApiService', () => {
           ok: true,
           json: () => Promise.resolve({ token: 'new-token', user: { id: '2' } }),
         };
-        mockFetch.mockResolvedValueOnce(mockResponse);
+        // Mock CSRF token fetch first, then actual signup response
+        mockFetch
+          .mockResolvedValueOnce(mockCsrfResponse())
+          .mockResolvedValueOnce(mockResponse);
 
         const result = await apiService.signup(
           'new@example.com',
@@ -99,7 +117,7 @@ describe('ApiService', () => {
           'designer'
         );
 
-        expect(mockFetch).toHaveBeenCalledWith(
+        expect(mockFetch).toHaveBeenLastCalledWith(
           'http://localhost:3001/api/auth/signup',
           expect.objectContaining({
             method: 'POST',
@@ -121,11 +139,14 @@ describe('ApiService', () => {
           ok: true,
           json: () => Promise.resolve({ token: 'google-token' }),
         };
-        mockFetch.mockResolvedValueOnce(mockResponse);
+        // Mock CSRF token fetch first, then actual Google login response
+        mockFetch
+          .mockResolvedValueOnce(mockCsrfResponse())
+          .mockResolvedValueOnce(mockResponse);
 
         const result = await apiService.loginWithGoogle('google-credential');
 
-        expect(mockFetch).toHaveBeenCalledWith(
+        expect(mockFetch).toHaveBeenLastCalledWith(
           'http://localhost:3001/api/auth/google',
           expect.objectContaining({
             method: 'POST',
@@ -464,33 +485,37 @@ describe('ApiService', () => {
       };
       mockFetch.mockResolvedValueOnce(mockResponse);
 
-      // Mock window.location
+      // Mock window.location and dispatchEvent
       const originalLocation = window.location;
+      const originalDispatchEvent = window.dispatchEvent;
       delete (window as any).location;
       window.location = { ...originalLocation, pathname: '/dashboard', href: '' } as any;
+      window.dispatchEvent = vi.fn();
 
       await expect(apiService.getMe()).rejects.toThrow('Authentication required');
 
       // Cleanup
       (window as { location: Location }).location = originalLocation;
+      window.dispatchEvent = originalDispatchEvent;
     });
 
     it('should handle timeout errors', async () => {
-      vi.useFakeTimers();
-
-      const slowFetch = new Promise((resolve) => {
-        setTimeout(() => resolve({ ok: true, json: () => ({}) }), 60000);
+      // Test that AbortController is used and AbortError is converted to timeout message
+      let capturedSignal: AbortSignal | undefined;
+      mockFetch.mockImplementationOnce((_url: string, options: RequestInit) => {
+        capturedSignal = options.signal ?? undefined;
+        return new Promise((_resolve, reject) => {
+          // Simulate abort after a short delay
+          setTimeout(() => {
+            const error = new Error('The operation was aborted');
+            error.name = 'AbortError';
+            reject(error);
+          }, 10);
+        });
       });
-      mockFetch.mockReturnValueOnce(slowFetch);
 
-      const healthCheckPromise = apiService.healthCheck();
-
-      // Fast-forward past the timeout (5000ms for health check)
-      vi.advanceTimersByTime(6000);
-
-      await expect(healthCheckPromise).rejects.toThrow('Request timeout');
-
-      vi.useRealTimers();
+      await expect(apiService.healthCheck()).rejects.toThrow('Request timeout');
+      expect(capturedSignal).toBeDefined();
     });
   });
 

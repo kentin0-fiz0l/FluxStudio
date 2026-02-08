@@ -13,6 +13,9 @@
  */
 
 import { io, Socket } from 'socket.io-client';
+import { createLogger } from '@/services/logging';
+
+const logger = createLogger('TaskSocket');
 
 // Task type definition (matching useTasks.ts)
 export interface Task {
@@ -86,20 +89,20 @@ class TaskSocketService {
   connect(authToken: string, userId: string, userName: string) {
     // Prevent duplicate connections
     if (this.socket?.connected) {
-      console.log('Task socket already connected');
+      logger.debug('Task socket already connected');
       return;
     }
 
     this.currentUserId = userId;
     this.currentUserName = userName;
 
-    // Determine server URL based on environment
-    const isDevelopment = window.location.hostname === 'localhost';
+    // Use environment-based detection instead of hostname check
+    const isDevelopment = import.meta.env.DEV;
     const serverUrl = isDevelopment
       ? import.meta.env.VITE_SOCKET_URL || 'http://localhost:3002'
       : `${window.location.origin}/api`;
 
-    console.log(`Connecting to task socket server: ${serverUrl}`);
+    logger.info(`Connecting to task socket server: ${serverUrl}`);
 
     // Initialize socket connection
     this.socket = io(serverUrl, {
@@ -126,20 +129,20 @@ class TaskSocketService {
 
     // Connection established
     this.socket.on('connect', () => {
-      console.log('Task socket connected successfully');
+      logger.info('Task socket connected successfully');
       this.isConnected = true;
       this.reconnectAttempts = 0;
 
       // Re-join project room if we were in one
       if (this.currentProjectId) {
-        console.log(`Re-joining project room: ${this.currentProjectId}`);
+        logger.debug(`Re-joining project room: ${this.currentProjectId}`);
         this.joinProject(this.currentProjectId);
       }
     });
 
     // Connection lost
     this.socket.on('disconnect', (reason) => {
-      console.log(`Task socket disconnected: ${reason}`);
+      logger.info(`Task socket disconnected: ${reason}`);
       this.isConnected = false;
 
       // Auto-reconnect unless it was a manual disconnect
@@ -150,24 +153,24 @@ class TaskSocketService {
 
     // Connection error
     this.socket.on('connect_error', (error) => {
-      console.error('Task socket connection error:', error.message);
+      logger.error('Task socket connection error', { message: error.message });
       this.handleReconnection();
     });
 
     // Reconnection attempt
     this.socket.on('reconnect_attempt', (attemptNumber) => {
-      console.log(`Task socket reconnection attempt ${attemptNumber}/${this.maxReconnectAttempts}`);
+      logger.info(`Task socket reconnection attempt ${attemptNumber}/${this.maxReconnectAttempts}`);
     });
 
     // Reconnection successful
     this.socket.on('reconnect', (attemptNumber) => {
-      console.log(`Task socket reconnected after ${attemptNumber} attempts`);
+      logger.info(`Task socket reconnected after ${attemptNumber} attempts`);
       this.reconnectAttempts = 0;
     });
 
     // Reconnection failed
     this.socket.on('reconnect_failed', () => {
-      console.error('Task socket reconnection failed - max attempts reached');
+      logger.error('Task socket reconnection failed - max attempts reached');
       // Continue with degraded functionality (no real-time updates)
     });
   }
@@ -180,7 +183,7 @@ class TaskSocketService {
       this.reconnectAttempts++;
       const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
 
-      console.log(`Scheduling reconnection in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+      logger.info(`Scheduling reconnection in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
       setTimeout(() => {
         if (this.socket && !this.socket.connected) {
@@ -198,31 +201,31 @@ class TaskSocketService {
 
     // Task created by another user
     this.socket.on('task:created', (payload: TaskUpdatePayload) => {
-      console.log('Received task:created event', payload);
+      logger.debug('Received task:created event', payload);
       this.emit('task:created', payload);
     });
 
     // Task updated by another user
     this.socket.on('task:updated', (payload: TaskUpdatePayload) => {
-      console.log('Received task:updated event', payload);
+      logger.debug('Received task:updated event', payload);
       this.emit('task:updated', payload);
     });
 
     // Task deleted by another user
     this.socket.on('task:deleted', (payload: TaskDeletePayload) => {
-      console.log('Received task:deleted event', payload);
+      logger.debug('Received task:deleted event', payload);
       this.emit('task:deleted', payload);
     });
 
     // Presence update (users joining/leaving project)
     this.socket.on('presence:update', (payload: PresenceUpdatePayload) => {
-      console.log('Received presence:update event', payload);
+      logger.debug('Received presence:update event', payload);
       this.emit('presence:update', payload);
     });
 
     // Error handling
     this.socket.on('error', (error: { message: string }) => {
-      console.error('Task socket error:', error.message);
+      logger.error('Task socket error', { message: error.message });
     });
   }
 
@@ -233,7 +236,7 @@ class TaskSocketService {
    */
   joinProject(projectId: string) {
     if (!this.socket || !this.isConnected) {
-      console.warn('Cannot join project: socket not connected');
+      logger.warn('Cannot join project: socket not connected');
       return;
     }
 
@@ -250,7 +253,7 @@ class TaskSocketService {
     });
 
     this.currentProjectId = projectId;
-    console.log(`Joined project room: ${projectId}`);
+    logger.debug(`Joined project room: ${projectId}`);
   }
 
   /**
@@ -270,7 +273,7 @@ class TaskSocketService {
       this.currentProjectId = null;
     }
 
-    console.log(`Left project room: ${projectId}`);
+    logger.debug(`Left project room: ${projectId}`);
   }
 
   /**
@@ -281,7 +284,7 @@ class TaskSocketService {
    */
   emitTaskCreated(projectId: string, task: Task) {
     if (!this.socket || !this.isConnected) {
-      console.warn('Cannot emit task:created - socket not connected');
+      logger.warn('Cannot emit task:created - socket not connected');
       return;
     }
 
@@ -299,7 +302,7 @@ class TaskSocketService {
    */
   emitTaskUpdated(projectId: string, task: Task) {
     if (!this.socket || !this.isConnected) {
-      console.warn('Cannot emit task:updated - socket not connected');
+      logger.warn('Cannot emit task:updated - socket not connected');
       return;
     }
 
@@ -317,7 +320,7 @@ class TaskSocketService {
    */
   emitTaskDeleted(projectId: string, taskId: string) {
     if (!this.socket || !this.isConnected) {
-      console.warn('Cannot emit task:deleted - socket not connected');
+      logger.warn('Cannot emit task:deleted - socket not connected');
       return;
     }
 
@@ -431,7 +434,7 @@ class TaskSocketService {
         try {
           callback(...args);
         } catch (error) {
-          console.error(`Error in ${event} listener:`, error);
+          logger.error(`Error in ${event} listener`, error);
         }
       });
     }
@@ -471,7 +474,7 @@ class TaskSocketService {
     this.currentProjectId = null;
     this.eventListeners.clear();
 
-    console.log('Task socket disconnected and cleaned up');
+    logger.info('Task socket disconnected and cleaned up');
   }
 }
 

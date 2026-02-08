@@ -4,6 +4,9 @@
  */
 
 import { io, Socket } from 'socket.io-client';
+import { createLogger } from '@/services/logging';
+
+const logger = createLogger('MessagingSocket');
 
 export interface MessageReactionSummary {
   emoji: string;
@@ -124,7 +127,7 @@ class MessagingSocketService {
   connect(): void {
     const token = localStorage.getItem('auth_token');
     if (!token) {
-      console.warn('[MessagingSocket] No auth token, skipping connection');
+      logger.warn('No auth token, skipping connection');
       return;
     }
 
@@ -132,7 +135,8 @@ class MessagingSocketService {
       return;
     }
 
-    const isDevelopment = window.location.hostname === 'localhost';
+    // Use environment-based detection instead of hostname check
+    const isDevelopment = import.meta.env.DEV;
     const socketUrl = isDevelopment ? 'http://localhost:3001' : window.location.origin;
 
     this.socket = io(`${socketUrl}/messaging`, {
@@ -151,19 +155,19 @@ class MessagingSocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('[MessagingSocket] Connected');
+      logger.info('Connected');
       this.isConnected = true;
       this.emit('connect');
     });
 
     this.socket.on('disconnect', (reason: string) => {
-      console.log('[MessagingSocket] Disconnected:', reason);
+      logger.info('Disconnected', { reason });
       this.isConnected = false;
       this.emit('disconnect');
     });
 
     this.socket.on('error', (error: { message: string }) => {
-      console.error('[MessagingSocket] Error:', error);
+      logger.error('Error', error);
       this.emit('error', error);
     });
 
@@ -293,7 +297,7 @@ class MessagingSocketService {
 
   joinConversation(conversationId: string): void {
     if (!this.socket?.connected) {
-      console.warn('[MessagingSocket] Not connected');
+      logger.warn('Not connected');
       return;
     }
     this.currentConversationId = conversationId;

@@ -21,12 +21,15 @@ export default defineConfig({
       '**/node_modules/**',
       'tests/e2e/**',
       'tests/load/**',
+      'tests/integration/**',  // Integration tests require running infrastructure
       '**/*.e2e.*',
       '**/*.spec.ts',
+      '**/*.integration.*',  // Integration tests marked with .integration.
       'services/**',
       'flux-mcp/**',
       'apps/**/node_modules/**',
       'packages/**/node_modules/**',
+      'lib/**/__tests__/**',  // Backend lib tests require database
     ],
     coverage: {
       reporter: ['text', 'json', 'html'],

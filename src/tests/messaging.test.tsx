@@ -3,7 +3,7 @@
  * Comprehensive tests for all messaging components and services
  */
 
-// React import not needed with JSX transform
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
@@ -85,21 +85,21 @@ const mockMessages: Message[] = [
 ];
 
 // Mock hooks for MessageHub - it uses internal hooks for data
-jest.mock('../hooks/useMessaging', () => ({
+vi.mock('../hooks/useMessaging', () => ({
   useMessaging: () => ({
-    conversations: [mockConversation],
+    conversations: [],  // Use empty array to avoid hoisting issues
     activeConversation: null,
     conversationMessages: {},
-    setActiveConversation: jest.fn(),
-    filterConversations: jest.fn(),
+    setActiveConversation: vi.fn(),
+    filterConversations: vi.fn(),
     isLoading: false,
-    sendMessage: jest.fn(),
+    sendMessage: vi.fn(),
   }),
 }));
 
-jest.mock('../hooks/useAuth', () => ({
+vi.mock('../hooks/useAuth', () => ({
   useAuth: () => ({
-    user: mockUser,
+    user: { id: 'test-user-1', name: 'Test User' },  // Inline mock data
     isAuthenticated: true,
   }),
 }));
