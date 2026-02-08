@@ -70,3 +70,8 @@ coverage/
 *~tests/load/*.json
 tests/load/auth-results.json
 .turbo/
+
+# Package manager - using pnpm only
+package-lock.json
+yarn.lock
+bun.lock
