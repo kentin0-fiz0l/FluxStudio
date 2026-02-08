@@ -42,7 +42,7 @@ export interface UseWebRTCReturn {
   stopScreenShare: () => Promise<void>;
 
   // Refs for video elements
-  localVideoRef: React.RefObject<HTMLVideoElement | null>;
+  localVideoRef: React.RefObject<HTMLVideoElement>;
   getParticipantStream: (participantId: string) => MediaStream | undefined;
 }
 

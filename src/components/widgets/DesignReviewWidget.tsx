@@ -37,7 +37,7 @@ interface DesignReviewWidgetProps {
 interface AnnotationTool {
   id: string;
   name: string;
-  icon: React.ComponentType<{ size: number; className?: string }>;
+  icon: React.ComponentType<{ size?: string | number; className?: string }>;
   cursor: string;
 }
 

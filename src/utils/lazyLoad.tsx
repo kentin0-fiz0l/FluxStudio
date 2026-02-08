@@ -88,12 +88,14 @@ export const DefaultLoadingFallback: React.FC<{ message?: string }> = ({ message
 export function withSuspense<P extends Record<string, unknown> = Record<string, unknown>>(
   Component: LazyExoticComponent<ComponentType<P>>,
   fallback: React.ReactNode = <DefaultLoadingFallback />
-) {
-  return (props: P) => (
+): React.FC<P> {
+  const LazyComponent = Component as unknown as React.ComponentType<P>;
+  const WrappedComponent: React.FC<P> = (props) => (
     <Suspense fallback={fallback}>
-      <Component {...props as P & React.JSX.IntrinsicAttributes} />
+      <LazyComponent {...props} />
     </Suspense>
   );
+  return WrappedComponent;
 }
 
 /**
@@ -137,10 +139,11 @@ export function withLazyLoad<P extends Record<string, unknown> = Record<string, 
 ) {
   const { Component, preload } = lazyLoadWithRetry(importFn, options);
   const fallback = options.fallback || <DefaultLoadingFallback />;
+  const LazyComponent = Component as unknown as React.ComponentType<P>;
 
-  const WrappedComponent = (props: P) => (
+  const WrappedComponent: React.FC<P> & { preload: typeof preload } = (props) => (
     <Suspense fallback={fallback}>
-      <Component {...props as P & React.JSX.IntrinsicAttributes} />
+      <LazyComponent {...props} />
     </Suspense>
   );
 

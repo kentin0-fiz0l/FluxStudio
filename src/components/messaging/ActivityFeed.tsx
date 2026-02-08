@@ -54,7 +54,7 @@ type ActivityItem = {
 };
 
 // Icon mapping - defined at module level to avoid dynamic component creation during render
-const activityIconMap: Record<ActivityItem['type'], React.ComponentType<{ size?: number }>> = {
+const activityIconMap: Record<ActivityItem['type'], React.ComponentType<{ size?: string | number }>> = {
   message: MessageSquare,
   notification: Bell,
   project_update: Folder,

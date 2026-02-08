@@ -33,7 +33,7 @@ interface ProjectCommunicationWidgetProps {
 interface ProjectTab {
   id: string;
   label: string;
-  icon: React.ComponentType<{ size: number; className?: string }>;
+  icon: React.ComponentType<{ size?: string | number; className?: string }>;
   count?: number;
   priority?: Priority;
 }
