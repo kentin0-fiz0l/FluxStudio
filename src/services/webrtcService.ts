@@ -320,20 +320,22 @@ class WebRTCService {
         // Incoming call - handled by UI
         break;
 
-      case 'answer':
+      case 'answer': {
         const pc = this.peerConnections.get(from);
         if (pc) {
           await pc.setRemoteDescription(new RTCSessionDescription(payload));
           this.setCallState('connected');
         }
         break;
+      }
 
-      case 'ice-candidate':
+      case 'ice-candidate': {
         const peerConnection = this.peerConnections.get(from);
         if (peerConnection && payload) {
           await peerConnection.addIceCandidate(new RTCIceCandidate(payload));
         }
         break;
+      }
 
       case 'hangup':
         this.handleParticipantLeft(from);

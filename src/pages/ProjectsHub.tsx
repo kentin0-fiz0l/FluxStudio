@@ -9,7 +9,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -41,7 +41,6 @@ type ViewMode = 'grid' | 'list';
 
 export function ProjectsHub() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user, logout } = useAuth();
   const { projects, loading } = useProjects();
 

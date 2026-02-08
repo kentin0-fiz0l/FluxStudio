@@ -113,19 +113,13 @@ const createSecondaryNavItems = (): NavigationItem[] => [
   },
 ];
 
-// Legacy function for backward compatibility
-const createNavigationItems = (unreadCount: number): NavigationItem[] => [
-  ...createPrimaryNavItems(unreadCount),
-  ...createSecondaryNavItems(),
-];
-
-// Navigation items are created dynamically via createNavigationItems()
+// Navigation items are created dynamically via createPrimaryNavItems() and createSecondaryNavItems()
 
 export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSidebarProps>(
   (
     {
       user,
-      items,
+      items: _items,
       collapsed = false,
       onCollapseToggle,
       onLogout,

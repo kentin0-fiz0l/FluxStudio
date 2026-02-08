@@ -415,10 +415,11 @@ export function useIsPWA(): boolean {
 
     checkPWA();
 
-    window.matchMedia('(display-mode: standalone)').addEventListener('change', checkPWA);
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    mediaQuery.addEventListener('change', checkPWA);
 
     return () => {
-      window.matchMedia('(display-mode: standalone)').removeEventListener('change', checkPWA);
+      mediaQuery.removeEventListener('change', checkPWA);
     };
   }, []);
 
