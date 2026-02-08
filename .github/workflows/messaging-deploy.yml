@@ -1,6 +1,7 @@
 name: Messaging System CI/CD
 
 on:
+  workflow_dispatch:  # Allow manual triggering
   push:
     branches: [main, develop]
     paths:
