@@ -55,6 +55,7 @@ jobs:
           app_spec_location: .do/app.yaml
           deploy_pr_preview: ${{ github.event_name == 'pull_request' }}
           print_build_logs: true
+          print_deploy_logs: true
 
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request'
