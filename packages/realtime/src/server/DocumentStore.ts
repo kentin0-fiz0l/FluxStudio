@@ -239,7 +239,7 @@ export class DocumentStore {
 
         // Check if document has been inactive
         if (now - stored.lastAccessed > this.options.gcTimeout) {
-          console.log(`[DocumentStore] GC: Unloading inactive document: ${docName}`);
+          console.warn(`[DocumentStore] GC: Unloading inactive document: ${docName}`);
           this.destroyDocument(docName);
         }
       }

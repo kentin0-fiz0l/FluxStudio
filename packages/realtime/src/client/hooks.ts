@@ -165,7 +165,7 @@ export function useFluxPresence(
   const localState = useMemo(() => {
     if (!awareness) return null;
     return (awareness.getLocalState() as PresenceState) ?? null;
-  }, [awareness, states]);
+  }, [awareness]);
 
   const remoteStates = useMemo(() => {
     if (!awareness) return [];

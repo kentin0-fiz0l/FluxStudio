@@ -359,7 +359,7 @@ export class FluxRealtimeProvider {
 
     this.reconnectAttempts++;
 
-    console.log(
+    console.warn(
       `[FluxRealtimeProvider] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`
     );
 
@@ -413,7 +413,7 @@ export class FluxRealtimeProvider {
       clearTimeout(this.connectionTimeout);
     }
 
-    console.log("[FluxRealtimeProvider] Destroyed");
+    console.warn("[FluxRealtimeProvider] Destroyed");
   }
 }
 

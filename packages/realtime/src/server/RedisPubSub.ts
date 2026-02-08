@@ -55,7 +55,7 @@ export class RedisPubSub {
     // Set up message handler
     this.sub.on("message", this.handleMessage.bind(this));
 
-    console.log(`[RedisPubSub] Initialized with server ID: ${this.serverId}`);
+    console.warn(`[RedisPubSub] Initialized with server ID: ${this.serverId}`);
   }
 
   /**
@@ -78,7 +78,7 @@ export class RedisPubSub {
     await this.sub.subscribe(channel);
     this.subscribed.add(channel);
 
-    console.log(`[RedisPubSub] Subscribed to: ${docName}`);
+    console.warn(`[RedisPubSub] Subscribed to: ${docName}`);
   }
 
   /**
@@ -94,7 +94,7 @@ export class RedisPubSub {
     await this.sub.unsubscribe(channel);
     this.subscribed.delete(channel);
 
-    console.log(`[RedisPubSub] Unsubscribed from: ${docName}`);
+    console.warn(`[RedisPubSub] Unsubscribed from: ${docName}`);
   }
 
   /**
@@ -271,7 +271,7 @@ export class RedisPubSub {
     await this.pub.quit();
     await this.sub.quit();
 
-    console.log("[RedisPubSub] Destroyed");
+    console.warn("[RedisPubSub] Destroyed");
   }
 }
 

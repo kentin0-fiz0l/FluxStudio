@@ -6,6 +6,7 @@
  */
 
 import { WebSocket, WebSocketServer, RawData } from "ws";
+import { IncomingMessage } from "http";
 import * as Y from "yjs";
 import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
@@ -124,15 +125,15 @@ export class FluxRealtimeServer {
       });
     }, this.options.pingInterval ?? 30000);
 
-    console.log(`[FluxRealtimeServer] Started on port ${port}`);
+    console.warn(`[FluxRealtimeServer] Started on port ${port}`);
   }
 
   /**
    * Handle new WebSocket connection
    */
-  private async handleConnection(ws: WebSocket, request: any): Promise<void> {
+  private async handleConnection(ws: WebSocket, request: IncomingMessage): Promise<void> {
     // Extract document name from URL
-    const url = new URL(request.url, `ws://localhost`);
+    const url = new URL(request.url ?? "/", `ws://localhost`);
     const docName = url.pathname.slice(1) || url.searchParams.get("room") || "default";
     const token = url.searchParams.get("token");
 
@@ -201,7 +202,7 @@ export class FluxRealtimeServer {
     ws.send(encoding.toUint8Array(encoder));
 
     // Set up awareness update handler
-    awareness.on("update", ({ added, updated, removed }: any) => {
+    awareness.on("update", ({ added, updated, removed }: { added: number[]; updated: number[]; removed: number[] }) => {
       const changedClients = added.concat(updated).concat(removed);
       const awarenessEncoder = encoding.createEncoder();
       encoding.writeVarUint(awarenessEncoder, MESSAGE_AWARENESS);
@@ -221,7 +222,7 @@ export class FluxRealtimeServer {
     });
 
     // Set up document update handler
-    doc.on("update", (update: Uint8Array, origin: any) => {
+    doc.on("update", (update: Uint8Array, origin: unknown) => {
       if (origin === ws) return; // Don't echo back to sender
 
       const updateEncoder = encoding.createEncoder();
@@ -242,7 +243,7 @@ export class FluxRealtimeServer {
     // Notify connection
     this.options.onConnect?.(docName, clientId, userId);
 
-    console.log(
+    console.warn(
       `[FluxRealtimeServer] Client ${clientId} connected to document: ${docName}`
     );
   }
@@ -394,7 +395,7 @@ export class FluxRealtimeServer {
     // Notify disconnection
     this.options.onDisconnect?.(docName, clientId, userId);
 
-    console.log(
+    console.warn(
       `[FluxRealtimeServer] Client ${clientId} disconnected from document: ${docName}`
     );
   }
@@ -447,7 +448,7 @@ export class FluxRealtimeServer {
       this.wss = null;
     }
 
-    console.log("[FluxRealtimeServer] Stopped");
+    console.warn("[FluxRealtimeServer] Stopped");
   }
 }
 
