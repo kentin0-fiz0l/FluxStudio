@@ -1,7 +1,7 @@
 # DigitalOcean App Platform Configuration
 # FluxStudio Production Deployment
 # Architecture: Static Frontend + Unified Backend + Collaboration Service + MCP
-# Last synced: 2025-10-23 10:19:59 PST - Automatic sync via GitHub Actions
+# Last synced: 2026-02-08 - Updated to use pnpm instead of npm
 
 name: fluxstudio
 region: nyc
@@ -87,7 +87,7 @@ static_sites:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    build_command: npm ci && npm run build
+    build_command: corepack enable && pnpm install --frozen-lockfile && pnpm build
     output_dir: build
     environment_slug: node-js
     catchall_document: index.html
@@ -119,7 +119,7 @@ jobs:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    build_command: npm ci
+    build_command: corepack enable && pnpm install --frozen-lockfile
     run_command: node database/run-migrations.js
     environment_slug: node-js
     kind: PRE_DEPLOY
@@ -137,7 +137,7 @@ services:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    build_command: npm ci
+    build_command: corepack enable && pnpm install --frozen-lockfile
     run_command: node server-unified.js
     environment_slug: node-js
     http_port: 3001
@@ -310,7 +310,7 @@ services:
       repo: kentin0-fiz0l/FluxStudio
       branch: main
       deploy_on_push: true
-    build_command: npm ci
+    build_command: corepack enable && pnpm install --frozen-lockfile
     run_command: node server-collaboration.js
     environment_slug: node-js
     http_port: 4000
@@ -345,8 +345,8 @@ services:
       branch: main
       deploy_on_push: true
     source_dir: flux-mcp
-    build_command: npm ci --include=dev && npm run build
-    run_command: npm start
+    build_command: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    run_command: pnpm start
     environment_slug: node-js
     http_port: 8787
     health_check:
