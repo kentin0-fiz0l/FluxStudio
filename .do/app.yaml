@@ -345,7 +345,7 @@ services:
       branch: main
       deploy_on_push: true
     source_dir: flux-mcp
-    build_command: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    build_command: corepack enable && NODE_ENV=development pnpm install --frozen-lockfile && pnpm build
     run_command: pnpm start
     environment_slug: node-js
     http_port: 8787
