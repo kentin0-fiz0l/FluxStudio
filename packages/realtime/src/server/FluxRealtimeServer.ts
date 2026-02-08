@@ -17,7 +17,7 @@ import { RedisPubSub, RedisPubSubOptions } from "./RedisPubSub.js";
 // Message types
 const MESSAGE_SYNC = 0;
 const MESSAGE_AWARENESS = 1;
-const MESSAGE_AUTH = 2;
+const _MESSAGE_AUTH = 2; // Reserved for future auth implementation
 const MESSAGE_QUERY_AWARENESS = 3;
 
 export interface FluxRealtimeServerOptions {
@@ -91,10 +91,10 @@ export class FluxRealtimeServer {
     if (options.redis) {
       this.redisPubSub = new RedisPubSub({
         ...options.redis,
-        onUpdate: (docName, update, origin) => {
+        onUpdate: (docName, update, _origin) => {
           this.handleRemoteUpdate(docName, update);
         },
-        onAwarenessUpdate: (docName, awarenessUpdate, origin) => {
+        onAwarenessUpdate: (docName, awarenessUpdate, _origin) => {
           this.broadcastToDocument(docName, awarenessUpdate, null);
         },
       });
@@ -287,12 +287,8 @@ export class FluxRealtimeServer {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MESSAGE_SYNC);
 
-    const syncMessageType = syncProtocol.readSyncMessage(
-      decoder,
-      encoder,
-      doc,
-      ws
-    );
+    // Process sync message (return value not needed - side effects update encoder)
+    syncProtocol.readSyncMessage(decoder, encoder, doc, ws);
 
     // Send response if there is one
     if (encoding.length(encoder) > 1) {

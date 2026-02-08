@@ -7,7 +7,6 @@
 
 import * as Y from "yjs";
 import * as encoding from "lib0/encoding";
-import * as decoding from "lib0/decoding";
 import * as syncProtocol from "y-protocols/sync";
 
 export interface DocumentStoreOptions {
@@ -68,7 +67,7 @@ export class DocumentStore {
       };
 
       // Set up persistence on updates
-      doc.on("update", async (update: Uint8Array) => {
+      doc.on("update", async (_update: Uint8Array) => {
         const state = Y.encodeStateAsUpdate(doc);
         await this.options.onPersist(docName, state);
       });

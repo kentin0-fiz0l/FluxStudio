@@ -457,6 +457,10 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
   const [page, setPage] = React.useState(1);
   const itemsPerPage = maxItems;
 
+  // Quick filter chip options
+  type QuickFilterType = 'all' | 'tasks' | 'comments' | 'members';
+  const [quickFilter, setQuickFilter] = React.useState<QuickFilterType>('all');
+
   // ============================================================================
   // Data Fetching
   // ============================================================================
@@ -535,29 +539,6 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
 
   const hasActiveFilters = filterType !== 'all' || filterUserId !== 'all' || dateRange !== 'all';
 
-  // ============================================================================
-  // Render
-  // ============================================================================
-
-  if (isError) {
-    return (
-      <div className={cn('p-4', className)}>
-        <div className="rounded-lg border border-error-200 bg-error-50 p-4">
-          <p className="text-sm text-error-800">
-            Failed to load activity feed: {error?.message || 'Unknown error'}
-          </p>
-          <Button variant="ghost" size="sm" onClick={() => refetch()} className="mt-2">
-            Try again
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Quick filter chip options
-  type QuickFilterType = 'all' | 'tasks' | 'comments' | 'members';
-  const [quickFilter, setQuickFilter] = React.useState<QuickFilterType>('all');
-
   // Apply quick filter to activity type
   React.useEffect(() => {
     switch (quickFilter) {
@@ -589,6 +570,25 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     () => groupActivitiesByDate(quickFilteredActivities),
     [quickFilteredActivities]
   );
+
+  // ============================================================================
+  // Render
+  // ============================================================================
+
+  if (isError) {
+    return (
+      <div className={cn('p-4', className)}>
+        <div className="rounded-lg border border-error-200 bg-error-50 p-4">
+          <p className="text-sm text-error-800">
+            Failed to load activity feed: {error?.message || 'Unknown error'}
+          </p>
+          <Button variant="ghost" size="sm" onClick={() => refetch()} className="mt-2">
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn('flex flex-col h-full', className)}>

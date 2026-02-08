@@ -61,6 +61,9 @@ export function ProjectsHub() {
     );
   }, [projects, searchTerm]);
 
+  // Current timestamp for deadline calculations (captured once on mount)
+  const [now] = useState(() => Date.now());
+
   // Mock activity data - in real app, this comes from API
   const recentActivity = [
     {
@@ -410,7 +413,7 @@ export function ProjectsHub() {
                       .map((project) => {
                         const dueDate = new Date(project.dueDate!);
                         const daysUntil = Math.ceil(
-                          (dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+                          (dueDate.getTime() - now) / (1000 * 60 * 60 * 24)
                         );
                         const isOverdue = daysUntil < 0;
                         const isUrgent = daysUntil <= 7 && daysUntil >= 0;

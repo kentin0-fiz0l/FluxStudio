@@ -13,8 +13,8 @@ import * as awarenessProtocol from "y-protocols/awareness";
 // Message types (must match server)
 const MESSAGE_SYNC = 0;
 const MESSAGE_AWARENESS = 1;
-const MESSAGE_AUTH = 2;
-const MESSAGE_QUERY_AWARENESS = 3;
+const _MESSAGE_AUTH = 2; // Reserved for future auth implementation
+const _MESSAGE_QUERY_AWARENESS = 3; // Reserved for future awareness queries
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "synced";
 
@@ -158,7 +158,7 @@ export class FluxRealtimeProvider {
       this.ws.onopen = this.handleOpen;
       this.ws.onmessage = this.handleMessage;
       this.ws.onclose = this.handleClose;
-      this.ws.onerror = (event) => {
+      this.ws.onerror = (_event) => {
         this.handleError(new Error("WebSocket error"));
       };
     } catch (error) {

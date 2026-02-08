@@ -9,7 +9,6 @@ import {
   useEffect,
   useCallback,
   useMemo,
-  useRef,
   useSyncExternalStore,
 } from "react";
 import * as Y from "yjs";

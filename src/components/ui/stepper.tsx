@@ -127,7 +127,7 @@ const Stepper = React.forwardRef<HTMLDivElement, StepperProps>(
 Stepper.displayName = 'Stepper';
 
 // StepperList - container for step items
-interface StepperListProps extends React.HTMLAttributes<HTMLDivElement> {}
+type StepperListProps = React.HTMLAttributes<HTMLDivElement>;
 
 const StepperList = React.forwardRef<HTMLDivElement, StepperListProps>(
   ({ className, children, ...props }, ref) => {

@@ -91,7 +91,7 @@ export function AIProjectCreator({
         // Fallback to local generation if API fails
         setSuggestions(generateLocalSuggestions(description));
       }
-    } catch (error) {
+    } catch (_error) {
       // Fallback to local generation
       setSuggestions(generateLocalSuggestions(description));
     } finally {

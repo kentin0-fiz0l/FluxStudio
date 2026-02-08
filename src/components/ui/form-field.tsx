@@ -158,7 +158,7 @@ const FormLabel = React.forwardRef<HTMLLabelElement, FormLabelProps>(
 FormLabel.displayName = 'FormLabel';
 
 // FormControl - wrapper that connects input to field context
-interface FormControlProps extends React.HTMLAttributes<HTMLDivElement> {}
+type FormControlProps = React.HTMLAttributes<HTMLDivElement>;
 
 const FormControl = React.forwardRef<HTMLDivElement, FormControlProps>(
   ({ className, children, ...props }, ref) => {
@@ -193,7 +193,7 @@ const FormControl = React.forwardRef<HTMLDivElement, FormControlProps>(
 FormControl.displayName = 'FormControl';
 
 // FormDescription - hint text below input
-interface FormDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
+type FormDescriptionProps = React.HTMLAttributes<HTMLParagraphElement>;
 
 const FormDescription = React.forwardRef<HTMLParagraphElement, FormDescriptionProps>(
   ({ className, children, ...props }, ref) => {
