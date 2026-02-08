@@ -5,6 +5,10 @@
  * Handles connection establishment, media streams, and signaling.
  */
 
+import { createLogger } from '@/services/logging';
+
+const webrtcLogger = createLogger('WebRTC');
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -280,7 +284,7 @@ class WebRTCService {
 
       return this.screenStream;
     } catch (error) {
-      console.error('Failed to start screen share:', error);
+      webrtcLogger.error('Failed to start screen share', error as Error);
       return null;
     }
   }
@@ -370,7 +374,7 @@ class WebRTCService {
 
       this.events.onLocalStream?.(this.localStream);
     } catch (error) {
-      console.error('Failed to get user media:', error);
+      webrtcLogger.error('Failed to get user media', error as Error);
       throw new Error('Could not access camera/microphone');
     }
   }
@@ -476,7 +480,7 @@ class WebRTCService {
 
   private sendSignalingMessage(message: SignalingMessage): void {
     // In production, this would send through WebSocket
-    console.log('Signaling message:', message);
+    webrtcLogger.debug('Signaling message', { message });
     // TODO: Integrate with existing WebSocket service
   }
 

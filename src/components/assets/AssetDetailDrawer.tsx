@@ -11,6 +11,9 @@ import * as React from 'react';
 import { useAssets, AssetRecord, AssetVersion, AssetRelation, AssetMetadata, AssetTag, AssetComment, RelationType } from '../../contexts/AssetsContext';
 import { useFilesOptional } from '../../contexts/FilesContext';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { createLogger } from '@/services/logging';
+
+const assetLogger = createLogger('AssetDrawer');
 
 // Asset type config
 const assetTypeConfig: Record<string, { icon: string; label: string; color: string }> = {
@@ -122,15 +125,17 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
       setLoading(true);
       try {
         switch (activeTab) {
-          case 'versions':
+          case 'versions': {
             const v = await getVersions(asset.id);
             setVersions(v);
             break;
-          case 'relations':
+          }
+          case 'relations': {
             const r = await getRelations(asset.id);
             setRelations(r);
             break;
-          case 'metadata':
+          }
+          case 'metadata': {
             const [m, t] = await Promise.all([
               getMetadata(asset.id),
               getTags(asset.id)
@@ -138,13 +143,15 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
             setMetadataState(m);
             setTagsState(t);
             break;
-          case 'comments':
+          }
+          case 'comments': {
             const c = await getComments(asset.id);
             setCommentsState(c);
             break;
+          }
         }
       } catch (_error) {
-        console.error('Error loading data:', _error);
+        assetLogger.error('Error loading data', _error as Error);
       } finally {
         setLoading(false);
       }
