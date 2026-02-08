@@ -71,7 +71,9 @@ coverage/
 tests/load/auth-results.json
 .turbo/
 
-# Package manager - using pnpm only
-package-lock.json
+# Package manager - using pnpm for main project
+# Root package-lock.json is ignored since we use pnpm
+# Subdirectory lock files are allowed for standalone packages
+/package-lock.json
 yarn.lock
 bun.lock
