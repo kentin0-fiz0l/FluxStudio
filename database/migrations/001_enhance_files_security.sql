@@ -96,38 +96,48 @@ CREATE TRIGGER trigger_update_file_upload_session_timestamp
     EXECUTE FUNCTION update_file_upload_session_timestamp();
 
 -- Create view for file security overview
-CREATE OR REPLACE VIEW file_security_overview AS
-SELECT
-    f.id,
-    f.name,
-    f.original_name,
-    f.mime_type,
-    f.file_size,
-    f.security_status,
-    f.status,
-    f.file_hash,
-    f.uploaded_by,
-    f.organization_id,
-    f.project_id,
-    f.created_at,
-    COALESCE(scan_summary.total_scans, 0) as total_scans,
-    COALESCE(scan_summary.clean_scans, 0) as clean_scans,
-    COALESCE(scan_summary.threat_scans, 0) as threat_scans,
-    scan_summary.last_scan_date,
-    q.quarantine_reason,
-    q.quarantine_date
-FROM files f
-LEFT JOIN (
+-- Note: Uses COALESCE for optional columns that may not exist in all schemas
+DO $$
+BEGIN
+    -- Add original_name column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'files' AND column_name = 'original_name') THEN
+        ALTER TABLE files ADD COLUMN original_name TEXT;
+    END IF;
+
+    -- Create or replace the view
+    CREATE OR REPLACE VIEW file_security_overview AS
     SELECT
-        file_id,
-        COUNT(*) as total_scans,
-        COUNT(*) FILTER (WHERE scan_status = 'clean') as clean_scans,
-        COUNT(*) FILTER (WHERE scan_status IN ('infected', 'suspicious')) as threat_scans,
-        MAX(created_at) as last_scan_date
-    FROM file_security_scans
-    GROUP BY file_id
-) scan_summary ON f.id = scan_summary.file_id
-LEFT JOIN security_quarantine q ON f.id = q.file_id AND q.review_action IS NULL
-ORDER BY f.created_at DESC;
+        f.id,
+        f.name,
+        f.original_name,
+        f.mime_type,
+        f.file_size,
+        f.security_status,
+        f.status,
+        f.file_hash,
+        f.uploaded_by,
+        f.organization_id,
+        f.project_id,
+        f.created_at,
+        COALESCE(scan_summary.total_scans, 0) as total_scans,
+        COALESCE(scan_summary.clean_scans, 0) as clean_scans,
+        COALESCE(scan_summary.threat_scans, 0) as threat_scans,
+        scan_summary.last_scan_date,
+        q.quarantine_reason,
+        q.quarantine_date
+    FROM files f
+    LEFT JOIN (
+        SELECT
+            file_id,
+            COUNT(*) as total_scans,
+            COUNT(*) FILTER (WHERE scan_status = 'clean') as clean_scans,
+            COUNT(*) FILTER (WHERE scan_status IN ('infected', 'suspicious')) as threat_scans,
+            MAX(created_at) as last_scan_date
+        FROM file_security_scans
+        GROUP BY file_id
+    ) scan_summary ON f.id = scan_summary.file_id
+    LEFT JOIN security_quarantine q ON f.id = q.file_id AND q.review_action IS NULL
+    ORDER BY f.created_at DESC;
+END $$;
 
 COMMENT ON VIEW file_security_overview IS 'Comprehensive view of file security status and scan history';
