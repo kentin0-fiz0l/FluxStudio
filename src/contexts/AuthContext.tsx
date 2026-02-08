@@ -5,7 +5,16 @@ export type UserType = 'client' | 'designer' | 'admin';
 
 // Dev mode: Enable mock auth when backend is unavailable
 // Set VITE_DEV_MOCK_AUTH=true in .env.local to enable
-const DEV_MOCK_AUTH = import.meta.env.VITE_DEV_MOCK_AUTH === 'true';
+// SECURITY: Only allow in development mode, never in production
+const DEV_MOCK_AUTH =
+  import.meta.env.VITE_DEV_MOCK_AUTH === 'true' &&
+  import.meta.env.MODE === 'development';
+
+// Production safety check - fail fast if misconfigured
+if (import.meta.env.MODE === 'production' && import.meta.env.VITE_DEV_MOCK_AUTH === 'true') {
+  console.error('CRITICAL: Mock auth cannot be enabled in production!');
+  throw new Error('Security violation: Mock authentication in production build');
+}
 
 // Mock user for development when backend is unavailable
 const MOCK_USER = {
