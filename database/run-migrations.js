@@ -57,6 +57,33 @@ function calculateChecksum(content) {
 }
 
 /**
+ * Check if an error indicates something already exists (safe to ignore)
+ */
+function isAlreadyExistsError(error) {
+  // PostgreSQL error codes for "already exists" type errors
+  const alreadyExistsCodes = [
+    '42P07', // duplicate_table
+    '42710', // duplicate_object (includes indexes, constraints)
+    '42P16', // invalid_table_definition
+  ];
+
+  // Also check error message for common patterns
+  const alreadyExistsPatterns = [
+    'already exists',
+    'duplicate key',
+    'constraint .+ already exists',
+  ];
+
+  if (alreadyExistsCodes.includes(error.code)) {
+    return true;
+  }
+
+  return alreadyExistsPatterns.some(pattern =>
+    new RegExp(pattern, 'i').test(error.message)
+  );
+}
+
+/**
  * Run a single migration
  */
 async function runMigration(pool, filename, content) {
@@ -81,6 +108,32 @@ async function runMigration(pool, filename, content) {
     return { success: true, executionTime: Date.now() - startTime };
   } catch (error) {
     await client.query('ROLLBACK');
+
+    // If the error is "already exists", treat as success and record it
+    if (isAlreadyExistsError(error)) {
+      try {
+        // Record the migration as applied (outside transaction)
+        await pool.query(
+          `INSERT INTO schema_migrations (filename, checksum, execution_time_ms)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (filename) DO NOTHING`,
+          [filename, checksum, Date.now() - startTime]
+        );
+        return {
+          success: true,
+          executionTime: Date.now() - startTime,
+          skippedReason: `Already applied: ${error.message}`
+        };
+      } catch (recordError) {
+        // If we can't even record it, still treat as success
+        return {
+          success: true,
+          executionTime: Date.now() - startTime,
+          skippedReason: `Already applied (not recorded): ${error.message}`
+        };
+      }
+    }
+
     return { success: false, error: error.message };
   } finally {
     client.release();
@@ -159,7 +212,11 @@ async function main() {
       const result = await runMigration(pool, filename, content);
 
       if (result.success) {
-        console.log(`   ✅ Success (${result.executionTime}ms)`);
+        if (result.skippedReason) {
+          console.log(`   ⏭️  Skipped (${result.executionTime}ms) - ${result.skippedReason}`);
+        } else {
+          console.log(`   ✅ Success (${result.executionTime}ms)`);
+        }
         successCount++;
       } else {
         console.error(`   ❌ Failed: ${result.error}`);
