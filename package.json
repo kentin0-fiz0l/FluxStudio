@@ -72,6 +72,7 @@
             "express-rate-limit": "^8.1.0",
             "express-session": "^1.18.2",
             "figma-api": "^2.1.0-beta",
+            "form-data": "^4.0.5",
             "framer-motion": "^12.23.18",
             "fuse.js": "^7.1.0",
             "google-auth-library": "^10.3.0",
