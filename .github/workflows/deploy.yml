@@ -9,6 +9,7 @@ on:
 
 env:
   NODE_VERSION: '20'
+  PNPM_VERSION: '9'
 
 jobs:
   build-and-deploy:
@@ -18,25 +19,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'pnpm'
 
-      - name: Install dependencies (root)
-        run: npm ci
-
-      - name: Install MCP server dependencies
-        working-directory: apps/flux-mcp
-        run: npm ci
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Build MCP server
-        working-directory: apps/flux-mcp
-        run: npm run build
+        run: pnpm --filter flux-mcp build
 
       - name: Build web application
-        run: npm run build
+        run: pnpm build
         env:
           VITE_MCP_WS_URL: ${{ secrets.VITE_MCP_WS_URL }}
           VITE_API_BASE_URL: /api
