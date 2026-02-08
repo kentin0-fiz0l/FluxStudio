@@ -8,7 +8,6 @@ import { ProjectContextBar } from './components/projects/ProjectContextBar';
 import { MomentumCapture } from './components/momentum/MomentumCapture';
 import { QuickActions, useQuickActions } from './components/pulse/QuickActions';
 import ErrorBoundary, {
-  FilesErrorBoundary,
   ToolsErrorBoundary,
   ProjectsErrorBoundary,
   MessagingErrorBoundary,
@@ -34,12 +33,9 @@ const { Component: MessagesNew } = lazyLoadWithRetry(() => import('./pages/Messa
 // Tools page - uses DashboardLayout like other authenticated pages
 const { Component: Tools } = lazyLoadWithRetry(() => import('./pages/Tools'));
 const { Component: ToolsMetMap } = lazyLoadWithRetry(() => import('./pages/ToolsMetMap'));
-const { Component: ToolsFiles } = lazyLoadWithRetry(() => import('./pages/ToolsFiles'));
-const { Component: ToolsAssets } = lazyLoadWithRetry(() => import('./pages/ToolsAssets'));
 const { Component: DesignBoardPage } = lazyLoadWithRetry(() => import('./pages/DesignBoardPage'));
 
 // Lazy load non-critical pages and components
-const { Component: Home } = lazyLoadWithRetry(() => import('./pages/Home'));
 const { Component: Signup } = lazyLoadWithRetry(() => import('./pages/Signup'));
 const { Component: SignupWizard } = lazyLoadWithRetry(() => import('./pages/SignupWizard'));
 const { Component: EmailVerification } = lazyLoadWithRetry(() => import('./pages/EmailVerification'));
@@ -52,12 +48,9 @@ const { Component: Connectors } = lazyLoadWithRetry(() => import('./pages/Connec
 
 // Redesigned pages (Flux Design Language)
 const { Component: FormationEditor } = lazyLoadWithRetry(() => import('./pages/FormationEditor'));
-const { Component: ProjectsNew } = lazyLoadWithRetry(() => import('./pages/ProjectsNew'));
+const { Component: ProjectsHub } = lazyLoadWithRetry(() => import('./pages/ProjectsHub'));
 const { Component: ProjectDetail } = lazyLoadWithRetry(() => import('./pages/ProjectDetail'));
 const { Component: ProjectOverview } = lazyLoadWithRetry(() => import('./pages/ProjectOverview'));
-const { Component: FileNew } = lazyLoadWithRetry(() => import('./pages/FileNew'));
-const { Component: Assets } = lazyLoadWithRetry(() => import('./pages/Assets'));
-const { Component: TeamNew } = lazyLoadWithRetry(() => import('./pages/TeamNew'));
 const { Component: OrganizationNew } = lazyLoadWithRetry(() => import('./pages/OrganizationNew'));
 const { Component: Profile } = lazyLoadWithRetry(() => import('./pages/Profile'));
 const { Component: Notifications } = lazyLoadWithRetry(() => import('./pages/Notifications'));
@@ -72,6 +65,7 @@ const { Component: CreateOrganization } = lazyLoadWithRetry(() => import('./page
 
 // Lazy load comprehensive platform components
 const { Component: ClientOnboarding } = lazyLoadWithRetry(() => import('./components/onboarding/ClientOnboarding'));
+const { Component: QuickOnboarding } = lazyLoadWithRetry(() => import('./components/onboarding/QuickOnboarding'));
 
 // Legal pages
 const { Component: Terms } = lazyLoadWithRetry(() => import('./pages/Terms'));
@@ -165,13 +159,22 @@ function AuthenticatedRoutes() {
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
 
-                  {/* Redesigned Page Routes (Flux Design Language) - Protected with Error Boundaries */}
-                  <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                  {/* ================================================
+                      PRIMARY ROUTES (3-Space Architecture)
+
+                      /projects - The main hub, where users land
+                      /organization - Team & company management
+                      /settings - Personal preferences
+                      ================================================ */}
+
+                  {/* Projects Hub - THE primary landing page */}
+                  <Route path="/projects" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectsHub /></ProjectsErrorBoundary></ProtectedRoute>} />
+
+                  {/* Quick Onboarding - For new users */}
+                  <Route path="/get-started" element={<ProtectedRoute><QuickOnboarding /></ProtectedRoute>} />
+
+                  {/* Organization & Settings */}
                   <Route path="/organization" element={<ProtectedRoute><OrganizationNew /></ProtectedRoute>} />
-                  <Route path="/team" element={<ProtectedRoute><TeamNew /></ProtectedRoute>} />
-                  <Route path="/file" element={<ProtectedRoute><FilesErrorBoundary><FileNew /></FilesErrorBoundary></ProtectedRoute>} />
-                  <Route path="/assets" element={<ProtectedRoute><FilesErrorBoundary><Assets /></FilesErrorBoundary></ProtectedRoute>} />
-                  <Route path="/projects" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectsNew /></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/projects/:projectId/overview" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectOverview /></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/projects/:id" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectDetail /></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/projects/:projectId/formations" element={<ProtectedRoute><FormationEditor /></ProtectedRoute>} />
@@ -190,13 +193,32 @@ function AuthenticatedRoutes() {
                   <Route path="/admin/audit" element={<ProtectedRoute><AdminAuditLogs /></ProtectedRoute>} />
                   <Route path="/tools" element={<ProtectedRoute><ToolsErrorBoundary><Tools /></ToolsErrorBoundary></ProtectedRoute>} />
                   <Route path="/tools/metmap" element={<ProtectedRoute><ToolsErrorBoundary><ToolsMetMap /></ToolsErrorBoundary></ProtectedRoute>} />
-                  <Route path="/tools/files" element={<ProtectedRoute><ToolsErrorBoundary><ToolsFiles /></ToolsErrorBoundary></ProtectedRoute>} />
-                  <Route path="/tools/assets" element={<ProtectedRoute><ToolsErrorBoundary><ToolsAssets /></ToolsErrorBoundary></ProtectedRoute>} />
+                  {/* /tools/files and /tools/assets now redirect to /projects (consolidated) */}
+
+                  {/* ================================================
+                      ROUTE CONSOLIDATION (UX Redesign)
+
+                      3-Space Architecture:
+                      1. /projects - Primary hub (everything lives in projects)
+                      2. /organization - Team management, billing
+                      3. /settings - Personal preferences
+
+                      Legacy routes redirect to consolidated locations.
+                      ================================================ */}
+
+                  {/* Primary Consolidation Redirects */}
+                  <Route path="/home" element={<Navigate to="/projects" replace />} />
+                  <Route path="/dashboard" element={<Navigate to="/projects" replace />} />
+                  <Route path="/file" element={<Navigate to="/projects?view=files" replace />} />
+                  <Route path="/assets" element={<Navigate to="/projects?view=assets" replace />} />
+                  <Route path="/tools/files" element={<Navigate to="/projects?view=files" replace />} />
+                  <Route path="/tools/assets" element={<Navigate to="/projects?view=assets" replace />} />
+                  <Route path="/team" element={<Navigate to="/organization?tab=team" replace />} />
 
                   {/* Legacy routes - redirecting to new pages */}
                   <Route path="/organization/legacy" element={<Navigate to="/organization" replace />} />
                   <Route path="/team/legacy" element={<Navigate to="/team" replace />} />
-                  <Route path="/file/legacy" element={<Navigate to="/file" replace />} />
+                  <Route path="/file/legacy" element={<Navigate to="/projects?view=files" replace />} />
                   <Route path="/messages/legacy" element={<Navigate to="/messages" replace />} />
 
                   {/* Unified Dashboard - adapts to user role and context - Protected */}

@@ -19,6 +19,8 @@ import { NavigationSidebar, NavigationItem } from '@/components/organisms/Naviga
 import { TopBar, Breadcrumb, Notification } from '@/components/organisms/TopBar';
 import { SkipLink, Button } from '@/components/ui';
 import { AIChatPanel } from '@/components/ai/AIChatPanel';
+import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
+import { KeyboardShortcutsDialog, useKeyboardShortcuts } from '@/components/ui/KeyboardShortcutsDialog';
 import { cn } from '@/lib/utils';
 
 export interface DashboardLayoutProps {
@@ -120,6 +122,9 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
     const [sidebarCollapsed, setSidebarCollapsed] = React.useState(initialCollapsed);
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
     const [aiPanelOpen, setAiPanelOpen] = React.useState(false);
+
+    // Keyboard shortcuts dialog
+    const { open: shortcutsOpen, setOpen: setShortcutsOpen } = useKeyboardShortcuts();
 
     // Keyboard shortcut for AI Panel (Cmd+K / Ctrl+K)
     React.useEffect(() => {
@@ -260,6 +265,20 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
           isOpen={aiPanelOpen}
           onClose={() => setAiPanelOpen(false)}
           position="right"
+        />
+
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav
+          onOpenSearch={() => {
+            // Open command palette for search on mobile
+            setAiPanelOpen(true);
+          }}
+        />
+
+        {/* Keyboard Shortcuts Dialog (?) */}
+        <KeyboardShortcutsDialog
+          open={shortcutsOpen}
+          onOpenChange={setShortcutsOpen}
         />
       </div>
     );

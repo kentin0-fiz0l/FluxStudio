@@ -19,16 +19,20 @@ const badgeVariants = cva(
   'inline-flex items-center justify-center gap-1 rounded-full font-medium transition-colors',
   {
     variants: {
-      // Color variants
+      // Color variants - WCAG AA compliant (4.5:1 contrast ratio minimum)
       variant: {
-        default: 'bg-neutral-100 text-neutral-700 border border-neutral-200',
-        primary: 'bg-primary-100 text-primary-700 border border-primary-200',
-        secondary: 'bg-secondary-100 text-secondary-700 border border-secondary-200',
-        accent: 'bg-accent-100 text-accent-700 border border-accent-200',
-        success: 'bg-success-100 text-success-700 border border-success-200',
-        warning: 'bg-warning-100 text-warning-700 border border-warning-200',
-        error: 'bg-error-100 text-error-700 border border-error-200',
-        info: 'bg-info-100 text-info-700 border border-info-200',
+        // Using -900 text on -50 background for better contrast
+        default: 'bg-neutral-50 text-neutral-900 border border-neutral-300',
+        primary: 'bg-primary-50 text-primary-900 border border-primary-200',
+        secondary: 'bg-secondary-50 text-secondary-900 border border-secondary-200',
+        accent: 'bg-accent-50 text-accent-900 border border-accent-200',
+        success: 'bg-success-50 text-success-900 border border-success-200',
+        warning: 'bg-warning-50 text-warning-900 border border-warning-200',
+        error: 'bg-error-50 text-error-900 border border-error-200',
+        info: 'bg-info-50 text-info-900 border border-info-200',
+
+        // Alternative: high contrast with darker background
+        destructive: 'bg-error-100 text-error-900 border border-error-300',
 
         // Solid variants
         solidPrimary: 'bg-primary-600 text-white',

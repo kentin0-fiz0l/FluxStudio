@@ -15,9 +15,6 @@
 import * as React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Home,
-  Folder,
-  Users,
   MessageSquare,
   Settings,
   ChevronLeft,
@@ -26,8 +23,6 @@ import {
   Building2,
   LogOut,
   User,
-  Wrench,
-  Layers,
 } from 'lucide-react';
 import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -78,17 +73,50 @@ export interface NavigationSidebarProps {
   className?: string;
 }
 
-// Create navigation items with dynamic unread count
+/**
+ * Simplified 3-Space Navigation Architecture
+ *
+ * PRIMARY SPACES:
+ * 1. Projects - Main hub (80% of user time)
+ * 2. Organization - Team management, billing, integrations
+ * 3. Settings - Personal preferences
+ *
+ * Messages is accessible but secondary (shown with badge).
+ */
+
+// Primary navigation items - simplified for clarity
+const createPrimaryNavItems = (unreadCount: number): NavigationItem[] => [
+  {
+    label: 'Projects',
+    icon: <Briefcase className="h-5 w-5" aria-hidden="true" />,
+    path: '/projects'
+  },
+  {
+    label: 'Messages',
+    icon: <MessageSquare className="h-5 w-5" aria-hidden="true" />,
+    path: '/messages',
+    badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : undefined
+  },
+];
+
+// Secondary navigation items - Organization & Settings
+const createSecondaryNavItems = (): NavigationItem[] => [
+  {
+    label: 'Organization',
+    icon: <Building2 className="h-5 w-5" aria-hidden="true" />,
+    path: '/organization'
+  },
+  {
+    label: 'Settings',
+    icon: <Settings className="h-5 w-5" aria-hidden="true" />,
+    path: '/settings'
+  },
+];
+
+// Legacy function for backward compatibility
 const createNavigationItems = (unreadCount: number): NavigationItem[] => [
-  { label: 'Dashboard', icon: <Home className="h-5 w-5" aria-hidden="true" />, path: '/home' },
-  { label: 'Projects', icon: <Briefcase className="h-5 w-5" aria-hidden="true" />, path: '/projects' },
-  { label: 'Files', icon: <Folder className="h-5 w-5" aria-hidden="true" />, path: '/file' },
-  { label: 'Assets', icon: <Layers className="h-5 w-5" aria-hidden="true" />, path: '/assets' },
-  { label: 'Team', icon: <Users className="h-5 w-5" aria-hidden="true" />, path: '/team' },
-  { label: 'Organization', icon: <Building2 className="h-5 w-5" aria-hidden="true" />, path: '/organization' },
-  { label: 'Messages', icon: <MessageSquare className="h-5 w-5" aria-hidden="true" />, path: '/messages', badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : undefined },
-  { label: 'Tools', icon: <Wrench className="h-5 w-5" aria-hidden="true" />, path: '/tools' },
-  { label: 'Settings', icon: <Settings className="h-5 w-5" aria-hidden="true" />, path: '/settings' },
+  ...createPrimaryNavItems(unreadCount),
+  ...createSecondaryNavItems(),
 ];
 
 // Navigation items are created dynamically via createNavigationItems()
@@ -112,9 +140,6 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
     // Uses optional hook that returns defaults when context is unavailable
     const { unreadCount } = useMessagingOptional();
     const unreadCountValue = unreadCount || 0;
-
-    // Use provided items or create default with dynamic unread count
-    const navigationItems = items || createNavigationItems(unreadCountValue);
 
     // Check if path is active
     const isActive = (path: string) => {
@@ -175,10 +200,59 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
           <ProjectSwitcher collapsed={collapsed} />
         </div>
 
-        {/* Navigation Items */}
+        {/* Navigation Items - Simplified 3-Space Architecture */}
         <nav className="flex-1 overflow-y-auto py-4 px-2">
-          <ul className="space-y-1" role="list" aria-label="Main navigation">
-            {navigationItems.map((item) => {
+          {/* Primary Navigation */}
+          <div className="mb-6">
+            {!collapsed && (
+              <p className="px-3 mb-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                Workspace
+              </p>
+            )}
+            <ul className="space-y-1" role="list" aria-label="Primary navigation">
+              {createPrimaryNavItems(unreadCountValue).map((item) => {
+                const active = isActive(item.path);
+                return (
+                  <li key={item.path}>
+                    <Link
+                      to={item.path}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                        'hover:bg-neutral-800',
+                        active && 'bg-primary-600 hover:bg-primary-700'
+                      )}
+                      title={collapsed ? item.label : undefined}
+                    >
+                      <span className="flex-shrink-0">{item.icon}</span>
+                      {!collapsed && (
+                        <>
+                          <span className="flex-1 text-sm font-medium">{item.label}</span>
+                          {item.badge && (
+                            <Badge variant="solidError" size="sm">
+                              {item.badge}
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                      {collapsed && item.badge && (
+                        <span className="absolute top-1 right-1 w-2 h-2 bg-error-500 rounded-full" />
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          {/* Secondary Navigation */}
+          <div>
+            {!collapsed && (
+              <p className="px-3 mb-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                Manage
+              </p>
+            )}
+          <ul className="space-y-1" role="list" aria-label="Secondary navigation">
+            {createSecondaryNavItems().map((item) => {
               const active = isActive(item.path);
               const expanded = expandedItems.has(item.label);
               const hasChildren = item.children && item.children.length > 0;
@@ -265,6 +339,7 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
               );
             })}
           </ul>
+          </div>
         </nav>
 
         {/* User Profile Section */}

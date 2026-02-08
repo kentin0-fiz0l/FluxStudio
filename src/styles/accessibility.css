@@ -1,0 +1,135 @@
+/**
+ * Accessibility Styles - WCAG 2.1 AA Compliance
+ *
+ * Focus ring utilities, skip links, and screen reader helpers.
+ */
+
+/* ================================================
+   FOCUS RING UTILITIES
+   All interactive elements should have visible focus
+   ================================================ */
+
+/* Global focus ring - applied via Tailwind's focus-visible */
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-neutral-900 rounded;
+}
+
+/* High contrast focus for critical actions */
+.focus-ring-strong {
+  @apply focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-600 focus-visible:ring-offset-2;
+}
+
+/* Focus ring for dark backgrounds */
+.focus-ring-light {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900;
+}
+
+/* ================================================
+   SKIP LINKS
+   Allow keyboard users to skip repetitive navigation
+   ================================================ */
+
+.skip-link {
+  @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary-600 focus:text-white focus:rounded-lg focus:shadow-lg;
+}
+
+/* ================================================
+   SCREEN READER UTILITIES
+   ================================================ */
+
+/* Visually hidden but accessible to screen readers */
+.sr-only-focusable:not(:focus):not(:focus-within) {
+  @apply sr-only;
+}
+
+/* Live regions for dynamic content announcements */
+.live-region-polite {
+  @apply sr-only;
+}
+
+.live-region-assertive {
+  @apply sr-only;
+}
+
+/* ================================================
+   MOTION PREFERENCES
+   Respect user's reduced motion preference
+   ================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ================================================
+   HIGH CONTRAST MODE
+   Enhanced visibility for high contrast preferences
+   ================================================ */
+
+@media (prefers-contrast: high) {
+  /* Increase border visibility */
+  .border,
+  [class*="border-"] {
+    border-width: 2px !important;
+  }
+
+  /* Ensure text contrast */
+  .text-neutral-500,
+  .text-neutral-400,
+  .text-neutral-600 {
+    @apply text-neutral-900 dark:text-neutral-100;
+  }
+}
+
+/* ================================================
+   SAFE AREA INSETS (Mobile)
+   Respect device safe areas (notches, home indicators)
+   ================================================ */
+
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-area-inset-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.h-safe-area-inset-bottom {
+  height: env(safe-area-inset-bottom, 0);
+}
+
+/* ================================================
+   TOUCH TARGET SIZES
+   Minimum 44x44px for touch targets (WCAG 2.1)
+   ================================================ */
+
+.touch-target {
+  @apply min-h-[44px] min-w-[44px];
+}
+
+/* ================================================
+   COLOR CONTRAST HELPERS
+   ================================================ */
+
+/* Ensure readable text on colored backgrounds */
+.contrast-safe-dark {
+  color: #000000;
+}
+
+.contrast-safe-light {
+  color: #ffffff;
+}
+
+/* ================================================
+   FOCUS WITHIN FOR COMPOUND COMPONENTS
+   ================================================ */
+
+.focus-within-ring:focus-within {
+  @apply ring-2 ring-primary-500 ring-offset-2;
+}

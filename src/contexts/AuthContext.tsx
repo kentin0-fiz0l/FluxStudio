@@ -3,6 +3,20 @@ import { apiService } from '../services/apiService';
 
 export type UserType = 'client' | 'designer' | 'admin';
 
+// Dev mode: Enable mock auth when backend is unavailable
+// Set VITE_DEV_MOCK_AUTH=true in .env.local to enable
+const DEV_MOCK_AUTH = import.meta.env.VITE_DEV_MOCK_AUTH === 'true';
+
+// Mock user for development when backend is unavailable
+const MOCK_USER = {
+  id: 'dev-user-1',
+  email: 'dev@fluxstudio.local',
+  name: 'Dev User',
+  userType: 'designer' as UserType,
+  createdAt: new Date().toISOString(),
+  avatar: undefined,
+};
+
 interface User {
   id: string;
   email: string;
@@ -203,6 +217,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [handleUnauthorized, stopTokenRefresh]);
 
   const checkAuth = async () => {
+    // Dev mode: Use mock user when backend is unavailable
+    if (DEV_MOCK_AUTH) {
+      console.log('[Auth] DEV_MOCK_AUTH enabled - using mock user');
+      setUser(MOCK_USER);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const token = localStorage.getItem(ACCESS_TOKEN_KEY);
       if (token) {

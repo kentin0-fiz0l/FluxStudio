@@ -13,17 +13,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
-  Home,
   Briefcase,
   Folder,
-  Users,
   MessageSquare,
   Settings,
   Plus,
   Search,
-  Wrench,
   Building2,
-  Layers,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -35,22 +31,33 @@ interface Command {
   icon?: LucideIcon;
   shortcut?: string[];
   action: () => void;
-  category?: 'navigation' | 'actions' | 'create';
+  category?: 'navigation' | 'actions' | 'create' | 'recent';
   keywords?: string[];
+  /** If true, action is executed directly (e.g., opens modal) instead of navigating */
+  isDirect?: boolean;
 }
 
 interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreateProject?: () => void;
+  onUploadFile?: () => void;
+  onCreateTask?: () => void;
+  onSendMessage?: () => void;
   projects?: Array<{ id: string; name: string }>;
+  /** Current project context for context-aware actions */
+  currentProject?: { id: string; name: string } | null;
 }
 
 export function CommandPalette({
   open,
   onOpenChange,
   onCreateProject,
+  onUploadFile,
+  onCreateTask,
+  onSendMessage,
   projects = [],
+  currentProject,
 }: CommandPaletteProps) {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -65,62 +72,103 @@ export function CommandPalette({
     onOpenChange(isOpen);
   }, [onOpenChange]);
 
-  // Define commands
+  // Define commands - Enhanced with direct actions
   const commands: Command[] = useMemo(() => {
     const baseCommands: Command[] = [
-      // Navigation
+      // ============================================
+      // DIRECT ACTIONS (Execute immediately, no navigation)
+      // These open modals or perform actions directly
+      // ============================================
       {
-        id: 'nav-dashboard',
-        label: 'Go to Dashboard',
-        icon: Home,
-        category: 'navigation',
-        keywords: ['home', 'dashboard', 'overview'],
+        id: 'action-create-project',
+        label: 'Create New Project',
+        description: 'Start a new project immediately',
+        icon: Plus,
+        category: 'create',
+        shortcut: ['⌘', 'N'],
+        keywords: ['create', 'new', 'project', 'add'],
+        isDirect: true,
         action: () => {
-          navigate('/home');
           handleOpenChange(false);
+          // Direct action - open modal immediately
+          if (onCreateProject) {
+            onCreateProject();
+          } else {
+            navigate('/projects/new');
+          }
         },
       },
+      {
+        id: 'action-upload-file',
+        label: 'Upload File',
+        description: 'Upload a file to your project',
+        icon: Folder,
+        category: 'create',
+        shortcut: ['⌘', 'U'],
+        keywords: ['upload', 'file', 'add', 'document'],
+        isDirect: true,
+        action: () => {
+          handleOpenChange(false);
+          if (onUploadFile) {
+            onUploadFile();
+          } else {
+            navigate(currentProject ? `/projects/${currentProject.id}?action=upload` : '/projects?action=upload');
+          }
+        },
+      },
+      {
+        id: 'action-send-message',
+        label: 'Send Message',
+        description: 'Start a new conversation',
+        icon: MessageSquare,
+        category: 'create',
+        shortcut: ['⌘', 'M'],
+        keywords: ['message', 'chat', 'send', 'conversation'],
+        isDirect: true,
+        action: () => {
+          handleOpenChange(false);
+          if (onSendMessage) {
+            onSendMessage();
+          } else {
+            navigate('/messages?compose=true');
+          }
+        },
+      },
+
+      // Context-aware actions (only show when in a project)
+      ...(currentProject ? [
+        {
+          id: 'action-create-task',
+          label: `Create Task in "${currentProject.name}"`,
+          description: 'Add a new task to this project',
+          icon: Plus,
+          category: 'create' as const,
+          keywords: ['task', 'todo', 'create', 'add'],
+          isDirect: true,
+          action: () => {
+            handleOpenChange(false);
+            if (onCreateTask) {
+              onCreateTask();
+            } else {
+              navigate(`/projects/${currentProject.id}?action=new-task`);
+            }
+          },
+        },
+      ] : []),
+
+      // ============================================
+      // NAVIGATION (Go to pages)
+      // Simplified 3-space architecture
+      // ============================================
       {
         id: 'nav-projects',
         label: 'Go to Projects',
+        description: 'View all your projects',
         icon: Briefcase,
         category: 'navigation',
-        keywords: ['projects', 'work'],
+        keywords: ['projects', 'work', 'home', 'dashboard'],
         action: () => {
           navigate('/projects');
-          handleOpenChange(false);
-        },
-      },
-      {
-        id: 'nav-files',
-        label: 'Go to Files',
-        icon: Folder,
-        category: 'navigation',
-        keywords: ['files', 'documents', 'storage'],
-        action: () => {
-          navigate('/file');
-          handleOpenChange(false);
-        },
-      },
-      {
-        id: 'nav-assets',
-        label: 'Go to Assets',
-        icon: Layers,
-        category: 'navigation',
-        keywords: ['assets', 'media', 'images'],
-        action: () => {
-          navigate('/assets');
-          handleOpenChange(false);
-        },
-      },
-      {
-        id: 'nav-team',
-        label: 'Go to Team',
-        icon: Users,
-        category: 'navigation',
-        keywords: ['team', 'members', 'people'],
-        action: () => {
-          navigate('/team');
           handleOpenChange(false);
         },
       },
@@ -138,51 +186,31 @@ export function CommandPalette({
       {
         id: 'nav-org',
         label: 'Go to Organization',
+        description: 'Team and company settings',
         icon: Building2,
         category: 'navigation',
-        keywords: ['organization', 'company', 'org'],
+        keywords: ['organization', 'company', 'org', 'team', 'members'],
         action: () => {
           navigate('/organization');
           handleOpenChange(false);
         },
       },
       {
-        id: 'nav-tools',
-        label: 'Go to Tools',
-        icon: Wrench,
-        category: 'navigation',
-        keywords: ['tools', 'utilities'],
-        action: () => {
-          navigate('/tools');
-          handleOpenChange(false);
-        },
-      },
-      {
         id: 'nav-settings',
         label: 'Go to Settings',
+        description: 'Your preferences',
         icon: Settings,
         category: 'navigation',
-        keywords: ['settings', 'preferences', 'config'],
+        keywords: ['settings', 'preferences', 'config', 'profile'],
         action: () => {
           navigate('/settings');
           handleOpenChange(false);
         },
       },
 
-      // Actions
-      {
-        id: 'action-create-project',
-        label: 'Create New Project',
-        description: 'Start a new project',
-        icon: Plus,
-        category: 'create',
-        shortcut: ['⌘', 'N'],
-        keywords: ['create', 'new', 'project', 'add'],
-        action: () => {
-          handleOpenChange(false);
-          setTimeout(() => onCreateProject?.(), 100);
-        },
-      },
+      // ============================================
+      // UTILITY ACTIONS
+      // ============================================
       {
         id: 'action-search',
         label: 'Search Everything',
@@ -192,18 +220,19 @@ export function CommandPalette({
         shortcut: ['⌘', 'F'],
         keywords: ['search', 'find', 'look'],
         action: () => {
+          navigate('/search');
           handleOpenChange(false);
         },
       },
     ];
 
-    // Add recent projects
+    // Add recent projects as quick access
     const projectCommands: Command[] = projects.slice(0, 5).map((project) => ({
       id: `project-${project.id}`,
       label: project.name,
-      description: 'Go to project',
+      description: 'Open project',
       icon: Briefcase,
-      category: 'navigation',
+      category: 'recent' as const,
       keywords: ['project', project.name.toLowerCase()],
       action: () => {
         navigate(`/projects/${project.id}`);
@@ -212,7 +241,7 @@ export function CommandPalette({
     }));
 
     return [...baseCommands, ...projectCommands];
-  }, [navigate, handleOpenChange, onCreateProject, projects]);
+  }, [navigate, handleOpenChange, onCreateProject, onUploadFile, onCreateTask, onSendMessage, projects, currentProject]);
 
   // Filter commands based on search
   const filteredCommands = useMemo(() => {
@@ -228,12 +257,13 @@ export function CommandPalette({
     });
   }, [commands, search]);
 
-  // Group commands by category
+  // Group commands by category - prioritize create/actions over navigation
   const groupedCommands = useMemo(() => {
     const groups: Record<string, Command[]> = {
-      navigation: [],
-      actions: [],
       create: [],
+      actions: [],
+      navigation: [],
+      recent: [],
     };
 
     filteredCommands.forEach((cmd) => {
@@ -277,9 +307,10 @@ export function CommandPalette({
   };
 
   const categoryLabels: Record<string, string> = {
-    navigation: 'Navigation',
-    actions: 'Actions',
-    create: 'Create',
+    create: 'Quick Actions',
+    actions: 'Utilities',
+    navigation: 'Go To',
+    recent: 'Recent Projects',
   };
 
   return (
