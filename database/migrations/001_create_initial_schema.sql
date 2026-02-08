@@ -6,7 +6,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Users table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE users (
 );
 
 -- Organizations table
-CREATE TABLE organizations (
+CREATE TABLE IF NOT EXISTS organizations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(255) UNIQUE NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE organizations (
 );
 
 -- Organization members
-CREATE TABLE organization_members (
+CREATE TABLE IF NOT EXISTS organization_members (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -61,7 +61,7 @@ CREATE TABLE organization_members (
 );
 
 -- Teams table
-CREATE TABLE teams (
+CREATE TABLE IF NOT EXISTS teams (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -76,7 +76,7 @@ CREATE TABLE teams (
 );
 
 -- Team members
-CREATE TABLE team_members (
+CREATE TABLE IF NOT EXISTS team_members (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -88,7 +88,7 @@ CREATE TABLE team_members (
 );
 
 -- Projects table
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -120,11 +120,11 @@ CREATE TABLE projects (
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_oauth ON users(oauth_provider, oauth_id);
-CREATE INDEX idx_organizations_slug ON organizations(slug);
-CREATE INDEX idx_projects_organization ON projects(organization_id);
-CREATE INDEX idx_projects_status ON projects(status);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_oauth ON users(oauth_provider, oauth_id);
+CREATE INDEX IF NOT EXISTS idx_organizations_slug ON organizations(slug);
+CREATE INDEX IF NOT EXISTS idx_projects_organization ON projects(organization_id);
+CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
 
 -- Create trigger for updated_at timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -135,7 +135,12 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Apply updated_at triggers
+-- Apply updated_at triggers (drop and recreate to ensure they exist)
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+DROP TRIGGER IF EXISTS update_organizations_updated_at ON organizations;
+DROP TRIGGER IF EXISTS update_teams_updated_at ON teams;
+DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
+
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_organizations_updated_at BEFORE UPDATE ON organizations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_teams_updated_at BEFORE UPDATE ON teams FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
