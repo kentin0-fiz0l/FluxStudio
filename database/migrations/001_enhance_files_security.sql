@@ -96,12 +96,38 @@ CREATE TRIGGER trigger_update_file_upload_session_timestamp
     EXECUTE FUNCTION update_file_upload_session_timestamp();
 
 -- Create view for file security overview
--- Note: Uses COALESCE for optional columns that may not exist in all schemas
+-- Note: Only create view if files table exists with expected columns
 DO $$
+DECLARE
+    files_exists BOOLEAN;
+    has_required_columns BOOLEAN;
 BEGIN
-    -- Add original_name column if it doesn't exist
+    -- Check if files table exists
+    SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'files') INTO files_exists;
+
+    IF NOT files_exists THEN
+        RAISE NOTICE 'files table does not exist, skipping view creation';
+        RETURN;
+    END IF;
+
+    -- Add missing columns if they don't exist
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'files' AND column_name = 'original_name') THEN
         ALTER TABLE files ADD COLUMN original_name TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'files' AND column_name = 'file_size') THEN
+        ALTER TABLE files ADD COLUMN file_size BIGINT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'files' AND column_name = 'mime_type') THEN
+        ALTER TABLE files ADD COLUMN mime_type VARCHAR(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'files' AND column_name = 'uploaded_by') THEN
+        ALTER TABLE files ADD COLUMN uploaded_by UUID;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'files' AND column_name = 'organization_id') THEN
+        ALTER TABLE files ADD COLUMN organization_id UUID;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'files' AND column_name = 'project_id') THEN
+        ALTER TABLE files ADD COLUMN project_id UUID;
     END IF;
 
     -- Create or replace the view
@@ -135,9 +161,11 @@ BEGIN
             MAX(created_at) as last_scan_date
         FROM file_security_scans
         GROUP BY file_id
-    ) scan_summary ON f.id = scan_summary.file_id
-    LEFT JOIN security_quarantine q ON f.id = q.file_id AND q.review_action IS NULL
+    ) scan_summary ON f.id::text = scan_summary.file_id
+    LEFT JOIN security_quarantine q ON f.id::text = q.file_id AND q.review_action IS NULL
     ORDER BY f.created_at DESC;
+
+    RAISE NOTICE 'file_security_overview view created successfully';
 END $$;
 
 COMMENT ON VIEW file_security_overview IS 'Comprehensive view of file security status and scan history';
