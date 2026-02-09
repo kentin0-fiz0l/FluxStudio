@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getApiUrl } from '../utils/apiHelpers';
 import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '../services/apiService';
 
 export interface Project {
   id: string;
@@ -111,24 +112,19 @@ export function useProjects() {
     if (!user) throw new Error('Authentication required');
 
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl('/api/projects'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(projectData)
+      // Use apiService which handles CSRF tokens automatically
+      const result = await apiService.createProject({
+        name: projectData.name,
+        description: projectData.description || '',
+        organizationId: projectData.organizationId,
+        teamId: projectData.teamId,
+        startDate: projectData.startDate,
+        dueDate: projectData.dueDate,
+        priority: projectData.priority,
+        members: projectData.members
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create project');
-      }
-
-      const result = await response.json();
       const newProject = result.project;
-
       setProjects(prev => [...prev, newProject]);
       return newProject;
     } catch (error) {
