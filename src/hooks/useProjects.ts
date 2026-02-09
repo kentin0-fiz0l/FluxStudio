@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getApiUrl } from '../utils/apiHelpers';
 import { useAuth } from '../contexts/AuthContext';
-import { apiService } from '../services/apiService';
 
 export interface Project {
   id: string;
@@ -112,19 +111,34 @@ export function useProjects() {
     if (!user) throw new Error('Authentication required');
 
     try {
-      // Use apiService which handles CSRF tokens automatically
-      const result = await apiService.createProject({
-        name: projectData.name,
-        description: projectData.description || '',
-        organizationId: projectData.organizationId,
-        teamId: projectData.teamId,
-        startDate: projectData.startDate,
-        dueDate: projectData.dueDate,
-        priority: projectData.priority,
-        members: projectData.members
+      const token = localStorage.getItem('auth_token');
+
+      // Fetch CSRF token for POST request
+      const csrfResponse = await fetch(getApiUrl('/api/csrf-token'), {
+        credentials: 'include'
+      });
+      const csrfData = await csrfResponse.json();
+      const csrfToken = csrfData.csrfToken;
+
+      const response = await fetch(getApiUrl('/api/projects'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        },
+        credentials: 'include',
+        body: JSON.stringify(projectData)
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create project');
+      }
+
+      const result = await response.json();
       const newProject = result.project;
+
       setProjects(prev => [...prev, newProject]);
       return newProject;
     } catch (error) {
