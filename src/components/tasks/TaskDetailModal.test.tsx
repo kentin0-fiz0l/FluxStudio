@@ -187,7 +187,6 @@ describe('TaskDetailModal', () => {
     });
 
     it('calls onSave with task ID when updating existing task', async () => {
-      const user = userEvent.setup();
       render(<TaskDetailModal {...defaultProps} task={mockTask} />);
 
       // Wait for the modal to be ready
