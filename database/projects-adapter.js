@@ -5,6 +5,27 @@
 
 const { query, generateCuid } = require('./config');
 
+// Map frontend status values to Prisma enum values
+const STATUS_MAP = {
+  'planning': 'DISCOVERY',
+  'in_progress': 'IMPLEMENTATION',
+  'on_hold': 'SUPPORT',
+  'completed': 'COMPLETED',
+  'cancelled': 'CANCELLED',
+  // Also allow direct Prisma values
+  'DISCOVERY': 'DISCOVERY',
+  'IDEATION': 'IDEATION',
+  'REFINEMENT': 'REFINEMENT',
+  'IMPLEMENTATION': 'IMPLEMENTATION',
+  'SUPPORT': 'SUPPORT',
+  'COMPLETED': 'COMPLETED',
+  'CANCELLED': 'CANCELLED'
+};
+
+function mapStatus(status) {
+  return STATUS_MAP[status] || 'DISCOVERY';
+}
+
 class ProjectsAdapter {
   /**
    * Get all projects for a user (scoped by organization membership)
@@ -117,7 +138,7 @@ class ProjectsAdapter {
         projectData.organizationId,
         projectData.teamId || null,
         userId,
-        projectData.status || 'planning',
+        mapStatus(projectData.status || 'planning'),
         projectData.priority || 'medium',
         projectData.projectType || 'general',
         projectData.serviceCategory || 'general',
