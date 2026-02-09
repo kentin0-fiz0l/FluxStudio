@@ -124,15 +124,16 @@ class ProjectsAdapter {
 
       const result = await query(`
         INSERT INTO projects (
-          id, name, description, slug, organization_id, team_id, manager_id,
+          id, name, title, description, slug, organization_id, team_id, manager_id,
           status, priority, project_type, service_category, service_tier, ensemble_type,
-          start_date, due_date, metadata, settings, tags, created_at, updated_at
+          start_date, due_date, metadata, settings, tags, created_at, updated_at, "clientId", "type"
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
         ) RETURNING *
       `, [
         id,
         projectData.name,
+        projectData.name, // title = name for Prisma compatibility
         projectData.description || '',
         slug,
         projectData.organizationId,
@@ -150,7 +151,9 @@ class ProjectsAdapter {
         JSON.stringify(projectData.settings || { isPrivate: false, allowComments: true, requireApproval: false }),
         projectData.tags || [],
         now,
-        now
+        now,
+        userId, // clientId - set to creator for Prisma compatibility
+        'DESIGN_CONCEPTS' // type - default Prisma ProjectType
       ]);
 
       // Add creator as project member
