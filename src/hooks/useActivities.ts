@@ -30,27 +30,46 @@ export type ActivityType =
   | 'comment.deleted'
   | 'member.added'
   | 'milestone.created'
-  | 'milestone.completed';
+  | 'milestone.completed'
+  | 'file'
+  | 'task'
+  | 'comment'
+  | 'project'
+  | 'member'
+  | 'milestone'
+  | 'message'
+  | 'formation'
+  | 'board';
 
 export interface Activity {
   id: string;
   projectId: string;
-  type: ActivityType;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  userAvatar?: string;
-  entityType: 'task' | 'comment' | 'project' | 'milestone' | 'member';
-  entityId: string;
-  entityTitle?: string;
+  projectName?: string; // For dashboard activities across projects
+  type: ActivityType | string;
   action: string;
+  userId?: string;
+  userName?: string;
+  userEmail?: string;
+  userAvatar?: string;
+  user?: {
+    id: string;
+    name: string;
+    email?: string;
+    avatar?: string;
+  };
+  entityType?: 'task' | 'comment' | 'project' | 'milestone' | 'member' | 'file' | 'formation' | 'board' | string;
+  entityId?: string;
+  entityTitle?: string;
+  description?: string;
   metadata?: {
     field?: string;
     oldValue?: string;
     newValue?: string;
     preview?: string;
+    [key: string]: unknown;
   };
-  timestamp: string;
+  timestamp?: string;
+  createdAt?: string;
 }
 
 export interface ActivitiesResponse {
@@ -311,6 +330,64 @@ export const useActivityStats = (projectId: string | undefined) => {
 
 // Import React for useMemo
 import * as React from 'react';
+
+// ============================================================================
+// useDashboardActivities Hook
+// ============================================================================
+
+/**
+ * Fetch recent activities across all user's projects
+ *
+ * Optimized for dashboard display - shows activity across all accessible projects
+ *
+ * @param params - Query parameters for filtering and pagination
+ */
+export const useDashboardActivities = (params?: { limit?: number; offset?: number }) => {
+  return useQuery<ActivitiesResponse, Error>({
+    queryKey: ['activities', 'dashboard', params],
+    queryFn: async () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) throw new Error('Authentication required');
+
+      // Build query string
+      const queryParams = new URLSearchParams();
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.offset) queryParams.append('offset', params.offset.toString());
+
+      const url = `${getApiUrl('/api/projects/activities/recent')}?${queryParams.toString()}`;
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || errorData.message || 'Failed to fetch activities'
+        );
+      }
+
+      const result = await response.json();
+
+      // Normalize response format
+      return {
+        success: result.success ?? true,
+        activities: result.activities || [],
+        total: result.total || 0,
+        hasMore: result.hasMore || false,
+      };
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: 30 * 1000, // Poll every 30 seconds
+    refetchOnWindowFocus: true,
+    retry: 3,
+  });
+};
 
 // ============================================================================
 // Export all hooks

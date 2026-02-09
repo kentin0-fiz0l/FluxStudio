@@ -32,6 +32,14 @@ try {
   console.warn('Projects adapter not available, using file-based storage');
 }
 
+// Activity logger for tracking user actions
+let activityLogger = null;
+try {
+  activityLogger = require('../lib/activityLogger');
+} catch (error) {
+  console.warn('Activity logger not available');
+}
+
 // Helper functions
 function uuidv4() {
   return crypto.randomUUID();
@@ -177,6 +185,11 @@ router.post('/', authenticateToken, validateInput.sanitizeInput, async (req, res
 
       // Create default project conversation
       await projectsAdapter.getOrCreateProjectConversation(newProject.id, userId);
+
+      // Log activity
+      if (activityLogger) {
+        await activityLogger.projectCreated(userId, newProject);
+      }
     } else {
       // Fallback to file-based storage
       const projects = await getProjectsFromFile();
@@ -225,6 +238,11 @@ router.put('/:projectId', authenticateToken, validateInput.sanitizeInput, async 
 
     if (projectsAdapter) {
       updatedProject = await projectsAdapter.updateProject(projectId, updates, userId);
+
+      // Log activity
+      if (activityLogger && updatedProject) {
+        await activityLogger.projectUpdated(userId, updatedProject, updates);
+      }
     } else {
       const projects = await getProjectsFromFile();
       const index = projects.findIndex(p => p.id === projectId);
@@ -407,6 +425,32 @@ router.put('/:projectId/members/:userId', authenticateToken, validateInput.sanit
   } catch (error) {
     console.error('Update project member role error:', error);
     res.status(500).json({ error: 'Failed to update member role' });
+  }
+});
+
+/**
+ * GET /api/projects/activities/recent
+ * Get recent activities across all user's projects (for dashboard)
+ */
+router.get('/activities/recent', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { limit = 20, offset = 0 } = req.query;
+
+    let activities = [];
+
+    if (activityLogger) {
+      activities = await activityLogger.getUserActivities(userId, {
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        includeOwn: true
+      });
+    }
+
+    res.json({ success: true, activities, total: activities.length });
+  } catch (error) {
+    console.error('Get recent activities error:', error);
+    res.status(500).json({ error: 'Failed to fetch recent activities' });
   }
 });
 

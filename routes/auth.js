@@ -10,6 +10,10 @@
  * - POST /api/auth/google
  * - POST /api/auth/apple
  * - GET  /api/csrf-token
+ * - POST /api/auth/verify-email (Phase 1 - User Adoption)
+ * - POST /api/auth/resend-verification (Phase 1 - User Adoption)
+ * - POST /api/auth/forgot-password (Phase 1 - User Adoption)
+ * - POST /api/auth/reset-password (Phase 1 - User Adoption)
  */
 
 const express = require('express');
@@ -29,6 +33,18 @@ const { generateAuthResponse } = require('../lib/auth/authHelpers');
 const securityLogger = require('../lib/auth/securityLogger');
 const { captureAuthError } = require('../lib/monitoring/sentry');
 const anomalyDetector = require('../lib/security/anomalyDetector');
+
+// Import email service for verification and password reset
+const { emailService } = require('../lib/email/emailService');
+
+// Import database query function for email verification (when USE_DATABASE=true)
+let dbQuery = null;
+try {
+  const { query } = require('../database/config');
+  dbQuery = query;
+} catch (e) {
+  console.log('Database query not available for email verification');
+}
 
 // Database/file hybrid support (imported from parent scope)
 let authHelper = null;
@@ -146,6 +162,10 @@ router.post('/signup',
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
+      // Generate email verification token
+      const verificationToken = emailService.generateToken();
+      const verificationExpires = emailService.generateExpiry(24); // 24 hours
+
       // Create user with UUID (Week 2 - compatible with database)
       const newUser = {
         id: uuidv4(),
@@ -153,11 +173,40 @@ router.post('/signup',
         name,
         userType,
         password: hashedPassword,
+        emailVerified: false,
+        verificationToken,
+        verificationExpires: verificationExpires.toISOString(),
         createdAt: new Date().toISOString()
       };
 
       users.push(newUser);
       await authHelper.saveUsers(users);
+
+      // If using database, also update the verification columns
+      if (USE_DATABASE && dbQuery) {
+        try {
+          await dbQuery(`
+            UPDATE users
+            SET email_verified = false, verification_token = $1, verification_expires = $2
+            WHERE id = $3
+          `, [verificationToken, verificationExpires, newUser.id]);
+        } catch (dbError) {
+          console.warn('Could not update verification columns in database:', dbError.message);
+        }
+      }
+
+      // Send verification email (non-blocking - don't fail signup if email fails)
+      emailService.sendVerificationEmail(email, verificationToken, name)
+        .then(sent => {
+          if (sent) {
+            console.log('Verification email sent to:', email);
+          } else {
+            console.warn('Failed to send verification email to:', email);
+          }
+        })
+        .catch(err => {
+          console.error('Error sending verification email:', err.message);
+        });
 
       // Generate token pair with device tracking (Week 2 Security Sprint)
       const authResponse = await generateAuthResponse(newUser, req);
@@ -169,7 +218,12 @@ router.post('/signup',
       });
 
       // Return auth response with access + refresh tokens
-      res.json(authResponse);
+      // Include emailVerified status so frontend knows to show verification reminder
+      res.json({
+        ...authResponse,
+        emailVerified: false,
+        message: 'Account created! Please check your email to verify your account.'
+      });
     } catch (error) {
       console.error('Signup error:', error);
 
@@ -582,6 +636,392 @@ router.post('/google/callback', async (req, res) => {
     res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
   }
 });
+
+// ========================================
+// EMAIL VERIFICATION & PASSWORD RESET
+// Phase 1 - User Adoption Roadmap
+// ========================================
+
+/**
+ * Verify email address with token
+ * POST /api/auth/verify-email
+ */
+router.post('/verify-email',
+  authRateLimit,
+  validateInput.sanitizeInput,
+  async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ message: 'Verification token is required' });
+      }
+
+      // For database mode, query directly
+      if (USE_DATABASE && dbQuery) {
+        const result = await dbQuery(`
+          SELECT id, email, name, email_verified, verification_expires
+          FROM users
+          WHERE verification_token = $1
+        `, [token]);
+
+        if (result.rows.length === 0) {
+          return res.status(400).json({ message: 'Invalid or expired verification token' });
+        }
+
+        const user = result.rows[0];
+
+        // Check if already verified
+        if (user.email_verified) {
+          return res.json({ message: 'Email already verified', verified: true });
+        }
+
+        // Check if token is expired
+        if (user.verification_expires && new Date(user.verification_expires) < new Date()) {
+          return res.status(400).json({ message: 'Verification token has expired. Please request a new one.' });
+        }
+
+        // Mark email as verified and clear token
+        await dbQuery(`
+          UPDATE users
+          SET email_verified = true, verification_token = NULL, verification_expires = NULL
+          WHERE id = $1
+        `, [user.id]);
+
+        // Send welcome email
+        await emailService.sendWelcomeEmail(user.email, user.name || 'there');
+
+        // Log the verification
+        await securityLogger.logEvent(
+          'email_verified',
+          securityLogger.SEVERITY.INFO,
+          { userId: user.id, email: user.email }
+        );
+
+        return res.json({ message: 'Email verified successfully', verified: true });
+      }
+
+      // Fallback for file-based storage
+      const users = await authHelper.getUsers();
+      const user = users.find(u => u.verificationToken === token);
+
+      if (!user) {
+        return res.status(400).json({ message: 'Invalid or expired verification token' });
+      }
+
+      if (user.emailVerified) {
+        return res.json({ message: 'Email already verified', verified: true });
+      }
+
+      if (user.verificationExpires && new Date(user.verificationExpires) < new Date()) {
+        return res.status(400).json({ message: 'Verification token has expired. Please request a new one.' });
+      }
+
+      // Update user
+      user.emailVerified = true;
+      user.verificationToken = null;
+      user.verificationExpires = null;
+      await authHelper.saveUsers(users);
+
+      // Send welcome email
+      await emailService.sendWelcomeEmail(user.email, user.name || 'there');
+
+      res.json({ message: 'Email verified successfully', verified: true });
+    } catch (error) {
+      console.error('Email verification error:', error);
+      captureAuthError(error, {
+        endpoint: '/api/auth/verify-email',
+        ipAddress: req.ip
+      });
+      res.status(500).json({ message: 'Server error during email verification' });
+    }
+  }
+);
+
+/**
+ * Resend verification email
+ * POST /api/auth/resend-verification
+ */
+router.post('/resend-verification',
+  authRateLimit,
+  validateInput.email,
+  validateInput.sanitizeInput,
+  async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+
+      // Check rate limiting for resend
+      const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
+      if (isBlocked) {
+        return res.status(429).json({ message: 'Too many requests. Please try again later.' });
+      }
+
+      // Generate new token
+      const verificationToken = emailService.generateToken();
+      const verificationExpires = emailService.generateExpiry(24); // 24 hours
+
+      // For database mode
+      if (USE_DATABASE && dbQuery) {
+        const result = await dbQuery(`
+          SELECT id, name, email_verified FROM users WHERE email = $1
+        `, [email]);
+
+        if (result.rows.length === 0) {
+          // Don't reveal if email exists
+          return res.json({ message: 'If an account exists with this email, a verification link has been sent.' });
+        }
+
+        const user = result.rows[0];
+
+        if (user.email_verified) {
+          return res.json({ message: 'Email is already verified' });
+        }
+
+        // Update token
+        await dbQuery(`
+          UPDATE users
+          SET verification_token = $1, verification_expires = $2
+          WHERE id = $3
+        `, [verificationToken, verificationExpires, user.id]);
+
+        // Send verification email
+        await emailService.sendVerificationEmail(email, verificationToken, user.name || 'there');
+
+        return res.json({ message: 'Verification email sent. Please check your inbox.' });
+      }
+
+      // Fallback for file-based storage
+      const users = await authHelper.getUsers();
+      const user = users.find(u => u.email === email);
+
+      if (!user) {
+        return res.json({ message: 'If an account exists with this email, a verification link has been sent.' });
+      }
+
+      if (user.emailVerified) {
+        return res.json({ message: 'Email is already verified' });
+      }
+
+      // Update token
+      user.verificationToken = verificationToken;
+      user.verificationExpires = verificationExpires.toISOString();
+      await authHelper.saveUsers(users);
+
+      // Send verification email
+      await emailService.sendVerificationEmail(email, verificationToken, user.name || 'there');
+
+      res.json({ message: 'Verification email sent. Please check your inbox.' });
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      captureAuthError(error, {
+        endpoint: '/api/auth/resend-verification',
+        email: req.body.email,
+        ipAddress: req.ip
+      });
+      res.status(500).json({ message: 'Server error while sending verification email' });
+    }
+  }
+);
+
+/**
+ * Request password reset
+ * POST /api/auth/forgot-password
+ */
+router.post('/forgot-password',
+  authRateLimit,
+  validateInput.email,
+  validateInput.sanitizeInput,
+  async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+
+      // Check rate limiting
+      const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
+      if (isBlocked) {
+        return res.status(429).json({ message: 'Too many requests. Please try again later.' });
+      }
+
+      // Generate reset token
+      const resetToken = emailService.generateToken();
+      const resetExpires = emailService.generateExpiry(1); // 1 hour
+
+      // For database mode
+      if (USE_DATABASE && dbQuery) {
+        const result = await dbQuery(`
+          SELECT id, name, google_id FROM users WHERE email = $1
+        `, [email]);
+
+        // Always return success message to prevent email enumeration
+        if (result.rows.length === 0) {
+          return res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
+        }
+
+        const user = result.rows[0];
+
+        // If user signed up with Google, suggest using Google login
+        if (user.google_id && !user.password) {
+          return res.json({
+            message: 'This account uses Google Sign-In. Please log in with Google instead.',
+            useGoogle: true
+          });
+        }
+
+        // Update reset token
+        await dbQuery(`
+          UPDATE users
+          SET password_reset_token = $1, password_reset_expires = $2
+          WHERE id = $3
+        `, [resetToken, resetExpires, user.id]);
+
+        // Send reset email
+        await emailService.sendPasswordResetEmail(email, resetToken, user.name || 'there');
+
+        // Log the request
+        await securityLogger.logEvent(
+          'password_reset_requested',
+          securityLogger.SEVERITY.INFO,
+          { userId: user.id, email, ipAddress: req.ip }
+        );
+
+        return res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
+      }
+
+      // Fallback for file-based storage
+      const users = await authHelper.getUsers();
+      const user = users.find(u => u.email === email);
+
+      if (!user) {
+        return res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
+      }
+
+      if (user.googleId && !user.password) {
+        return res.json({
+          message: 'This account uses Google Sign-In. Please log in with Google instead.',
+          useGoogle: true
+        });
+      }
+
+      // Update reset token
+      user.passwordResetToken = resetToken;
+      user.passwordResetExpires = resetExpires.toISOString();
+      await authHelper.saveUsers(users);
+
+      // Send reset email
+      await emailService.sendPasswordResetEmail(email, resetToken, user.name || 'there');
+
+      res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      captureAuthError(error, {
+        endpoint: '/api/auth/forgot-password',
+        email: req.body.email,
+        ipAddress: req.ip
+      });
+      res.status(500).json({ message: 'Server error while processing password reset request' });
+    }
+  }
+);
+
+/**
+ * Reset password with token
+ * POST /api/auth/reset-password
+ */
+router.post('/reset-password',
+  authRateLimit,
+  validateInput.password,
+  validateInput.sanitizeInput,
+  async (req, res) => {
+    try {
+      const { token, password } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ message: 'Reset token is required' });
+      }
+
+      if (!password) {
+        return res.status(400).json({ message: 'New password is required' });
+      }
+
+      if (password.length < 8) {
+        return res.status(400).json({ message: 'Password must be at least 8 characters' });
+      }
+
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // For database mode
+      if (USE_DATABASE && dbQuery) {
+        const result = await dbQuery(`
+          SELECT id, email, password_reset_expires
+          FROM users
+          WHERE password_reset_token = $1
+        `, [token]);
+
+        if (result.rows.length === 0) {
+          return res.status(400).json({ message: 'Invalid or expired reset token' });
+        }
+
+        const user = result.rows[0];
+
+        // Check if token is expired
+        if (user.password_reset_expires && new Date(user.password_reset_expires) < new Date()) {
+          return res.status(400).json({ message: 'Reset token has expired. Please request a new one.' });
+        }
+
+        // Update password and clear reset token
+        await dbQuery(`
+          UPDATE users
+          SET password = $1, password_reset_token = NULL, password_reset_expires = NULL
+          WHERE id = $2
+        `, [hashedPassword, user.id]);
+
+        // Log the password change
+        await securityLogger.logEvent(
+          'password_reset_completed',
+          securityLogger.SEVERITY.INFO,
+          { userId: user.id, email: user.email, ipAddress: req.ip }
+        );
+
+        return res.json({ message: 'Password reset successfully. You can now log in with your new password.' });
+      }
+
+      // Fallback for file-based storage
+      const users = await authHelper.getUsers();
+      const user = users.find(u => u.passwordResetToken === token);
+
+      if (!user) {
+        return res.status(400).json({ message: 'Invalid or expired reset token' });
+      }
+
+      if (user.passwordResetExpires && new Date(user.passwordResetExpires) < new Date()) {
+        return res.status(400).json({ message: 'Reset token has expired. Please request a new one.' });
+      }
+
+      // Update password and clear reset token
+      user.password = hashedPassword;
+      user.passwordResetToken = null;
+      user.passwordResetExpires = null;
+      await authHelper.saveUsers(users);
+
+      res.json({ message: 'Password reset successfully. You can now log in with your new password.' });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      captureAuthError(error, {
+        endpoint: '/api/auth/reset-password',
+        ipAddress: req.ip
+      });
+      res.status(500).json({ message: 'Server error while resetting password' });
+    }
+  }
+);
 
 // Apple OAuth endpoint (placeholder)
 router.post('/apple', async (req, res) => {

@@ -253,36 +253,51 @@ class ProjectsAdapter {
   }
 
   /**
-   * Get project activity/events
+   * Get project activity/events from the activities table
    */
   async getProjectActivity(projectId, options = {}) {
     try {
       const { limit = 20, offset = 0 } = options;
 
-      // For now, return a combination of recent messages and task updates
-      // TODO: Implement proper activity tracking table
+      // Query the activities table for real activity data
       const result = await query(`
         SELECT
-          'message' as type,
-          m.id,
-          m.content as description,
-          m.created_at as timestamp,
+          a.id,
+          a.type,
+          a.action,
+          a.entity_type,
+          a.entity_id,
+          a.entity_title,
+          a.description,
+          a.metadata,
+          a.created_at as timestamp,
+          u.id as user_id,
           u.name as user_name,
-          u.id as user_id
-        FROM messages m
-        JOIN users u ON m.author_id = u.id
-        JOIN conversations c ON m.conversation_id = c.id
-        WHERE c.project_id = $1 AND m.deleted_at IS NULL
-        ORDER BY m.created_at DESC
+          u.email as user_email,
+          u.avatar_url as user_avatar
+        FROM activities a
+        LEFT JOIN users u ON a.user_id = u.id
+        WHERE a.project_id = $1
+        ORDER BY a.created_at DESC
         LIMIT $2 OFFSET $3
       `, [projectId, limit, offset]);
 
       return result.rows.map(row => ({
         id: row.id,
         type: row.type,
+        action: row.action,
+        entityType: row.entity_type,
+        entityId: row.entity_id,
+        entityTitle: row.entity_title,
         description: row.description,
+        metadata: row.metadata || {},
         timestamp: row.timestamp,
-        user: { id: row.user_id, name: row.user_name }
+        user: row.user_id ? {
+          id: row.user_id,
+          name: row.user_name,
+          email: row.user_email,
+          avatar: row.user_avatar
+        } : null
       }));
     } catch (error) {
       console.error('Error getting project activity:', error);

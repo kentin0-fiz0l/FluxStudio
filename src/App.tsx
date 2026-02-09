@@ -39,6 +39,10 @@ const { Component: DesignBoardPage } = lazyLoadWithRetry(() => import('./pages/D
 const { Component: Signup } = lazyLoadWithRetry(() => import('./pages/Signup'));
 const { Component: SignupWizard } = lazyLoadWithRetry(() => import('./pages/SignupWizard'));
 const { Component: EmailVerification } = lazyLoadWithRetry(() => import('./pages/EmailVerification'));
+const { Component: ForgotPassword } = lazyLoadWithRetry(() => import('./pages/ForgotPassword'));
+const { Component: ResetPassword } = lazyLoadWithRetry(() => import('./pages/ResetPassword'));
+const { Component: Checkout } = lazyLoadWithRetry(() => import('./pages/Checkout'));
+const { Component: CheckoutSuccess } = lazyLoadWithRetry(() => import('./pages/CheckoutSuccess'));
 const { Component: WelcomeFlow } = lazyLoadWithRetry(() => import('./pages/WelcomeFlow'));
 const { Component: AdaptiveDashboard } = lazyLoadWithRetry(() => import('./components/AdaptiveDashboard'));
 const { Component: Connectors } = lazyLoadWithRetry(() => import('./pages/Connectors'));
@@ -70,6 +74,10 @@ const { Component: QuickOnboarding } = lazyLoadWithRetry(() => import('./compone
 // Legal pages
 const { Component: Terms } = lazyLoadWithRetry(() => import('./pages/Terms'));
 const { Component: Privacy } = lazyLoadWithRetry(() => import('./pages/Privacy'));
+
+// Help & Support pages - Phase 4 User Adoption
+const { Component: HelpCenter } = lazyLoadWithRetry(() => import('./pages/HelpCenter'));
+const { Component: Support } = lazyLoadWithRetry(() => import('./pages/Support'));
 // Future: Route components for advanced features - see docs/ROUTE_WRAPPERS.md for implementation guide
 
 // FluxPrint Integration - 3D Printing Dashboard
@@ -151,6 +159,11 @@ function AuthenticatedRoutes() {
                   <Route path="/signup" element={<SignupWizard />} />
                   <Route path="/signup/classic" element={<Signup />} />
                   <Route path="/verify-email" element={<EmailVerification />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/checkout/success" element={<CheckoutSuccess />} />
+                  <Route path="/checkout/cancel" element={<Checkout />} />
                   <Route path="/welcome" element={<WelcomeFlow />} />
 
                   {/* OAuth callback routes moved to App level to avoid ConnectorsContext interference */}
@@ -158,6 +171,10 @@ function AuthenticatedRoutes() {
                   {/* Legal pages - public */}
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
+
+                  {/* Help & Support pages - public but with optional auth */}
+                  <Route path="/help" element={<HelpCenter />} />
+                  <Route path="/support" element={<Support />} />
 
                   {/* ================================================
                       PRIMARY ROUTES (3-Space Architecture)

@@ -24,6 +24,14 @@ const { query } = require('../database/config');
 
 const router = express.Router();
 
+// Activity logger for tracking user actions
+let activityLogger = null;
+try {
+  activityLogger = require('../lib/activityLogger');
+} catch (error) {
+  console.warn('Activity logger not available');
+}
+
 // Configure multer for file uploads (memory storage for processing)
 const fileUploadStorage = multer.memoryStorage();
 const fileUpload = multer({
@@ -191,6 +199,15 @@ router.post('/upload', authenticateToken, fileUpload.array('files', 10), validat
       uploadedFiles.push(newFile);
     }
 
+    // Log activity for file uploads
+    if (activityLogger && projectId) {
+      if (uploadedFiles.length === 1) {
+        await activityLogger.fileUploaded(userId, projectId, uploadedFiles[0]);
+      } else if (uploadedFiles.length > 1) {
+        await activityLogger.filesUploaded(userId, projectId, uploadedFiles);
+      }
+    }
+
     res.status(201).json({
       success: true,
       files: uploadedFiles,
@@ -223,6 +240,11 @@ router.delete('/:fileId', authenticateToken, async (req, res) => {
 
     // Delete from database
     await filesAdapter.deleteFile(fileId, userId);
+
+    // Log activity for file deletion
+    if (activityLogger && file.projectId) {
+      await activityLogger.fileDeleted(userId, file.projectId, file);
+    }
 
     res.json({ success: true, message: 'File deleted successfully' });
   } catch (error) {

@@ -34,8 +34,10 @@ import { ProjectCard } from '@/components/molecules';
 import { ProjectCardSkeleton } from '@/components/loading/LoadingStates';
 import { UniversalEmptyState, emptyStateConfigs } from '@/components/ui/UniversalEmptyState';
 import { useProjects } from '@/hooks/useProjects';
+import { useDashboardActivities } from '@/hooks/useActivities';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
 
 type ViewMode = 'grid' | 'list';
 
@@ -43,6 +45,7 @@ export function ProjectsHub() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { projects, loading } = useProjects();
+  const { data: activitiesData, isLoading: activitiesLoading } = useDashboardActivities({ limit: 10 });
 
   // View state
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,37 +67,19 @@ export function ProjectsHub() {
   // Current timestamp for deadline calculations (captured once on mount)
   const [now] = useState(() => Date.now());
 
-  // Mock activity data - in real app, this comes from API
-  const recentActivity = [
-    {
-      id: '1',
-      action: 'Sarah uploaded 3 files',
-      project: 'Summer Show 2025',
-      time: '10 minutes ago',
-      type: 'file',
-    },
-    {
-      id: '2',
-      action: 'Mike commented on Formation 3',
-      project: 'Indoor Season',
-      time: '1 hour ago',
-      type: 'comment',
-    },
-    {
-      id: '3',
-      action: 'New team member joined',
-      project: 'Website Redesign',
-      time: '2 hours ago',
-      type: 'team',
-    },
-    {
-      id: '4',
-      action: 'Task completed: Props Design',
-      project: 'Summer Show 2025',
-      time: '3 hours ago',
-      type: 'task',
-    },
-  ];
+  // Real activity data from API
+  const recentActivity = useMemo(() => {
+    if (!activitiesData?.activities) return [];
+    return activitiesData.activities.map((activity) => ({
+      id: activity.id,
+      action: activity.description || `${activity.user?.name || 'Someone'} ${activity.action}`,
+      project: activity.projectName || activity.entityTitle || 'Project',
+      time: activity.timestamp
+        ? formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })
+        : 'Recently',
+      type: activity.type,
+    }));
+  }, [activitiesData]);
 
   const handleCreateProject = () => {
     navigate('/projects/new');
@@ -304,30 +289,52 @@ export function ProjectsHub() {
                   >
                     <CardContent className="pt-0">
                       <div className="space-y-4">
-                        {recentActivity.map((activity) => (
-                          <div
-                            key={activity.id}
-                            className="flex items-start gap-3 text-sm"
-                          >
-                            <div
-                              className={cn(
-                                'w-2 h-2 rounded-full mt-1.5 flex-shrink-0',
-                                activity.type === 'file' && 'bg-blue-500',
-                                activity.type === 'comment' && 'bg-green-500',
-                                activity.type === 'team' && 'bg-purple-500',
-                                activity.type === 'task' && 'bg-amber-500'
-                              )}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-neutral-900 dark:text-white">
-                                {activity.action}
-                              </p>
-                              <p className="text-neutral-500 dark:text-neutral-400 text-xs">
-                                {activity.project} · {activity.time}
-                              </p>
-                            </div>
+                        {activitiesLoading ? (
+                          <div className="space-y-3">
+                            {[1, 2, 3].map((i) => (
+                              <div key={i} className="flex items-start gap-3 animate-pulse">
+                                <div className="w-2 h-2 rounded-full mt-1.5 bg-neutral-200 dark:bg-neutral-700" />
+                                <div className="flex-1 space-y-1">
+                                  <div className="h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-3/4" />
+                                  <div className="h-3 bg-neutral-200 dark:bg-neutral-700 rounded w-1/2" />
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        ) : recentActivity.length > 0 ? (
+                          recentActivity.map((activity) => (
+                            <div
+                              key={activity.id}
+                              className="flex items-start gap-3 text-sm"
+                            >
+                              <div
+                                className={cn(
+                                  'w-2 h-2 rounded-full mt-1.5 flex-shrink-0',
+                                  activity.type === 'file' && 'bg-blue-500',
+                                  activity.type === 'comment' && 'bg-green-500',
+                                  activity.type === 'member' && 'bg-purple-500',
+                                  activity.type === 'task' && 'bg-amber-500',
+                                  activity.type === 'project' && 'bg-indigo-500',
+                                  activity.type === 'formation' && 'bg-pink-500',
+                                  activity.type === 'message' && 'bg-cyan-500',
+                                  !['file', 'comment', 'member', 'task', 'project', 'formation', 'message'].includes(activity.type) && 'bg-neutral-400'
+                                )}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-neutral-900 dark:text-white">
+                                  {activity.action}
+                                </p>
+                                <p className="text-neutral-500 dark:text-neutral-400 text-xs">
+                                  {activity.project} · {activity.time}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-neutral-500 text-center py-4">
+                            No recent activity yet. Start creating projects to see updates here!
+                          </p>
+                        )}
                       </div>
                     </CardContent>
                   </motion.div>

@@ -203,6 +203,11 @@ app.use(tracingHandler());
 // Trust proxy for X-Forwarded-For headers (required for nginx reverse proxy)
 app.set('trust proxy', 1);
 
+// Stripe webhook needs raw body for signature verification
+// MUST be before express.json() middleware
+app.use('/api/payments/webhooks/stripe', express.raw({ type: 'application/json' }));
+app.use('/payments/webhooks/stripe', express.raw({ type: 'application/json' }));
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -232,7 +237,9 @@ app.use(csrfProtection({
     '/api/auth/login',
     '/api/auth/signup',
     '/health',
-    '/monitoring'
+    '/monitoring',
+    '/payments/webhooks/stripe',
+    '/api/payments/webhooks/stripe'
   ]
 }));
 
@@ -711,6 +718,8 @@ const metmapRoutes = require('./routes/metmap');
 const pushRoutes = require('./routes/push');
 const printingRoutes = require('./routes/printing');
 const agentRoutes = require('./routes/agent-api');
+const paymentsRoutes = require('./routes/payments');
+const supportRoutes = require('./routes/support');
 
 // Initialize auth routes with database helper
 authRoutes.setAuthHelper({
@@ -739,6 +748,15 @@ app.use('/api/push', pushRoutes);
 app.use('/api/printing', printingRoutes);
 app.use('/agent', agentRoutes);  // Direct path (DO ingress strips /api prefix)
 app.use('/api/agent', agentRoutes);  // Also support full path for local dev
+
+// Payments routes - Phase 2 User Adoption
+paymentsRoutes.setAuthHelper({ authenticateToken });
+app.use('/payments', paymentsRoutes);  // Direct path (DO ingress strips /api prefix)
+app.use('/api/payments', paymentsRoutes);  // Also support full path for local dev
+
+// Support routes - Phase 4 User Adoption
+app.use('/support', supportRoutes);  // Direct path
+app.use('/api/support', supportRoutes);  // Full path for local dev
 
 // Set Socket.IO namespace for messaging routes (for real-time broadcasts)
 messagingRoutes.setMessagingNamespace(messagingNamespace);
