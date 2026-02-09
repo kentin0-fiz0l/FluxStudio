@@ -697,10 +697,12 @@ app.use('/monitoring', createMonitoringRouter());
 
 // Mount AI Design Assistant routes
 const aiRoutes = require('./routes/ai');
+app.use('/ai', aiRoutes);  // Direct path (DO ingress strips /api prefix)
 app.use('/api/ai', aiRoutes);
 
 // Mount Documents routes (collaborative editing)
 const documentsRoutes = require('./routes/documents');
+app.use('/', documentsRoutes);  // Direct path (DO ingress strips /api prefix)
 app.use('/api', documentsRoutes);
 
 // Mount modular route files (Phase 1 refactoring)
@@ -734,20 +736,46 @@ authRoutes.setAuthHelper({
 app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
 
+// Mount routes at both paths for DigitalOcean App Platform compatibility
+// DO ingress strips /api prefix before forwarding to backend
+app.use('/files', filesRoutes);
 app.use('/api/files', filesRoutes);
+
+app.use('/notifications', notificationsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+
+app.use('/teams', teamsRoutes);
 app.use('/api/teams', teamsRoutes);
+
+app.use('/projects', projectsRoutes);
 app.use('/api/projects', projectsRoutes);
+
+app.use('/assets', assetsRoutes);
 app.use('/api/assets', assetsRoutes);
+
+app.use('/boards', designBoardsRoutes);
 app.use('/api/boards', designBoardsRoutes);
+
+app.use('/connectors', connectorsRoutes);
 app.use('/api/connectors', connectorsRoutes);
+
+app.use('/conversations', messagingRoutes);
 app.use('/api/conversations', messagingRoutes);
+
+app.use('/messages', messagesRoutes);
 app.use('/api/messages', messagesRoutes);
+
+app.use('/metmap', metmapRoutes);
 app.use('/api/metmap', metmapRoutes);
+
+app.use('/push', pushRoutes);
 app.use('/api/push', pushRoutes);
+
+app.use('/printing', printingRoutes);
 app.use('/api/printing', printingRoutes);
-app.use('/agent', agentRoutes);  // Direct path (DO ingress strips /api prefix)
-app.use('/api/agent', agentRoutes);  // Also support full path for local dev
+
+app.use('/agent', agentRoutes);
+app.use('/api/agent', agentRoutes)
 
 // Payments routes - Phase 2 User Adoption
 paymentsRoutes.setAuthHelper({ authenticateToken });
