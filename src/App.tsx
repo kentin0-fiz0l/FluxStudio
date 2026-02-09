@@ -55,6 +55,7 @@ const { Component: FormationEditor } = lazyLoadWithRetry(() => import('./pages/F
 const { Component: ProjectsHub } = lazyLoadWithRetry(() => import('./pages/ProjectsHub'));
 const { Component: ProjectDetail } = lazyLoadWithRetry(() => import('./pages/ProjectDetail'));
 const { Component: ProjectOverview } = lazyLoadWithRetry(() => import('./pages/ProjectOverview'));
+const { Component: NewProject } = lazyLoadWithRetry(() => import('./pages/NewProject'));
 const { Component: OrganizationNew } = lazyLoadWithRetry(() => import('./pages/OrganizationNew'));
 const { Component: Profile } = lazyLoadWithRetry(() => import('./pages/Profile'));
 const { Component: Notifications } = lazyLoadWithRetry(() => import('./pages/Notifications'));
@@ -186,6 +187,7 @@ function AuthenticatedRoutes() {
 
                   {/* Projects Hub - THE primary landing page */}
                   <Route path="/projects" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectsHub /></ProjectsErrorBoundary></ProtectedRoute>} />
+                  <Route path="/projects/new" element={<ProtectedRoute><ProjectsErrorBoundary><NewProject /></ProjectsErrorBoundary></ProtectedRoute>} />
 
                   {/* Quick Onboarding - For new users */}
                   <Route path="/get-started" element={<ProtectedRoute><QuickOnboarding /></ProtectedRoute>} />
