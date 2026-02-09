@@ -26,13 +26,13 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 );
 
 -- Create indexes for common queries
-CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
-CREATE INDEX idx_refresh_tokens_token ON refresh_tokens(token);
-CREATE INDEX idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
-CREATE INDEX idx_refresh_tokens_device_fingerprint ON refresh_tokens(device_fingerprint);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_device_fingerprint ON refresh_tokens(device_fingerprint);
 
 -- Create index for active tokens (not expired, not revoked)
-CREATE INDEX idx_refresh_tokens_active ON refresh_tokens(user_id, expires_at)
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_active ON refresh_tokens(user_id, expires_at)
   WHERE revoked_at IS NULL;
 
 -- Add comments for documentation
