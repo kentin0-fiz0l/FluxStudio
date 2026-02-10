@@ -246,24 +246,26 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
         ) : (
           <div className="h-full flex flex-col">
             {/* Mobile header */}
-            <div className="bg-white border-b border-gray-200 p-4">
+            <header className="bg-white border-b border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowMobileMenu(true)}
+                    aria-label="Open navigation menu"
+                    aria-expanded={showMobileMenu}
                   >
-                    <Menu className="w-5 h-5" />
+                    <Menu className="w-5 h-5" aria-hidden="true" />
                   </Button>
                   <h1 className="text-lg font-semibold">Messages</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm">
-                    <Search className="w-5 h-5" />
+                  <Button variant="ghost" size="sm" aria-label="Search messages">
+                    <Search className="w-5 h-5" aria-hidden="true" />
                   </Button>
-                  <Button variant="ghost" size="sm">
-                    <Plus className="w-5 h-5" />
+                  <Button variant="ghost" size="sm" aria-label="Start new conversation">
+                    <Plus className="w-5 h-5" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
@@ -275,17 +277,20 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full"
+                  aria-label="Search conversations"
+                  type="search"
                 />
               </div>
-            </div>
+            </header>
 
             {/* Conversations list */}
-            <div className="flex-1 overflow-y-auto">
+            <nav className="flex-1 overflow-y-auto" aria-label="Conversations">
               {filteredConversations.map((conversation) => (
                 <button
                   key={conversation.id}
                   onClick={() => handleConversationSelect(conversation)}
-                  className="w-full p-4 border-b border-gray-100 hover:bg-gray-50 text-left"
+                  className="w-full p-4 border-b border-gray-100 hover:bg-gray-50 text-left min-h-[44px]"
+                  aria-label={`${conversation.name}${conversation.unreadCount > 0 ? `, ${conversation.unreadCount} unread messages` : ''}`}
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative">
@@ -296,7 +301,11 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                         </AvatarFallback>
                       </Avatar>
                       {conversation.participants[0]?.isOnline && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
+                        <div
+                          className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-white rounded-full"
+                          aria-label="Online"
+                          role="status"
+                        />
                       )}
                     </div>
 
@@ -323,7 +332,7 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                   </div>
                 </button>
               ))}
-            </div>
+            </nav>
 
             {/* Mobile menu overlay */}
             <AnimatePresence>
@@ -334,6 +343,7 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                   exit={{ opacity: 0 }}
                   className="fixed inset-0 bg-black/50 z-50"
                   onClick={() => setShowMobileMenu(false)}
+                  aria-hidden="true"
                 >
                   <motion.div
                     initial={{ x: -300 }}
@@ -341,15 +351,18 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                     exit={{ x: -300 }}
                     className="w-80 h-full bg-white p-6"
                     onClick={(e) => e.stopPropagation()}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Navigation menu"
                   >
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-lg font-semibold">Menu</h2>
-                      <Button variant="ghost" size="sm" onClick={() => setShowMobileMenu(false)}>
-                        <X className="w-5 h-5" />
+                      <Button variant="ghost" size="sm" onClick={() => setShowMobileMenu(false)} aria-label="Close menu">
+                        <X className="w-5 h-5" aria-hidden="true" />
                       </Button>
                     </div>
 
-                    <div className="space-y-4">
+                    <nav className="space-y-4" aria-label="Message views">
                       <Button
                         variant="ghost"
                         className="w-full justify-start"
@@ -357,8 +370,9 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                           setCurrentView('conversations');
                           setShowMobileMenu(false);
                         }}
+                        aria-current={currentView === 'conversations' ? 'page' : undefined}
                       >
-                        <MessageSquare className="w-5 h-5 mr-3" />
+                        <MessageSquare className="w-5 h-5 mr-3" aria-hidden="true" />
                         Conversations
                       </Button>
                       <Button
@@ -368,8 +382,9 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                           setCurrentView('search');
                           setShowMobileMenu(false);
                         }}
+                        aria-current={currentView === 'search' ? 'page' : undefined}
                       >
-                        <Search className="w-5 h-5 mr-3" />
+                        <Search className="w-5 h-5 mr-3" aria-hidden="true" />
                         Advanced Search
                       </Button>
                       <Button
@@ -379,8 +394,9 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                           setCurrentView('automation');
                           setShowMobileMenu(false);
                         }}
+                        aria-current={currentView === 'automation' ? 'page' : undefined}
                       >
-                        <Zap className="w-5 h-5 mr-3" />
+                        <Zap className="w-5 h-5 mr-3" aria-hidden="true" />
                         Automation
                       </Button>
                       <Button
@@ -390,11 +406,12 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                           setCurrentView('directory');
                           setShowMobileMenu(false);
                         }}
+                        aria-current={currentView === 'directory' ? 'page' : undefined}
                       >
-                        <Users className="w-5 h-5 mr-3" />
+                        <Users className="w-5 h-5 mr-3" aria-hidden="true" />
                         User Directory
                       </Button>
-                    </div>
+                    </nav>
                   </motion.div>
                 </motion.div>
               )}
@@ -410,17 +427,18 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
     <div className="h-screen overflow-hidden bg-gray-50">
       <div className="flex h-full">
         {/* Sidebar */}
-        <motion.div
+        <motion.aside
           animate={{ width: sidebarCollapsed ? 80 : 320 }}
           className="bg-white border-r border-gray-200 flex flex-col"
+          aria-label="Messages sidebar"
         >
           {/* Sidebar header */}
-          <div className="p-4 border-b border-gray-200">
+          <header className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               {!sidebarCollapsed && (
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-500/20 rounded-lg">
-                    <MessageSquare className="w-5 h-5 text-blue-600" />
+                    <MessageSquare className="w-5 h-5 text-blue-600" aria-hidden="true" />
                   </div>
                   <h1 className="text-lg font-semibold text-gray-900">Messages</h1>
                 </div>
@@ -429,8 +447,10 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-expanded={!sidebarCollapsed}
               >
-                {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                {sidebarCollapsed ? <ChevronRight className="w-4 h-4" aria-hidden="true" /> : <ChevronLeft className="w-4 h-4" aria-hidden="true" />}
               </Button>
             </div>
 
@@ -441,6 +461,8 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full"
+                  aria-label="Search conversations"
+                  type="search"
                 />
 
                 <div className="flex gap-2">
@@ -475,25 +497,27 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button size="sm">
-                    <Plus className="w-4 h-4" />
+                  <Button size="sm" aria-label="Start new conversation">
+                    <Plus className="w-4 h-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
             )}
-          </div>
+          </header>
 
           {/* Sidebar content */}
           {!sidebarCollapsed && currentView === 'conversations' && (
-            <div className="flex-1 overflow-y-auto">
+            <nav className="flex-1 overflow-y-auto" aria-label="Conversation list">
               {filteredConversations.map((conversation) => (
                 <button
                   key={conversation.id}
                   onClick={() => handleConversationSelect(conversation)}
                   className={cn(
-                    'w-full p-4 border-b border-gray-100 hover:bg-gray-50 text-left transition-colors',
+                    'w-full p-4 border-b border-gray-100 hover:bg-gray-50 text-left transition-colors min-h-[44px]',
                     selectedConv?.id === conversation.id && 'bg-blue-50 border-r-2 border-r-blue-500'
                   )}
+                  aria-current={selectedConv?.id === conversation.id ? 'true' : undefined}
+                  aria-label={`${conversation.name}${conversation.unreadCount > 0 ? `, ${conversation.unreadCount} unread messages` : ''}`}
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative">
@@ -504,7 +528,11 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
                         </AvatarFallback>
                       </Avatar>
                       {conversation.participants[0]?.isOnline && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+                        <div
+                          className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"
+                          aria-label="Online"
+                          role="status"
+                        />
                       )}
                     </div>
 
@@ -533,45 +561,45 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
               ))}
 
               {filteredConversations.length === 0 && (
-                <div className="p-8 text-center">
-                  <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <div className="p-8 text-center" role="status">
+                  <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" aria-hidden="true" />
                   <p className="text-gray-600 mb-4">No conversations found</p>
                   <Button size="sm">Start New Conversation</Button>
                 </div>
               )}
-            </div>
+            </nav>
           )}
 
           {sidebarCollapsed && (
-            <div className="flex-1 p-2 space-y-2">
-              <Button variant="ghost" size="sm" className="w-full">
-                <MessageSquare className="w-5 h-5" />
+            <nav className="flex-1 p-2 space-y-2" aria-label="Quick navigation">
+              <Button variant="ghost" size="sm" className="w-full" aria-label="Conversations" onClick={() => { setSidebarCollapsed(false); setCurrentView('conversations'); }}>
+                <MessageSquare className="w-5 h-5" aria-hidden="true" />
               </Button>
-              <Button variant="ghost" size="sm" className="w-full">
-                <Search className="w-5 h-5" />
+              <Button variant="ghost" size="sm" className="w-full" aria-label="Search" onClick={() => { setSidebarCollapsed(false); setCurrentView('search'); }}>
+                <Search className="w-5 h-5" aria-hidden="true" />
               </Button>
-              <Button variant="ghost" size="sm" className="w-full">
-                <Zap className="w-5 h-5" />
+              <Button variant="ghost" size="sm" className="w-full" aria-label="Automation" onClick={() => { setSidebarCollapsed(false); setCurrentView('automation'); }}>
+                <Zap className="w-5 h-5" aria-hidden="true" />
               </Button>
-              <Button variant="ghost" size="sm" className="w-full">
-                <Users className="w-5 h-5" />
+              <Button variant="ghost" size="sm" className="w-full" aria-label="User Directory" onClick={() => { setSidebarCollapsed(false); setCurrentView('directory'); }}>
+                <Users className="w-5 h-5" aria-hidden="true" />
               </Button>
-            </div>
+            </nav>
           )}
-        </motion.div>
+        </motion.aside>
 
         {/* Main content */}
-        <div className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden" id="main-content" role="main" aria-label="Message content">
           {currentView === 'conversations' && (
             selectedConv ? (
               <EnhancedMessageHub />
             ) : (
               <div className="h-full flex items-center justify-center">
-                <div className="text-center">
+                <div className="text-center" role="status">
                   <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <MessageSquare className="w-6 h-6 text-gray-400" />
+                    <MessageSquare className="w-6 h-6 text-gray-400" aria-hidden="true" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Select a conversation</h3>
+                  <h2 className="text-lg font-medium text-gray-900 mb-2">Select a conversation</h2>
                   <p className="text-gray-600">Choose a conversation from the sidebar to start messaging</p>
                 </div>
               </div>
@@ -603,7 +631,7 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
               }}
             />
           )}
-        </div>
+        </main>
       </div>
     </div>
   );

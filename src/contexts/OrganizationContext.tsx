@@ -12,6 +12,9 @@ import {
   ProjectMember
 } from '../types/organization';
 import { useAuth } from './AuthContext';
+import { createLogger } from '../lib/logger';
+
+const orgLogger = createLogger('OrganizationContext');
 
 interface OrganizationContextProps {
   // Current state
@@ -197,7 +200,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
           break;
       }
     } catch (error) {
-      console.error(`Error navigating to ${type}:`, error);
+      orgLogger.error(`Error navigating to ${type}`, error);
     } finally {
       setIsLoading(false);
     }
@@ -210,7 +213,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       const data = await apiCall('/organizations');
       setOrganizations(data);
     } catch (error) {
-      console.error('Error fetching organizations:', error);
+      orgLogger.error('Error fetching organizations', error);
     } finally {
       setIsLoadingOrganizations(false);
     }
@@ -222,7 +225,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       const data = await apiCall(`/organizations/${organizationId}/teams`);
       setTeams(data);
     } catch (error) {
-      console.error('Error fetching teams:', error);
+      orgLogger.error('Error fetching teams', error);
     } finally {
       setIsLoadingTeams(false);
     }
@@ -237,7 +240,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       const data = await apiCall(endpoint);
       setProjects(data);
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      orgLogger.error('Error fetching projects', error);
     } finally {
       setIsLoadingProjects(false);
     }
@@ -249,7 +252,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       const data = await apiCall(`/projects/${projectId}/files`);
       setFiles(data);
     } catch (error) {
-      console.error('Error fetching files:', error);
+      orgLogger.error('Error fetching files', error);
     } finally {
       setIsLoadingFiles(false);
     }

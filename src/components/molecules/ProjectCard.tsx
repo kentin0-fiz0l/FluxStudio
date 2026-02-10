@@ -4,6 +4,11 @@
  * A reusable project card component for displaying project information.
  * Supports thumbnails, progress indicators, team avatars, and actions.
  *
+ * Performance optimizations:
+ * - Uses React.memo for shallow comparison to prevent unnecessary re-renders
+ * - Memoizes status mappings
+ * - Uses useCallback for event handlers when passed as props
+ *
  * @example
  * <ProjectCard
  *   project={{ name: 'Website Redesign', status: 'active', progress: 65 }}
@@ -12,6 +17,7 @@
  */
 
 import * as React from 'react';
+import { useMemo, useCallback } from 'react';
 import { Calendar, Users, MoreVertical, ExternalLink, Target } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Badge, Button } from '@/components/ui';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -97,7 +103,23 @@ export interface ProjectCardProps {
   variant?: 'default' | 'compact' | 'detailed';
 }
 
-export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
+// Status badge variant mapping - defined outside component to avoid recreation
+const STATUS_VARIANTS = {
+  active: 'success',
+  completed: 'solidSuccess',
+  archived: 'default',
+  'on-hold': 'warning',
+} as const;
+
+// Status label mapping - defined outside component to avoid recreation
+const STATUS_LABELS = {
+  active: 'Active',
+  completed: 'Completed',
+  archived: 'Archived',
+  'on-hold': 'On Hold',
+} as const;
+
+const ProjectCardInner = React.forwardRef<HTMLDivElement, ProjectCardProps>(
   (
     {
       project,
@@ -116,27 +138,50 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
     },
     ref
   ) => {
-    // Status badge variant mapping
-    const statusVariants = {
-      active: 'success',
-      completed: 'solidSuccess',
-      archived: 'default',
-      'on-hold': 'warning',
-    } as const;
+    // Memoize formatted due date
+    const formattedDueDate = useMemo(
+      () => project.dueDate ? formatRelativeTime(project.dueDate) : null,
+      [project.dueDate]
+    );
 
-    // Status label mapping
-    const statusLabels = {
-      active: 'Active',
-      completed: 'Completed',
-      archived: 'Archived',
-      'on-hold': 'On Hold',
-    };
+    // Memoize progress bar class
+    const progressBarClass = useMemo(() => {
+      if (project.progress === undefined) return '';
+      if (project.progress < 30) return 'bg-error-500';
+      if (project.progress < 70) return 'bg-warning-500';
+      return 'bg-success-500';
+    }, [project.progress]);
+
+    // Memoize event handlers to prevent child re-renders
+    const handleClick = useCallback(() => {
+      onClick?.(project);
+    }, [onClick, project]);
+
+    const handleMoreOptions = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      onMoreOptions?.(project);
+    }, [onMoreOptions, project]);
+
+    const handleView = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      onView?.(project);
+    }, [onView, project]);
+
+    const handleFocus = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      onFocus?.(project);
+    }, [onFocus, project]);
+
+    const handleEdit = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      onEdit?.(project);
+    }, [onEdit, project]);
 
     return (
       <Card
         ref={ref}
         interactive={!!onClick}
-        onClick={() => onClick?.(project)}
+        onClick={handleClick}
         className={cn('group transition-all', className)}
         variant="default"
       >
@@ -145,12 +190,13 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
           <div className="relative aspect-video bg-neutral-100 rounded-t-lg overflow-hidden -m-6 mb-4">
             <img
               src={project.thumbnail}
-              alt={project.name}
+              alt={`Thumbnail for ${project.name}`}
               className="w-full h-full object-cover"
+              loading="lazy"
             />
             <div className="absolute top-3 right-3">
-              <Badge variant={statusVariants[project.status]} size="sm" dot>
-                {statusLabels[project.status]}
+              <Badge variant={STATUS_VARIANTS[project.status]} size="sm" dot>
+                {STATUS_LABELS[project.status]}
               </Badge>
             </div>
           </div>
@@ -171,8 +217,8 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
 
             {/* Status badge (when no thumbnail) */}
             {!project.thumbnail && (
-              <Badge variant={statusVariants[project.status]} size="sm" dot>
-                {statusLabels[project.status]}
+              <Badge variant={STATUS_VARIANTS[project.status]} size="sm" dot>
+                {STATUS_LABELS[project.status]}
               </Badge>
             )}
 
@@ -181,13 +227,11 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoreOptions(project);
-                }}
+                onClick={handleMoreOptions}
                 className="flex-shrink-0"
+                aria-label={`More options for ${project.name}`}
               >
-                <MoreVertical className="h-4 w-4" />
+                <MoreVertical className="h-4 w-4" aria-hidden="true" />
               </Button>
             )}
           </div>
@@ -199,17 +243,19 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
             {showProgress && project.progress !== undefined && (
               <div>
                 <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-neutral-600 font-medium">Progress</span>
+                  <span className="text-neutral-600 font-medium" id={`progress-label-${project.id}`}>Progress</span>
                   <span className="text-neutral-900 font-semibold">{project.progress}%</span>
                 </div>
-                <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                <div
+                  className="h-2 bg-neutral-100 rounded-full overflow-hidden"
+                  role="progressbar"
+                  aria-valuenow={project.progress}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-labelledby={`progress-label-${project.id}`}
+                >
                   <div
-                    className={cn(
-                      'h-full transition-all rounded-full',
-                      project.progress < 30 && 'bg-error-500',
-                      project.progress >= 30 && project.progress < 70 && 'bg-warning-500',
-                      project.progress >= 70 && 'bg-success-500'
-                    )}
+                    className={cn('h-full transition-all rounded-full', progressBarClass)}
                     style={{ width: `${project.progress}%` }}
                   />
                 </div>
@@ -219,18 +265,18 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
             {/* Meta information */}
             <div className="flex items-center gap-4 text-sm text-neutral-600">
               {/* Due date */}
-              {project.dueDate && (
+              {formattedDueDate && (
                 <div className="flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4" />
-                  <span>{formatRelativeTime(project.dueDate)}</span>
+                  <Calendar className="h-4 w-4" aria-hidden="true" />
+                  <span>Due {formattedDueDate}</span>
                 </div>
               )}
 
               {/* Team size */}
               {showTeam && project.teamSize && (
                 <div className="flex items-center gap-1.5">
-                  <Users className="h-4 w-4" />
-                  <span>{project.teamSize} members</span>
+                  <Users className="h-4 w-4" aria-hidden="true" />
+                  <span>{project.teamSize} team members</span>
                 </div>
               )}
             </div>
@@ -245,6 +291,7 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
                       src={avatar}
                       alt={`Team member ${index + 1}`}
                       className="w-8 h-8 rounded-full border-2 border-white"
+                      loading="lazy"
                     />
                   ))}
                   {project.teamAvatars.length > 4 && (
@@ -281,12 +328,10 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
               <Button
                 variant="outline"
                 size="sm"
-                icon={<ExternalLink className="h-4 w-4" />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onView(project);
-                }}
+                icon={<ExternalLink className="h-4 w-4" aria-hidden="true" />}
+                onClick={handleView}
                 fullWidth={variant === 'compact'}
+                aria-label={`View ${project.name}`}
               >
                 View
               </Button>
@@ -295,14 +340,11 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
               <Button
                 variant={isFocused ? 'primary' : 'outline'}
                 size="sm"
-                icon={<Target className="h-4 w-4" />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFocus(project);
-                }}
+                icon={<Target className="h-4 w-4" aria-hidden="true" />}
+                onClick={handleFocus}
                 fullWidth={variant === 'compact'}
                 aria-pressed={isFocused}
-                aria-label={isFocused ? 'Currently focused project' : 'Focus on this project'}
+                aria-label={isFocused ? `${project.name} is currently focused` : `Focus on ${project.name}`}
               >
                 {isFocused ? 'Focused' : 'Focus'}
               </Button>
@@ -311,11 +353,9 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
               <Button
                 variant="primary"
                 size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(project);
-                }}
+                onClick={handleEdit}
                 fullWidth={variant === 'compact'}
+                aria-label={`Edit ${project.name}`}
               >
                 Edit Project
               </Button>
@@ -327,4 +367,10 @@ export const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
   }
 );
 
-ProjectCard.displayName = 'ProjectCard';
+ProjectCardInner.displayName = 'ProjectCard';
+
+/**
+ * Memoized ProjectCard - prevents re-renders when props haven't changed
+ * Uses shallow comparison by default, which is sufficient for this component
+ */
+export const ProjectCard = React.memo(ProjectCardInner);

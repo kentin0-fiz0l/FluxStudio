@@ -2,9 +2,10 @@
  * WebRTC Service - Flux Studio
  *
  * Provides WebRTC infrastructure for peer-to-peer voice/video communication.
- * Handles connection establishment, media streams, and signaling.
+ * Handles connection establishment, media streams, and signaling via Socket.IO.
  */
 
+import { io, Socket } from 'socket.io-client';
 import { createLogger } from '@/services/logging';
 
 const webrtcLogger = createLogger('WebRTC');
@@ -72,12 +73,129 @@ class WebRTCService {
   private events: Partial<CallEvents> = {};
   private currentUserId: string | null = null;
   private currentCallId: string | null = null;
+  private signalingSocket: Socket | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private participantNames: Map<string, string> = new Map();
 
   /**
-   * Initialize the service with user ID
+   * Initialize the service with user ID and connect to signaling server
    */
   initialize(userId: string): void {
     this.currentUserId = userId;
+    this.connectSignaling();
+  }
+
+  /**
+   * Connect to WebSocket signaling server
+   */
+  private connectSignaling(): void {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      webrtcLogger.warn('No auth token, cannot connect to signaling server');
+      return;
+    }
+
+    // Use environment-based URL detection
+    const isDevelopment = import.meta.env.DEV;
+    const socketUrl = isDevelopment ? 'http://localhost:3001' : window.location.origin;
+
+    this.signalingSocket = io(`${socketUrl}/webrtc`, {
+      path: '/api/socket.io',
+      auth: { token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: this.maxReconnectAttempts,
+      reconnectionDelay: 1000,
+    });
+
+    this.setupSignalingHandlers();
+  }
+
+  /**
+   * Set up signaling socket event handlers
+   */
+  private setupSignalingHandlers(): void {
+    if (!this.signalingSocket) return;
+
+    this.signalingSocket.on('connect', () => {
+      webrtcLogger.info('Connected to signaling server');
+      this.reconnectAttempts = 0;
+    });
+
+    this.signalingSocket.on('disconnect', (reason: string) => {
+      webrtcLogger.warn('Disconnected from signaling server', { reason });
+    });
+
+    this.signalingSocket.on('connect_error', (error: Error) => {
+      webrtcLogger.error('Signaling connection error', error);
+      this.reconnectAttempts++;
+      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+        this.events.onError?.(new Error('Failed to connect to signaling server'));
+      }
+    });
+
+    // Handle incoming signaling messages
+    this.signalingSocket.on('signal', async (message: SignalingMessage) => {
+      webrtcLogger.debug('Received signaling message', { type: message.type, from: message.from });
+      await this.handleSignalingMessage(message);
+    });
+
+    // Handle incoming call
+    this.signalingSocket.on('call:incoming', (data: { callId: string; from: string; fromName: string; callType: CallType }) => {
+      webrtcLogger.info('Incoming call', data);
+      this.participantNames.set(data.from, data.fromName);
+      // Notify UI of incoming call
+      this.setCallState('ringing');
+      this.currentCallId = data.callId;
+    });
+
+    // Handle call accepted
+    this.signalingSocket.on('call:accepted', (data: { callId: string; by: string }) => {
+      webrtcLogger.info('Call accepted', data);
+      this.setCallState('connected');
+    });
+
+    // Handle call rejected
+    this.signalingSocket.on('call:rejected', (data: { callId: string; by: string; reason?: string }) => {
+      webrtcLogger.info('Call rejected', data);
+      this.cleanup();
+      this.setCallState('disconnected');
+      setTimeout(() => this.setCallState('idle'), 1000);
+    });
+
+    // Handle call ended
+    this.signalingSocket.on('call:ended', (data: { callId: string; by: string }) => {
+      webrtcLogger.info('Call ended', data);
+      this.handleParticipantLeft(data.by);
+    });
+
+    // Handle participant joined
+    this.signalingSocket.on('call:participant-joined', (data: { callId: string; participantId: string; participantName: string }) => {
+      webrtcLogger.info('Participant joined', data);
+      this.participantNames.set(data.participantId, data.participantName);
+    });
+
+    // Handle participant left
+    this.signalingSocket.on('call:participant-left', (data: { callId: string; participantId: string }) => {
+      webrtcLogger.info('Participant left', data);
+      this.handleParticipantLeft(data.participantId);
+    });
+  }
+
+  /**
+   * Check if signaling is connected
+   */
+  isSignalingConnected(): boolean {
+    return this.signalingSocket?.connected ?? false;
+  }
+
+  /**
+   * Disconnect from signaling server
+   */
+  disconnectSignaling(): void {
+    this.signalingSocket?.disconnect();
+    this.signalingSocket = null;
   }
 
   /**
@@ -123,12 +241,24 @@ class WebRTCService {
       throw new Error('Already in a call');
     }
 
+    if (!this.signalingSocket?.connected) {
+      throw new Error('Not connected to signaling server');
+    }
+
     this.currentCallId = callId;
     this.setCallState('connecting');
 
     try {
       // Get local media
       await this.acquireLocalMedia(options);
+
+      // Notify signaling server of outgoing call
+      const callType: CallType = options.video ? 'video' : options.screenShare ? 'screen-share' : 'voice';
+      this.signalingSocket.emit('call:initiate', {
+        callId,
+        participantIds,
+        callType,
+      });
 
       // Create peer connections for each participant
       for (const participantId of participantIds) {
@@ -141,6 +271,56 @@ class WebRTCService {
       this.events.onError?.(error as Error);
       throw error;
     }
+  }
+
+  /**
+   * Accept an incoming call
+   */
+  async acceptIncomingCall(options: CallOptions): Promise<void> {
+    if (this.callState !== 'ringing' || !this.currentCallId) {
+      throw new Error('No incoming call to accept');
+    }
+
+    if (!this.signalingSocket?.connected) {
+      throw new Error('Not connected to signaling server');
+    }
+
+    this.setCallState('connecting');
+
+    try {
+      // Get local media
+      await this.acquireLocalMedia(options);
+
+      // Notify signaling server that we accepted
+      this.signalingSocket.emit('call:accept', {
+        callId: this.currentCallId,
+      });
+
+      this.setCallState('connected');
+    } catch (error) {
+      this.setCallState('failed');
+      this.events.onError?.(error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reject an incoming call
+   */
+  rejectIncomingCall(reason?: string): void {
+    if (this.callState !== 'ringing' || !this.currentCallId) {
+      return;
+    }
+
+    if (this.signalingSocket?.connected) {
+      this.signalingSocket.emit('call:reject', {
+        callId: this.currentCallId,
+        reason,
+      });
+    }
+
+    this.cleanup();
+    this.setCallState('idle');
   }
 
   /**
@@ -186,6 +366,13 @@ class WebRTCService {
    * End the current call
    */
   async endCall(): Promise<void> {
+    // Notify signaling server
+    if (this.signalingSocket?.connected && this.currentCallId) {
+      this.signalingSocket.emit('call:end', {
+        callId: this.currentCallId,
+      });
+    }
+
     // Send hangup to all participants
     for (const participantId of this.participants.keys()) {
       this.sendSignalingMessage({
@@ -410,10 +597,11 @@ class WebRTCService {
       if (event.streams[0]) {
         this.events.onRemoteStream?.(participantId, event.streams[0]);
 
-        // Add/update participant
+        // Add/update participant with actual name if available
+        const participantName = this.participantNames.get(participantId) || `User ${participantId.slice(0, 6)}`;
         const participant: CallParticipant = {
           id: participantId,
-          name: `User ${participantId}`,
+          name: participantName,
           isMuted: false,
           isVideoOff: false,
           isScreenSharing: false,
@@ -479,9 +667,13 @@ class WebRTCService {
   }
 
   private sendSignalingMessage(message: SignalingMessage): void {
-    // In production, this would send through WebSocket
-    webrtcLogger.debug('Signaling message', { message });
-    // TODO: Integrate with existing WebSocket service
+    if (!this.signalingSocket?.connected) {
+      webrtcLogger.warn('Cannot send signaling message - not connected');
+      return;
+    }
+
+    webrtcLogger.debug('Sending signaling message', { type: message.type, to: message.to });
+    this.signalingSocket.emit('signal', message);
   }
 
   private async cleanup(): Promise<void> {

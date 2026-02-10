@@ -42,37 +42,51 @@ interface NavItemProps {
 }
 
 function NavItem({ to, icon, label, active, badge, onClick }: NavItemProps) {
+  const ariaLabel = badge !== undefined && badge > 0
+    ? `${label}, ${badge} unread`
+    : label;
+
   const content = (
     <div
       className={cn(
-        'flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-xl transition-colors relative',
+        'flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-xl transition-colors relative min-h-[44px] min-w-[44px]',
         active
           ? 'text-primary-600 dark:text-primary-400'
           : 'text-neutral-500 dark:text-neutral-400'
       )}
     >
-      <div className="relative">
+      <div className="relative" aria-hidden="true">
         {icon}
         {badge !== undefined && badge > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-error-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-error-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center" aria-hidden="true">
             {badge > 9 ? '9+' : badge}
           </span>
         )}
       </div>
-      <span className="text-[10px] font-medium">{label}</span>
+      <span className="text-[10px] font-medium" aria-hidden="true">{label}</span>
     </div>
   );
 
   if (to) {
     return (
-      <Link to={to} className="flex-1">
+      <Link
+        to={to}
+        className="flex-1"
+        aria-label={ariaLabel}
+        aria-current={active ? 'page' : undefined}
+      >
         {content}
       </Link>
     );
   }
 
   return (
-    <button onClick={onClick} className="flex-1">
+    <button
+      onClick={onClick}
+      className="flex-1"
+      aria-label={ariaLabel}
+      aria-pressed={active}
+    >
       {content}
     </button>
   );
@@ -105,8 +119,10 @@ export function MobileBottomNav({ onOpenSearch, className }: MobileBottomNavProp
           'fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 z-50 lg:hidden safe-area-inset-bottom',
           className
         )}
+        aria-label="Main navigation"
+        role="navigation"
       >
-        <div className="grid grid-cols-4 h-16 max-w-lg mx-auto">
+        <div className="grid grid-cols-4 h-16 max-w-lg mx-auto" role="menubar">
           <NavItem
             to="/projects"
             icon={<Folder className="w-5 h-5" />}
@@ -145,6 +161,7 @@ export function MobileBottomNav({ onOpenSearch, className }: MobileBottomNavProp
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/50 z-50 lg:hidden"
               onClick={() => setIsMenuOpen(false)}
+              aria-hidden="true"
             />
 
             {/* Drawer */}
@@ -154,23 +171,27 @@ export function MobileBottomNav({ onOpenSearch, className }: MobileBottomNavProp
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 rounded-t-2xl z-50 lg:hidden max-h-[80vh] overflow-auto"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation menu"
             >
               {/* Handle */}
-              <div className="flex justify-center pt-3 pb-2">
+              <div className="flex justify-center pt-3 pb-2" aria-hidden="true">
                 <div className="w-10 h-1 bg-neutral-300 dark:bg-neutral-700 rounded-full" />
               </div>
 
               {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-800">
+              <header className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-800">
                 <div className="flex items-center gap-3">
                   {user?.avatar ? (
                     <img
                       src={user.avatar}
-                      alt={user.name}
+                      alt=""
                       className="w-10 h-10 rounded-full"
+                      aria-hidden="true"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold">
+                    <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold" aria-hidden="true">
                       {user?.name?.charAt(0) || 'U'}
                     </div>
                   )}
@@ -187,46 +208,48 @@ export function MobileBottomNav({ onOpenSearch, className }: MobileBottomNavProp
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsMenuOpen(false)}
+                  aria-label="Close menu"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5" aria-hidden="true" />
                 </Button>
-              </div>
+              </header>
 
               {/* Menu Items */}
-              <div className="py-2">
+              <nav className="py-2" aria-label="Navigation menu">
                 {menuItems.map((item) => (
                   <Link
                     key={item.to}
                     to={item.to}
                     onClick={() => setIsMenuOpen(false)}
                     className={cn(
-                      'flex items-center gap-4 px-4 py-3 transition-colors',
+                      'flex items-center gap-4 px-4 py-3 transition-colors min-h-[44px]',
                       isActive(item.to)
                         ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
                         : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'
                     )}
+                    aria-current={isActive(item.to) ? 'page' : undefined}
                   >
-                    {item.icon}
+                    <span aria-hidden="true">{item.icon}</span>
                     <span className="font-medium">{item.label}</span>
                   </Link>
                 ))}
-              </div>
+              </nav>
 
               {/* Footer Actions */}
-              <div className="border-t border-neutral-200 dark:border-neutral-800 p-4">
+              <footer className="border-t border-neutral-200 dark:border-neutral-800 p-4">
                 <Button
                   variant="ghost"
                   fullWidth
-                  className="justify-start text-error-600 hover:text-error-700 hover:bg-error-50"
+                  className="justify-start text-error-600 hover:text-error-700 hover:bg-error-50 min-h-[44px]"
                   onClick={() => {
                     setIsMenuOpen(false);
                     logout();
                   }}
                 >
-                  <LogOut className="w-5 h-5 mr-3" />
+                  <LogOut className="w-5 h-5 mr-3" aria-hidden="true" />
                   Sign Out
                 </Button>
-              </div>
+              </footer>
 
               {/* Safe area padding */}
               <div className="h-safe-area-inset-bottom" />

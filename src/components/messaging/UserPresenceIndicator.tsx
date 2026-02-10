@@ -1,22 +1,31 @@
 /**
  * User Presence Indicator Component
- * Shows online users and their status
+ * Shows online users and their status with real-time Socket.IO updates
  */
 
-import { useState } from 'react';
-import { MessageCircle, Users, Circle, Clock, CircleDashed, Moon } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { MessageCircle, Users, Circle, Clock, CircleDashed, Moon, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { MessageUser } from '../../types/messaging';
 import { cn } from '../../lib/utils';
+import { messagingSocketService } from '../../services/messagingSocketService';
 
 interface UserPresenceIndicatorProps {
   onlineUsers: MessageUser[];
   currentUser: MessageUser;
   onStartDirectMessage?: (user: MessageUser) => void;
+  onUserStatusChange?: (userId: string, isOnline: boolean) => void;
   className?: string;
+}
+
+type UserStatus = 'online' | 'away' | 'busy' | 'offline';
+
+interface UserStatusUpdate {
+  userId: string;
+  status: string;
 }
 
 const statusIcons = {
@@ -37,12 +46,96 @@ export function UserPresenceIndicator({
   onlineUsers,
   currentUser,
   onStartDirectMessage,
+  onUserStatusChange,
   className
 }: UserPresenceIndicatorProps) {
   const [filter, setFilter] = useState<'all' | 'online' | 'designers' | 'clients'>('all');
+  const [users, setUsers] = useState<MessageUser[]>(onlineUsers);
+  const [userStatuses, setUserStatuses] = useState<Map<string, UserStatus>>(new Map());
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  const filteredUsers = onlineUsers.filter(user => {
-    if (filter === 'online' && !user.isOnline) return false;
+  // Initialize user statuses from props
+  useEffect(() => {
+    const initialStatuses = new Map<string, UserStatus>();
+    onlineUsers.forEach((user) => {
+      initialStatuses.set(user.id, user.isOnline ? 'online' : 'offline');
+    });
+    setUserStatuses(initialStatuses);
+    setUsers(onlineUsers);
+  }, [onlineUsers]);
+
+  // Subscribe to Socket.IO presence events
+  useEffect(() => {
+    // Connect to messaging socket if not already connected
+    messagingSocketService.connect();
+
+    // Check connection status
+    setIsConnected(messagingSocketService.getConnectionStatus());
+
+    // Handle connection events
+    const unsubConnect = messagingSocketService.on('connect', () => {
+      setIsConnected(true);
+      setLastUpdate(new Date());
+    });
+
+    const unsubDisconnect = messagingSocketService.on('disconnect', () => {
+      setIsConnected(false);
+    });
+
+    // Handle user status updates
+    const unsubStatus = messagingSocketService.on('user:status', (data: unknown) => {
+      const statusData = data as UserStatusUpdate;
+      const { userId, status } = statusData;
+
+      setUserStatuses((prev) => {
+        const updated = new Map(prev);
+        updated.set(userId, status as UserStatus);
+        return updated;
+      });
+
+      // Update user online status in the list
+      setUsers((prevUsers) => {
+        return prevUsers.map((user) => {
+          if (user.id === userId) {
+            const isOnline = status === 'online' || status === 'away' || status === 'busy';
+            // Notify parent of status change
+            onUserStatusChange?.(userId, isOnline);
+            return {
+              ...user,
+              isOnline,
+              lastSeen: isOnline ? undefined : new Date(),
+            };
+          }
+          return user;
+        });
+      });
+
+      setLastUpdate(new Date());
+    });
+
+    return () => {
+      unsubConnect();
+      unsubDisconnect();
+      unsubStatus();
+    };
+  }, [onUserStatusChange]);
+
+  // Get user status from real-time data or fallback to prop data
+  const getUserStatus = useCallback(
+    (user: MessageUser): UserStatus => {
+      const realtimeStatus = userStatuses.get(user.id);
+      if (realtimeStatus) return realtimeStatus;
+      return user.isOnline ? 'online' : 'offline';
+    },
+    [userStatuses]
+  );
+
+  const filteredUsers = users.filter((user) => {
+    if (filter === 'online') {
+      const status = getUserStatus(user);
+      return status !== 'offline';
+    }
     if (filter === 'designers' && user.userType !== 'designer') return false;
     if (filter === 'clients' && user.userType !== 'client') return false;
     return user.id !== currentUser.id;
@@ -67,12 +160,6 @@ export function UserPresenceIndicator({
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
     return dateObj.toLocaleDateString();
-  };
-
-  const getUserStatus = (user: MessageUser) => {
-    if (!user.isOnline) return 'offline';
-    // In a real app, you might have more sophisticated status detection
-    return 'online';
   };
 
   const UserItem = ({ user }: { user: MessageUser }) => {
@@ -136,10 +223,30 @@ export function UserPresenceIndicator({
           <h3 className="font-semibold flex items-center gap-2">
             <Users className="w-5 h-5" />
             Online Users
+            {/* Connection status indicator */}
+            <span
+              className={cn(
+                'w-2 h-2 rounded-full',
+                isConnected ? 'bg-green-500' : 'bg-red-500 animate-pulse'
+              )}
+              title={isConnected ? 'Connected to real-time updates' : 'Disconnected - reconnecting...'}
+            />
           </h3>
-          <Badge variant="secondary">
-            {onlineUsers.filter(u => u.isOnline).length} online
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">
+              {users.filter((u) => getUserStatus(u) !== 'offline').length} online
+            </Badge>
+            <button
+              onClick={() => {
+                messagingSocketService.connect();
+                setLastUpdate(new Date());
+              }}
+              className="p-1 hover:bg-muted rounded transition-colors"
+              title={`Last updated: ${lastUpdate.toLocaleTimeString()}`}
+            >
+              <RefreshCw className={cn('w-4 h-4', !isConnected && 'animate-spin')} />
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -190,27 +297,37 @@ export function UserPresenceIndicator({
           </div>
         ) : (
           <div className="p-2 space-y-1">
-            {/* Online Users First */}
+            {/* Online/Active Users First (sorted by status priority) */}
             {filteredUsers
-              .filter(user => user.isOnline)
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map(user => (
+              .filter((user) => getUserStatus(user) !== 'offline')
+              .sort((a, b) => {
+                const statusPriority: Record<UserStatus, number> = {
+                  online: 0,
+                  busy: 1,
+                  away: 2,
+                  offline: 3,
+                };
+                const aPriority = statusPriority[getUserStatus(a)];
+                const bPriority = statusPriority[getUserStatus(b)];
+                if (aPriority !== bPriority) return aPriority - bPriority;
+                return a.name.localeCompare(b.name);
+              })
+              .map((user) => (
                 <UserItem key={user.id} user={user} />
-              ))
-            }
+              ))}
 
             {/* Offline Users */}
             {filter === 'all' && (
               <>
-                {filteredUsers.filter(user => user.isOnline).length > 0 &&
-                 filteredUsers.filter(user => !user.isOnline).length > 0 && (
-                  <div className="px-2 py-4">
-                    <div className="border-t" />
-                  </div>
-                )}
+                {filteredUsers.filter((user) => getUserStatus(user) !== 'offline').length > 0 &&
+                  filteredUsers.filter((user) => getUserStatus(user) === 'offline').length > 0 && (
+                    <div className="px-2 py-4">
+                      <div className="border-t" />
+                    </div>
+                  )}
 
                 {filteredUsers
-                  .filter(user => !user.isOnline)
+                  .filter((user) => getUserStatus(user) === 'offline')
                   .sort((a, b) => {
                     const getTime = (date: Date | undefined) => {
                       if (!date) return 0;
@@ -221,10 +338,9 @@ export function UserPresenceIndicator({
                     const bTime = getTime(b.lastSeen);
                     return bTime - aTime; // Most recently seen first
                   })
-                  .map(user => (
+                  .map((user) => (
                     <UserItem key={user.id} user={user} />
-                  ))
-                }
+                  ))}
               </>
             )}
           </div>
@@ -233,16 +349,28 @@ export function UserPresenceIndicator({
 
       {/* Status Summary */}
       <div className="p-4 border-t bg-muted/30">
-        <div className="grid grid-cols-2 gap-4 text-center text-sm">
+        <div className="grid grid-cols-4 gap-2 text-center text-xs">
           <div>
             <div className="font-semibold text-green-600">
-              {onlineUsers.filter(u => u.isOnline).length}
+              {users.filter((u) => getUserStatus(u) === 'online').length}
             </div>
             <div className="text-muted-foreground">Online</div>
           </div>
           <div>
+            <div className="font-semibold text-yellow-600">
+              {users.filter((u) => getUserStatus(u) === 'away').length}
+            </div>
+            <div className="text-muted-foreground">Away</div>
+          </div>
+          <div>
+            <div className="font-semibold text-red-600">
+              {users.filter((u) => getUserStatus(u) === 'busy').length}
+            </div>
+            <div className="text-muted-foreground">Busy</div>
+          </div>
+          <div>
             <div className="font-semibold text-gray-600">
-              {onlineUsers.filter(u => !u.isOnline).length}
+              {users.filter((u) => getUserStatus(u) === 'offline').length}
             </div>
             <div className="text-muted-foreground">Offline</div>
           </div>

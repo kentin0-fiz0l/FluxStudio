@@ -6,6 +6,9 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useMemo } from 'react';
 import { Message, Conversation, Notification, MessageUser, UserPresence } from '../types/messaging';
 import { messagingService } from '../services/messagingService';
+import { createLogger } from '../lib/logger';
+
+const msgCtxLogger = createLogger('MessagingContext');
 
 // Action Types
 type MessagingAction =
@@ -351,7 +354,7 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
         const conversations = await messagingService.getConversations();
         dispatch({ type: 'SET_CONVERSATIONS', payload: conversations });
       } catch (error) {
-        console.error('Failed to load conversations:', error);
+        msgCtxLogger.error('Failed to load conversations', error);
       } finally {
         dispatch({ type: 'SET_LOADING', payload: { key: 'conversations', loading: false } });
       }
@@ -378,7 +381,7 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
         const messages = await messagingService.getMessages(conversationId);
         dispatch({ type: 'SET_MESSAGES', payload: { conversationId, messages } });
       } catch (error) {
-        console.error('Failed to load messages:', error);
+        msgCtxLogger.error('Failed to load messages', error);
       } finally {
         dispatch({ type: 'SET_LOADING', payload: { key: `messages-${conversationId}`, loading: false } });
       }
@@ -389,7 +392,7 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
         await messagingService.sendMessage(data);
         // Message will be added via real-time listener
       } catch (error) {
-        console.error('Failed to send message:', error);
+        msgCtxLogger.error('Failed to send message', error);
         throw error;
       }
     },
@@ -400,7 +403,7 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
         const notifications = await messagingService.getNotifications();
         dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
       } catch (error) {
-        console.error('Failed to load notifications:', error);
+        msgCtxLogger.error('Failed to load notifications', error);
       } finally {
         dispatch({ type: 'SET_LOADING', payload: { key: 'notifications', loading: false } });
       }
@@ -414,7 +417,7 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
           payload: { id: notificationId, updates: { isRead: true } },
         });
       } catch (error) {
-        console.error('Failed to mark notification as read:', error);
+        msgCtxLogger.error('Failed to mark notification as read', error);
       }
     },
 
@@ -426,7 +429,7 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
         const notifications = await messagingService.getNotifications();
         dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
       } catch (error) {
-        console.error('Failed to mark all notifications as read:', error);
+        msgCtxLogger.error('Failed to mark all notifications as read', error);
       }
     },
 

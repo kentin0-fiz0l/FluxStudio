@@ -6,6 +6,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { socketService, ProjectPresenceMember, PulseEvent } from '../services/socketService';
 import { useAuth } from './AuthContext';
+import { socketLogger } from '../lib/logger';
 import { Message, MessageUser, UserPresence } from '../types/messaging';
 
 interface SocketContextType {
@@ -112,12 +113,12 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     const handleConnect = () => {
       setIsConnected(true);
       setConnectionError(null);
-      console.log('🔗 Socket connected in context');
+      socketLogger.info('Socket connected');
     };
 
     const handleDisconnect = () => {
       setIsConnected(false);
-      console.log('🔌 Socket disconnected in context');
+      socketLogger.info('Socket disconnected');
     };
 
     // Typing events

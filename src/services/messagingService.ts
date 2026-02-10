@@ -19,6 +19,9 @@ import {
   ConsultationSession
 } from '../types/messaging';
 import { socketService } from './socketService';
+import { serviceLogger } from '../lib/logger';
+
+const msgServiceLogger = serviceLogger.child('MessagingService');
 
 class MessagingService {
   private apiBaseUrl: string;
@@ -50,7 +53,7 @@ class MessagingService {
     const authToken = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
 
     if (!authToken) {
-      console.warn('[MessagingService] No auth token found in localStorage');
+      msgServiceLogger.warn('No auth token found in localStorage');
     }
 
     const response = await fetch(url, {
@@ -96,7 +99,7 @@ class MessagingService {
     const conversations = response.conversations || response || [];
 
     if (!Array.isArray(conversations)) {
-      console.error('[MessagingService] Invalid conversations response:', response);
+      msgServiceLogger.error('Invalid conversations response', null, { response });
       return [];
     }
 
@@ -116,7 +119,7 @@ class MessagingService {
         }
         // Ensure the object has required properties
         if (!p || typeof p !== 'object' || !p.id) {
-          console.error('[MessagingService] Invalid participant object:', p);
+          msgServiceLogger.error('Invalid participant object', null, { participant: p });
           // Return a fallback object
           return {
             id: p?.id || 'unknown',
@@ -160,7 +163,7 @@ class MessagingService {
         }
         // Ensure the object has required properties
         if (!p || typeof p !== 'object' || !p.id) {
-          console.error('[MessagingService] Invalid participant object in getConversation:', p);
+          msgServiceLogger.error('Invalid participant object in getConversation', null, { participant: p });
           // Return a fallback object
           return {
             id: p?.id || 'unknown',
@@ -268,7 +271,7 @@ class MessagingService {
     const messages = response.messages || response || [];
 
     if (!Array.isArray(messages)) {
-      console.error('[MessagingService] Invalid messages response:', response);
+      msgServiceLogger.error('Invalid messages response', null, { response });
       return [];
     }
 
@@ -471,7 +474,7 @@ class MessagingService {
     const notifications = response.notifications || response || [];
 
     if (!Array.isArray(notifications)) {
-      console.error('[MessagingService] Invalid notifications response:', response);
+      msgServiceLogger.error('Invalid notifications response', null, { response });
       return [];
     }
 
@@ -936,7 +939,7 @@ class MessagingService {
 
       return response.file || null;
     } catch (error) {
-      console.error('File upload error:', error);
+      msgServiceLogger.error('File upload error', error);
       return null;
     }
   }

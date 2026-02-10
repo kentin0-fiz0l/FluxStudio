@@ -164,13 +164,14 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
     };
 
     return (
-      <div
+      <aside
         ref={ref}
         className={cn(
           'flex flex-col h-full bg-neutral-900 text-white transition-all duration-300',
           collapsed ? 'w-16' : 'w-64',
           className
         )}
+        aria-label="Main navigation"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-800">
@@ -211,25 +212,27 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
                     <Link
                       to={item.path}
                       className={cn(
-                        'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                        'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors min-h-[44px]',
                         'hover:bg-neutral-800',
                         active && 'bg-primary-600 hover:bg-primary-700'
                       )}
                       title={collapsed ? item.label : undefined}
+                      aria-current={active ? 'page' : undefined}
+                      aria-label={item.badge ? `${item.label}, ${item.badge} unread` : item.label}
                     >
-                      <span className="flex-shrink-0">{item.icon}</span>
+                      <span className="flex-shrink-0" aria-hidden="true">{item.icon}</span>
                       {!collapsed && (
                         <>
                           <span className="flex-1 text-sm font-medium">{item.label}</span>
                           {item.badge && (
-                            <Badge variant="solidError" size="sm">
+                            <Badge variant="solidError" size="sm" aria-hidden="true">
                               {item.badge}
                             </Badge>
                           )}
                         </>
                       )}
                       {collapsed && item.badge && (
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-error-500 rounded-full" />
+                        <span className="absolute top-1 right-1 w-2 h-2 bg-error-500 rounded-full" aria-hidden="true" />
                       )}
                     </Link>
                   </li>
@@ -259,13 +262,15 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
                       <button
                         onClick={() => toggleExpanded(item.label)}
                         className={cn(
-                          'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                          'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors min-h-[44px]',
                           'hover:bg-neutral-800',
                           active && 'bg-primary-600 hover:bg-primary-700'
                         )}
                         title={collapsed ? item.label : undefined}
+                        aria-expanded={expanded}
+                        aria-controls={`submenu-${item.label.toLowerCase().replace(/\s/g, '-')}`}
                       >
-                        <span className="flex-shrink-0">{item.icon}</span>
+                        <span className="flex-shrink-0" aria-hidden="true">{item.icon}</span>
                         {!collapsed && (
                           <>
                             <span className="flex-1 text-left text-sm font-medium">
@@ -284,16 +289,21 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
 
                       {/* Submenu */}
                       {!collapsed && expanded && item.children && (
-                        <ul className="ml-9 mt-1 space-y-1">
+                        <ul
+                          className="ml-9 mt-1 space-y-1"
+                          id={`submenu-${item.label.toLowerCase().replace(/\s/g, '-')}`}
+                          role="list"
+                        >
                           {item.children.map((child) => (
                             <li key={child.path}>
                               <Link
                                 to={child.path}
                                 className={cn(
-                                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors min-h-[44px]',
                                   'hover:bg-neutral-800',
                                   isActive(child.path) && 'bg-primary-600 hover:bg-primary-700'
                                 )}
+                                aria-current={isActive(child.path) ? 'page' : undefined}
                               >
                                 {child.label}
                               </Link>
@@ -307,25 +317,27 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
                     <Link
                       to={item.path}
                       className={cn(
-                        'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                        'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors min-h-[44px]',
                         'hover:bg-neutral-800',
                         active && 'bg-primary-600 hover:bg-primary-700'
                       )}
                       title={collapsed ? item.label : undefined}
+                      aria-current={active ? 'page' : undefined}
+                      aria-label={item.badge ? `${item.label}, ${item.badge} unread` : item.label}
                     >
-                      <span className="flex-shrink-0">{item.icon}</span>
+                      <span className="flex-shrink-0" aria-hidden="true">{item.icon}</span>
                       {!collapsed && (
                         <>
                           <span className="flex-1 text-sm font-medium">{item.label}</span>
                           {item.badge && (
-                            <Badge variant="solidError" size="sm">
+                            <Badge variant="solidError" size="sm" aria-hidden="true">
                               {item.badge}
                             </Badge>
                           )}
                         </>
                       )}
                       {collapsed && item.badge && (
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-error-500 rounded-full" />
+                        <span className="absolute top-1 right-1 w-2 h-2 bg-error-500 rounded-full" aria-hidden="true" />
                       )}
                     </Link>
                   )}
@@ -405,14 +417,15 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
               fullWidth
               icon={collapsed ? <ChevronRight className="h-4 w-4" aria-hidden="true" /> : <ChevronLeft className="h-4 w-4" aria-hidden="true" />}
               onClick={onCollapseToggle}
-              className="text-neutral-400 hover:text-white hover:bg-neutral-800"
-              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="text-neutral-400 hover:text-white hover:bg-neutral-800 min-h-[44px]"
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!collapsed}
             >
               {!collapsed && 'Collapse'}
             </Button>
           </div>
         )}
-      </div>
+      </aside>
     );
   }
 );

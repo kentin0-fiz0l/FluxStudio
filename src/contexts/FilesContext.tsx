@@ -16,6 +16,9 @@
 import * as React from 'react';
 import { useAuth } from './AuthContext';
 import { getApiUrl } from '../utils/apiHelpers';
+import { createLogger } from '../lib/logger';
+
+const filesLogger = createLogger('FilesContext');
 
 // ==================== Types ====================
 
@@ -275,7 +278,7 @@ export function FilesProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'SET_FILTERS', payload: params });
       }
     } catch (error) {
-      console.error('Error fetching files:', error);
+      filesLogger.error('Error fetching files', error);
       dispatch({
         type: 'SET_ERROR',
         payload: error instanceof Error ? error.message : 'Failed to fetch files'
@@ -398,7 +401,7 @@ export function FilesProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'UPDATE_FILE', payload: data.file });
       return data.file;
     } catch (error) {
-      console.error('Error renaming file:', error);
+      filesLogger.error('Error renaming file', error);
       throw error;
     }
   }, [user, getToken]);
@@ -424,7 +427,7 @@ export function FilesProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'REMOVE_FILE', payload: fileId });
       return true;
     } catch (error) {
-      console.error('Error deleting file:', error);
+      filesLogger.error('Error deleting file', error);
       throw error;
     }
   }, [user, getToken]);
@@ -456,7 +459,7 @@ export function FilesProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'UPDATE_FILE', payload: data.file });
       return data.file;
     } catch (error) {
-      console.error('Error linking file:', error);
+      filesLogger.error('Error linking file', error);
       throw error;
     }
   }, [user, getToken]);
@@ -485,7 +488,7 @@ export function FilesProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'UPDATE_FILE', payload: data.file });
       return data.file;
     } catch (error) {
-      console.error('Error unlinking file:', error);
+      filesLogger.error('Error unlinking file', error);
       throw error;
     }
   }, [user, getToken]);
@@ -511,7 +514,7 @@ export function FilesProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
       return data.file;
     } catch (error) {
-      console.error('Error getting file:', error);
+      filesLogger.error('Error getting file', error);
       throw error;
     }
   }, [user, getToken]);
@@ -535,7 +538,7 @@ export function FilesProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
       dispatch({ type: 'SET_STATS', payload: data.stats });
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      filesLogger.error('Error fetching stats', error);
     }
   }, [user, getToken]);
 

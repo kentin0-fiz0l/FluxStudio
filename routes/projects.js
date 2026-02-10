@@ -61,6 +61,9 @@ async function saveProjectsToFile(projects) {
 /**
  * GET /api/projects
  * Get all projects for the authenticated user
+ *
+ * Performance optimization: Uses batch query for unread counts
+ * instead of N+1 pattern (one query per project)
  */
 router.get('/', authenticateToken, async (req, res) => {
   try {
@@ -77,15 +80,56 @@ router.get('/', authenticateToken, async (req, res) => {
         offset: parseInt(offset)
       });
 
-      // Fetch unread message counts for each project
-      const projectsWithUnread = await Promise.all(
-        projects.map(async (project) => {
-          const unreadCount = await projectsAdapter.getProjectUnreadCount(project.id, userId);
-          return { ...project, unreadCount };
-        })
-      );
+      // Optimization: Batch fetch unread counts in a single query
+      // instead of N+1 pattern (one query per project)
+      if (projects.length > 0) {
+        const projectIds = projects.map(p => p.id);
 
-      projects = projectsWithUnread;
+        // Use batch query for unread counts - single DB call
+        if (projectsAdapter.getProjectsUnreadCounts) {
+          // Preferred: adapter has batch method
+          const unreadCounts = await projectsAdapter.getProjectsUnreadCounts(projectIds, userId);
+          projects = projects.map(project => ({
+            ...project,
+            unreadCount: unreadCounts[project.id] || 0
+          }));
+        } else {
+          // Fallback: Use raw query for batch fetch
+          try {
+            const unreadResult = await query(`
+              SELECT
+                c.project_id,
+                COUNT(m.id) as unread_count
+              FROM conversations c
+              LEFT JOIN messages m ON m.conversation_id = c.id
+                AND m.sender_id != $1
+                AND m.read_at IS NULL
+              WHERE c.project_id = ANY($2::uuid[])
+              GROUP BY c.project_id
+            `, [userId, projectIds]);
+
+            const unreadMap = {};
+            unreadResult.rows.forEach(row => {
+              unreadMap[row.project_id] = parseInt(row.unread_count || 0);
+            });
+
+            projects = projects.map(project => ({
+              ...project,
+              unreadCount: unreadMap[project.id] || 0
+            }));
+          } catch (batchError) {
+            // If batch query fails, fall back to N+1 (slower but works)
+            console.warn('Batch unread query failed, falling back to N+1:', batchError.message);
+            const projectsWithUnread = await Promise.all(
+              projects.map(async (project) => {
+                const unreadCount = await projectsAdapter.getProjectUnreadCount(project.id, userId);
+                return { ...project, unreadCount };
+              })
+            );
+            projects = projectsWithUnread;
+          }
+        }
+      }
     } else {
       // Fallback to file-based storage
       const allProjects = await getProjectsFromFile();
@@ -109,6 +153,9 @@ router.get('/', authenticateToken, async (req, res) => {
 /**
  * GET /api/projects/:projectId
  * Get a single project by ID
+ *
+ * Performance optimization: Fetches project, unread count, and members
+ * in parallel using Promise.all instead of sequential queries
  */
 router.get('/:projectId', authenticateToken, async (req, res) => {
   try {
@@ -118,10 +165,16 @@ router.get('/:projectId', authenticateToken, async (req, res) => {
     let project = null;
 
     if (projectsAdapter) {
+      // First get the project to verify it exists
       project = await projectsAdapter.getProjectById(projectId, userId);
+
       if (project) {
-        const unreadCount = await projectsAdapter.getProjectUnreadCount(projectId, userId);
-        const members = await projectsAdapter.getProjectMembers(projectId);
+        // Optimization: Fetch unread count and members in parallel
+        const [unreadCount, members] = await Promise.all([
+          projectsAdapter.getProjectUnreadCount(projectId, userId),
+          projectsAdapter.getProjectMembers(projectId)
+        ]);
+
         project = { ...project, unreadCount, members };
       }
     } else {

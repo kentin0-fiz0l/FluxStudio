@@ -63,10 +63,12 @@ export interface CardProps
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, padding, interactive, ...props }, ref) => (
+  ({ className, variant, padding, interactive, role, tabIndex, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(cardVariants({ variant, padding, interactive, className }))}
+      role={interactive ? role || 'button' : role}
+      tabIndex={interactive ? (tabIndex ?? 0) : tabIndex}
       {...props}
     />
   )

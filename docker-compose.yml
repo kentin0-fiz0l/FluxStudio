@@ -1,99 +1,293 @@
 # FluxStudio - Docker Compose for Local Development & Testing
 # Run: docker-compose up --build
+# Profiles:
+#   default: Core services (postgres, redis, backend, frontend)
+#   full: All services including monitoring
+#
+# Examples:
+#   docker-compose up                    # Start core services
+#   docker-compose --profile full up     # Start all services
+#   docker-compose up -d                 # Start in background
+#   docker-compose logs -f backend       # Follow backend logs
 
 version: '3.8'
 
 services:
+  # ============================================================================
   # PostgreSQL Database
+  # ============================================================================
   postgres:
     image: postgres:15-alpine
     container_name: fluxstudio-db
     environment:
-      POSTGRES_DB: fluxstudio
-      POSTGRES_USER: fluxstudio_user
-      POSTGRES_PASSWORD: fluxstudio2025secure
+      POSTGRES_DB: ${POSTGRES_DB:-fluxstudio}
+      POSTGRES_USER: ${POSTGRES_USER:-fluxstudio_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fluxstudio2025secure}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.utf8"
+      # Performance tuning for development
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/migrations:/docker-entrypoint-initdb.d
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fluxstudio_user"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fluxstudio_user} -d ${POSTGRES_DB:-fluxstudio}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    networks:
+      - fluxstudio-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Unified Backend (Auth + Messaging)
+  # ============================================================================
+  # Redis Cache & Session Store
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: fluxstudio-redis
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-fluxstudio_redis_dev}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-fluxstudio_redis_dev}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - fluxstudio-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # Unified Backend (Auth + Messaging + API)
+  # ============================================================================
   unified-backend:
     build:
       context: .
       dockerfile: Dockerfile.unified-backend
+      args:
+        NODE_ENV: ${NODE_ENV:-development}
     container_name: fluxstudio-backend
     ports:
-      - "3001:3001"
+      - "${BACKEND_PORT:-3001}:3001"
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 3001
-      DATABASE_URL: postgresql://fluxstudio_user:fluxstudio2025secure@postgres:5432/fluxstudio
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fluxstudio_user}:${POSTGRES_PASSWORD:-fluxstudio2025secure}@postgres:5432/${POSTGRES_DB:-fluxstudio}
+      USE_DATABASE: "true"
       DB_SSL: "false"
-      JWT_SECRET: 06tFusPGjKw8PsPT5tgL/LhY9RGeB0jJrzkRgPLRhek=
-      SESSION_SECRET: aLwYTjHqfgieBfruFMfIrunY0r1UlzzJy11lRNCxiw4=
-      OAUTH_ENCRYPTION_KEY: aYxvo//TEnEKud8OczOe0fTgo4E+2iG0Rn6yhj4kZig=
-      JWT_EXPIRY: "7d"
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD:-fluxstudio_redis_dev}@redis:6379
+      # Security
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      SESSION_SECRET: ${SESSION_SECRET:-dev-session-secret-change-in-production}
+      OAUTH_ENCRYPTION_KEY: ${OAUTH_ENCRYPTION_KEY:-dev-oauth-key-change-in-production}
+      JWT_EXPIRES_IN: "7d"
+      # Application
       APP_NAME: FluxStudio
-      APP_URL: http://localhost
+      APP_URL: http://localhost:${FRONTEND_PORT:-80}
+      FRONTEND_URL: http://localhost:${FRONTEND_PORT:-80}
+      CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-80},http://localhost:5173
+      # Features
       ENABLE_REGISTRATION: "true"
-      ENABLE_OAUTH: "false"
+      ENABLE_OAUTH: "true"
       ENABLE_FILE_UPLOAD: "true"
       ENABLE_WEBSOCKET: "true"
-      UPLOAD_DIR: /tmp/uploads
+      # File Upload
+      UPLOAD_DIR: /app/uploads
       MAX_FILE_SIZE: "52428800"
+      # Rate Limiting
       RATE_LIMIT_WINDOW_MS: "900000"
       RATE_LIMIT_MAX_REQUESTS: "100"
       AUTH_RATE_LIMIT_MAX: "5"
+      # OAuth (optional - set in .env file)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+    volumes:
+      - uploads_data:/app/uploads
+      - ./logs:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - fluxstudio-network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
 
-  # Collaboration Service (Yjs WebSocket)
+  # ============================================================================
+  # Collaboration Service (Yjs WebSocket for real-time editing)
+  # ============================================================================
   collaboration:
     build:
       context: .
       dockerfile: Dockerfile.collaboration
     container_name: fluxstudio-collab
     ports:
-      - "4000:4000"
+      - "${COLLAB_PORT:-4000}:4000"
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-development}
       COLLAB_PORT: 4000
       COLLAB_HOST: "0.0.0.0"
-      DATABASE_URL: postgresql://fluxstudio_user:fluxstudio2025secure@postgres:5432/fluxstudio
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fluxstudio_user}:${POSTGRES_PASSWORD:-fluxstudio2025secure}@postgres:5432/${POSTGRES_DB:-fluxstudio}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-fluxstudio_redis_dev}@redis:6379
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - fluxstudio-network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
 
+  # ============================================================================
   # Frontend (Nginx serving built React app)
+  # ============================================================================
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_URL: http://localhost:${BACKEND_PORT:-3001}
+        VITE_COLLAB_URL: ws://localhost:${COLLAB_PORT:-4000}
     container_name: fluxstudio-frontend
     ports:
-      - "80:80"
+      - "${FRONTEND_PORT:-80}:80"
     environment:
-      VITE_API_URL: http://localhost:3001
-      VITE_COLLAB_URL: http://localhost:4000
+      VITE_API_URL: http://localhost:${BACKEND_PORT:-3001}
+      VITE_COLLAB_URL: ws://localhost:${COLLAB_PORT:-4000}
     depends_on:
-      - unified-backend
-      - collaboration
+      unified-backend:
+        condition: service_healthy
+      collaboration:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - fluxstudio-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # Redis Commander (Optional - Database GUI)
+  # ============================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: fluxstudio-redis-ui
+    profiles:
+      - full
+      - debug
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:${REDIS_PASSWORD:-fluxstudio_redis_dev}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - fluxstudio-network
     restart: unless-stopped
 
+  # ============================================================================
+  # pgAdmin (Optional - PostgreSQL GUI)
+  # ============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: fluxstudio-pgadmin
+    profiles:
+      - full
+      - debug
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@fluxstudio.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fluxstudio-network
+    restart: unless-stopped
+
+# ============================================================================
+# Volumes
+# ============================================================================
 volumes:
   postgres_data:
     driver: local
+    name: fluxstudio_postgres_data
+  redis_data:
+    driver: local
+    name: fluxstudio_redis_data
+  uploads_data:
+    driver: local
+    name: fluxstudio_uploads
+  pgadmin_data:
+    driver: local
+    name: fluxstudio_pgadmin
 
+# ============================================================================
+# Networks
+# ============================================================================
 networks:
-  default:
+  fluxstudio-network:
+    driver: bridge
     name: fluxstudio-network
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

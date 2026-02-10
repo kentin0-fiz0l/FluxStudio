@@ -8,6 +8,9 @@ import { useMessaging as useMessagingContext, useMessagingOptional as useMessagi
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useCallback } from 'react';
 import { buildApiUrl } from '../config/environment';
+import { hookLogger } from '../lib/logger';
+
+const messagingLogger = hookLogger.child('useMessaging');
 import {
   Message,
   Conversation,
@@ -246,7 +249,7 @@ export function useMessaging(): UseMessagingReturn {
     try {
       return state.conversations.filter(conv => {
         if (!conv) {
-          console.error('[useMessaging] Undefined conversation in array');
+          messagingLogger.warn('Undefined conversation in array');
           return false;
         }
         if (filter.type && conv.type !== filter.type) return false;
@@ -258,16 +261,16 @@ export function useMessaging(): UseMessagingReturn {
         if (filter.projectId && conv.projectId !== filter.projectId) return false;
         if (filter.participantId) {
           if (!conv.participants || !Array.isArray(conv.participants)) {
-            console.error('[useMessaging] Invalid participants array:', conv.participants);
+            messagingLogger.warn('Invalid participants array', { participants: conv.participants });
             return false;
           }
           const hasParticipant = conv.participants.some(p => {
             if (!p) {
-              console.error('[useMessaging] Undefined participant in conversation:', conv.id);
+              messagingLogger.warn('Undefined participant in conversation', { conversationId: conv.id });
               return false;
             }
             if (!p.id) {
-              console.error('[useMessaging] Participant without id:', p);
+              messagingLogger.warn('Participant without id', { participant: p });
               return false;
             }
             return p.id === filter.participantId;
@@ -277,7 +280,7 @@ export function useMessaging(): UseMessagingReturn {
         return true;
       });
     } catch (error) {
-      console.error('[useMessaging] Error in filterConversations:', error);
+      messagingLogger.error('Error in filterConversations', error);
       return [];
     }
   };

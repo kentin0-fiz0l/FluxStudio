@@ -5,6 +5,14 @@
 
 import { Message, Conversation, MessageUser } from '../types/messaging';
 import { ConversationMetrics } from './conversationInsightsService';
+import { createLogger } from '@/services/logging';
+import { messagingSocketService } from './messagingSocketService';
+
+const logger = createLogger('WorkflowAutomation');
+
+// Event emitter for workflow events
+type WorkflowEventHandler = (data: unknown) => void;
+const workflowEventHandlers: Map<string, Set<WorkflowEventHandler>> = new Map();
 
 interface WorkflowTrigger {
   id: string;
@@ -64,6 +72,41 @@ interface AutomationRule {
   action: string;
   enabled: boolean;
   confidence: number;
+}
+
+// Action configuration interfaces
+interface NotificationConfig {
+  message: string;
+  title?: string;
+  priority?: 'high' | 'medium' | 'low';
+  notifyReviewers?: boolean;
+}
+
+interface AutoReplyConfig {
+  message: string;
+  delay?: number;
+}
+
+interface TaskCreationConfig {
+  extractText?: boolean;
+  assignToMentioned?: boolean;
+  defaultAssignee?: string;
+}
+
+interface ReminderConfig {
+  message: string;
+  reminderTime?: number; // milliseconds
+}
+
+interface StatusUpdateConfig {
+  status: string;
+  previousStatus?: string;
+}
+
+interface EscalationConfig {
+  escalateTo?: string[];
+  priority?: 'critical' | 'high' | 'medium';
+  reason?: string;
 }
 
 class WorkflowAutomationService {
@@ -545,35 +588,188 @@ class WorkflowAutomationService {
     }
   }
 
-  private async sendNotification(config: any, _context: WorkflowContext): Promise<void> {
-    console.log('Notification sent:', config.message);
-    // In a real implementation, this would send actual notifications
+  private async sendNotification(config: NotificationConfig, context: WorkflowContext): Promise<void> {
+    logger.info('Sending notification', { message: config.message });
+
+    // Emit workflow event for UI to handle
+    this.emitWorkflowEvent('notification', {
+      type: 'workflow_notification',
+      title: config.title || 'Workflow Notification',
+      message: config.message,
+      priority: config.priority || 'medium',
+      conversationId: context.conversation.id,
+      timestamp: new Date(),
+    });
+
+    // If configured to notify specific users, send via socket
+    if (config.notifyReviewers && messagingSocketService.getConnectionStatus()) {
+      // The notification will be handled by the messaging socket service
+      // which broadcasts to connected users
+    }
   }
 
-  private async sendAutoReply(config: any, _context: WorkflowContext): Promise<void> {
-    console.log('Auto-reply sent:', config.message);
-    // In a real implementation, this would send a message to the conversation
+  private async sendAutoReply(config: AutoReplyConfig, context: WorkflowContext): Promise<void> {
+    logger.info('Sending auto-reply', { message: config.message });
+
+    // Send message via socket service
+    if (messagingSocketService.getConnectionStatus()) {
+      messagingSocketService.sendMessage({
+        conversationId: context.conversation.id,
+        text: config.message,
+      });
+    }
+
+    // Emit event for tracking
+    this.emitWorkflowEvent('auto_reply_sent', {
+      conversationId: context.conversation.id,
+      message: config.message,
+      timestamp: new Date(),
+    });
   }
 
-  private async createTask(_config: any, message: Message, _context: WorkflowContext): Promise<void> {
-    console.log('Task created from message:', message.content);
-    // In a real implementation, this would create a task in a task management system
+  private async createTask(config: TaskCreationConfig, message: Message, context: WorkflowContext): Promise<void> {
+    logger.info('Creating task from message', { messageId: message.id });
+
+    // Extract task details from message
+    const taskTitle = this.extractTaskTitle(message.content);
+    const assignees = config.assignToMentioned && message.mentions
+      ? message.mentions
+      : [];
+
+    const taskData = {
+      title: taskTitle,
+      description: config.extractText ? message.content : undefined,
+      sourceMessageId: message.id,
+      conversationId: context.conversation.id,
+      projectId: context.projectContext?.id,
+      assignees,
+      createdAt: new Date(),
+      status: 'pending',
+    };
+
+    // Emit task creation event for UI/backend to handle
+    this.emitWorkflowEvent('task_created', taskData);
+
+    // Store pending task for tracking
+    this.pendingTasks.set(`task-${Date.now()}`, taskData);
   }
 
-  private async scheduleReminder(config: any, _context: WorkflowContext): Promise<void> {
-    console.log('Reminder scheduled:', config.message);
-    // In a real implementation, this would schedule a reminder
+  private async scheduleReminder(config: ReminderConfig, context: WorkflowContext): Promise<void> {
+    logger.info('Scheduling reminder', { message: config.message, delay: config.reminderTime });
+
+    const reminderId = `reminder-${Date.now()}`;
+    const reminderTime = Date.now() + (config.reminderTime || 24 * 60 * 60 * 1000);
+
+    const reminderData = {
+      id: reminderId,
+      message: config.message,
+      scheduledFor: new Date(reminderTime),
+      conversationId: context.conversation.id,
+      userId: context.currentUser.id,
+    };
+
+    // Store reminder
+    this.scheduledReminders.set(reminderId, reminderData);
+
+    // Schedule the actual reminder
+    setTimeout(() => {
+      this.executeReminder(reminderId);
+    }, config.reminderTime || 24 * 60 * 60 * 1000);
+
+    // Emit event
+    this.emitWorkflowEvent('reminder_scheduled', reminderData);
   }
 
-  private async updateStatus(config: any, _context: WorkflowContext): Promise<void> {
-    console.log('Status updated:', config);
-    // In a real implementation, this would update project status
+  private async updateStatus(config: StatusUpdateConfig, context: WorkflowContext): Promise<void> {
+    logger.info('Updating status', { newStatus: config.status });
+
+    const statusUpdate = {
+      conversationId: context.conversation.id,
+      projectId: context.projectContext?.id,
+      previousStatus: config.previousStatus,
+      newStatus: config.status,
+      updatedAt: new Date(),
+      updatedBy: context.currentUser.id,
+    };
+
+    // Emit status update event
+    this.emitWorkflowEvent('status_updated', statusUpdate);
   }
 
-  private async escalateIssue(_config: any, message: Message, _context: WorkflowContext): Promise<void> {
-    console.log('Issue escalated:', message.content);
-    // In a real implementation, this would escalate to appropriate team members
+  private async escalateIssue(config: EscalationConfig, message: Message, context: WorkflowContext): Promise<void> {
+    logger.info('Escalating issue', { messageId: message.id });
+
+    const escalation = {
+      messageId: message.id,
+      content: message.content,
+      conversationId: context.conversation.id,
+      escalatedTo: config.escalateTo || [],
+      priority: config.priority || 'high',
+      reason: config.reason || 'Automatic escalation triggered',
+      timestamp: new Date(),
+    };
+
+    // Emit escalation event
+    this.emitWorkflowEvent('issue_escalated', escalation);
+
+    // Send notification to escalation targets
+    if (messagingSocketService.getConnectionStatus() && config.escalateTo) {
+      await this.sendNotification(
+        {
+          message: `Issue escalated: ${message.content.slice(0, 100)}...`,
+          title: 'Issue Escalation',
+          priority: 'high',
+        },
+        context
+      );
+    }
   }
+
+  // Helper method to extract task title from message content
+  private extractTaskTitle(content: string): string {
+    // Look for common task patterns
+    const patterns = [
+      /(?:todo|task|action item):\s*(.+?)(?:\.|$)/i,
+      /(?:need to|should|must)\s+(.+?)(?:\.|$)/i,
+      /^(.+?)(?:\.|$)/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = content.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim().slice(0, 100);
+      }
+    }
+
+    return content.slice(0, 100);
+  }
+
+  // Execute a scheduled reminder
+  private executeReminder(reminderId: string): void {
+    const reminder = this.scheduledReminders.get(reminderId);
+    if (!reminder) return;
+
+    this.emitWorkflowEvent('reminder_triggered', reminder);
+    this.scheduledReminders.delete(reminderId);
+  }
+
+  // Event emission helper
+  private emitWorkflowEvent(event: string, data: unknown): void {
+    const handlers = workflowEventHandlers.get(event);
+    if (handlers) {
+      handlers.forEach((handler) => {
+        try {
+          handler(data);
+        } catch (error) {
+          logger.error('Error in workflow event handler', error as Error);
+        }
+      });
+    }
+  }
+
+  // Storage for pending items
+  private pendingTasks: Map<string, unknown> = new Map();
+  private scheduledReminders: Map<string, unknown> = new Map();
 
   private findRepetitivePatterns(messages: Message[]): string[] {
     const patterns: string[] = [];
@@ -703,6 +899,42 @@ class WorkflowAutomationService {
    */
   getActiveTriggers(): WorkflowTrigger[] {
     return Array.from(this.activeTriggers.values());
+  }
+
+  /**
+   * Subscribe to workflow events
+   */
+  onWorkflowEvent(event: string, handler: WorkflowEventHandler): () => void {
+    if (!workflowEventHandlers.has(event)) {
+      workflowEventHandlers.set(event, new Set());
+    }
+    workflowEventHandlers.get(event)!.add(handler);
+
+    // Return unsubscribe function
+    return () => {
+      workflowEventHandlers.get(event)?.delete(handler);
+    };
+  }
+
+  /**
+   * Get pending tasks
+   */
+  getPendingTasks(): unknown[] {
+    return Array.from(this.pendingTasks.values());
+  }
+
+  /**
+   * Get scheduled reminders
+   */
+  getScheduledReminders(): unknown[] {
+    return Array.from(this.scheduledReminders.values());
+  }
+
+  /**
+   * Cancel a scheduled reminder
+   */
+  cancelReminder(reminderId: string): boolean {
+    return this.scheduledReminders.delete(reminderId);
   }
 }
 

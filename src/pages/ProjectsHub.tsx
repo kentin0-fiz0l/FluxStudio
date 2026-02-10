@@ -121,8 +121,8 @@ export function ProjectsHub() {
                 : 'Create your first project to get started'}
             </p>
           </div>
-          <Button onClick={handleCreateProject} className="gap-2">
-            <Plus className="w-4 h-4" />
+          <Button onClick={handleCreateProject} className="gap-2" aria-label="Create new project">
+            <Plus className="w-4 h-4" aria-hidden="true" />
             New Project
           </Button>
         </motion.div>
@@ -134,30 +134,40 @@ export function ProjectsHub() {
             {/* Search & Filters */}
             <div className="flex items-center gap-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
                 <Input
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="Search projects..."
                   className="pl-10"
+                  aria-label="Search projects"
+                  type="search"
                 />
               </div>
-              <div className="flex items-center gap-1 border border-neutral-200 dark:border-neutral-700 rounded-lg p-1">
+              <div
+                className="flex items-center gap-1 border border-neutral-200 dark:border-neutral-700 rounded-lg p-1"
+                role="group"
+                aria-label="View mode"
+              >
                 <Button
                   variant={viewMode === 'grid' ? 'primary' : 'ghost'}
                   size="icon"
                   onClick={() => setViewMode('grid')}
                   className="h-8 w-8"
+                  aria-label="Grid view"
+                  aria-pressed={viewMode === 'grid'}
                 >
-                  <LayoutGrid className="w-4 h-4" />
+                  <LayoutGrid className="w-4 h-4" aria-hidden="true" />
                 </Button>
                 <Button
                   variant={viewMode === 'list' ? 'primary' : 'ghost'}
                   size="icon"
                   onClick={() => setViewMode('list')}
                   className="h-8 w-8"
+                  aria-label="List view"
+                  aria-pressed={viewMode === 'list'}
                 >
-                  <List className="w-4 h-4" />
+                  <List className="w-4 h-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -265,12 +275,14 @@ export function ProjectsHub() {
                 <button
                   onClick={() => setActivityExpanded(!activityExpanded)}
                   className="flex items-center justify-between w-full"
+                  aria-expanded={activityExpanded}
+                  aria-controls="activity-content"
                 >
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <Activity className="w-4 h-4 text-primary-600" />
+                    <Activity className="w-4 h-4 text-primary-600" aria-hidden="true" />
                     Recent Activity
                   </CardTitle>
-                  <div className="lg:hidden">
+                  <div className="lg:hidden" aria-hidden="true">
                     {activityExpanded ? (
                       <ChevronUp className="w-4 h-4 text-neutral-400" />
                     ) : (
@@ -282,6 +294,7 @@ export function ProjectsHub() {
               <AnimatePresence initial={false}>
                 {(activityExpanded || window.innerWidth >= 1024) && (
                   <motion.div
+                    id="activity-content"
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
@@ -346,19 +359,19 @@ export function ProjectsHub() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Sparkles className="w-4 h-4 text-secondary-600" />
+                  <Sparkles className="w-4 h-4 text-secondary-600" aria-hidden="true" />
                   Quick Actions
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-2">
+                <nav className="space-y-2" aria-label="Quick actions">
                   <Button
                     variant="ghost"
                     fullWidth
                     className="justify-start h-auto py-3"
                     onClick={handleCreateProject}
                   >
-                    <Plus className="w-4 h-4 mr-3 text-primary-600" />
+                    <Plus className="w-4 h-4 mr-3 text-primary-600" aria-hidden="true" />
                     <div className="text-left">
                       <p className="font-medium">New Project</p>
                       <p className="text-xs text-neutral-500">
@@ -372,7 +385,7 @@ export function ProjectsHub() {
                     className="justify-start h-auto py-3"
                     onClick={() => navigate('/messages')}
                   >
-                    <MessageSquare className="w-4 h-4 mr-3 text-green-600" />
+                    <MessageSquare className="w-4 h-4 mr-3 text-green-600" aria-hidden="true" />
                     <div className="text-left">
                       <p className="font-medium">Messages</p>
                       <p className="text-xs text-neutral-500">
@@ -386,7 +399,7 @@ export function ProjectsHub() {
                     className="justify-start h-auto py-3"
                     onClick={() => navigate('/organization')}
                   >
-                    <Users className="w-4 h-4 mr-3 text-purple-600" />
+                    <Users className="w-4 h-4 mr-3 text-purple-600" aria-hidden="true" />
                     <div className="text-left">
                       <p className="font-medium">Team & Organization</p>
                       <p className="text-xs text-neutral-500">
@@ -394,7 +407,7 @@ export function ProjectsHub() {
                       </p>
                     </div>
                   </Button>
-                </div>
+                </nav>
               </CardContent>
             </Card>
 
@@ -403,7 +416,7 @@ export function ProjectsHub() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <Clock className="w-4 h-4 text-warning-600" />
+                    <Clock className="w-4 h-4 text-warning-600" aria-hidden="true" />
                     Upcoming Deadlines
                   </CardTitle>
                 </CardHeader>

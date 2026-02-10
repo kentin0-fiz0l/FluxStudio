@@ -16,6 +16,7 @@ import { AuthProvider } from '../../contexts/AuthContext';
 import { SocketProvider } from '../../contexts/SocketContext';
 import { MessagingProvider } from '../../contexts/MessagingContext';
 import { NotificationProvider } from '../../contexts/NotificationContext';
+import { RealtimeNotifications } from '../notifications/RealtimeNotifications';
 import { ActiveProjectProvider } from '../../contexts/ActiveProjectContext';
 import { ProjectProvider } from '../../contexts/ProjectContext';
 import { SessionProvider } from '../../contexts/SessionContext';
@@ -52,6 +53,8 @@ function RealtimeProviders({ children }: ProvidersProps) {
     <SocketProvider>
       <MessagingProvider>
         <NotificationProvider>
+          {/* Real-time notification listener for Socket.IO events */}
+          <RealtimeNotifications enabled={true} soundEnabled={true} />
           {children}
         </NotificationProvider>
       </MessagingProvider>

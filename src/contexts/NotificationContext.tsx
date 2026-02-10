@@ -16,6 +16,9 @@
 import * as React from 'react';
 import { useAuth } from './AuthContext';
 import { getApiUrl } from '@/utils/apiHelpers';
+import { createLogger } from '../lib/logger';
+
+const notifyLogger = createLogger('NotificationContext');
 
 // Notification types (v2 - messaging focused with category support)
 export type NotificationType =
@@ -230,7 +233,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const data = await response.json();
       dispatch({ type: 'SET_NOTIFICATIONS', payload: data.notifications || [] });
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      notifyLogger.error('Error fetching notifications', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to load notifications' });
     }
   }, [user]);
@@ -252,7 +255,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         dispatch({ type: 'SET_UNREAD_COUNT', payload: data.count || 0 });
       }
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      notifyLogger.error('Error fetching unread count', error);
     }
   }, [user]);
 
@@ -286,7 +289,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         }
       }
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      notifyLogger.error('Error marking notification as read', error);
       // Revert optimistic update
       if (notification) {
         dispatch({
@@ -314,7 +317,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         dispatch({ type: 'MARK_ALL_READ' });
       }
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      notifyLogger.error('Error marking all notifications as read', error);
     }
   }, []);
 
@@ -333,7 +336,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         dispatch({ type: 'REMOVE_NOTIFICATION', payload: notificationId });
       }
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      notifyLogger.error('Error deleting notification', error);
     }
   }, []);
 

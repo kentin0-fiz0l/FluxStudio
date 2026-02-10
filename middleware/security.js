@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const validator = require('validator');
 const crypto = require('crypto');
+const { securityLogger } = require('../lib/logger');
 
 /**
  * Rate limiting configuration
@@ -244,12 +245,12 @@ const auditLogger = (req, res, next) => {
 
     // Log suspicious activity
     if (res.statusCode === 401 || res.statusCode === 403 || res.statusCode === 429) {
-      console.warn('Security Alert:', JSON.stringify(logData));
+      securityLogger.warn('Security alert', logData);
     }
 
     // Log errors
     if (res.statusCode >= 400) {
-      console.error('Request Error:', JSON.stringify(logData));
+      securityLogger.error('Request error', null, logData);
     }
   });
 

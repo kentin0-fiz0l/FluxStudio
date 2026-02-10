@@ -22,6 +22,13 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { observability } from '../../services/observability';
+import { createLogger } from '../../lib/logger';
+
+// Re-export ErrorFallback for convenience
+export { ErrorFallback } from '../ErrorFallback';
+export type { ErrorFallbackProps } from '../ErrorFallback';
+
+const boundaryLogger = createLogger('ErrorBoundary');
 
 interface Props {
   children: ReactNode;
@@ -81,8 +88,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private logError = (error: Error, errorInfo: ErrorInfo) => {
-    // Log to console
-    console.error('Error Boundary caught an error:', error, errorInfo);
+    // Log to structured logger
+    boundaryLogger.error('Error Boundary caught an error', error, { componentStack: errorInfo.componentStack });
 
     // Send to observability layer for tracking and correlation
     observability.errors.captureFromBoundary(error, {
@@ -416,7 +423,7 @@ export function MessagingErrorBoundary({ children }: { children: ReactNode }) {
     <ErrorBoundary
       isolateComponent
       onError={(error) => {
-        console.error('Messaging error:', error);
+        boundaryLogger.error('Messaging error', error);
         // Log messaging-specific metrics
       }}
       fallback={
@@ -439,7 +446,7 @@ export function WorkflowErrorBoundary({ children }: { children: ReactNode }) {
     <ErrorBoundary
       isolateComponent
       onError={(error) => {
-        console.error('Workflow error:', error);
+        boundaryLogger.error('Workflow error', error);
         // Log workflow-specific metrics
       }}
       fallback={
@@ -463,7 +470,7 @@ export function CollaborationErrorBoundary({ children }: { children: ReactNode }
       isolateComponent
       retryable={true}
       onError={(error) => {
-        console.error('Collaboration error:', error);
+        boundaryLogger.error('Collaboration error', error);
         // Log collaboration-specific metrics
       }}
       fallback={
@@ -486,7 +493,7 @@ export function FilesErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
       onError={(error) => {
-        console.error('Files page error:', error);
+        boundaryLogger.error('Files page error', error);
       }}
       fallback={
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -523,7 +530,7 @@ export function ToolsErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
       onError={(error) => {
-        console.error('Tools page error:', error);
+        boundaryLogger.error('Tools page error', error);
       }}
       fallback={
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -559,7 +566,7 @@ export function ProjectsErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
       onError={(error) => {
-        console.error('Projects page error:', error);
+        boundaryLogger.error('Projects page error', error);
       }}
       fallback={
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

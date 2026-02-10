@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { apiService } from '../services/apiService';
+import { authLogger } from '../lib/logger';
 
 export type UserType = 'client' | 'designer' | 'admin';
 
@@ -12,7 +13,7 @@ const DEV_MOCK_AUTH =
 
 // Production safety check - fail fast if misconfigured
 if (import.meta.env.MODE === 'production' && import.meta.env.VITE_DEV_MOCK_AUTH === 'true') {
-  console.error('CRITICAL: Mock auth cannot be enabled in production!');
+  authLogger.error('CRITICAL: Mock auth cannot be enabled in production!');
   throw new Error('Security violation: Mock authentication in production build');
 }
 
@@ -106,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshAccessToken = useCallback(async (): Promise<boolean> => {
     // If a refresh is already in progress, wait for it instead of failing
     if (isRefreshingRef.current && refreshPromiseRef.current) {
-      console.log('[Auth] Refresh already in progress, waiting...');
+      authLogger.debug('Refresh already in progress, waiting...');
       return refreshPromiseRef.current;
     }
 
@@ -132,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (!response.ok) {
-          console.warn('[Auth] Token refresh failed:', response.status);
+          authLogger.warn('Token refresh failed', { status: response.status });
           return false;
         }
 
@@ -149,13 +150,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
           }
 
-          console.log('[Auth] Token refreshed successfully');
+          authLogger.info('Token refreshed successfully');
           return true;
         }
 
         return false;
       } catch (error) {
-        console.error('[Auth] Token refresh error:', error);
+        authLogger.error('Token refresh error', error);
         return false;
       } finally {
         isRefreshingRef.current = false;
@@ -178,11 +179,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshIntervalRef.current = setInterval(async () => {
       const success = await refreshAccessToken();
       if (!success) {
-        console.warn('[Auth] Auto-refresh failed, user may need to re-login');
+        authLogger.warn('Auto-refresh failed, user may need to re-login');
       }
     }, TOKEN_REFRESH_INTERVAL);
 
-    console.log('[Auth] Started token refresh interval');
+    authLogger.debug('Started token refresh interval');
   }, [refreshAccessToken]);
 
   // Stop automatic token refresh
@@ -195,12 +196,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Handle 401 unauthorized - try to refresh before giving up
   const handleUnauthorized = useCallback(async () => {
-    console.log('[Auth] Received unauthorized event, attempting token refresh...');
+    authLogger.info('Received unauthorized event, attempting token refresh...');
 
     const refreshed = await refreshAccessToken();
 
     if (!refreshed) {
-      console.log('[Auth] Could not refresh token, logging out');
+      authLogger.info('Could not refresh token, logging out');
       clearTokens();
       setUser(null);
       setIsLoading(false);
@@ -228,7 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     // Dev mode: Use mock user when backend is unavailable
     if (DEV_MOCK_AUTH) {
-      console.log('[Auth] DEV_MOCK_AUTH enabled - using mock user');
+      authLogger.info('DEV_MOCK_AUTH enabled - using mock user');
       setUser(MOCK_USER);
       setIsLoading(false);
       return;
@@ -263,7 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      authLogger.error('Auth check failed', error);
       // Try to refresh before giving up
       const refreshed = await refreshAccessToken();
       if (refreshed) {
@@ -361,7 +362,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await apiService.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      authLogger.error('Logout error', error);
     } finally {
       clearTokens();
       setUser(null);
@@ -382,7 +383,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         startTokenRefresh();
       }
     } catch (error) {
-      console.error('Failed to fetch user after setting token:', error);
+      authLogger.error('Failed to fetch user after setting token', error);
       // Keep the token but user will be fetched on next page load
     }
   };

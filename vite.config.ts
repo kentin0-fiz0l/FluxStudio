@@ -60,12 +60,17 @@
             // Vendor chunks - Split by library for better caching
             // IMPORTANT: Keep React with main vendor to avoid createContext errors
             if (id.includes('node_modules')) {
+              // React ecosystem - MUST stay together to avoid context errors
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || id.includes('scheduler')) {
+                return 'vendor-react';
+              }
+
               // Socket.io - completely independent, no React dependency
-              if (id.includes('socket.io')) {
+              if (id.includes('socket.io-client') || id.includes('engine.io')) {
                 return 'vendor-socket';
               }
 
-              // Recharts and D3 - large charting libraries
+              // Recharts and D3 - large charting libraries (loaded lazily)
               if (id.includes('recharts') || id.includes('d3-')) {
                 return 'vendor-charts';
               }
@@ -80,8 +85,8 @@
                 return 'vendor-docs';
               }
 
-              // Editor libraries - Monaco, CodeMirror, etc.
-              if (id.includes('monaco') || id.includes('codemirror') || id.includes('@tiptap')) {
+              // Editor libraries - Monaco, CodeMirror, TipTap
+              if (id.includes('monaco') || id.includes('codemirror') || id.includes('@tiptap') || id.includes('prosemirror')) {
                 return 'vendor-editor';
               }
 
@@ -90,7 +95,7 @@
                 return 'vendor-animation';
               }
 
-              // Three.js and 3D
+              // Three.js and 3D - large, load on demand
               if (id.includes('three') || id.includes('@react-three')) {
                 return 'vendor-3d';
               }
@@ -111,18 +116,13 @@
               }
 
               // Yjs and collaboration libraries
-              if (id.includes('yjs') || id.includes('y-websocket') || id.includes('y-indexeddb') || id.includes('lib0')) {
+              if (id.includes('yjs') || id.includes('y-websocket') || id.includes('y-indexeddb') || id.includes('y-prosemirror') || id.includes('y-protocols') || id.includes('lib0')) {
                 return 'vendor-collab';
               }
 
               // HTTP clients
-              if (id.includes('axios') || id.includes('ky') || id.includes('got')) {
+              if (id.includes('axios')) {
                 return 'vendor-http';
-              }
-
-              // Crypto and security
-              if (id.includes('crypto') || id.includes('bcrypt') || id.includes('jsonwebtoken')) {
-                return 'vendor-crypto';
               }
 
               // Icons - lucide is large
@@ -130,59 +130,73 @@
                 return 'vendor-icons';
               }
 
-              // Everything else (including React core) goes into vendor bundle
-              // This prevents createContext errors from chunk loading order issues
-              return 'vendor';
+              // i18n - internationalization
+              if (id.includes('i18next') || id.includes('react-i18next')) {
+                return 'vendor-i18n';
+              }
+
+              // Stripe - payment processing
+              if (id.includes('stripe')) {
+                return 'vendor-stripe';
+              }
+
+              // Drag and drop
+              if (id.includes('@dnd-kit')) {
+                return 'vendor-dnd';
+              }
+
+              // Everything else goes into a smaller vendor-common bundle
+              return 'vendor-common';
             }
 
-            // Page chunks - Force separate bundles for key pages
+            // IMPORTANT: Fix circular dependencies by NOT splitting these into separate chunks
+            // Services, contexts, and hooks are tightly coupled - keep them together
+            // Pages that are frequently accessed together should NOT be in separate chunks
+
+            // Heavy pages that should be their own chunks (lazy loaded)
+            if (id.includes('/src/pages/ToolsMetMap')) {
+              return 'page-metmap';
+            }
+            if (id.includes('/src/pages/ProjectOverview') || id.includes('/src/pages/ProjectDetail')) {
+              return 'page-project-detail';
+            }
             if (id.includes('/src/pages/Settings')) {
               return 'page-settings';
             }
-            if (id.includes('/src/pages/MessagesNew')) {
-              return 'page-messages';
+
+            // Large dashboard components
+            if (id.includes('/src/components/AdaptiveDashboard')) {
+              return 'feature-dashboard';
             }
 
-            // Application chunks - Split by feature
-            if (id.includes('/src/components/messaging/')) {
-              return 'feature-messaging';
+            // Printing dashboard (large, rarely used)
+            if (id.includes('/src/components/printing/')) {
+              return 'feature-printing';
             }
-            if (id.includes('/src/components/analytics/')) {
-              return 'feature-analytics';
-            }
-            if (id.includes('/src/components/collaboration/')) {
-              return 'feature-collaboration';
-            }
+
+            // Onboarding flow (only used for new users)
             if (id.includes('/src/components/onboarding/')) {
               return 'feature-onboarding';
             }
+
+            // Analytics components (dashboard widgets)
+            if (id.includes('/src/components/analytics/')) {
+              return 'feature-analytics';
+            }
+
+            // Collaboration components (uses Yjs)
+            if (id.includes('/src/components/collaboration/')) {
+              return 'feature-collaboration';
+            }
+
+            // Portfolio components
             if (id.includes('/src/components/portfolio/')) {
               return 'feature-portfolio';
             }
-            if (id.includes('/src/components/project/')) {
-              return 'feature-project';
-            }
-            if (id.includes('/src/components/performance/')) {
-              return 'feature-performance';
-            }
 
-            // UI components - Shared across features
-            if (id.includes('/src/components/ui/')) {
-              return 'shared-ui';
-            }
-
-            // Services and utilities
-            if (id.includes('/src/services/')) {
-              return 'shared-services';
-            }
-            if (id.includes('/src/utils/')) {
-              return 'shared-utils';
-            }
-
-            // Contexts
-            if (id.includes('/src/contexts/')) {
-              return 'shared-contexts';
-            }
+            // Keep UI, services, contexts, hooks, and messaging together in the main bundle
+            // to avoid circular dependency issues
+            return undefined; // Let Rollup handle these naturally
           },
           // Optimize chunk naming
           chunkFileNames: 'assets/[name]-[hash].js',

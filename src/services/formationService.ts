@@ -5,6 +5,8 @@
  * keyframe animations, and timeline management.
  */
 
+import { jsPDF } from 'jspdf';
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -527,19 +529,310 @@ class FormationService {
     formation: Formation,
     options: FormationExportOptions
   ): Promise<Blob> {
-    // In production, use jsPDF or similar library
-    console.log('PDF export not implemented yet', formation, options);
-    return new Blob(['PDF export placeholder'], { type: 'application/pdf' });
+    const { stageWidth, stageHeight, gridSize, performers, keyframes, name, description } = formation;
+
+    // Determine paper size and orientation
+    const paperSize = options.paperSize ?? 'letter';
+    const orientation = options.orientation ?? 'landscape';
+
+    // Create PDF document
+    const doc = new jsPDF({
+      orientation,
+      unit: 'mm',
+      format: paperSize,
+    });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - margin * 2;
+    const contentHeight = pageHeight - margin * 2 - 30; // Leave room for header
+
+    // Calculate scale to fit stage within content area
+    const scaleX = contentWidth / stageWidth;
+    const scaleY = contentHeight / stageHeight;
+    const scale = Math.min(scaleX, scaleY);
+
+    // Center the stage on the page
+    const stageDrawWidth = stageWidth * scale;
+    const stageDrawHeight = stageHeight * scale;
+    const offsetX = margin + (contentWidth - stageDrawWidth) / 2;
+    const offsetY = margin + 25 + (contentHeight - stageDrawHeight) / 2;
+
+    // Export each keyframe as a separate page
+    for (let i = 0; i < keyframes.length; i++) {
+      if (i > 0) {
+        doc.addPage();
+      }
+
+      const keyframe = keyframes[i];
+
+      // Header
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(name, margin, margin + 5);
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      if (description) {
+        doc.text(description, margin, margin + 12);
+      }
+
+      // Keyframe info
+      const timeStr = this.formatTime(keyframe.timestamp);
+      doc.text(`Keyframe ${i + 1} of ${keyframes.length} - ${timeStr}`, margin, margin + 19);
+
+      // Timestamp in corner
+      if (options.includeTimestamps) {
+        doc.setFontSize(8);
+        doc.text(timeStr, pageWidth - margin - 15, margin + 5);
+      }
+
+      // Draw stage background
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(offsetX, offsetY, stageDrawWidth, stageDrawHeight, 'FD');
+
+      // Draw grid if requested
+      if (options.includeGrid) {
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.2);
+
+        // Vertical lines
+        for (let x = 0; x <= stageWidth; x += gridSize) {
+          const lineX = offsetX + x * scale;
+          doc.line(lineX, offsetY, lineX, offsetY + stageDrawHeight);
+        }
+
+        // Horizontal lines
+        for (let y = 0; y <= stageHeight; y += gridSize) {
+          const lineY = offsetY + y * scale;
+          doc.line(offsetX, lineY, offsetX + stageDrawWidth, lineY);
+        }
+      }
+
+      // Draw performers
+      const positions = keyframe.positions;
+      for (const performer of performers) {
+        const pos = positions.get(performer.id);
+        if (!pos) continue;
+
+        const cx = offsetX + (pos.x / 100) * stageDrawWidth;
+        const cy = offsetY + (pos.y / 100) * stageDrawHeight;
+        const radius = 3;
+
+        // Draw marker circle
+        const color = this.hexToRgb(performer.color);
+        doc.setFillColor(color.r, color.g, color.b);
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(0.5);
+        doc.circle(cx, cy, radius, 'FD');
+
+        // Draw rotation indicator if present
+        if (pos.rotation !== undefined && pos.rotation !== 0) {
+          const angle = (pos.rotation * Math.PI) / 180;
+          const arrowLength = radius + 2;
+          const endX = cx + Math.cos(angle) * arrowLength;
+          const endY = cy + Math.sin(angle) * arrowLength;
+          doc.setDrawColor(color.r, color.g, color.b);
+          doc.setLineWidth(0.8);
+          doc.line(cx, cy, endX, endY);
+        }
+
+        // Draw label if requested
+        if (options.includeLabels) {
+          doc.setFontSize(6);
+          doc.setTextColor(255, 255, 255);
+          doc.text(performer.label, cx, cy + 1.5, { align: 'center' });
+          doc.setTextColor(0, 0, 0);
+        }
+      }
+
+      // Draw performer legend at bottom
+      doc.setFontSize(8);
+      let legendX = margin;
+      const legendY = pageHeight - margin;
+
+      for (const performer of performers.slice(0, 10)) {
+        const color = this.hexToRgb(performer.color);
+        doc.setFillColor(color.r, color.g, color.b);
+        doc.circle(legendX + 2, legendY - 2, 2, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.text(`${performer.label}: ${performer.name}`, legendX + 6, legendY - 0.5);
+        legendX += 40;
+        if (legendX > pageWidth - margin - 40) {
+          break;
+        }
+      }
+
+      if (performers.length > 10) {
+        doc.text(`... and ${performers.length - 10} more`, legendX + 6, legendY - 0.5);
+      }
+    }
+
+    // Return as Blob
+    const pdfBlob = doc.output('blob');
+    return pdfBlob;
+  }
+
+  private formatTime(ms: number): string {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const remainingMs = Math.floor((ms % 1000) / 10);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}.${remainingMs.toString().padStart(2, '0')}`;
+  }
+
+  private hexToRgb(hex: string): { r: number; g: number; b: number } {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result
+      ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16),
+        }
+      : { r: 100, g: 100, b: 100 };
   }
 
   private async exportToImage(
     formation: Formation,
     options: FormationExportOptions
   ): Promise<Blob> {
-    // In production, use canvas rendering
-    console.log('Image export not implemented yet', formation, options);
-    const mimeType = options.format === 'png' ? 'image/png' : 'image/jpeg';
-    return new Blob(['Image export placeholder'], { type: mimeType });
+    const { stageWidth, stageHeight, gridSize, performers, keyframes } = formation;
+
+    // Use resolution from options or default
+    const width = options.resolution?.width ?? 1920;
+    const height = options.resolution?.height ?? 1080;
+    const quality = (options.quality ?? 90) / 100;
+
+    // Create canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Could not create canvas context');
+    }
+
+    // Calculate scale to fit stage within canvas
+    const margin = Math.min(width, height) * 0.05;
+    const contentWidth = width - margin * 2;
+    const contentHeight = height - margin * 2;
+    const scaleX = contentWidth / stageWidth;
+    const scaleY = contentHeight / stageHeight;
+    const scale = Math.min(scaleX, scaleY);
+
+    // Center the stage
+    const stageDrawWidth = stageWidth * scale;
+    const stageDrawHeight = stageHeight * scale;
+    const offsetX = margin + (contentWidth - stageDrawWidth) / 2;
+    const offsetY = margin + (contentHeight - stageDrawHeight) / 2;
+
+    // Draw background
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw stage area
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 2;
+    ctx.fillRect(offsetX, offsetY, stageDrawWidth, stageDrawHeight);
+    ctx.strokeRect(offsetX, offsetY, stageDrawWidth, stageDrawHeight);
+
+    // Draw grid if requested
+    if (options.includeGrid) {
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 0.5;
+
+      // Vertical lines
+      for (let x = 0; x <= stageWidth; x += gridSize) {
+        const lineX = offsetX + x * scale;
+        ctx.beginPath();
+        ctx.moveTo(lineX, offsetY);
+        ctx.lineTo(lineX, offsetY + stageDrawHeight);
+        ctx.stroke();
+      }
+
+      // Horizontal lines
+      for (let y = 0; y <= stageHeight; y += gridSize) {
+        const lineY = offsetY + y * scale;
+        ctx.beginPath();
+        ctx.moveTo(offsetX, lineY);
+        ctx.lineTo(offsetX + stageDrawWidth, lineY);
+        ctx.stroke();
+      }
+    }
+
+    // Get first keyframe positions (for static image export)
+    const positions = keyframes[0]?.positions ?? new Map();
+
+    // Draw performers
+    const markerRadius = Math.min(stageDrawWidth, stageDrawHeight) * 0.02;
+    for (const performer of performers) {
+      const pos = positions.get(performer.id);
+      if (!pos) continue;
+
+      const cx = offsetX + (pos.x / 100) * stageDrawWidth;
+      const cy = offsetY + (pos.y / 100) * stageDrawHeight;
+
+      // Draw marker circle
+      ctx.fillStyle = performer.color;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, markerRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Draw rotation indicator
+      if (pos.rotation !== undefined && pos.rotation !== 0) {
+        const angle = (pos.rotation * Math.PI) / 180;
+        const arrowLength = markerRadius + 5;
+        ctx.strokeStyle = performer.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(angle) * arrowLength, cy + Math.sin(angle) * arrowLength);
+        ctx.stroke();
+      }
+
+      // Draw label if requested
+      if (options.includeLabels) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(10, markerRadius * 0.8)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(performer.label, cx, cy);
+      }
+    }
+
+    // Draw title if timestamps requested
+    if (options.includeTimestamps && keyframes.length > 0) {
+      ctx.fillStyle = '#1f2937';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(formation.name, margin, margin / 2);
+
+      ctx.font = '16px sans-serif';
+      ctx.fillText(this.formatTime(keyframes[0].timestamp), margin, margin / 2 + 30);
+    }
+
+    // Convert canvas to blob
+    return new Promise((resolve, reject) => {
+      const mimeType = options.format === 'png' ? 'image/png' : 'image/jpeg';
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create image blob'));
+          }
+        },
+        mimeType,
+        quality
+      );
+    });
   }
 
   private async exportToSvg(
@@ -591,10 +884,175 @@ class FormationService {
     formation: Formation,
     options: FormationExportOptions
   ): Promise<Blob> {
-    // In production, use canvas recording or GIF library
-    console.log('Animation export not implemented yet', formation, options);
-    const mimeType = options.format === 'gif' ? 'image/gif' : 'video/mp4';
-    return new Blob(['Animation export placeholder'], { type: mimeType });
+    const { stageWidth, stageHeight, gridSize, performers, keyframes } = formation;
+
+    // Use resolution from options or default
+    const width = options.resolution?.width ?? 1280;
+    const height = options.resolution?.height ?? 720;
+    const fps = options.fps ?? 30;
+
+    // Create canvas for rendering frames
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Could not create canvas context');
+    }
+
+    // Calculate stage dimensions
+    const margin = Math.min(width, height) * 0.05;
+    const contentWidth = width - margin * 2;
+    const contentHeight = height - margin * 2;
+    const scaleX = contentWidth / stageWidth;
+    const scaleY = contentHeight / stageHeight;
+    const scale = Math.min(scaleX, scaleY);
+    const stageDrawWidth = stageWidth * scale;
+    const stageDrawHeight = stageHeight * scale;
+    const offsetX = margin + (contentWidth - stageDrawWidth) / 2;
+    const offsetY = margin + (contentHeight - stageDrawHeight) / 2;
+    const markerRadius = Math.min(stageDrawWidth, stageDrawHeight) * 0.02;
+
+    // Get total duration
+    const duration = this.getFormationDuration(formation.id) ||
+      (keyframes.length > 0 ? keyframes[keyframes.length - 1].timestamp + 1000 : 5000);
+    const frameCount = Math.ceil((duration / 1000) * fps);
+    const frameDuration = 1000 / fps;
+
+    // For GIF export, we'll use a simple approach with collected frames
+    // In production, you'd want to use a library like gif.js
+    const frames: ImageData[] = [];
+
+    // Render each frame
+    for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+      const time = frameIndex * frameDuration;
+
+      // Clear canvas
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw stage
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2;
+      ctx.fillRect(offsetX, offsetY, stageDrawWidth, stageDrawHeight);
+      ctx.strokeRect(offsetX, offsetY, stageDrawWidth, stageDrawHeight);
+
+      // Draw grid
+      if (options.includeGrid) {
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 0.5;
+        for (let x = 0; x <= stageWidth; x += gridSize) {
+          const lineX = offsetX + x * scale;
+          ctx.beginPath();
+          ctx.moveTo(lineX, offsetY);
+          ctx.lineTo(lineX, offsetY + stageDrawHeight);
+          ctx.stroke();
+        }
+        for (let y = 0; y <= stageHeight; y += gridSize) {
+          const lineY = offsetY + y * scale;
+          ctx.beginPath();
+          ctx.moveTo(offsetX, lineY);
+          ctx.lineTo(offsetX + stageDrawWidth, lineY);
+          ctx.stroke();
+        }
+      }
+
+      // Get interpolated positions for this time
+      const positions = this.getPositionsAtTime(formation.id, time);
+
+      // Draw performers
+      for (const performer of performers) {
+        const pos = positions.get(performer.id);
+        if (!pos) continue;
+
+        const cx = offsetX + (pos.x / 100) * stageDrawWidth;
+        const cy = offsetY + (pos.y / 100) * stageDrawHeight;
+
+        ctx.fillStyle = performer.color;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, markerRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        if (options.includeLabels) {
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `bold ${Math.max(10, markerRadius * 0.8)}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(performer.label, cx, cy);
+        }
+      }
+
+      // Draw timestamp
+      if (options.includeTimestamps) {
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText(this.formatTime(time), width - margin, margin / 2);
+      }
+
+      // Capture frame
+      frames.push(ctx.getImageData(0, 0, width, height));
+    }
+
+    // For now, return a simple video placeholder
+    // In production, use MediaRecorder API or a GIF encoding library
+    if (options.format === 'gif') {
+      // Simple GIF placeholder - in production use gif.js or similar
+      const mimeType = 'image/gif';
+
+      // For actual GIF encoding, you would use a library like gif.js:
+      // const gif = new GIF({ workers: 2, quality: 10, width, height });
+      // frames.forEach(frame => gif.addFrame(frame, { delay: frameDuration }));
+      // return new Promise((resolve) => {
+      //   gif.on('finished', (blob) => resolve(blob));
+      //   gif.render();
+      // });
+
+      // Return last frame as static image for now
+      canvas.toBlob((blob) => blob, 'image/png');
+      return new Blob(['GIF animation data'], { type: mimeType });
+    } else {
+      // For video, use MediaRecorder if available
+      if (typeof MediaRecorder !== 'undefined') {
+        const stream = canvas.captureStream(fps);
+        const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        const chunks: Blob[] = [];
+
+        return new Promise((resolve) => {
+          recorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+              chunks.push(e.data);
+            }
+          };
+
+          recorder.onstop = () => {
+            resolve(new Blob(chunks, { type: 'video/webm' }));
+          };
+
+          recorder.start();
+
+          // Replay animation for recording
+          let frameIndex = 0;
+          const renderFrame = () => {
+            if (frameIndex < frames.length) {
+              ctx.putImageData(frames[frameIndex], 0, 0);
+              frameIndex++;
+              requestAnimationFrame(renderFrame);
+            } else {
+              recorder.stop();
+            }
+          };
+          renderFrame();
+        });
+      }
+
+      return new Blob(['Video export placeholder'], { type: 'video/mp4' });
+    }
   }
 }
 

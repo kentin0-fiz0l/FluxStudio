@@ -9,6 +9,10 @@
  * - Comprehensive error handling and fallbacks
  */
 
+import { serviceLogger } from '../lib/logger';
+
+const oauthLogger = serviceLogger.child('GoogleOAuth');
+
 interface GoogleOAuthConfig {
   clientId: string;
   scope?: string;
@@ -68,7 +72,7 @@ class GoogleOAuthManager {
       await this.loadGoogleScript();
       this.isInitialized = true;
     } catch (error) {
-      console.error('Failed to initialize Google OAuth:', error);
+      oauthLogger.error('Failed to initialize Google OAuth', error);
       this.isInitialized = false;
       this.hasConfigurationError = true;
       throw error;
@@ -136,7 +140,7 @@ class GoogleOAuthManager {
       const message = args.join(' ').toLowerCase();
       if (message.includes('not allowed') && message.includes('client id')) {
         this.hasConfigurationError = true;
-        console.warn('Google OAuth configuration error detected - disabling OAuth features');
+        oauthLogger.warn('Google OAuth configuration error detected - disabling OAuth features');
       }
       originalConsoleError.apply(console, args);
     };
@@ -146,7 +150,7 @@ class GoogleOAuthManager {
       const message = event.reason?.message?.toLowerCase() || '';
       if (message.includes('not allowed') || message.includes('origin') || message.includes('403')) {
         this.hasConfigurationError = true;
-        console.warn('Google OAuth configuration error detected via promise rejection');
+        oauthLogger.warn('Google OAuth configuration error detected via promise rejection');
       }
     });
 
@@ -158,7 +162,7 @@ class GoogleOAuthManager {
           target.getAttribute &&
           target.getAttribute('src')?.includes('accounts.google.com')) {
         this.hasConfigurationError = true;
-        console.warn('Google OAuth iframe failed to load - likely configuration error');
+        oauthLogger.warn('Google OAuth iframe failed to load - likely configuration error');
       }
     }, true);
 
@@ -168,7 +172,7 @@ class GoogleOAuthManager {
       const message = args.join(' ').toLowerCase();
       if (message.includes('cross-origin-opener-policy') &&
           message.includes('postmessage')) {
-        console.log('Google OAuth Cross-Origin-Opener-Policy warning detected - this is expected and handled');
+        oauthLogger.debug('Google OAuth Cross-Origin-Opener-Policy warning detected - this is expected and handled');
         // Don't disable OAuth for COOP warnings as they don't prevent functionality
       }
       originalConsoleWarn.apply(console, args);
@@ -228,7 +232,7 @@ class GoogleOAuthManager {
           try {
             options.onSuccess(response);
           } catch (error) {
-            console.error('Google OAuth success callback error:', error);
+            oauthLogger.error('Google OAuth success callback error', error);
             options.onError?.(error);
           }
         },
@@ -273,7 +277,7 @@ class GoogleOAuthManager {
       return buttonId;
 
     } catch (error) {
-      console.error('Failed to create Google OAuth button:', error);
+      oauthLogger.error('Failed to create Google OAuth button', error);
 
       // Check for specific OAuth configuration errors
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -380,7 +384,7 @@ class GoogleOAuthManager {
       try {
         await this.loadGoogleScript();
       } catch (error) {
-        console.warn('Failed to preload Google OAuth script:', error);
+        oauthLogger.warn('Failed to preload Google OAuth script', error);
       }
     }
   }
@@ -478,7 +482,7 @@ class GoogleOAuthManager {
       }
     } catch (error) {
       // Silently ignore removal errors - element may already be removed
-      console.debug('Safe element removal failed:', error);
+      oauthLogger.debug('Safe element removal failed', { error });
     }
   }
 

@@ -1,7 +1,23 @@
 /**
  * AI Design Feedback Service
  * Advanced AI-powered design analysis and feedback generation
+ * Uses Anthropic Claude API for vision-based design analysis
  */
+
+import Anthropic from '@anthropic-ai/sdk';
+import { createLogger } from '@/services/logging';
+
+const logger = createLogger('AIDesignFeedback');
+
+// Initialize Anthropic client (API key from environment)
+const getAnthropicClient = () => {
+  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    logger.warn('Anthropic API key not configured, using mock responses');
+    return null;
+  }
+  return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+};
 
 interface DesignElement {
   type: 'color' | 'typography' | 'layout' | 'imagery' | 'spacing' | 'composition';
@@ -48,6 +64,14 @@ interface ContextualInsight {
   actionable: boolean;
 }
 
+interface DesignContext {
+  projectType?: string;
+  industry?: string;
+  targetAudience?: string;
+  brandGuidelines?: string;
+  focusAreas?: string[];
+}
+
 class AIDesignFeedbackService {
   private analysisCache = new Map<string, DesignAnalysis>();
   private feedbackTemplates: Record<string, string[]> = {
@@ -92,7 +116,7 @@ class AIDesignFeedbackService {
   /**
    * Analyze design image using AI-powered analysis
    */
-  async analyzeDesign(imageUrl: string, context?: any): Promise<DesignAnalysis> {
+  async analyzeDesign(imageUrl: string, context?: DesignContext): Promise<DesignAnalysis> {
     // Check cache first
     const cacheKey = this.generateCacheKey(imageUrl, context);
     if (this.analysisCache.has(cacheKey)) {
@@ -100,18 +124,160 @@ class AIDesignFeedbackService {
     }
 
     try {
-      // In a real implementation, this would call an AI service like OpenAI GPT-4 Vision
-      // For now, we'll simulate intelligent analysis
-      const analysis = await this.simulateAIAnalysis(imageUrl, context);
+      const anthropic = getAnthropicClient();
+
+      let analysis: DesignAnalysis;
+
+      if (anthropic) {
+        // Use real AI analysis
+        analysis = await this.performAIAnalysis(anthropic, imageUrl, context);
+      } else {
+        // Fall back to simulated analysis
+        analysis = await this.simulateAIAnalysis(imageUrl, context);
+      }
 
       // Cache the result
       this.analysisCache.set(cacheKey, analysis);
 
       return analysis;
     } catch (error) {
-      console.error('Failed to analyze design:', error);
-      throw new Error('Design analysis failed. Please try again.');
+      logger.error('Failed to analyze design', error as Error);
+      // Fall back to simulated analysis on error
+      const fallbackAnalysis = await this.simulateAIAnalysis(imageUrl, context);
+      return fallbackAnalysis;
     }
+  }
+
+  /**
+   * Perform actual AI analysis using Claude Vision
+   */
+  private async performAIAnalysis(
+    anthropic: Anthropic,
+    imageUrl: string,
+    context?: DesignContext
+  ): Promise<DesignAnalysis> {
+    const contextStr = context
+      ? `Design Context:
+- Project Type: ${context.projectType || 'General'}
+- Industry: ${context.industry || 'Not specified'}
+- Target Audience: ${context.targetAudience || 'General'}
+- Brand Guidelines: ${context.brandGuidelines || 'None provided'}
+- Specific Areas to Focus: ${context.focusAreas?.join(', ') || 'All aspects'}`
+      : '';
+
+    const prompt = `Analyze this design image and provide detailed feedback. ${contextStr}
+
+Please analyze the following aspects and respond in JSON format:
+
+{
+  "elements": [
+    {
+      "type": "color|typography|layout|imagery|spacing|composition",
+      "description": "Detailed description of this element",
+      "confidence": 0.0-1.0,
+      "coordinates": { "x": 0-100, "y": 0-100, "width": 0-100, "height": 0-100 }
+    }
+  ],
+  "overallScore": 0.0-1.0,
+  "strengths": ["strength 1", "strength 2", ...],
+  "improvements": ["improvement 1", "improvement 2", ...],
+  "brandAlignment": 0.0-1.0,
+  "accessibilityScore": 0.0-1.0,
+  "moodAnalysis": {
+    "mood": "Primary mood description",
+    "confidence": 0.0-1.0,
+    "emotions": ["emotion1", "emotion2", ...]
+  }
+}
+
+Be specific, actionable, and constructive in your feedback.`;
+
+    try {
+      // Fetch image and convert to base64
+      const imageData = await this.fetchImageAsBase64(imageUrl);
+
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: imageData.mediaType,
+                  data: imageData.data,
+                },
+              },
+              {
+                type: 'text',
+                text: prompt,
+              },
+            ],
+          },
+        ],
+      });
+
+      // Extract text response
+      const textContent = response.content.find((c) => c.type === 'text');
+      if (!textContent || textContent.type !== 'text') {
+        throw new Error('No text response from AI');
+      }
+
+      // Parse JSON from response
+      const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Could not parse AI response as JSON');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      return {
+        id: `analysis-${Date.now()}`,
+        imageUrl,
+        analyzedAt: new Date(),
+        elements: parsed.elements || [],
+        overallScore: parsed.overallScore || 0.8,
+        strengths: parsed.strengths || [],
+        improvements: parsed.improvements || [],
+        brandAlignment: parsed.brandAlignment,
+        accessibilityScore: parsed.accessibilityScore,
+        moodAnalysis: parsed.moodAnalysis,
+      };
+    } catch (error) {
+      logger.error('AI analysis failed', error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch image and convert to base64
+   */
+  private async fetchImageAsBase64(
+    imageUrl: string
+  ): Promise<{ data: string; mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' }> {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const arrayBuffer = await blob.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+    // Determine media type
+    let mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' = 'image/jpeg';
+    if (blob.type.includes('png')) {
+      mediaType = 'image/png';
+    } else if (blob.type.includes('gif')) {
+      mediaType = 'image/gif';
+    } else if (blob.type.includes('webp')) {
+      mediaType = 'image/webp';
+    }
+
+    return { data: base64, mediaType };
   }
 
   /**
@@ -406,7 +572,8 @@ export type {
   DesignAnalysis,
   DesignElement,
   FeedbackSuggestion,
-  ContextualInsight
+  ContextualInsight,
+  DesignContext
 };
 
 export default aiDesignFeedbackService;

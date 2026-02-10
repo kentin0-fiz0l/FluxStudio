@@ -14,6 +14,7 @@ import ErrorBoundary, {
 } from './components/error/ErrorBoundary';
 import { performanceMonitoring } from './services/performanceMonitoring';
 import { apiService } from './services/apiService';
+import { logger } from './lib/logger';
 import { lazyLoadWithRetry, DefaultLoadingFallback } from './utils/lazyLoad';
 import { queryClient } from './lib/queryClient';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -79,6 +80,7 @@ const { Component: Privacy } = lazyLoadWithRetry(() => import('./pages/Privacy')
 
 // Help & Support pages - Phase 4 User Adoption
 const { Component: HelpCenter } = lazyLoadWithRetry(() => import('./pages/HelpCenter'));
+const { Component: HelpArticle } = lazyLoadWithRetry(() => import('./pages/HelpArticle'));
 const { Component: Support } = lazyLoadWithRetry(() => import('./pages/Support'));
 // Future: Route components for advanced features - see docs/ROUTE_WRAPPERS.md for implementation guide
 
@@ -177,6 +179,7 @@ function AuthenticatedRoutes() {
 
                   {/* Help & Support pages - public but with optional auth */}
                   <Route path="/help" element={<HelpCenter />} />
+                  <Route path="/help/article/:articleId" element={<HelpArticle />} />
                   <Route path="/support" element={<Support />} />
 
                   {/* ================================================
@@ -296,7 +299,7 @@ export default function App() {
 
     // Initialize CSRF token for secure API requests
     apiService.initializeCsrfToken().catch((error) => {
-      console.error('Failed to initialize CSRF token:', error);
+      logger.error('Failed to initialize CSRF token', error);
     });
 
     // Track route changes

@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getApiUrl } from '../utils/apiHelpers';
 import { useAuth } from '../contexts/AuthContext';
+import { hookLogger } from '../lib/logger';
+
+const projectsLogger = hookLogger.child('useProjects');
 
 export interface Project {
   id: string;
@@ -90,7 +93,7 @@ export function useProjects() {
       const result = await response.json();
       setProjects(result.projects || []);
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      projectsLogger.error('Error fetching projects', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch projects');
       setProjects([]);
     } finally {
@@ -142,7 +145,7 @@ export function useProjects() {
       setProjects(prev => [...prev, newProject]);
       return newProject;
     } catch (error) {
-      console.error('Error creating project:', error);
+      projectsLogger.error('Error creating project', error);
       throw error;
     }
   }, [user]);
@@ -175,7 +178,7 @@ export function useProjects() {
 
       return updatedProject;
     } catch (error) {
-      console.error('Error updating project:', error);
+      projectsLogger.error('Error updating project', error);
       throw error;
     }
   }, [user]);
@@ -199,7 +202,7 @@ export function useProjects() {
 
       setProjects(prev => prev.filter(project => project.id !== projectId));
     } catch (error) {
-      console.error('Error deleting project:', error);
+      projectsLogger.error('Error deleting project', error);
       throw error;
     }
   }, [user]);
@@ -234,7 +237,7 @@ export function useProjects() {
       await fetchProjects(); // Refresh projects to get updated tasks
       return result.task;
     } catch (error) {
-      console.error('Error creating task:', error);
+      projectsLogger.error('Error creating task', error);
       throw error;
     }
   }, [user, fetchProjects]);
@@ -262,7 +265,7 @@ export function useProjects() {
       await fetchProjects(); // Refresh projects to get updated tasks
       return result.task;
     } catch (error) {
-      console.error('Error updating task:', error);
+      projectsLogger.error('Error updating task', error);
       throw error;
     }
   }, [user, fetchProjects]);
@@ -286,7 +289,7 @@ export function useProjects() {
 
       await fetchProjects(); // Refresh projects to get updated tasks
     } catch (error) {
-      console.error('Error deleting task:', error);
+      projectsLogger.error('Error deleting task', error);
       throw error;
     }
   }, [user, fetchProjects]);
@@ -319,7 +322,7 @@ export function useProjects() {
       await fetchProjects(); // Refresh projects to get updated milestones
       return result.milestone;
     } catch (error) {
-      console.error('Error creating milestone:', error);
+      projectsLogger.error('Error creating milestone', error);
       throw error;
     }
   }, [user, fetchProjects]);
@@ -347,7 +350,7 @@ export function useProjects() {
       await fetchProjects(); // Refresh projects to get updated milestones
       return result.milestone;
     } catch (error) {
-      console.error('Error updating milestone:', error);
+      projectsLogger.error('Error updating milestone', error);
       throw error;
     }
   }, [user, fetchProjects]);

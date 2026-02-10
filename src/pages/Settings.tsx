@@ -310,7 +310,10 @@ function Settings() {
             </div>
 
             <div className="space-y-3">
-              <button className="w-full p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-left">
+              <button
+                className="w-full p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-left min-h-[56px]"
+                aria-label="Change Password - Update your password"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium text-neutral-900 dark:text-neutral-100">Change Password</h3>
@@ -320,12 +323,15 @@ function Settings() {
                 </div>
               </button>
 
-              <button className="w-full p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-left">
+              <button
+                className="w-full p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-left min-h-[56px]"
+                aria-label="Two-Factor Authentication - Not enabled. Add extra security"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium text-neutral-900 dark:text-neutral-100">Two-Factor Auth</h3>
-                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300">
+                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300" aria-hidden="true">
                         Not enabled
                       </span>
                     </div>

@@ -233,25 +233,27 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
             {/* Breadcrumbs */}
             {breadcrumbs.length > 0 && (
               <nav className="hidden md:flex items-center gap-2 text-sm" aria-label="Breadcrumb">
-                {breadcrumbs.map((crumb, index) => (
-                  <React.Fragment key={index}>
-                    {index > 0 && (
-                      <ChevronRight className="h-4 w-4 text-neutral-400" />
-                    )}
-                    {crumb.path ? (
-                      <Link
-                        to={crumb.path}
-                        className="text-neutral-600 hover:text-neutral-900 transition-colors font-medium"
-                      >
-                        {crumb.label}
-                      </Link>
-                    ) : (
-                      <span className="text-neutral-900 font-semibold">
-                        {crumb.label}
-                      </span>
-                    )}
-                  </React.Fragment>
-                ))}
+                <ol className="flex items-center gap-2">
+                  {breadcrumbs.map((crumb, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      {index > 0 && (
+                        <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+                      )}
+                      {crumb.path ? (
+                        <Link
+                          to={crumb.path}
+                          className="text-neutral-600 hover:text-neutral-900 transition-colors font-medium"
+                        >
+                          {crumb.label}
+                        </Link>
+                      ) : (
+                        <span className="text-neutral-900 font-semibold" aria-current="page">
+                          {crumb.label}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ol>
               </nav>
             )}
           </div>
@@ -307,6 +309,7 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                     className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-96 sm:w-96 bg-white border border-neutral-200 rounded-lg shadow-dropdown overflow-hidden"
                     role="dialog"
                     aria-label="Notifications"
+                    aria-labelledby="notifications-heading"
                   >
                     <div className="px-4 py-3 border-b border-neutral-200 flex items-center justify-between">
                       <h3 className="font-semibold text-neutral-900" id="notifications-heading">Notifications</h3>
@@ -417,15 +420,23 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
 
             {/* User Avatar (Mobile) */}
             {user && (
-              <Link to="/profile" className="md:hidden">
+              <Link
+                to="/profile"
+                className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label={`Profile for ${user.name}`}
+              >
                 {user.avatar ? (
                   <img
                     src={user.avatar}
-                    alt={user.name}
+                    alt=""
                     className="h-8 w-8 rounded-full"
+                    aria-hidden="true"
                   />
                 ) : (
-                  <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-semibold">
+                  <div
+                    className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-semibold"
+                    aria-hidden="true"
+                  >
                     {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
                 )}

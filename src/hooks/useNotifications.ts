@@ -17,6 +17,9 @@ import {
   messagingSocketService,
   Notification as SocketNotification,
 } from '../services/messagingSocketService';
+import { hookLogger } from '../lib/logger';
+
+const notifLogger = hookLogger.child('useNotifications');
 
 // Extended notification type that combines both schemas
 interface Notification extends MessagingNotification {
@@ -405,7 +408,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       if (!res.ok) {
         // If 401/403, don't fail - just use empty list
         if (res.status === 401 || res.status === 403) {
-          console.warn('[useNotifications] Auth error, using mock data');
+          notifLogger.warn('Auth error, using mock data');
           if (mountedRef.current) {
             const mockNotifs = generateMockNotifications(user.userType || 'designer');
             setNotifications(mockNotifs);
@@ -428,7 +431,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         isInitialLoadDone.current = true;
       }
     } catch (err) {
-      console.error('[useNotifications] Error loading notifications:', err);
+      notifLogger.error('Error loading notifications', err);
       if (mountedRef.current) {
         // Fallback to mock data on error
         const mockNotifs = generateMockNotifications(user.userType || 'designer');
@@ -467,7 +470,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         setHasMore(list.length >= limit);
       }
     } catch (err) {
-      console.error('[useNotifications] Error loading more notifications:', err);
+      notifLogger.error('Error loading more notifications', err);
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : 'Failed to load more notifications');
       }
@@ -618,13 +621,13 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       });
 
       if (!res.ok && res.status !== 404) {
-        console.warn('[useNotifications] Failed to mark notification as read via REST');
+        notifLogger.warn('Failed to mark notification as read via REST');
       }
 
       // Also emit via socket for real-time sync
       messagingSocketService.markNotificationRead(notificationId);
     } catch (err) {
-      console.error('[useNotifications] Error marking notification as read:', err);
+      notifLogger.error('Error marking notification as read', err);
     }
   }, [getAuthHeaders]);
 
@@ -645,13 +648,13 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       });
 
       if (!res.ok && res.status !== 404) {
-        console.warn('[useNotifications] Failed to mark all notifications as read via REST');
+        notifLogger.warn('Failed to mark all notifications as read via REST');
       }
 
       // Also emit via socket for real-time sync
       messagingSocketService.markAllNotificationsRead();
     } catch (err) {
-      console.error('[useNotifications] Error marking all notifications as read:', err);
+      notifLogger.error('Error marking all notifications as read', err);
     }
   }, [getAuthHeaders]);
 
@@ -680,7 +683,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     const action = notification?.actions?.find(a => a.id === actionId);
 
     if (action) {
-      console.log('Executing action:', action.action, data);
+      notifLogger.debug('Executing action', { action: action.action, data });
       // Here you would implement the actual action logic
       // For now, just mark as read
       markAsRead(notificationId);
@@ -739,7 +742,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         const parsed = JSON.parse(stored);
         setPreferences(prev => ({ ...prev, ...parsed }));
       } catch (_error) {
-        console.warn('Failed to parse stored notification preferences');
+        notifLogger.warn('Failed to parse stored notification preferences');
       }
     }
   }, []);

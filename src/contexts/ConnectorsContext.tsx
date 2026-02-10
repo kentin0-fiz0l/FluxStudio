@@ -8,6 +8,9 @@
 import * as React from 'react';
 import { useAuth } from './AuthContext';
 import { getApiUrl } from '@/utils/apiHelpers';
+import { createLogger } from '../lib/logger';
+
+const connectorLogger = createLogger('ConnectorsContext');
 
 // Types
 export type ConnectorProvider = 'github' | 'google_drive' | 'dropbox' | 'onedrive' | 'figma' | 'slack';
@@ -209,7 +212,7 @@ export function ConnectorsProvider({ children }: { children: React.ReactNode }) 
       const data = await response.json();
       dispatch({ type: 'SET_CONNECTORS', payload: data.connectors || [] });
     } catch (error) {
-      console.error('Error fetching connectors:', error);
+      connectorLogger.error('Error fetching connectors', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to load connectors' });
     }
   }, [user]);
@@ -231,7 +234,7 @@ export function ConnectorsProvider({ children }: { children: React.ReactNode }) 
       // Redirect to OAuth provider
       window.location.href = data.url;
     } catch (error) {
-      console.error('Error connecting to provider:', error);
+      connectorLogger.error('Error connecting to provider', error);
       dispatch({ type: 'SET_ERROR', payload: (error as Error).message });
     }
   }, []);
@@ -256,7 +259,7 @@ export function ConnectorsProvider({ children }: { children: React.ReactNode }) 
         dispatch({ type: 'SET_CURRENT_PROVIDER', payload: null });
       }
     } catch (error) {
-      console.error('Error disconnecting:', error);
+      connectorLogger.error('Error disconnecting', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to disconnect' });
     }
   }, [state.currentProvider]);
@@ -289,7 +292,7 @@ export function ConnectorsProvider({ children }: { children: React.ReactNode }) 
       const data = await response.json();
       dispatch({ type: 'SET_FILES', payload: data.files || [] });
     } catch (error) {
-      console.error('Error fetching files:', error);
+      connectorLogger.error('Error fetching files', error);
       dispatch({ type: 'SET_ERROR', payload: (error as Error).message });
     }
   }, []);
@@ -319,7 +322,7 @@ export function ConnectorsProvider({ children }: { children: React.ReactNode }) 
       dispatch({ type: 'ADD_IMPORTED_FILE', payload: data.file });
       return data.file;
     } catch (error) {
-      console.error('Error importing file:', error);
+      connectorLogger.error('Error importing file', error);
       dispatch({ type: 'SET_ERROR', payload: (error as Error).message });
       return null;
     }
@@ -345,7 +348,7 @@ export function ConnectorsProvider({ children }: { children: React.ReactNode }) 
       const data = await response.json();
       dispatch({ type: 'SET_IMPORTED_FILES', payload: data.files || [] });
     } catch (error) {
-      console.error('Error fetching imported files:', error);
+      connectorLogger.error('Error fetching imported files', error);
     }
   }, []);
 
@@ -366,7 +369,7 @@ export function ConnectorsProvider({ children }: { children: React.ReactNode }) 
       // Refresh imported files
       await fetchImportedFiles();
     } catch (error) {
-      console.error('Error linking file:', error);
+      connectorLogger.error('Error linking file', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to link file to project' });
     }
   }, [fetchImportedFiles]);

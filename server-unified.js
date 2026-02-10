@@ -33,6 +33,7 @@ const FormData = require('form-data');
 const { config } = require('./config/environment');
 const { rateLimit, authRateLimit, printRateLimit, cors, helmet, validateInput, securityErrorHandler, auditLogger, traceIdMiddleware } = require('./middleware/security');
 const { csrfProtection, getCsrfToken } = require('./middleware/csrf');
+const { cachingMiddleware, staticAssetCaching, configuredApiCaching } = require('./middleware/caching');
 const cookieParser = require('cookie-parser');
 
 // Import performance monitoring
@@ -364,9 +365,26 @@ app.use(csrfProtection({
   ]
 }));
 
-// Static file serving
-app.use(express.static('build'));
-app.use('/uploads', express.static(UPLOADS_DIR));
+// HTTP Caching middleware for API responses
+app.use(configuredApiCaching());
+
+// Static file serving with caching headers
+app.use(staticAssetCaching({ maxAge: 604800, immutable: true }));
+app.use(express.static('build', {
+  maxAge: '1w',
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    // Set immutable for hashed assets
+    if (/[-_.][a-f0-9]{8,}\./.test(path)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }
+}));
+app.use('/uploads', express.static(UPLOADS_DIR, {
+  maxAge: '1d',
+  etag: true
+}));
 
 // Helper functions with database/file hybrid support (Auth)
 async function getUsers() {

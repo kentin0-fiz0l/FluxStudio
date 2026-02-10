@@ -78,12 +78,14 @@
             "google-auth-library": "^10.3.0",
             "helmet": "^8.1.0",
             "hls.js": "^1.6.13",
+            "html2canvas": "^1.4.1",
             "i18next": "^25.7.4",
             "i18next-browser-languagedetector": "^8.2.0",
             "immer": "^11.1.3",
             "input-otp": "^1.4.2",
             "isomorphic-dompurify": "^2.29.0",
             "jsonwebtoken": "^9.0.2",
+            "jspdf": "^4.1.0",
             "lib0": "^0.2.114",
             "lucide-react": "^0.487.0",
             "mime-types": "^3.0.1",
@@ -206,6 +208,12 @@
             "dev:collab": "nodemon server-collaboration.js",
             "dev:all": "concurrently \"npm run dev:unified\" \"npm run dev:collab\"",
             "server:legacy-auth": "node server-auth.js",
-            "server:legacy-messaging": "node server-messaging.js"
+            "server:legacy-messaging": "node server-messaging.js",
+            "db:migrate": "node database/migration-system.js run",
+            "db:migrate:status": "node database/migration-system.js status",
+            "db:migrate:rollback": "node database/migration-system.js rollback",
+            "db:migrate:create": "node database/migration-system.js create",
+            "db:migrate:verify": "node database/migration-system.js verify",
+            "db:migrate:dry-run": "DRY_RUN=true node database/migration-system.js run"
       }
 }

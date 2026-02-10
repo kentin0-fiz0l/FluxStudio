@@ -2,14 +2,14 @@
  * HelpCenter - Documentation and Support Hub
  *
  * Provides:
- * - Searchable help articles
+ * - Searchable help articles with real content
  * - Getting started guides
  * - FAQ section
  * - Contact support link
  */
 
 import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Search,
@@ -24,26 +24,21 @@ import {
   ChevronRight,
   ExternalLink,
   HelpCircle,
+  Clock,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { searchArticles, getArticlesByCategory, helpArticles, type HelpArticle } from '@/content/help-articles';
 
 interface HelpCategory {
   id: string;
   title: string;
   description: string;
   icon: React.ReactNode;
-  articles: HelpArticle[];
-}
-
-interface HelpArticle {
-  id: string;
-  title: string;
-  summary: string;
-  url?: string;
+  articleSlugs: string[];
 }
 
 const helpCategories: HelpCategory[] = [
@@ -52,224 +47,89 @@ const helpCategories: HelpCategory[] = [
     title: 'Getting Started',
     description: 'Learn the basics of FluxStudio',
     icon: <Zap className="w-5 h-5" />,
-    articles: [
-      {
-        id: 'welcome',
-        title: 'Welcome to FluxStudio',
-        summary: 'An overview of the platform and its key features',
-      },
-      {
-        id: 'create-first-project',
-        title: 'Creating Your First Project',
-        summary: 'Step-by-step guide to setting up your first project',
-      },
-      {
-        id: 'invite-team',
-        title: 'Inviting Team Members',
-        summary: 'How to collaborate with your team',
-      },
-      {
-        id: 'navigate-dashboard',
-        title: 'Navigating the Dashboard',
-        summary: 'Understanding the main interface and navigation',
-      },
-    ],
+    articleSlugs: ['getting-started', 'creating-first-project', 'keyboard-shortcuts', 'troubleshooting'],
   },
   {
     id: 'projects',
     title: 'Projects',
     description: 'Managing and organizing projects',
     icon: <Folder className="w-5 h-5" />,
-    articles: [
-      {
-        id: 'project-overview',
-        title: 'Project Overview',
-        summary: 'Understanding project structure and settings',
-      },
-      {
-        id: 'project-files',
-        title: 'Managing Files',
-        summary: 'Uploading, organizing, and sharing files',
-      },
-      {
-        id: 'project-timeline',
-        title: 'Project Timeline & Milestones',
-        summary: 'Tracking progress and deadlines',
-      },
-      {
-        id: 'project-export',
-        title: 'Exporting Projects',
-        summary: 'How to export and archive your work',
-      },
-    ],
+    articleSlugs: ['creating-first-project', 'file-management'],
   },
   {
     id: 'collaboration',
     title: 'Collaboration',
     description: 'Working together with your team',
     icon: <Users className="w-5 h-5" />,
-    articles: [
-      {
-        id: 'real-time-editing',
-        title: 'Real-Time Collaboration',
-        summary: 'Working on documents simultaneously',
-      },
-      {
-        id: 'comments-feedback',
-        title: 'Comments & Feedback',
-        summary: 'Leaving and managing comments',
-      },
-      {
-        id: 'messaging',
-        title: 'Team Messaging',
-        summary: 'Using the built-in messaging system',
-      },
-      {
-        id: 'notifications',
-        title: 'Notifications & Alerts',
-        summary: 'Staying informed about project updates',
-      },
-    ],
+    articleSlugs: ['collaboration-features', 'messaging-guide'],
   },
   {
     id: 'integrations',
     title: 'Integrations',
     description: 'Connect with your favorite tools',
     icon: <Settings className="w-5 h-5" />,
-    articles: [
-      {
-        id: 'figma-integration',
-        title: 'Figma Integration',
-        summary: 'Import designs from Figma',
-      },
-      {
-        id: 'slack-integration',
-        title: 'Slack Integration',
-        summary: 'Get notifications in Slack',
-      },
-      {
-        id: 'github-integration',
-        title: 'GitHub Integration',
-        summary: 'Connect your repositories',
-      },
-      {
-        id: 'google-integration',
-        title: 'Google Workspace',
-        summary: 'Sign in with Google',
-      },
-    ],
+    articleSlugs: ['integrations-figma', 'integrations-slack'],
   },
   {
     id: 'billing',
     title: 'Billing & Payments',
     description: 'Manage your subscription',
     icon: <CreditCard className="w-5 h-5" />,
-    articles: [
-      {
-        id: 'pricing-plans',
-        title: 'Pricing Plans',
-        summary: 'Compare our available plans',
-      },
-      {
-        id: 'payment-methods',
-        title: 'Payment Methods',
-        summary: 'Accepted payment options',
-      },
-      {
-        id: 'invoices',
-        title: 'Invoices & Receipts',
-        summary: 'Accessing your billing history',
-      },
-      {
-        id: 'cancel-subscription',
-        title: 'Cancel or Change Plan',
-        summary: 'Modifying your subscription',
-      },
-    ],
+    articleSlugs: ['billing-payments'],
   },
   {
     id: 'security',
     title: 'Security & Privacy',
     description: 'Keep your data safe',
     icon: <Shield className="w-5 h-5" />,
-    articles: [
-      {
-        id: 'account-security',
-        title: 'Account Security',
-        summary: 'Protecting your account',
-      },
-      {
-        id: 'data-privacy',
-        title: 'Data Privacy',
-        summary: 'How we handle your data',
-      },
-      {
-        id: 'sharing-permissions',
-        title: 'Sharing & Permissions',
-        summary: 'Controlling access to your content',
-      },
-      {
-        id: 'two-factor-auth',
-        title: 'Two-Factor Authentication',
-        summary: 'Adding extra security to your account',
-      },
-    ],
+    articleSlugs: ['security-privacy', 'account-management', 'settings-preferences'],
   },
 ];
 
-// Popular/FAQ articles shown at top
-const popularArticles = [
-  {
-    id: 'reset-password',
-    title: 'How do I reset my password?',
-    category: 'Account',
-  },
-  {
-    id: 'invite-members',
-    title: 'How do I invite team members?',
-    category: 'Collaboration',
-  },
-  {
-    id: 'upload-files',
-    title: 'How do I upload files to a project?',
-    category: 'Projects',
-  },
-  {
-    id: 'change-plan',
-    title: 'How do I upgrade or downgrade my plan?',
-    category: 'Billing',
-  },
-  {
-    id: 'export-project',
-    title: 'Can I export my project data?',
-    category: 'Projects',
-  },
+// Popular/FAQ articles shown at top - map to actual articles
+const popularArticleSlugs = [
+  { slug: 'account-management', title: 'How do I reset my password?', category: 'Account' },
+  { slug: 'collaboration-features', title: 'How do I invite team members?', category: 'Collaboration' },
+  { slug: 'file-management', title: 'How do I upload files to a project?', category: 'Projects' },
+  { slug: 'billing-payments', title: 'How do I upgrade or downgrade my plan?', category: 'Billing' },
+  { slug: 'troubleshooting', title: 'Having issues? Troubleshooting guide', category: 'Support' },
 ];
 
 export function HelpCenter() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter categories and articles based on search
+  // Get articles for each category
+  const getCategoryArticles = (slugs: string[]): HelpArticle[] => {
+    return slugs
+      .map((slug) => helpArticles.find((a) => a.slug === slug))
+      .filter((a): a is HelpArticle => a !== undefined);
+  };
+
+  // Search results
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return searchArticles(searchQuery);
+  }, [searchQuery]);
+
+  // Filter categories based on search
   const filteredCategories = useMemo(() => {
     if (!searchQuery.trim()) return helpCategories;
 
-    const query = searchQuery.toLowerCase();
+    const matchingArticles = new Set(searchResults.map((a) => a.slug));
+
     return helpCategories
       .map((category) => ({
         ...category,
-        articles: category.articles.filter(
-          (article) =>
-            article.title.toLowerCase().includes(query) ||
-            article.summary.toLowerCase().includes(query)
-        ),
+        articleSlugs: category.articleSlugs.filter((slug) => matchingArticles.has(slug)),
       }))
-      .filter(
-        (category) =>
-          category.articles.length > 0 ||
-          category.title.toLowerCase().includes(query)
-      );
-  }, [searchQuery]);
+      .filter((category) => category.articleSlugs.length > 0);
+  }, [searchQuery, searchResults]);
+
+  const handleArticleClick = (slug: string) => {
+    navigate(`/help/article/${slug}`);
+  };
 
   return (
     <DashboardLayout
@@ -304,6 +164,44 @@ export function HelpCenter() {
               placeholder="Search for help..."
               className="pl-12 h-12 text-lg"
             />
+
+            {/* Search Results Dropdown */}
+            {searchQuery.trim() && searchResults.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-lg z-10 max-h-96 overflow-y-auto"
+              >
+                {searchResults.slice(0, 8).map((article) => (
+                  <button
+                    key={article.id}
+                    onClick={() => handleArticleClick(article.slug)}
+                    className="w-full text-left p-4 hover:bg-neutral-50 dark:hover:bg-neutral-800 border-b border-neutral-100 dark:border-neutral-800 last:border-b-0 transition-colors"
+                  >
+                    <p className="font-medium text-neutral-900 dark:text-white text-sm">
+                      {article.title}
+                    </p>
+                    <p className="text-xs text-neutral-500 mt-1 line-clamp-1">
+                      {article.summary}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2 text-xs text-neutral-400">
+                      <span className="bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">
+                        {article.category}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {article.readingTime} min
+                      </span>
+                    </div>
+                  </button>
+                ))}
+                {searchResults.length > 8 && (
+                  <p className="p-3 text-xs text-center text-neutral-500">
+                    Showing 8 of {searchResults.length} results
+                  </p>
+                )}
+              </motion.div>
+            )}
           </div>
         </motion.div>
 
@@ -319,15 +217,16 @@ export function HelpCenter() {
               Frequently Asked Questions
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {popularArticles.map((article) => (
+              {popularArticleSlugs.map((item) => (
                 <button
-                  key={article.id}
+                  key={item.slug}
+                  onClick={() => handleArticleClick(item.slug)}
                   className="text-left p-4 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:border-primary-300 dark:hover:border-primary-700 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
                 >
                   <p className="font-medium text-neutral-900 dark:text-white text-sm">
-                    {article.title}
+                    {item.title}
                   </p>
-                  <p className="text-xs text-neutral-500 mt-1">{article.category}</p>
+                  <p className="text-xs text-neutral-500 mt-1">{item.category}</p>
                 </button>
               ))}
             </div>
@@ -344,47 +243,54 @@ export function HelpCenter() {
             {searchQuery ? 'Search Results' : 'Browse by Category'}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCategories.map((category, index) => (
-              <motion.div
-                key={category.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + index * 0.05 }}
-              >
-                <Card className="h-full hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-3 text-base">
-                      <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600">
-                        {category.icon}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">{category.title}</h3>
-                        <p className="text-xs text-neutral-500 font-normal">
-                          {category.description}
+            {filteredCategories.map((category, index) => {
+              const articles = getCategoryArticles(category.articleSlugs);
+
+              return (
+                <motion.div
+                  key={category.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + index * 0.05 }}
+                >
+                  <Card className="h-full hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-3 text-base">
+                        <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600">
+                          {category.icon}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">{category.title}</h3>
+                          <p className="text-xs text-neutral-500 font-normal">
+                            {category.description}
+                          </p>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {articles.slice(0, 4).map((article) => (
+                          <li key={article.id}>
+                            <button
+                              onClick={() => handleArticleClick(article.slug)}
+                              className="flex items-center justify-between w-full text-left text-sm text-neutral-700 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors py-1"
+                            >
+                              <span>{article.title}</span>
+                              <ChevronRight className="w-4 h-4 opacity-50" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                      {articles.length > 4 && (
+                        <p className="text-xs text-primary-600 mt-2">
+                          +{articles.length - 4} more articles
                         </p>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {category.articles.slice(0, 4).map((article) => (
-                        <li key={article.id}>
-                          <button className="flex items-center justify-between w-full text-left text-sm text-neutral-700 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors py-1">
-                            <span>{article.title}</span>
-                            <ChevronRight className="w-4 h-4 opacity-50" />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                    {category.articles.length > 4 && (
-                      <p className="text-xs text-primary-600 mt-2">
-                        +{category.articles.length - 4} more articles
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </div>
 
           {filteredCategories.length === 0 && searchQuery && (

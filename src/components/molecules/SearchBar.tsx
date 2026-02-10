@@ -167,7 +167,9 @@ export const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
           onFocus={() => showRecent && recentSearches.length > 0 && setShowDropdown(true)}
           size={size}
           autoFocus={autoFocus}
-          icon={loading ? <div className="animate-spin">�</div> : <Search className="h-4 w-4" />}
+          icon={loading ? <div className="animate-spin" aria-hidden="true">&#8987;</div> : <Search className="h-4 w-4" aria-hidden="true" />}
+          role="searchbox"
+          aria-label={placeholder}
           iconRight={
             value ? (
               <button
@@ -185,19 +187,24 @@ export const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
 
         {/* Recent Searches Dropdown */}
         {showRecent && showDropdown && recentSearches.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-neutral-200 rounded-lg shadow-dropdown overflow-hidden z-50">
-            <div className="px-3 py-2 text-xs font-medium text-neutral-500 uppercase tracking-wider bg-neutral-50">
+          <div
+            className="absolute top-full left-0 right-0 mt-2 bg-white border border-neutral-200 rounded-lg shadow-dropdown overflow-hidden z-50"
+            role="listbox"
+            aria-label="Recent searches"
+          >
+            <div className="px-3 py-2 text-xs font-medium text-neutral-500 uppercase tracking-wider bg-neutral-50" id="recent-searches-label">
               Recent Searches
             </div>
-            <ul className="py-1">
+            <ul className="py-1" aria-labelledby="recent-searches-label">
               {recentSearches.map((search, index) => (
-                <li key={index}>
+                <li key={index} role="option" aria-selected={false}>
                   <button
                     type="button"
                     onClick={() => handleRecentClick(search)}
-                    className="w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 flex items-center gap-2 transition-colors"
+                    className="w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 flex items-center gap-2 transition-colors min-h-[44px]"
+                    aria-label={`Search for ${search}`}
                   >
-                    <Clock className="h-4 w-4 text-neutral-400" />
+                    <Clock className="h-4 w-4 text-neutral-400" aria-hidden="true" />
                     <span className="flex-1">{search}</span>
                     {onClearRecent && (
                       <button
@@ -206,10 +213,10 @@ export const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
                           e.stopPropagation();
                           onClearRecent(search);
                         }}
-                        className="text-neutral-400 hover:text-neutral-600 transition-colors"
-                        aria-label={`Remove ${search}`}
+                        className="text-neutral-400 hover:text-neutral-600 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2"
+                        aria-label={`Remove ${search} from recent searches`}
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-3 w-3" aria-hidden="true" />
                       </button>
                     )}
                   </button>

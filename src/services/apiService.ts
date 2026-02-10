@@ -4,6 +4,7 @@
  */
 
 import { buildApiUrl, buildAuthUrl, buildMessagingUrl, config } from '../config/environment';
+import { apiLogger } from '../lib/logger';
 import {
   validate,
   createOrganizationSchema,
@@ -76,7 +77,7 @@ class ApiService {
     try {
       await this.getCsrfToken();
     } catch (error) {
-      console.warn('Failed to initialize CSRF token:', error);
+      apiLogger.warn('Failed to initialize CSRF token', { error });
     }
   }
 
@@ -161,7 +162,7 @@ class ApiService {
         const csrfToken = await this.getCsrfToken();
         headers['X-CSRF-Token'] = csrfToken;
       } catch (error) {
-        console.error('Failed to get CSRF token:', error);
+        apiLogger.error('Failed to get CSRF token', error);
         // Continue without CSRF token - server will reject if required
       }
     }

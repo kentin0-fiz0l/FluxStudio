@@ -23,6 +23,9 @@ import * as React from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { getApiUrl } from '@/utils/apiHelpers';
+import { createLogger } from '@/lib/logger';
+
+const projectCtxLogger = createLogger('ProjectContext');
 
 // ============================================================================
 // Types
@@ -138,7 +141,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
       return projectList;
     } catch (err) {
-      console.error('Error fetching projects:', err);
+      projectCtxLogger.error('Error fetching projects', err);
       throw err;
     }
   }, [user]);
@@ -230,7 +233,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
   const switchProject = React.useCallback((projectId: string) => {
     const project = projects.find(p => p.id === projectId);
     if (!project) {
-      console.warn(`Project ${projectId} not found`);
+      projectCtxLogger.warn(`Project ${projectId} not found`);
       return;
     }
 

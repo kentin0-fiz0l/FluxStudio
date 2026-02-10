@@ -208,3 +208,23 @@ npm run verify        # Verify deployment
 - Check `docs/ARCHITECTURE.md` for data flow understanding
 - Real-time features use both Socket.IO (events) and Yjs (CRDT sync)
 - UI components are in `src/components/ui/` using Radix primitives
+
+---
+
+## Specialized Agents
+
+FluxStudio has specialized agent definitions for common development tasks. See `.claude/agents.md` for detailed instructions on:
+
+| Agent | Purpose |
+|-------|---------|
+| `fluxstudio-test-coverage` | Systematic test generation |
+| `fluxstudio-ai-feature-dev` | AI/Claude API integration |
+| `fluxstudio-collab-debug` | Real-time collaboration debugging |
+| `fluxstudio-integration-manager` | OAuth integrations (Figma, Slack, GitHub) |
+| `fluxstudio-perf-optimizer` | Performance audits and optimization |
+| `fluxstudio-printing-expert` | 3D printing features |
+| `fluxstudio-api-docs` | API documentation generation |
+| `fluxstudio-security-auditor` | Security scanning and OWASP compliance |
+
+### Using Agents
+When working on specific tasks, reference the appropriate agent's instructions in `.claude/agents.md` to ensure consistent patterns and best practices are followed.

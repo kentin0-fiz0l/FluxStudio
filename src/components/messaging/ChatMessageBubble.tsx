@@ -18,7 +18,7 @@
  * - Action menu (reply, edit, delete, pin, forward)
  */
 
-import { useState, memo } from 'react';
+import React, { useState, memo } from 'react';
 import {
   Check,
   CheckCheck,
@@ -217,21 +217,115 @@ function AttachmentPreview({
  */
 function VoiceMessagePlayer({ voiceMessage }: { voiceMessage: Message['voiceMessage'] }) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress] = useState(0); // TODO: implement audio playback with progress tracking
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const animationRef = React.useRef<number | null>(null);
 
   if (!voiceMessage) return null;
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Initialize audio element
+  React.useEffect(() => {
+    if (!voiceMessage.url) return;
+
+    const audio = new Audio(voiceMessage.url);
+    audio.preload = 'metadata';
+    audioRef.current = audio;
+
+    const handleLoadedMetadata = () => {
+      // Audio is ready
+    };
+
+    const handleTimeUpdate = () => {
+      if (audio.duration > 0) {
+        setProgress(audio.currentTime / audio.duration);
+        setCurrentTime(audio.currentTime);
+      }
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setProgress(0);
+      setCurrentTime(0);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.pause();
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [voiceMessage.url]);
+
+  // Update playback rate when changed
+  React.useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackRate;
+    }
+  }, [playbackRate]);
+
+  const togglePlayback = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    } else {
+      audio.play().catch((err) => {
+        console.error('Audio playback failed:', err);
+      });
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = x / rect.width;
+    const newTime = percentage * audio.duration;
+
+    audio.currentTime = newTime;
+    setProgress(percentage);
+    setCurrentTime(newTime);
+  };
+
+  const cyclePlaybackRate = () => {
+    const rates = [1, 1.25, 1.5, 2, 0.75];
+    const currentIndex = rates.indexOf(playbackRate);
+    const nextIndex = (currentIndex + 1) % rates.length;
+    setPlaybackRate(rates[nextIndex]);
+  };
+
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-neutral-100 dark:bg-neutral-800 min-w-[200px]">
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-neutral-100 dark:bg-neutral-800 min-w-[240px] max-w-[320px]">
+      {/* Play/Pause Button */}
       <button
-        onClick={() => setIsPlaying(!isPlaying)}
-        className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0 hover:bg-primary-700 transition-colors"
+        onClick={togglePlayback}
+        className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0 hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+        aria-label={isPlaying ? 'Pause voice message' : 'Play voice message'}
       >
         {isPlaying ? (
           <Pause className="w-5 h-5 text-white" />
@@ -239,23 +333,57 @@ function VoiceMessagePlayer({ voiceMessage }: { voiceMessage: Message['voiceMess
           <Play className="w-5 h-5 text-white ml-0.5" />
         )}
       </button>
-      <div className="flex-1">
-        <div className="flex gap-0.5 h-8 items-end">
-          {voiceMessage.waveform.map((amp, i) => (
-            <div
-              key={i}
-              className={`w-1 rounded-full transition-colors ${
-                i / voiceMessage.waveform.length <= progress
-                  ? 'bg-primary-600'
-                  : 'bg-neutral-300 dark:bg-neutral-600'
-              }`}
-              style={{ height: `${amp * 100}%` }}
-            />
-          ))}
+
+      {/* Waveform and Progress */}
+      <div className="flex-1 min-w-0">
+        <div
+          className="flex gap-0.5 h-8 items-end cursor-pointer"
+          onClick={handleSeek}
+          role="slider"
+          aria-label="Seek voice message"
+          aria-valuemin={0}
+          aria-valuemax={voiceMessage.duration}
+          aria-valuenow={currentTime}
+        >
+          {voiceMessage.waveform.map((amp, i) => {
+            const waveformProgress = i / voiceMessage.waveform.length;
+            const isPlayed = waveformProgress <= progress;
+            const isActive = Math.abs(waveformProgress - progress) < 0.02;
+
+            return (
+              <div
+                key={i}
+                className={`w-1 rounded-full transition-all duration-75 ${
+                  isActive
+                    ? 'bg-primary-500 scale-110'
+                    : isPlayed
+                    ? 'bg-primary-600'
+                    : 'bg-neutral-300 dark:bg-neutral-600'
+                }`}
+                style={{ height: `${Math.max(amp * 100, 10)}%` }}
+              />
+            );
+          })}
         </div>
-        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-          {formatDuration(voiceMessage.duration)}
-        </p>
+
+        {/* Time Display and Speed Control */}
+        <div className="flex items-center justify-between mt-1">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            {formatDuration(currentTime)} / {formatDuration(voiceMessage.duration)}
+          </p>
+          <button
+            onClick={cyclePlaybackRate}
+            className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors"
+            aria-label={`Playback speed: ${playbackRate}x`}
+          >
+            {playbackRate}x
+          </button>
+        </div>
+      </div>
+
+      {/* Volume indicator */}
+      <div className="flex-shrink-0">
+        <Volume2 className="w-4 h-4 text-neutral-400" />
       </div>
     </div>
   );

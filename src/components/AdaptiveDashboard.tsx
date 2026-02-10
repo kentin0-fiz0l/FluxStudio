@@ -166,7 +166,7 @@ export function AdaptiveDashboard() {
       <DashboardShell>
         <div className="flex-1 space-y-6 p-6">
         {/* Welcome Header */}
-        <div className="flex items-center justify-between">
+        <header className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
               {getWelcomeMessage()}
@@ -191,16 +191,17 @@ export function AdaptiveDashboard() {
               variant="outline"
               onClick={actions.openCommandPalette}
               className="hidden sm:flex"
+              aria-label="Open quick actions menu"
             >
-              <Sparkles size={16} className="mr-2" />
+              <Sparkles size={16} className="mr-2" aria-hidden="true" />
               Quick Actions
             </Button>
-            <Button>
-              <Plus size={16} className="mr-2" />
+            <Button aria-label="Create new project">
+              <Plus size={16} className="mr-2" aria-hidden="true" />
               New Project
             </Button>
           </div>
-        </div>
+        </header>
 
         {/* Getting Started Card (First-time users only) */}
         {isFirstTime && (
@@ -219,7 +220,9 @@ export function AdaptiveDashboard() {
             {/* Explore More expander */}
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="w-full flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              className="w-full flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors min-h-[44px]"
+              aria-expanded={showAdvanced}
+              aria-controls="advanced-content"
             >
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
@@ -230,14 +233,14 @@ export function AdaptiveDashboard() {
                 </span>
               </div>
               {showAdvanced ? (
-                <ChevronUp className="h-4 w-4 text-neutral-500" />
+                <ChevronUp className="h-4 w-4 text-neutral-500" aria-hidden="true" />
               ) : (
-                <ChevronDown className="h-4 w-4 text-neutral-500" />
+                <ChevronDown className="h-4 w-4 text-neutral-500" aria-hidden="true" />
               )}
             </button>
 
             {showAdvanced && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div id="advanced-content" className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
                   You can explore these anytime — focus on your first project for now.
                 </p>
@@ -555,20 +558,20 @@ export function AdaptiveDashboard() {
         {state.recentActivity.length === 0 && contextualCards.length === 0 && (
           <Card className="text-center py-12">
             <CardContent>
-              <Sparkles size={48} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <Sparkles size={48} className="mx-auto text-gray-400 mb-4" aria-hidden="true" />
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">
                 Welcome to Flux Studio
-              </h3>
+              </h2>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
                 Your creative workspace is ready. Start by creating a project or joining a conversation.
               </p>
               <div className="flex items-center justify-center gap-3">
                 <Button>
-                  <Plus size={16} className="mr-2" />
+                  <Plus size={16} className="mr-2" aria-hidden="true" />
                   Create Project
                 </Button>
                 <Button variant="outline">
-                  <MessageSquare size={16} className="mr-2" />
+                  <MessageSquare size={16} className="mr-2" aria-hidden="true" />
                   Start Conversation
                 </Button>
               </div>
