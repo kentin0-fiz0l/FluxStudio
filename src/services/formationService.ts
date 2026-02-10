@@ -6,6 +6,11 @@
  */
 
 import { jsPDF } from 'jspdf';
+import { templateRegistry } from './formationTemplates/registry';
+import {
+  ApplyTemplateOptions,
+  ApplyTemplateResult,
+} from './formationTemplates/types';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -33,6 +38,14 @@ export interface Keyframe {
   duration?: number; // Duration to reach this keyframe from previous
 }
 
+export interface AudioTrack {
+  id: string;
+  url: string;
+  filename: string;
+  duration: number; // Duration in milliseconds
+  waveformData?: number[]; // Optional waveform visualization data
+}
+
 export interface Formation {
   id: string;
   name: string;
@@ -43,8 +56,9 @@ export interface Formation {
   gridSize: number; // Grid cell size
   performers: Performer[];
   keyframes: Keyframe[];
-  musicTrackUrl?: string;
-  musicDuration?: number;
+  audioTrack?: AudioTrack; // Audio track for sync
+  musicTrackUrl?: string; // Deprecated - use audioTrack.url
+  musicDuration?: number; // Deprecated - use audioTrack.duration
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -376,6 +390,275 @@ class FormationService {
     }
 
     return interpolatedPositions;
+  }
+
+  // ============================================================================
+  // TEMPLATE APPLICATION
+  // ============================================================================
+
+  /**
+   * Apply a formation template to create a new keyframe
+   */
+  applyTemplate(options: ApplyTemplateOptions): ApplyTemplateResult {
+    const formation = this.formations.get(options.formationId);
+    if (!formation) {
+      return {
+        success: false,
+        keyframesCreated: 0,
+        performersCreated: 0,
+        performersMapped: new Map(),
+        error: 'Formation not found',
+      };
+    }
+
+    const template = templateRegistry.getTemplate(options.templateId);
+    if (!template) {
+      return {
+        success: false,
+        keyframesCreated: 0,
+        performersCreated: 0,
+        performersMapped: new Map(),
+        error: 'Template not found',
+      };
+    }
+
+    // Check performer count
+    const performerCount = formation.performers.length;
+    const minPerformers = template.parameters.minPerformers;
+    const maxPerformers = template.parameters.maxPerformers;
+
+    if (performerCount < minPerformers && !options.createMissingPerformers) {
+      return {
+        success: false,
+        keyframesCreated: 0,
+        performersCreated: 0,
+        performersMapped: new Map(),
+        error: `Template requires at least ${minPerformers} performers, but only ${performerCount} exist`,
+      };
+    }
+
+    // Get template positions scaled for performer count
+    const targetCount = Math.min(
+      Math.max(performerCount, minPerformers),
+      maxPerformers || performerCount
+    );
+    const templatePositions = templateRegistry.scaleTemplateForPerformers(
+      template,
+      targetCount
+    );
+
+    // Create missing performers if needed
+    let performersCreated = 0;
+    if (options.createMissingPerformers && performerCount < minPerformers) {
+      const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
+      for (let i = performerCount; i < minPerformers; i++) {
+        const newPerformer: Performer = {
+          id: `performer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          name: `Performer ${i + 1}`,
+          label: String(i + 1),
+          color: colors[i % colors.length],
+        };
+        formation.performers.push(newPerformer);
+        performersCreated++;
+      }
+    }
+
+    // Apply transformations to positions
+    const scale = options.scale ?? 1;
+    const rotation = options.rotation ?? 0;
+    const centerX = options.centerX ?? 50;
+    const centerY = options.centerY ?? 50;
+    const mirror = options.mirror ?? 'none';
+
+    const transformedPositions = templatePositions.map((pos) => {
+      // Start with template position
+      let x = pos.x;
+      let y = pos.y;
+
+      // Apply mirroring
+      if (mirror === 'horizontal' || mirror === 'both') {
+        x = 100 - x;
+      }
+      if (mirror === 'vertical' || mirror === 'both') {
+        y = 100 - y;
+      }
+
+      // Translate to center, apply scale and rotation, translate back
+      const dx = x - 50;
+      const dy = y - 50;
+      const scaledDx = dx * scale;
+      const scaledDy = dy * scale;
+
+      const rotationRad = (rotation * Math.PI) / 180;
+      const rotatedDx = scaledDx * Math.cos(rotationRad) - scaledDy * Math.sin(rotationRad);
+      const rotatedDy = scaledDx * Math.sin(rotationRad) + scaledDy * Math.cos(rotationRad);
+
+      const finalX = centerX + rotatedDx;
+      const finalY = centerY + rotatedDy;
+
+      // Clamp to valid range
+      return {
+        x: Math.max(0, Math.min(100, finalX)),
+        y: Math.max(0, Math.min(100, finalY)),
+        rotation: pos.rotation,
+      };
+    });
+
+    // Create performer mapping
+    const performerMapping = options.performerMapping ?? new Map();
+    const actualMapping = new Map<number, string>();
+
+    for (let i = 0; i < transformedPositions.length && i < formation.performers.length; i++) {
+      const performerId = performerMapping.get(i) ?? formation.performers[i].id;
+      actualMapping.set(i, performerId);
+    }
+
+    // Create new keyframe with template positions
+    const positions = new Map<string, Position>();
+    actualMapping.forEach((performerId, templateIndex) => {
+      if (templateIndex < transformedPositions.length) {
+        positions.set(performerId, transformedPositions[templateIndex]);
+      }
+    });
+
+    // Determine where to insert the keyframe
+    let insertTimestamp: number;
+    if (options.insertAt === 'end') {
+      const lastKf = formation.keyframes[formation.keyframes.length - 1];
+      insertTimestamp = lastKf ? lastKf.timestamp + 2000 : 0;
+    } else if (typeof options.insertAt === 'number') {
+      insertTimestamp = options.insertAt;
+    } else {
+      // 'current' - use current playback time or last keyframe + 2 seconds
+      insertTimestamp = this.playbackState.currentTime || (
+        formation.keyframes.length > 0
+          ? formation.keyframes[formation.keyframes.length - 1].timestamp + 2000
+          : 0
+      );
+    }
+
+    // Replace existing keyframes if requested
+    if (options.replaceExisting) {
+      formation.keyframes = [];
+    }
+
+    // Add the keyframe
+    const keyframe = this.addKeyframe(
+      options.formationId,
+      insertTimestamp,
+      positions,
+      { transition: 'ease-in-out' }
+    );
+
+    formation.updatedAt = new Date().toISOString();
+
+    return {
+      success: true,
+      keyframesCreated: keyframe ? 1 : 0,
+      performersCreated,
+      performersMapped: actualMapping,
+    };
+  }
+
+  // ============================================================================
+  // PATH CALCULATION
+  // ============================================================================
+
+  /**
+   * Get the interpolated path for a performer between keyframes
+   * Returns an array of positions representing the travel path
+   */
+  getPerformerPath(
+    formationId: string,
+    performerId: string,
+    startKeyframeIndex: number = 0,
+    endKeyframeIndex?: number,
+    pointsPerSegment: number = 15
+  ): { time: number; position: Position }[] {
+    const formation = this.formations.get(formationId);
+    if (!formation || formation.keyframes.length === 0) {
+      return [];
+    }
+
+    const endIdx = endKeyframeIndex ?? formation.keyframes.length - 1;
+    const path: { time: number; position: Position }[] = [];
+
+    // Iterate through keyframe pairs
+    for (let i = startKeyframeIndex; i < endIdx && i < formation.keyframes.length - 1; i++) {
+      const startKf = formation.keyframes[i];
+      const endKf = formation.keyframes[i + 1];
+
+      const startPos = startKf.positions.get(performerId);
+      const endPos = endKf.positions.get(performerId);
+
+      if (!startPos || !endPos) continue;
+
+      const timeDelta = endKf.timestamp - startKf.timestamp;
+      const easing = endKf.transition ?? 'linear';
+
+      // Generate intermediate points
+      for (let j = 0; j < pointsPerSegment; j++) {
+        const t = j / pointsPerSegment;
+        const easedT = this.applyEasing(t, easing);
+        const time = startKf.timestamp + timeDelta * t;
+
+        path.push({
+          time,
+          position: {
+            x: startPos.x + (endPos.x - startPos.x) * easedT,
+            y: startPos.y + (endPos.y - startPos.y) * easedT,
+            rotation: this.interpolateRotation(
+              startPos.rotation ?? 0,
+              endPos.rotation ?? 0,
+              easedT
+            ),
+          },
+        });
+      }
+    }
+
+    // Add final keyframe position
+    const lastKf = formation.keyframes[Math.min(endIdx, formation.keyframes.length - 1)];
+    const lastPos = lastKf.positions.get(performerId);
+    if (lastPos) {
+      path.push({
+        time: lastKf.timestamp,
+        position: lastPos,
+      });
+    }
+
+    return path;
+  }
+
+  /**
+   * Get all performer paths for the formation
+   * Returns a map of performerId -> path array
+   */
+  getAllPerformerPaths(
+    formationId: string,
+    pointsPerSegment: number = 15
+  ): Map<string, { time: number; position: Position }[]> {
+    const formation = this.formations.get(formationId);
+    if (!formation) {
+      return new Map();
+    }
+
+    const paths = new Map<string, { time: number; position: Position }[]>();
+
+    for (const performer of formation.performers) {
+      const path = this.getPerformerPath(
+        formationId,
+        performer.id,
+        0,
+        undefined,
+        pointsPerSegment
+      );
+      if (path.length > 0) {
+        paths.set(performer.id, path);
+      }
+    }
+
+    return paths;
   }
 
   // ============================================================================

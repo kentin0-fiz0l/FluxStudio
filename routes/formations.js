@@ -94,7 +94,7 @@ router.get('/:formationId', authenticateToken, async (req, res) => {
 router.patch('/:formationId', authenticateToken, async (req, res) => {
   try {
     const { formationId } = req.params;
-    const { name, description, stageWidth, stageHeight, gridSize, isArchived } = req.body;
+    const { name, description, stageWidth, stageHeight, gridSize, isArchived, audioTrack } = req.body;
 
     const formation = await formationsAdapter.getFormationById(formationId);
     if (!formation) {
@@ -107,7 +107,8 @@ router.patch('/:formationId', authenticateToken, async (req, res) => {
       stageWidth,
       stageHeight,
       gridSize,
-      isArchived
+      isArchived,
+      audioTrack
     });
 
     res.json({ success: true, formation: updatedFormation });
@@ -163,6 +164,64 @@ router.put('/:formationId/save', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error saving formation:', error);
     res.status(500).json({ success: false, error: 'Failed to save formation' });
+  }
+});
+
+// ==================== Audio Endpoints ====================
+
+/**
+ * POST /api/formations/:formationId/audio
+ * Upload audio track for a formation
+ */
+router.post('/:formationId/audio', authenticateToken, async (req, res) => {
+  try {
+    const { formationId } = req.params;
+    const { id, url, filename, duration } = req.body;
+
+    if (!url || !filename) {
+      return res.status(400).json({ success: false, error: 'Audio URL and filename are required' });
+    }
+
+    const formation = await formationsAdapter.getFormationById(formationId);
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found' });
+    }
+
+    const audioTrack = {
+      id: id || `audio-${Date.now()}`,
+      url,
+      filename,
+      duration: duration || 0
+    };
+
+    const updatedFormation = await formationsAdapter.updateFormation(formationId, { audioTrack });
+
+    res.json({ success: true, formation: updatedFormation, audioTrack });
+  } catch (error) {
+    console.error('Error uploading audio:', error);
+    res.status(500).json({ success: false, error: 'Failed to upload audio' });
+  }
+});
+
+/**
+ * DELETE /api/formations/:formationId/audio
+ * Remove audio track from a formation
+ */
+router.delete('/:formationId/audio', authenticateToken, async (req, res) => {
+  try {
+    const { formationId } = req.params;
+
+    const formation = await formationsAdapter.getFormationById(formationId);
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found' });
+    }
+
+    const updatedFormation = await formationsAdapter.updateFormation(formationId, { audioTrack: null });
+
+    res.json({ success: true, formation: updatedFormation, message: 'Audio removed' });
+  } catch (error) {
+    console.error('Error removing audio:', error);
+    res.status(500).json({ success: false, error: 'Failed to remove audio' });
   }
 });
 

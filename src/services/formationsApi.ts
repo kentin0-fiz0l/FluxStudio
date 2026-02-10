@@ -6,7 +6,7 @@
  */
 
 import { getApiUrl, getAuthToken } from '../utils/apiHelpers';
-import { Formation, Performer, Keyframe, Position } from './formationService';
+import { Formation, Performer, Keyframe, Position, AudioTrack } from './formationService';
 
 // API Response types
 export interface FormationsApiResponse<T = any> {
@@ -327,6 +327,36 @@ export async function setPosition(
 }
 
 // ============================================================================
+// AUDIO OPERATIONS
+// ============================================================================
+
+/**
+ * Upload audio track for a formation
+ */
+export async function uploadAudio(
+  formationId: string,
+  audioTrack: Omit<AudioTrack, 'waveformData'>
+): Promise<AudioTrack> {
+  const result = await apiRequest<{ success: boolean; audioTrack: AudioTrack }>(
+    `/api/formations/${formationId}/audio`,
+    {
+      method: 'POST',
+      body: JSON.stringify(audioTrack)
+    }
+  );
+  return result.audioTrack;
+}
+
+/**
+ * Remove audio track from a formation
+ */
+export async function removeAudio(formationId: string): Promise<void> {
+  await apiRequest(`/api/formations/${formationId}/audio`, {
+    method: 'DELETE'
+  });
+}
+
+// ============================================================================
 // TRANSFORM HELPERS
 // ============================================================================
 
@@ -341,8 +371,9 @@ function transformApiFormation(api: any): Formation {
     gridSize: api.gridSize,
     performers: (api.performers || []).map(transformApiPerformer),
     keyframes: (api.keyframes || []).map(transformApiKeyframe),
-    musicTrackUrl: api.musicTrackUrl,
-    musicDuration: api.musicDuration,
+    audioTrack: api.audioTrack,
+    musicTrackUrl: api.musicTrackUrl || api.audioTrack?.url,
+    musicDuration: api.musicDuration || api.audioTrack?.duration,
     createdAt: api.createdAt,
     updatedAt: api.updatedAt,
     createdBy: api.createdBy
@@ -395,5 +426,7 @@ export default {
   addKeyframe,
   updateKeyframe,
   deleteKeyframe,
-  setPosition
+  setPosition,
+  uploadAudio,
+  removeAudio
 };

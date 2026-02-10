@@ -166,7 +166,7 @@ class FormationsAdapter {
    * @param {Object} updates
    * @returns {Object|null} Updated formation
    */
-  async updateFormation(formationId, { name, description, stageWidth, stageHeight, gridSize, isArchived }) {
+  async updateFormation(formationId, { name, description, stageWidth, stageHeight, gridSize, isArchived, audioTrack }) {
     const setClauses = ['updated_at = NOW()'];
     const params = [];
     let paramIndex = 1;
@@ -205,6 +205,33 @@ class FormationsAdapter {
       setClauses.push(`is_archived = $${paramIndex}`);
       params.push(isArchived);
       paramIndex++;
+    }
+
+    // Handle audio track updates
+    if (audioTrack !== undefined) {
+      if (audioTrack === null) {
+        // Remove audio track
+        setClauses.push(`audio_id = NULL`);
+        setClauses.push(`audio_url = NULL`);
+        setClauses.push(`audio_filename = NULL`);
+        setClauses.push(`audio_duration = NULL`);
+      } else {
+        setClauses.push(`audio_id = $${paramIndex}`);
+        params.push(audioTrack.id);
+        paramIndex++;
+
+        setClauses.push(`audio_url = $${paramIndex}`);
+        params.push(audioTrack.url);
+        paramIndex++;
+
+        setClauses.push(`audio_filename = $${paramIndex}`);
+        params.push(audioTrack.filename);
+        paramIndex++;
+
+        setClauses.push(`audio_duration = $${paramIndex}`);
+        params.push(audioTrack.duration);
+        paramIndex++;
+      }
     }
 
     params.push(formationId);
@@ -612,6 +639,14 @@ class FormationsAdapter {
   // ==================== Transform Helpers ====================
 
   _transformFormation(row) {
+    // Build audioTrack object if audio data exists
+    const audioTrack = row.audio_id ? {
+      id: row.audio_id,
+      url: row.audio_url,
+      filename: row.audio_filename,
+      duration: row.audio_duration ? parseInt(row.audio_duration) : 0
+    } : undefined;
+
     return {
       id: row.id,
       projectId: row.project_id,
@@ -620,8 +655,9 @@ class FormationsAdapter {
       stageWidth: parseFloat(row.stage_width),
       stageHeight: parseFloat(row.stage_height),
       gridSize: parseFloat(row.grid_size),
-      musicTrackUrl: row.music_track_url,
-      musicDuration: row.music_duration,
+      audioTrack,
+      musicTrackUrl: row.music_track_url || (audioTrack ? audioTrack.url : undefined),
+      musicDuration: row.music_duration || (audioTrack ? audioTrack.duration : undefined),
       isArchived: row.is_archived,
       createdBy: row.created_by,
       creatorName: row.creator_name,

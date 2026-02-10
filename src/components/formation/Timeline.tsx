@@ -16,8 +16,12 @@ import {
   Minus,
   Repeat,
   Clock,
+  Volume2,
+  VolumeX,
+  Music,
 } from 'lucide-react';
-import { Keyframe, PlaybackState } from '../../services/formationService';
+import { Keyframe, PlaybackState, AudioTrack } from '../../services/formationService';
+import { useAudioPlayback } from '../../hooks/useAudioPlayback';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -29,6 +33,7 @@ interface TimelineProps {
   currentTime: number;
   playbackState: PlaybackState;
   selectedKeyframeId?: string;
+  audioTrack?: AudioTrack | null;
   onPlay: () => void;
   onPause: () => void;
   onStop: () => void;
@@ -192,6 +197,7 @@ export function Timeline({
   currentTime,
   playbackState,
   selectedKeyframeId,
+  audioTrack,
   onPlay,
   onPause,
   onStop,
@@ -207,6 +213,25 @@ export function Timeline({
   const timelineRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Audio playback integration
+  const {
+    state: audioState,
+    setVolume,
+    syncWithFormation,
+  } = useAudioPlayback({
+    audioTrack,
+    autoSync: true,
+  });
+
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+
+  // Sync audio with formation playback
+  useEffect(() => {
+    if (audioTrack && audioState.isLoaded) {
+      syncWithFormation(currentTime, playbackState.isPlaying, playbackState.speed);
+    }
+  }, [currentTime, playbackState.isPlaying, playbackState.speed, audioTrack, audioState.isLoaded, syncWithFormation]);
 
   // Handle click on timeline to seek
   const handleTimelineClick = useCallback(
@@ -313,6 +338,52 @@ export function Timeline({
           >
             <Repeat className="w-5 h-5" />
           </button>
+
+          {/* Audio indicator and volume control */}
+          {audioTrack && (
+            <div className="relative flex items-center gap-1 ml-2">
+              <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mr-1" />
+              <button
+                onClick={() => setShowVolumeSlider(!showVolumeSlider)}
+                className={`p-2 rounded-lg ${
+                  audioState.isLoaded
+                    ? 'text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                    : 'text-gray-400'
+                }`}
+                title={t('formation.audioVolume', 'Audio Volume')}
+              >
+                {audioState.volume === 0 ? (
+                  <VolumeX className="w-5 h-5" />
+                ) : (
+                  <Volume2 className="w-5 h-5" />
+                )}
+              </button>
+
+              {/* Volume slider popup */}
+              {showVolumeSlider && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                  <div className="flex items-center gap-3">
+                    <Music className="w-4 h-4 text-gray-400" />
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={audioState.volume}
+                      onChange={(e) => setVolume(parseFloat(e.target.value))}
+                      className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <span className="text-xs text-gray-500 min-w-[2rem]">
+                      {Math.round(audioState.volume * 100)}%
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 truncate max-w-[150px]">
+                    {audioTrack.filename}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Time Display */}

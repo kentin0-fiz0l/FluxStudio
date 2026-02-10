@@ -23,16 +23,24 @@ import {
   EyeOff,
   Loader2,
   Check,
+  Music,
+  Route,
+  LayoutGrid,
 } from 'lucide-react';
 import { PerformerMarker } from './PerformerMarker';
 import { Timeline } from './Timeline';
 import { ExportDialog } from './ExportDialog';
+import { AudioUpload } from './AudioUpload';
+import { PathOverlay } from './PathOverlay';
+import { TemplatePicker } from './TemplatePicker';
+import { ApplyTemplateOptions } from '../../services/formationTemplates/types';
 import {
   formationService,
   Formation,
   Position,
   PlaybackState,
   FormationExportOptions,
+  AudioTrack,
 } from '../../services/formationService';
 import { useFormation } from '../../hooks/useFormations';
 import * as formationsApi from '../../services/formationsApi';
@@ -163,6 +171,9 @@ export function FormationCanvas({
   const [showRotation, setShowRotation] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [showPerformerPanel, setShowPerformerPanel] = useState(true);
+  const [showAudioPanel, setShowAudioPanel] = useState(false);
+  const [showPaths, setShowPaths] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   // Playback state
   const [playbackState, setPlaybackState] = useState<PlaybackState>({
@@ -464,6 +475,65 @@ export function FormationCanvas({
   const handleZoomIn = () => setZoom((z) => Math.min(3, z + 0.25));
   const handleZoomOut = () => setZoom((z) => Math.max(0.5, z - 0.25));
 
+  // Audio handlers
+  const handleAudioUpload = useCallback(async (audioTrack: AudioTrack) => {
+    if (!formation) return;
+
+    // Update local state
+    setFormation({ ...formation, audioTrack });
+
+    // Update duration based on audio if it's longer than current formation duration
+    if (audioTrack.duration > playbackState.duration) {
+      setPlaybackState(prev => ({ ...prev, duration: audioTrack.duration }));
+    }
+
+    setShowAudioPanel(false);
+  }, [formation, playbackState.duration]);
+
+  const handleAudioRemove = useCallback(async () => {
+    if (!formation) return;
+
+    // Update local state
+    setFormation({ ...formation, audioTrack: undefined });
+    setShowAudioPanel(false);
+  }, [formation]);
+
+  // Template application handler
+  const handleApplyTemplate = useCallback((options: Omit<ApplyTemplateOptions, 'formationId'>) => {
+    if (!formation) return;
+
+    const result = formationService.applyTemplate({
+      ...options,
+      formationId: formation.id,
+      insertAt: playbackState.currentTime || 'end',
+    });
+
+    if (result.success) {
+      // Refresh formation state from service
+      const updatedFormation = formationService.getFormation(formation.id);
+      if (updatedFormation) {
+        setFormation(updatedFormation);
+
+        // Select the new keyframe if one was created
+        if (result.keyframesCreated > 0 && updatedFormation.keyframes.length > 0) {
+          const newKeyframe = updatedFormation.keyframes[updatedFormation.keyframes.length - 1];
+          setSelectedKeyframeId(newKeyframe.id);
+          setCurrentPositions(new Map(newKeyframe.positions));
+        }
+      }
+    } else {
+      console.error('Failed to apply template:', result.error);
+    }
+
+    setShowTemplatePicker(false);
+  }, [formation, playbackState.currentTime]);
+
+  // Calculate performer paths for visualization
+  const performerPaths = React.useMemo(() => {
+    if (!formation || !showPaths) return new Map();
+    return formationService.getAllPerformerPaths(formation.id, 15);
+  }, [formation?.id, formation?.keyframes, showPaths]);
+
   // Loading state - show spinner when loading from API
   if (apiLoading || (formationId && !formation)) {
     return (
@@ -568,6 +638,15 @@ export function FormationCanvas({
           >
             <Layers className="w-4 h-4" />
           </button>
+          <button
+            onClick={() => setShowPaths(!showPaths)}
+            className={`p-2 rounded ${
+              showPaths ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'
+            }`}
+            title={t('formation.togglePaths', 'Toggle Path Lines')}
+          >
+            <Route className="w-4 h-4" />
+          </button>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-gray-600" />
 
@@ -603,6 +682,24 @@ export function FormationCanvas({
             title={t('formation.togglePerformers', 'Toggle Performers Panel')}
           >
             <Users className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => setShowAudioPanel(!showAudioPanel)}
+            className={`p-2 rounded ${
+              formation?.audioTrack ? 'text-green-500' : showAudioPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'
+            }`}
+            title={formation?.audioTrack ? t('formation.hasAudio', 'Audio attached') : t('formation.addAudio', 'Add Audio')}
+          >
+            <Music className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => setShowTemplatePicker(true)}
+            className="p-2 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            title={t('formation.templates', 'Formation Templates')}
+          >
+            <LayoutGrid className="w-4 h-4" />
           </button>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-gray-600" />
@@ -685,6 +782,19 @@ export function FormationCanvas({
 
             {/* Stage border */}
             <div className="absolute inset-0 border-2 border-gray-300 dark:border-gray-600 pointer-events-none" style={{ zIndex: 1 }} />
+
+            {/* Path overlay */}
+            {showPaths && !playbackState.isPlaying && (
+              <PathOverlay
+                performers={formation.performers}
+                paths={performerPaths}
+                currentTime={playbackState.currentTime}
+                canvasWidth={formation.stageWidth * 20 * zoom}
+                canvasHeight={formation.stageHeight * 20 * zoom}
+                showPaths={showPaths}
+                selectedPerformerIds={selectedPerformerIds}
+              />
+            )}
 
             {/* Performers */}
             {formation.performers.map((performer) => {
@@ -784,6 +894,34 @@ export function FormationCanvas({
         )}
       </div>
 
+      {/* Audio Upload Panel */}
+      {showAudioPanel && (
+        <div className="absolute top-20 right-4 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="font-medium text-gray-900 dark:text-white">
+              {t('formation.audioTrack', 'Audio Track')}
+            </h3>
+            <button
+              onClick={() => setShowAudioPanel(false)}
+              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <span className="sr-only">{t('actions.close', 'Close')}</span>
+              &times;
+            </button>
+          </div>
+          <div className="p-4">
+            <AudioUpload
+              audioTrack={formation?.audioTrack}
+              onUpload={handleAudioUpload}
+              onRemove={handleAudioRemove}
+            />
+            <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              {t('formation.audioHelp', 'Upload an audio track to sync with your formation animation. The music will play during playback.')}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Timeline */}
       <Timeline
         keyframes={formation.keyframes}
@@ -791,6 +929,7 @@ export function FormationCanvas({
         currentTime={playbackState.currentTime}
         playbackState={playbackState}
         selectedKeyframeId={selectedKeyframeId}
+        audioTrack={formation.audioTrack}
         onPlay={handlePlay}
         onPause={handlePause}
         onStop={handleStop}
@@ -810,6 +949,15 @@ export function FormationCanvas({
         onClose={() => setIsExportDialogOpen(false)}
         onExport={handleExport}
       />
+
+      {/* Template Picker */}
+      {showTemplatePicker && (
+        <TemplatePicker
+          performerCount={formation.performers.length}
+          onApply={handleApplyTemplate}
+          onCancel={() => setShowTemplatePicker(false)}
+        />
+      )}
     </div>
   );
 }
