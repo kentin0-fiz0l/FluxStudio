@@ -126,9 +126,10 @@ class ProjectsAdapter {
         INSERT INTO projects (
           id, name, title, description, slug, organization_id, team_id, manager_id,
           status, priority, project_type, service_category, service_tier, ensemble_type,
-          start_date, due_date, metadata, settings, tags, created_at, updated_at, "clientId", "type"
+          start_date, due_date, metadata, settings, tags, created_at, updated_at,
+          "clientId", "type", "createdAt", "updatedAt"
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25
         ) RETURNING *
       `, [
         id,
@@ -153,7 +154,9 @@ class ProjectsAdapter {
         now,
         now,
         userId, // clientId - set to creator for Prisma compatibility
-        'DESIGN_CONCEPTS' // type - default Prisma ProjectType
+        'DESIGN_CONCEPTS', // type - default Prisma ProjectType
+        now, // createdAt - Prisma camelCase column
+        now  // updatedAt - Prisma camelCase column
       ]);
 
       // Add creator as project member
