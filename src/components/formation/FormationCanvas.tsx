@@ -5,7 +5,7 @@
  * Includes grid-based positioning, performer drag-drop, and keyframe animation.
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Plus,
@@ -21,6 +21,8 @@ import {
   Layers,
   Eye,
   EyeOff,
+  Loader2,
+  Check,
 } from 'lucide-react';
 import { PerformerMarker } from './PerformerMarker';
 import { Timeline } from './Timeline';
@@ -32,6 +34,8 @@ import {
   PlaybackState,
   FormationExportOptions,
 } from '../../services/formationService';
+import { useFormation } from '../../hooks/useFormations';
+import * as formationsApi from '../../services/formationsApi';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -100,20 +104,55 @@ export function FormationCanvas({
   const { t } = useTranslation('common');
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // Lazy initialization for formation state
+  // API hooks for persistence
+  const {
+    formation: apiFormation,
+    loading: apiLoading,
+    error: apiError,
+    save: apiSave,
+    saving: apiSaving
+  } = useFormation({ formationId, enabled: !!formationId });
+
+  // Local formation state - initialized from API or local service
   const [formation, setFormation] = useState<Formation | null>(() => {
-    const data = getInitialFormationData(formationId, projectId, t('formation.untitled', 'Untitled Formation'));
-    return data.formation;
+    // If no formationId, create a local formation
+    if (!formationId) {
+      const data = getInitialFormationData(undefined, projectId, t('formation.untitled', 'Untitled Formation'));
+      return data.formation;
+    }
+    return null; // Will be loaded from API
   });
+
+  // Sync API data to local state when it loads
+  useEffect(() => {
+    if (apiFormation && formationId) {
+      setFormation(apiFormation);
+      // Set initial keyframe and positions
+      if (apiFormation.keyframes.length > 0) {
+        setSelectedKeyframeId(apiFormation.keyframes[0].id);
+        setCurrentPositions(new Map(apiFormation.keyframes[0].positions));
+      }
+    }
+  }, [apiFormation, formationId]);
+
   const [selectedPerformerIds, setSelectedPerformerIds] = useState<Set<string>>(new Set());
   const [selectedKeyframeId, setSelectedKeyframeId] = useState<string>(() => {
-    const data = getInitialFormationData(formationId, projectId, t('formation.untitled', 'Untitled Formation'));
-    return data.keyframeId;
+    if (!formationId) {
+      const data = getInitialFormationData(undefined, projectId, t('formation.untitled', 'Untitled Formation'));
+      return data.keyframeId;
+    }
+    return '';
   });
   const [currentPositions, setCurrentPositions] = useState<Map<string, Position>>(() => {
-    const data = getInitialFormationData(formationId, projectId, t('formation.untitled', 'Untitled Formation'));
-    return data.positions;
+    if (!formationId) {
+      const data = getInitialFormationData(undefined, projectId, t('formation.untitled', 'Untitled Formation'));
+      return data.positions;
+    }
+    return new Map();
   });
+
+  // Save status for UI feedback
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   // UI state
   const [activeTool, setActiveTool] = useState<Tool>('select');
@@ -339,12 +378,71 @@ export function FormationCanvas({
     }
   }, [activeTool, formation, selectedKeyframeId]);
 
-  // Save handler
-  const handleSave = useCallback(() => {
-    if (formation && onSave) {
-      onSave(formation);
+  // Save handler - persists to API
+  const handleSave = useCallback(async () => {
+    if (!formation) return;
+
+    setSaveStatus('saving');
+
+    try {
+      if (formationId) {
+        // Existing formation - save to API
+        // Prepare keyframes with current positions synced
+        const keyframesData = formation.keyframes.map(kf => ({
+          id: kf.id,
+          timestamp: kf.timestamp,
+          transition: kf.transition,
+          duration: kf.duration,
+          positions: kf.id === selectedKeyframeId
+            ? Object.fromEntries(currentPositions)
+            : Object.fromEntries(kf.positions)
+        }));
+
+        await apiSave({
+          name: formation.name,
+          performers: formation.performers,
+          keyframes: keyframesData
+        });
+      } else {
+        // New formation - create via API first
+        const created = await formationsApi.createFormation(projectId, {
+          name: formation.name,
+          description: formation.description,
+          stageWidth: formation.stageWidth,
+          stageHeight: formation.stageHeight,
+          gridSize: formation.gridSize
+        });
+
+        // Then save full state
+        const keyframesData = formation.keyframes.map(kf => ({
+          id: kf.id,
+          timestamp: kf.timestamp,
+          transition: kf.transition,
+          duration: kf.duration,
+          positions: kf.id === selectedKeyframeId
+            ? Object.fromEntries(currentPositions)
+            : Object.fromEntries(kf.positions)
+        }));
+
+        await formationsApi.saveFormation(created.id, {
+          name: formation.name,
+          performers: formation.performers,
+          keyframes: keyframesData
+        });
+      }
+
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+
+      if (onSave) {
+        onSave(formation);
+      }
+    } catch (error) {
+      console.error('Error saving formation:', error);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
     }
-  }, [formation, onSave]);
+  }, [formation, formationId, projectId, selectedKeyframeId, currentPositions, apiSave, onSave]);
 
   // Export handler
   const handleExport = useCallback(async (options: FormationExportOptions) => {
@@ -365,6 +463,30 @@ export function FormationCanvas({
   // Zoom handlers
   const handleZoomIn = () => setZoom((z) => Math.min(3, z + 0.25));
   const handleZoomOut = () => setZoom((z) => Math.max(0.5, z - 0.25));
+
+  // Loading state - show spinner when loading from API
+  if (apiLoading || (formationId && !formation)) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <span className="text-sm text-gray-500">{t('formation.loading', 'Loading formation...')}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (apiError) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="flex flex-col items-center gap-2 text-red-500">
+          <span className="text-lg font-medium">{t('formation.errorLoading', 'Failed to load formation')}</span>
+          <span className="text-sm">{apiError}</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!formation) {
     return (
@@ -494,10 +616,33 @@ export function FormationCanvas({
           </button>
           <button
             onClick={handleSave}
-            className="flex items-center gap-1 px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+            disabled={saveStatus === 'saving' || apiSaving}
+            className={`flex items-center gap-1 px-4 py-1.5 rounded-lg transition-colors ${
+              saveStatus === 'saved'
+                ? 'bg-green-500 text-white'
+                : saveStatus === 'error'
+                ? 'bg-red-500 text-white'
+                : saveStatus === 'saving' || apiSaving
+                ? 'bg-blue-400 text-white cursor-wait'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
           >
-            <Save className="w-4 h-4" />
-            <span className="text-sm">{t('actions.save', 'Save')}</span>
+            {saveStatus === 'saving' || apiSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : saveStatus === 'saved' ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            <span className="text-sm">
+              {saveStatus === 'saving' || apiSaving
+                ? t('actions.saving', 'Saving...')
+                : saveStatus === 'saved'
+                ? t('actions.saved', 'Saved!')
+                : saveStatus === 'error'
+                ? t('actions.saveFailed', 'Save Failed')
+                : t('actions.save', 'Save')}
+            </span>
           </button>
         </div>
       </div>

@@ -861,6 +861,7 @@ const printingRoutes = require('./routes/printing');
 const agentRoutes = require('./routes/agent-api');
 const paymentsRoutes = require('./routes/payments');
 const supportRoutes = require('./routes/support');
+const formationsRoutes = require('./routes/formations');
 
 // Initialize auth routes with database helper
 authRoutes.setAuthHelper({
@@ -924,6 +925,11 @@ app.use('/api/payments', paymentsRoutes);  // Also support full path for local d
 // Support routes - Phase 4 User Adoption
 app.use('/support', supportRoutes);  // Direct path
 app.use('/api/support', supportRoutes);  // Full path for local dev
+
+// Formations routes - Drill Writer MVP
+// Routes define /projects/:projectId/formations, so mount at /api
+app.use('/api', formationsRoutes);
+app.use('/', formationsRoutes);  // Direct path for production
 
 // Set Socket.IO namespace for messaging routes (for real-time broadcasts)
 messagingRoutes.setMessagingNamespace(messagingNamespace);
