@@ -47,7 +47,7 @@ import {
   Play,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button, Badge, Card } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/hooks/useProjects';
@@ -258,7 +258,7 @@ export const ProjectDetail = () => {
   const [showNewBoardInput, setShowNewBoardInput] = React.useState(false);
 
   // Formations state - using the hook for count
-  const { formations, loading: formationsLoading } = useFormations({
+  const { formations, loading: _formationsLoading } = useFormations({
     projectId: id || '',
     enabled: !!id && activeTab === 'formations'
   });

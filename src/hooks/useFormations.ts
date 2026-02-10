@@ -17,7 +17,7 @@ import {
   saveFormation,
   FormationListItem
 } from '../services/formationsApi';
-import { Formation, Performer, Keyframe, Position } from '../services/formationService';
+import { Formation, Performer, Position } from '../services/formationService';
 
 const formationsLogger = hookLogger.child('useFormations');
 
