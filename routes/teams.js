@@ -16,6 +16,14 @@ const fs = require('fs');
 const path = require('path');
 const { authenticateToken } = require('../lib/auth/middleware');
 
+// Try to load activity logger for audit trails
+let activityLogger = null;
+try {
+  activityLogger = require('../lib/activityLogger');
+} catch (error) {
+  console.warn('Activity logger not available for teams');
+}
+
 const router = express.Router();
 
 // File-based storage paths
@@ -302,6 +310,14 @@ router.post('/:id/accept-invite', authenticateToken, async (req, res) => {
 
     await saveTeams(teams);
 
+    // Log activity for member join
+    if (activityLogger) {
+      await activityLogger.memberJoined(req.user.id, null, {
+        userId: req.user.id,
+        name: user?.name || user?.email || 'User'
+      });
+    }
+
     res.json({
       message: 'Successfully joined the team',
       team: teams[teamIndex]
@@ -340,12 +356,23 @@ router.delete('/:id/members/:userId', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Cannot remove team owner' });
     }
 
+    // Get member info before removal for activity logging
+    const removedMemberInfo = targetMember;
+
     // Remove member
     teams[teamIndex].members = teams[teamIndex].members.filter(
       m => m.userId !== req.params.userId
     );
 
     await saveTeams(teams);
+
+    // Log activity for member leave
+    if (activityLogger && removedMemberInfo) {
+      await activityLogger.memberLeft(req.user.id, null, {
+        userId: req.params.userId,
+        name: removedMemberInfo.name || 'Member'
+      });
+    }
 
     res.json({
       message: 'Member removed successfully'

@@ -43,6 +43,7 @@ const { Component: ForgotPassword } = lazyLoadWithRetry(() => import('./pages/Fo
 const { Component: ResetPassword } = lazyLoadWithRetry(() => import('./pages/ResetPassword'));
 const { Component: Checkout } = lazyLoadWithRetry(() => import('./pages/Checkout'));
 const { Component: CheckoutSuccess } = lazyLoadWithRetry(() => import('./pages/CheckoutSuccess'));
+const { Component: Billing } = lazyLoadWithRetry(() => import('./pages/Billing'));
 const { Component: WelcomeFlow } = lazyLoadWithRetry(() => import('./pages/WelcomeFlow'));
 const { Component: AdaptiveDashboard } = lazyLoadWithRetry(() => import('./components/AdaptiveDashboard'));
 const { Component: Connectors } = lazyLoadWithRetry(() => import('./pages/Connectors'));
@@ -165,6 +166,7 @@ function AuthenticatedRoutes() {
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/checkout/success" element={<CheckoutSuccess />} />
                   <Route path="/checkout/cancel" element={<Checkout />} />
+                  <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
                   <Route path="/welcome" element={<WelcomeFlow />} />
 
                   {/* OAuth callback routes moved to App level to avoid ConnectorsContext interference */}

@@ -36,6 +36,14 @@ try {
   console.warn('Projects adapter not available for messaging');
 }
 
+// Try to load activity logger for audit trails
+let activityLogger = null;
+try {
+  activityLogger = require('../lib/activityLogger');
+} catch (error) {
+  console.warn('Activity logger not available for messaging');
+}
+
 const router = express.Router();
 
 // Configure multer for file uploads
@@ -453,6 +461,15 @@ router.post('/:id/messages', authenticateToken, async (req, res) => {
     if (assetId) {
       const asset = await messagingConversationsAdapter.getAssetById(assetId);
       message = { ...message, asset };
+    }
+
+    // Log activity for non-system messages
+    if (activityLogger && !isSystemMessage) {
+      await activityLogger.messageSent(
+        userId,
+        conversation.projectId || projectId,
+        conversationId
+      );
     }
 
     res.status(201).json({ success: true, message });
