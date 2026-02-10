@@ -44,6 +44,7 @@ import {
   PenTool,
   Plus,
   Target,
+  Play,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -73,6 +74,8 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { TiptapCollaborativeEditor } from '@/components/documents/TiptapCollaborativeEditor';
+import { FormationsTab } from '@/components/projects/FormationsTab';
+import { useFormations } from '@/hooks/useFormations';
 
 // ============================================================================
 // Type Definitions
@@ -253,6 +256,12 @@ export const ProjectDetail = () => {
   const [boardsLoading, setBoardsLoading] = React.useState(false);
   const [newBoardName, setNewBoardName] = React.useState('');
   const [showNewBoardInput, setShowNewBoardInput] = React.useState(false);
+
+  // Formations state - using the hook for count
+  const { formations, loading: formationsLoading } = useFormations({
+    projectId: id || '',
+    enabled: !!id && activeTab === 'formations'
+  });
 
   // Assets state
   const {
@@ -712,6 +721,25 @@ export const ProjectDetail = () => {
               </TabsTrigger>
 
               <TabsTrigger
+                value="formations"
+                className={cn(
+                  'data-[state=active]:border-b-2 data-[state=active]:border-primary-600',
+                  'rounded-none border-b-2 border-transparent h-full px-4'
+                )}
+                role="tab"
+                aria-selected={activeTab === 'formations'}
+                aria-controls="formations-panel"
+                id="formations-tab"
+                aria-label={`Formations, ${formations.length} items`}
+              >
+                <Play className="h-4 w-4 mr-2" aria-hidden="true" />
+                Formations
+                <Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">
+                  {formations.length}
+                </Badge>
+              </TabsTrigger>
+
+              <TabsTrigger
                 value="messages"
                 className={cn(
                   'data-[state=active]:border-b-2 data-[state=active]:border-primary-600',
@@ -735,33 +763,33 @@ export const ProjectDetail = () => {
 
         {/* Tab Content */}
         <div className="flex-1 overflow-hidden" ref={tabContentRef} tabIndex={-1}>
-          <Tabs value={activeTab} className="h-full">
-            {/* Overview Tab */}
-            <TabsContent
-              value="overview"
-              className="h-full overflow-y-auto p-6 mt-0"
+          {/* Overview Tab */}
+          {activeTab === 'overview' && (
+            <div
+              className="h-full overflow-y-auto p-6"
               role="tabpanel"
               id="overview-panel"
               aria-labelledby="overview-tab"
               tabIndex={0}
             >
               <div role="status" aria-live="polite" className="sr-only">
-                {activeTab === 'overview' ? `Showing ${tabLabels.overview} tab` : ''}
+                Showing {tabLabels.overview} tab
               </div>
               <ProjectOverviewTab project={project} />
-            </TabsContent>
+            </div>
+          )}
 
-            {/* Tasks Tab - Sprint 2 Integration */}
-            <TabsContent
-              value="tasks"
-              className="h-full mt-0"
+          {/* Tasks Tab - Sprint 2 Integration */}
+          {activeTab === 'tasks' && (
+            <div
+              className="h-full"
               role="tabpanel"
               id="tasks-panel"
               aria-labelledby="tasks-tab"
               tabIndex={0}
             >
               <div role="status" aria-live="polite" className="sr-only">
-                {activeTab === 'tasks' ? `Showing ${tabLabels.tasks} tab` : ''}
+                Showing {tabLabels.tasks} tab
               </div>
 
               <div className="flex h-full">
@@ -850,19 +878,20 @@ export const ProjectDetail = () => {
                   </div>
                 </aside>
               </div>
-            </TabsContent>
+            </div>
+          )}
 
-            {/* Documents Tab */}
-            <TabsContent
-              value="documents"
-              className="h-full mt-0"
+          {/* Documents Tab */}
+          {activeTab === 'documents' && (
+            <div
+              className="h-full"
               role="tabpanel"
               id="documents-panel"
               aria-labelledby="documents-tab"
               tabIndex={0}
             >
               <div role="status" aria-live="polite" className="sr-only">
-                {activeTab === 'documents' ? `Showing ${tabLabels.documents} tab` : ''}
+                Showing {tabLabels.documents} tab
               </div>
 
               {activeDocumentId ? (
@@ -879,34 +908,36 @@ export const ProjectDetail = () => {
                   />
                 </div>
               )}
-            </TabsContent>
+            </div>
+          )}
 
-            {/* Files Tab */}
-            <TabsContent
-              value="files"
-              className="h-full overflow-y-auto p-6 mt-0"
+          {/* Files Tab */}
+          {activeTab === 'files' && (
+            <div
+              className="h-full overflow-y-auto p-6"
               role="tabpanel"
               id="files-panel"
               aria-labelledby="files-tab"
               tabIndex={0}
             >
               <div role="status" aria-live="polite" className="sr-only">
-                {activeTab === 'files' ? `Showing ${tabLabels.files} tab` : ''}
+                Showing {tabLabels.files} tab
               </div>
               <ProjectFilesTab project={project} />
-            </TabsContent>
+            </div>
+          )}
 
-            {/* Assets Tab */}
-            <TabsContent
-              value="assets"
-              className="h-full overflow-y-auto p-6 mt-0"
+          {/* Assets Tab */}
+          {activeTab === 'assets' && (
+            <div
+              className="h-full overflow-y-auto p-6"
               role="tabpanel"
               id="assets-panel"
               aria-labelledby="assets-tab"
               tabIndex={0}
             >
               <div role="status" aria-live="polite" className="sr-only">
-                {activeTab === 'assets' ? `Showing ${tabLabels.assets} tab` : ''}
+                Showing {tabLabels.assets} tab
               </div>
 
               {/* Assets Content */}
@@ -982,19 +1013,20 @@ export const ProjectDetail = () => {
                   </div>
                 )}
               </div>
-            </TabsContent>
+            </div>
+          )}
 
-            {/* Boards Tab */}
-            <TabsContent
-              value="boards"
-              className="h-full overflow-y-auto p-6 mt-0"
+          {/* Boards Tab */}
+          {activeTab === 'boards' && (
+            <div
+              className="h-full overflow-y-auto p-6"
               role="tabpanel"
               id="boards-panel"
               aria-labelledby="boards-tab"
               tabIndex={0}
             >
               <div role="status" aria-live="polite" className="sr-only">
-                {activeTab === 'boards' ? `Showing ${tabLabels.boards} tab` : ''}
+                Showing {tabLabels.boards} tab
               </div>
 
               {/* Boards Content */}
@@ -1075,23 +1107,40 @@ export const ProjectDetail = () => {
                   </div>
                 )}
               </div>
-            </TabsContent>
+            </div>
+          )}
 
-            {/* Messages Tab */}
-            <TabsContent
-              value="messages"
-              className="h-full mt-0"
+          {/* Formations Tab */}
+          {activeTab === 'formations' && (
+            <div
+              className="h-full overflow-y-auto p-6"
+              role="tabpanel"
+              id="formations-panel"
+              aria-labelledby="formations-tab"
+              tabIndex={0}
+            >
+              <div role="status" aria-live="polite" className="sr-only">
+                Showing formations tab
+              </div>
+              <FormationsTab projectId={id || ''} />
+            </div>
+          )}
+
+          {/* Messages Tab */}
+          {activeTab === 'messages' && (
+            <div
+              className="h-full"
               role="tabpanel"
               id="messages-panel"
               aria-labelledby="messages-tab"
               tabIndex={0}
             >
               <div role="status" aria-live="polite" className="sr-only">
-                {activeTab === 'messages' ? `Showing ${tabLabels.messages} tab` : ''}
+                Showing {tabLabels.messages} tab
               </div>
               <ProjectMessagesTab project={project} />
-            </TabsContent>
-          </Tabs>
+            </div>
+          )}
         </div>
       </div>
 
