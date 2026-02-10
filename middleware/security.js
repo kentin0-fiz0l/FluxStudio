@@ -7,6 +7,7 @@ const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const helmet = require('helmet');
 const cors = require('cors');
 const validator = require('validator');
+const crypto = require('crypto');
 
 /**
  * Rate limiting configuration
@@ -201,7 +202,28 @@ const securityErrorHandler = (err, req, res, next) => {
 };
 
 /**
+ * Request tracing middleware
+ * Generates a unique trace ID for each request to enable log correlation
+ * across services, debugging, and distributed tracing.
+ */
+const traceIdMiddleware = (req, res, next) => {
+  // Use existing trace ID from upstream proxy/load balancer, or generate new one
+  const traceId = req.headers['x-trace-id'] ||
+                  req.headers['x-request-id'] ||
+                  `flux-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
+
+  // Attach to request for use in logging throughout the request lifecycle
+  req.traceId = traceId;
+
+  // Add to response headers so clients can correlate their logs
+  res.setHeader('X-Trace-ID', traceId);
+
+  next();
+};
+
+/**
  * Security audit logging
+ * Now includes trace ID for request correlation
  */
 const auditLogger = (req, res, next) => {
   const startTime = Date.now();
@@ -209,6 +231,7 @@ const auditLogger = (req, res, next) => {
   res.on('finish', () => {
     const duration = Date.now() - startTime;
     const logData = {
+      traceId: req.traceId || 'unknown',
       timestamp: new Date().toISOString(),
       ip: req.ip || req.connection.remoteAddress,
       method: req.method,
@@ -241,5 +264,6 @@ module.exports = {
   helmet: helmet(helmetConfig),
   validateInput,
   securityErrorHandler,
-  auditLogger
+  auditLogger,
+  traceIdMiddleware
 };

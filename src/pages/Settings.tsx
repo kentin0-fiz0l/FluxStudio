@@ -2,6 +2,7 @@
  * Settings Page - Flux Design Language
  *
  * Application settings and preferences page using DashboardLayout.
+ * Persists user preferences to the backend API.
  */
 
 import * as React from 'react';
@@ -29,11 +30,25 @@ import { GitHubIntegration } from '@/components/organisms/GitHubIntegration';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import { toast } from '../lib/toast';
+import { apiService, type UserSettings } from '../services/apiService';
 
 function Settings() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation('common');
+
+  // Settings state
+  const [notifications, setNotifications] = React.useState(true);
+  const [emailDigest, setEmailDigest] = React.useState(true);
+  const [darkMode, setDarkMode] = React.useState(false);
+  const [autoSave, setAutoSave] = React.useState(true);
+
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [hasChanges, setHasChanges] = React.useState(false);
+
+  // Track original settings for change detection
+  const [originalSettings, setOriginalSettings] = React.useState<UserSettings | null>(null);
 
   // Authentication guard - redirect to login if not authenticated
   React.useEffect(() => {
@@ -49,20 +64,94 @@ function Settings() {
     console.log('✅ User authenticated:', user.email);
   }, [user, navigate]);
 
-  const [notifications, setNotifications] = React.useState(true);
-  const [emailDigest, setEmailDigest] = React.useState(true);
-  const [darkMode, setDarkMode] = React.useState(true);
-  const [autoSave, setAutoSave] = React.useState(true);
+  // Fetch settings on mount
+  React.useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        setIsLoading(true);
+        const response = await apiService.getSettings();
 
-  const [isSaving, setIsSaving] = React.useState(false);
+        if (response.success && response.data?.settings) {
+          const settings = response.data.settings;
+
+          // Apply fetched settings to state
+          setNotifications(settings.notifications?.push ?? true);
+          setEmailDigest(settings.notifications?.emailDigest ?? true);
+          setDarkMode(settings.appearance?.darkMode ?? false);
+          setAutoSave(settings.performance?.autoSave ?? true);
+
+          // Store original settings
+          setOriginalSettings(settings);
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+        // Use defaults on error - don't show error toast for initial load
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchSettings();
+    }
+  }, [user]);
+
+  // Detect changes from original settings
+  React.useEffect(() => {
+    if (!originalSettings) {
+      setHasChanges(false);
+      return;
+    }
+
+    const currentSettings: UserSettings = {
+      notifications: {
+        push: notifications,
+        emailDigest: emailDigest
+      },
+      appearance: {
+        darkMode: darkMode
+      },
+      performance: {
+        autoSave: autoSave
+      }
+    };
+
+    const hasChanged =
+      notifications !== (originalSettings.notifications?.push ?? true) ||
+      emailDigest !== (originalSettings.notifications?.emailDigest ?? true) ||
+      darkMode !== (originalSettings.appearance?.darkMode ?? false) ||
+      autoSave !== (originalSettings.performance?.autoSave ?? true);
+
+    setHasChanges(hasChanged);
+  }, [notifications, emailDigest, darkMode, autoSave, originalSettings]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Simulate API call to save settings
-      await new Promise(resolve => setTimeout(resolve, 500));
-      toast.success('Settings saved successfully');
-      console.log('Settings saved:', { notifications, emailDigest, darkMode, autoSave });
+      const settings: UserSettings = {
+        notifications: {
+          push: notifications,
+          emailDigest: emailDigest
+        },
+        appearance: {
+          darkMode: darkMode
+        },
+        performance: {
+          autoSave: autoSave
+        }
+      };
+
+      const response = await apiService.saveSettings(settings);
+
+      if (response.success) {
+        toast.success('Settings saved successfully');
+        // Update original settings to current
+        setOriginalSettings(settings);
+        setHasChanges(false);
+        console.log('Settings saved:', settings);
+      } else {
+        throw new Error(response.error || 'Failed to save settings');
+      }
     } catch (error) {
       toast.error('Failed to save settings. Please try again.');
       console.error('Error saving settings:', error);
@@ -278,16 +367,25 @@ function Settings() {
 
         {/* Save Button */}
         <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-700">
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving || isLoading || !hasChanges}
+            variant={hasChanges ? 'default' : 'outline'}
+          >
             {isSaving ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
                 Saving...
               </>
+            ) : isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                Loading...
+              </>
             ) : (
               <>
                 <Save className="w-4 h-4 mr-2" aria-hidden="true" />
-                Save Changes
+                {hasChanges ? 'Save Changes' : 'Saved'}
               </>
             )}
           </Button>

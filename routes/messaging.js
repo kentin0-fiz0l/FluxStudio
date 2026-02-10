@@ -796,5 +796,176 @@ router.post('/:conversationId/summary/generate', authenticateToken, async (req, 
   }
 });
 
+// ----- Message Edit/Delete -----
+
+/**
+ * PUT /api/conversations/:conversationId/messages/:messageId
+ * Edit a message (only by original author within time limit)
+ */
+router.put('/:conversationId/messages/:messageId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { conversationId, messageId } = req.params;
+    const { text } = req.body;
+
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      return res.status(400).json({ success: false, error: 'Text content is required' });
+    }
+
+    // Verify user is in conversation
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ success: false, error: 'Conversation not found or not a member' });
+    }
+
+    // Get the message to verify ownership
+    const messages = await messagingConversationsAdapter.listMessages({
+      conversationId,
+      limit: 1,
+      messageId
+    });
+
+    const message = messages.find(m => m.id === messageId);
+
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+
+    if (message.userId !== userId && message.user_id !== userId) {
+      return res.status(403).json({ success: false, error: 'You can only edit your own messages' });
+    }
+
+    // Check edit time limit (15 minutes)
+    const messageTime = new Date(message.createdAt || message.created_at);
+    const editWindowMs = 15 * 60 * 1000; // 15 minutes
+    if (Date.now() - messageTime.getTime() > editWindowMs) {
+      return res.status(403).json({
+        success: false,
+        error: 'Messages can only be edited within 15 minutes of sending'
+      });
+    }
+
+    // Update the message using editMessage (matches adapter function signature)
+    const updatedMessage = await messagingConversationsAdapter.editMessage({
+      messageId,
+      userId,
+      content: text.trim()
+    });
+
+    // Emit real-time event
+    if (messagingNamespace) {
+      messagingNamespace.to(conversationId).emit('message:edited', {
+        messageId,
+        conversationId,
+        text: text.trim(),
+        editedAt: new Date().toISOString(),
+        editedBy: userId
+      });
+    }
+
+    // Log activity
+    if (activityLogger) {
+      await activityLogger.log({
+        userId,
+        projectId: conversation.projectId,
+        action: 'message_edited',
+        resourceType: 'message',
+        resourceId: messageId,
+        metadata: { conversationId }
+      });
+    }
+
+    res.json({ success: true, message: updatedMessage });
+  } catch (error) {
+    console.error('Error editing message:', error);
+    res.status(500).json({ success: false, error: 'Failed to edit message' });
+  }
+});
+
+/**
+ * DELETE /api/conversations/:conversationId/messages/:messageId
+ * Delete a message (soft delete - marks as deleted)
+ */
+router.delete('/:conversationId/messages/:messageId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { conversationId, messageId } = req.params;
+
+    // Verify user is in conversation
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ success: false, error: 'Conversation not found or not a member' });
+    }
+
+    // Get the message to verify ownership
+    const messages = await messagingConversationsAdapter.listMessages({
+      conversationId,
+      limit: 1,
+      messageId
+    });
+
+    const message = messages.find(m => m.id === messageId);
+
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+
+    // Allow deletion by message author or conversation admin
+    const isAuthor = message.userId === userId || message.user_id === userId;
+    const isAdmin = conversation.createdBy === userId || conversation.created_by === userId;
+
+    if (!isAuthor && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        error: 'You can only delete your own messages or must be conversation admin'
+      });
+    }
+
+    // Delete the message (matches adapter function signature)
+    // Note: The adapter does a hard delete and requires author ownership
+    // For admin deletes, we pass the message author's ID
+    const deleteUserId = isAuthor ? userId : (message.userId || message.user_id);
+    await messagingConversationsAdapter.deleteMessage({
+      messageId,
+      userId: deleteUserId
+    });
+
+    // Emit real-time event
+    if (messagingNamespace) {
+      messagingNamespace.to(conversationId).emit('message:deleted', {
+        messageId,
+        conversationId,
+        deletedAt: new Date().toISOString(),
+        deletedBy: userId
+      });
+    }
+
+    // Log activity
+    if (activityLogger) {
+      await activityLogger.log({
+        userId,
+        projectId: conversation.projectId,
+        action: 'message_deleted',
+        resourceType: 'message',
+        resourceId: messageId,
+        metadata: { conversationId }
+      });
+    }
+
+    res.json({ success: true, messageId, deleted: true });
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete message' });
+  }
+});
+
 module.exports = router;
 module.exports.setMessagingNamespace = setMessagingNamespace;

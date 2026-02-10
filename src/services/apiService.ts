@@ -40,6 +40,21 @@ export interface ApiError {
   code?: string;
 }
 
+// User Settings types
+export interface UserSettings {
+  notifications?: {
+    push?: boolean;
+    emailDigest?: boolean;
+  };
+  appearance?: {
+    darkMode?: boolean;
+    language?: string;
+  };
+  performance?: {
+    autoSave?: boolean;
+  };
+}
+
 // Request configuration
 interface RequestConfig extends RequestInit {
   requireAuth?: boolean;
@@ -329,6 +344,18 @@ class ApiService {
 
   async getMe() {
     return this.makeRequest(buildAuthUrl('/me'));
+  }
+
+  // User Settings API calls
+  async getSettings(): Promise<ApiResponse<{ success: boolean; settings: UserSettings }>> {
+    return this.makeRequest(buildAuthUrl('/settings'));
+  }
+
+  async saveSettings(settings: UserSettings): Promise<ApiResponse<{ success: boolean; settings: UserSettings; message: string }>> {
+    return this.makeRequest(buildAuthUrl('/settings'), {
+      method: 'PUT',
+      body: JSON.stringify({ settings }),
+    });
   }
 
   // Organization API calls

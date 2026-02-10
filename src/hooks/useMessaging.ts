@@ -1,11 +1,13 @@
 /**
  * Messaging Hook
  * Simplified wrapper around MessagingContext for backward compatibility
+ * Includes API calls for message edit/delete operations
  */
 
 import { useMessaging as useMessagingContext, useMessagingOptional as useMessagingContextOptional } from '../contexts/MessagingContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
+import { buildApiUrl } from '../config/environment';
 import {
   Message,
   Conversation,
@@ -308,13 +310,65 @@ export function useMessaging(): UseMessagingReturn {
     await actions.loadNotifications();
   };
 
-  const editMessage = async (_messageId: string, _content: string): Promise<void> => {
-    // TODO: Implement message editing via API
-  };
+  const editMessage = useCallback(async (messageId: string, content: string): Promise<void> => {
+    if (!state.activeConversationId) {
+      throw new Error('No active conversation');
+    }
 
-  const deleteMessage = async (_messageId: string): Promise<void> => {
-    // TODO: Implement message deletion via API
-  };
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(
+      buildApiUrl(`/conversations/${state.activeConversationId}/messages/${messageId}`),
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ text: content })
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to edit message');
+    }
+
+    // Reload messages to reflect the edit
+    await actions.loadMessages(state.activeConversationId);
+  }, [state.activeConversationId, actions]);
+
+  const deleteMessage = useCallback(async (messageId: string): Promise<void> => {
+    if (!state.activeConversationId) {
+      throw new Error('No active conversation');
+    }
+
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    const response = await fetch(
+      buildApiUrl(`/conversations/${state.activeConversationId}/messages/${messageId}`),
+      {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to delete message');
+    }
+
+    // Reload messages to reflect the deletion
+    await actions.loadMessages(state.activeConversationId);
+  }, [state.activeConversationId, actions]);
 
   return {
     // Conversations

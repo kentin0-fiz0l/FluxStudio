@@ -31,7 +31,7 @@ const FormData = require('form-data');
 
 // Import security and configuration modules
 const { config } = require('./config/environment');
-const { rateLimit, authRateLimit, printRateLimit, cors, helmet, validateInput, securityErrorHandler, auditLogger } = require('./middleware/security');
+const { rateLimit, authRateLimit, printRateLimit, cors, helmet, validateInput, securityErrorHandler, auditLogger, traceIdMiddleware } = require('./middleware/security');
 const { csrfProtection, getCsrfToken } = require('./middleware/csrf');
 const cookieParser = require('cookie-parser');
 
@@ -64,6 +64,126 @@ const securityLogger = require('./lib/auth/securityLogger');
 // Import Sprint 13 Day 2 - Sentry & Anomaly Detection
 const { initSentry, requestHandler, tracingHandler, errorHandler, captureAuthError } = require('./lib/monitoring/sentry');
 const anomalyDetector = require('./lib/security/anomalyDetector');
+
+// =============================================================================
+// GLOBAL ERROR HANDLERS - Catch unhandled errors at the process level
+// =============================================================================
+
+// Handle unhandled promise rejections (async errors that escape try/catch)
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('='.repeat(60));
+  console.error('⚠️  UNHANDLED PROMISE REJECTION');
+  console.error('='.repeat(60));
+  console.error('Reason:', reason);
+  console.error('Promise:', promise);
+  console.error('Stack:', reason instanceof Error ? reason.stack : 'No stack trace');
+  console.error('='.repeat(60));
+
+  // Log to Sentry if available
+  try {
+    const Sentry = require('@sentry/node');
+    Sentry.captureException(reason instanceof Error ? reason : new Error(String(reason)), {
+      tags: { type: 'unhandledRejection' },
+      extra: { promise: String(promise) }
+    });
+  } catch (sentryError) {
+    // Sentry not available, already logged to console
+  }
+
+  // Log to security logger for audit trail
+  try {
+    securityLogger.logSecurityEvent({
+      type: 'unhandled_rejection',
+      severity: 'critical',
+      message: reason instanceof Error ? reason.message : String(reason),
+      stack: reason instanceof Error ? reason.stack : null,
+      timestamp: new Date().toISOString()
+    });
+  } catch (logError) {
+    // Security logger not available
+  }
+});
+
+// Handle uncaught exceptions (synchronous errors that escape try/catch)
+process.on('uncaughtException', (error) => {
+  console.error('='.repeat(60));
+  console.error('💥 UNCAUGHT EXCEPTION - Server may be in unstable state');
+  console.error('='.repeat(60));
+  console.error('Error:', error.message);
+  console.error('Stack:', error.stack);
+  console.error('='.repeat(60));
+
+  // Log to Sentry if available
+  try {
+    const Sentry = require('@sentry/node');
+    Sentry.captureException(error, {
+      tags: { type: 'uncaughtException', fatal: true }
+    });
+  } catch (sentryError) {
+    // Sentry not available
+  }
+
+  // Log to security logger for audit trail
+  try {
+    securityLogger.logSecurityEvent({
+      type: 'uncaught_exception',
+      severity: 'critical',
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+  } catch (logError) {
+    // Security logger not available
+  }
+
+  // For truly fatal errors, give time for logs to flush then exit
+  // In production, a process manager (PM2, Docker, etc.) should restart the server
+  setTimeout(() => {
+    console.error('Exiting due to uncaught exception...');
+    process.exit(1);
+  }, 1000);
+});
+
+// Handle SIGTERM gracefully (container orchestration, load balancer draining)
+process.on('SIGTERM', () => {
+  console.log('');
+  console.log('='.repeat(60));
+  console.log('📴 SIGTERM received - Starting graceful shutdown');
+  console.log('='.repeat(60));
+
+  // Close HTTP server (stop accepting new connections)
+  if (typeof httpServer !== 'undefined' && httpServer.close) {
+    httpServer.close(() => {
+      console.log('✅ HTTP server closed');
+
+      // Close database connections
+      try {
+        const { pool } = require('./lib/db');
+        if (pool && pool.end) {
+          pool.end().then(() => {
+            console.log('✅ Database connections closed');
+            process.exit(0);
+          });
+        } else {
+          process.exit(0);
+        }
+      } catch (err) {
+        console.log('Database pool not available, exiting');
+        process.exit(0);
+      }
+    });
+
+    // Force exit after 30 seconds if graceful shutdown fails
+    setTimeout(() => {
+      console.error('⚠️ Graceful shutdown timeout - forcing exit');
+      process.exit(1);
+    }, 30000);
+  } else {
+    process.exit(0);
+  }
+});
+
+// =============================================================================
 
 // Initialize cache on startup
 let cacheInitialized = false;
@@ -188,6 +308,7 @@ const upload = multer({
 });
 
 // Security middleware (applied first)
+app.use(traceIdMiddleware); // Generate unique trace ID for each request
 app.use(helmet);
 app.use(cors);
 app.use(auditLogger);
@@ -7167,31 +7288,119 @@ app.post('/mcp/cache/clear', authenticateToken, async (req, res) => {
   }
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
+// Enhanced health check endpoint with dependency status
+async function getHealthStatus() {
+  const health = {
     status: 'healthy',
     service: 'unified-backend',
     timestamp: new Date().toISOString(),
     services: ['auth', 'messaging'],
     port: PORT,
     uptime: process.uptime(),
-    memory: process.memoryUsage()
-  });
+    memory: process.memoryUsage(),
+    dependencies: {}
+  };
+
+  // Check database connectivity
+  if (USE_DATABASE) {
+    try {
+      const startTime = Date.now();
+      await query('SELECT 1 as ping');
+      health.dependencies.database = {
+        status: 'healthy',
+        responseTime: Date.now() - startTime,
+        type: 'postgresql'
+      };
+    } catch (dbError) {
+      health.dependencies.database = {
+        status: 'unhealthy',
+        error: dbError.message,
+        type: 'postgresql'
+      };
+      health.status = 'degraded';
+    }
+  } else {
+    health.dependencies.database = {
+      status: 'not_configured',
+      type: 'file-based'
+    };
+  }
+
+  // Check Redis cache connectivity
+  try {
+    if (cacheInitialized && cache.getClient) {
+      const startTime = Date.now();
+      const client = cache.getClient();
+      if (client && client.ping) {
+        await client.ping();
+        health.dependencies.redis = {
+          status: 'healthy',
+          responseTime: Date.now() - startTime
+        };
+      } else {
+        health.dependencies.redis = {
+          status: 'not_available',
+          message: 'Redis client not connected'
+        };
+      }
+    } else {
+      health.dependencies.redis = {
+        status: cacheInitialized ? 'connected' : 'not_initialized'
+      };
+    }
+  } catch (redisError) {
+    health.dependencies.redis = {
+      status: 'unhealthy',
+      error: redisError.message
+    };
+    // Redis is optional, don't degrade status
+  }
+
+  // Check Socket.IO namespaces
+  health.dependencies.websocket = {
+    status: 'healthy',
+    namespaces: {
+      auth: authNamespace ? 'active' : 'inactive',
+      messaging: messagingNamespace ? 'active' : 'inactive',
+      printing: printingNamespace ? 'active' : 'inactive',
+      designBoards: designBoardsNamespace ? 'active' : 'inactive'
+    }
+  };
+
+  return health;
+}
+
+// Health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    const health = await getHealthStatus();
+    const statusCode = health.status === 'healthy' ? 200 : (health.status === 'degraded' ? 200 : 503);
+    res.status(statusCode).json(health);
+  } catch (err) {
+    res.status(503).json({
+      status: 'unhealthy',
+      service: 'unified-backend',
+      timestamp: new Date().toISOString(),
+      error: err.message
+    });
+  }
 });
 
 // Health check endpoint with /api prefix for DigitalOcean App Platform
 // DO ingress prepends /api to health check path
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    service: 'unified-backend',
-    timestamp: new Date().toISOString(),
-    services: ['auth', 'messaging'],
-    port: PORT,
-    uptime: process.uptime(),
-    memory: process.memoryUsage()
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    const health = await getHealthStatus();
+    const statusCode = health.status === 'healthy' ? 200 : (health.status === 'degraded' ? 200 : 503);
+    res.status(statusCode).json(health);
+  } catch (err) {
+    res.status(503).json({
+      status: 'unhealthy',
+      service: 'unified-backend',
+      timestamp: new Date().toISOString(),
+      error: err.message
+    });
+  }
 });
 
 // Debug endpoint to check database tables

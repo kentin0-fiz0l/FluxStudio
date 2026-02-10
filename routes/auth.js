@@ -1043,4 +1043,189 @@ router.post('/apple', async (req, res) => {
   }
 });
 
+// =============================================================================
+// USER SETTINGS & PREFERENCES
+// =============================================================================
+
+/**
+ * GET /api/auth/settings
+ * Get current user's settings and preferences
+ */
+router.get('/settings', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Try to get from database first
+    if (USE_DATABASE && authAdapter) {
+      try {
+        const user = await authAdapter.findUserById(userId);
+        if (user) {
+          // Default settings structure
+          const defaultSettings = {
+            notifications: {
+              push: true,
+              emailDigest: true
+            },
+            appearance: {
+              darkMode: false,
+              language: 'en'
+            },
+            performance: {
+              autoSave: true
+            }
+          };
+
+          // Merge with user preferences
+          const settings = {
+            ...defaultSettings,
+            ...(user.preferences || {})
+          };
+
+          return res.json({
+            success: true,
+            settings
+          });
+        }
+      } catch (dbError) {
+        console.error('Database error fetching settings:', dbError);
+        // Fall through to file-based storage
+      }
+    }
+
+    // Fallback to file-based storage
+    const users = await authHelper.getUsers();
+    const user = users.find(u => u.id === userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const defaultSettings = {
+      notifications: {
+        push: true,
+        emailDigest: true
+      },
+      appearance: {
+        darkMode: false,
+        language: 'en'
+      },
+      performance: {
+        autoSave: true
+      }
+    };
+
+    const settings = {
+      ...defaultSettings,
+      ...(user.preferences || {})
+    };
+
+    res.json({
+      success: true,
+      settings
+    });
+  } catch (error) {
+    console.error('Error fetching user settings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch settings'
+    });
+  }
+});
+
+/**
+ * PUT /api/auth/settings
+ * Update current user's settings and preferences
+ */
+router.put('/settings', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { settings } = req.body;
+
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: 'Settings object is required'
+      });
+    }
+
+    // Validate settings structure
+    const allowedCategories = ['notifications', 'appearance', 'performance'];
+    const validSettings = {};
+
+    for (const [category, values] of Object.entries(settings)) {
+      if (allowedCategories.includes(category) && typeof values === 'object') {
+        validSettings[category] = values;
+      }
+    }
+
+    // Try to update in database first
+    if (USE_DATABASE && authAdapter) {
+      try {
+        // Get current user to merge settings
+        const currentUser = await authAdapter.findUserById(userId);
+        if (currentUser) {
+          const mergedPreferences = {
+            ...(currentUser.preferences || {}),
+            ...validSettings
+          };
+
+          // Update user preferences in database
+          const result = await query(`
+            UPDATE users
+            SET preferences = $1, updated_at = NOW()
+            WHERE id = $2
+            RETURNING id, preferences
+          `, [JSON.stringify(mergedPreferences), userId]);
+
+          if (result.rows.length > 0) {
+            return res.json({
+              success: true,
+              settings: mergedPreferences,
+              message: 'Settings saved successfully'
+            });
+          }
+        }
+      } catch (dbError) {
+        console.error('Database error updating settings:', dbError);
+        // Fall through to file-based storage
+      }
+    }
+
+    // Fallback to file-based storage
+    const users = await authHelper.getUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
+
+    if (userIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Merge with existing preferences
+    users[userIndex].preferences = {
+      ...(users[userIndex].preferences || {}),
+      ...validSettings
+    };
+    users[userIndex].updatedAt = new Date().toISOString();
+
+    await authHelper.saveUsers(users);
+
+    res.json({
+      success: true,
+      settings: users[userIndex].preferences,
+      message: 'Settings saved successfully'
+    });
+  } catch (error) {
+    console.error('Error updating user settings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save settings'
+    });
+  }
+});
+
 module.exports = router;
