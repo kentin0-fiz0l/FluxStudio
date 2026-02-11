@@ -136,33 +136,17 @@ export function useFormationYjs({
   // ============================================================================
 
   useEffect(() => {
-    console.log('[useFormationYjs] Hook called with:', {
-      enabled,
-      formationId,
-      projectId,
-      hasUser: !!user,
-    });
-
-    if (!enabled || !formationId || !projectId) {
-      console.log('[useFormationYjs] Skipping - missing required params:', {
-        enabled,
-        hasFormationId: !!formationId,
-        hasProjectId: !!projectId,
-      });
-      return;
-    }
+    if (!enabled || !formationId || !projectId) return;
 
     const ydoc = new Y.Doc();
     docRef.current = ydoc;
 
     // Get room name
     const roomName = getFormationRoomName(projectId, formationId);
-    console.log('[useFormationYjs] Room name:', roomName);
 
     // Setup WebSocket provider
     const wsUrl = import.meta.env.VITE_COLLAB_URL || 'ws://localhost:4000';
     const token = localStorage.getItem('auth_token') || '';
-    console.log('[useFormationYjs] Connecting to:', wsUrl, 'with token length:', token.length);
 
     const wsProvider = new WebsocketProvider(wsUrl, roomName, ydoc, {
       params: { token },
@@ -175,7 +159,6 @@ export function useFormationYjs({
 
     // Track connection status
     wsProvider.on('status', ({ status }: { status: string }) => {
-      console.log('[useFormationYjs] WebSocket status:', status);
       const connected = status === 'connected';
       setIsConnected(connected);
       onConnectionChange?.(connected);
@@ -187,11 +170,9 @@ export function useFormationYjs({
 
     // Track sync completion
     wsProvider.on('sync', (synced: boolean) => {
-      console.log('[useFormationYjs] Sync event:', synced);
       if (synced) {
         setIsSyncing(false);
         // Sync initial state to React
-        console.log('[useFormationYjs] Calling syncYjsToReact after sync');
         syncYjsToReact(ydoc);
       }
     });
@@ -206,16 +187,8 @@ export function useFormationYjs({
 
     // Handle errors
     wsProvider.on('connection-error', (event: Event) => {
-      console.error('[useFormationYjs] Connection error:', event);
+      console.error('Formation collaboration connection error:', event);
       setError('Failed to connect to collaboration server');
-    });
-
-    wsProvider.on('connection-close', (event: CloseEvent) => {
-      console.error('[useFormationYjs] Connection closed:', {
-        code: event.code,
-        reason: event.reason,
-        wasClean: event.wasClean,
-      });
     });
 
     // Set initial awareness state
@@ -283,18 +256,8 @@ export function useFormationYjs({
     const performersMap = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
     const keyframesArray = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
 
-    console.log('[useFormationYjs] syncYjsToReact called:', {
-      metaSize: meta.size,
-      metaId: meta.get('id'),
-      performersSize: performersMap.size,
-      keyframesLength: keyframesArray.length,
-    });
-
     // Check if document has data
-    if (!meta.get('id')) {
-      console.log('[useFormationYjs] No meta.id, skipping sync');
-      return;
-    }
+    if (!meta.get('id')) return;
 
     // Convert performers
     const performers: Performer[] = [];
