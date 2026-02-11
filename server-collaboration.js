@@ -116,6 +116,25 @@ const updateCounts = new Map(); // roomName -> update count for versioning
  */
 async function createVersionSnapshot(roomName, doc, userId) {
   try {
+    // Check if this is a formation room
+    const formationMatch = roomName.match(/^project-([^-]+)-formation-(.+)$/);
+    if (formationMatch) {
+      // For formations, just save the current snapshot (versioning can be added later)
+      const formationId = formationMatch[2];
+      const snapshot = Y.encodeStateAsUpdate(doc);
+      const buffer = Buffer.from(snapshot);
+
+      await db.query(
+        `UPDATE formations
+         SET yjs_snapshot = $1, last_yjs_sync_at = NOW(), updated_at = NOW()
+         WHERE id = $2`,
+        [buffer, formationId]
+      );
+
+      console.log(`📸 Saved formation snapshot: ${formationId} (${buffer.length} bytes)`);
+      return;
+    }
+
     // Get document ID from room_id
     const result = await db.query(
       'SELECT id FROM documents WHERE room_id = $1',
@@ -163,6 +182,21 @@ async function saveDocument(roomName, doc) {
     const snapshot = Y.encodeStateAsUpdate(doc);
     const buffer = Buffer.from(snapshot);
 
+    // Check if this is a formation room
+    const formationMatch = roomName.match(/^project-([^-]+)-formation-(.+)$/);
+    if (formationMatch) {
+      const formationId = formationMatch[2];
+      await db.query(
+        `UPDATE formations
+         SET yjs_snapshot = $1, last_yjs_sync_at = NOW(), updated_at = NOW()
+         WHERE id = $2`,
+        [buffer, formationId]
+      );
+      console.log(`💾 Saved formation for room: ${roomName} (${buffer.length} bytes)`);
+      return true;
+    }
+
+    // Default: document room
     await db.query(
       `INSERT INTO documents (room_id, snapshot, updated_at)
        VALUES ($1, $2, NOW())
@@ -184,6 +218,27 @@ async function saveDocument(roomName, doc) {
  */
 async function loadDocument(roomName, doc) {
   try {
+    // Check if this is a formation room
+    const formationMatch = roomName.match(/^project-([^-]+)-formation-(.+)$/);
+    if (formationMatch) {
+      const formationId = formationMatch[2];
+      const result = await db.query(
+        'SELECT yjs_snapshot FROM formations WHERE id = $1 AND yjs_snapshot IS NOT NULL',
+        [formationId]
+      );
+
+      if (result.rows.length > 0 && result.rows[0].yjs_snapshot) {
+        const snapshot = new Uint8Array(result.rows[0].yjs_snapshot);
+        Y.applyUpdate(doc, snapshot);
+        console.log(`📂 Loaded formation for room: ${roomName} (${snapshot.length} bytes)`);
+        return true;
+      }
+
+      console.log(`📄 No Yjs snapshot for formation: ${roomName}`);
+      return false;
+    }
+
+    // Default: document room
     const result = await db.query(
       'SELECT snapshot FROM documents WHERE room_id = $1',
       [roomName]
@@ -270,8 +325,13 @@ wss.on('connection', async (ws, req) => {
     }
 
     // Parse room ID to extract project ID
-    // Expected format: project-{projectId}-doc-{docId}
-    const match = roomName.match(/^project-([^-]+)-doc-/);
+    // Expected formats:
+    //   - project-{projectId}-doc-{docId}      (documents)
+    //   - project-{projectId}-formation-{formationId}  (formations)
+    const docMatch = roomName.match(/^project-([^-]+)-doc-/);
+    const formationMatch = roomName.match(/^project-([^-]+)-formation-/);
+    const match = docMatch || formationMatch;
+
     if (!match) {
       console.error(`❌ Invalid room format: ${roomName}`);
       ws.close(4400, 'Bad Request: Invalid room name format');
@@ -280,6 +340,7 @@ wss.on('connection', async (ws, req) => {
     }
 
     const projectId = match[1];
+    const roomType = docMatch ? 'document' : 'formation';
 
     // Check project access
     const role = await checkProjectAccess(user.id, projectId);
@@ -296,7 +357,7 @@ wss.on('connection', async (ws, req) => {
     ws.userRole = role;
     ws.projectId = projectId;
 
-    console.log(`✅ Authenticated: ${ws.userName} (${role}) -> room: ${roomName}`);
+    console.log(`✅ Authenticated: ${ws.userName} (${role}) -> ${roomType}: ${roomName}`);
     console.log(`   Total connections: ${stats.connections}`);
     console.log(`   Total rooms: ${stats.rooms.size + 1}`);
 

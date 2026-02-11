@@ -3,6 +3,7 @@
  *
  * Main canvas for creating and editing dance/marching formations.
  * Includes grid-based positioning, performer drag-drop, and keyframe animation.
+ * Supports real-time collaboration with Yjs CRDT synchronization.
  */
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
@@ -33,6 +34,8 @@ import { ExportDialog } from './ExportDialog';
 import { AudioUpload } from './AudioUpload';
 import { PathOverlay } from './PathOverlay';
 import { TemplatePicker } from './TemplatePicker';
+import { FormationCursorOverlay, SelectionRingsOverlay } from './FormationCursorOverlay';
+import { FormationPresencePanel } from './FormationPresencePanel';
 import { ApplyTemplateOptions } from '../../services/formationTemplates/types';
 import {
   formationService,
@@ -43,6 +46,10 @@ import {
   AudioTrack,
 } from '../../services/formationService';
 import { useFormation } from '../../hooks/useFormations';
+import { useFormationYjs } from '../../hooks/useFormationYjs';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from '../../lib/toast';
+import { getUserColor } from '../../services/formation/yjs/formationYjsTypes';
 import * as formationsApi from '../../services/formationsApi';
 
 // ============================================================================
@@ -54,6 +61,8 @@ interface FormationCanvasProps {
   projectId: string;
   onSave?: (formation: Formation) => void;
   onClose?: () => void;
+  /** Enable real-time collaboration (default: true when formationId exists) */
+  collaborativeMode?: boolean;
 }
 
 type Tool = 'select' | 'pan' | 'add';
@@ -108,18 +117,56 @@ export function FormationCanvas({
   projectId,
   onSave,
   onClose: _onClose,
+  collaborativeMode,
 }: FormationCanvasProps) {
   const { t } = useTranslation('common');
+  const { user } = useAuth();
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // API hooks for persistence
+  // Determine if collaboration should be enabled
+  // Default to true when we have an existing formation
+  const isCollaborativeEnabled = collaborativeMode ?? !!formationId;
+
+  // API hooks for persistence (used when not in collaborative mode)
   const {
     formation: apiFormation,
     loading: apiLoading,
     error: apiError,
     save: apiSave,
     saving: apiSaving
-  } = useFormation({ formationId, enabled: !!formationId });
+  } = useFormation({ formationId, enabled: !!formationId && !isCollaborativeEnabled });
+
+  // Real-time collaboration hook (used when in collaborative mode)
+  const collab = useFormationYjs({
+    projectId,
+    formationId: formationId || '',
+    enabled: isCollaborativeEnabled && !!formationId,
+    onUpdate: (updatedFormation) => {
+      // Sync collaborative state to local state
+      if (isCollaborativeEnabled) {
+        setFormation(updatedFormation);
+        // Update current positions from the selected keyframe
+        const keyframe = updatedFormation.keyframes.find((kf) => kf.id === selectedKeyframeId);
+        if (keyframe) {
+          setCurrentPositions(new Map(keyframe.positions));
+        }
+      }
+    },
+  });
+
+  // Current user info for presence
+  const currentUser = useMemo(() => {
+    if (!user) return null;
+    return {
+      id: user.id,
+      name: user.name || user.email || 'Anonymous',
+      color: getUserColor(user.id),
+      avatar: user.avatar,
+    };
+  }, [user]);
+
+  // Track dragging state for collaboration (used by callbacks)
+  const [_draggingPerformerId, setDraggingPerformerId] = useState<string | null>(null);
 
   // Calculate initial data ONCE to avoid creating multiple formations
   // This must be called before any useState to ensure consistent initialization
@@ -250,6 +297,16 @@ export function FormationCanvas({
     const color = defaultColors[index % defaultColors.length];
     const initialPosition = { x: 50, y: 50, rotation: 0 };
 
+    // In collaborative mode, use Yjs mutations
+    if (isCollaborativeEnabled && collab.isConnected) {
+      collab.addPerformer(
+        { name: `Performer ${index + 1}`, label, color },
+        initialPosition
+      );
+      // State will be updated via onUpdate callback
+      return;
+    }
+
     // Try to add via service first (for formations registered with service)
     const performer = formationService.addPerformer(
       formation.id,
@@ -314,16 +371,23 @@ export function FormationCanvas({
         keyframes: updatedKeyframes,
       });
     }
-  }, [formation, selectedKeyframeId]);
+  }, [formation, selectedKeyframeId, isCollaborativeEnabled, collab]);
 
   const handleRemovePerformer = useCallback((performerId: string) => {
     if (!formation) return;
 
-    formationService.removePerformer(formation.id, performerId);
-    setFormation({
-      ...formation,
-      performers: formation.performers.filter((p) => p.id !== performerId),
-    });
+    // In collaborative mode, use Yjs mutations
+    if (isCollaborativeEnabled && collab.isConnected) {
+      collab.removePerformer(performerId);
+      // State will be updated via onUpdate callback
+    } else {
+      formationService.removePerformer(formation.id, performerId);
+      setFormation({
+        ...formation,
+        performers: formation.performers.filter((p) => p.id !== performerId),
+      });
+    }
+
     setSelectedPerformerIds((prev) => {
       const next = new Set(prev);
       next.delete(performerId);
@@ -334,7 +398,7 @@ export function FormationCanvas({
       next.delete(performerId);
       return next;
     });
-  }, [formation]);
+  }, [formation, isCollaborativeEnabled, collab]);
 
   const handleSelectPerformer = useCallback((performerId: string, multiSelect: boolean) => {
     setSelectedPerformerIds((prev) => {
@@ -344,16 +408,55 @@ export function FormationCanvas({
       } else {
         next.add(performerId);
       }
+
+      // Broadcast selection to collaborators
+      if (isCollaborativeEnabled && collab.isConnected) {
+        collab.setSelectedPerformers(Array.from(next));
+      }
+
       return next;
     });
-  }, []);
+  }, [isCollaborativeEnabled, collab]);
 
   const handleMovePerformer = useCallback((performerId: string, position: Position) => {
     if (!formation || playbackState.isPlaying) return;
 
-    formationService.updatePosition(formation.id, selectedKeyframeId, performerId, position);
+    // In collaborative mode, use Yjs mutations
+    if (isCollaborativeEnabled && collab.isConnected) {
+      collab.updatePosition(selectedKeyframeId, performerId, position);
+    } else {
+      formationService.updatePosition(formation.id, selectedKeyframeId, performerId, position);
+    }
     setCurrentPositions((prev) => new Map(prev).set(performerId, position));
-  }, [formation, selectedKeyframeId, playbackState.isPlaying]);
+  }, [formation, selectedKeyframeId, playbackState.isPlaying, isCollaborativeEnabled, collab]);
+
+  // Handle drag start with conflict detection
+  const handleDragStart = useCallback((performerId: string): boolean => {
+    if (!isCollaborativeEnabled || !collab.isConnected) {
+      setDraggingPerformerId(performerId);
+      return true;
+    }
+
+    // Check if another user is dragging this performer
+    const { dragging, by } = collab.isPerformerBeingDragged(performerId);
+    if (dragging && by) {
+      toast.warning(`${by.user.name} is currently moving this performer`);
+      return false;
+    }
+
+    // Set ourselves as dragging
+    collab.setDraggingPerformer(performerId);
+    setDraggingPerformerId(performerId);
+    return true;
+  }, [isCollaborativeEnabled, collab]);
+
+  // Handle drag end
+  const handleDragEnd = useCallback(() => {
+    if (isCollaborativeEnabled && collab.isConnected) {
+      collab.setDraggingPerformer(null);
+    }
+    setDraggingPerformerId(null);
+  }, [isCollaborativeEnabled, collab]);
 
   const handleRotatePerformer = useCallback((performerId: string, rotation: number) => {
     if (!formation || playbackState.isPlaying) return;
@@ -380,6 +483,13 @@ export function FormationCanvas({
   const handleKeyframeAdd = useCallback((timestamp: number) => {
     if (!formation) return;
 
+    // In collaborative mode, use Yjs mutations
+    if (isCollaborativeEnabled && collab.isConnected) {
+      const keyframe = collab.addKeyframe(timestamp, new Map(currentPositions));
+      setSelectedKeyframeId(keyframe.id);
+      return;
+    }
+
     // Copy current positions to new keyframe
     const keyframe = formationService.addKeyframe(formation.id, timestamp, new Map(currentPositions));
     if (keyframe) {
@@ -389,23 +499,28 @@ export function FormationCanvas({
       });
       setSelectedKeyframeId(keyframe.id);
     }
-  }, [formation, currentPositions]);
+  }, [formation, currentPositions, isCollaborativeEnabled, collab]);
 
   const handleKeyframeRemove = useCallback((keyframeId: string) => {
     if (!formation) return;
 
-    formationService.removeKeyframe(formation.id, keyframeId);
-    setFormation({
-      ...formation,
-      keyframes: formation.keyframes.filter((kf) => kf.id !== keyframeId),
-    });
+    // In collaborative mode, use Yjs mutations
+    if (isCollaborativeEnabled && collab.isConnected) {
+      collab.removeKeyframe(keyframeId);
+    } else {
+      formationService.removeKeyframe(formation.id, keyframeId);
+      setFormation({
+        ...formation,
+        keyframes: formation.keyframes.filter((kf) => kf.id !== keyframeId),
+      });
+    }
 
     // Select first keyframe if current was deleted
     if (selectedKeyframeId === keyframeId && formation.keyframes.length > 1) {
       const remaining = formation.keyframes.filter((kf) => kf.id !== keyframeId);
       setSelectedKeyframeId(remaining[0].id);
     }
-  }, [formation, selectedKeyframeId]);
+  }, [formation, selectedKeyframeId, isCollaborativeEnabled, collab]);
 
   const handleKeyframeMove = useCallback((keyframeId: string, timestamp: number) => {
     if (!formation) return;
@@ -420,6 +535,25 @@ export function FormationCanvas({
       });
     }
   }, [formation]);
+
+  // Canvas mouse move handler for cursor broadcasting
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!canvasRef.current || !isCollaborativeEnabled || !collab.isConnected) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    // Normalize to 0-100 range
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    collab.updateCursor(x, y);
+  }, [isCollaborativeEnabled, collab]);
+
+  // Canvas mouse leave handler
+  const handleCanvasMouseLeave = useCallback(() => {
+    if (isCollaborativeEnabled && collab.isConnected) {
+      collab.clearCursor();
+    }
+  }, [isCollaborativeEnabled, collab]);
 
   // Canvas handlers
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
@@ -549,8 +683,13 @@ export function FormationCanvas({
   const handleAudioUpload = useCallback(async (audioTrack: AudioTrack) => {
     if (!formation) return;
 
-    // Update local state
-    setFormation({ ...formation, audioTrack });
+    // In collaborative mode, use Yjs mutations
+    if (isCollaborativeEnabled && collab.isConnected) {
+      collab.setAudioTrack(audioTrack);
+    } else {
+      // Update local state
+      setFormation({ ...formation, audioTrack });
+    }
 
     // Update duration based on audio if it's longer than current formation duration
     if (audioTrack.duration > playbackState.duration) {
@@ -558,15 +697,21 @@ export function FormationCanvas({
     }
 
     setShowAudioPanel(false);
-  }, [formation, playbackState.duration]);
+  }, [formation, playbackState.duration, isCollaborativeEnabled, collab]);
 
   const handleAudioRemove = useCallback(async () => {
     if (!formation) return;
 
-    // Update local state
-    setFormation({ ...formation, audioTrack: undefined });
+    // In collaborative mode, use Yjs mutations
+    if (isCollaborativeEnabled && collab.isConnected) {
+      collab.setAudioTrack(null);
+    } else {
+      // Update local state
+      setFormation({ ...formation, audioTrack: undefined });
+    }
+
     setShowAudioPanel(false);
-  }, [formation]);
+  }, [formation, isCollaborativeEnabled, collab]);
 
   // Template application handler
   const handleApplyTemplate = useCallback((options: Omit<ApplyTemplateOptions, 'formationId'>) => {
@@ -742,14 +887,30 @@ export function FormationCanvas({
           </button>
         </div>
 
-        {/* Center: Formation name */}
-        <div className="flex items-center gap-2">
+        {/* Center: Formation name + Collaboration status */}
+        <div className="flex items-center gap-4">
           <input
             type="text"
             value={formation.name}
-            onChange={(e) => setFormation({ ...formation, name: e.target.value })}
+            onChange={(e) => {
+              const newName = e.target.value;
+              if (isCollaborativeEnabled && collab.isConnected) {
+                collab.updateMeta({ name: newName });
+              }
+              setFormation({ ...formation, name: newName });
+            }}
             className="px-3 py-1 text-center font-medium bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-blue-500 outline-none"
           />
+
+          {/* Collaboration presence panel */}
+          {isCollaborativeEnabled && (
+            <FormationPresencePanel
+              collaborators={collab.collaborators}
+              isConnected={collab.isConnected}
+              isSyncing={collab.isSyncing}
+              currentUser={currentUser || undefined}
+            />
+          )}
         </div>
 
         {/* Right: Actions */}
@@ -837,6 +998,8 @@ export function FormationCanvas({
               cursor: activeTool === 'add' ? 'crosshair' : activeTool === 'pan' ? 'grab' : 'default',
             }}
             onClick={handleCanvasClick}
+            onMouseMove={handleCanvasMouseMove}
+            onMouseLeave={handleCanvasMouseLeave}
           >
             {/* Grid */}
             {showGrid && (
@@ -876,10 +1039,25 @@ export function FormationCanvas({
               />
             )}
 
+            {/* Collaborative selection rings from other users */}
+            {isCollaborativeEnabled && collab.collaborators.length > 0 && (
+              <SelectionRingsOverlay
+                collaborators={collab.collaborators}
+                performerPositions={currentPositions}
+                canvasWidth={formation.stageWidth * 20 * zoom}
+                canvasHeight={formation.stageHeight * 20 * zoom}
+              />
+            )}
+
             {/* Performers */}
             {formation.performers.map((performer) => {
               const position = currentPositions.get(performer.id);
               if (!position) return null;
+
+              // Check if another user is dragging this performer
+              const { dragging: isBeingDragged, by: draggedBy } = isCollaborativeEnabled
+                ? collab.isPerformerBeingDragged(performer.id)
+                : { dragging: false, by: undefined };
 
               return (
                 <PerformerMarker
@@ -887,16 +1065,29 @@ export function FormationCanvas({
                   performer={performer}
                   position={position}
                   isSelected={selectedPerformerIds.has(performer.id)}
-                  isLocked={playbackState.isPlaying}
+                  isLocked={playbackState.isPlaying || isBeingDragged}
                   showLabel={showLabels}
                   showRotation={showRotation && selectedPerformerIds.has(performer.id)}
                   scale={zoom}
                   onSelect={handleSelectPerformer}
                   onMove={handleMovePerformer}
                   onRotate={handleRotatePerformer}
+                  onDragStart={() => handleDragStart(performer.id)}
+                  onDragEnd={handleDragEnd}
+                  lockedByUser={draggedBy?.user.name}
                 />
               );
             })}
+
+            {/* Remote cursors overlay */}
+            {isCollaborativeEnabled && collab.collaborators.length > 0 && (
+              <FormationCursorOverlay
+                collaborators={collab.collaborators}
+                canvasWidth={formation.stageWidth * 20 * zoom}
+                canvasHeight={formation.stageHeight * 20 * zoom}
+                zoom={zoom}
+              />
+            )}
           </div>
         </div>
 

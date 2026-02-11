@@ -30,11 +30,13 @@ export interface Performer {
   group?: string; // Group name for filtering
 }
 
+export type TransitionType = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
+
 export interface Keyframe {
   id: string;
   timestamp: number; // Time in milliseconds
   positions: Map<string, Position>; // performerId -> position
-  transition?: 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
+  transition?: TransitionType;
   duration?: number; // Duration to reach this keyframe from previous
 }
 

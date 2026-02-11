@@ -25,6 +25,12 @@ interface PerformerMarkerProps {
   onMove?: (performerId: string, position: Position) => void;
   onRotate?: (performerId: string, rotation: number) => void;
   onContextMenu?: (performerId: string, event: React.MouseEvent) => void;
+  /** Callback when drag starts - return false to prevent drag (for collaboration conflict) */
+  onDragStart?: () => boolean;
+  /** Callback when drag ends */
+  onDragEnd?: () => void;
+  /** Name of user who has locked this performer (for collaboration) */
+  lockedByUser?: string;
 }
 
 // ============================================================================
@@ -43,6 +49,9 @@ export function PerformerMarker({
   onMove,
   onRotate,
   onContextMenu,
+  onDragStart,
+  onDragEnd,
+  lockedByUser,
 }: PerformerMarkerProps) {
   const { t } = useTranslation('common');
   const markerRef = useRef<HTMLDivElement>(null);
@@ -69,6 +78,12 @@ export function PerformerMarker({
       // Select on click
       onSelect?.(performer.id, e.shiftKey || e.metaKey || e.ctrlKey);
 
+      // Check if drag is allowed (for collaboration conflict prevention)
+      if (onDragStart) {
+        const allowed = onDragStart();
+        if (!allowed) return;
+      }
+
       // Start drag
       setIsDragging(true);
       dragStartRef.current = {
@@ -78,7 +93,7 @@ export function PerformerMarker({
         posY: position.y,
       };
     },
-    [isLocked, onSelect, performer.id, position.x, position.y]
+    [isLocked, onSelect, onDragStart, performer.id, position.x, position.y]
   );
 
   // Handle mouse move during drag
@@ -102,6 +117,7 @@ export function PerformerMarker({
 
     const handleMouseUp = () => {
       setIsDragging(false);
+      onDragEnd?.();
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -111,7 +127,7 @@ export function PerformerMarker({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, performer.id, position.rotation, onMove]);
+  }, [isDragging, performer.id, position.rotation, onMove, onDragEnd]);
 
   // Handle rotation drag
   const handleRotateMouseDown = useCallback(
@@ -263,6 +279,16 @@ export function PerformerMarker({
           style={{ fontSize: 8 }}
         >
           {performer.group}
+        </div>
+      )}
+
+      {/* Locked by User Indicator */}
+      {lockedByUser && (
+        <div
+          className="absolute left-1/2 transform -translate-x-1/2 -bottom-8 px-2 py-1 bg-amber-500 text-white text-xs rounded whitespace-nowrap shadow-md"
+          style={{ fontSize: 10 }}
+        >
+          {t('formation.lockedBy', 'Editing: {{user}}', { user: lockedByUser })}
         </div>
       )}
     </div>
