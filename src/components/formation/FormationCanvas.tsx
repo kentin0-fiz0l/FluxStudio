@@ -250,11 +250,22 @@ export function FormationCanvas({
     );
 
     if (performer) {
-      setFormation({ ...formation, performers: [...formation.performers, performer] });
-      // Update positions with new performer
-      const keyframe = formation.keyframes.find((kf) => kf.id === selectedKeyframeId);
-      if (keyframe) {
-        setCurrentPositions(new Map(keyframe.positions));
+      // Get updated formation from service (includes the new position in keyframe)
+      const updatedFormation = formationService.getFormation(formation.id);
+      if (updatedFormation) {
+        // Create proper copies with Maps for positions
+        setFormation({
+          ...updatedFormation,
+          keyframes: updatedFormation.keyframes.map(kf => ({
+            ...kf,
+            positions: new Map(kf.positions)
+          }))
+        });
+        // Update current positions from the service's keyframe
+        const keyframe = updatedFormation.keyframes.find((kf) => kf.id === selectedKeyframeId);
+        if (keyframe) {
+          setCurrentPositions(new Map(keyframe.positions));
+        }
       }
     }
   }, [formation, selectedKeyframeId]);
@@ -384,10 +395,20 @@ export function FormationCanvas({
     );
 
     if (performer) {
-      setFormation({ ...formation, performers: [...formation.performers, performer] });
-      const keyframe = formation.keyframes.find((kf) => kf.id === selectedKeyframeId);
-      if (keyframe) {
-        setCurrentPositions(new Map(keyframe.positions));
+      // Get updated formation from service (includes the new position in keyframe)
+      const updatedFormation = formationService.getFormation(formation.id);
+      if (updatedFormation) {
+        setFormation({
+          ...updatedFormation,
+          keyframes: updatedFormation.keyframes.map(kf => ({
+            ...kf,
+            positions: new Map(kf.positions)
+          }))
+        });
+        const keyframe = updatedFormation.keyframes.find((kf) => kf.id === selectedKeyframeId);
+        if (keyframe) {
+          setCurrentPositions(new Map(keyframe.positions));
+        }
       }
     }
   }, [activeTool, formation, selectedKeyframeId]);
