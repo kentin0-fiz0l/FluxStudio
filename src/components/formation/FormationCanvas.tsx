@@ -514,7 +514,16 @@ export function FormationCanvas({
       // Refresh formation state from service
       const updatedFormation = formationService.getFormation(formation.id);
       if (updatedFormation) {
-        setFormation(updatedFormation);
+        // Create new object reference to trigger React re-render
+        // Deep copy keyframes with new Map instances for positions
+        setFormation({
+          ...updatedFormation,
+          performers: [...updatedFormation.performers],
+          keyframes: updatedFormation.keyframes.map(kf => ({
+            ...kf,
+            positions: new Map(kf.positions)
+          }))
+        });
 
         // Select the new keyframe if one was created
         if (result.keyframesCreated > 0 && updatedFormation.keyframes.length > 0) {
