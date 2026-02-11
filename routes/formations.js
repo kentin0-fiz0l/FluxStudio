@@ -71,7 +71,7 @@ router.post('/projects/:projectId/formations', authenticateToken, async (req, re
  * GET /api/formations/:formationId
  * Get a single formation with all data (performers, keyframes, positions)
  */
-router.get('/:formationId', authenticateToken, async (req, res) => {
+router.get('/formations/:formationId', authenticateToken, async (req, res) => {
   try {
     const { formationId } = req.params;
 
@@ -91,7 +91,7 @@ router.get('/:formationId', authenticateToken, async (req, res) => {
  * PATCH /api/formations/:formationId
  * Update formation metadata
  */
-router.patch('/:formationId', authenticateToken, async (req, res) => {
+router.patch('/formations/:formationId', authenticateToken, async (req, res) => {
   try {
     const { formationId } = req.params;
     const { name, description, stageWidth, stageHeight, gridSize, isArchived, audioTrack } = req.body;
@@ -122,7 +122,7 @@ router.patch('/:formationId', authenticateToken, async (req, res) => {
  * DELETE /api/formations/:formationId
  * Delete a formation
  */
-router.delete('/:formationId', authenticateToken, async (req, res) => {
+router.delete('/formations/:formationId', authenticateToken, async (req, res) => {
   try {
     const { formationId } = req.params;
 
@@ -144,7 +144,7 @@ router.delete('/:formationId', authenticateToken, async (req, res) => {
  * PUT /api/formations/:formationId/save
  * Bulk save formation data (performers, keyframes, positions)
  */
-router.put('/:formationId/save', authenticateToken, async (req, res) => {
+router.put('/formations/:formationId/save', authenticateToken, async (req, res) => {
   try {
     const { formationId } = req.params;
     const { name, performers, keyframes } = req.body;
@@ -173,7 +173,7 @@ router.put('/:formationId/save', authenticateToken, async (req, res) => {
  * POST /api/formations/:formationId/audio
  * Upload audio track for a formation
  */
-router.post('/:formationId/audio', authenticateToken, async (req, res) => {
+router.post('/formations/:formationId/audio', authenticateToken, async (req, res) => {
   try {
     const { formationId } = req.params;
     const { id, url, filename, duration } = req.body;
@@ -207,7 +207,7 @@ router.post('/:formationId/audio', authenticateToken, async (req, res) => {
  * DELETE /api/formations/:formationId/audio
  * Remove audio track from a formation
  */
-router.delete('/:formationId/audio', authenticateToken, async (req, res) => {
+router.delete('/formations/:formationId/audio', authenticateToken, async (req, res) => {
   try {
     const { formationId } = req.params;
 
@@ -231,7 +231,7 @@ router.delete('/:formationId/audio', authenticateToken, async (req, res) => {
  * POST /api/formations/:formationId/performers
  * Add a performer to a formation
  */
-router.post('/:formationId/performers', authenticateToken, async (req, res) => {
+router.post('/formations/:formationId/performers', authenticateToken, async (req, res) => {
   try {
     const { formationId } = req.params;
     const { name, label, color, groupName } = req.body;
@@ -264,7 +264,7 @@ router.post('/:formationId/performers', authenticateToken, async (req, res) => {
  * PATCH /api/formations/:formationId/performers/:performerId
  * Update a performer
  */
-router.patch('/:formationId/performers/:performerId', authenticateToken, async (req, res) => {
+router.patch('/formations/:formationId/performers/:performerId', authenticateToken, async (req, res) => {
   try {
     const { performerId } = req.params;
     const { name, label, color, groupName } = req.body;
@@ -291,7 +291,7 @@ router.patch('/:formationId/performers/:performerId', authenticateToken, async (
  * DELETE /api/formations/:formationId/performers/:performerId
  * Delete a performer
  */
-router.delete('/:formationId/performers/:performerId', authenticateToken, async (req, res) => {
+router.delete('/formations/:formationId/performers/:performerId', authenticateToken, async (req, res) => {
   try {
     const { performerId } = req.params;
 
@@ -310,7 +310,7 @@ router.delete('/:formationId/performers/:performerId', authenticateToken, async 
  * POST /api/formations/:formationId/keyframes
  * Add a keyframe to a formation
  */
-router.post('/:formationId/keyframes', authenticateToken, async (req, res) => {
+router.post('/formations/:formationId/keyframes', authenticateToken, async (req, res) => {
   try {
     const { formationId } = req.params;
     const { timestampMs, transition, duration } = req.body;
@@ -338,7 +338,7 @@ router.post('/:formationId/keyframes', authenticateToken, async (req, res) => {
  * PATCH /api/formations/:formationId/keyframes/:keyframeId
  * Update a keyframe
  */
-router.patch('/:formationId/keyframes/:keyframeId', authenticateToken, async (req, res) => {
+router.patch('/formations/:formationId/keyframes/:keyframeId', authenticateToken, async (req, res) => {
   try {
     const { keyframeId } = req.params;
     const { timestampMs, transition, duration } = req.body;
@@ -364,7 +364,7 @@ router.patch('/:formationId/keyframes/:keyframeId', authenticateToken, async (re
  * DELETE /api/formations/:formationId/keyframes/:keyframeId
  * Delete a keyframe
  */
-router.delete('/:formationId/keyframes/:keyframeId', authenticateToken, async (req, res) => {
+router.delete('/formations/:formationId/keyframes/:keyframeId', authenticateToken, async (req, res) => {
   try {
     const { keyframeId } = req.params;
 
@@ -383,7 +383,7 @@ router.delete('/:formationId/keyframes/:keyframeId', authenticateToken, async (r
  * PUT /api/formations/:formationId/keyframes/:keyframeId/positions/:performerId
  * Set performer position at a keyframe
  */
-router.put('/:formationId/keyframes/:keyframeId/positions/:performerId', authenticateToken, async (req, res) => {
+router.put('/formations/:formationId/keyframes/:keyframeId/positions/:performerId', authenticateToken, async (req, res) => {
   try {
     const { keyframeId, performerId } = req.params;
     const { x, y, rotation } = req.body;
