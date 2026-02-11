@@ -133,7 +133,7 @@ export function Support() {
       <DashboardLayout
         user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
         breadcrumbs={[
-          { label: 'Help Center', href: '/help' },
+          { label: 'Help Center', path: '/help' },
           { label: 'Contact Support' },
         ]}
         onLogout={logout}
@@ -183,7 +183,7 @@ export function Support() {
     <DashboardLayout
       user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
       breadcrumbs={[
-        { label: 'Help Center', href: '/help' },
+        { label: 'Help Center', path: '/help' },
         { label: 'Contact Support' },
       ]}
       onLogout={logout}

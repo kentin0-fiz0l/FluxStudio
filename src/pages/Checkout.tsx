@@ -13,7 +13,7 @@ export function Checkout() {
   const { user, token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [, setSelectedPlan] = useState<string | null>(null);
 
   // Get plan from URL params if present
   const planFromUrl = searchParams.get('plan');

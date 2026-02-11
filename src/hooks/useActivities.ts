@@ -305,15 +305,20 @@ export const useActivityStats = (projectId: string | undefined) => {
       byType[activity.type] = (byType[activity.type] || 0) + 1;
 
       // Count by user
-      if (!byUser[activity.userId]) {
-        byUser[activity.userId] = { name: activity.userName, count: 0 };
+      const userId = activity.userId || 'unknown';
+      const userName = activity.userName || 'Unknown User';
+      if (!byUser[userId]) {
+        byUser[userId] = { name: userName, count: 0 };
       }
-      byUser[activity.userId].count++;
+      byUser[userId].count++;
 
       // Count by time range
-      const timestamp = new Date(activity.timestamp);
-      if (timestamp >= oneDayAgo) last24h++;
-      if (timestamp >= sevenDaysAgo) last7d++;
+      const timestampStr = activity.timestamp || activity.createdAt;
+      if (timestampStr) {
+        const timestamp = new Date(timestampStr);
+        if (timestamp >= oneDayAgo) last24h++;
+        if (timestamp >= sevenDaysAgo) last7d++;
+      }
     });
 
     return {

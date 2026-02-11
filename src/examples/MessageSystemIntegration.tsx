@@ -296,7 +296,7 @@ export function MessageSystemIntegration() {
       // Analyze design with AI
       const analysis = await aiDesignFeedbackService.analyzeDesign(fileUrl, {
         projectType: 'website',
-        brandGuidelines: true
+        brandGuidelines: 'Apply brand guidelines for consistency'
       });
 
       console.log('Design Analysis:', {

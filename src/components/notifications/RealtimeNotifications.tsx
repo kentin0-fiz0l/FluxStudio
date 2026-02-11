@@ -26,7 +26,7 @@ export function RealtimeNotifications({
   soundEnabled = true,
 }: RealtimeNotificationsProps) {
   const { user } = useAuth();
-  const { dispatch, addNotification } = useNotifications();
+  const { dispatch } = useNotifications();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isConnectedRef = useRef(false);
 

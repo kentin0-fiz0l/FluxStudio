@@ -478,7 +478,26 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     offset: (page - 1) * itemsPerPage,
   });
 
-  const activities = activitiesData?.activities || [];
+  // Transform and filter activities from API to match component's expected type
+  const activities: Activity[] = (activitiesData?.activities || [])
+    .filter((a): a is typeof a & { timestamp: string; userId: string; userName: string; entityType: string } =>
+      !!(a.timestamp || a.createdAt) && !!a.userId && !!a.userName
+    )
+    .map((a) => ({
+      id: a.id,
+      projectId: a.projectId,
+      type: a.type as ActivityType,
+      userId: a.userId!,
+      userName: a.userName!,
+      userEmail: a.userEmail || '',
+      userAvatar: a.userAvatar,
+      entityType: (a.entityType || 'task') as Activity['entityType'],
+      entityId: a.entityId || a.id,
+      entityTitle: a.entityTitle,
+      action: a.action,
+      metadata: a.metadata,
+      timestamp: a.timestamp || a.createdAt || new Date().toISOString(),
+    }));
   const hasMore = activitiesData?.hasMore || false;
   const totalActivities = activitiesData?.total || 0;
 

@@ -103,19 +103,6 @@ function Settings() {
       return;
     }
 
-    const currentSettings: UserSettings = {
-      notifications: {
-        push: notifications,
-        emailDigest: emailDigest
-      },
-      appearance: {
-        darkMode: darkMode
-      },
-      performance: {
-        autoSave: autoSave
-      }
-    };
-
     const hasChanged =
       notifications !== (originalSettings.notifications?.push ?? true) ||
       emailDigest !== (originalSettings.notifications?.emailDigest ?? true) ||
@@ -376,7 +363,7 @@ function Settings() {
           <Button
             onClick={handleSave}
             disabled={isSaving || isLoading || !hasChanges}
-            variant={hasChanges ? 'default' : 'outline'}
+            variant={hasChanges ? 'primary' : 'outline'}
           >
             {isSaving ? (
               <>

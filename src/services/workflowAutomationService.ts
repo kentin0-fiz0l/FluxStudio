@@ -563,27 +563,27 @@ class WorkflowAutomationService {
   ): Promise<void> {
     switch (action.type) {
       case 'notification':
-        await this.sendNotification(action.config, context);
+        await this.sendNotification(action.config as NotificationConfig, context);
         break;
 
       case 'auto_reply':
-        await this.sendAutoReply(action.config, context);
+        await this.sendAutoReply(action.config as AutoReplyConfig, context);
         break;
 
       case 'task_creation':
-        await this.createTask(action.config, message, context);
+        await this.createTask(action.config as TaskCreationConfig, message, context);
         break;
 
       case 'reminder':
-        await this.scheduleReminder(action.config, context);
+        await this.scheduleReminder(action.config as ReminderConfig, context);
         break;
 
       case 'status_update':
-        await this.updateStatus(action.config, context);
+        await this.updateStatus(action.config as StatusUpdateConfig, context);
         break;
 
       case 'escalation':
-        await this.escalateIssue(action.config, message, context);
+        await this.escalateIssue(action.config as EscalationConfig, message, context);
         break;
     }
   }

@@ -13,7 +13,6 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Search,
-  ChevronRight,
   ChevronLeft,
   Clock,
   Calendar,
@@ -28,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { getArticleById, getRelatedArticles, searchArticles, type HelpArticle } from '@/content/help-articles';
+import { getArticleById, getRelatedArticles, searchArticles } from '@/content/help-articles';
 
 // Simple markdown-like renderer
 function renderContent(content: string): JSX.Element[] {
@@ -304,7 +303,7 @@ export function HelpArticlePage() {
       <DashboardLayout
         user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
         breadcrumbs={[
-          { label: 'Help Center', href: '/help' },
+          { label: 'Help Center', path: '/help' },
           { label: 'Article Not Found' },
         ]}
         onLogout={logout}
@@ -331,8 +330,8 @@ export function HelpArticlePage() {
     <DashboardLayout
       user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
       breadcrumbs={[
-        { label: 'Help Center', href: '/help' },
-        { label: article.category, href: `/help?category=${article.categoryId}` },
+        { label: 'Help Center', path: '/help' },
+        { label: article.category, path: `/help?category=${article.categoryId}` },
         { label: article.title },
       ]}
       onLogout={logout}
@@ -438,7 +437,7 @@ export function HelpArticlePage() {
                 </p>
                 <div className="flex items-center gap-3">
                   <Button
-                    variant={feedback === 'helpful' ? 'default' : 'outline'}
+                    variant={feedback === 'helpful' ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => setFeedback('helpful')}
                     className="gap-2"
@@ -447,7 +446,7 @@ export function HelpArticlePage() {
                     Yes
                   </Button>
                   <Button
-                    variant={feedback === 'not-helpful' ? 'default' : 'outline'}
+                    variant={feedback === 'not-helpful' ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => setFeedback('not-helpful')}
                     className="gap-2"

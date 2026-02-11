@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   ErrorBoundary,
@@ -63,12 +63,12 @@ function ThrowingComponent({ shouldThrow = true }: { shouldThrow?: boolean }) {
 }
 
 // Component that throws a network error
-function NetworkErrorComponent() {
+function NetworkErrorComponent(): JSX.Element {
   throw new Error('Failed to fetch');
 }
 
 // Component that throws a chunk load error
-function ChunkLoadErrorComponent() {
+function ChunkLoadErrorComponent(): JSX.Element {
   const error = new Error('Loading chunk 123 failed');
   error.name = 'ChunkLoadError';
   throw error;
@@ -199,7 +199,7 @@ describe('ErrorBoundary', () => {
         return <div>Recovered!</div>;
       }
 
-      const { rerender } = render(
+      render(
         <ErrorBoundary retryable key="test-boundary">
           <ConditionalThrow />
         </ErrorBoundary>

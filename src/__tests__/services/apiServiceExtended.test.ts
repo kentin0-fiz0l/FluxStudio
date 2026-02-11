@@ -158,9 +158,6 @@ describe('ApiService Extended Tests', () => {
 
     it('should fail after max retries exhausted', async () => {
       // This test is flaky with fake timers due to the internal retry mechanism
-      // Using real timers with a fast timeout instead
-      const originalTimeout = apiService['defaultTimeout'];
-
       // Mock a non-network error that won't trigger retries
       mockFetch.mockRejectedValueOnce(new Error('server error: 500'));
 

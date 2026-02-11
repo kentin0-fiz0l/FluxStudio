@@ -146,7 +146,7 @@ export function DashboardActivitySummary({ projectId }: { projectId: string }) {
             <div className="flex-1 min-w-0">
               <p className="text-sm text-neutral-700">{activity.action}</p>
               <p className="text-xs text-neutral-500 mt-1">
-                {new Date(activity.timestamp).toLocaleTimeString()}
+                {new Date(activity.timestamp || activity.createdAt || Date.now()).toLocaleTimeString()}
               </p>
             </div>
           </div>
@@ -192,8 +192,8 @@ function TasksOnlyFeed({ projectId }: { projectId: string }) {
             <div className="flex-1">
               <p className="text-sm text-neutral-700">{activity.action}</p>
               <p className="text-xs text-neutral-500 mt-1">
-                by {activity.userName} •{' '}
-                {new Date(activity.timestamp).toLocaleString()}
+                by {activity.userName || 'Unknown'} •{' '}
+                {new Date(activity.timestamp || activity.createdAt || Date.now()).toLocaleString()}
               </p>
             </div>
           </div>
@@ -242,8 +242,8 @@ function MilestonesOnlyFeed({ projectId }: { projectId: string }) {
               </p>
               <p className="text-sm text-neutral-600 mt-1">{activity.action}</p>
               <p className="text-xs text-neutral-500 mt-1">
-                by {activity.userName} •{' '}
-                {new Date(activity.timestamp).toLocaleString()}
+                by {activity.userName || 'Unknown'} •{' '}
+                {new Date(activity.timestamp || activity.createdAt || Date.now()).toLocaleString()}
               </p>
             </div>
           </div>

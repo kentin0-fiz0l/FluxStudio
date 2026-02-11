@@ -49,7 +49,7 @@ export function useMemoizedArray<T>(
     const currentKeys = new Map<string | number, T>();
     let hasChanged = items.length !== prevRef.current.length;
 
-    items.forEach((item, index) => {
+    items.forEach((item) => {
       const key = keyFn(item);
       currentKeys.set(key, item);
 

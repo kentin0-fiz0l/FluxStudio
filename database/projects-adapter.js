@@ -28,13 +28,13 @@ function mapStatus(status) {
 
 class ProjectsAdapter {
   /**
-   * Get all projects for a user (scoped by organization membership)
+   * Get all projects for a user (scoped by manager or project membership)
    */
   async getProjects(userId, options = {}) {
     try {
       const { organizationId, status, limit = 50, offset = 0 } = options;
 
-      // Build query based on organization membership
+      // Build query based on project access
       let sql = `
         SELECT DISTINCT p.*,
                o.name as organization_name,
@@ -49,10 +49,8 @@ class ProjectsAdapter {
         LEFT JOIN organizations o ON p.organization_id = o.id
         LEFT JOIN users u ON p.manager_id = u.id
         LEFT JOIN teams t ON p.team_id = t.id
-        LEFT JOIN organization_members om ON p.organization_id = om.organization_id AND om.user_id = $1
         WHERE (
           p.manager_id = $1
-          OR om.user_id = $1
           OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $1)
         )
       `;
@@ -124,20 +122,18 @@ class ProjectsAdapter {
 
       const result = await query(`
         INSERT INTO projects (
-          id, name, title, description, slug, organization_id, team_id, manager_id,
+          id, name, description, slug, organization_id, team_id, manager_id,
           status, priority, project_type, service_category, service_tier, ensemble_type,
-          start_date, due_date, metadata, settings, tags, created_at, updated_at,
-          "clientId", "type", "createdAt", "updatedAt"
+          metadata, settings, tags, created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
         ) RETURNING *
       `, [
         id,
         projectData.name,
-        projectData.name, // title = name for Prisma compatibility
         projectData.description || '',
         slug,
-        projectData.organizationId,
+        projectData.organizationId || null,
         projectData.teamId || null,
         userId,
         mapStatus(projectData.status || 'planning'),
@@ -146,17 +142,11 @@ class ProjectsAdapter {
         projectData.serviceCategory || 'general',
         projectData.serviceTier || 'standard',
         projectData.ensembleType || 'general',
-        projectData.startDate || now,
-        projectData.dueDate || null,
         JSON.stringify(projectData.metadata || {}),
         JSON.stringify(projectData.settings || { isPrivate: false, allowComments: true, requireApproval: false }),
         projectData.tags || [],
         now,
-        now,
-        userId, // clientId - set to creator for Prisma compatibility
-        'DESIGN_CONCEPTS', // type - default Prisma ProjectType
-        now, // createdAt - Prisma camelCase column
-        now  // updatedAt - Prisma camelCase column
+        now
       ]);
 
       // Add creator as project member

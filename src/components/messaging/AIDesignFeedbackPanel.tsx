@@ -85,8 +85,7 @@ export function AIDesignFeedbackPanel({
 
       // Perform new analysis
       const result = await aiDesignFeedbackService.analyzeDesign(imageUrl, {
-        userType: currentUser.userType,
-        timestamp: new Date()
+        targetAudience: currentUser.userType
       });
 
       setAnalysis(result);

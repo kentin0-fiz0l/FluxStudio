@@ -96,7 +96,7 @@ export function NewProject() {
     <DashboardLayout
       user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
       breadcrumbs={[
-        { label: 'Projects', href: '/projects' },
+        { label: 'Projects', path: '/projects' },
         { label: 'New Project' }
       ]}
       onLogout={logout}

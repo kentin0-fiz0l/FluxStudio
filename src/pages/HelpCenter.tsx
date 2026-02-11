@@ -31,7 +31,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { searchArticles, getArticlesByCategory, helpArticles, type HelpArticle } from '@/content/help-articles';
+import { searchArticles, helpArticles, type HelpArticle } from '@/content/help-articles';
 
 interface HelpCategory {
   id: string;
