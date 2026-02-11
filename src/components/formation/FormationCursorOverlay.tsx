@@ -99,7 +99,10 @@ export function FormationCursorOverlay({
 
   // Collect selection rings for performers selected by other collaborators
   const selectionRings = useMemo(() => {
-    if (!performerPositions) return [];
+    if (!performerPositions) {
+      console.log('[CursorOverlay] No performerPositions provided');
+      return [];
+    }
 
     const rings: Array<{
       performerId: string;
@@ -108,11 +111,16 @@ export function FormationCursorOverlay({
       position: Position;
     }> = [];
 
+    console.log('[CursorOverlay] Processing collaborators:', collaborators.length);
+    console.log('[CursorOverlay] performerPositions size:', performerPositions.size);
+
     collaborators.forEach((collaborator) => {
+      console.log('[CursorOverlay] Collaborator:', collaborator.user?.name, 'selectedPerformerIds:', collaborator.selectedPerformerIds);
       if (!collaborator.selectedPerformerIds) return;
 
       collaborator.selectedPerformerIds.forEach((performerId) => {
         const position = performerPositions.get(performerId);
+        console.log('[CursorOverlay] Looking for performer:', performerId, 'found position:', position);
         if (position) {
           rings.push({
             performerId,
@@ -124,6 +132,7 @@ export function FormationCursorOverlay({
       });
     });
 
+    console.log('[CursorOverlay] Total selection rings:', rings.length);
     return rings;
   }, [collaborators, performerPositions]);
 
@@ -297,6 +306,7 @@ interface PerformerSelectionRingProps {
   position: Position;
   canvasWidth: number;
   canvasHeight: number;
+  zoom?: number;
 }
 
 function PerformerSelectionRing({
@@ -306,25 +316,32 @@ function PerformerSelectionRing({
   position,
   canvasWidth,
   canvasHeight,
+  zoom = 1,
 }: PerformerSelectionRingProps) {
   // Convert normalized (0-100) position to pixel position
   const x = (position.x / 100) * canvasWidth;
   const y = (position.y / 100) * canvasHeight;
 
+  // Scale ring size with zoom
+  const ringSize = SELECTION_RING_BASE_SIZE * zoom;
+
   return (
     <div
-      className="absolute transition-all duration-100 ease-out"
+      className="absolute ease-out"
       style={{
         left: x,
         top: y,
         transform: 'translate(-50%, -50%)',
+        transition: 'left 100ms ease-out, top 100ms ease-out',
       }}
     >
-      {/* Selection ring */}
+      {/* Selection ring - 2px dashed border per UX spec */}
       <div
-        className="w-10 h-10 rounded-full border-2 animate-pulse"
+        className="rounded-full animate-pulse"
         style={{
-          borderColor: userColor,
+          width: ringSize,
+          height: ringSize,
+          border: `2px dashed ${userColor}`,
           boxShadow: `0 0 8px ${userColor}40`,
         }}
       >
@@ -358,6 +375,7 @@ interface PerformerDraggingRingProps {
   position: Position;
   canvasWidth: number;
   canvasHeight: number;
+  zoom?: number;
 }
 
 function PerformerDraggingRing({
@@ -367,36 +385,47 @@ function PerformerDraggingRing({
   position,
   canvasWidth,
   canvasHeight,
+  zoom = 1,
 }: PerformerDraggingRingProps) {
   // Convert normalized (0-100) position to pixel position
   const x = (position.x / 100) * canvasWidth;
   const y = (position.y / 100) * canvasHeight;
 
+  // Scale ring size with zoom (slightly larger than selection ring)
+  const ringSize = (SELECTION_RING_BASE_SIZE + 8) * zoom;
+
   return (
     <div
-      className="absolute transition-all duration-75 ease-out"
+      className="absolute ease-out"
       style={{
         left: x,
         top: y,
         transform: 'translate(-50%, -50%)',
+        transition: 'left 100ms ease-out, top 100ms ease-out',
       }}
     >
       {/* Dragging ring with dashed animated border */}
       <div
-        className="w-12 h-12 rounded-full border-[3px]"
+        className="rounded-full"
         style={{
-          borderColor: userColor,
-          borderStyle: 'dashed',
+          width: ringSize,
+          height: ringSize,
+          border: `2px dashed ${userColor}`,
           animation: 'spin 2s linear infinite',
           boxShadow: `0 0 12px ${userColor}60`,
         }}
         title={`Being dragged by ${userName}`}
       />
 
-      {/* User name badge below */}
+      {/* User name badge below - max 120px with truncation */}
       <div
-        className="absolute -bottom-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-[10px] font-medium text-white whitespace-nowrap shadow-sm"
-        style={{ backgroundColor: userColor }}
+        className="absolute -bottom-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-[10px] font-medium text-white shadow-sm overflow-hidden text-ellipsis"
+        style={{
+          backgroundColor: userColor,
+          maxWidth: '120px',
+          whiteSpace: 'nowrap',
+        }}
+        title={userName}
       >
         {userName}
       </div>
@@ -413,6 +442,7 @@ interface SelectionRingsOverlayProps {
   performerPositions: Map<string, { x: number; y: number }>;
   canvasWidth: number;
   canvasHeight: number;
+  zoom?: number;
 }
 
 export function SelectionRingsOverlay({
@@ -420,6 +450,7 @@ export function SelectionRingsOverlay({
   performerPositions,
   canvasWidth,
   canvasHeight,
+  zoom = 1,
 }: SelectionRingsOverlayProps) {
   const rings = useMemo(() => {
     const result: Array<{
@@ -459,6 +490,7 @@ export function SelectionRingsOverlay({
           position={ring.position}
           canvasWidth={canvasWidth}
           canvasHeight={canvasHeight}
+          zoom={zoom}
         />
       ))}
     </div>
