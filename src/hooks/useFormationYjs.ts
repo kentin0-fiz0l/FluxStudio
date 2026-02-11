@@ -187,9 +187,11 @@ export function useFormationYjs({
 
     // Track sync completion
     wsProvider.on('sync', (synced: boolean) => {
+      console.log('[useFormationYjs] Sync event:', synced);
       if (synced) {
         setIsSyncing(false);
         // Sync initial state to React
+        console.log('[useFormationYjs] Calling syncYjsToReact after sync');
         syncYjsToReact(ydoc);
       }
     });
@@ -281,8 +283,18 @@ export function useFormationYjs({
     const performersMap = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
     const keyframesArray = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
 
+    console.log('[useFormationYjs] syncYjsToReact called:', {
+      metaSize: meta.size,
+      metaId: meta.get('id'),
+      performersSize: performersMap.size,
+      keyframesLength: keyframesArray.length,
+    });
+
     // Check if document has data
-    if (!meta.get('id')) return;
+    if (!meta.get('id')) {
+      console.log('[useFormationYjs] No meta.id, skipping sync');
+      return;
+    }
 
     // Convert performers
     const performers: Performer[] = [];
