@@ -1085,6 +1085,7 @@ export function FormationCanvas({
                 collaborators={collab.collaborators}
                 canvasWidth={formation.stageWidth * 20 * zoom}
                 canvasHeight={formation.stageHeight * 20 * zoom}
+                performerPositions={currentPositions}
                 zoom={zoom}
               />
             )}

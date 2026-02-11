@@ -11,6 +11,8 @@ export { ExportDialog } from './ExportDialog';
 export { AudioUpload } from './AudioUpload';
 export { PathOverlay } from './PathOverlay';
 export { TemplatePicker } from './TemplatePicker';
+export { FormationCursorOverlay } from './FormationCursorOverlay';
+export type { FormationCursorOverlayProps } from './FormationCursorOverlay';
 
 // Re-export types from service for convenience
 export type {

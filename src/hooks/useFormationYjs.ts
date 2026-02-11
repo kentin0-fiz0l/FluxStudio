@@ -620,16 +620,40 @@ export function useFormationYjs({
   // Awareness Functions
   // ============================================================================
 
+  // Refs for cursor throttling (50ms interval per UX spec)
+  const cursorThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
+
   const updateCursor = useCallback((x: number, y: number) => {
     const provider = providerRef.current;
     if (!provider) return;
 
+    // Store pending position
+    pendingCursorRef.current = { x, y };
+
+    // If throttle timer is active, let it handle the update
+    if (cursorThrottleRef.current !== null) return;
+
+    // Send immediately for first update
     provider.awareness.setLocalStateField('cursor', {
       x,
       y,
       timestamp: Date.now(),
     });
     provider.awareness.setLocalStateField('lastActivity', Date.now());
+
+    // Set up throttle for subsequent updates (50ms)
+    cursorThrottleRef.current = setTimeout(() => {
+      cursorThrottleRef.current = null;
+      if (pendingCursorRef.current) {
+        const pending = pendingCursorRef.current;
+        provider.awareness.setLocalStateField('cursor', {
+          x: pending.x,
+          y: pending.y,
+          timestamp: Date.now(),
+        });
+      }
+    }, 50);
   }, []);
 
   const clearCursor = useCallback(() => {

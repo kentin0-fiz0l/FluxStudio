@@ -4,23 +4,45 @@
  * Displays remote users' cursors on the formation canvas during
  * real-time collaboration. Shows cursor position, user name,
  * and selection indicators for performers.
+ *
+ * UX Spec:
+ * - 100ms CSS transitions for smooth cursor movement
+ * - Progressive fade: 3s → 60% opacity, 5s → 40%, 10s → remove cursor
+ * - 2px dashed border for remote selection rings
+ * - Label max-width 120px with truncation
+ * - Zoom scaling for selection rings
  */
 
 import { useMemo } from 'react';
-import { FormationAwarenessState } from '@/services/formation/yjs/formationYjsTypes';
+import type { FormationAwarenessState } from '@/services/formation/yjs/formationYjsTypes';
+import type { Position } from '@/services/formationService';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Cursor staleness thresholds in milliseconds */
+const CURSOR_FADE_THRESHOLD_1 = 3000;  // 3s → 60% opacity
+const CURSOR_FADE_THRESHOLD_2 = 5000;  // 5s → 40% opacity
+const CURSOR_REMOVE_THRESHOLD = 10000; // 10s → remove cursor
+
+/** Base size for selection rings (before zoom scaling) */
+const SELECTION_RING_BASE_SIZE = 40; // px
 
 // ============================================================================
 // Types
 // ============================================================================
 
-interface FormationCursorOverlayProps {
+export interface FormationCursorOverlayProps {
   /** List of remote collaborators with their awareness state */
   collaborators: FormationAwarenessState[];
   /** Canvas width in pixels */
   canvasWidth: number;
   /** Canvas height in pixels */
   canvasHeight: number;
-  /** Current zoom level */
+  /** Map of performer IDs to their current positions (normalized 0-100) */
+  performerPositions?: Map<string, Position>;
+  /** Current zoom level (affects selection ring size) */
   zoom?: number;
   /** Optional class name */
   className?: string;
@@ -33,6 +55,26 @@ interface CursorDisplayProps {
 }
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Calculate cursor opacity based on staleness (progressive fade)
+ * - 0-3s: 100% opacity
+ * - 3-5s: 60% opacity
+ * - 5-10s: 40% opacity
+ * - 10s+: hidden (return null to filter out)
+ */
+function getCursorOpacity(timestamp: number): number | null {
+  const age = Date.now() - timestamp;
+
+  if (age >= CURSOR_REMOVE_THRESHOLD) return null; // Remove cursor
+  if (age >= CURSOR_FADE_THRESHOLD_2) return 0.4;  // 40% opacity
+  if (age >= CURSOR_FADE_THRESHOLD_1) return 0.6;  // 60% opacity
+  return 1; // Full opacity
+}
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -40,21 +82,103 @@ export function FormationCursorOverlay({
   collaborators,
   canvasWidth,
   canvasHeight,
-  zoom: _zoom = 1,
+  performerPositions,
+  zoom = 1,
   className = '',
 }: FormationCursorOverlayProps) {
-  // Filter active collaborators with cursor positions
+  // Filter active collaborators with valid, non-stale cursors
   const activeCursors = useMemo(() => {
-    return collaborators.filter(
-      (c) => c.isActive && c.cursor && c.cursor.x !== undefined && c.cursor.y !== undefined
-    );
+    return collaborators.filter((c) => {
+      if (!c.isActive || !c.cursor || c.cursor.x === undefined || c.cursor.y === undefined) {
+        return false;
+      }
+      // Remove cursors older than 10 seconds
+      return getCursorOpacity(c.cursor.timestamp) !== null;
+    });
   }, [collaborators]);
+
+  // Collect selection rings for performers selected by other collaborators
+  const selectionRings = useMemo(() => {
+    if (!performerPositions) return [];
+
+    const rings: Array<{
+      performerId: string;
+      userColor: string;
+      userName: string;
+      position: Position;
+    }> = [];
+
+    collaborators.forEach((collaborator) => {
+      if (!collaborator.selectedPerformerIds) return;
+
+      collaborator.selectedPerformerIds.forEach((performerId) => {
+        const position = performerPositions.get(performerId);
+        if (position) {
+          rings.push({
+            performerId,
+            userColor: collaborator.user.color,
+            userName: collaborator.user.name,
+            position,
+          });
+        }
+      });
+    });
+
+    return rings;
+  }, [collaborators, performerPositions]);
+
+  // Collect performers being dragged by other users
+  const draggingRings = useMemo(() => {
+    if (!performerPositions) return [];
+
+    return collaborators
+      .filter((c) => c.draggingPerformerId && performerPositions.has(c.draggingPerformerId))
+      .map((collaborator) => ({
+        performerId: collaborator.draggingPerformerId!,
+        position: performerPositions.get(collaborator.draggingPerformerId!)!,
+        userColor: collaborator.user.color,
+        userName: collaborator.user.name,
+      }));
+  }, [collaborators, performerPositions]);
+
+  // Don't render if no collaborators
+  if (collaborators.length === 0) return null;
 
   return (
     <div
       className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       style={{ zIndex: 50 }}
+      aria-hidden="true"
+      data-testid="formation-cursor-overlay"
     >
+      {/* Selection rings for performers selected by others */}
+      {selectionRings.map((ring) => (
+        <PerformerSelectionRing
+          key={`selection-${ring.performerId}-${ring.userName}`}
+          performerId={ring.performerId}
+          userColor={ring.userColor}
+          userName={ring.userName}
+          position={ring.position}
+          canvasWidth={canvasWidth}
+          canvasHeight={canvasHeight}
+          zoom={zoom}
+        />
+      ))}
+
+      {/* Dragging indicators on performers being moved */}
+      {draggingRings.map((ring) => (
+        <PerformerDraggingRing
+          key={`dragging-${ring.performerId}`}
+          performerId={ring.performerId}
+          userColor={ring.userColor}
+          userName={ring.userName}
+          position={ring.position}
+          canvasWidth={canvasWidth}
+          canvasHeight={canvasHeight}
+          zoom={zoom}
+        />
+      ))}
+
       {/* Remote cursors */}
       {activeCursors.map((collaborator) => (
         <CursorDisplay
@@ -65,12 +189,12 @@ export function FormationCursorOverlay({
         />
       ))}
 
-      {/* Dragging indicators */}
+      {/* Dragging notification banner */}
       {collaborators
         .filter((c) => c.draggingPerformerId)
         .map((collaborator) => (
           <DraggingIndicator
-            key={`drag-${collaborator.user.id}`}
+            key={`drag-banner-${collaborator.user.id}`}
             collaborator={collaborator}
           />
         ))}
@@ -91,16 +215,19 @@ function CursorDisplay({ collaborator, canvasWidth, canvasHeight }: CursorDispla
   const x = (cursor.x / 100) * canvasWidth;
   const y = (cursor.y / 100) * canvasHeight;
 
-  // Check if cursor is stale (> 5 seconds old)
-  const isStale = Date.now() - cursor.timestamp > 5000;
+  // Progressive fade based on cursor age
+  const opacity = getCursorOpacity(cursor.timestamp);
+  if (opacity === null) return null; // Cursor too old, remove it
 
   return (
     <div
-      className={`absolute transition-all duration-75 ease-out ${isStale ? 'opacity-40' : 'opacity-100'}`}
+      className="absolute ease-out"
       style={{
         left: x,
         top: y,
         transform: 'translate(-2px, -2px)',
+        opacity,
+        transition: 'left 100ms ease-out, top 100ms ease-out, opacity 300ms ease-out',
       }}
     >
       {/* Cursor arrow SVG */}
@@ -119,10 +246,15 @@ function CursorDisplay({ collaborator, canvasWidth, canvasHeight }: CursorDispla
         />
       </svg>
 
-      {/* User name label */}
+      {/* User name label - max 120px with truncation */}
       <div
-        className="absolute left-4 top-5 px-2 py-0.5 rounded text-xs font-medium text-white whitespace-nowrap shadow-sm"
-        style={{ backgroundColor: user.color }}
+        className="absolute left-4 top-5 px-2 py-0.5 rounded text-xs font-medium text-white shadow-sm overflow-hidden text-ellipsis"
+        style={{
+          backgroundColor: user.color,
+          maxWidth: '120px',
+          whiteSpace: 'nowrap',
+        }}
+        title={user.name}
       >
         {user.name}
       </div>
@@ -155,19 +287,19 @@ function DraggingIndicator({ collaborator }: DraggingIndicatorProps) {
 }
 
 // ============================================================================
-// Selection Ring Component (for performers)
+// Selection Ring Component (for performers selected by others)
 // ============================================================================
 
 interface PerformerSelectionRingProps {
   performerId: string;
   userColor: string;
   userName: string;
-  position: { x: number; y: number };
+  position: Position;
   canvasWidth: number;
   canvasHeight: number;
 }
 
-export function PerformerSelectionRing({
+function PerformerSelectionRing({
   performerId: _performerId,
   userColor,
   userName,
@@ -181,7 +313,7 @@ export function PerformerSelectionRing({
 
   return (
     <div
-      className="absolute pointer-events-none"
+      className="absolute transition-all duration-100 ease-out"
       style={{
         left: x,
         top: y,
@@ -190,8 +322,11 @@ export function PerformerSelectionRing({
     >
       {/* Selection ring */}
       <div
-        className="w-12 h-12 rounded-full border-2 animate-pulse"
-        style={{ borderColor: userColor }}
+        className="w-10 h-10 rounded-full border-2 animate-pulse"
+        style={{
+          borderColor: userColor,
+          boxShadow: `0 0 8px ${userColor}40`,
+        }}
       >
         {/* Inner glow */}
         <div
@@ -200,9 +335,67 @@ export function PerformerSelectionRing({
         />
       </div>
 
-      {/* User name tooltip */}
+      {/* Small user indicator badge */}
       <div
-        className="absolute -top-6 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[10px] font-medium text-white whitespace-nowrap"
+        className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm"
+        style={{ backgroundColor: userColor }}
+        title={`Selected by ${userName}`}
+      >
+        {userName.charAt(0).toUpperCase()}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Dragging Ring Component (for performers being dragged by others)
+// ============================================================================
+
+interface PerformerDraggingRingProps {
+  performerId: string;
+  userColor: string;
+  userName: string;
+  position: Position;
+  canvasWidth: number;
+  canvasHeight: number;
+}
+
+function PerformerDraggingRing({
+  performerId: _performerId,
+  userColor,
+  userName,
+  position,
+  canvasWidth,
+  canvasHeight,
+}: PerformerDraggingRingProps) {
+  // Convert normalized (0-100) position to pixel position
+  const x = (position.x / 100) * canvasWidth;
+  const y = (position.y / 100) * canvasHeight;
+
+  return (
+    <div
+      className="absolute transition-all duration-75 ease-out"
+      style={{
+        left: x,
+        top: y,
+        transform: 'translate(-50%, -50%)',
+      }}
+    >
+      {/* Dragging ring with dashed animated border */}
+      <div
+        className="w-12 h-12 rounded-full border-[3px]"
+        style={{
+          borderColor: userColor,
+          borderStyle: 'dashed',
+          animation: 'spin 2s linear infinite',
+          boxShadow: `0 0 12px ${userColor}60`,
+        }}
+        title={`Being dragged by ${userName}`}
+      />
+
+      {/* User name badge below */}
+      <div
+        className="absolute -bottom-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-[10px] font-medium text-white whitespace-nowrap shadow-sm"
         style={{ backgroundColor: userColor }}
       >
         {userName}
