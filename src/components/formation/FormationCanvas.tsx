@@ -5,7 +5,7 @@
  * Includes grid-based positioning, performer drag-drop, and keyframe animation.
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Plus,
@@ -121,12 +121,20 @@ export function FormationCanvas({
     saving: apiSaving
   } = useFormation({ formationId, enabled: !!formationId });
 
+  // Calculate initial data ONCE to avoid creating multiple formations
+  // This must be called before any useState to ensure consistent initialization
+  const initialData = useMemo(() => {
+    if (!formationId) {
+      return getInitialFormationData(undefined, projectId, t('formation.untitled', 'Untitled Formation'));
+    }
+    return null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run once on mount
+
   // Local formation state - initialized from API or local service
   const [formation, setFormation] = useState<Formation | null>(() => {
-    // If no formationId, create a local formation
-    if (!formationId) {
-      const data = getInitialFormationData(undefined, projectId, t('formation.untitled', 'Untitled Formation'));
-      return data.formation;
+    if (!formationId && initialData) {
+      return initialData.formation;
     }
     return null; // Will be loaded from API
   });
@@ -148,16 +156,14 @@ export function FormationCanvas({
 
   const [selectedPerformerIds, setSelectedPerformerIds] = useState<Set<string>>(new Set());
   const [selectedKeyframeId, setSelectedKeyframeId] = useState<string>(() => {
-    if (!formationId) {
-      const data = getInitialFormationData(undefined, projectId, t('formation.untitled', 'Untitled Formation'));
-      return data.keyframeId;
+    if (!formationId && initialData) {
+      return initialData.keyframeId;
     }
     return '';
   });
   const [currentPositions, setCurrentPositions] = useState<Map<string, Position>>(() => {
-    if (!formationId) {
-      const data = getInitialFormationData(undefined, projectId, t('formation.untitled', 'Untitled Formation'));
-      return data.positions;
+    if (!formationId && initialData) {
+      return initialData.positions;
     }
     return new Map();
   });
