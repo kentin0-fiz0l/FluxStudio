@@ -56,6 +56,8 @@ function authenticateWebSocket(token) {
     return decoded;
   } catch (error) {
     console.error('❌ JWT verification failed:', error.message);
+    console.error('   Secret prefix:', JWT_SECRET ? JWT_SECRET.substring(0, 8) + '...' : 'undefined');
+    console.error('   Token prefix:', token ? token.substring(0, 30) + '...' : 'undefined');
     return null;
   }
 }
