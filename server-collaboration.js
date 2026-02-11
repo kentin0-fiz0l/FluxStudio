@@ -235,6 +235,87 @@ async function saveDocument(roomName, doc) {
 }
 
 /**
+ * Initialize Yjs document from formation data (when no yjs_snapshot exists)
+ */
+function initializeYjsFromFormation(doc, formationData) {
+  // Yjs type constants matching the client
+  const META = 'formation:meta';
+  const PERFORMERS = 'formation:performers';
+  const KEYFRAMES = 'formation:keyframes';
+  const POSITIONS = 'formation:positions';
+  const AUDIO = 'audioTrack';
+
+  doc.transact(() => {
+    const meta = doc.getMap(META);
+    const performers = doc.getMap(PERFORMERS);
+    const keyframes = doc.getArray(KEYFRAMES);
+
+    // Set metadata
+    meta.set('id', formationData.id);
+    meta.set('name', formationData.name || 'Untitled Formation');
+    meta.set('projectId', formationData.project_id);
+    meta.set('description', formationData.description || '');
+    meta.set('stageWidth', formationData.stage_width || 100);
+    meta.set('stageHeight', formationData.stage_height || 60);
+    meta.set('gridSize', formationData.grid_size || 10);
+    meta.set('createdBy', formationData.created_by || '');
+    meta.set('createdAt', formationData.created_at?.toISOString?.() || new Date().toISOString());
+    meta.set('updatedAt', formationData.updated_at?.toISOString?.() || new Date().toISOString());
+
+    // Add performers
+    if (formationData.performers) {
+      formationData.performers.forEach((performer) => {
+        const yPerformer = new Y.Map();
+        yPerformer.set('id', performer.id);
+        yPerformer.set('name', performer.name || '');
+        yPerformer.set('label', performer.label || '');
+        yPerformer.set('color', performer.color || '#3b82f6');
+        yPerformer.set('group', performer.group_name || '');
+        performers.set(performer.id, yPerformer);
+      });
+    }
+
+    // Add keyframes with positions
+    if (formationData.keyframes) {
+      formationData.keyframes.forEach((keyframe) => {
+        const yKeyframe = new Y.Map();
+        yKeyframe.set('id', keyframe.id);
+        yKeyframe.set('timestamp', keyframe.timestamp_ms || 0);
+        yKeyframe.set('transition', keyframe.transition || 'linear');
+        yKeyframe.set('duration', keyframe.duration || 500);
+
+        // Add positions
+        const yPositions = new Y.Map();
+        if (keyframe.positions) {
+          keyframe.positions.forEach((pos) => {
+            yPositions.set(pos.performer_id, {
+              x: pos.x,
+              y: pos.y,
+              rotation: pos.rotation || 0,
+            });
+          });
+        }
+        yKeyframe.set(POSITIONS, yPositions);
+        keyframes.push([yKeyframe]);
+      });
+    }
+
+    // If no keyframes, create a default one
+    if (keyframes.length === 0) {
+      const yKeyframe = new Y.Map();
+      yKeyframe.set('id', `keyframe-${Date.now()}`);
+      yKeyframe.set('timestamp', 0);
+      yKeyframe.set('transition', 'linear');
+      yKeyframe.set('duration', 500);
+      yKeyframe.set(POSITIONS, new Y.Map());
+      keyframes.push([yKeyframe]);
+    }
+  });
+
+  console.log(`🔄 Initialized Yjs document from formation data`);
+}
+
+/**
  * Load document snapshot from database
  */
 async function loadDocument(roomName, doc) {
@@ -243,20 +324,89 @@ async function loadDocument(roomName, doc) {
     const formationMatch = roomName.match(/^project-([^-]+)-formation-(.+)$/);
     if (formationMatch) {
       const formationId = formationMatch[2];
-      const result = await db.query(
+
+      // First try to load existing Yjs snapshot
+      const snapshotResult = await db.query(
         'SELECT yjs_snapshot FROM formations WHERE id = $1 AND yjs_snapshot IS NOT NULL',
         [formationId]
       );
 
-      if (result.rows.length > 0 && result.rows[0].yjs_snapshot) {
-        const snapshot = new Uint8Array(result.rows[0].yjs_snapshot);
+      if (snapshotResult.rows.length > 0 && snapshotResult.rows[0].yjs_snapshot) {
+        const snapshot = new Uint8Array(snapshotResult.rows[0].yjs_snapshot);
         Y.applyUpdate(doc, snapshot);
-        console.log(`📂 Loaded formation for room: ${roomName} (${snapshot.length} bytes)`);
+        console.log(`📂 Loaded formation Yjs snapshot: ${roomName} (${snapshot.length} bytes)`);
         return true;
       }
 
-      console.log(`📄 No Yjs snapshot for formation: ${roomName}`);
-      return false;
+      // No Yjs snapshot - load from regular formation data and initialize Yjs
+      console.log(`📄 No Yjs snapshot for formation: ${roomName}, loading from database...`);
+
+      const formationResult = await db.query(`
+        SELECT f.*,
+               COALESCE(json_agg(DISTINCT p.*) FILTER (WHERE p.id IS NOT NULL), '[]') as performers,
+               COALESCE(json_agg(DISTINCT k.*) FILTER (WHERE k.id IS NOT NULL), '[]') as keyframes_raw
+        FROM formations f
+        LEFT JOIN formation_performers p ON p.formation_id = f.id
+        LEFT JOIN formation_keyframes k ON k.formation_id = f.id
+        WHERE f.id = $1
+        GROUP BY f.id
+      `, [formationId]);
+
+      if (formationResult.rows.length === 0) {
+        console.error(`❌ Formation not found: ${formationId}`);
+        return false;
+      }
+
+      const formation = formationResult.rows[0];
+
+      // Now get positions for each keyframe
+      if (formation.keyframes_raw && formation.keyframes_raw.length > 0) {
+        const keyframeIds = formation.keyframes_raw
+          .filter(k => k && k.id)
+          .map(k => k.id);
+
+        if (keyframeIds.length > 0) {
+          const positionsResult = await db.query(`
+            SELECT keyframe_id, performer_id, x, y, rotation
+            FROM formation_positions
+            WHERE keyframe_id = ANY($1)
+          `, [keyframeIds]);
+
+          // Group positions by keyframe
+          const positionsByKeyframe = {};
+          positionsResult.rows.forEach(pos => {
+            if (!positionsByKeyframe[pos.keyframe_id]) {
+              positionsByKeyframe[pos.keyframe_id] = [];
+            }
+            positionsByKeyframe[pos.keyframe_id].push(pos);
+          });
+
+          // Attach positions to keyframes
+          formation.keyframes = formation.keyframes_raw
+            .filter(k => k && k.id)
+            .map(k => ({
+              ...k,
+              positions: positionsByKeyframe[k.id] || [],
+            }));
+        } else {
+          formation.keyframes = [];
+        }
+      } else {
+        formation.keyframes = [];
+      }
+
+      // Initialize Yjs document from formation data
+      initializeYjsFromFormation(doc, formation);
+
+      // Save the initialized Yjs state as a snapshot for future loads
+      const initialSnapshot = Y.encodeStateAsUpdate(doc);
+      await db.query(
+        `UPDATE formations SET yjs_snapshot = $1, last_yjs_sync_at = NOW() WHERE id = $2`,
+        [Buffer.from(initialSnapshot), formationId]
+      );
+      console.log(`💾 Saved initial Yjs snapshot for formation: ${formationId} (${initialSnapshot.length} bytes)`);
+
+      return true;
     }
 
     // Default: document room
