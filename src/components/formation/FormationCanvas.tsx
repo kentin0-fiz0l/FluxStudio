@@ -134,13 +134,14 @@ export function FormationCanvas({
   // Sync API data to local state when it loads
   useEffect(() => {
     if (apiFormation && formationId) {
-      // Register with formation service so operations like addPerformer work
-      formationService.registerFormation(apiFormation);
-      setFormation(apiFormation);
+      // Register with formation service - this normalizes positions to Maps
+      const normalizedFormation = formationService.registerFormation(apiFormation);
+      setFormation(normalizedFormation);
       // Set initial keyframe and positions
-      if (apiFormation.keyframes.length > 0) {
-        setSelectedKeyframeId(apiFormation.keyframes[0].id);
-        setCurrentPositions(new Map(apiFormation.keyframes[0].positions));
+      if (normalizedFormation.keyframes.length > 0) {
+        setSelectedKeyframeId(normalizedFormation.keyframes[0].id);
+        // Use normalized positions (already a Map from registerFormation)
+        setCurrentPositions(new Map(normalizedFormation.keyframes[0].positions));
       }
     }
   }, [apiFormation, formationId]);
@@ -511,19 +512,20 @@ export function FormationCanvas({
     });
 
     if (result.success) {
-      // Refresh formation state from service
+      // Refresh formation state from service (positions are already normalized to Maps)
       const updatedFormation = formationService.getFormation(formation.id);
+
       if (updatedFormation) {
         // Create new object reference to trigger React re-render
-        // Deep copy keyframes with new Map instances for positions
-        setFormation({
+        const newFormation = {
           ...updatedFormation,
           performers: [...updatedFormation.performers],
           keyframes: updatedFormation.keyframes.map(kf => ({
             ...kf,
             positions: new Map(kf.positions)
           }))
-        });
+        };
+        setFormation(newFormation);
 
         // Select the new keyframe if one was created
         if (result.keyframesCreated > 0 && updatedFormation.keyframes.length > 0) {

@@ -152,10 +152,22 @@ class FormationService {
   /**
    * Register an existing formation (e.g., loaded from API)
    * This stores the formation in the service's internal Map for operations like addPerformer
+   * Normalizes positions from plain objects to Maps if needed (API returns plain objects)
    */
   registerFormation(formation: Formation): Formation {
-    this.formations.set(formation.id, formation);
-    return formation;
+    // Normalize keyframe positions: API returns plain objects, we need Maps
+    const normalizedFormation: Formation = {
+      ...formation,
+      keyframes: formation.keyframes.map((kf) => ({
+        ...kf,
+        positions:
+          kf.positions instanceof Map
+            ? kf.positions
+            : new Map(Object.entries(kf.positions || {})),
+      })),
+    };
+    this.formations.set(normalizedFormation.id, normalizedFormation);
+    return normalizedFormation;
   }
 
   /**
