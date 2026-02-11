@@ -93,6 +93,7 @@ export default function FormationEditor() {
           <FormationCanvas
             projectId={projectId}
             formationId={formationId}
+            collaborativeMode={true}
             onSave={handleSave}
             onClose={handleClose}
           />
