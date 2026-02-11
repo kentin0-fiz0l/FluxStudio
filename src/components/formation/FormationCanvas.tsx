@@ -248,18 +248,19 @@ export function FormationCanvas({
     const index = formation.performers.length;
     const label = `P${index + 1}`;
     const color = defaultColors[index % defaultColors.length];
+    const initialPosition = { x: 50, y: 50, rotation: 0 };
 
+    // Try to add via service first (for formations registered with service)
     const performer = formationService.addPerformer(
       formation.id,
       { name: `Performer ${index + 1}`, label, color },
-      { x: 50, y: 50 } // Center of canvas
+      initialPosition
     );
 
     if (performer) {
-      // Get updated formation from service (includes the new position in keyframe)
+      // Service knows about this formation - get updated state from service
       const updatedFormation = formationService.getFormation(formation.id);
       if (updatedFormation) {
-        // Create proper copies with Maps for positions
         setFormation({
           ...updatedFormation,
           keyframes: updatedFormation.keyframes.map(kf => ({
@@ -267,12 +268,51 @@ export function FormationCanvas({
             positions: new Map(kf.positions)
           }))
         });
-        // Update current positions from the service's keyframe
         const keyframe = updatedFormation.keyframes.find((kf) => kf.id === selectedKeyframeId);
         if (keyframe) {
           setCurrentPositions(new Map(keyframe.positions));
         }
       }
+    } else {
+      // Service doesn't have formation (e.g., API-loaded formation not yet registered)
+      // Handle locally by updating React state directly
+      const newPerformer = {
+        id: `performer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: `Performer ${index + 1}`,
+        label,
+        color,
+      };
+
+      // Update formation state with new performer
+      const updatedKeyframes = formation.keyframes.map((kf, idx) => {
+        // Add position to first keyframe (or current keyframe)
+        if (idx === 0 || kf.id === selectedKeyframeId) {
+          const newPositions = new Map(kf.positions);
+          newPositions.set(newPerformer.id, initialPosition);
+          return { ...kf, positions: newPositions };
+        }
+        return kf;
+      });
+
+      setFormation({
+        ...formation,
+        performers: [...formation.performers, newPerformer],
+        keyframes: updatedKeyframes,
+      });
+
+      // Update current positions
+      setCurrentPositions(prev => {
+        const newPositions = new Map(prev);
+        newPositions.set(newPerformer.id, initialPosition);
+        return newPositions;
+      });
+
+      // Also register with service for future operations
+      formationService.registerFormation({
+        ...formation,
+        performers: [...formation.performers, newPerformer],
+        keyframes: updatedKeyframes,
+      });
     }
   }, [formation, selectedKeyframeId]);
 

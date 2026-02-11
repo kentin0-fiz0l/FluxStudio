@@ -16,10 +16,12 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui';
 
 export default function FormationEditor() {
-  const { projectId, formationId } = useParams<{
+  const { projectId, formationId: rawFormationId } = useParams<{
     projectId: string;
     formationId?: string;
   }>();
+  // Treat "new" as undefined - it's a special route for creating new formations
+  const formationId = rawFormationId === 'new' ? undefined : rawFormationId;
   const navigate = useNavigate();
   const { user: _user } = useAuth();
   const { addNotification } = useNotification();
