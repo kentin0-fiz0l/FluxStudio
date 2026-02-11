@@ -146,7 +146,7 @@ export function useFormationYjs({
 
     // Setup WebSocket provider
     const wsUrl = import.meta.env.VITE_COLLAB_URL || 'ws://localhost:4000';
-    const token = localStorage.getItem('token') || '';
+    const token = localStorage.getItem('auth_token') || '';
 
     const wsProvider = new WebsocketProvider(wsUrl, roomName, ydoc, {
       params: { token },
