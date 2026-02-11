@@ -296,10 +296,10 @@ export function parseFormationRoomName(roomName: string): { projectId: string; f
  * Yjs shared type names for consistency
  */
 export const FORMATION_YJS_TYPES = {
-  META: 'meta',
-  PERFORMERS: 'performers',
-  KEYFRAMES: 'keyframes',
-  POSITIONS: 'positions',
+  META: 'formation:meta',
+  PERFORMERS: 'formation:performers',
+  KEYFRAMES: 'formation:keyframes',
+  POSITIONS: 'formation:positions',
   AUDIO: 'audioTrack',
 } as const;
 
