@@ -7,10 +7,18 @@
 const http = require('http');
 const WebSocket = require('ws');
 const Y = require('yjs');
-const { encodeAwarenessUpdate, applyAwarenessUpdate } = require('y-protocols/awareness');
+const syncProtocol = require('y-protocols/sync');
+const awarenessProtocol = require('y-protocols/awareness');
+const encoding = require('lib0/encoding');
+const decoding = require('lib0/decoding');
 const db = require('./lib/db');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+
+// y-websocket protocol message types
+const messageSync = 0;
+const messageAwareness = 1;
+const messageAuth = 2;
 
 const PORT = process.env.COLLAB_PORT || 4000;
 const HOST = process.env.COLLAB_HOST || '0.0.0.0';
@@ -118,8 +126,9 @@ const server = http.createServer((req, res) => {
   }
 });
 
-// Store Y.Doc instances per room
+// Store Y.Doc and awareness instances per room
 const docs = new Map(); // roomName -> Y.Doc
+const awarenesses = new Map(); // roomName -> Awareness
 const saveTimers = new Map(); // roomName -> timer for auto-save
 const updateCounts = new Map(); // roomName -> update count for versioning
 
@@ -302,12 +311,23 @@ async function getDoc(roomName) {
 
     docs.set(roomName, doc);
 
+    // Create awareness instance for this room
+    const awareness = new awarenessProtocol.Awareness(doc);
+    awarenesses.set(roomName, awareness);
+
     // Start auto-save timer
     scheduleAutoSave(roomName, doc);
 
     console.log(`📄 Initialized document for room: ${roomName}`);
   }
   return docs.get(roomName);
+}
+
+/**
+ * Get awareness for a room
+ */
+function getAwareness(roomName) {
+  return awarenesses.get(roomName);
 }
 
 // Create WebSocket server
@@ -384,107 +404,150 @@ wss.on('connection', async (ws, req) => {
     }
     stats.rooms.get(roomName).add(ws);
 
-    // Get Y.Doc for this room (loads from database if exists)
+    // Get Y.Doc and awareness for this room (loads from database if exists)
     const doc = await getDoc(roomName);
+    const awareness = getAwareness(roomName);
 
-  // Send initial document state to client
-  const stateVector = Y.encodeStateVector(doc);
-  ws.send(JSON.stringify({
-    type: 'sync-init',
-    stateVector: Array.from(stateVector),
-  }));
+    // Send initial sync state using y-websocket binary protocol
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, messageSync);
+    syncProtocol.writeSyncStep1(encoder, doc);
+    ws.send(encoding.toUint8Array(encoder));
 
-  // Listen for document updates and broadcast to other clients
-  const updateHandler = (update, origin) => {
-    if (origin !== ws) {
-      ws.send(JSON.stringify({
-        type: 'sync-update',
-        update: Array.from(update),
-      }));
+    // Send awareness states
+    if (awareness.states.size > 0) {
+      const awarenessEncoder = encoding.createEncoder();
+      encoding.writeVarUint(awarenessEncoder, messageAwareness);
+      encoding.writeVarUint8Array(
+        awarenessEncoder,
+        awarenessProtocol.encodeAwarenessUpdate(awareness, Array.from(awareness.states.keys()))
+      );
+      ws.send(encoding.toUint8Array(awarenessEncoder));
     }
-  };
 
-  doc.on('update', updateHandler);
+    // Listen for document updates and broadcast to other clients
+    const updateHandler = (update, origin) => {
+      if (origin !== ws) {
+        // Send update using y-websocket binary protocol
+        const updateEncoder = encoding.createEncoder();
+        encoding.writeVarUint(updateEncoder, messageSync);
+        syncProtocol.writeUpdate(updateEncoder, update);
+        ws.send(encoding.toUint8Array(updateEncoder));
+      }
+    };
+
+    doc.on('update', updateHandler);
 
   // Track connection metadata
   ws.roomName = roomName;
   ws.connectedAt = Date.now();
 
-  // Handle messages
-  ws.on('message', (message) => {
+  // Handle messages - supports both binary y-websocket protocol and JSON
+  ws.on('message', (message, isBinary) => {
     stats.messages++;
 
     try {
-      const data = JSON.parse(message);
+      // Binary messages use y-websocket protocol
+      if (isBinary || Buffer.isBuffer(message)) {
+        const data = new Uint8Array(message);
+        const decoder = decoding.createDecoder(data);
+        const messageType = decoding.readVarUint(decoder);
 
-      // Handle different message types
-      if (data.type === 'sync-update') {
-        // Check write permissions - viewers can only read, not write
-        if (ws.userRole === 'viewer') {
-          console.warn(`⚠️  Viewer ${ws.userName} attempted to edit document`);
-          return; // Silently ignore edit attempts from viewers
-        }
+        switch (messageType) {
+          case messageSync: {
+            // Handle sync protocol messages
+            const encoder = encoding.createEncoder();
+            encoding.writeVarUint(encoder, messageSync);
+            const syncMessageType = syncProtocol.readSyncMessage(decoder, encoder, doc, ws);
 
-        // Apply update to document
-        const update = new Uint8Array(data.update);
-        Y.applyUpdate(doc, update, ws); // origin=ws to prevent echo
-
-        // Update last_edited_by and last_edited_at in database (async, non-blocking)
-        if (ws.userId) {
-          db.query(`
-            UPDATE documents
-            SET last_edited_by = $1, last_edited_at = NOW()
-            WHERE room_id = $2
-          `, [ws.userId, roomName]).catch(error => {
-            console.error('Error updating last_edited:', error);
-          });
-        }
-
-        // Track updates and create version snapshot every 100 updates
-        const count = (updateCounts.get(roomName) || 0) + 1;
-        updateCounts.set(roomName, count);
-
-        if (count % 100 === 0 && ws.userId) {
-          // Create version snapshot asynchronously
-          createVersionSnapshot(roomName, doc, ws.userId).catch(error => {
-            console.error('Error creating version snapshot:', error);
-          });
-          updateCounts.set(roomName, 0); // Reset counter
-        }
-
-        // Broadcast to other clients in room
-        const room = stats.rooms.get(roomName);
-        if (room) {
-          room.forEach((client) => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: 'sync-update',
-                update: data.update,
-              }));
+            // If there's a response, send it
+            if (encoding.length(encoder) > 1) {
+              ws.send(encoding.toUint8Array(encoder));
             }
-          });
-        }
-      } else if (data.type === 'sync-request') {
-        // Client requesting full state
-        const state = Y.encodeStateAsUpdate(doc);
-        ws.send(JSON.stringify({
-          type: 'sync-state',
-          state: Array.from(state),
-        }));
-      } else if (data.type === 'presence') {
-        // Broadcast presence to all users in the room
-        const room = stats.rooms.get(roomName);
-        if (room) {
-          room.forEach((client) => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: 'presence',
-                userId: ws.userId,
-                userName: ws.userName,
-                data: data.data,
-              }));
+
+            // Broadcast sync updates to other clients
+            if (syncMessageType === syncProtocol.messageYjsUpdate) {
+              const room = stats.rooms.get(roomName);
+              if (room) {
+                room.forEach((client) => {
+                  if (client !== ws && client.readyState === WebSocket.OPEN) {
+                    client.send(data);
+                  }
+                });
+              }
+
+              // Track updates and create version snapshot every 100 updates
+              const count = (updateCounts.get(roomName) || 0) + 1;
+              updateCounts.set(roomName, count);
+              if (count % 100 === 0 && ws.userId) {
+                createVersionSnapshot(roomName, doc, ws.userId).catch(error => {
+                  console.error('Error creating version snapshot:', error);
+                });
+                updateCounts.set(roomName, 0);
+              }
             }
-          });
+            break;
+          }
+
+          case messageAwareness: {
+            // Handle awareness updates
+            awarenessProtocol.applyAwarenessUpdate(awareness, decoding.readVarUint8Array(decoder), ws);
+            // Broadcast awareness to other clients
+            const room = stats.rooms.get(roomName);
+            if (room) {
+              room.forEach((client) => {
+                if (client !== ws && client.readyState === WebSocket.OPEN) {
+                  client.send(data);
+                }
+              });
+            }
+            break;
+          }
+
+          default:
+            console.warn(`Unknown y-websocket message type: ${messageType}`);
+        }
+      } else {
+        // Text messages - JSON protocol (for backwards compatibility)
+        const data = JSON.parse(message.toString());
+
+        if (data.type === 'sync-update') {
+          // Check write permissions - viewers can only read, not write
+          if (ws.userRole === 'viewer') {
+            console.warn(`⚠️  Viewer ${ws.userName} attempted to edit document`);
+            return;
+          }
+
+          const update = new Uint8Array(data.update);
+          Y.applyUpdate(doc, update, ws);
+
+          // Broadcast to other clients in room
+          const room = stats.rooms.get(roomName);
+          if (room) {
+            room.forEach((client) => {
+              if (client !== ws && client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({ type: 'sync-update', update: data.update }));
+              }
+            });
+          }
+        } else if (data.type === 'sync-request') {
+          const state = Y.encodeStateAsUpdate(doc);
+          ws.send(JSON.stringify({ type: 'sync-state', state: Array.from(state) }));
+        } else if (data.type === 'presence') {
+          // Broadcast presence to all users in the room
+          const room = stats.rooms.get(roomName);
+          if (room) {
+            room.forEach((client) => {
+              if (client !== ws && client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  type: 'presence',
+                  userId: ws.userId,
+                  userName: ws.userName,
+                  data: data.data,
+                }));
+              }
+            });
+          }
         }
       }
     } catch (err) {
