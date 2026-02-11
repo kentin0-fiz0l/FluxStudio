@@ -27,7 +27,12 @@ const JWT_SECRET = process.env.JWT_SECRET;
  * @returns {Object|null} - Decoded user object or null if invalid
  */
 function authenticateWebSocket(token) {
-  if (!token || !JWT_SECRET) {
+  if (!token) {
+    console.error('❌ Auth failed: No token provided');
+    return null;
+  }
+  if (!JWT_SECRET) {
+    console.error('❌ Auth failed: JWT_SECRET not configured');
     return null;
   }
 
@@ -35,7 +40,7 @@ function authenticateWebSocket(token) {
     const decoded = jwt.verify(token, JWT_SECRET);
     return decoded;
   } catch (error) {
-    console.error('JWT verification failed:', error.message);
+    console.error('❌ JWT verification failed:', error.message);
     return null;
   }
 }
