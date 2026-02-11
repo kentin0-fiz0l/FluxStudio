@@ -134,6 +134,8 @@ export function FormationCanvas({
   // Sync API data to local state when it loads
   useEffect(() => {
     if (apiFormation && formationId) {
+      // Register with formation service so operations like addPerformer work
+      formationService.registerFormation(apiFormation);
       setFormation(apiFormation);
       // Set initial keyframe and positions
       if (apiFormation.keyframes.length > 0) {

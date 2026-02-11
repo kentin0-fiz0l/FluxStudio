@@ -150,6 +150,15 @@ class FormationService {
   }
 
   /**
+   * Register an existing formation (e.g., loaded from API)
+   * This stores the formation in the service's internal Map for operations like addPerformer
+   */
+  registerFormation(formation: Formation): Formation {
+    this.formations.set(formation.id, formation);
+    return formation;
+  }
+
+  /**
    * Update a formation
    */
   updateFormation(id: string, updates: Partial<Formation>): Formation | undefined {
