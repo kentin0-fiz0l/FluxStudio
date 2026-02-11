@@ -148,6 +148,8 @@ export function FormationCollaborationProvider({
     isSyncing: yjsResult.isSyncing,
     error: yjsResult.error,
     collaborators: yjsResult.collaborators,
+    hasPendingChanges: yjsResult.hasPendingChanges,
+    lastSyncedAt: yjsResult.lastSyncedAt,
 
     // Mutations
     updateMeta: yjsResult.updateMeta,

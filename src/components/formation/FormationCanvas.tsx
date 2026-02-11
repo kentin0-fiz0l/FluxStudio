@@ -410,6 +410,13 @@ export function FormationCanvas({
       }
 
       // Broadcast selection to collaborators
+      console.log('[FormationCanvas] handleSelectPerformer:', {
+        performerId,
+        multiSelect,
+        isCollaborativeEnabled,
+        isConnected: collab.isConnected,
+        newSelection: Array.from(next),
+      });
       if (isCollaborativeEnabled && collab.isConnected) {
         collab.setSelectedPerformers(Array.from(next));
       }

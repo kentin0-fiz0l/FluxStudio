@@ -55,9 +55,8 @@ function authenticateWebSocket(token) {
     const decoded = jwt.verify(token, JWT_SECRET);
     return decoded;
   } catch (error) {
-    console.error('❌ JWT verification failed:', error.message);
-    console.error('   Secret prefix:', JWT_SECRET ? JWT_SECRET.substring(0, 8) + '...' : 'undefined');
-    console.error('   Token prefix:', token ? token.substring(0, 30) + '...' : 'undefined');
+    // SECURITY: Never log secrets or full tokens - only log error type
+    console.error('❌ JWT verification failed:', error.name || 'Unknown error');
     return null;
   }
 }
@@ -83,6 +82,207 @@ async function checkProjectAccess(userId, projectId) {
   }
 }
 
+// ============================================================================
+// Awareness Data Validation
+// ============================================================================
+
+/**
+ * Validate awareness state data from clients
+ * Prevents malicious data injection and ensures data integrity
+ * @param {Object} state - Awareness state to validate
+ * @param {string} userId - Expected user ID for validation
+ * @returns {{valid: boolean, reason?: string}} Validation result
+ */
+function validateAwarenessState(state) {
+  if (!state || typeof state !== 'object') {
+    return { valid: true }; // Empty state is valid (disconnect)
+  }
+
+  // Validate user object
+  if (state.user !== undefined) {
+    if (typeof state.user !== 'object' || state.user === null) {
+      return { valid: false, reason: 'user must be an object' };
+    }
+    // User ID must be a string (max 100 chars)
+    if (state.user.id !== undefined && (typeof state.user.id !== 'string' || state.user.id.length > 100)) {
+      return { valid: false, reason: 'user.id must be string <= 100 chars' };
+    }
+    // User name must be a string (max 100 chars)
+    if (state.user.name !== undefined && (typeof state.user.name !== 'string' || state.user.name.length > 100)) {
+      return { valid: false, reason: 'user.name must be string <= 100 chars' };
+    }
+    // Color must be a valid hex color
+    if (state.user.color !== undefined) {
+      if (typeof state.user.color !== 'string' || !/^#[0-9A-Fa-f]{6}$/.test(state.user.color)) {
+        return { valid: false, reason: 'user.color must be valid hex color' };
+      }
+    }
+  }
+
+  // Validate cursor
+  if (state.cursor !== undefined && state.cursor !== null) {
+    if (typeof state.cursor !== 'object') {
+      return { valid: false, reason: 'cursor must be object or null' };
+    }
+    // Cursor x/y must be numbers in range 0-100 (normalized coordinates)
+    if (typeof state.cursor.x !== 'number' || state.cursor.x < -10 || state.cursor.x > 110) {
+      return { valid: false, reason: 'cursor.x must be number in range -10 to 110' };
+    }
+    if (typeof state.cursor.y !== 'number' || state.cursor.y < -10 || state.cursor.y > 110) {
+      return { valid: false, reason: 'cursor.y must be number in range -10 to 110' };
+    }
+    // Timestamp must be reasonable (within last 24 hours to 1 minute future)
+    if (state.cursor.timestamp !== undefined) {
+      const now = Date.now();
+      const dayAgo = now - 86400000;
+      const minuteFuture = now + 60000;
+      if (typeof state.cursor.timestamp !== 'number' || state.cursor.timestamp < dayAgo || state.cursor.timestamp > minuteFuture) {
+        return { valid: false, reason: 'cursor.timestamp must be within valid range' };
+      }
+    }
+  }
+
+  // Validate selectedPerformerIds (array of strings, max 100 items)
+  if (state.selectedPerformerIds !== undefined) {
+    if (!Array.isArray(state.selectedPerformerIds)) {
+      return { valid: false, reason: 'selectedPerformerIds must be array' };
+    }
+    if (state.selectedPerformerIds.length > 100) {
+      return { valid: false, reason: 'selectedPerformerIds max 100 items' };
+    }
+    for (const id of state.selectedPerformerIds) {
+      if (typeof id !== 'string' || id.length > 100) {
+        return { valid: false, reason: 'selectedPerformerIds items must be strings <= 100 chars' };
+      }
+    }
+  }
+
+  // Validate draggingPerformerId (string or null, max 100 chars)
+  if (state.draggingPerformerId !== undefined && state.draggingPerformerId !== null) {
+    if (typeof state.draggingPerformerId !== 'string' || state.draggingPerformerId.length > 100) {
+      return { valid: false, reason: 'draggingPerformerId must be string <= 100 chars or null' };
+    }
+  }
+
+  // Validate activeKeyframeId (string or null, max 100 chars)
+  if (state.activeKeyframeId !== undefined && state.activeKeyframeId !== null) {
+    if (typeof state.activeKeyframeId !== 'string' || state.activeKeyframeId.length > 100) {
+      return { valid: false, reason: 'activeKeyframeId must be string <= 100 chars or null' };
+    }
+  }
+
+  // Validate isActive (boolean)
+  if (state.isActive !== undefined && typeof state.isActive !== 'boolean') {
+    return { valid: false, reason: 'isActive must be boolean' };
+  }
+
+  // Validate lastActivity (timestamp)
+  if (state.lastActivity !== undefined) {
+    const now = Date.now();
+    const dayAgo = now - 86400000;
+    const minuteFuture = now + 60000;
+    if (typeof state.lastActivity !== 'number' || state.lastActivity < dayAgo || state.lastActivity > minuteFuture) {
+      return { valid: false, reason: 'lastActivity must be valid timestamp' };
+    }
+  }
+
+  // Check for suspicious oversized state (prevent DoS)
+  const stateSize = JSON.stringify(state).length;
+  if (stateSize > 10000) { // 10KB max
+    return { valid: false, reason: 'awareness state too large (max 10KB)' };
+  }
+
+  return { valid: true };
+}
+
+// ============================================================================
+// Rate Limiting
+// ============================================================================
+
+/**
+ * Token bucket rate limiter for WebSocket connections
+ */
+class RateLimiter {
+  constructor(options = {}) {
+    this.maxTokens = options.maxTokens || 100; // Maximum burst capacity
+    this.refillRate = options.refillRate || 10; // Tokens per second
+    this.refillInterval = options.refillInterval || 1000; // ms
+    this.buckets = new Map(); // key -> { tokens, lastRefill }
+  }
+
+  /**
+   * Try to consume tokens, returns true if allowed
+   */
+  tryConsume(key, tokens = 1) {
+    const now = Date.now();
+
+    if (!this.buckets.has(key)) {
+      this.buckets.set(key, { tokens: this.maxTokens, lastRefill: now });
+    }
+
+    const bucket = this.buckets.get(key);
+
+    // Refill tokens based on time elapsed
+    const elapsed = now - bucket.lastRefill;
+    const tokensToAdd = Math.floor(elapsed / this.refillInterval) * this.refillRate;
+    bucket.tokens = Math.min(this.maxTokens, bucket.tokens + tokensToAdd);
+    bucket.lastRefill = now;
+
+    // Try to consume
+    if (bucket.tokens >= tokens) {
+      bucket.tokens -= tokens;
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Get remaining tokens for a key
+   */
+  getTokens(key) {
+    return this.buckets.get(key)?.tokens ?? this.maxTokens;
+  }
+
+  /**
+   * Clean up old buckets (call periodically)
+   */
+  cleanup(maxAge = 300000) { // 5 minutes
+    const now = Date.now();
+    for (const [key, bucket] of this.buckets.entries()) {
+      if (now - bucket.lastRefill > maxAge) {
+        this.buckets.delete(key);
+      }
+    }
+  }
+}
+
+// Rate limiters for different operations
+const connectionLimiter = new RateLimiter({
+  maxTokens: 10,      // Max 10 connections in burst
+  refillRate: 2,      // Refill 2 per second
+  refillInterval: 1000,
+});
+
+const messageLimiter = new RateLimiter({
+  maxTokens: 200,     // Max 200 messages in burst
+  refillRate: 50,     // Refill 50 per second
+  refillInterval: 1000,
+});
+
+const awarenessLimiter = new RateLimiter({
+  maxTokens: 100,     // Max 100 awareness updates in burst
+  refillRate: 20,     // Refill 20 per second (generous for cursor updates)
+  refillInterval: 1000,
+});
+
+// Cleanup rate limiter buckets every 5 minutes
+setInterval(() => {
+  connectionLimiter.cleanup();
+  messageLimiter.cleanup();
+  awarenessLimiter.cleanup();
+}, 300000);
+
 // Statistics tracking
 const stats = {
   startTime: Date.now(),
@@ -90,6 +290,7 @@ const stats = {
   totalConnections: 0,
   rooms: new Map(), // roomName -> Set of connections
   messages: 0,
+  rateLimited: 0, // Track rate limited requests
 };
 
 // Create HTTP server for health checks
@@ -106,6 +307,7 @@ const server = http.createServer((req, res) => {
       activeRooms: stats.rooms.size,
       rooms: Array.from(stats.rooms.keys()),
       messagesProcessed: stats.messages,
+      rateLimited: stats.rateLimited,
       timestamp: new Date().toISOString(),
     }));
   } else if (req.url === '/stats') {
@@ -488,6 +690,19 @@ const wss = new WebSocket.Server({ server });
 console.log('🚀 FluxStudio Collaboration Server starting...');
 
 wss.on('connection', async (ws, req) => {
+  // Get client IP for rate limiting
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+                   req.socket.remoteAddress ||
+                   'unknown';
+
+  // Check connection rate limit
+  if (!connectionLimiter.tryConsume(clientIp)) {
+    console.warn(`⚠️  Connection rate limited: ${clientIp}`);
+    stats.rateLimited++;
+    ws.close(4429, 'Too Many Requests: Connection rate limit exceeded');
+    return;
+  }
+
   stats.connections++;
   stats.totalConnections++;
 
@@ -501,6 +716,9 @@ wss.on('connection', async (ws, req) => {
       roomName = roomName.slice(7); // Remove 'collab/'
     }
     const token = urlObj.searchParams.get('token');
+
+    // Store client IP for message rate limiting
+    ws.clientIp = clientIp;
 
     console.log(`🔐 New connection attempt to room: ${roomName}`);
 
@@ -598,6 +816,15 @@ wss.on('connection', async (ws, req) => {
   ws.on('message', (message, isBinary) => {
     stats.messages++;
 
+    // Apply message rate limiting
+    const rateLimitKey = ws.clientIp || ws.userId || 'unknown';
+    if (!messageLimiter.tryConsume(rateLimitKey)) {
+      console.warn(`⚠️  Message rate limited: ${ws.userName} (${rateLimitKey})`);
+      stats.rateLimited++;
+      // Don't disconnect, just drop the message
+      return;
+    }
+
     try {
       // Binary messages use y-websocket protocol
       if (isBinary || Buffer.isBuffer(message)) {
@@ -615,6 +842,12 @@ wss.on('connection', async (ws, req) => {
             // If there's a response, send it
             if (encoding.length(encoder) > 1) {
               ws.send(encoding.toUint8Array(encoder));
+            }
+
+            // SECURITY: Check write permissions - viewers can only read, not write
+            if (syncMessageType === syncProtocol.messageYjsUpdate && ws.userRole === 'viewer') {
+              console.warn(`⚠️  Viewer ${ws.userName} attempted to edit document via binary protocol`);
+              break; // Reject the update
             }
 
             // Broadcast sync updates to other clients
@@ -642,9 +875,39 @@ wss.on('connection', async (ws, req) => {
           }
 
           case messageAwareness: {
+            // Apply additional rate limiting for awareness updates (cursor tracking can be high frequency)
+            const awarenessRateKey = `awareness:${ws.clientIp || ws.userId || 'unknown'}`;
+            if (!awarenessLimiter.tryConsume(awarenessRateKey)) {
+              // Don't log every dropped awareness message to avoid log spam
+              stats.rateLimited++;
+              break;
+            }
+
             // Handle awareness updates
-            awarenessProtocol.applyAwarenessUpdate(awareness, decoding.readVarUint8Array(decoder), ws);
-            // Broadcast awareness to other clients
+            const awarenessUpdate = decoding.readVarUint8Array(decoder);
+
+            // Apply the update first to decode it
+            awarenessProtocol.applyAwarenessUpdate(awareness, awarenessUpdate, ws);
+
+            // Validate the awareness state for this client
+            // The ws object has a clientId assigned by the awareness protocol
+            const clientId = Array.from(awareness.states.entries())
+              .find(([, state]) => state?.user?.id === ws.userId)?.[0];
+
+            if (clientId !== undefined) {
+              const clientState = awareness.states.get(clientId);
+              const validation = validateAwarenessState(clientState);
+
+              if (!validation.valid) {
+                console.warn(`⚠️  Invalid awareness data from ${ws.userName}: ${validation.reason}`);
+                // Remove the invalid state to prevent it from propagating
+                awareness.states.delete(clientId);
+                // Don't broadcast invalid data
+                break;
+              }
+            }
+
+            // Broadcast validated awareness to other clients
             const room = stats.rooms.get(roomName);
             if (room) {
               room.forEach((client) => {

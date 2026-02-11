@@ -13,7 +13,7 @@
  * - Zoom scaling for selection rings
  */
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import type { FormationAwarenessState } from '@/services/formation/yjs/formationYjsTypes';
 import type { Position } from '@/services/formationService';
 
@@ -86,6 +86,37 @@ export function FormationCursorOverlay({
   zoom = 1,
   className = '',
 }: FormationCursorOverlayProps) {
+  // Track previous collaborator count for announcements
+  const prevCollaboratorCountRef = useRef(collaborators.length);
+  const announcementRef = useRef<string>('');
+
+  // Generate screen reader announcement when collaborators change
+  useEffect(() => {
+    const prevCount = prevCollaboratorCountRef.current;
+    const currentCount = collaborators.length;
+
+    if (currentCount > prevCount) {
+      // New collaborator joined
+      const newCollaborators = collaborators.slice(prevCount);
+      const names = newCollaborators.map(c => c.user?.name).filter(Boolean).join(', ');
+      announcementRef.current = names
+        ? `${names} joined the canvas`
+        : `${currentCount - prevCount} collaborator${currentCount - prevCount > 1 ? 's' : ''} joined`;
+    } else if (currentCount < prevCount) {
+      // Collaborator left
+      announcementRef.current = `A collaborator left the canvas. ${currentCount} collaborator${currentCount !== 1 ? 's' : ''} remaining`;
+    }
+
+    prevCollaboratorCountRef.current = currentCount;
+  }, [collaborators]);
+
+  // Generate dragging announcement
+  const draggingAnnouncement = useMemo(() => {
+    const draggingUsers = collaborators.filter(c => c.draggingPerformerId);
+    if (draggingUsers.length === 0) return '';
+    return draggingUsers.map(c => `${c.user?.name || 'Someone'} is moving a performer`).join('. ');
+  }, [collaborators]);
+
   // Filter active collaborators with valid, non-stale cursors
   const activeCursors = useMemo(() => {
     return collaborators.filter((c) => {
@@ -153,13 +184,31 @@ export function FormationCursorOverlay({
   // Don't render if no collaborators
   if (collaborators.length === 0) return null;
 
+  // Calculate selection count for announcement
+  const totalSelections = selectionRings.length;
+  const selectingUsers = [...new Set(selectionRings.map(r => r.userName))];
+
   return (
-    <div
-      className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
-      style={{ zIndex: 50 }}
-      aria-hidden="true"
-      data-testid="formation-cursor-overlay"
-    >
+    <>
+      {/* Screen reader announcements - visually hidden but accessible */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {collaborators.length} collaborator{collaborators.length !== 1 ? 's' : ''} on canvas
+        {totalSelections > 0 && `. ${selectingUsers.join(', ')} ${selectingUsers.length === 1 ? 'has' : 'have'} selected performers`}
+        {draggingAnnouncement && `. ${draggingAnnouncement}`}
+      </div>
+
+      {/* Visual overlay - hidden from screen readers */}
+      <div
+        className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
+        style={{ zIndex: 50 }}
+        aria-hidden="true"
+        data-testid="formation-cursor-overlay"
+      >
       {/* Selection rings for performers selected by others */}
       {selectionRings.map((ring) => (
         <PerformerSelectionRing
@@ -207,7 +256,8 @@ export function FormationCursorOverlay({
             collaborator={collaborator}
           />
         ))}
-    </div>
+      </div>
+    </>
   );
 }
 

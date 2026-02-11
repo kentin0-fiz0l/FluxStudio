@@ -62,6 +62,10 @@ export interface UseFormationYjsResult {
   error: string | null;
   /** Other collaborators in the session */
   collaborators: FormationAwarenessState[];
+  /** Has pending local changes waiting to sync */
+  hasPendingChanges: boolean;
+  /** Timestamp of last successful sync (null if never synced) */
+  lastSyncedAt: number | null;
   /** Yjs document instance */
   doc: Y.Doc | null;
   /** WebSocket provider */
@@ -122,11 +126,15 @@ export function useFormationYjs({
   const [isSyncing, setIsSyncing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [collaborators, setCollaborators] = useState<FormationAwarenessState[]>([]);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
 
   // Refs for Yjs instances
   const docRef = useRef<Y.Doc | null>(null);
   const providerRef = useRef<WebsocketProvider | null>(null);
   const persistenceRef = useRef<IndexeddbPersistence | null>(null);
+  // Ref to track syncing state (avoids stale closure in persistence callback)
+  const isSyncingRef = useRef(true);
 
   // User awareness state
   const userColor = useMemo(() => getUserColor(user?.id || 'anonymous'), [user?.id]);
@@ -171,16 +179,36 @@ export function useFormationYjs({
     // Track sync completion
     wsProvider.on('sync', (synced: boolean) => {
       if (synced) {
+        isSyncingRef.current = false; // Update ref for persistence callback
         setIsSyncing(false);
+        setHasPendingChanges(false);
+        setLastSyncedAt(Date.now());
         // Sync initial state to React
         syncYjsToReact(ydoc);
       }
     });
 
+    // Track local document updates for pending changes indicator
+    const updateTracker = (_update: Uint8Array, origin: unknown) => {
+      // If the update originated locally (not from remote), mark as pending
+      if (origin === null || origin === undefined || origin === 'local') {
+        setHasPendingChanges(true);
+      } else {
+        // Remote update received and applied means we're synced
+        // Use providerRef to check connection status (avoids stale closure)
+        if (providerRef.current?.wsconnected) {
+          setHasPendingChanges(false);
+          setLastSyncedAt(Date.now());
+        }
+      }
+    };
+    ydoc.on('update', updateTracker);
+
     // Also sync when IndexedDB is loaded (for offline support)
     persistence.on('synced', () => {
       // If WebSocket hasn't synced yet, use local data
-      if (isSyncing) {
+      // Use ref to avoid stale closure issue
+      if (isSyncingRef.current) {
         syncYjsToReact(ydoc);
       }
     });
@@ -191,17 +219,69 @@ export function useFormationYjs({
       setError('Failed to connect to collaboration server');
     });
 
-    // Set initial awareness state
+    // Set initial awareness state with ALL fields to ensure proper sync
     if (user) {
-      wsProvider.awareness.setLocalStateField('user', {
-        id: user.id,
-        name: user.name,
-        color: userColor,
-        avatar: user.avatar,
+      // Use setLocalState to set all fields atomically for proper broadcast
+      wsProvider.awareness.setLocalState({
+        user: {
+          id: user.id,
+          name: user.name,
+          color: userColor,
+          avatar: user.avatar,
+        },
+        isActive: true,
+        lastActivity: Date.now(),
+        cursor: null,
+        selectedPerformerIds: [],
+        draggingPerformerId: null,
+        activeKeyframeId: null,
       });
-      wsProvider.awareness.setLocalStateField('isActive', true);
-      wsProvider.awareness.setLocalStateField('lastActivity', Date.now());
     }
+
+    // Periodic heartbeat to prevent cursor staleness while user is active
+    // Refreshes lastActivity every 5 seconds to keep presence visible
+    const heartbeatInterval = setInterval(() => {
+      if (user && wsProvider.awareness && !document.hidden) {
+        const currentState = wsProvider.awareness.getLocalState();
+        if (currentState && currentState.isActive) {
+          // Only refresh if there's a cursor (user is actively viewing)
+          if (currentState.cursor) {
+            wsProvider.awareness.setLocalStateField('cursor', {
+              ...currentState.cursor,
+              timestamp: Date.now(),
+            });
+          }
+          wsProvider.awareness.setLocalStateField('lastActivity', Date.now());
+        }
+      }
+    }, 5000); // 5 second heartbeat
+
+    // Handle visibility change to manage presence when user switches tabs
+    const handleVisibilityChange = () => {
+      if (!wsProvider.awareness) return;
+
+      const currentState = wsProvider.awareness.getLocalState() || {};
+      if (document.hidden) {
+        // User switched away - mark as inactive but keep cursor
+        wsProvider.awareness.setLocalState({
+          ...currentState,
+          isActive: false,
+        });
+      } else {
+        // User returned - mark as active and refresh timestamp
+        wsProvider.awareness.setLocalState({
+          ...currentState,
+          isActive: true,
+          lastActivity: Date.now(),
+          cursor: currentState.cursor ? {
+            ...currentState.cursor,
+            timestamp: Date.now(),
+          } : null,
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Track other collaborators
     wsProvider.awareness.on('change', () => {
@@ -233,6 +313,10 @@ export function useFormationYjs({
 
     // Cleanup
     return () => {
+      clearInterval(heartbeatInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+      ydoc.off('update', updateTracker);
       meta.unobserveDeep(observer);
       performers.unobserveDeep(observer);
       keyframes.unobserveDeep(observer);
@@ -549,21 +633,24 @@ export function useFormationYjs({
 
     const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
 
-    // Find the keyframe
-    for (let i = 0; i < keyframes.length; i++) {
-      const yKeyframe = keyframes.get(i) as Y.Map<unknown>;
-      if (yKeyframe.get('id') === keyframeId) {
-        const positions = yKeyframe.get(FORMATION_YJS_TYPES.POSITIONS) as Y.Map<YjsPosition>;
-        if (positions) {
-          positions.set(performerId, {
-            x: position.x,
-            y: position.y,
-            rotation: position.rotation ?? 0,
-          });
+    // Wrap in transaction for consistency with updatePositions
+    ydoc.transact(() => {
+      // Find the keyframe
+      for (let i = 0; i < keyframes.length; i++) {
+        const yKeyframe = keyframes.get(i) as Y.Map<unknown>;
+        if (yKeyframe.get('id') === keyframeId) {
+          const positions = yKeyframe.get(FORMATION_YJS_TYPES.POSITIONS) as Y.Map<YjsPosition>;
+          if (positions) {
+            positions.set(performerId, {
+              x: position.x,
+              y: position.y,
+              rotation: position.rotation ?? 0,
+            });
+          }
+          break;
         }
-        break;
       }
-    }
+    });
   }, []);
 
   const updatePositions = useCallback((keyframeId: string, positions: Map<string, Position>) => {
@@ -624,6 +711,16 @@ export function useFormationYjs({
   const cursorThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
 
+  // Cleanup cursor throttle timer on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (cursorThrottleRef.current !== null) {
+        clearTimeout(cursorThrottleRef.current);
+        cursorThrottleRef.current = null;
+      }
+    };
+  }, []);
+
   const updateCursor = useCallback((x: number, y: number) => {
     const provider = providerRef.current;
     if (!provider) return;
@@ -667,16 +764,26 @@ export function useFormationYjs({
     const provider = providerRef.current;
     if (!provider) return;
 
-    provider.awareness.setLocalStateField('selectedPerformerIds', performerIds);
-    provider.awareness.setLocalStateField('lastActivity', Date.now());
+    // Get current state and update atomically to ensure proper broadcast
+    const currentState = provider.awareness.getLocalState() || {};
+    provider.awareness.setLocalState({
+      ...currentState,
+      selectedPerformerIds: performerIds,
+      lastActivity: Date.now(),
+    });
   }, []);
 
   const setDraggingPerformer = useCallback((performerId: string | null) => {
     const provider = providerRef.current;
     if (!provider) return;
 
-    provider.awareness.setLocalStateField('draggingPerformerId', performerId);
-    provider.awareness.setLocalStateField('lastActivity', Date.now());
+    // Use atomic state update for proper broadcast
+    const currentState = provider.awareness.getLocalState() || {};
+    provider.awareness.setLocalState({
+      ...currentState,
+      draggingPerformerId: performerId,
+      lastActivity: Date.now(),
+    });
   }, []);
 
   const isPerformerBeingDragged = useCallback((performerId: string): { dragging: boolean; by?: FormationAwarenessState } => {
@@ -697,6 +804,8 @@ export function useFormationYjs({
     isSyncing,
     error,
     collaborators,
+    hasPendingChanges,
+    lastSyncedAt,
     doc: docRef.current,
     provider: providerRef.current,
 
