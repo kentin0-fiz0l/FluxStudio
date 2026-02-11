@@ -136,17 +136,33 @@ export function useFormationYjs({
   // ============================================================================
 
   useEffect(() => {
-    if (!enabled || !formationId || !projectId) return;
+    console.log('[useFormationYjs] Hook called with:', {
+      enabled,
+      formationId,
+      projectId,
+      hasUser: !!user,
+    });
+
+    if (!enabled || !formationId || !projectId) {
+      console.log('[useFormationYjs] Skipping - missing required params:', {
+        enabled,
+        hasFormationId: !!formationId,
+        hasProjectId: !!projectId,
+      });
+      return;
+    }
 
     const ydoc = new Y.Doc();
     docRef.current = ydoc;
 
     // Get room name
     const roomName = getFormationRoomName(projectId, formationId);
+    console.log('[useFormationYjs] Room name:', roomName);
 
     // Setup WebSocket provider
     const wsUrl = import.meta.env.VITE_COLLAB_URL || 'ws://localhost:4000';
     const token = localStorage.getItem('auth_token') || '';
+    console.log('[useFormationYjs] Connecting to:', wsUrl, 'with token length:', token.length);
 
     const wsProvider = new WebsocketProvider(wsUrl, roomName, ydoc, {
       params: { token },
@@ -159,6 +175,7 @@ export function useFormationYjs({
 
     // Track connection status
     wsProvider.on('status', ({ status }: { status: string }) => {
+      console.log('[useFormationYjs] WebSocket status:', status);
       const connected = status === 'connected';
       setIsConnected(connected);
       onConnectionChange?.(connected);
@@ -187,8 +204,16 @@ export function useFormationYjs({
 
     // Handle errors
     wsProvider.on('connection-error', (event: Event) => {
-      console.error('Formation collaboration connection error:', event);
+      console.error('[useFormationYjs] Connection error:', event);
       setError('Failed to connect to collaboration server');
+    });
+
+    wsProvider.on('connection-close', (event: CloseEvent) => {
+      console.error('[useFormationYjs] Connection closed:', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean,
+      });
     });
 
     // Set initial awareness state
