@@ -17,6 +17,13 @@ const HOST = process.env.COLLAB_HOST || '0.0.0.0';
 const AUTOSAVE_INTERVAL = 30000; // 30 seconds
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// Debug: Log which relevant env vars are set at startup (keys only, not values)
+console.log('🔧 Collaboration server startup - Environment check:');
+console.log('  COLLAB_PORT:', process.env.COLLAB_PORT ? '✓ set' : '✗ not set');
+console.log('  COLLAB_HOST:', process.env.COLLAB_HOST ? '✓ set' : '✗ not set');
+console.log('  JWT_SECRET:', process.env.JWT_SECRET ? '✓ set' : '✗ not set');
+console.log('  DATABASE_URL:', process.env.DATABASE_URL ? '✓ set' : '✗ not set');
+
 // ============================================================================
 // Authentication & Authorization
 // ============================================================================
