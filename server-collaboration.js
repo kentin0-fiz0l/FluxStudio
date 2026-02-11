@@ -309,8 +309,13 @@ wss.on('connection', async (ws, req) => {
 
   try {
     // Parse URL: ws://localhost:4000/project-{id}-doc-{id}?token=xyz
+    // In production, requests come via /collab prefix: /collab/project-{id}-...
     const urlObj = new URL(req.url, `ws://${req.headers.host || 'localhost:4000'}`);
-    const roomName = urlObj.pathname.slice(1) || 'default'; // Remove leading '/'
+    let roomName = urlObj.pathname.slice(1) || 'default'; // Remove leading '/'
+    // Strip /collab prefix if present (DigitalOcean ingress routing)
+    if (roomName.startsWith('collab/')) {
+      roomName = roomName.slice(7); // Remove 'collab/'
+    }
     const token = urlObj.searchParams.get('token');
 
     console.log(`🔐 New connection attempt to room: ${roomName}`);
