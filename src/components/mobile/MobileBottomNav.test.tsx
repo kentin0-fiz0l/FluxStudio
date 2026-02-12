@@ -342,7 +342,11 @@ describe('MobileBottomNav', () => {
       fireEvent.click(menuButton!);
 
       await waitFor(() => {
-        const avatar = screen.getByAltText('Test User');
+        // Avatar has empty alt text (decorative, user name shown separately)
+        // Query by the img element directly since it's aria-hidden
+        const avatarContainer = screen.getByText('Test User').closest('header');
+        const avatar = avatarContainer?.querySelector('img');
+        expect(avatar).toBeTruthy();
         expect(avatar).toHaveAttribute('src', 'https://example.com/avatar.jpg');
       });
     });

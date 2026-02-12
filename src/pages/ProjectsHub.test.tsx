@@ -8,6 +8,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProjectsHub } from './ProjectsHub';
 
 // Mock dependencies
@@ -45,6 +46,35 @@ vi.mock('@/hooks/useProjects', () => ({
     createProject: vi.fn(),
     updateProject: vi.fn(),
     deleteProject: vi.fn(),
+  })),
+}));
+
+vi.mock('@/hooks/useActivities', () => ({
+  useDashboardActivities: vi.fn(() => ({
+    data: {
+      activities: [
+        {
+          id: '1',
+          description: 'Sarah uploaded 3 files',
+          user: { name: 'Sarah' },
+          action: 'uploaded 3 files',
+          projectName: 'Project Alpha',
+          timestamp: new Date().toISOString(),
+          type: 'file_upload'
+        },
+        {
+          id: '2',
+          description: 'Mike commented on formation 3',
+          user: { name: 'Mike' },
+          action: 'commented on formation 3',
+          projectName: 'Project Beta',
+          timestamp: new Date().toISOString(),
+          type: 'comment'
+        },
+      ],
+    },
+    isLoading: false,
+    error: null,
   })),
 }));
 
@@ -136,10 +166,19 @@ describe('ProjectsHub', () => {
   });
 
   const renderProjectsHub = () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    });
     return render(
-      <MemoryRouter>
-        <ProjectsHub />
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ProjectsHub />
+        </MemoryRouter>
+      </QueryClientProvider>
     );
   };
 

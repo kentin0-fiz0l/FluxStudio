@@ -22,6 +22,8 @@ export default defineConfig({
       'tests/e2e/**',
       'tests/load/**',
       'tests/integration/**',  // Integration tests require running infrastructure
+      'tests/routes/**',  // Route tests use Jest, not Vitest
+      'tests/unit/**',  // Unit tests in tests/ folder use Jest
       '**/*.e2e.*',
       '**/*.spec.ts',
       '**/*.integration.*',  // Integration tests marked with .integration.
