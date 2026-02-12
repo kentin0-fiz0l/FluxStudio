@@ -338,6 +338,9 @@ services:
       - key: AUTH_SERVICE_URL
         scope: RUN_TIME
         type: SECRET
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
 
 # MCP Server (Model Context Protocol for AI integrations)
   # Using Node.js buildpack (Dockerfile detection unreliable on App Platform)
