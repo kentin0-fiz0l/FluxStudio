@@ -7,8 +7,7 @@ import type {
   Integration,
   IntegrationProvider
 } from '../types/integrations';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://fluxstudio.art/api';
+import { buildApiUrl } from '../config/environment';
 
 interface AuthorizationResponse {
   authorizationUrl: string;
@@ -33,7 +32,7 @@ class IntegrationService {
    * Get all connected integrations for the current user
    */
   async getIntegrations(): Promise<Integration[]> {
-    const response = await fetch(`${API_BASE_URL}/integrations`, {
+    const response = await fetch(buildApiUrl('/integrations'), {
       headers: this.getAuthHeaders()
     });
 
@@ -58,7 +57,7 @@ class IntegrationService {
    * Returns the authorization URL to redirect the user to
    */
   async startAuthorization(provider: IntegrationProvider): Promise<AuthorizationResponse> {
-    const response = await fetch(`${API_BASE_URL}/integrations/${provider}/auth`, {
+    const response = await fetch(buildApiUrl(`/integrations/${provider}/auth`), {
       method: 'GET',
       headers: this.getAuthHeaders()
     });
@@ -74,7 +73,7 @@ class IntegrationService {
    * Disconnect an integration
    */
   async disconnect(provider: IntegrationProvider): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/integrations/${provider}`, {
+    const response = await fetch(buildApiUrl(`/integrations/${provider}`), {
       method: 'DELETE',
       headers: this.getAuthHeaders()
     });
@@ -88,7 +87,7 @@ class IntegrationService {
    * Refresh an expired integration
    */
   async refresh(provider: IntegrationProvider): Promise<Integration> {
-    const response = await fetch(`${API_BASE_URL}/integrations/${provider}/refresh`, {
+    const response = await fetch(buildApiUrl(`/integrations/${provider}/refresh`), {
       method: 'POST',
       headers: this.getAuthHeaders()
     });
@@ -106,7 +105,7 @@ class IntegrationService {
    * Get Figma files accessible to the user
    */
   async getFigmaFiles(): Promise<any[]> {
-    const response = await fetch(`${API_BASE_URL}/integrations/figma/files`, {
+    const response = await fetch(buildApiUrl('/integrations/figma/files'), {
       headers: this.getAuthHeaders()
     });
 
@@ -122,7 +121,7 @@ class IntegrationService {
    * Get a specific Figma file by key
    */
   async getFigmaFile(fileKey: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/integrations/figma/files/${fileKey}`, {
+    const response = await fetch(buildApiUrl(`/integrations/figma/files/${fileKey}`), {
       headers: this.getAuthHeaders()
     });
 
@@ -140,8 +139,8 @@ class IntegrationService {
    */
   async getSlackChannels(teamId?: string): Promise<any[]> {
     const url = teamId
-      ? `${API_BASE_URL}/integrations/slack/channels?teamId=${teamId}`
-      : `${API_BASE_URL}/integrations/slack/channels`;
+      ? buildApiUrl(`/integrations/slack/channels?teamId=${teamId}`)
+      : buildApiUrl('/integrations/slack/channels');
 
     const response = await fetch(url, {
       headers: this.getAuthHeaders()
@@ -159,7 +158,7 @@ class IntegrationService {
    * Send a message to a Slack channel
    */
   async sendSlackMessage(channel: string, message: string, teamId?: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/integrations/slack/message`, {
+    const response = await fetch(buildApiUrl('/integrations/slack/message'), {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ channel, message, teamId })
@@ -178,7 +177,7 @@ class IntegrationService {
    * Get GitHub repositories accessible to the user
    */
   async getGitHubRepositories(): Promise<any[]> {
-    const response = await fetch(`${API_BASE_URL}/integrations/github/repositories`, {
+    const response = await fetch(buildApiUrl('/integrations/github/repositories'), {
       headers: this.getAuthHeaders()
     });
 
@@ -194,7 +193,7 @@ class IntegrationService {
    * Get a specific GitHub repository
    */
   async getGitHubRepository(owner: string, repo: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/integrations/github/repositories/${owner}/${repo}`, {
+    const response = await fetch(buildApiUrl(`/integrations/github/repositories/${owner}/${repo}`), {
       headers: this.getAuthHeaders()
     });
 
@@ -209,7 +208,7 @@ class IntegrationService {
    * Link a GitHub repository to a project
    */
   async linkGitHubRepository(owner: string, repo: string, projectId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/integrations/github/repositories/${owner}/${repo}/link`, {
+    const response = await fetch(buildApiUrl(`/integrations/github/repositories/${owner}/${repo}/link`), {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ projectId })
@@ -224,7 +223,7 @@ class IntegrationService {
    * Get issues for a GitHub repository
    */
   async getGitHubIssues(owner: string, repo: string): Promise<any[]> {
-    const response = await fetch(`${API_BASE_URL}/integrations/github/repositories/${owner}/${repo}/issues`, {
+    const response = await fetch(buildApiUrl(`/integrations/github/repositories/${owner}/${repo}/issues`), {
       headers: this.getAuthHeaders()
     });
 
@@ -240,7 +239,7 @@ class IntegrationService {
    * Get pull requests for a GitHub repository
    */
   async getGitHubPullRequests(owner: string, repo: string): Promise<any[]> {
-    const response = await fetch(`${API_BASE_URL}/integrations/github/repositories/${owner}/${repo}/pulls`, {
+    const response = await fetch(buildApiUrl(`/integrations/github/repositories/${owner}/${repo}/pulls`), {
       headers: this.getAuthHeaders()
     });
 
@@ -256,7 +255,7 @@ class IntegrationService {
    * Get commits for a GitHub repository
    */
   async getGitHubCommits(owner: string, repo: string): Promise<any[]> {
-    const response = await fetch(`${API_BASE_URL}/integrations/github/repositories/${owner}/${repo}/commits`, {
+    const response = await fetch(buildApiUrl(`/integrations/github/repositories/${owner}/${repo}/commits`), {
       headers: this.getAuthHeaders()
     });
 

@@ -13,6 +13,7 @@ import { shadows } from './src/tokens/shadows'
 import { animations } from './src/tokens/animations'
 
 export default {
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",

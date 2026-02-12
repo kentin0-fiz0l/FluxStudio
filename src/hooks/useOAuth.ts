@@ -200,7 +200,7 @@ export function useOAuth(
               details: {
                 instructions: [
                   'Click the popup blocker icon in your browser address bar',
-                  'Select "Always allow popups from fluxstudio.art"',
+                  `Select "Always allow popups from ${window.location.hostname}"`,
                   'Click "Try Again" to reconnect'
                 ]
               }
