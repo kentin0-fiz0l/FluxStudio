@@ -53,8 +53,13 @@ class AuthAdapter {
 
       const newUser = this.transformUser(result.rows[0]);
 
-      // Create default organization for new user
-      await this.createDefaultOrganization(newUser.id, newUser.name, newUser.email);
+      // Create default organization for new user (non-blocking - don't fail signup if org creation fails)
+      try {
+        await this.createDefaultOrganization(newUser.id, newUser.name, newUser.email);
+      } catch (orgError) {
+        console.warn('Could not create default organization for user (non-critical):', orgError.message);
+        // Continue - user was created successfully, org can be created later
+      }
 
       return newUser;
     } catch (error) {

@@ -154,8 +154,8 @@ router.post('/signup',
       }
 
       // Check if user exists
-      const users = await authHelper.getUsers();
-      if (users.find(u => u.email === email)) {
+      const existingUser = await authHelper.getUserByEmail(email);
+      if (existingUser) {
         return res.status(400).json({ message: 'Email already registered' });
       }
 
@@ -166,24 +166,39 @@ router.post('/signup',
       const verificationToken = emailService.generateToken();
       const verificationExpires = emailService.generateExpiry(24); // 24 hours
 
-      // Create user with UUID (Week 2 - compatible with database)
-      const newUser = {
-        id: uuidv4(),
-        email,
-        name,
-        userType,
-        password: hashedPassword,
-        emailVerified: false,
-        verificationToken,
-        verificationExpires: verificationExpires.toISOString(),
-        createdAt: new Date().toISOString()
-      };
+      // Create user using the proper createUser function (fixes database persistence bug)
+      let newUser;
+      if (authHelper.createUser) {
+        // Database mode: use createUser which properly persists to PostgreSQL
+        newUser = await authHelper.createUser({
+          email,
+          name,
+          userType,
+          password: hashedPassword,
+          emailVerified: false,
+          verificationToken,
+          verificationExpires: verificationExpires.toISOString()
+        });
+      } else {
+        // File mode fallback: use the old pattern
+        const users = await authHelper.getUsers();
+        newUser = {
+          id: uuidv4(),
+          email,
+          name,
+          userType,
+          password: hashedPassword,
+          emailVerified: false,
+          verificationToken,
+          verificationExpires: verificationExpires.toISOString(),
+          createdAt: new Date().toISOString()
+        };
+        users.push(newUser);
+        await authHelper.saveUsers(users);
+      }
 
-      users.push(newUser);
-      await authHelper.saveUsers(users);
-
-      // If using database, also update the verification columns
-      if (USE_DATABASE && dbQuery) {
+      // Update verification columns if needed (for edge cases)
+      if (USE_DATABASE && dbQuery && newUser.id) {
         try {
           await dbQuery(`
             UPDATE users

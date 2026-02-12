@@ -869,6 +869,9 @@ authRoutes.setAuthHelper({
   getUsers,
   saveUsers,
   getUserByEmail,
+  getUserById,
+  createUser,
+  updateUser,
   generateAuthResponse
 });
 
