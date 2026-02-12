@@ -206,8 +206,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setIsLoading(false);
       stopTokenRefresh();
-      // Redirect to login page if refresh failed and not already on login page
-      if (!window.location.pathname.includes('/login')) {
+      // Redirect to login page if refresh failed and not already on a public auth page
+      const publicAuthPaths = ['/login', '/signup', '/forgot-password', '/reset-password'];
+      const isPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.includes(path));
+      if (!isPublicAuthPage) {
         window.location.href = '/login?reason=session_expired';
       }
     }
