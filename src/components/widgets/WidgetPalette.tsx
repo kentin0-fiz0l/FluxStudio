@@ -137,7 +137,7 @@ export function WidgetPalette({ className }: WidgetPaletteProps) {
   // Get available widgets based on user permissions
   const availableWidgets = useMemo(() => {
     if (!user) return [];
-    return getWidgetsByPermission(user.userType);
+    return getWidgetsByPermission(user.userType || 'designer');
   }, [user]);
 
   // Get available categories

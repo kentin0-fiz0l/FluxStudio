@@ -114,9 +114,9 @@ export function CollaborationOverlay({
     // Join collaboration session
     collaborationService.joinSession(resourceType, resourceId, {
       id: user.id,
-      name: user.name,
+      name: user.name || '',
       email: user.email,
-      userType: user.userType,
+      userType: user.userType || 'designer',
       avatar: user.avatar
     });
 

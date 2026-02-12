@@ -42,7 +42,6 @@ export function Contact() {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // In a real application, this would send the form data to a backend
-    console.log('Form submitted:', formData);
 
     // Clear form and show success message
     setFormData(initialFormData);

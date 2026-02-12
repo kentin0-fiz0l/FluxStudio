@@ -53,15 +53,12 @@ function Settings() {
   // Authentication guard - redirect to login if not authenticated
   React.useEffect(() => {
     if (!user) {
-      console.log('⚠️  User not authenticated, redirecting to login...');
       navigate('/login', { replace: true });
       return;
     }
 
     document.title = 'Settings - FluxStudio V3.6';
-    (window as any).__SETTINGS_V36_LOADED = true;
-    console.log('=== SETTINGS PAGE V3.6 LOADING ===');
-    console.log('✅ User authenticated:', user.email);
+    (window as Window & { __SETTINGS_V36_LOADED?: boolean }).__SETTINGS_V36_LOADED = true;
   }, [user, navigate]);
 
   // Fetch settings on mount
@@ -135,7 +132,6 @@ function Settings() {
         // Update original settings to current
         setOriginalSettings(settings);
         setHasChanges(false);
-        console.log('Settings saved:', settings);
       } else {
         throw new Error(response.error || 'Failed to save settings');
       }

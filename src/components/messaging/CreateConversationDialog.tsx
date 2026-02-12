@@ -291,7 +291,6 @@ export function CreateConversationDialog({
       });
 
       // Success feedback
-      console.log('✅ Conversation created successfully:', conversationName);
 
       // Show success message
       const successMsg = `${conversationName} conversation created successfully!`;

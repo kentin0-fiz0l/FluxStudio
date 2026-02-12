@@ -40,8 +40,7 @@ const mockTask: Task = {
 export const EditTaskExample: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleSave = async (taskId: string | null, taskData: Partial<Task>) => {
-    console.log('Saving task:', taskId, taskData);
+  const handleSave = async (_taskId: string | null, _taskData: Partial<Task>) => {
 
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -55,8 +54,7 @@ export const EditTaskExample: React.FC = () => {
     // const updatedTask = await response.json();
   };
 
-  const handleDelete = async (taskId: string) => {
-    console.log('Deleting task:', taskId);
+  const handleDelete = async (_taskId: string) => {
 
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -91,8 +89,7 @@ export const EditTaskExample: React.FC = () => {
 export const CreateTaskExample: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleSave = async (_taskId: string | null, taskData: Partial<Task>) => {
-    console.log('Creating new task:', taskData);
+  const handleSave = async (_taskId: string | null, _taskData: Partial<Task>) => {
 
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -108,7 +105,6 @@ export const CreateTaskExample: React.FC = () => {
 
   const handleDelete = async (_taskId: string) => {
     // Not used in create mode
-    console.log('Delete called but task does not exist yet');
   };
 
   return (

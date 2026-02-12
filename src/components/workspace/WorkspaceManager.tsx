@@ -87,7 +87,9 @@ const tools = [
   { id: 'move', icon: Move, label: 'Move' }
 ];
 
-const viewModes = [
+type ViewModeId = 'desktop' | 'tablet' | 'mobile';
+
+const viewModes: { id: ViewModeId; icon: typeof Monitor; label: string; size: { width: number; height: number } }[] = [
   { id: 'desktop', icon: Monitor, label: 'Desktop', size: { width: 1920, height: 1080 } },
   { id: 'tablet', icon: Tablet, label: 'Tablet', size: { width: 1024, height: 768 } },
   { id: 'mobile', icon: Smartphone, label: 'Mobile', size: { width: 375, height: 667 } }
@@ -301,7 +303,7 @@ export const WorkspaceManager: React.FC<WorkspaceManagerProps> = ({
                   return (
                     <button
                       key={mode.id}
-                      onClick={() => handleViewModeChange(mode.id as any)}
+                      onClick={() => handleViewModeChange(mode.id)}
                       className={cn(
                         'p-2 rounded-md transition-colors',
                         state.viewMode === mode.id

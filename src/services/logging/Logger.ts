@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- Logger infrastructure intentionally uses console methods */
 /**
  * Centralized Logger Service
  *

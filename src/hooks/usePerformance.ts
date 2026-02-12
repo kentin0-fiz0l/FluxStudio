@@ -228,12 +228,11 @@ export function usePrevious<T>(value: T): T | undefined {
  * Render count hook - useful for debugging unnecessary re-renders.
  * Only logs in development mode.
  */
-export function useRenderCount(componentName: string): number {
+export function useRenderCount(_componentName: string): number {
   const renderCount = useRef(0);
   renderCount.current += 1;
 
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[RenderCount] ${componentName}: ${renderCount.current}`);
   }
 
   return renderCount.current;

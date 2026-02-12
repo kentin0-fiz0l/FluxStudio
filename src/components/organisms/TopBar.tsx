@@ -102,7 +102,7 @@ export interface TopBarProps {
    * User data for quick menu
    */
   user?: {
-    name: string;
+    name?: string;
     avatar?: string;
   };
 }
@@ -437,7 +437,7 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                     className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-semibold"
                     aria-hidden="true"
                   >
-                    {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                    {(user.name || '').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
                 )}
               </Link>

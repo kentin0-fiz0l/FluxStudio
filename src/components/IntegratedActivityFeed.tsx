@@ -21,7 +21,7 @@ import {
   Filter,
   ExternalLink
 } from 'lucide-react';
-import { useWorkspace } from '../contexts/WorkspaceContext';
+import { useWorkspace } from '@/store';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useMessaging } from '../hooks/useMessaging';
@@ -82,10 +82,10 @@ export function IntegratedActivityFeed() {
       state.recentActivity.forEach(activity => {
       allActivities.push({
         id: activity.id,
-        type: activity.type as any,
+        type: activity.type as ActivityItem['type'],
         title: activity.title,
         description: activity.description,
-        timestamp: activity.timestamp,
+        timestamp: new Date(activity.timestamp),
         user: {
           id: activity.userId,
           name: activity.userName,
@@ -160,7 +160,7 @@ export function IntegratedActivityFeed() {
           projectId: project.id
         },
         metadata: {
-          priority: project.priority as any,
+          priority: project.priority as 'low' | 'medium' | 'high' | 'critical',
           tags: [project.metadata.projectType, project.metadata.serviceCategory]
         },
         actionable: {
@@ -189,7 +189,7 @@ export function IntegratedActivityFeed() {
           },
           metadata: {
             newValue: project.status,
-            priority: project.priority as any
+            priority: project.priority as 'low' | 'medium' | 'high' | 'critical'
           }
         });
       }

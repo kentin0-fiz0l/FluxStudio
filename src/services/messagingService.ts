@@ -646,9 +646,8 @@ class MessagingService {
   /**
    * Remove event listeners
    */
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  off(event: string, callback: Function) {
-    socketService.off(event as any, callback as any);
+  off<K extends keyof import('./socketService').SocketEvents>(event: K, callback: import('./socketService').SocketEvents[K]) {
+    socketService.off(event, callback);
   }
 
   /**

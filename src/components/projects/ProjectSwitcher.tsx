@@ -26,7 +26,8 @@ import {
   X,
   FolderOpen,
 } from 'lucide-react';
-import { useProjectContextOptional, ProjectSummary } from '@/contexts/ProjectContext';
+import { useProjectContext } from '@/store';
+import type { Project as ProjectSummary } from '@/store';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -70,7 +71,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
   className,
 }) => {
   const navigate = useNavigate();
-  const projectContext = useProjectContextOptional();
+  const projectContext = useProjectContext();
 
   // Handle case when ProjectProvider is not available
   const currentProject = projectContext?.currentProject;

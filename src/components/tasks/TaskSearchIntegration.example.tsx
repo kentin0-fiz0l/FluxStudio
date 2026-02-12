@@ -168,7 +168,6 @@ export const TaskManagementPage: React.FC = () => {
    */
   const handleTaskCreate = useCallback(() => {
     // In production, open a modal or navigate to create page
-    console.log('Opening task creation modal...');
 
     // Example of adding a new task
     const newTask: Task = {

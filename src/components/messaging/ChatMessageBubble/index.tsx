@@ -2,428 +2,53 @@
  * ChatMessageBubble Component
  * Renders individual chat messages with all associated UI elements
  *
- * This is the enhanced version extracted from MessagesNew.tsx
- * with support for inline editing, voice messages, asset attachments,
- * read receipts, thread indicators, and quick reactions.
- *
- * Features:
- * - Message content with markdown support
- * - Inline editing mode
- * - Reply preview with jump-to-message
- * - File/image attachments
- * - Voice message player
- * - Reactions with quick emoji picker
- * - Thread reply indicators
- * - Read receipts
- * - Action menu (reply, edit, delete, pin, forward)
+ * Decomposed from the original monolithic file.
+ * Sub-components extracted to MessageHelpers.tsx
  */
 
-import React, { useState, memo } from 'react';
+import { useState, memo } from 'react';
 import {
-  Check,
-  CheckCheck,
-  Clock,
-  AlertCircle,
   Pin,
   Download,
   File,
   Play,
-  Pause,
   Volume2,
-  Maximize2,
   Forward,
   Reply,
   Smile,
   MessageCircle,
 } from 'lucide-react';
 
-import { MessageActionsMenu } from './MessageActionsMenu';
-import { InlineReplyPreview } from './InlineReplyPreview';
-import { MarkdownMessage } from './MarkdownMessage';
-import type { Message, MessageUser, MessageAttachment, LinkPreview, ReactionCount } from './types';
-import { formatMessageTime, formatRelativeTime, formatFileSize, getInitials, QUICK_REACTIONS } from './utils';
+import { MessageActionsMenu } from '../MessageActionsMenu';
+import { InlineReplyPreview } from '../InlineReplyPreview';
+import { MarkdownMessage } from '../MarkdownMessage';
+import type { Message } from '../types';
+import { formatMessageTime, formatRelativeTime, formatFileSize, QUICK_REACTIONS } from '../utils';
+
+import {
+  MessageStatusIcon,
+  ChatAvatar,
+  LinkPreviewCard,
+  AttachmentPreview,
+  VoiceMessagePlayer,
+  ReactionBadge,
+} from './MessageHelpers';
+
+// Re-export helpers for consumers that import them directly
+export {
+  MessageStatusIcon,
+  ChatAvatar,
+  LinkPreviewCard,
+  AttachmentPreview,
+  VoiceMessagePlayer,
+  ReactionBadge,
+} from './MessageHelpers';
 
 // ============================================================================
-// Helper Components
+// Types
 // ============================================================================
 
-/**
- * Message delivery status icon
- */
-function MessageStatusIcon({ status }: { status?: Message['status'] }) {
-  switch (status) {
-    case 'sending':
-      return <Clock className="w-3 h-3 text-neutral-400 animate-pulse" />;
-    case 'sent':
-      return <Check className="w-3 h-3 text-neutral-400" />;
-    case 'delivered':
-      return <CheckCheck className="w-3 h-3 text-neutral-400" />;
-    case 'read':
-      return <CheckCheck className="w-3 h-3 text-primary-500" />;
-    case 'failed':
-      return <AlertCircle className="w-3 h-3 text-red-500" />;
-    default:
-      return null;
-  }
-}
-
-/**
- * User avatar with optional online status indicator
- */
-export function ChatAvatar({
-  user,
-  size = 'md',
-  showStatus = false
-}: {
-  user: MessageUser;
-  size?: 'sm' | 'md' | 'lg';
-  showStatus?: boolean;
-}) {
-  const sizeClasses = {
-    sm: 'w-8 h-8 text-xs',
-    md: 'w-10 h-10 text-sm',
-    lg: 'w-12 h-12 text-base'
-  };
-
-  const statusSize = size === 'lg' ? 'w-3 h-3' : 'w-2.5 h-2.5';
-
-  return (
-    <div className="relative flex-shrink-0">
-      {user.avatar ? (
-        <img
-          src={user.avatar}
-          alt={user.name}
-          className={`${sizeClasses[size]} rounded-full object-cover`}
-        />
-      ) : (
-        <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white font-semibold`}>
-          {user.initials || getInitials(user.name)}
-        </div>
-      )}
-      {showStatus && (
-        <div className={`absolute -bottom-0.5 -right-0.5 ${statusSize} rounded-full border-2 border-white dark:border-neutral-900 ${
-          user.isOnline ? 'bg-green-500' : 'bg-neutral-400'
-        }`} />
-      )}
-    </div>
-  );
-}
-
-/**
- * Link preview card for URLs in messages
- */
-function LinkPreviewCard({ preview }: { preview: LinkPreview }) {
-  return (
-    <a
-      href={preview.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block mt-2 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
-    >
-      {preview.imageUrl && (
-        <div className="w-full h-32 bg-neutral-100 dark:bg-neutral-800">
-          <img src={preview.imageUrl} alt="" className="w-full h-full object-cover" />
-        </div>
-      )}
-      <div className="p-3">
-        <div className="flex items-center gap-2 mb-1">
-          {preview.faviconUrl && (
-            <img src={preview.faviconUrl} alt="" className="w-4 h-4" />
-          )}
-          <span className="text-xs text-neutral-500 dark:text-neutral-400">
-            {preview.siteName || new URL(preview.url).hostname}
-          </span>
-        </div>
-        {preview.title && (
-          <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 line-clamp-2">
-            {preview.title}
-          </h4>
-        )}
-        {preview.description && (
-          <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2 mt-1">
-            {preview.description}
-          </p>
-        )}
-      </div>
-    </a>
-  );
-}
-
-/**
- * Attachment preview for files, images, and videos
- */
-function AttachmentPreview({
-  attachment,
-  onView,
-  onDownload
-}: {
-  attachment: MessageAttachment;
-  onView?: () => void;
-  onDownload?: () => void;
-}) {
-  if (attachment.type === 'image') {
-    return (
-      <div className="relative group mt-2 rounded-lg overflow-hidden max-w-xs cursor-pointer" onClick={onView}>
-        <img
-          src={attachment.thumbnailUrl || attachment.url}
-          alt={attachment.name}
-          className="w-full h-auto max-h-64 object-cover"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-          <Maximize2 className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-        </div>
-      </div>
-    );
-  }
-
-  if (attachment.type === 'video') {
-    return (
-      <div className="mt-2 rounded-lg overflow-hidden max-w-xs">
-        <video
-          src={attachment.url}
-          controls
-          className="w-full"
-          poster={attachment.thumbnailUrl}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-2 flex items-center gap-3 p-3 rounded-lg bg-neutral-100 dark:bg-neutral-800 max-w-xs">
-      <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
-        <File className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
-          {attachment.name}
-        </p>
-        <p className="text-xs text-neutral-500 dark:text-neutral-400">
-          {formatFileSize(attachment.size)}
-        </p>
-      </div>
-      <button
-        onClick={onDownload}
-        className="p-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors"
-      >
-        <Download className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-      </button>
-    </div>
-  );
-}
-
-/**
- * Voice message player with waveform visualization
- */
-function VoiceMessagePlayer({ voiceMessage }: { voiceMessage: Message['voiceMessage'] }) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
-  const animationRef = React.useRef<number | null>(null);
-
-  if (!voiceMessage) return null;
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Initialize audio element
-  React.useEffect(() => {
-    if (!voiceMessage.url) return;
-
-    const audio = new Audio(voiceMessage.url);
-    audio.preload = 'metadata';
-    audioRef.current = audio;
-
-    const handleLoadedMetadata = () => {
-      // Audio is ready
-    };
-
-    const handleTimeUpdate = () => {
-      if (audio.duration > 0) {
-        setProgress(audio.currentTime / audio.duration);
-        setCurrentTime(audio.currentTime);
-      }
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setProgress(0);
-      setCurrentTime(0);
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-
-    return () => {
-      audio.pause();
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [voiceMessage.url]);
-
-  // Update playback rate when changed
-  React.useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.playbackRate = playbackRate;
-    }
-  }, [playbackRate]);
-
-  const togglePlayback = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isPlaying) {
-      audio.pause();
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    } else {
-      audio.play().catch((err) => {
-        console.error('Audio playback failed:', err);
-      });
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percentage = x / rect.width;
-    const newTime = percentage * audio.duration;
-
-    audio.currentTime = newTime;
-    setProgress(percentage);
-    setCurrentTime(newTime);
-  };
-
-  const cyclePlaybackRate = () => {
-    const rates = [1, 1.25, 1.5, 2, 0.75];
-    const currentIndex = rates.indexOf(playbackRate);
-    const nextIndex = (currentIndex + 1) % rates.length;
-    setPlaybackRate(rates[nextIndex]);
-  };
-
-  return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-neutral-100 dark:bg-neutral-800 min-w-[240px] max-w-[320px]">
-      {/* Play/Pause Button */}
-      <button
-        onClick={togglePlayback}
-        className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0 hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-        aria-label={isPlaying ? 'Pause voice message' : 'Play voice message'}
-      >
-        {isPlaying ? (
-          <Pause className="w-5 h-5 text-white" />
-        ) : (
-          <Play className="w-5 h-5 text-white ml-0.5" />
-        )}
-      </button>
-
-      {/* Waveform and Progress */}
-      <div className="flex-1 min-w-0">
-        <div
-          className="flex gap-0.5 h-8 items-end cursor-pointer"
-          onClick={handleSeek}
-          role="slider"
-          aria-label="Seek voice message"
-          aria-valuemin={0}
-          aria-valuemax={voiceMessage.duration}
-          aria-valuenow={currentTime}
-        >
-          {voiceMessage.waveform.map((amp, i) => {
-            const waveformProgress = i / voiceMessage.waveform.length;
-            const isPlayed = waveformProgress <= progress;
-            const isActive = Math.abs(waveformProgress - progress) < 0.02;
-
-            return (
-              <div
-                key={i}
-                className={`w-1 rounded-full transition-all duration-75 ${
-                  isActive
-                    ? 'bg-primary-500 scale-110'
-                    : isPlayed
-                    ? 'bg-primary-600'
-                    : 'bg-neutral-300 dark:bg-neutral-600'
-                }`}
-                style={{ height: `${Math.max(amp * 100, 10)}%` }}
-              />
-            );
-          })}
-        </div>
-
-        {/* Time Display and Speed Control */}
-        <div className="flex items-center justify-between mt-1">
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            {formatDuration(currentTime)} / {formatDuration(voiceMessage.duration)}
-          </p>
-          <button
-            onClick={cyclePlaybackRate}
-            className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors"
-            aria-label={`Playback speed: ${playbackRate}x`}
-          >
-            {playbackRate}x
-          </button>
-        </div>
-      </div>
-
-      {/* Volume indicator */}
-      <div className="flex-shrink-0">
-        <Volume2 className="w-4 h-4 text-neutral-400" />
-      </div>
-    </div>
-  );
-}
-
-/**
- * Reaction badge showing emoji and count
- */
-function ReactionBadge({
-  reaction,
-  onClick,
-  currentUserId
-}: {
-  reaction: ReactionCount;
-  onClick: () => void;
-  currentUserId?: string;
-}) {
-  const hasReacted = currentUserId ? reaction.userIds.includes(currentUserId) : false;
-
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors ${
-        hasReacted
-          ? 'bg-primary-100 dark:bg-primary-900/30 border border-primary-300 dark:border-primary-700'
-          : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-      }`}
-      title={`${reaction.count} reaction${reaction.count !== 1 ? 's' : ''}`}
-    >
-      <span>{reaction.emoji}</span>
-      <span className="text-neutral-600 dark:text-neutral-400">{reaction.count}</span>
-    </button>
-  );
-}
-
-// ============================================================================
-// Main ChatMessageBubble Component
-// ============================================================================
-
-export interface ChatMessageBubbleProps {
+interface ChatMessageBubbleProps {
   message: Message;
   onReply: () => void;
   onEdit: () => void;
@@ -437,16 +62,20 @@ export interface ChatMessageBubbleProps {
   onViewInFiles?: (assetId: string) => void;
   showAvatar?: boolean;
   isGrouped?: boolean;
-  currentUserId?: string;
+  currentUserId: string;
   isPinned?: boolean;
   isHighlighted?: boolean;
   isEditing?: boolean;
   editingDraft?: string;
-  onChangeEditingDraft?: (value: string) => void;
+  onChangeEditingDraft?: (draft: string) => void;
   onSubmitEdit?: () => void;
   onCancelEdit?: () => void;
-  readBy?: { id: string; name: string; avatar?: string }[];
+  readBy?: Array<{ id: string; name: string; avatar?: string }>;
 }
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 function ChatMessageBubbleComponent({
   message,
@@ -505,7 +134,7 @@ function ChatMessageBubbleComponent({
 
       {/* Message Content */}
       <div className={`max-w-[70%] ${isGrouped && !isOwn ? 'ml-12' : ''}`}>
-        {/* Reply preview - shows quoted original message */}
+        {/* Reply preview */}
         {message.replyTo && message.replyTo.content && (
           <div className="mb-1">
             <InlineReplyPreview
@@ -591,7 +220,7 @@ function ChatMessageBubbleComponent({
             <VoiceMessagePlayer voiceMessage={message.voiceMessage} />
           )}
 
-          {/* Asset attachment (from backend) - click to view in Files app */}
+          {/* Asset attachment (from backend) */}
           {message.asset && message.asset.file && (
             <div className="mt-2">
               {message.asset.kind === 'image' ? (
@@ -613,7 +242,6 @@ function ChatMessageBubbleComponent({
                       }}
                     />
                   </button>
-                  {/* Download button overlay */}
                   <a
                     href={message.asset.file.url}
                     target="_blank"
@@ -698,7 +326,7 @@ function ChatMessageBubbleComponent({
             <span className={`text-[10px] ${isOwn ? 'text-white/70' : 'text-neutral-500 dark:text-neutral-400'}`}>
               {formatMessageTime(message.timestamp)}
             </span>
-            {isOwn && <MessageStatusIcon status={message.status} />}
+            {isOwn && message.status && <MessageStatusIcon status={message.status} />}
           </div>
 
           {/* Pinned badge */}
@@ -756,7 +384,7 @@ function ChatMessageBubbleComponent({
           </div>
         )}
 
-        {/* Thread replies pill with hover preview */}
+        {/* Thread replies pill */}
         {(message.threadReplyCount || 0) > 0 && onOpenThread && (
           <div className="relative group/thread">
             <button
@@ -770,7 +398,6 @@ function ChatMessageBubbleComponent({
               <MessageCircle className="w-3.5 h-3.5" />
               <span>{message.threadReplyCount} {message.threadReplyCount === 1 ? 'reply' : 'replies'}</span>
             </button>
-            {/* Hover preview tooltip (desktop only) */}
             {message.threadLastReplyAt && (
               <div className={`absolute bottom-full mb-1 ${isOwn ? 'right-0' : 'left-0'} hidden group-hover/thread:block pointer-events-none z-20`}>
                 <div className="px-2 py-1 bg-neutral-900 dark:bg-neutral-700 text-white text-[10px] rounded shadow-lg whitespace-nowrap">
@@ -848,10 +475,8 @@ function ChatMessageBubbleComponent({
 
 /**
  * Memoized ChatMessageBubble for performance optimization
- * Only re-renders when message content or UI state changes
  */
 export const ChatMessageBubble = memo(ChatMessageBubbleComponent, (prev, next) => {
-  // Re-render if any of these change
   return (
     prev.message.id === next.message.id &&
     prev.message.content === next.message.content &&

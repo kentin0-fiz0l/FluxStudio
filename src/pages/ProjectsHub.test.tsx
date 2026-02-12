@@ -10,6 +10,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProjectsHub } from './ProjectsHub';
+import type { Project } from '@/hooks/useProjects';
 
 // Mock dependencies
 const mockNavigate = vi.fn();
@@ -147,7 +148,7 @@ describe('ProjectsHub', () => {
       setAuthToken: vi.fn(),
       getUserDashboardPath: vi.fn(),
       token: 'test-token',
-    });
+    } as unknown as ReturnType<typeof mockUseAuth>);
 
     mockUseProjects.mockReturnValue({
       projects: [],
@@ -223,7 +224,7 @@ describe('ProjectsHub', () => {
         projects: [
           { id: '1', name: 'Project 1', description: 'Desc 1' },
           { id: '2', name: 'Project 2', description: 'Desc 2' },
-        ] as any,
+        ] as unknown as Project[],
         loading: false,
         error: null,
         fetchProjects: vi.fn(),
@@ -264,7 +265,7 @@ describe('ProjectsHub', () => {
         projects: [
           { id: '1', name: 'Summer Show', description: 'Summer event' },
           { id: '2', name: 'Winter Gala', description: 'Winter celebration' },
-        ] as any,
+        ] as unknown as Project[],
         loading: false,
         error: null,
         fetchProjects: vi.fn(),
@@ -293,7 +294,7 @@ describe('ProjectsHub', () => {
       mockUseProjects.mockReturnValue({
         projects: [
           { id: '1', name: 'Summer Show', description: 'Summer event' },
-        ] as any,
+        ] as unknown as Project[],
         loading: false,
         error: null,
         fetchProjects: vi.fn(),
@@ -322,7 +323,7 @@ describe('ProjectsHub', () => {
       mockUseProjects.mockReturnValue({
         projects: [
           { id: '1', name: 'Summer Show', description: 'Summer event' },
-        ] as any,
+        ] as unknown as Project[],
         loading: false,
         error: null,
         fetchProjects: vi.fn(),
@@ -366,7 +367,7 @@ describe('ProjectsHub', () => {
       mockUseProjects.mockReturnValue({
         projects: [
           { id: '1', name: 'Project 1', description: 'Desc' },
-        ] as any,
+        ] as unknown as Project[],
         loading: false,
         error: null,
         fetchProjects: vi.fn(),
@@ -445,7 +446,7 @@ describe('ProjectsHub', () => {
         projects: [
           { id: '1', name: 'Project 1', description: 'Description 1', progress: 50 },
           { id: '2', name: 'Project 2', description: 'Description 2', progress: 75 },
-        ] as any,
+        ] as unknown as Project[],
         loading: false,
         error: null,
         fetchProjects: vi.fn(),
@@ -471,7 +472,7 @@ describe('ProjectsHub', () => {
       mockUseProjects.mockReturnValue({
         projects: [
           { id: 'proj-123', name: 'Test Project', description: 'Test', progress: 25 },
-        ] as any,
+        ] as unknown as Project[],
         loading: false,
         error: null,
         fetchProjects: vi.fn(),
@@ -570,7 +571,7 @@ describe('ProjectsHub', () => {
             dueDate: futureDate.toISOString(),
             progress: 50,
           },
-        ] as any,
+        ] as unknown as Project[],
         loading: false,
         error: null,
         fetchProjects: vi.fn(),
@@ -605,7 +606,7 @@ describe('ProjectsHub', () => {
             dueDate: futureDate.toISOString(),
             progress: 50,
           },
-        ] as any,
+        ] as unknown as Project[],
         loading: false,
         error: null,
         fetchProjects: vi.fn(),
@@ -628,7 +629,7 @@ describe('ProjectsHub', () => {
       mockUseProjects.mockReturnValue({
         projects: [
           { id: '1', name: 'No Deadline Project', description: 'Test', progress: 50 },
-        ] as any,
+        ] as unknown as Project[],
         loading: false,
         error: null,
         fetchProjects: vi.fn(),

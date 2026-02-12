@@ -68,7 +68,7 @@ export function SearchWidget(props: WidgetProps) {
         description: `By ${activity.user}`,
         category: 'activity' as const,
         icon: Activity,
-        action: () => console.log('Navigate to activity', activity),
+        action: () => {},
         badge: 'recent',
       }));
       results.push(...recentActivities);

@@ -146,15 +146,12 @@ export const MobileMessagingInterface: React.FC<MobileMessagingInterfaceProps> =
     switch (action) {
       case 'reply':
         // Handle reply
-        console.log('Reply to message:', messageId);
         break;
       case 'forward':
         // Handle forward
-        console.log('Forward message:', messageId);
         break;
       case 'star':
         // Handle star/bookmark
-        console.log('Star message:', messageId);
         break;
       case 'delete':
         // Handle delete

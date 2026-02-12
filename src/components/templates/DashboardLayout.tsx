@@ -33,7 +33,7 @@ export interface DashboardLayoutProps {
    * User data for sidebar and topbar
    */
   user?: {
-    name: string;
+    name?: string;
     email?: string;
     avatar?: string;
   };

@@ -27,11 +27,9 @@ const API_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...');
   
   // Skip caching in development
   if (isDevelopment) {
-    console.log('Development environment detected, skipping cache installation');
     self.skipWaiting();
     return;
   }
@@ -55,14 +53,12 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...');
   
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE) {
-            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -123,7 +119,6 @@ async function cacheFirst(request) {
     }
     return response;
   } catch (error) {
-    console.log('Cache first failed:', error);
     return new Response('Offline - Content not available', { 
       status: 503,
       statusText: 'Service Unavailable' 
@@ -140,7 +135,6 @@ async function networkFirst(request) {
     }
     return response;
   } catch (error) {
-    console.log('Network first fallback to cache:', error);
     const cached = await caches.match(request);
     if (cached) {
       return cached;
@@ -232,7 +226,6 @@ async function imageCache(request) {
     }
     return response;
   } catch (error) {
-    console.log('Image cache failed:', error);
     // Return placeholder image for failed image requests
     return new Response(`
       <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
@@ -289,7 +282,6 @@ async function syncContactForm() {
         await cache.delete(request);
       }
     } catch (error) {
-      console.log('Form sync failed:', error);
     }
   }
 }

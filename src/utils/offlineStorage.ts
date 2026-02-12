@@ -64,7 +64,6 @@ export function initDB(): Promise<IDBDatabase> {
 
     request.onsuccess = () => {
       db = request.result;
-      console.log('IndexedDB initialized successfully');
       resolve(db);
     };
 

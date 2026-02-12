@@ -488,8 +488,10 @@ describe('ApiService', () => {
       // Mock window.location and dispatchEvent
       const originalLocation = window.location;
       const originalDispatchEvent = window.dispatchEvent;
-      delete (window as any).location;
-      window.location = { ...originalLocation, pathname: '/dashboard', href: '' } as any;
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: { ...originalLocation, pathname: '/dashboard', href: '' },
+      });
       window.dispatchEvent = vi.fn();
 
       await expect(apiService.getMe()).rejects.toThrow('Authentication required');

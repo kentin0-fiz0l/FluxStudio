@@ -176,7 +176,8 @@ function workspaceReducer(state: WorkspaceState, action: WorkspaceAction): Works
       }
 
       // Add to conversation->project mapping
-      newConversationProjects.set(conversationId, action.payload as any); // Will be replaced with actual project
+      // TODO: This should look up and store the actual Project object, not the action payload
+      newConversationProjects.set(conversationId, action.payload as unknown as Project);
 
       return {
         ...state,

@@ -50,6 +50,7 @@ describe('MobileBottomNav', () => {
     vi.clearAllMocks();
     // Reset mocks to default values
     mockUseAuth.mockReturnValue({
+      ...({} as unknown as ReturnType<typeof mockUseAuth>),
       user: {
         id: 'user-1',
         name: 'Test User',
@@ -68,6 +69,9 @@ describe('MobileBottomNav', () => {
       setAuthToken: vi.fn(),
       getUserDashboardPath: vi.fn(),
       token: 'test-token',
+      error: null,
+      session: { lastFocusedProjectId: null, lastFocusedProjectName: null, lastProjectTab: null, lastRoute: null, lastSeenTimestamp: null, lastActivityTimestamp: null },
+      isReturningSession: false,
     });
     mockUseMessagingOptional.mockReturnValue({
       unreadCount: 0,
@@ -316,6 +320,7 @@ describe('MobileBottomNav', () => {
 
     test('displays user avatar when provided', async () => {
       mockUseAuth.mockReturnValue({
+      ...({} as unknown as ReturnType<typeof mockUseAuth>),
         user: {
           id: 'user-1',
           name: 'Test User',
@@ -334,6 +339,9 @@ describe('MobileBottomNav', () => {
         setAuthToken: vi.fn(),
         getUserDashboardPath: vi.fn(),
         token: 'test-token',
+        error: null,
+        session: { lastFocusedProjectId: null, lastFocusedProjectName: null, lastProjectTab: null, lastRoute: null, lastSeenTimestamp: null, lastActivityTimestamp: null },
+        isReturningSession: false,
       });
 
       renderWithRouter();
@@ -354,6 +362,7 @@ describe('MobileBottomNav', () => {
     test('Sign Out button calls logout', async () => {
       const mockLogout = vi.fn();
       mockUseAuth.mockReturnValue({
+      ...({} as unknown as ReturnType<typeof mockUseAuth>),
         user: {
           id: 'user-1',
           name: 'Test User',
@@ -372,6 +381,9 @@ describe('MobileBottomNav', () => {
         setAuthToken: vi.fn(),
         getUserDashboardPath: vi.fn(),
         token: 'test-token',
+        error: null,
+        session: { lastFocusedProjectId: null, lastFocusedProjectName: null, lastProjectTab: null, lastRoute: null, lastSeenTimestamp: null, lastActivityTimestamp: null },
+        isReturningSession: false,
       });
 
       renderWithRouter();

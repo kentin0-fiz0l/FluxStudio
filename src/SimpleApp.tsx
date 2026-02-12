@@ -1,7 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { MessagingProvider } from './contexts/MessagingContext';
@@ -34,7 +33,6 @@ const LoadingFallback = () => (
 
 export default function SimpleApp() {
   React.useEffect(() => {
-    console.log('SimpleApp loaded successfully with lazy loading enabled');
   }, []);
 
   return (
@@ -43,7 +41,6 @@ export default function SimpleApp() {
         <SocketProvider>
           <MessagingProvider>
             <OrganizationProvider>
-              <WorkspaceProvider>
                 <Router>
                   <Suspense fallback={<LoadingFallback />}>
                     <Routes>
@@ -141,7 +138,6 @@ export default function SimpleApp() {
                     </Routes>
                   </Suspense>
                 </Router>
-              </WorkspaceProvider>
             </OrganizationProvider>
           </MessagingProvider>
         </SocketProvider>

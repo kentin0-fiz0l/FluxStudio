@@ -57,7 +57,7 @@ export function WidgetGrid({ className, maxColumns = 3 }: WidgetGridProps) {
   useEffect(() => {
     if (user) {
       // Load user's widget configuration or use defaults
-      const defaultWidgets = getDefaultWidgets(user.userType);
+      const defaultWidgets = getDefaultWidgets(user.userType || 'designer');
 
       // Generate basic grid layout
       const gridLayout = generateGridLayout(defaultWidgets, maxColumns);
@@ -128,11 +128,9 @@ export function WidgetGrid({ className, maxColumns = 3 }: WidgetGridProps) {
               config={widgetConfig}
               onRefresh={() => {
                 // Handle widget refresh
-                console.log(`Refreshing widget: ${widgetId}`);
               }}
-              onConfigChange={(config) => {
+              onConfigChange={(_config) => {
                 // Handle widget configuration change
-                console.log(`Updating widget config: ${widgetId}`, config);
               }}
               onRemove={() => removeWidget(widgetId)}
             />
@@ -154,7 +152,7 @@ export function WidgetGrid({ className, maxColumns = 3 }: WidgetGridProps) {
             <button
               onClick={() => {
                 // Open widget picker
-                const defaultWidgets = getDefaultWidgets(user.userType);
+                const defaultWidgets = getDefaultWidgets(user.userType || 'designer');
                 setWidgets(defaultWidgets);
                 const gridLayout = generateGridLayout(defaultWidgets, maxColumns);
                 setLayouts(gridLayout);

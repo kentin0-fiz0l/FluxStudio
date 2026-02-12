@@ -22,7 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useFilesOptional, FileRecord, FileType, FileSource } from '../contexts/FilesContext';
 import { useProjects } from '../hooks/useProjects';
 import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
-import { useProjectContextOptional } from '../contexts/ProjectContext';
+import { useProjectContext } from '@/store';
 import { toast } from '../lib/toast';
 import { cn, formatFileSize, formatRelativeTime } from '../lib/utils';
 import {
@@ -348,7 +348,7 @@ export function FileNew() {
   const filesContext = useFilesOptional();
   const { projects } = useProjects();
   const { reportFile } = useReportEntityFocus();
-  const projectContext = useProjectContextOptional();
+  const projectContext = useProjectContext();
   const currentProject = projectContext?.currentProject ?? null;
 
   // Extract values from context (with defaults for when context is unavailable)

@@ -173,7 +173,6 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
         icon: Search,
         action: () => {
           // Open file search modal
-          console.log('File search');
         },
         keywords: ['files', 'documents', 'assets'],
         priority: 6,
@@ -187,7 +186,6 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
         icon: MessageSquare,
         action: () => {
           // Messages now available via sidepanel only
-          console.log('Opening messaging sidepanel...');
         },
         keywords: ['message', 'chat', 'communicate'],
         priority: 5,
@@ -224,7 +222,6 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
         icon: Activity,
         action: () => {
           // Navigate to related item based on activity type
-          console.log('Activity navigation', activity);
         },
         keywords: [activity.user, activity.type.replace('_', ' ')],
         priority: 3,

@@ -56,7 +56,7 @@ export function useWidgetLayout(): WidgetLayoutHook {
       }
     };
 
-    const defaultWidgets = getDefaultWidgets(user.userType);
+    const defaultWidgets = getDefaultWidgets(user.userType || 'designer');
     setWidgets(defaultWidgets);
 
     // Generate layouts for each breakpoint

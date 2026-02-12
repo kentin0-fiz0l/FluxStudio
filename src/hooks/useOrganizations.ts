@@ -60,7 +60,8 @@ export function useOrganizations() {
       const response = await apiService.getOrganizations();
 
       if (response.success && response.data) {
-        const organizations = (response.data as any)?.organizations || response.data || [];
+        const data = response.data as { organizations?: Organization[] } | Organization[] | undefined;
+        const organizations: Organization[] = Array.isArray(data) ? data : (data?.organizations ?? []);
         setOrganizations(organizations);
 
         // Set current organization if user has one
@@ -96,7 +97,8 @@ export function useOrganizations() {
         throw new Error(response.error || 'Failed to create organization');
       }
 
-      const newOrg = (response.data as any).organization || response.data;
+      const orgData2 = response.data as { organization?: Organization } | Organization;
+      const newOrg = (orgData2 && 'organization' in orgData2 ? orgData2.organization : orgData2) as Organization;
 
       setOrganizations(prev => [...prev, newOrg]);
 

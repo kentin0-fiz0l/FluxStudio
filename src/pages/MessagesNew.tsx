@@ -28,7 +28,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button, Card } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
-import { useActiveProjectOptional } from '../contexts/ActiveProjectContext';
+import { useActiveProject } from '@/store';
 import { useConversationRealtime } from '../hooks/useConversationRealtime';
 import { ConversationMessage } from '../services/messagingSocketService';
 // Extracted messaging hooks (Phase 4.2)
@@ -75,7 +75,7 @@ import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
 // Main Messages Component
 function MessagesNew() {
   const { user, logout } = useAuth();
-  const activeProjectContext = useActiveProjectOptional();
+  const activeProjectContext = useActiveProject();
   const navigate = useNavigate();
 
   // Safe destructure with fallback values (handles hydration and 401 race conditions)

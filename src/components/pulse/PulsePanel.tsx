@@ -23,7 +23,7 @@ import {
 import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { useProjectPulse } from '@/hooks/useProjectPulse';
-import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
+import { useActiveProject } from '@/store';
 import { ActivityStream } from './ActivityStream';
 import { AttentionInbox } from './AttentionInbox';
 import { TeamHeartbeat } from './TeamHeartbeat';
@@ -55,7 +55,7 @@ export function PulsePanel({
   position = 'right',
 }: PulsePanelProps) {
   const navigate = useNavigate();
-  const activeProjectContext = useActiveProjectOptional();
+  const activeProjectContext = useActiveProject();
   const activeProject = activeProjectContext?.activeProject ?? null;
   const {
     activityStream,

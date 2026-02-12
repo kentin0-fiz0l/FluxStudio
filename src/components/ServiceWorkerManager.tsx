@@ -43,7 +43,6 @@ export function ServiceWorkerManager() {
       const { outcome } = await deferredPrompt.userChoice;
       
       if (outcome === 'accepted') {
-        console.log('User accepted the install prompt');
       }
       
       setDeferredPrompt(null);

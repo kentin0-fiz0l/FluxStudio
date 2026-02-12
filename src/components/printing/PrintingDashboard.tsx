@@ -235,8 +235,7 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
             <CameraFeed
               loading={false}
               error={null}
-              onSnapshot={(snapshot) => {
-                console.log('Snapshot captured:', snapshot);
+              onSnapshot={(_snapshot) => {
               }}
             />
           </div>

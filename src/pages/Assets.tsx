@@ -22,7 +22,7 @@ import { DashboardLayout } from '../components/templates/DashboardLayout';
 import { useAssets, AssetRecord, AssetType } from '../contexts/AssetsContext';
 import { useFilesOptional } from '../contexts/FilesContext';
 import { useNotifications } from '../contexts/NotificationContext';
-import { useProjectContextOptional } from '../contexts/ProjectContext';
+import { useProjectContext } from '@/store';
 import { AssetDetailDrawer } from '../components/assets/AssetDetailDrawer';
 import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
 
@@ -227,7 +227,7 @@ export default function Assets() {
   const filesState = filesContext?.state ?? { files: [], loading: false, error: null, filters: { search: '', type: 'all', source: 'all' }, pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }, selectedFile: null, uploadProgress: {}, stats: null };
   const { addNotification } = useNotifications();
   const { reportAsset } = useReportEntityFocus();
-  const projectContext = useProjectContextOptional();
+  const projectContext = useProjectContext();
   const currentProject = projectContext?.currentProject ?? null;
 
   // Local state

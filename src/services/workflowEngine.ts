@@ -447,10 +447,9 @@ export class WorkflowEngine {
   private async executeAction(
     action: string,
     params: any,
-    context: WorkflowContext
+    _context: WorkflowContext
   ): Promise<any> {
     // In production, these would call actual services
-    console.log(`Executing action: ${action}`, params, context);
 
     // Simulate different actions
     switch (action) {

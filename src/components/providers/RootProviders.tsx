@@ -1,32 +1,35 @@
 /**
  * RootProviders Component
- * Organizes all React context providers into a clean hierarchy
  *
- * Provider layers (from outermost to innermost):
- * 1. CoreProviders - Query client, Theme, Auth (foundational)
- * 2. RealtimeProviders - Socket, Notifications (real-time communication)
- * 3. ProjectProviders - Active project, Project, Organization, Workspace (project context)
- * 4. DataProviders - Connectors, Files, Assets, MetMap (data management)
+ * Streamlined provider hierarchy after Zustand migration.
+ * Most state now lives in the Zustand store (slices/).
  *
- * Phase 3 refactoring: Consolidated from 16+ nested providers in App.tsx
+ * Remaining providers:
+ * 1. AuthProvider - manages auth side effects (token refresh, etc.)
+ * 2. SocketProvider - singleton WebSocket connection (side-effect heavy)
+ * 3. NotificationProvider - real-time notification listener
+ * 4. MessagingSocketBridge - connects Socket.IO events to Zustand messaging slice
+ * 5. SessionProvider - session tracking side effects
+ * 6. OrganizationProvider - org sync side effects
+ *
+ * Removed (migrated to Zustand):
+ * - WorkspaceProvider → uiSlice (workspace state)
+ * - WorkingContextProvider → uiSlice (working context)
+ * - ActiveProjectProvider → projectSlice
+ * - ProjectProvider → projectSlice
+ * - ConnectorsProvider → connectorSlice
+ * - FilesProvider → assetSlice
+ * - AssetsProvider → assetSlice
+ * - MetMapProvider → kept as lazy-loaded context (tool-specific)
  */
 
 import React from 'react';
 import { AuthProvider } from '../../contexts/AuthContext';
 import { SocketProvider } from '../../contexts/SocketContext';
-import { MessagingProvider } from '../../contexts/MessagingContext';
 import { NotificationProvider } from '../../contexts/NotificationContext';
 import { RealtimeNotifications } from '../notifications/RealtimeNotifications';
-import { ActiveProjectProvider } from '../../contexts/ActiveProjectContext';
-import { ProjectProvider } from '../../contexts/ProjectContext';
 import { SessionProvider } from '../../contexts/SessionContext';
-import { WorkingContextProvider } from '../../contexts/WorkingContext';
 import { OrganizationProvider } from '../../contexts/OrganizationContext';
-import { WorkspaceProvider } from '../../contexts/WorkspaceContext';
-import { ConnectorsProvider } from '../../contexts/ConnectorsContext';
-import { FilesProvider } from '../../contexts/FilesContext';
-import { AssetsProvider } from '../../contexts/AssetsContext';
-import { MetMapProvider } from '../../contexts/MetMapContext';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -34,7 +37,6 @@ interface ProvidersProps {
 
 /**
  * Core providers - foundational services
- * Auth must be at the top as most other providers depend on it
  */
 function CoreProviders({ children }: ProvidersProps) {
   return (
@@ -46,75 +48,41 @@ function CoreProviders({ children }: ProvidersProps) {
 
 /**
  * Realtime providers - socket connections and live updates
- * Depends on Auth for user context
  */
 function RealtimeProviders({ children }: ProvidersProps) {
   return (
     <SocketProvider>
-      <MessagingProvider>
-        <NotificationProvider>
-          {/* Real-time notification listener for Socket.IO events */}
-          <RealtimeNotifications enabled={true} soundEnabled={true} />
-          {children}
-        </NotificationProvider>
-      </MessagingProvider>
+      <NotificationProvider>
+        <RealtimeNotifications enabled={true} soundEnabled={true} />
+        {children}
+      </NotificationProvider>
     </SocketProvider>
   );
 }
 
 /**
- * Project context providers - organization and project state
- * Depends on Auth and Realtime
+ * Session/Org providers - still need side effects from these
  */
-function ProjectProviders({ children }: ProvidersProps) {
+function SessionProviders({ children }: ProvidersProps) {
   return (
-    <ActiveProjectProvider>
-      <ProjectProvider>
-        <SessionProvider>
-          <WorkingContextProvider>
-            <OrganizationProvider>
-              <WorkspaceProvider>
-                {children}
-              </WorkspaceProvider>
-            </OrganizationProvider>
-          </WorkingContextProvider>
-        </SessionProvider>
-      </ProjectProvider>
-    </ActiveProjectProvider>
-  );
-}
-
-/**
- * Data providers - files, assets, connectors
- * Depends on Project context for scoping
- */
-function DataProviders({ children }: ProvidersProps) {
-  return (
-    <ConnectorsProvider>
-      <FilesProvider>
-        <AssetsProvider>
-          <MetMapProvider>
-            {children}
-          </MetMapProvider>
-        </AssetsProvider>
-      </FilesProvider>
-    </ConnectorsProvider>
+    <SessionProvider>
+      <OrganizationProvider>
+        {children}
+      </OrganizationProvider>
+    </SessionProvider>
   );
 }
 
 /**
  * RootProviders - combines all provider layers
- * Use this component to wrap your authenticated routes
  */
 export function RootProviders({ children }: ProvidersProps) {
   return (
     <CoreProviders>
       <RealtimeProviders>
-        <ProjectProviders>
-          <DataProviders>
-            {children}
-          </DataProviders>
-        </ProjectProviders>
+        <SessionProviders>
+          {children}
+        </SessionProviders>
       </RealtimeProviders>
     </CoreProviders>
   );
@@ -122,19 +90,15 @@ export function RootProviders({ children }: ProvidersProps) {
 
 /**
  * AuthenticatedProviders - same as RootProviders but excludes Core
- * Use when Auth is already provided higher in the tree
  */
 export function AuthenticatedProviders({ children }: ProvidersProps) {
   return (
     <RealtimeProviders>
-      <ProjectProviders>
-        <DataProviders>
-          {children}
-        </DataProviders>
-      </ProjectProviders>
+      <SessionProviders>
+        {children}
+      </SessionProviders>
     </RealtimeProviders>
   );
 }
 
-// Export individual provider groups for selective use
-export { CoreProviders, RealtimeProviders, ProjectProviders, DataProviders };
+export { CoreProviders, RealtimeProviders, SessionProviders };

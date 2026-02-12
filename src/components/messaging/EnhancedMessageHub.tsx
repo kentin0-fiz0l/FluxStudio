@@ -338,8 +338,6 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
 
   // Smart context detection - enhanced grouping with AI insights
   const contextualConversations = useMemo(() => {
-    console.log('[EnhancedMessageHub] Starting contextualConversations filter');
-    console.log('[EnhancedMessageHub] conversations:', conversations);
 
     const filtered = conversations.filter(conv => {
       if (!conv) {
@@ -474,7 +472,6 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
       }
 
       // Group by clients - with comprehensive safety checks
-      console.log('[EnhancedMessageHub] Filtering participants for conv:', conv.id, 'participants:', conv.participants);
       if (conv.participants && Array.isArray(conv.participants)) {
         const clientParticipants = conv.participants.filter(p => {
           if (!p) {
@@ -507,9 +504,8 @@ export function EnhancedMessageHub({ className }: EnhancedMessageHubProps) {
   }, [conversations, searchQuery, filterType, messagesByConversation, messageAnalyses, filterConversations]);
 
   // Used by ConversationIntelligencePanel for workflow automation
-  const handleActionTrigger = (action: string, data?: unknown) => {
+  const handleActionTrigger = (_action: string, _data?: unknown) => {
     // Handle workflow automation triggers
-    console.log('Action triggered:', action, data);
   };
 
   return (

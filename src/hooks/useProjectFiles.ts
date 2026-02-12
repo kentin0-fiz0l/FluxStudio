@@ -189,7 +189,7 @@ export function useProjectFiles(
       uploadProjectFiles(projectId, files, (progress) => {
         setUploadProgress(progress);
       }),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       // Reset progress
       setUploadProgress(0);
 
@@ -197,7 +197,6 @@ export function useProjectFiles(
       queryClient.invalidateQueries({ queryKey: ['project-files', projectId] });
 
       // Show success toast (handled by caller)
-      console.log('Files uploaded successfully:', data.files.length);
     },
     onError: (error: Error) => {
       // Reset progress on error
@@ -243,13 +242,11 @@ export function useProjectFiles(
   // Subscribe to WebSocket updates for real-time print status
   const { connectionStatus } = usePrintWebSocket({
     enabled,
-    onJobComplete: (event) => {
-      console.log('Print job completed:', event.filename);
+    onJobComplete: (_event) => {
       // Refetch to get updated status
       queryClient.invalidateQueries({ queryKey: ['project-files', projectId] });
     },
-    onJobFailed: (event) => {
-      console.log('Print job failed:', event.filename);
+    onJobFailed: (_event) => {
       // Refetch to get updated status
       queryClient.invalidateQueries({ queryKey: ['project-files', projectId] });
     },
@@ -261,10 +258,8 @@ export function useProjectFiles(
 
     // Request to join project room
     // (WebSocket implementation should handle this)
-    console.log(`Joined project room for real-time updates: ${projectId}`);
 
     return () => {
-      console.log(`Left project room: ${projectId}`);
     };
   }, [projectId, enabled, connectionStatus.connected]);
 

@@ -348,7 +348,6 @@ class RealtimeManager {
     }
 
     if (this.socket?.connected) {
-      console.log('[RealtimeManager] Already connected');
       return;
     }
 
@@ -382,14 +381,12 @@ class RealtimeManager {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('[RealtimeManager] Connected');
       this.reconnectAttempts = 0;
       this.setStatus('connected');
       this.resubscribeAllChannels();
     });
 
-    this.socket.on('disconnect', (reason) => {
-      console.log('[RealtimeManager] Disconnected:', reason);
+    this.socket.on('disconnect', (_reason) => {
       this.setStatus('disconnected');
     });
 
@@ -404,7 +401,6 @@ class RealtimeManager {
     });
 
     this.socket.io.on('reconnect', () => {
-      console.log('[RealtimeManager] Reconnected');
       this.setStatus('connected');
       this.resubscribeAllChannels();
     });

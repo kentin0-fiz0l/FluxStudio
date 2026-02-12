@@ -28,7 +28,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
+import { useActiveProject } from '@/store';
 
 export interface QuickActionsProps {
   /** Whether the palette is open */
@@ -51,7 +51,7 @@ export interface QuickAction {
 
 export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
   const navigate = useNavigate();
-  const activeProjectContext = useActiveProjectOptional();
+  const activeProjectContext = useActiveProject();
   const activeProject = activeProjectContext?.activeProject ?? null;
   const hasFocus = activeProjectContext?.hasFocus ?? false;
   const [search, setSearch] = React.useState('');

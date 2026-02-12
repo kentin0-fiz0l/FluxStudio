@@ -75,14 +75,11 @@ const testConfig: EnvironmentConfig = {
 // Export the appropriate configuration
 export const config: EnvironmentConfig = (() => {
   if (isProduction) {
-    console.log('🚀 Loading production configuration');
     return productionConfig;
   }
   if (isTest) {
-    console.log('🧪 Loading test configuration');
     return testConfig;
   }
-  console.log('🛠️ Loading development configuration');
   return developmentConfig;
 })();
 
@@ -135,21 +132,9 @@ export const validateEnvironment = (): boolean => {
     return false;
   }
 
-  console.log('✅ Environment configuration validated successfully');
   return true;
 };
 
-// Log current configuration (excluding sensitive data)
-if (config.ENABLE_DEBUG) {
-  console.log('📋 Current environment configuration:', {
-    NODE_ENV: config.NODE_ENV,
-    API_BASE_URL: config.API_BASE_URL,
-    AUTH_URL: config.AUTH_URL,
-    MESSAGING_URL: config.MESSAGING_URL,
-    SOCKET_URL: config.SOCKET_URL,
-    APP_URL: config.APP_URL,
-    ENABLE_DEBUG: config.ENABLE_DEBUG,
-  });
-}
+// Configuration debug logging removed (was console.log)
 
 export default config;

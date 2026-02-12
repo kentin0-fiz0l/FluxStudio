@@ -317,7 +317,7 @@ class PluginRegistry {
     return settings;
   }
 
-  private async loadPluginModule(manifest: PluginManifest): Promise<PluginModule> {
+  private async loadPluginModule(_manifest: PluginManifest): Promise<PluginModule> {
     // In production, this would load from a CDN or local file
     // For now, we simulate dynamic import
     // This would be something like:
@@ -326,10 +326,8 @@ class PluginRegistry {
     // For simulation, return a no-op module
     return {
       activate: async () => {
-        console.log(`Plugin ${manifest.id} activated`);
       },
       deactivate: async () => {
-        console.log(`Plugin ${manifest.id} deactivated`);
       },
     };
   }
@@ -393,10 +391,10 @@ class PluginRegistry {
   private createPluginLogger(pluginId: string): PluginLogger {
     const prefix = `[Plugin:${pluginId}]`;
     return {
-      info: (message, ...args) => console.info(prefix, message, ...args),
+      info: (message, ...args) => console.info(prefix, message, ...args), // eslint-disable-line no-console -- Plugin logger
       warn: (message, ...args) => console.warn(prefix, message, ...args),
       error: (message, ...args) => console.error(prefix, message, ...args),
-      debug: (message, ...args) => console.debug(prefix, message, ...args),
+      debug: (_message, ..._args) => {},
     };
   }
 
@@ -406,28 +404,27 @@ class PluginRegistry {
     return {
       version: '1.0.0',
       commands: {
-        register: (id, _callback) => ({
-          dispose: () => console.log(`Command ${id} disposed`),
+        register: (_id, _callback) => ({
+          dispose: () => {},
         }),
-        execute: async (id, ...args) => {
-          console.log(`Executing command ${id}`, args);
+        execute: async (_id, ..._args) => {
         },
         getAll: () => [],
       },
       ui: {
-        showNotification: (options) => console.log('Notification:', options),
+        showNotification: (_options) => {},
         showModal: async (_component) => null,
-        registerPanel: (panel, _component) => ({
-          dispose: () => console.log(`Panel ${panel.id} disposed`),
+        registerPanel: (_panel, _component) => ({
+          dispose: () => {},
         }),
-        registerToolbarItem: (item) => ({
-          dispose: () => console.log(`Toolbar item ${item.id} disposed`),
+        registerToolbarItem: (_item) => ({
+          dispose: () => {},
         }),
       },
       projects: {
         getCurrent: async () => null,
         getAll: async () => [],
-        open: async (projectId) => console.log(`Opening project ${projectId}`),
+        open: async (_projectId) => {},
         create: async (options) => ({
           id: 'new-project',
           name: options.name,
@@ -438,8 +435,8 @@ class PluginRegistry {
       },
       files: {
         read: async (_path) => '',
-        write: async (path, _content) => console.log(`Writing to ${path}`),
-        delete: async (path) => console.log(`Deleting ${path}`),
+        write: async (_path, _content) => {},
+        delete: async (_path) => {},
         exists: async (_path) => false,
         list: async (_path) => [],
       },
@@ -449,16 +446,16 @@ class PluginRegistry {
         suggest: async (_context) => [],
       },
       events: {
-        on: (event, _callback) => ({
-          dispose: () => console.log(`Event ${event} unsubscribed`),
+        on: (_event, _callback) => ({
+          dispose: () => {},
         }),
-        emit: (event, ...args) => console.log(`Emitting ${event}`, args),
+        emit: (_event, ..._args) => {},
       },
       workspace: {
         getConfiguration: (_section) => ({}),
-        updateConfiguration: async (section, _value) => console.log(`Config updated: ${section}`),
+        updateConfiguration: async (_section, _value) => {},
         onDidChangeConfiguration: (_callback) => ({
-          dispose: () => console.log('Config listener disposed'),
+          dispose: () => {},
         }),
       },
     };

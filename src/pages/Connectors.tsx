@@ -45,7 +45,8 @@ import {
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
-import { useConnectors, Connector, ConnectorFile, ConnectorProvider, ImportedFile } from '@/contexts/ConnectorsContext';
+import { useConnectors } from '@/store';
+import type { Connector, ConnectorFile, ConnectorProvider, ImportedFile } from '@/store';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
 
@@ -548,7 +549,8 @@ export default function Connectors() {
   const navigate = useNavigate();
   const {
     state,
-    dispatch,
+    setCurrentProvider,
+    setError,
     fetchConnectors,
     connect,
     disconnect,
@@ -578,7 +580,7 @@ export default function Connectors() {
 
   // Handle browse files
   const handleBrowse = async (provider: ConnectorProvider) => {
-    dispatch({ type: 'SET_CURRENT_PROVIDER', payload: provider });
+    setCurrentProvider(provider);
     await fetchFiles(provider);
   };
 
@@ -599,7 +601,7 @@ export default function Connectors() {
 
   // Close file explorer
   const handleCloseExplorer = () => {
-    dispatch({ type: 'SET_CURRENT_PROVIDER', payload: null });
+    setCurrentProvider(null);
   };
 
   // Fetch imported files on mount
@@ -665,7 +667,7 @@ export default function Connectors() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => dispatch({ type: 'SET_ERROR', payload: null })}
+              onClick={() => setError(null)}
             >
               Dismiss
             </Button>

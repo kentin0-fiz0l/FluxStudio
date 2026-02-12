@@ -553,12 +553,10 @@ export function VisualMessageThread({
         <div className="bg-gray-50 border-b border-gray-200 p-4">
           <FileVersionTracker
             conversationId={conversation.id}
-            onVersionSelect={(version) => {
-              console.log('Version selected:', version);
+            onVersionSelect={(_version) => {
               // In a real app, this could open the file or show detailed view
             }}
-            onCompareVersions={(v1, v2) => {
-              console.log('Comparing versions:', v1, v2);
+            onCompareVersions={(_v1, _v2) => {
               // In a real app, this could open a comparison view
             }}
           />
@@ -582,12 +580,10 @@ export function VisualMessageThread({
                 <AIDesignFeedbackPanel
                   imageUrl={imageAttachment.url}
                   currentUser={currentUser}
-                  onFeedbackGenerated={(feedback) => {
+                  onFeedbackGenerated={(_feedback) => {
                     // Auto-populate the composer with AI feedback
-                    console.log('AI Feedback generated:', feedback);
                   }}
-                  onInsertSuggestion={(suggestion) => {
-                    console.log('AI Suggestion inserted:', suggestion);
+                  onInsertSuggestion={(_suggestion) => {
                   }}
                 />
               );
@@ -688,8 +684,7 @@ export function VisualMessageThread({
                 annotations={selectedAttachment.annotations || []}
                 currentUser={currentUser}
                 conversationId={conversation.id}
-                onAnnotationsChange={(annotations) => {
-                  console.log('Collaborative annotations updated:', annotations);
+                onAnnotationsChange={(_annotations) => {
                   // In a real app, this would update the attachment
                 }}
                 className="h-full"
@@ -718,9 +713,8 @@ export function VisualMessageThread({
               imageUrl={selectedAttachment.url}
               annotations={selectedAttachment.annotations || []}
               currentUser={currentUser}
-              onAnnotationsChange={(annotations) => {
+              onAnnotationsChange={(_annotations) => {
                 // Update the attachment with new annotations
-                console.log('Annotations updated:', annotations);
                 // In a real app, this would update the message attachment
               }}
               className="h-full"

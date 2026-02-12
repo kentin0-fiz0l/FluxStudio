@@ -66,12 +66,10 @@ export class MCPClient {
         connectionUrl = `${this.url}${separator}token=${this.authToken}`;
       }
 
-      console.log(`[MCP Client] Connecting to MCP server...`);
 
       this.ws = new WebSocket(connectionUrl);
 
       this.ws.onopen = () => {
-        console.log('[MCP Client] Connected');
         this.reconnectAttempts = 0;
         resolve();
       };
@@ -101,7 +99,6 @@ export class MCPClient {
       };
 
       this.ws.onclose = () => {
-        console.log('[MCP Client] Disconnected');
         this.handleReconnect();
       };
     });
@@ -118,7 +115,6 @@ export class MCPClient {
       this.reconnectAttempts++;
       const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
 
-      console.log(`[MCP Client] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
 
       setTimeout(() => {
         this.isReconnecting = false;
@@ -169,7 +165,6 @@ export class MCPClient {
    * Create a preview deployment for a branch
    */
   async createPreview(branch: string, payload?: Record<string, any>): Promise<PreviewResult> {
-    console.log(`[MCP Client] Creating preview for branch: ${branch}`);
 
     const result = await this.sendRequest('tools/call', {
       name: 'builds.createPreview',
@@ -191,7 +186,6 @@ export class MCPClient {
    * Tail logs for a workflow run
    */
   async tailLogs(runId: number): Promise<string> {
-    console.log(`[MCP Client] Fetching logs for run: ${runId}`);
 
     const result = await this.sendRequest('tools/call', {
       name: 'builds.tailLogs',

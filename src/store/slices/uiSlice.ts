@@ -10,6 +10,15 @@ import { FluxStore } from '../store';
 // ============================================================================
 
 export type Theme = 'light' | 'dark' | 'system';
+export type ThemeVariant = 'default' | 'cosmic' | 'minimal' | 'vibrant';
+export type LayoutDensity = 'compact' | 'comfortable' | 'spacious';
+
+export interface ThemeSettings {
+  variant: ThemeVariant;
+  layoutDensity: LayoutDensity;
+  showAnimations: boolean;
+  customAccentColor?: string;
+}
 
 export interface ModalState {
   isOpen: boolean;
@@ -17,8 +26,58 @@ export interface ModalState {
   data?: unknown;
 }
 
+export type WorkspaceMode = 'focus' | 'overview' | 'collaboration' | 'review';
+export type CurrentContext = 'dashboard' | 'project' | 'conversation' | 'organization' | 'team';
+
+export interface WorkspaceActivity {
+  id: string;
+  type: 'message' | 'file_upload' | 'project_update' | 'project_created' | 'conversation_created' | 'review_completed' | 'automation_enabled' | 'ai_feedback';
+  title: string;
+  description: string;
+  timestamp: string;
+  organizationId?: string;
+  teamId?: string;
+  projectId?: string;
+  conversationId?: string;
+  userId: string;
+  userName: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface WorkflowStep {
+  id: string;
+  workflowId: string;
+  title: string;
+  description: string;
+  completed: boolean;
+  current: boolean;
+  actions: Array<{
+    id: string;
+    label: string;
+    primary?: boolean;
+  }>;
+}
+
+export interface LastEntity {
+  conversationId?: string;
+  messageId?: string;
+  fileId?: string;
+  assetId?: string;
+  boardId?: string;
+}
+
+export interface WorkingContextData {
+  projectId: string;
+  lastRoute: string;
+  lastEntity: LastEntity;
+  lastSeenAt: string;
+  intentNote?: string;
+  version: number;
+}
+
 export interface UIState {
   theme: Theme;
+  themeSettings: ThemeSettings;
   sidebarCollapsed: boolean;
   sidebarWidth: number;
   commandPaletteOpen: boolean;
@@ -32,11 +91,24 @@ export interface UIState {
   }>;
   isFullscreen: boolean;
   focusMode: boolean;
+
+  // Workspace state (from WorkspaceContext)
+  currentContext: CurrentContext;
+  currentMode: WorkspaceMode;
+  recentActivity: WorkspaceActivity[];
+  currentWorkflow: WorkflowStep | null;
+  loadingStates: Record<string, boolean>;
+
+  // Working context (from WorkingContext) - per-project state stored in-memory
+  workingContext: WorkingContextData | null;
+  hasResumableContext: boolean;
 }
 
 export interface UIActions {
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  updateThemeSettings: (updates: Partial<ThemeSettings>) => void;
+  resetThemeSettings: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebar: () => void;
   setSidebarWidth: (width: number) => void;
@@ -49,6 +121,22 @@ export interface UIActions {
   removeToast: (id: string) => void;
   setFullscreen: (fullscreen: boolean) => void;
   setFocusMode: (focusMode: boolean) => void;
+
+  // Workspace actions (from WorkspaceContext)
+  setContext: (context: CurrentContext, mode?: WorkspaceMode) => void;
+  addActivity: (activity: Omit<WorkspaceActivity, 'id' | 'timestamp'>) => void;
+  startWorkflow: (workflow: Omit<WorkflowStep, 'current'>) => void;
+  completeWorkflowStep: (stepId: string) => void;
+  setWorkspaceLoading: (key: string, loading: boolean) => void;
+  isWorkspaceLoading: (key: string) => boolean;
+
+  // Working context actions (from WorkingContext)
+  updateWorkingContext: (updates: Partial<Omit<WorkingContextData, 'projectId' | 'version'>>) => void;
+  setIntentNote: (note: string | undefined) => void;
+  clearIntentNote: () => void;
+  clearWorkingContext: () => void;
+  loadWorkingContextForProject: (projectId: string) => void;
+  getWorkingContextForProject: (projectId: string) => WorkingContextData | null;
 }
 
 export interface UISlice {
@@ -59,8 +147,45 @@ export interface UISlice {
 // Initial State
 // ============================================================================
 
+const THEME_SETTINGS_KEY = 'flux-studio-theme';
+
+const defaultThemeSettings: ThemeSettings = {
+  variant: 'default',
+  layoutDensity: 'comfortable',
+  showAnimations: true,
+};
+
+function loadThemeSettings(): ThemeSettings {
+  try {
+    const stored = localStorage.getItem(THEME_SETTINGS_KEY);
+    if (stored) return { ...defaultThemeSettings, ...JSON.parse(stored) };
+  } catch { /* ignore */ }
+  return defaultThemeSettings;
+}
+
+const WORKING_CONTEXT_VERSION = 1;
+const WORKING_CONTEXT_PREFIX = 'fluxstudio.workingContext';
+
+function loadWorkingContext(projectId: string): WorkingContextData | null {
+  try {
+    const stored = localStorage.getItem(`${WORKING_CONTEXT_PREFIX}.${projectId}`);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    if (parsed.version !== WORKING_CONTEXT_VERSION) return null;
+    if (!parsed.projectId || !parsed.lastRoute || !parsed.lastSeenAt) return null;
+    return parsed;
+  } catch { return null; }
+}
+
+function saveWorkingContext(context: WorkingContextData): void {
+  try {
+    localStorage.setItem(`${WORKING_CONTEXT_PREFIX}.${context.projectId}`, JSON.stringify(context));
+  } catch { /* ignore */ }
+}
+
 const initialState: UIState = {
   theme: 'system',
+  themeSettings: loadThemeSettings(),
   sidebarCollapsed: false,
   sidebarWidth: 280,
   commandPaletteOpen: false,
@@ -68,6 +193,17 @@ const initialState: UIState = {
   toasts: [],
   isFullscreen: false,
   focusMode: false,
+
+  // Workspace
+  currentContext: 'dashboard',
+  currentMode: 'overview',
+  recentActivity: [],
+  currentWorkflow: null,
+  loadingStates: {},
+
+  // Working context
+  workingContext: null,
+  hasResumableContext: false,
 };
 
 // ============================================================================
@@ -95,6 +231,23 @@ export const createUISlice: StateCreator<
       const current = get().ui.theme;
       const next = current === 'light' ? 'dark' : 'light';
       get().ui.setTheme(next);
+    },
+
+    updateThemeSettings: (updates: Partial<ThemeSettings>) => {
+      set((state) => {
+        Object.assign(state.ui.themeSettings, updates);
+      });
+      const newSettings = { ...get().ui.themeSettings };
+      try { localStorage.setItem(THEME_SETTINGS_KEY, JSON.stringify(newSettings)); } catch { /* ignore */ }
+      applyThemeSettings(newSettings);
+    },
+
+    resetThemeSettings: () => {
+      set((state) => {
+        state.ui.themeSettings = { ...defaultThemeSettings };
+      });
+      try { localStorage.removeItem(THEME_SETTINGS_KEY); } catch { /* ignore */ }
+      applyThemeSettings(defaultThemeSettings);
     },
 
     setSidebarCollapsed: (collapsed: boolean) => {
@@ -177,6 +330,108 @@ export const createUISlice: StateCreator<
         state.ui.focusMode = focusMode;
       });
     },
+
+    // Workspace actions
+    setContext: (context: CurrentContext, mode?: WorkspaceMode) => {
+      set((state) => {
+        state.ui.currentContext = context;
+        if (mode) state.ui.currentMode = mode;
+      });
+    },
+
+    addActivity: (activity) => {
+      const fullActivity: WorkspaceActivity = {
+        ...activity,
+        id: `activity-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+      };
+      set((state) => {
+        state.ui.recentActivity = [fullActivity, ...state.ui.recentActivity].slice(0, 50);
+      });
+    },
+
+    startWorkflow: (workflow) => {
+      set((state) => {
+        state.ui.currentWorkflow = { ...workflow, current: true };
+      });
+    },
+
+    completeWorkflowStep: (stepId) => {
+      set((state) => {
+        if (state.ui.currentWorkflow?.id === stepId) {
+          state.ui.currentWorkflow.completed = true;
+        }
+      });
+    },
+
+    setWorkspaceLoading: (key, loading) => {
+      set((state) => {
+        state.ui.loadingStates[key] = loading;
+      });
+    },
+
+    isWorkspaceLoading: (key) => {
+      return get().ui.loadingStates[key] || false;
+    },
+
+    // Working context actions
+    updateWorkingContext: (updates) => {
+      const activeProjectId = get().projects.activeProjectId;
+      if (!activeProjectId) return;
+
+      set((state) => {
+        const now = new Date().toISOString();
+        const prev = state.ui.workingContext;
+        const newCtx: WorkingContextData = prev
+          ? { ...prev, ...updates, lastSeenAt: now }
+          : {
+              projectId: activeProjectId,
+              lastRoute: updates.lastRoute ?? '/',
+              lastEntity: updates.lastEntity ?? {},
+              lastSeenAt: now,
+              intentNote: updates.intentNote,
+              version: WORKING_CONTEXT_VERSION,
+            };
+        state.ui.workingContext = newCtx;
+        state.ui.hasResumableContext = !!(newCtx.lastRoute && newCtx.lastRoute !== '/');
+      });
+      // Debounced save
+      const ctx = get().ui.workingContext;
+      if (ctx) saveWorkingContext(ctx);
+    },
+
+    setIntentNote: (note) => {
+      get().ui.updateWorkingContext({ intentNote: note });
+    },
+
+    clearIntentNote: () => {
+      get().ui.updateWorkingContext({ intentNote: undefined });
+    },
+
+    clearWorkingContext: () => {
+      const activeProjectId = get().projects.activeProjectId;
+      if (activeProjectId) {
+        try { localStorage.removeItem(`${WORKING_CONTEXT_PREFIX}.${activeProjectId}`); } catch { /* ignore */ }
+      }
+      set((state) => {
+        state.ui.workingContext = null;
+        state.ui.hasResumableContext = false;
+      });
+    },
+
+    loadWorkingContextForProject: (projectId) => {
+      const loaded = loadWorkingContext(projectId);
+      set((state) => {
+        state.ui.workingContext = loaded;
+        state.ui.hasResumableContext = !!(loaded?.lastRoute && loaded.lastRoute !== '/');
+      });
+    },
+
+    getWorkingContextForProject: (projectId) => {
+      const current = get().ui.workingContext;
+      if (current?.projectId === projectId) return current;
+      return loadWorkingContext(projectId);
+    },
   },
 });
 
@@ -192,6 +447,26 @@ function applyTheme(theme: Theme) {
     root.classList.add('dark');
   } else {
     root.classList.remove('dark');
+  }
+}
+
+function applyThemeSettings(settings: ThemeSettings) {
+  const root = document.documentElement;
+
+  // Remove existing variant/density classes
+  root.classList.remove('theme-default', 'theme-cosmic', 'theme-minimal', 'theme-vibrant');
+  root.classList.remove('density-compact', 'density-comfortable', 'density-spacious');
+  root.classList.remove('no-animations');
+
+  root.classList.add(`theme-${settings.variant}`);
+  root.classList.add(`density-${settings.layoutDensity}`);
+
+  if (!settings.showAnimations) root.classList.add('no-animations');
+
+  if (settings.customAccentColor) {
+    root.style.setProperty('--accent-color', settings.customAccentColor);
+  } else {
+    root.style.removeProperty('--accent-color');
   }
 }
 
@@ -219,4 +494,58 @@ export const useSidebar = () => {
   const setCollapsed = useStore((state) => state.ui.setSidebarCollapsed);
   const setWidth = useStore((state) => state.ui.setSidebarWidth);
   return { collapsed, width, toggle, setCollapsed, setWidth };
+};
+
+/**
+ * useWorkspace - backwards-compatible hook matching the old WorkspaceContext API.
+ * Returns { state, actions } shape for consumer compatibility.
+ */
+export const useWorkspace = () => {
+  return useStore((s) => ({
+    state: {
+      currentContext: s.ui.currentContext,
+      currentMode: s.ui.currentMode,
+      recentActivity: s.ui.recentActivity,
+      currentWorkflow: s.ui.currentWorkflow,
+      sidebarCollapsed: s.ui.sidebarCollapsed,
+      commandPaletteOpen: s.ui.commandPaletteOpen,
+      // Derive activeProject from projectSlice for backwards compatibility
+      activeProject: s.projects.activeProjectId
+        ? s.projects.projects.find((p) => p.id === s.projects.activeProjectId) || null
+        : null,
+      activeConversation: null as { id: string; name: string } | null,
+      activeOrganization: s.org?.currentOrganization ?? null,
+      activeTeam: null as { id: string; name: string } | null,
+    },
+    actions: {
+      setContext: s.ui.setContext,
+      addActivity: s.ui.addActivity,
+      toggleSidebar: s.ui.toggleSidebar,
+      openCommandPalette: s.ui.openCommandPalette,
+      closeCommandPalette: s.ui.closeCommandPalette,
+      startWorkflow: s.ui.startWorkflow,
+      completeWorkflowStep: s.ui.completeWorkflowStep,
+      setActiveProject: (project: { id: string } | null) => {
+        s.projects.setActiveProject(project?.id ?? null);
+      },
+      setActiveConversation: (_conversation: unknown) => {
+        // No-op: conversations are managed through messagingSlice
+      },
+      getContextualActions: () => [] as Array<{ title: string; description: string; type: string; action: () => void; priority: string }>,
+      isLoading: s.ui.isWorkspaceLoading,
+    },
+  }));
+};
+
+export const useWorkingContext = () => {
+  return useStore((state) => ({
+    workingContext: state.ui.workingContext,
+    hasResumableContext: state.ui.hasResumableContext,
+    updateWorkingContext: state.ui.updateWorkingContext,
+    setIntentNote: state.ui.setIntentNote,
+    clearIntentNote: state.ui.clearIntentNote,
+    clearWorkingContext: state.ui.clearWorkingContext,
+    loadWorkingContextForProject: state.ui.loadWorkingContextForProject,
+    getWorkingContextForProject: state.ui.getWorkingContextForProject,
+  }));
 };

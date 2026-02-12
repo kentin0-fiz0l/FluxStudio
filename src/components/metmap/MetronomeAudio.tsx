@@ -79,7 +79,8 @@ export function useMetronomeAudio() {
   // Initialize audio context
   const initAudio = useCallback(() => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      audioContextRef.current = AudioContextClass ? new AudioContextClass() : null;
     }
     return audioContextRef.current;
   }, []);

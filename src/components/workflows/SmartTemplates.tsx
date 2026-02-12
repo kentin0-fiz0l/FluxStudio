@@ -34,7 +34,7 @@ import {
   Edit,
   Plus
 } from 'lucide-react';
-import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { useWorkspace } from '@/store';
 import { useAuth } from '../../contexts/AuthContext';
 import { workflowEngine, WorkflowTemplate, WorkflowInstance } from '../../services/workflowEngine';
 import { cn } from '../../lib/utils';
@@ -185,10 +185,10 @@ export function SmartTemplates() {
           name: user?.name || '',
           email: user?.email || '',
           userType: user?.userType || 'client',
-          avatar: user?.avatar
+          avatar: user?.avatar,
         },
         variables: {}
-      };
+      } as import('@/services/workflowEngine').WorkflowContext;
 
       const instance = await workflowEngine.startWorkflow(template.template.id, context);
       setRunningWorkflows(new Map(runningWorkflows.set(instance.id, instance)));

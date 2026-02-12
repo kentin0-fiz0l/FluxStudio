@@ -217,6 +217,37 @@ export const useProjects = () => {
   }));
 };
 
+/**
+ * useProjectContext - backwards-compatible hook matching the old ProjectContext API.
+ * Always returns an object (never null), unlike the old useProjectContextOptional.
+ */
+export const useProjectContext = () => {
+  const projects = useStore((s) => s.projects.projects);
+  const activeProjectId = useStore((s) => s.projects.activeProjectId);
+  const isLoading = useStore((s) => s.projects.isLoading);
+  const error = useStore((s) => s.projects.error);
+  const setActiveProject = useStore((s) => s.projects.setActiveProject);
+  const clearActiveProject = useStore((s) => s.projects.clearActiveProject);
+  const fetchProjects = useStore((s) => s.projects.fetchProjects);
+
+  const currentProject = activeProjectId
+    ? projects.find((p) => p.id === activeProjectId) || null
+    : null;
+
+  return {
+    currentProject,
+    projects,
+    isLoading,
+    error,
+    isReady: true,
+    switchProject: (projectId: string) => setActiveProject(projectId),
+    clearProject: () => clearActiveProject(),
+    isProjectSelected: (projectId: string) => projectId === activeProjectId,
+    refreshProjects: fetchProjects,
+    getProject: (projectId: string) => projects.find((p) => p.id === projectId),
+  };
+};
+
 export const useActiveProject = () => {
   const activeProjectId = useStore((state) => state.projects.activeProjectId);
   const projects = useStore((state) => state.projects.projects);

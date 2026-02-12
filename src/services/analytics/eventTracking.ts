@@ -64,9 +64,8 @@ export class EventTracker {
     return `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private sendToAnalytics(event: AnalyticsEvent): void {
+  private sendToAnalytics(_event: AnalyticsEvent): void {
     // Send to analytics backend
-    console.log('Analytics Event:', event);
   }
 
   getEvents(filter?: Partial<AnalyticsEvent>): AnalyticsEvent[] {

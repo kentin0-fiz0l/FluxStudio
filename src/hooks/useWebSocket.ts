@@ -62,13 +62,11 @@ export function useWebSocket(
       });
 
       socket.on('connect', () => {
-        console.log(`🔌 WebSocket connected to ${fullUrl}`);
         setConnected(true);
         setError(null);
       });
 
-      socket.on('disconnect', (reason) => {
-        console.log(`🔌 WebSocket disconnected from ${fullUrl}:`, reason);
+      socket.on('disconnect', (_reason) => {
         setConnected(false);
       });
 

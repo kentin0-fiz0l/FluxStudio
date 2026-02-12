@@ -8,6 +8,5 @@ export {
   AuthenticatedProviders,
   CoreProviders,
   RealtimeProviders,
-  ProjectProviders,
-  DataProviders,
+  SessionProviders,
 } from './RootProviders';

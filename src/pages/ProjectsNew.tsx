@@ -19,8 +19,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProjects, Project } from '../hooks/useProjects';
 import { useTeams } from '../hooks/useTeams';
 import { useOrganizations } from '../hooks/useOrganizations';
-import { useConnectors } from '../contexts/ConnectorsContext';
-import { useActiveProjectOptional } from '../contexts/ActiveProjectContext';
+import { useConnectors } from '@/store';
+import { useActiveProject } from '@/store';
 import { toast } from '../lib/toast';
 import {
   Plus,
@@ -60,7 +60,7 @@ export function ProjectsNew() {
   const { projects, loading, error, createProject, deleteProject, updateProject } = useProjects();
   const { teams } = useTeams();
   const { currentOrganization } = useOrganizations();
-  const activeProjectContext = useActiveProjectOptional();
+  const activeProjectContext = useActiveProject();
   const setActiveProject = activeProjectContext?.setActiveProject ?? (() => {});
   const isProjectFocused = activeProjectContext?.isProjectFocused ?? (() => false);
 
@@ -284,7 +284,7 @@ export function ProjectsNew() {
   };
 
   const handleProjectFocus = (project: Project) => {
-    setActiveProject({ id: project.id, name: project.name });
+    setActiveProject(project.id);
     toast.success(`Now focused on "${project.name}"`);
   };
 

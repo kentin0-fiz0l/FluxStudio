@@ -99,15 +99,13 @@ export function DraggableWidgetGrid({
   }, [removeWidget]);
 
   // Handle widget refresh
-  const handleWidgetRefresh = useCallback((widgetId: string) => {
+  const handleWidgetRefresh = useCallback((_widgetId: string) => {
     // Implement widget-specific refresh logic
-    console.log(`Refreshing widget: ${widgetId}`);
   }, []);
 
   // Handle widget configuration change
-  const handleWidgetConfigChange = useCallback((widgetId: string, config: any) => {
+  const handleWidgetConfigChange = useCallback((_widgetId: string, _config: unknown) => {
     // Implement widget configuration change logic
-    console.log(`Updating widget config: ${widgetId}`, config);
   }, []);
 
   // Render individual widget with error boundary
@@ -201,7 +199,6 @@ export function DraggableWidgetGrid({
             className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
             onClick={() => {
               // This would typically open a widget palette
-              console.log('Open widget palette');
             }}
           >
             Add Widgets

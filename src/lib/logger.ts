@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- Logger infrastructure intentionally uses console methods */
 /**
  * Structured Logger for FluxStudio Frontend
  * Sprint 19: Foundation Hardening

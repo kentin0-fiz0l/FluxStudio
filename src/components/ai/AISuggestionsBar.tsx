@@ -50,7 +50,6 @@ export function AISuggestionsBar({
   const handleApply = (suggestion: AISuggestion) => {
     ai.applySuggestion(suggestion.id);
     // In a real app, this would trigger the actual action
-    console.log('Applying suggestion:', suggestion);
   };
 
   if (visibleSuggestions.length === 0) {

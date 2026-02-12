@@ -53,7 +53,7 @@ export default [
       // Disable no-undef - TypeScript handles this better
       'no-undef': 'off',
       // DEBT-012: Prevent console statements in production
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-console': ['error', { allow: ['warn', 'error'] }],
       // Allow variable declarations in switch cases (wrap in braces if needed for clarity)
       'no-case-declarations': 'warn',
       // DEBT-013: Array index keys - add eslint-plugin-react and enable 'react/no-array-index-key'

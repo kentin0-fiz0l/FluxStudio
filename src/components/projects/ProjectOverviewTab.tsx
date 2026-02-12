@@ -303,18 +303,18 @@ export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOvervi
               <div className="p-3 bg-neutral-50 rounded-lg mb-4">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0" aria-hidden="true">
-                    {(projectConversation.lastMessage as any)?.author?.name?.charAt(0)?.toUpperCase() || '?'}
+                    {projectConversation.lastMessage?.author?.name?.charAt(0)?.toUpperCase() || '?'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-neutral-900 truncate">
-                      {(projectConversation.lastMessage as any)?.author?.name || 'Team Member'}
+                      {projectConversation.lastMessage?.author?.name || 'Team Member'}
                     </p>
                     <p className="text-sm text-neutral-600 truncate">
-                      {(projectConversation.lastMessage as any)?.content || 'No recent messages'}
+                      {projectConversation.lastMessage?.content || 'No recent messages'}
                     </p>
                     <p className="text-xs text-neutral-400 mt-1">
-                      {(projectConversation.lastMessage as any)?.createdAt
-                        ? formatDate((projectConversation.lastMessage as any).createdAt)
+                      {projectConversation.lastMessage?.createdAt
+                        ? formatDate(String(projectConversation.lastMessage.createdAt))
                         : ''}
                     </p>
                   </div>

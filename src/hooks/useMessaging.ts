@@ -158,7 +158,7 @@ export function useMessaging(): UseMessagingReturn {
     if (user) {
       const messageUser: MessageUser = {
         id: user.id,
-        name: user.name,
+        name: user.name || '',
         userType: user.userType || 'designer',
         avatar: user.avatar,
         isOnline: true,

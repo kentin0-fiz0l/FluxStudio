@@ -101,12 +101,12 @@ global.document = {
     }
     return {};
   }),
-} as any;
+} as unknown as Document;
 
 global.URL = {
   createObjectURL: vi.fn(() => 'blob:mock-url'),
   revokeObjectURL: vi.fn(),
-} as any;
+} as unknown as typeof URL;
 
 describe('File Analyzer Service', () => {
   describe('analyzeFile', () => {

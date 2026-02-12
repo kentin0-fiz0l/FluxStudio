@@ -57,7 +57,7 @@ export function Profile() {
               Manage your account information and preferences
             </p>
           </div>
-          <Button onClick={() => console.log('Edit profile')}>
+          <Button onClick={() => {}}>
             <Edit className="w-4 h-4 mr-2" />
             Edit Profile
           </Button>

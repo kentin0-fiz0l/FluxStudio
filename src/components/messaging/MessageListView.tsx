@@ -198,7 +198,7 @@ export const MessageListView = forwardRef<MessageListViewRef, MessageListViewPro
                 onOpenThread={() => onOpenThread(message.id)}
                 onViewInFiles={onViewInFiles}
                 isGrouped={isGrouped}
-                currentUserId={currentUserId}
+                currentUserId={currentUserId || ''}
                 isPinned={pinnedMessageIds.includes(message.id)}
                 isHighlighted={
                   highlightedMessageId === message.id ||

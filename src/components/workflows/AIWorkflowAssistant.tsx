@@ -24,7 +24,7 @@ import {
   Clock,
   Users
 } from 'lucide-react';
-import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { useWorkspace } from '@/store';
 import { useAuth } from '../../contexts/AuthContext';
 import { workflowEngine, WorkflowTemplate } from '../../services/workflowEngine';
 import { cn } from '../../lib/utils';
@@ -207,11 +207,11 @@ export function AIWorkflowAssistant() {
       if (state.activeProject) {
         const lastActivity = recentActivity
           .filter(a => a.projectId === state.activeProject?.id)
-          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
 
         if (lastActivity) {
           const daysSinceActivity = Math.ceil(
-            (Date.now() - lastActivity.timestamp.getTime()) / (1000 * 60 * 60 * 24)
+            (Date.now() - new Date(lastActivity.timestamp).getTime()) / (1000 * 60 * 60 * 24)
           );
 
           if (daysSinceActivity > 7) {

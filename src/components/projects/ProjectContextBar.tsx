@@ -18,7 +18,7 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { Target, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui';
-import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
+import { useActiveProject } from '@/store';
 import { PulseIndicator } from '@/components/pulse/PulseIndicator';
 import { PulsePanel } from '@/components/pulse/PulsePanel';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,7 @@ export interface ProjectContextBarProps {
 }
 
 export function ProjectContextBar({ className }: ProjectContextBarProps) {
-  const activeProjectContext = useActiveProjectOptional();
+  const activeProjectContext = useActiveProject();
   const [isPulseOpen, setIsPulseOpen] = React.useState(false);
 
   // Safe access with fallbacks - handles 401 race conditions

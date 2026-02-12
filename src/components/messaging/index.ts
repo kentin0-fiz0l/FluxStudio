@@ -25,7 +25,6 @@ export { default as QuickChatActions } from './QuickChatActions';
 
 // NEW: Refactored Components (MessagesNew.tsx extraction)
 export { ChatMessageBubble, ChatAvatar } from './ChatMessageBubble';
-export type { ChatMessageBubbleProps } from './ChatMessageBubble';
 
 export { MessageComposer } from './MessageComposer';
 export type { MessageComposerProps } from './MessageComposer';

@@ -66,8 +66,7 @@ export class AutomationEngine {
     }
   }
 
-  private async executeAction(action: AutomationAction, context: Record<string, any>): Promise<void> {
-    console.log(`Executing action: ${action.type}`, action.config, context);
+  private async executeAction(_action: AutomationAction, _context: Record<string, unknown>): Promise<void> {
   }
 
   addRule(rule: AutomationRule): void {

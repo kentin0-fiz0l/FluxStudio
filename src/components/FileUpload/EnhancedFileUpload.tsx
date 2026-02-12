@@ -62,7 +62,6 @@ export const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
     };
 
     const handleScanComplete = (scanResult: ScanResult) => {
-      console.log('Security scan complete:', scanResult);
 
       // Update upload session with scan results
       setUploads(prev => {

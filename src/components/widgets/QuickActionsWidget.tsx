@@ -40,7 +40,7 @@ export function QuickActionsWidget(props: WidgetProps) {
         return [
           ...baseActions,
           { icon: Plus, label: 'New Project Request', action: () => navigate('/dashboard/client') },
-          { icon: MessageSquare, label: 'Messages', action: () => console.log('Opening messaging sidepanel...') },
+          { icon: MessageSquare, label: 'Messages', action: () => {} },
           { icon: Mail, label: 'Contact Support', action: () => {} },
         ];
       case 'designer':
@@ -101,7 +101,7 @@ export function QuickActionsWidget(props: WidgetProps) {
       {/* Quick stats or additional info */}
       <div className="mt-4 pt-4 border-t border-white/10">
         <div className="flex items-center justify-between text-sm text-gray-400">
-          <span>Role: {user.userType.charAt(0).toUpperCase() + user.userType.slice(1)}</span>
+          <span>Role: {(user.userType || 'designer').charAt(0).toUpperCase() + (user.userType || 'designer').slice(1)}</span>
           <span className="text-green-400">● Online</span>
         </div>
       </div>

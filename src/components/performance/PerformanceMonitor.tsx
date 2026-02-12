@@ -130,17 +130,17 @@ export function PerformanceMonitor() {
     const collectMetrics = () => {
       const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
       const paint = performance.getEntriesByType('paint');
-      const memory = (performance as any).memory;
-      const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+      const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
+      const connection = (navigator as Navigator & { connection?: { effectiveType: string; downlink: number; rtt: number }; mozConnection?: unknown; webkitConnection?: unknown }).connection;
 
       // Get Core Web Vitals
-      const lcpEntry = performance.getEntriesByType('largest-contentful-paint')[0] as any;
-      const fidEntry = performance.getEntriesByType('first-input')[0] as any;
-      const clsEntries = performance.getEntriesByType('layout-shift') as any[];
+      const lcpEntry = performance.getEntriesByType('largest-contentful-paint')[0] as PerformanceEntry & { renderTime?: number; loadTime?: number } | undefined;
+      const fidEntry = performance.getEntriesByType('first-input')[0] as PerformanceEntry & { processingStart?: number } | undefined;
+      const clsEntries = performance.getEntriesByType('layout-shift') as (PerformanceEntry & { hadRecentInput: boolean; value: number })[];
 
       const fcp = paint.find(entry => entry.name === 'first-contentful-paint')?.startTime || 0;
       const lcp = lcpEntry?.renderTime || lcpEntry?.loadTime || 0;
-      const fid = fidEntry?.processingStart - fidEntry?.startTime || 0;
+      const fid = (fidEntry?.processingStart ?? 0) - (fidEntry?.startTime ?? 0);
       const cls = clsEntries
         .filter(entry => !entry.hadRecentInput)
         .reduce((sum, entry) => sum + entry.value, 0);

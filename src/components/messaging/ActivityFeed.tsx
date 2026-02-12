@@ -275,9 +275,8 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
           label: action.label,
           action: () => {
             // Handle notification action
-            console.log('Notification action:', action.action);
           },
-          variant: action.variant as any
+          variant: action.variant as 'primary' | 'outline' | 'ghost' | undefined
         }))
       });
     });
@@ -381,7 +380,7 @@ export function ActivityFeed({ className }: ActivityFeedProps) {
         </div>
 
         {/* Filters */}
-        <Tabs value={filterType} onValueChange={(value) => setFilterType(value as any)}>
+        <Tabs value={filterType} onValueChange={(value) => setFilterType(value as typeof filterType)}>
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="messages">Messages</TabsTrigger>

@@ -55,7 +55,9 @@ export function AudioPlayer({
   useEffect(() => {
     const initAudioContext = async () => {
       try {
-        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextClass) return;
+        const context = new AudioContextClass();
         setAudioContext(context);
 
         // Fetch and decode audio for waveform
@@ -260,7 +262,7 @@ export function AudioPlayer({
   };
 
   return (
-    <div className={cn("bg-gray-900 rounded-lg overflow-hidden", className)}>
+    <div className={cn("bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden", className)}>
       <audio ref={audioRef} src={src} preload="metadata" />
 
       {/* Header with track info */}
@@ -307,7 +309,7 @@ export function AudioPlayer({
           ref={canvasRef}
           width={800}
           height={120}
-          className="w-full h-30 cursor-pointer rounded bg-gray-800"
+          className="w-full h-30 cursor-pointer rounded bg-gray-200 dark:bg-gray-800"
           onClick={handleCanvasClick}
         />
       </div>
@@ -399,7 +401,7 @@ export function AudioPlayer({
             <select
               value={playbackRate}
               onChange={(e) => changePlaybackRate(Number(e.target.value))}
-              className="bg-gray-800 text-white text-sm border border-gray-600 rounded px-2 py-1"
+              className="bg-gray-200 dark:bg-gray-800 text-neutral-900 dark:text-white text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1"
             >
               <option value={0.5}>0.5x</option>
               <option value={0.75}>0.75x</option>
@@ -427,7 +429,7 @@ export function AudioPlayer({
                       audio.currentTime = bookmark.time;
                     }
                   }}
-                  className="text-xs bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className="text-xs bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"
                 >
                   {bookmark.label} ({formatTime(bookmark.time)})
                 </Button>

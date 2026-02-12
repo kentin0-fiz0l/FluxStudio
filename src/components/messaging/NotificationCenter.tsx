@@ -296,7 +296,7 @@ export function NotificationCenter({ isOpen, onClose, className }: NotificationC
 
         {/* Filters */}
         <div className="p-4 border-b">
-          <Tabs value={filter} onValueChange={(value) => setFilter(value as any)}>
+          <Tabs value={filter} onValueChange={(value) => setFilter(value as typeof filter)}>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
               <TabsTrigger value="unread" className="text-xs">Unread</TabsTrigger>

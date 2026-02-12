@@ -370,7 +370,7 @@ export function MessagesWidget(props: WidgetProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => console.log('Opening messaging sidepanel...')}
+            onClick={() => {}}
             className="h-7 px-2 text-xs text-white/70 hover:text-white hover:bg-white/10"
           >
             <ArrowRight className="h-3 w-3 mr-1" />
@@ -499,9 +499,8 @@ export function MessagesWidget(props: WidgetProps) {
                     showAvatar={shouldShowAvatar(message, index)}
                     onEdit={(messageId) => setEditingMessageId(messageId)}
                     onDelete={deleteMessage}
-                    onReply={(messageId) => {
+                    onReply={(_messageId) => {
                       // Handle reply functionality
-                      console.log('Reply to message:', messageId);
                     }}
                   />
                 ))}

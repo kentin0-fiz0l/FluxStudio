@@ -84,7 +84,7 @@ export const useTaskRealtime = (
 
     // Connect to task socket service
     if (!taskSocketService.isSocketConnected()) {
-      taskSocketService.connect(authToken, user.id, user.name);
+      taskSocketService.connect(authToken, user.id, user.name || '');
     }
 
     // Join project room
@@ -98,11 +98,9 @@ export const useTaskRealtime = (
     const handleTaskCreated = (payload: TaskUpdatePayload) => {
       // Skip if it's our own update (prevent duplicate)
       if (payload.userId === user.id) {
-        console.log('Ignoring own task:created event');
         return;
       }
 
-      console.log('Processing task:created from another user', payload);
 
       // Update React Query cache
       queryClient.setQueryData<Task[]>(
@@ -110,7 +108,6 @@ export const useTaskRealtime = (
         (old = []) => {
           // Check if task already exists (prevent duplicates)
           if (old.some((t) => t.id === payload.task.id)) {
-            console.log('Task already exists in cache, skipping');
             return old;
           }
           return [...old, payload.task];
@@ -130,11 +127,9 @@ export const useTaskRealtime = (
     const handleTaskUpdated = (payload: TaskUpdatePayload) => {
       // Skip if it's our own update
       if (payload.userId === user.id) {
-        console.log('Ignoring own task:updated event');
         return;
       }
 
-      console.log('Processing task:updated from another user', payload);
 
       // Update React Query cache
       queryClient.setQueryData<Task[]>(
@@ -173,11 +168,9 @@ export const useTaskRealtime = (
     const handleTaskDeleted = (payload: TaskDeletePayload) => {
       // Skip if it's our own update
       if (payload.userId === user.id) {
-        console.log('Ignoring own task:deleted event');
         return;
       }
 
-      console.log('Processing task:deleted from another user', payload);
 
       // Get task title before removing (for notification)
       const tasks = queryClient.getQueryData<Task[]>(queryKeys.tasks.list(projectId));
@@ -210,7 +203,6 @@ export const useTaskRealtime = (
     const handlePresenceUpdate = (payload: PresenceUpdatePayload) => {
       if (payload.projectId !== projectId) return;
 
-      console.log('Presence update:', payload.users);
 
       // Filter out current user from online users list
       const otherUsers = payload.users.filter((u) => u.id !== user.id);
@@ -225,7 +217,6 @@ export const useTaskRealtime = (
 
     // Cleanup on unmount
     return () => {
-      console.log('Cleaning up task realtime subscription');
 
       // Unsubscribe from events
       taskSocketService.offTaskCreated(handleTaskCreated);

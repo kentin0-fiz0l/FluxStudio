@@ -330,7 +330,7 @@ export function ConversationIntelligencePanel({
           </div>
           <select
             value={filterType}
-            onChange={(e) => setFilterType(e.target.value as any)}
+            onChange={(e) => setFilterType(e.target.value as typeof filterType)}
             className="bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white text-sm"
           >
             <option value="all">All</option>

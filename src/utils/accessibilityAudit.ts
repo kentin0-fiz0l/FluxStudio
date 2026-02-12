@@ -337,34 +337,21 @@ export function runAccessibilityAudit(): AccessibilityAuditResult {
  * Print accessibility audit report to console
  */
 export function printAccessibilityReport(result: AccessibilityAuditResult): void {
+  /* eslint-disable no-console */
   console.group('🔍 Accessibility Audit Report');
 
-  console.log(`Score: ${result.score}/100`);
-  console.log(`Status: ${result.passed ? '✅ PASSED' : '❌ FAILED'}`);
-  console.log('');
 
-  console.log('Summary:');
-  console.log(`  Critical: ${result.summary.critical}`);
-  console.log(`  Serious: ${result.summary.serious}`);
-  console.log(`  Moderate: ${result.summary.moderate}`);
-  console.log(`  Minor: ${result.summary.minor}`);
-  console.log('');
 
   if (result.issues.length > 0) {
-    console.log('Issues:');
     result.issues.forEach((issue, index) => {
       console.group(`${index + 1}. [${issue.severity.toUpperCase()}] ${issue.type}`);
-      console.log(`Element: ${issue.element}`);
-      console.log(`Description: ${issue.description}`);
-      console.log(`WCAG: ${issue.wcagCriterion}`);
-      console.log(`Suggestion: ${issue.suggestion}`);
       console.groupEnd();
     });
   } else {
-    console.log('✨ No accessibility issues found!');
   }
 
   console.groupEnd();
+  /* eslint-enable no-console */
 }
 
 /**

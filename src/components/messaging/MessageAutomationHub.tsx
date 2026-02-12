@@ -295,7 +295,7 @@ export const MessageAutomationHub: React.FC<MessageAutomationHubProps> = ({
                   <ScheduledMessageCard
                     key={message.id}
                     message={message}
-                    onEdit={(id) => console.log('Edit message:', id)}
+                    onEdit={(_id) => {}}
                     onCancel={(id) => {
                       setScheduledMessages(prev =>
                         prev.map(m => m.id === id ? { ...m, status: 'cancelled' } : m)
@@ -358,8 +358,8 @@ export const MessageAutomationHub: React.FC<MessageAutomationHubProps> = ({
                     <TemplateCard
                       key={template.id}
                       template={template}
-                      onUse={(id) => console.log('Use template:', id)}
-                      onEdit={(id) => console.log('Edit template:', id)}
+                      onUse={(_id) => {}}
+                      onEdit={(_id) => {}}
                       onDelete={(id) => {
                         setTemplates(prev => prev.filter(t => t.id !== id));
                       }}
@@ -394,7 +394,7 @@ export const MessageAutomationHub: React.FC<MessageAutomationHubProps> = ({
                         prev.map(r => r.id === id ? { ...r, isActive } : r)
                       );
                     }}
-                    onEdit={(id) => console.log('Edit rule:', id)}
+                    onEdit={(_id) => {}}
                     onDelete={(id) => {
                       setAutomationRules(prev => prev.filter(r => r.id !== id));
                     }}

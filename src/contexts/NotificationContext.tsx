@@ -1,476 +1,98 @@
 /**
- * NotificationContext - Flux Studio
+ * NotificationContext - Backward compatibility wrapper
  *
- * Global notification state management with real-time WebSocket integration.
- * Provides centralized notification handling for the entire application.
- *
- * Features:
- * - Real-time notification updates via Socket.IO
- * - Unread count tracking
- * - Mark as read (single/batch/all)
- * - Toast notifications for new arrivals
- * - Keyboard shortcut support (Ctrl+Shift+N)
- * - Accessible announcements via ARIA live regions
+ * Notification state has been migrated to Zustand (store/slices/notificationSlice.ts).
+ * This file re-exports the Zustand hook so existing imports continue to work.
  */
 
-import * as React from 'react';
-import { useAuth } from './AuthContext';
-import { getApiUrl } from '@/utils/apiHelpers';
-import { createLogger } from '../lib/logger';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { useStore } from '../store';
 
-const notifyLogger = createLogger('NotificationContext');
-
-// Notification types (v2 - messaging focused with category support)
-export type NotificationType =
-  | 'mention'
-  | 'reply'
-  | 'thread_reply'
-  | 'file_shared'
-  // v2 structured types
-  | 'decision'
-  | 'blocker'
-  | 'assignment'
-  | 'file_change'
-  // Legacy types for backwards compatibility
-  | 'message_mention'
-  | 'message_reply'
-  | 'project_member_added'
-  | 'project_status_changed'
-  | 'project_file_uploaded'
-  | 'organization_alert'
-  | 'system'
-  // Toast-style types
-  | 'success'
-  | 'info'
-  | 'warning'
-  | 'error';
-
-export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
-
-export interface NotificationActor {
-  id: string;
-  name: string;
-  email?: string;
-  avatarUrl?: string;
+interface SocketLike {
+  emit(event: string, ...args: unknown[]): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  on(event: string, cb: (...args: any[]) => void): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  off(event: string, cb: (...args: any[]) => void): void;
 }
 
-export interface Notification {
-  id: string;
-  userId: string;
-  type: NotificationType;
-  title: string;
-  body?: string;
-  message?: string; // Legacy field
-  data?: Record<string, any>;
-  metadata?: Record<string, any>;
-  priority?: NotificationPriority;
-  isRead: boolean;
-  readAt: string | null;
-  createdAt: string;
-  // v2 fields for messaging
-  actorUserId?: string;
-  actor?: NotificationActor;
-  conversationId?: string;
-  messageId?: string;
-  threadRootMessageId?: string;
-  assetId?: string;
-  // Project context for project-scoped notifications
-  // See docs/project-context-followups.md for filtering implementation
-  projectId?: string | null;
-  projectName?: string | null;
-  // Legacy
-  actionUrl?: string | null;
-  expiresAt?: string | null;
-  entityId?: string;
+interface WindowWithSocket extends Window {
+  __messagingSocket?: SocketLike;
 }
 
-export interface NotificationState {
-  notifications: Notification[];
-  unreadCount: number;
-  loading: boolean;
-  error: string | null;
-  toastQueue: Notification[];
-}
+// Re-export types
+export type {
+  NotificationType,
+  NotificationPriority,
+  NotificationActor,
+  Notification,
+  NotificationState,
+} from '../store/slices/notificationSlice';
 
-export type NotificationAction =
-  | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
-  | { type: 'ADD_NOTIFICATION'; payload: Notification }
-  | { type: 'UPDATE_NOTIFICATION'; payload: Notification }
-  | { type: 'REMOVE_NOTIFICATION'; payload: string }
-  | { type: 'SET_UNREAD_COUNT'; payload: number }
-  | { type: 'MARK_ALL_READ' }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'ADD_TOAST'; payload: Notification }
-  | { type: 'REMOVE_TOAST'; payload: string }
-  | { type: 'CLEAR_TOASTS' };
+// Re-export hooks from Zustand
+export { useNotifications, useNotification } from '../store/slices/notificationSlice';
 
-const initialState: NotificationState = {
-  notifications: [],
-  unreadCount: 0,
-  loading: false,
-  error: null,
-  toastQueue: [],
-};
+// Legacy type export for backward compatibility
+export type NotificationContextValue = ReturnType<typeof import('../store/slices/notificationSlice').useNotifications>;
 
-function notificationReducer(state: NotificationState, action: NotificationAction): NotificationState {
-  switch (action.type) {
-    case 'SET_NOTIFICATIONS':
-      return {
-        ...state,
-        notifications: action.payload,
-        unreadCount: action.payload.filter(n => !n.isRead).length,
-        loading: false,
-      };
-
-    case 'ADD_NOTIFICATION':
-      // Check if notification already exists
-      if (state.notifications.find(n => n.id === action.payload.id)) {
-        return state;
-      }
-      return {
-        ...state,
-        notifications: [action.payload, ...state.notifications],
-        unreadCount: state.unreadCount + (action.payload.isRead ? 0 : 1),
-      };
-
-    case 'UPDATE_NOTIFICATION':
-      return {
-        ...state,
-        notifications: state.notifications.map(n =>
-          n.id === action.payload.id ? action.payload : n
-        ),
-        unreadCount: state.notifications.filter(n =>
-          n.id === action.payload.id ? !action.payload.isRead : !n.isRead
-        ).length,
-      };
-
-    case 'REMOVE_NOTIFICATION':
-      const removed = state.notifications.find(n => n.id === action.payload);
-      return {
-        ...state,
-        notifications: state.notifications.filter(n => n.id !== action.payload),
-        unreadCount: removed && !removed.isRead
-          ? state.unreadCount - 1
-          : state.unreadCount,
-      };
-
-    case 'SET_UNREAD_COUNT':
-      return { ...state, unreadCount: action.payload };
-
-    case 'MARK_ALL_READ':
-      return {
-        ...state,
-        notifications: state.notifications.map(n => ({ ...n, isRead: true })),
-        unreadCount: 0,
-      };
-
-    case 'SET_LOADING':
-      return { ...state, loading: action.payload };
-
-    case 'SET_ERROR':
-      return { ...state, error: action.payload, loading: false };
-
-    case 'ADD_TOAST':
-      // Limit toast queue to 5
-      const newQueue = [action.payload, ...state.toastQueue].slice(0, 5);
-      return { ...state, toastQueue: newQueue };
-
-    case 'REMOVE_TOAST':
-      return {
-        ...state,
-        toastQueue: state.toastQueue.filter(t => t.id !== action.payload),
-      };
-
-    case 'CLEAR_TOASTS':
-      return { ...state, toastQueue: [] };
-
-    default:
-      return state;
-  }
-}
-
-export interface NotificationContextValue {
-  state: NotificationState;
-  dispatch: React.Dispatch<NotificationAction>;
-  fetchNotifications: () => Promise<void>;
-  markAsRead: (notificationId: string) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-  deleteNotification: (notificationId: string) => Promise<void>;
-  dismissToast: (notificationId: string) => void;
-  clearToasts: () => void;
-  // Convenience methods for adding notifications/toasts
-  addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead' | 'readAt' | 'userId'>) => void;
-  addToast: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead' | 'readAt' | 'userId'>) => void;
-  showNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead' | 'readAt' | 'userId'>) => void;
-}
-
-const NotificationContext = React.createContext<NotificationContextValue | null>(null);
-
-export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const [state, dispatch] = React.useReducer(notificationReducer, initialState);
-  const announcerRef = React.useRef<HTMLDivElement>(null);
-
-  // Fetch notifications from API
-  const fetchNotifications = React.useCallback(async () => {
-    if (!user) return;
-
-    dispatch({ type: 'SET_LOADING', payload: true });
-
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl('/notifications'), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
-      }
-
-      const data = await response.json();
-      dispatch({ type: 'SET_NOTIFICATIONS', payload: data.notifications || [] });
-    } catch (error) {
-      notifyLogger.error('Error fetching notifications', error);
-      dispatch({ type: 'SET_ERROR', payload: 'Failed to load notifications' });
-    }
-  }, [user]);
-
-  // Fetch unread count
-  const fetchUnreadCount = React.useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl('/notifications/unread-count'), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        dispatch({ type: 'SET_UNREAD_COUNT', payload: data.count || 0 });
-      }
-    } catch (error) {
-      notifyLogger.error('Error fetching unread count', error);
-    }
-  }, [user]);
-
-  // Mark notification as read (v2 endpoint)
-  const markAsRead = React.useCallback(async (notificationId: string) => {
-    // Optimistic update
-    const notification = state.notifications.find(n => n.id === notificationId);
-    if (notification && !notification.isRead) {
-      dispatch({
-        type: 'UPDATE_NOTIFICATION',
-        payload: { ...notification, isRead: true, readAt: new Date().toISOString() },
-      });
-    }
-
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/notifications/${notificationId}/read`), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        // Revert optimistic update on failure
-        if (notification) {
-          dispatch({
-            type: 'UPDATE_NOTIFICATION',
-            payload: notification,
-          });
-        }
-      }
-    } catch (error) {
-      notifyLogger.error('Error marking notification as read', error);
-      // Revert optimistic update
-      if (notification) {
-        dispatch({
-          type: 'UPDATE_NOTIFICATION',
-          payload: notification,
-        });
-      }
-    }
-  }, [state.notifications]);
-
-  // Mark all as read
-  const markAllAsRead = React.useCallback(async () => {
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl('/notifications/read'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ all: true }),
-      });
-
-      if (response.ok) {
-        dispatch({ type: 'MARK_ALL_READ' });
-      }
-    } catch (error) {
-      notifyLogger.error('Error marking all notifications as read', error);
-    }
-  }, []);
-
-  // Delete notification
-  const deleteNotification = React.useCallback(async (notificationId: string) => {
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/notifications/${notificationId}`), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        dispatch({ type: 'REMOVE_NOTIFICATION', payload: notificationId });
-      }
-    } catch (error) {
-      notifyLogger.error('Error deleting notification', error);
-    }
-  }, []);
-
-  // Toast helpers
-  const dismissToast = React.useCallback((notificationId: string) => {
-    dispatch({ type: 'REMOVE_TOAST', payload: notificationId });
-  }, []);
-
-  const clearToasts = React.useCallback(() => {
-    dispatch({ type: 'CLEAR_TOASTS' });
-  }, []);
-
-  // Add a notification manually (for local/client-side notifications)
-  const addNotification = React.useCallback((notificationData: Omit<Notification, 'id' | 'createdAt' | 'isRead' | 'readAt' | 'userId'>) => {
-    const notification: Notification = {
-      ...notificationData,
-      id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      userId: user?.id || '',
-      createdAt: new Date().toISOString(),
-      isRead: false,
-      readAt: null,
-    };
-    dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
-    dispatch({ type: 'ADD_TOAST', payload: notification });
-
-    // Announce to screen readers
-    if (announcerRef.current) {
-      announcerRef.current.textContent = `New notification: ${notification.title}. ${notification.body || notification.message || ''}`;
-    }
-
-    // Auto-dismiss toast after 5 seconds
-    setTimeout(() => {
-      dispatch({ type: 'REMOVE_TOAST', payload: notification.id });
-    }, 5000);
-  }, [user]);
-
-  // Aliases for addNotification (for backward compatibility)
-  const addToast = addNotification;
-  const showNotification = addNotification;
-
-  // Handle new notification (from WebSocket or internal)
-  const handleNewNotification = React.useCallback((notification: Notification) => {
-    dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
-    dispatch({ type: 'ADD_TOAST', payload: notification });
-
-    // Announce to screen readers
-    if (announcerRef.current) {
-      announcerRef.current.textContent = `New notification: ${notification.title}. ${notification.message}`;
-    }
-
-    // Auto-dismiss toast after 5 seconds
-    setTimeout(() => {
-      dispatch({ type: 'REMOVE_TOAST', payload: notification.id });
-    }, 5000);
-  }, []);
-
-  // Set up Socket.IO listener for real-time notifications
-  React.useEffect(() => {
-    if (!user) return;
-
-    // Get socket from window if available (set by SocketProvider)
-    const socket = (window as any).__messagingSocket;
-
-    if (socket) {
-      // Subscribe to notifications
-      socket.emit('notifications:subscribe');
-
-      // Listen for new notifications
-      const handleNewNotificationEvent = (notification: Notification) => {
-        handleNewNotification(notification);
-      };
-
-      // Listen for unread count updates
-      const handleUnreadCount = ({ count }: { count: number }) => {
-        dispatch({ type: 'SET_UNREAD_COUNT', payload: count });
-      };
-
-      // Listen for all marked read
-      const handleAllMarkedRead = () => {
-        dispatch({ type: 'MARK_ALL_READ' });
-      };
-
-      socket.on('notification:new', handleNewNotificationEvent);
-      socket.on('notifications:unread-count', handleUnreadCount);
-      socket.on('notifications:all-marked-read', handleAllMarkedRead);
-
-      return () => {
-        socket.off('notification:new', handleNewNotificationEvent);
-        socket.off('notifications:unread-count', handleUnreadCount);
-        socket.off('notifications:all-marked-read', handleAllMarkedRead);
-      };
-    }
-  }, [user, handleNewNotification]);
+/**
+ * NotificationProvider - sets up WebSocket listeners and fetching.
+ * Kept for RootProviders compatibility during migration.
+ */
+export function NotificationProvider({ children }: { children: ReactNode }) {
+  const user = useStore((state) => state.auth.user);
+  const fetchNotifications = useStore((state) => state.notifications.fetchNotifications);
+  const handleNewNotification = useStore((state) => state.notifications.handleNewNotification);
+  const setUnreadCount = useStore((state) => state.notifications.setUnreadCount);
+  const markAllAsRead = useStore((state) => state.notifications.markAllAsRead);
+  const announcerRef = useRef<HTMLDivElement>(null);
 
   // Fetch notifications on mount
-  React.useEffect(() => {
+  useEffect(() => {
     if (user) {
       fetchNotifications();
-      fetchUnreadCount();
     }
-  }, [user, fetchNotifications, fetchUnreadCount]);
+  }, [user, fetchNotifications]);
 
-  // Keyboard shortcut: Ctrl+Shift+N to open notifications
-  React.useEffect(() => {
+  // Set up Socket.IO listener
+  useEffect(() => {
+    if (!user) return;
+
+    const socket = (window as WindowWithSocket).__messagingSocket;
+    if (!socket) return;
+
+    socket.emit('notifications:subscribe');
+
+    const onNew = (notification: any) => handleNewNotification(notification);
+    const onCount = ({ count }: { count: number }) => setUnreadCount(count);
+    const onAllRead = () => markAllAsRead();
+
+    socket.on('notification:new', onNew);
+    socket.on('notifications:unread-count', onCount);
+    socket.on('notifications:all-marked-read', onAllRead);
+
+    return () => {
+      socket.off('notification:new', onNew);
+      socket.off('notifications:unread-count', onCount);
+      socket.off('notifications:all-marked-read', onAllRead);
+    };
+  }, [user, handleNewNotification, setUnreadCount, markAllAsRead]);
+
+  // Keyboard shortcut: Ctrl+Shift+N
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key === 'N') {
         event.preventDefault();
-        // Navigate to notifications page
         window.location.href = '/notifications';
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const value: NotificationContextValue = {
-    state,
-    dispatch,
-    fetchNotifications,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    dismissToast,
-    clearToasts,
-    addNotification,
-    addToast,
-    showNotification,
-  };
-
   return (
-    <NotificationContext.Provider value={value}>
+    <>
       {children}
-      {/* ARIA Live Region for screen reader announcements */}
       <div
         ref={announcerRef}
         role="status"
@@ -478,19 +100,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         aria-atomic="true"
         className="sr-only"
       />
-    </NotificationContext.Provider>
+    </>
   );
 }
 
-export function useNotifications() {
-  const context = React.useContext(NotificationContext);
-  if (!context) {
-    throw new Error('useNotifications must be used within a NotificationProvider');
-  }
-  return context;
-}
-
-// Alias for backward compatibility
-export const useNotification = useNotifications;
-
-export default NotificationContext;
+export default {};

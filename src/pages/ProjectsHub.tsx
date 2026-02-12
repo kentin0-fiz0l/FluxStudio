@@ -219,7 +219,7 @@ export function ProjectsHub() {
                           dueDate: project.dueDate ? new Date(project.dueDate) : undefined,
                           teamSize: project.members?.length || 1,
                           teamAvatars: [],
-                          tags: (project as any).tags || [],
+                          tags: (project as unknown as Record<string, unknown>).tags as string[] || [],
                         }}
                         variant={viewMode === 'list' ? 'compact' : 'default'}
                         showProgress

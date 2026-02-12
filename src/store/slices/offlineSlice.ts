@@ -154,14 +154,13 @@ export const createOfflineSlice: StateCreator<
       });
     },
 
-    resolveConflict: (id, resolution) => {
+    resolveConflict: (id, _resolution) => {
       set((state) => {
         const conflict = state.offline.conflicts.find((c) => c.id === id);
         if (conflict) {
           conflict.resolved = true;
           // Apply resolution based on user choice
           // In a real implementation, this would sync the chosen data
-          console.log(`Conflict ${id} resolved with ${resolution} data`);
         }
       });
     },

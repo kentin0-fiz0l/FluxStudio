@@ -11,7 +11,7 @@ import { DashboardLayout } from '@/components/templates';
 import { Card, Button, Badge } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useMetMap } from '../contexts/MetMapContext';
-import { useActiveProjectOptional } from '../contexts/ActiveProjectContext';
+import { useActiveProject } from '@/store';
 import {
   ExternalLink,
   ArrowRight,
@@ -103,14 +103,13 @@ function Tools() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { stats, loadStats } = useMetMap();
-  const activeProjectContext = useActiveProjectOptional();
+  const activeProjectContext = useActiveProject();
   const activeProject = activeProjectContext?.activeProject ?? null;
   const hasFocus = activeProjectContext?.hasFocus ?? false;
 
   // Authentication guard - redirect to login if not authenticated
   React.useEffect(() => {
     if (!user) {
-      console.log('User not authenticated, redirecting to login...');
       navigate('/login', { replace: true });
       return;
     }

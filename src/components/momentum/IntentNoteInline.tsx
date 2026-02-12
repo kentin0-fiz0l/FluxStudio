@@ -10,7 +10,7 @@
 import * as React from 'react';
 import { PenLine, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useWorkingContext } from '@/contexts/WorkingContext';
+import { useWorkingContext } from '@/store';
 
 export interface IntentNoteInlineProps {
   /** Custom className */

@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { RootProviders } from './components/providers';
 import { ToastContainer } from './components/notifications/ToastContainer';
+import { UpdateBanner } from './components/common/UpdateBanner';
 import { ProjectContextBar } from './components/projects/ProjectContextBar';
 import { MomentumCapture } from './components/momentum/MomentumCapture';
 import { QuickActions, useQuickActions } from './components/pulse/QuickActions';
@@ -21,11 +22,18 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { useTheme } from './hooks/useTheme';
 import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 
-// Critical pages - loaded immediately (minimal for fast initial load)
-import { SimpleHomePage } from './pages/SimpleHomePage';
-import { Login } from './pages/Login';
-import OAuthCallback from './pages/OAuthCallback';
 import { useAuth, AuthProvider } from './contexts/AuthContext';
+
+// All pages lazy loaded for smaller initial bundle
+const { Component: SimpleHomePage } = lazyLoadWithRetry(
+  () => import('./pages/SimpleHomePage').then(m => ({ default: m.SimpleHomePage })) as Promise<{ default: React.ComponentType<Record<string, unknown>> }>
+);
+const { Component: Login } = lazyLoadWithRetry(
+  () => import('./pages/Login').then(m => ({ default: m.Login })) as Promise<{ default: React.ComponentType<Record<string, unknown>> }>
+);
+const { Component: OAuthCallback } = lazyLoadWithRetry(
+  () => import('./pages/OAuthCallback') as unknown as Promise<{ default: React.ComponentType<Record<string, unknown>> }>
+);
 
 // Large pages - lazy loaded for better initial bundle
 const { Component: Settings } = lazyLoadWithRetry(() => import('./pages/Settings'));
@@ -282,6 +290,8 @@ function AuthenticatedRoutes() {
       </GlobalQuickActions>
       {/* Global Toast Notifications */}
       <ToastContainer />
+      {/* SW Update Banner */}
+      <UpdateBanner />
     </RootProviders>
   );
 }

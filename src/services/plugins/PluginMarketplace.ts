@@ -226,8 +226,7 @@ Configure the plugin in Settings > Plugins.
     };
   }
 
-  async reportPlugin(pluginId: string, reason: string): Promise<void> {
-    console.log(`Reported plugin ${pluginId}: ${reason}`);
+  async reportPlugin(_pluginId: string, _reason: string): Promise<void> {
   }
 
   // ============================================================================

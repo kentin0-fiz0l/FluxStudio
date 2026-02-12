@@ -118,8 +118,7 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
   } = usePrintWebSocket({
     enabled: opts.enableWebSocket,
     autoReconnect: true,
-    onJobComplete: (event) => {
-      console.log('Print job completed:', event.filename);
+    onJobComplete: (_event) => {
       // Refresh queue and job data
       fetchQueue();
       fetchJob();
@@ -131,7 +130,6 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
       fetchJob();
     },
     onConnectionChange: (event) => {
-      console.log('Printer connection changed:', event.connected);
       setIsServiceAvailable(event.connected);
     },
   });
@@ -235,7 +233,6 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
       // Retry logic
       if (opts.autoRetry && retryCountRef.current.status < opts.maxRetries) {
         retryCountRef.current.status++;
-        console.log(`Retrying status fetch (${retryCountRef.current.status}/${opts.maxRetries})...`);
         setTimeout(fetchStatus, 2000 * retryCountRef.current.status);
       }
     } finally {

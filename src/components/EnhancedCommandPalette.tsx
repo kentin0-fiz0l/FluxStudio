@@ -20,7 +20,7 @@ import {
   Activity,
   Building2
 } from 'lucide-react';
-import { useWorkspace } from '../contexts/WorkspaceContext';
+import { useWorkspace } from '@/store';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useMessaging } from '../hooks/useMessaging';
@@ -74,7 +74,7 @@ export function EnhancedCommandPalette() {
         category: 'navigation',
         icon: MessageSquare,
         shortcut: '⌘M',
-        action: () => console.log('Opening messaging sidepanel...'),
+        action: () => {},
         priority: 9
       },
       {
@@ -118,7 +118,6 @@ export function EnhancedCommandPalette() {
         icon: MessageSquare,
         shortcut: '⌘⇧N',
         action: () => {
-          console.log('Opening messaging sidepanel...');
           // Will trigger new conversation creation
         },
         priority: 9
@@ -147,7 +146,6 @@ export function EnhancedCommandPalette() {
         category: 'navigation',
         icon: MessageSquare,
         action: () => {
-          console.log('Opening messaging sidepanel...');
           // Will focus on specific conversation
         },
         context: ['conversation'],
@@ -188,7 +186,6 @@ export function EnhancedCommandPalette() {
         category: 'navigation',
         icon: MessageSquare,
         action: () => {
-          console.log('Opening messaging sidepanel...');
           actions.setActiveConversation(conv);
         },
         priority: 6
@@ -208,7 +205,6 @@ export function EnhancedCommandPalette() {
           if (activity.projectId) {
             navigate(`/dashboard/projects/${activity.projectId}`);
           } else if (activity.conversationId) {
-            console.log('Opening messaging sidepanel...');
           }
         },
         priority: 3
@@ -218,7 +214,7 @@ export function EnhancedCommandPalette() {
     // Contextual suggestions as commands
     (actions.getContextualActions() || []).forEach(suggestion => {
       commands.push({
-        id: `suggestion-${suggestion.id}`,
+        id: `suggestion-${(suggestion as { id?: string }).id || suggestion.title}`,
         title: suggestion.title,
         description: suggestion.description,
         category: 'actions',

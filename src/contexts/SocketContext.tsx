@@ -96,8 +96,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   useEffect(() => {
     if (user) {
       socketService.authenticateUser(user.id, {
-        name: user.name,
-        userType: user.userType
+        name: user.name || '',
+        userType: user.userType || 'designer'
       });
     }
 
@@ -222,8 +222,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     const author: MessageUser = {
       id: user.id,
-      name: user.name,
-      userType: user.userType,
+      name: user.name || '',
+      userType: user.userType || 'designer',
       avatar: user.avatar,
       isOnline: true
     };

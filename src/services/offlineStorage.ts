@@ -226,7 +226,6 @@ export const pendingActions = {
     };
 
     await put(STORES.PENDING_ACTIONS, pendingAction);
-    console.log('[OfflineStorage] Added pending action:', id);
 
     // Request background sync if available
     if ('serviceWorker' in navigator && 'SyncManager' in window) {
@@ -236,7 +235,6 @@ export const pendingActions = {
         const syncManager = (registration as ServiceWorkerRegistration & { sync: SyncManager }).sync;
         await syncManager.register('sync-pending-actions');
       } catch (_e) {
-        console.log('[OfflineStorage] Background sync not available');
       }
     }
 
@@ -259,7 +257,6 @@ export const pendingActions = {
 
   async remove(id: string): Promise<void> {
     await remove(STORES.PENDING_ACTIONS, id);
-    console.log('[OfflineStorage] Removed pending action:', id);
   },
 
   async incrementRetry(id: string): Promise<boolean> {
@@ -374,7 +371,7 @@ export const conflicts = {
     return allConflicts.filter((c) => !c.resolved);
   },
 
-  async resolve(id: string, useLocal: boolean): Promise<void> {
+  async resolve(id: string, _useLocal: boolean): Promise<void> {
     const conflict = await get<Conflict>(STORES.CONFLICTS, id);
     if (!conflict) return;
 
@@ -382,7 +379,6 @@ export const conflicts = {
     await put(STORES.CONFLICTS, conflict);
 
     // Return the data that should be used
-    console.log(`[OfflineStorage] Resolved conflict ${id} with ${useLocal ? 'local' : 'server'} data`);
   },
 
   async remove(id: string): Promise<void> {

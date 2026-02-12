@@ -240,8 +240,8 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
           <MobileMessagingInterface
             conversation={selectedConv}
             onBack={() => setSelectedConv(null)}
-            onCall={(conversationId) => console.log('Call:', conversationId)}
-            onVideoCall={(conversationId) => console.log('Video call:', conversationId)}
+            onCall={(_conversationId) => {}}
+            onVideoCall={(_conversationId) => {}}
           />
         ) : (
           <div className="h-full flex flex-col">
@@ -623,10 +623,9 @@ export const EnhancedMessages: React.FC<EnhancedMessagesProps> = ({
           {currentView === 'directory' && (
             <UserDirectory
               currentUserId={user?.id}
-              onConnect={(userId) => console.log('Connect to user:', userId)}
-              onMessage={(userId) => {
+              onConnect={(_userId) => {}}
+              onMessage={(_userId) => {
                 // Create new conversation with user
-                console.log('Message user:', userId);
                 setCurrentView('conversations');
               }}
             />

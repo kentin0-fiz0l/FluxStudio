@@ -149,16 +149,13 @@ export function MessageSystemIntegration() {
     realtimeCollaborationService.connect();
 
     // Listen for collaboration events
-    realtimeCollaborationService.on('user_joined', (data) => {
-      console.log('User joined:', data);
+    realtimeCollaborationService.on('user_joined', (_data) => {
     });
 
-    realtimeCollaborationService.on('typing_start', (data) => {
-      console.log('User typing:', data);
+    realtimeCollaborationService.on('typing_start', (_data) => {
     });
 
-    realtimeCollaborationService.on('annotation_update', (data) => {
-      console.log('Annotation updated:', data);
+    realtimeCollaborationService.on('annotation_update', (_data) => {
     });
   };
 
@@ -168,7 +165,7 @@ export function MessageSystemIntegration() {
   const setupAutomationTriggers = async () => {
     try {
       // Setup deadline reminder automation
-      const deadlineTrigger = await workflowAutomationService.setupTrigger('global', {
+      await workflowAutomationService.setupTrigger('global', {
         name: 'Deadline Reminder',
         description: 'Automatically remind team about upcoming deadlines',
         category: 'project_management',
@@ -193,7 +190,7 @@ export function MessageSystemIntegration() {
       });
 
       // Setup design review automation
-      const reviewTrigger = await workflowAutomationService.setupTrigger('global', {
+      await workflowAutomationService.setupTrigger('global', {
         name: 'Design Review Process',
         description: 'Trigger review when design files are shared',
         category: 'quality_assurance',
@@ -223,7 +220,6 @@ export function MessageSystemIntegration() {
       });
 
       setAutomationStatus('✅ Automation triggers configured');
-      console.log('Automation triggers setup:', { deadlineTrigger, reviewTrigger });
     } catch (error) {
       console.error('Failed to setup automation:', error);
       setAutomationStatus('❌ Automation setup failed');
@@ -249,22 +245,15 @@ export function MessageSystemIntegration() {
         messages
       );
 
-      console.log('Conversation Insights:', {
-        metrics: insights.insights,
-        teamHealth: insights.teamDynamics.teamHealth,
-        recommendations: insights.recommendations.slice(0, 3),
-        trends: insights.trendAnalysis
-      });
 
       // Generate workflow suggestions
-      const workflowSuggestions = await workflowAutomationService.generateWorkflowSuggestions({
+      await workflowAutomationService.generateWorkflowSuggestions({
         conversation,
         recentMessages: messages.slice(-10),
         currentUser,
         conversationMetrics: insights.insights
       });
 
-      console.log('Workflow Suggestions:', workflowSuggestions);
 
       // Process messages for AI triggers
       for (const message of messages.slice(-3)) {
@@ -299,18 +288,10 @@ export function MessageSystemIntegration() {
         brandGuidelines: 'Apply brand guidelines for consistency'
       });
 
-      console.log('Design Analysis:', {
-        overallScore: analysis.overallScore,
-        strengths: analysis.strengths,
-        improvements: analysis.improvements,
-        accessibilityScore: analysis.accessibilityScore,
-        mood: analysis.moodAnalysis
-      });
 
       // Generate feedback suggestions
       const feedback = await aiDesignFeedbackService.generateFeedback(analysis);
 
-      console.log('Design Feedback:', feedback.slice(0, 3));
 
       // Get contextual insights
       const insights = await aiDesignFeedbackService.getContextualInsights(
@@ -318,7 +299,6 @@ export function MessageSystemIntegration() {
         'tech'
       );
 
-      console.log('Industry Insights:', insights);
 
       return { analysis, feedback, insights };
     } catch (error) {
@@ -344,12 +324,10 @@ export function MessageSystemIntegration() {
         tone: 'professional',
       });
 
-      console.log('Writing Analysis:', writingAnalysis);
 
       // Generate summary
       const summary = await aiContentGenerationService.generateSummary([], 'brief');
 
-      console.log('Summary:', summary);
 
       return { analysis: writingAnalysis, summary };
     } catch (error) {
@@ -489,7 +467,6 @@ export function MessageSystemIntegration() {
             <button
               onClick={() => {
                 const analytics = workflowAutomationService.getAutomationAnalytics();
-                console.log('Automation Analytics:', analytics);
                 alert(`Automation Stats:\n${analytics.activeTriggers} active triggers\n${analytics.successRate.toFixed(0)}% success rate`);
               }}
               className="px-3 py-1 text-sm bg-purple-500 text-white rounded hover:bg-purple-600"

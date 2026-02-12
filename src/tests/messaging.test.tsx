@@ -460,12 +460,14 @@ describe('Workflow Automation Service', () => {
 describe('Real-time Collaboration Service', () => {
   beforeEach(() => {
     // Mock WebSocket
-    (global as any).WebSocket = vi.fn(() => ({
-      send: vi.fn(),
-      close: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn()
-    }));
+    Object.assign(global, {
+      WebSocket: vi.fn(() => ({
+        send: vi.fn(),
+        close: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn()
+      }))
+    });
   });
 
   it('connects to WebSocket', () => {

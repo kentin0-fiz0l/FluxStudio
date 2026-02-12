@@ -99,7 +99,6 @@ export const Users: React.FC = () => {
 
       if (!response.ok) {
         // If notification endpoint doesn't exist, fall back to messaging
-        console.log('Connection requests via notifications not available, opening direct message instead');
         await handleMessage(targetUserId);
         return;
       }

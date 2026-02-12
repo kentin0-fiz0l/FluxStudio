@@ -24,7 +24,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { useAI, useActiveConversation, useAIUsage, type AIMessage } from '@/store';
-import { useProjectContextOptional } from '@/contexts/ProjectContext';
+import { useProjectContext } from '@/store';
 import { useAIContext } from '@/hooks/useAIContext';
 import { cn } from '@/lib/utils';
 
@@ -44,7 +44,7 @@ export function AIChatPanel({
   const ai = useAI();
   const conversation = useActiveConversation();
   const usage = useAIUsage();
-  const projectContext = useProjectContextOptional();
+  const projectContext = useProjectContext();
   const { context: aiContext, addAction } = useAIContext();
   const [input, setInput] = React.useState('');
   const [isExpanded, setIsExpanded] = React.useState(false);

@@ -17,7 +17,8 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FolderOpen, Plus, ArrowRight } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
-import { useProjectContextOptional, ProjectSummary } from '@/contexts/ProjectContext';
+import { useProjectContext } from '@/store';
+import type { Project as ProjectSummary } from '@/store';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -49,7 +50,7 @@ export const NoProjectSelected: React.FC<NoProjectSelectedProps> = ({
   className,
 }) => {
   const navigate = useNavigate();
-  const context = useProjectContextOptional();
+  const context = useProjectContext();
 
   // Handle case when provider is not available
   const projects = context?.projects ?? [];

@@ -216,8 +216,7 @@ export function TeamNew() {
     });
   };
 
-  const handleMemberAction = (memberId: string, action: string) => {
-    console.log('Member action:', memberId, action);
+  const handleMemberAction = (_memberId: string, action: string) => {
     // Handle member actions (edit role, remove, etc.)
     switch (action) {
       case 'remove':

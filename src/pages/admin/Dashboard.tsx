@@ -106,8 +106,7 @@ export function AdminDashboard() {
     { id: 5, user: 'Admin', action: t('auditLogs.actions.update', 'System update'), time: '3 hours ago' },
   ];
 
-  const handleExport = (format: 'csv' | 'pdf' | 'excel') => {
-    console.log(`Exporting as ${format}`);
+  const handleExport = (_format: 'csv' | 'pdf' | 'excel') => {
     // Implementation would go here
   };
 

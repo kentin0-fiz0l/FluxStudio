@@ -154,15 +154,15 @@ describe('imageOptimization utilities', () => {
       const mockImage = {
         naturalWidth: 1920,
         naturalHeight: 1080,
-        onload: null as any,
-        onerror: null as any,
+        onload: null as ((ev?: unknown) => void) | null,
+        onerror: null as ((ev?: unknown) => void) | null,
         src: '',
       };
 
       global.Image = vi.fn(() => {
         setTimeout(() => mockImage.onload?.(), 0);
-        return mockImage as any;
-      }) as any;
+        return mockImage as unknown as HTMLImageElement;
+      }) as unknown as typeof Image;
 
       const dimensions = await getImageDimensions('https://example.com/image.jpg');
 
@@ -171,15 +171,15 @@ describe('imageOptimization utilities', () => {
 
     it('should reject on image load error', async () => {
       const mockImage = {
-        onload: null as any,
-        onerror: null as any,
+        onload: null as ((ev?: unknown) => void) | null,
+        onerror: null as ((ev?: unknown) => void) | null,
         src: '',
       };
 
       global.Image = vi.fn(() => {
         setTimeout(() => mockImage.onerror?.(new Error('Failed')), 0);
-        return mockImage as any;
-      }) as any;
+        return mockImage as unknown as HTMLImageElement;
+      }) as unknown as typeof Image;
 
       await expect(getImageDimensions('https://example.com/invalid.jpg')).rejects.toThrow();
     });
@@ -203,7 +203,7 @@ describe('imageOptimization utilities', () => {
         }
       }
 
-      global.Image = MockImage as any;
+      global.Image = MockImage as unknown as typeof Image;
 
       const urls = [
         'https://example.com/image1.jpg',
@@ -216,15 +216,15 @@ describe('imageOptimization utilities', () => {
 
     it('should handle preload failures', async () => {
       const mockImage = {
-        onload: null as any,
-        onerror: null as any,
+        onload: null as ((ev?: unknown) => void) | null,
+        onerror: null as ((ev?: unknown) => void) | null,
         src: '',
       };
 
       global.Image = vi.fn(() => {
         setTimeout(() => mockImage.onerror?.(new Error('Failed')), 0);
-        return mockImage as any;
-      }) as any;
+        return mockImage as unknown as HTMLImageElement;
+      }) as unknown as typeof Image;
 
       const urls = ['https://example.com/invalid.jpg'];
 
@@ -251,7 +251,7 @@ describe('imageOptimization utilities', () => {
         }),
       };
 
-      global.document.createElement = vi.fn(() => mockCanvas as any);
+      global.document.createElement = vi.fn(() => mockCanvas as unknown as HTMLCanvasElement);
 
       // Mock Image with proper src setter that triggers onload
       class MockImage {
@@ -270,7 +270,7 @@ describe('imageOptimization utilities', () => {
         }
       }
 
-      global.Image = MockImage as any;
+      global.Image = MockImage as unknown as typeof Image;
 
       const compressed = await compressImage(mockFile);
 
@@ -295,7 +295,7 @@ describe('imageOptimization utilities', () => {
         }),
       };
 
-      global.document.createElement = vi.fn(() => mockCanvas as any);
+      global.document.createElement = vi.fn(() => mockCanvas as unknown as HTMLCanvasElement);
 
       // Mock Image with proper src setter
       class MockImage {
@@ -314,7 +314,7 @@ describe('imageOptimization utilities', () => {
         }
       }
 
-      global.Image = MockImage as any;
+      global.Image = MockImage as unknown as typeof Image;
 
       const result = await compressImage(mockFile, {
         maxWidth: 1920,
@@ -337,7 +337,7 @@ describe('imageOptimization utilities', () => {
         toDataURL: vi.fn(() => 'data:image/webp;base64,abc'),
       };
 
-      global.document.createElement = vi.fn(() => mockCanvas as any);
+      global.document.createElement = vi.fn(() => mockCanvas as unknown as HTMLCanvasElement);
 
       expect(supportsWebP()).toBe(true);
     });
@@ -349,7 +349,7 @@ describe('imageOptimization utilities', () => {
         toDataURL: vi.fn(() => 'data:image/png;base64,abc'),
       };
 
-      global.document.createElement = vi.fn(() => mockCanvas as any);
+      global.document.createElement = vi.fn(() => mockCanvas as unknown as HTMLCanvasElement);
 
       expect(supportsWebP()).toBe(false);
     });
@@ -363,7 +363,7 @@ describe('imageOptimization utilities', () => {
         toDataURL: vi.fn(() => 'data:image/webp;base64,abc'),
       };
 
-      global.document.createElement = vi.fn(() => mockCanvas as any);
+      global.document.createElement = vi.fn(() => mockCanvas as unknown as HTMLCanvasElement);
 
       expect(getOptimalFormat()).toBe('webp');
     });
@@ -375,7 +375,7 @@ describe('imageOptimization utilities', () => {
         toDataURL: vi.fn(() => 'data:image/png;base64,abc'),
       };
 
-      global.document.createElement = vi.fn(() => mockCanvas as any);
+      global.document.createElement = vi.fn(() => mockCanvas as unknown as HTMLCanvasElement);
 
       expect(getOptimalFormat()).toBe('jpeg');
     });

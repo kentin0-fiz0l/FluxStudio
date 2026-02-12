@@ -213,7 +213,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                     key={filter.key}
                     variant={searchFilter === filter.key ? 'primary' : 'ghost'}
                     size="sm"
-                    onClick={() => setSearchFilter(filter.key as any)}
+                    onClick={() => setSearchFilter(filter.key as typeof searchFilter)}
                     className="h-7 px-3 text-xs"
                   >
                     {filter.label}

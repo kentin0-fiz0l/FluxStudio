@@ -18,6 +18,10 @@ import { createCollaborationSlice, CollaborationSlice } from './slices/collabora
 import { createTimelineSlice, TimelineSlice } from './slices/timelineSlice';
 import { createAISlice, AISlice } from './slices/aiSlice';
 import { createAgentSlice, AgentSlice } from './slices/agentSlice';
+import { createOrgSlice, OrgSlice } from './slices/orgSlice';
+import { createNotificationSlice, NotificationSlice } from './slices/notificationSlice';
+import { createAssetSlice, AssetSlice } from './slices/assetSlice';
+import { createConnectorSlice, ConnectorSlice } from './slices/connectorSlice';
 
 // ============================================================================
 // Combined Store Type
@@ -31,7 +35,11 @@ export type FluxStore = AuthSlice &
   CollaborationSlice &
   TimelineSlice &
   AISlice &
-  AgentSlice;
+  AgentSlice &
+  OrgSlice &
+  NotificationSlice &
+  AssetSlice &
+  ConnectorSlice;
 
 // ============================================================================
 // Store Creation
@@ -51,6 +59,10 @@ export const useStore = create<FluxStore>()(
           ...createTimelineSlice(...(args as Parameters<typeof createTimelineSlice>)),
           ...createAISlice(...(args as Parameters<typeof createAISlice>)),
           ...createAgentSlice(...(args as Parameters<typeof createAgentSlice>)),
+          ...createOrgSlice(...(args as Parameters<typeof createOrgSlice>)),
+          ...createNotificationSlice(...(args as Parameters<typeof createNotificationSlice>)),
+          ...createAssetSlice(...(args as Parameters<typeof createAssetSlice>)),
+          ...createConnectorSlice(...(args as Parameters<typeof createConnectorSlice>)),
         })),
         {
           name: 'fluxstudio-store',

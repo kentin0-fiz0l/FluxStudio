@@ -113,8 +113,7 @@ export function AdminAuditLogs() {
     setIsRefreshing(false);
   };
 
-  const handleExport = (format: 'csv' | 'pdf' | 'excel') => {
-    console.log(`Exporting audit logs as ${format}`);
+  const handleExport = (_format: 'csv' | 'pdf' | 'excel') => {
     // Implementation would go here
   };
 

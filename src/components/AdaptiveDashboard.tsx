@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useWorkspace } from '../contexts/WorkspaceContext';
+import { useWorkspace } from '@/store';
 import { DashboardShell } from './DashboardShell';
 import { DraggableWidgetGrid } from './widgets/DraggableWidgetGrid';
 import { EnhancedCommandPalette } from './EnhancedCommandPalette';
@@ -120,10 +120,10 @@ export function AdaptiveDashboard() {
       cards.push({
         id: 'current-conversation',
         title: state.activeConversation.name,
-        description: `${state.activeConversation.participants?.length || 0} participants`,
+        description: `${(state.activeConversation as { participants?: unknown[] }).participants?.length || 0} participants`,
         icon: MessageSquare,
         action: () => actions.setContext('conversation'),
-        badge: `${state.activeConversation.unreadCount || 0} unread`,
+        badge: `${(state.activeConversation as { unreadCount?: number }).unreadCount || 0} unread`,
         color: 'green'
       });
     }

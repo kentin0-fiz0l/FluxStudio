@@ -141,7 +141,6 @@ export function SecureVideoPlayer({
 
       // HLS events
       hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
-        console.log('[HLS] Manifest loaded:', data.levels.length, 'quality levels');
 
         const levels: QualityLevel[] = data.levels.map((level) => ({
           height: level.height,
@@ -154,7 +153,6 @@ export function SecureVideoPlayer({
       });
 
       hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
-        console.log('[HLS] Quality switched to:', data.level);
         setCurrentQuality(data.level);
       });
 
@@ -226,7 +224,6 @@ export function SecureVideoPlayer({
     // Set up media keys
     try {
       video.addEventListener('webkitneedkey', async (event: any) => {
-        console.log('[FairPlay] Need key event triggered');
 
         const initData = event.initData;
 
@@ -239,7 +236,6 @@ export function SecureVideoPlayer({
           }
 
           keySession.addEventListener('webkitkeymessage', async (messageEvent: any) => {
-            console.log('[FairPlay] Key message received');
 
             try {
               // Request license from server
@@ -262,7 +258,6 @@ export function SecureVideoPlayer({
               keySession.update(new Uint8Array(license));
 
               setDrmStatus('active');
-              console.log('[FairPlay] License acquired successfully');
 
             } catch (error) {
               console.error('[FairPlay] License acquisition failed:', error);
@@ -273,7 +268,6 @@ export function SecureVideoPlayer({
           });
 
           keySession.addEventListener('webkitkeyadded', () => {
-            console.log('[FairPlay] Key added successfully');
           });
 
           keySession.addEventListener('webkitkeyerror', (errorEvent: any) => {

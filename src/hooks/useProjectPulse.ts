@@ -11,7 +11,7 @@
  */
 
 import * as React from 'react';
-import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
+import { useActiveProject } from '@/store';
 import { useSession } from '@/contexts/SessionContext';
 import { useNotifications, Notification } from '@/contexts/NotificationContext';
 import { useTasks, Task } from '@/hooks/useTasks';
@@ -88,7 +88,7 @@ export interface UseProjectPulseReturn extends ProjectPulseState {
 }
 
 export function useProjectPulse(): UseProjectPulseReturn {
-  const activeProjectContext = useActiveProjectOptional();
+  const activeProjectContext = useActiveProject();
   const activeProject = activeProjectContext?.activeProject ?? null;
   const hasFocus = activeProjectContext?.hasFocus ?? false;
   const { session, markAsSeen, getTimeSinceLastSeen: _getTimeSinceLastSeen } = useSession();

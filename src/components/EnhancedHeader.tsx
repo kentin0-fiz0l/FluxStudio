@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 // SidebarTrigger removed - no longer using sidebar
 import { UnifiedNotificationCenter } from './notifications/UnifiedNotificationCenter';
+import { OfflineIndicator } from './common/OfflineIndicator';
 import { cn } from '../lib/utils';
 
 interface EnhancedHeaderProps {
@@ -144,6 +145,9 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
 
         {/* Right section: Search, Notifications, User */}
         <div className="flex items-center gap-2">
+
+          {/* Offline status */}
+          <OfflineIndicator />
 
           {/* Search */}
           <Button

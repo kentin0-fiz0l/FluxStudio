@@ -24,7 +24,7 @@ export function AccountOverviewWidget(props: WidgetProps) {
   // Calculate user stats - useState with lazy initializer avoids Date.now() during render
   const [{ memberSince, daysSinceMember }] = useState(() => {
     if (!user) return { memberSince: new Date(), daysSinceMember: 0 };
-    const since = new Date(user.createdAt);
+    const since = new Date(user.createdAt || Date.now());
     const days = Math.floor((Date.now() - since.getTime()) / (1000 * 60 * 60 * 24));
     return { memberSince: since, daysSinceMember: days };
   });
@@ -72,22 +72,22 @@ export function AccountOverviewWidget(props: WidgetProps) {
         description: 'Your profile and activity summary',
       }}
       headerAction={
-        getRoleIcon(user.userType)
+        getRoleIcon(user.userType || 'designer')
       }
     >
       {/* User Profile Section */}
       <div className="flex items-center gap-3 mb-4">
         <Avatar className="h-12 w-12">
           <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold">
-            {user.name.charAt(0).toUpperCase()}
+            {(user.name || 'U').charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-white truncate">{user.name}</h3>
           <div className="flex items-center gap-2">
-            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${getRoleColor(user.userType)}`}>
-              {getRoleIcon(user.userType)}
-              <span className="capitalize">{user.userType}</span>
+            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${getRoleColor(user.userType || 'designer')}`}>
+              {getRoleIcon(user.userType || 'designer')}
+              <span className="capitalize">{user.userType || 'designer'}</span>
             </div>
           </div>
         </div>

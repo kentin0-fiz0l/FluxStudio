@@ -9,6 +9,16 @@
  * - Comprehensive error handling and fallbacks
  */
 
+interface ElementWithObserver extends HTMLElement {
+  _darkModeObserver?: MutationObserver;
+}
+
+interface ElementWithReactInternals extends HTMLElement {
+  _reactInternalInstance?: unknown;
+  __reactInternalInstance?: unknown;
+  __reactInternals?: unknown;
+}
+
 import { serviceLogger } from '../lib/logger';
 
 const oauthLogger = serviceLogger.child('GoogleOAuth');
@@ -259,10 +269,10 @@ class GoogleOAuthManager {
       // Store button reference
       const cleanup = () => {
         // Disconnect dark mode observer if it exists
-        const observer = (container as any)._darkModeObserver;
+        const observer = (container as ElementWithObserver)._darkModeObserver;
         if (observer) {
           observer.disconnect();
-          delete (container as any)._darkModeObserver;
+          delete (container as ElementWithObserver)._darkModeObserver;
         }
         container.innerHTML = '';
         this.activeButtons.delete(containerId);
@@ -467,9 +477,10 @@ class GoogleOAuthManager {
       }
 
       // Check if it's part of a React component tree
-      const reactInstance = (element as any)._reactInternalInstance ||
-                           (element as any).__reactInternalInstance ||
-                           (element as any).__reactInternals;
+      const el = element as ElementWithReactInternals;
+      const reactInstance = el._reactInternalInstance ||
+                           el.__reactInternalInstance ||
+                           el.__reactInternals;
 
       if (reactInstance) {
         // Let React handle cleanup
@@ -696,7 +707,7 @@ class GoogleOAuthManager {
     });
 
     // Store observer for cleanup
-    (container as any)._darkModeObserver = observer;
+    (container as ElementWithObserver)._darkModeObserver = observer;
   }
 
   /**

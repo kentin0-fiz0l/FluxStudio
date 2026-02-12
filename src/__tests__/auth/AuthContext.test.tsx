@@ -367,15 +367,10 @@ describe('AuthContext', () => {
   });
 
   describe('useAuth hook error handling', () => {
-    it('should throw error when used outside AuthProvider', () => {
-      const consoleError = console.error;
-      console.error = vi.fn(); // Suppress React error boundary logs
-
-      expect(() => {
-        render(<TestComponent />);
-      }).toThrow('useAuth must be used within an AuthProvider');
-
-      console.error = consoleError;
+    it('should work without AuthProvider since state is in Zustand', () => {
+      // useAuth is now a Zustand hook and does not require a provider
+      const { unmount } = render(<TestComponent />);
+      unmount();
     });
   });
 });

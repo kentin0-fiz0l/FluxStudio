@@ -50,12 +50,12 @@ const attentionLabels: Record<AttentionItem['type'], string> = {
   approval: 'Approval',
 };
 
-const priorityBadgeVariants: Record<AttentionItem['priority'], string> = {
+const priorityBadgeVariants = {
   urgent: 'error',
   high: 'warning',
   medium: 'default',
   low: 'default',
-};
+} as const;
 
 function formatRelativeTime(date: Date): string {
   const now = new Date();
@@ -116,7 +116,7 @@ function AttentionItemRow({
           </span>
           {(item.priority === 'urgent' || item.priority === 'high') && (
             <Badge
-              variant={priorityBadgeVariants[item.priority] as any}
+              variant={priorityBadgeVariants[item.priority]}
               size="sm"
             >
               {item.priority}

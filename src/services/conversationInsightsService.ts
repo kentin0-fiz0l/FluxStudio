@@ -357,7 +357,7 @@ class ConversationInsightsService {
     return {
       responseTimesTrend: this.calculateResponseTimeTrend(messages),
       engagementTrend: this.calculateEngagementTrend(messages),
-      sentimentTrend: this.calculateSentimentTrend(messages),
+      sentimentTrend: await this.calculateSentimentTrend(messages),
       productivityTrend: this.calculateProductivityTrend(messages),
       weeklyComparison
     };
@@ -827,13 +827,13 @@ class ConversationInsightsService {
     return 'stable';
   }
 
-  private calculateSentimentTrend(messages: Message[]): 'positive' | 'negative' | 'neutral' {
+  private async calculateSentimentTrend(messages: Message[]): Promise<'positive' | 'negative' | 'neutral'> {
     if (messages.length < 10) return 'neutral';
 
-    const recentSentiment = this.analyzeSentiment(messages.slice(-5));
-    const olderSentiment = this.analyzeSentiment(messages.slice(-10, -5));
+    const recentSentiment = await this.analyzeSentiment(messages.slice(-5));
+    const olderSentiment = await this.analyzeSentiment(messages.slice(-10, -5));
 
-    const diff = (recentSentiment as any) - (olderSentiment as any);
+    const diff = recentSentiment - olderSentiment;
 
     if (diff > 0.1) return 'positive';
     if (diff < -0.1) return 'negative';

@@ -12,8 +12,8 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useWorkingContextOptional, LastEntity } from '../contexts/WorkingContext';
-import { useActiveProjectOptional } from '../contexts/ActiveProjectContext';
+import { useWorkingContext, useActiveProject } from '@/store';
+import type { LastEntity } from '@/store';
 
 // Routes that are considered "project-scoped" for context capture
 const PROJECT_SCOPED_ROUTES = [
@@ -87,10 +87,10 @@ export interface UseWorkMomentumCaptureOptions {
 export function useWorkMomentumCapture(options: UseWorkMomentumCaptureOptions = {}) {
   const { entityOverrides, disabled = false } = options;
   const location = useLocation();
-  const workingContext = useWorkingContextOptional();
-  const activeProjectContext = useActiveProjectOptional();
-  const hasFocus = activeProjectContext?.hasFocus ?? false;
-  const activeProject = activeProjectContext?.activeProject ?? null;
+  const workingContext = useWorkingContext();
+  const activeProjectStore = useActiveProject();
+  const hasFocus = activeProjectStore.hasFocus ?? false;
+  const activeProject = activeProjectStore.activeProject ?? null;
 
   // Debounce timer ref
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -174,9 +174,9 @@ export function useWorkMomentumCapture(options: UseWorkMomentumCaptureOptions = 
  * Use this when opening a specific conversation, file, etc.
  */
 export function useReportEntityFocus() {
-  const workingContext = useWorkingContextOptional();
-  const activeProjectContext = useActiveProjectOptional();
-  const hasFocus = activeProjectContext?.hasFocus ?? false;
+  const workingContext = useWorkingContext();
+  const activeProjectStore = useActiveProject();
+  const hasFocus = activeProjectStore.hasFocus ?? false;
 
   const reportConversation = useCallback(
     (conversationId: string, messageId?: string) => {

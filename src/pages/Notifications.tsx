@@ -37,9 +37,9 @@ import {
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Card, CardContent, Badge, Button } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNotifications, Notification, NotificationPriority } from '@/contexts/NotificationContext';
-import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
-import { useProjectContextOptional } from '@/contexts/ProjectContext';
+import { useNotifications, Notification } from '@/contexts/NotificationContext';
+import { useActiveProject } from '@/store';
+import { useProjectContext } from '@/store';
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/utils/apiHelpers';
 
@@ -126,12 +126,12 @@ const typeColors: Record<string, string> = {
 };
 
 // Priority badges
-const priorityVariants: Record<NotificationPriority, string> = {
+const priorityVariants = {
   low: 'default',
   medium: 'info',
   high: 'warning',
   urgent: 'error',
-};
+} as const;
 
 type FilterType = 'all' | 'unread' | 'read';
 
@@ -248,7 +248,7 @@ function NotificationItem({
               )}
               <h3 className="font-medium text-neutral-900 dark:text-neutral-100">{notification.title}</h3>
               {notification.priority === 'high' || notification.priority === 'urgent' ? (
-                <Badge variant={priorityVariants[notification.priority] as any} size="sm">
+                <Badge variant={priorityVariants[notification.priority]} size="sm">
                   {notification.priority}
                 </Badge>
               ) : null}
@@ -317,8 +317,8 @@ export default function Notifications() {
   const navigate = useNavigate();
 
   // Use both contexts for backwards compatibility during migration
-  const activeProjectContext = useActiveProjectOptional();
-  const projectContext = useProjectContextOptional();
+  const activeProjectContext = useActiveProject();
+  const projectContext = useProjectContext();
 
   // Prefer new ProjectContext, fall back to legacy ActiveProjectContext
   const currentProject = projectContext?.currentProject ?? activeProjectContext?.activeProject ?? null;

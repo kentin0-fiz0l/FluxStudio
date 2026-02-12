@@ -1,5 +1,6 @@
 import React from 'react';
 import { WidgetConfig, WidgetRegistry, WidgetProps } from './types';
+import type { UserType } from '../../contexts/AuthContext';
 import { QuickActionsWidget } from './QuickActionsWidget';
 import { ProjectOverviewWidget } from './ProjectOverviewWidget';
 import { AccountOverviewWidget } from './AccountOverviewWidget';
@@ -249,9 +250,9 @@ export function getWidgetsByCategory(category: string): WidgetConfig[] {
   return Object.values(WIDGET_REGISTRY).filter(widget => widget.category === category);
 }
 
-export function getWidgetsByPermission(userType: string): WidgetConfig[] {
+export function getWidgetsByPermission(userType: UserType): WidgetConfig[] {
   return Object.values(WIDGET_REGISTRY).filter(widget =>
-    widget.permissions.includes(userType as any)
+    widget.permissions.includes(userType)
   );
 }
 

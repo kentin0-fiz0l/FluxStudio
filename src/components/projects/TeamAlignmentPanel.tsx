@@ -333,7 +333,7 @@ export function TeamAlignmentPanel({
     (decision: Decision) => {
       if (!user) return;
       const decisionId = makeDecisionId(decision.text, decision.conversationId);
-      setDecisionAck(projectId, decisionId, user.id, user.name);
+      setDecisionAck(projectId, decisionId, user.id, user.name || '');
       forceRefresh();
       addNotification({
         type: 'info',
@@ -360,7 +360,7 @@ export function TeamAlignmentPanel({
     (question: OpenQuestion) => {
       if (!user) return;
       const questionId = makeQuestionId(question.text, question.conversationId);
-      setQuestionOwner(projectId, questionId, user.id, user.name);
+      setQuestionOwner(projectId, questionId, user.id, user.name || '');
       forceRefresh();
       addNotification({
         type: 'info',

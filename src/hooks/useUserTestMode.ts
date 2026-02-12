@@ -8,7 +8,7 @@
 import * as React from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useActiveProjectOptional } from '@/contexts/ActiveProjectContext';
+import { useActiveProject } from '@/store';
 import {
   userTestLogger,
   TesterInfo,
@@ -59,7 +59,7 @@ export function useUserTestMode(): UseUserTestModeReturn {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const { user } = useAuth();
-  const activeProjectContext = useActiveProjectOptional();
+  const activeProjectContext = useActiveProject();
   const activeProject = activeProjectContext?.activeProject ?? null;
 
   const [isEnabled, setIsEnabled] = React.useState(() => userTestLogger.isTestModeEnabled());

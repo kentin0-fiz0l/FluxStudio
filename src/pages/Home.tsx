@@ -66,7 +66,7 @@ export function Home() {
     dueDate: p.dueDate ? new Date(p.dueDate) : undefined,
     teamSize: p.members?.length || 1,
     teamAvatars: [],
-    tags: (p as any).tags || []
+    tags: (p as unknown as Record<string, unknown>).tags as string[] || []
   })) : [
     {
       id: '1',

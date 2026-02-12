@@ -17,7 +17,8 @@
  * const { data } = useQuery(['messages', projectId], () => fetchMessages(projectId));
  */
 
-import { useProjectContextOptional, ProjectSummary } from '@/contexts/ProjectContext';
+import { useProjectContext } from '@/store';
+import type { Project as ProjectSummary } from '@/store';
 
 export interface UseProjectScopedResult {
   /** Current project ID (null if none selected) */
@@ -39,7 +40,7 @@ export interface UseProjectScopedResult {
 }
 
 export function useProjectScoped(): UseProjectScopedResult {
-  const context = useProjectContextOptional();
+  const context = useProjectContext();
 
   // Handle case when provider is not available
   const currentProject = context?.currentProject ?? null;
@@ -74,7 +75,7 @@ export function useProjectRequired(): {
   projectId: string;
   currentProject: ProjectSummary;
 } {
-  const context = useProjectContextOptional();
+  const context = useProjectContext();
 
   if (!context) {
     throw new Error('useProjectRequired: Project context not available');

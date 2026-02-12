@@ -131,7 +131,6 @@ export function FormationCursorOverlay({
   // Collect selection rings for performers selected by other collaborators
   const selectionRings = useMemo(() => {
     if (!performerPositions) {
-      console.log('[CursorOverlay] No performerPositions provided');
       return [];
     }
 
@@ -142,16 +141,12 @@ export function FormationCursorOverlay({
       position: Position;
     }> = [];
 
-    console.log('[CursorOverlay] Processing collaborators:', collaborators.length);
-    console.log('[CursorOverlay] performerPositions size:', performerPositions.size);
 
     collaborators.forEach((collaborator) => {
-      console.log('[CursorOverlay] Collaborator:', collaborator.user?.name, 'selectedPerformerIds:', collaborator.selectedPerformerIds);
       if (!collaborator.selectedPerformerIds) return;
 
       collaborator.selectedPerformerIds.forEach((performerId) => {
         const position = performerPositions.get(performerId);
-        console.log('[CursorOverlay] Looking for performer:', performerId, 'found position:', position);
         if (position) {
           rings.push({
             performerId,
@@ -163,7 +158,6 @@ export function FormationCursorOverlay({
       });
     });
 
-    console.log('[CursorOverlay] Total selection rings:', rings.length);
     return rings;
   }, [collaborators, performerPositions]);
 

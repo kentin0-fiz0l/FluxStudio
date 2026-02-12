@@ -534,8 +534,8 @@ export const AdvancedMessageSearch: React.FC<AdvancedMessageSearchProps> = ({
                         </Button>
                         <Select value={`${sortBy}-${sortDirection}`} onValueChange={(value) => {
                           const [sort, direction] = value.split('-');
-                          setSortBy(sort as any);
-                          setSortDirection(direction as any);
+                          setSortBy(sort as typeof sortBy);
+                          setSortDirection(direction as typeof sortDirection);
                         }}>
                           <SelectTrigger className="w-40">
                             <SelectValue />

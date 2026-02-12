@@ -78,13 +78,11 @@ class DesignBoardsSocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('[DesignBoardsSocket] Connected');
       this.isConnected = true;
       this.emit('connect');
     });
 
-    this.socket.on('disconnect', (reason: string) => {
-      console.log('[DesignBoardsSocket] Disconnected:', reason);
+    this.socket.on('disconnect', (_reason: string) => {
       this.isConnected = false;
       this.emit('disconnect');
     });

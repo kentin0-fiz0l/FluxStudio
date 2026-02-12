@@ -14,9 +14,11 @@ export { useStore, useAuthStore, useProjectStore, useUIStore } from './store';
 export type { FluxStore } from './store';
 
 // Domain-specific hooks for convenience
-export { useAuth } from './slices/authSlice';
-export { useProjects, useActiveProject } from './slices/projectSlice';
-export { useUI, useTheme, useSidebar } from './slices/uiSlice';
+export { useAuth, useSession } from './slices/authSlice';
+export { useProjects, useActiveProject, useProjectContext } from './slices/projectSlice';
+export { useUI, useTheme, useSidebar, useWorkspace, useWorkingContext } from './slices/uiSlice';
+export { useOrganization, useOrg } from './slices/orgSlice';
+export { useNotifications, useNotification } from './slices/notificationSlice';
 export { useMessaging } from './slices/messagingSlice';
 export { useOffline, useSyncStatus } from './slices/offlineSlice';
 export {
@@ -44,6 +46,8 @@ export {
   useAIPreferences,
   useGenerationRequests,
 } from './hooks/aiHooks';
+export { useAssetStore, useFileStore } from './slices/assetSlice';
+export { useConnectors, useConnectorList } from './slices/connectorSlice';
 
 // Type exports
 export type {
@@ -57,7 +61,30 @@ export type {
 export type {
   UIState,
   Theme,
+  ThemeVariant,
+  LayoutDensity,
+  ThemeSettings,
+  WorkspaceMode,
+  CurrentContext,
+  WorkspaceActivity,
+  WorkflowStep,
+  LastEntity,
+  WorkingContextData,
 } from './slices/uiSlice';
+export type {
+  SessionState,
+  UserType,
+} from './slices/authSlice';
+export type {
+  OrgState,
+  Breadcrumb,
+} from './slices/orgSlice';
+export type {
+  Notification,
+  NotificationType,
+  NotificationPriority,
+  NotificationState,
+} from './slices/notificationSlice';
 export type {
   Conversation,
   Message as MessagingMessage,
@@ -104,3 +131,21 @@ export type {
   AIPreferences,
   AIState,
 } from './slices/aiSlice';
+export type {
+  AssetRecord,
+  AssetType,
+  AssetStatus,
+  AssetsFilter,
+  FileRecord,
+  FileType,
+  FileSource,
+  FilesFilter,
+} from './slices/assetSlice';
+export type {
+  ConnectorProvider,
+  ConnectorStatus,
+  Connector,
+  ConnectorFile,
+  ImportedFile,
+  ConnectorState,
+} from './slices/connectorSlice';
