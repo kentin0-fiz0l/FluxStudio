@@ -37,7 +37,7 @@ export function FluxLogo({ className = "", size = 'md' }: FluxLogoProps) {
                   color: 'rgb(248, 248, 248)',
                   fontSize: 'inherit',
                   lineHeight: 'inherit',
-                  fontFamily: 'Orbitron, sans-serif',
+                  fontFamily: 'Outfit, sans-serif',
                   textShadow: 'rgba(248, 248, 248, 0.25) 0px 0px 20px'
                 }}
               >
@@ -49,7 +49,7 @@ export function FluxLogo({ className = "", size = 'md' }: FluxLogoProps) {
                   color: 'rgb(26, 26, 26)',
                   fontSize: 'inherit',
                   lineHeight: 'inherit',
-                  fontFamily: 'Orbitron, sans-serif',
+                  fontFamily: 'Outfit, sans-serif',
                   transform: 'translateZ(-1px) translateX(0px) translateY(0px)',
                   opacity: 1,
                   zIndex: 19
@@ -63,7 +63,7 @@ export function FluxLogo({ className = "", size = 'md' }: FluxLogoProps) {
                   color: 'rgb(26, 26, 26)',
                   fontSize: 'inherit',
                   lineHeight: 'inherit',
-                  fontFamily: 'Orbitron, sans-serif',
+                  fontFamily: 'Outfit, sans-serif',
                   transform: 'translateZ(-2px) translateX(0.5px) translateY(0.5px)',
                   opacity: 0.85,
                   zIndex: 18
@@ -77,7 +77,7 @@ export function FluxLogo({ className = "", size = 'md' }: FluxLogoProps) {
                   color: 'rgb(26, 26, 26)',
                   fontSize: 'inherit',
                   lineHeight: 'inherit',
-                  fontFamily: 'Orbitron, sans-serif',
+                  fontFamily: 'Outfit, sans-serif',
                   transform: 'translateZ(-3px) translateX(1px) translateY(1px)',
                   opacity: 0.7,
                   zIndex: 17
@@ -91,7 +91,7 @@ export function FluxLogo({ className = "", size = 'md' }: FluxLogoProps) {
                   color: 'rgb(26, 26, 26)',
                   fontSize: 'inherit',
                   lineHeight: 'inherit',
-                  fontFamily: 'Orbitron, sans-serif',
+                  fontFamily: 'Outfit, sans-serif',
                   transform: 'translateZ(-4px) translateX(1.5px) translateY(1.5px)',
                   opacity: 0.55,
                   zIndex: 16
@@ -121,7 +121,7 @@ export function FluxLogo({ className = "", size = 'md' }: FluxLogoProps) {
                   color: 'rgb(248, 248, 248)',
                   fontSize: 'inherit',
                   lineHeight: 'inherit',
-                  fontFamily: 'Orbitron, sans-serif',
+                  fontFamily: 'Outfit, sans-serif',
                   textShadow: 'rgba(248, 248, 248, 0.25) 0px 0px 20px'
                 }}
               >
@@ -133,7 +133,7 @@ export function FluxLogo({ className = "", size = 'md' }: FluxLogoProps) {
                   color: 'rgb(26, 26, 26)',
                   fontSize: 'inherit',
                   lineHeight: 'inherit',
-                  fontFamily: 'Orbitron, sans-serif',
+                  fontFamily: 'Outfit, sans-serif',
                   transform: 'translateZ(-1px) translateX(0px) translateY(0px)',
                   opacity: 1,
                   zIndex: 19
@@ -147,7 +147,7 @@ export function FluxLogo({ className = "", size = 'md' }: FluxLogoProps) {
                   color: 'rgb(26, 26, 26)',
                   fontSize: 'inherit',
                   lineHeight: 'inherit',
-                  fontFamily: 'Orbitron, sans-serif',
+                  fontFamily: 'Outfit, sans-serif',
                   transform: 'translateZ(-2px) translateX(0.5px) translateY(0.5px)',
                   opacity: 0.85,
                   zIndex: 18
@@ -161,7 +161,7 @@ export function FluxLogo({ className = "", size = 'md' }: FluxLogoProps) {
                   color: 'rgb(26, 26, 26)',
                   fontSize: 'inherit',
                   lineHeight: 'inherit',
-                  fontFamily: 'Orbitron, sans-serif',
+                  fontFamily: 'Outfit, sans-serif',
                   transform: 'translateZ(-3px) translateX(1px) translateY(1px)',
                   opacity: 0.7,
                   zIndex: 17
@@ -175,7 +175,7 @@ export function FluxLogo({ className = "", size = 'md' }: FluxLogoProps) {
                   color: 'rgb(26, 26, 26)',
                   fontSize: 'inherit',
                   lineHeight: 'inherit',
-                  fontFamily: 'Orbitron, sans-serif',
+                  fontFamily: 'Outfit, sans-serif',
                   transform: 'translateZ(-4px) translateX(1.5px) translateY(1.5px)',
                   opacity: 0.55,
                   zIndex: 16

@@ -74,7 +74,7 @@ function Text3DLetter({
             style={{
               color: color,
               fontSize: fontSize,
-              fontFamily: 'Orbitron, "PP Neue Machina", "Space Grotesk", sans-serif',
+              fontFamily: 'Outfit, "PP Neue Machina", "Space Grotesk", sans-serif',
               textShadow: `0 0 20px ${color}40`,
               letterSpacing: '-0.02em'
             }}
@@ -90,7 +90,7 @@ function Text3DLetter({
               style={{
                 color: shadowColor,
                 fontSize: fontSize,
-                fontFamily: 'Orbitron, "PP Neue Machina", "Space Grotesk", sans-serif',
+                fontFamily: 'Outfit, "PP Neue Machina", "Space Grotesk", sans-serif',
                 transform: `translateZ(-${i + 1}px) translateX(${i * 0.5}px) translateY(${i * 0.5}px)`,
                 opacity: Math.max(0.1, 1 - (i * 0.15)),
                 zIndex: 19 - i,
@@ -261,7 +261,7 @@ export const FluxStudioLogoSpecs = {
     primary: 'PP Neue Machina',
     fallback: 'Space Grotesk',
     body: 'Inter',
-    display: 'Orbitron'
+    display: 'Outfit'
   },
   
   // Text Effects

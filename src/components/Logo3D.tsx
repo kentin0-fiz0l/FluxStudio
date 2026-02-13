@@ -28,7 +28,7 @@ export function Logo3D({ variant = 'dark' }: Logo3DProps) {
                 color: textColor,
                 fontSize: 'inherit',
                 lineHeight: 'inherit',
-                fontFamily: 'Orbitron, sans-serif',
+                fontFamily: 'Outfit, sans-serif',
                 textShadow: `${shadowColor} 0px 0px 20px`,
               }}
             >
@@ -42,7 +42,7 @@ export function Logo3D({ variant = 'dark' }: Logo3DProps) {
                 style={{
                   fontSize: 'inherit',
                   lineHeight: 'inherit',
-                  fontFamily: 'Orbitron, sans-serif',
+                  fontFamily: 'Outfit, sans-serif',
                   transform: `translateZ(-${i + 1}px) translateX(${(i + 1) * 0.125}px) translateY(${(i + 1) * 0.125}px)`,
                   opacity: 1 - (i + 1) * 0.04,
                   zIndex: 19 - i,
@@ -70,7 +70,7 @@ export function Logo3D({ variant = 'dark' }: Logo3DProps) {
             style={{
               fontSize: 'inherit',
               lineHeight: 'inherit',
-              fontFamily: 'Orbitron, sans-serif',
+              fontFamily: 'Outfit, sans-serif',
               marginRight: '0.15em',
               background: 'linear-gradient(45deg, #8B5CF6, #06B6D4)',
               WebkitBackgroundClip: 'text',

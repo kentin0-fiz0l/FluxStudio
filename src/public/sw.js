@@ -13,7 +13,7 @@ const ESSENTIAL_ASSETS = [
   '/styles/globals.css',
   '/App.tsx',
   // Add font files
-  'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap'
+  'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap'
 ];
 
 // Images and media that can be cached

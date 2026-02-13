@@ -38,7 +38,7 @@ export function Text3D({
                   color: color,
                   fontSize: 'inherit',
                   lineHeight: 'inherit',
-                  fontFamily: 'Orbitron, "Space Grotesk", sans-serif',
+                  fontFamily: 'Outfit, "Space Grotesk", sans-serif',
                   textShadow: `0 0 20px ${color}40`
                 }}
               >
@@ -54,7 +54,7 @@ export function Text3D({
                     color: shadowColor,
                     fontSize: 'inherit',
                     lineHeight: 'inherit',
-                    fontFamily: 'Orbitron, "Space Grotesk", sans-serif',
+                    fontFamily: 'Outfit, "Space Grotesk", sans-serif',
                     transform: `translateZ(-${i + 1}px) translateX(${i * 0.5}px) translateY(${i * 0.5}px)`,
                     opacity: Math.max(0.1, 1 - (i * 0.15)),
                     zIndex: 19 - i

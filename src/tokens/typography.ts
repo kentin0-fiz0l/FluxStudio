@@ -9,7 +9,7 @@ export const typography = {
   // Font Families
   fontFamily: {
     sans: "'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
-    display: "'Orbitron', 'Lexend', sans-serif",
+    display: "'Outfit', 'Lexend', sans-serif",
     mono: "'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace",
     handwriting: "'Swanky and Moo Moo', cursive",
   },

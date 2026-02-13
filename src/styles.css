@@ -16,8 +16,8 @@
    1. FONT IMPORTS & @font-face
    ======================================== */
 
-/* Primary fonts: Inter (UI/body), Orbitron (brand/logo) */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap");
+/* Primary fonts: Inter (UI/body), Outfit (brand/headings) */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap");
 
 @font-face {
   font-family: 'Rock Salt';
@@ -45,8 +45,8 @@
   /* Font Configuration */
   --font-size: 16px;
   --font-body: 'Inter', sans-serif;
-  --font-heading: 'Orbitron', sans-serif;
-  --font-brand: 'Orbitron', sans-serif;
+  --font-heading: 'Outfit', sans-serif;
+  --font-brand: 'Outfit', sans-serif;
   --font-title: 'Rock Salt', cursive;
 
   /* Typography Scale - Consolidated */
