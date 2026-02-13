@@ -37,7 +37,7 @@ export interface SignalingMessage {
   type: 'offer' | 'answer' | 'ice-candidate' | 'hangup' | 'mute' | 'video-off';
   from: string;
   to: string;
-  payload: any;
+  payload: RTCSessionDescriptionInit | RTCIceCandidateInit | Record<string, unknown> | null;
 }
 
 export interface CallEvents {
@@ -513,8 +513,8 @@ class WebRTCService {
 
       case 'answer': {
         const pc = this.peerConnections.get(from);
-        if (pc) {
-          await pc.setRemoteDescription(new RTCSessionDescription(payload));
+        if (pc && payload) {
+          await pc.setRemoteDescription(new RTCSessionDescription(payload as RTCSessionDescriptionInit));
           this.setCallState('connected');
         }
         break;
@@ -523,7 +523,7 @@ class WebRTCService {
       case 'ice-candidate': {
         const peerConnection = this.peerConnections.get(from);
         if (peerConnection && payload) {
-          await peerConnection.addIceCandidate(new RTCIceCandidate(payload));
+          await peerConnection.addIceCandidate(new RTCIceCandidate(payload as RTCIceCandidateInit));
         }
         break;
       }
@@ -532,13 +532,17 @@ class WebRTCService {
         this.handleParticipantLeft(from);
         break;
 
-      case 'mute':
-        this.updateParticipant(from, { isMuted: payload.muted });
+      case 'mute': {
+        const mutePayload = payload as { muted?: boolean };
+        this.updateParticipant(from, { isMuted: mutePayload.muted });
         break;
+      }
 
-      case 'video-off':
-        this.updateParticipant(from, { isVideoOff: payload.videoOff });
+      case 'video-off': {
+        const videoPayload = payload as { videoOff?: boolean };
+        this.updateParticipant(from, { isVideoOff: videoPayload.videoOff });
         break;
+      }
     }
   }
 

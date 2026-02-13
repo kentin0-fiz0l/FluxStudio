@@ -80,9 +80,11 @@ class SocketService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
+  private maxReconnectDelay = 30000;
   private isConnected = false;
   private authFailed = false;
   private currentUserId: string | null = null;
+  private onlineListener: (() => void) | null = null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private eventListeners = new Map<string, Set<Function>>();
 
@@ -172,7 +174,12 @@ class SocketService {
         this.disconnect();
         return;
       }
-      socketLogger.error('Connection error', error);
+      // Suppress noisy connect_error logs after the 3rd attempt
+      if (this.reconnectAttempts < 3) {
+        socketLogger.error('Connection error', error);
+      } else if (this.reconnectAttempts % 3 === 0) {
+        socketLogger.debug(`Connection error (attempt ${this.reconnectAttempts})`, error);
+      }
       this.handleReconnection();
     });
 
@@ -251,9 +258,27 @@ class SocketService {
       return;
     }
 
+    // Check if browser is offline; wait for connectivity to return
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      socketLogger.info('Browser is offline - waiting for connectivity to resume');
+      if (!this.onlineListener) {
+        this.onlineListener = () => {
+          socketLogger.info('Browser back online - triggering reconnection');
+          window.removeEventListener('online', this.onlineListener!);
+          this.onlineListener = null;
+          this.handleReconnection();
+        };
+        window.addEventListener('online', this.onlineListener);
+      }
+      return;
+    }
+
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+      const delay = Math.min(
+        this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
+        this.maxReconnectDelay
+      );
 
       socketLogger.info(`Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
 
@@ -264,6 +289,11 @@ class SocketService {
       }, delay);
     } else {
       socketLogger.error('Max reconnection attempts reached - falling back to REST API');
+      // Stop Socket.IO's built-in auto-reconnection as well
+      if (this.socket) {
+        this.socket.io.opts.reconnection = false;
+        this.socket.disconnect();
+      }
     }
   }
 
@@ -347,7 +377,7 @@ class SocketService {
     type?: string;
     priority?: string;
     author: MessageUser;
-    attachments?: any[];
+    attachments?: unknown[];
     mentions?: string[];
     replyTo?: string;
   }) {
@@ -424,7 +454,7 @@ class SocketService {
   /**
    * Emit event to listeners
    */
-  private emit(event: string, ...args: any[]) {
+  private emit(event: string, ...args: unknown[]) {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
       listeners.forEach(callback => {
@@ -448,6 +478,10 @@ class SocketService {
    * Disconnect socket
    */
   disconnect() {
+    if (this.onlineListener) {
+      window.removeEventListener('online', this.onlineListener);
+      this.onlineListener = null;
+    }
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;

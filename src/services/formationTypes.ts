@@ -1,0 +1,74 @@
+/**
+ * Formation Types - Shared type definitions for formation services
+ * Extracted from formationService.ts
+ */
+
+export interface Position {
+  x: number;
+  y: number;
+  rotation?: number;
+}
+
+export interface Performer {
+  id: string;
+  name: string;
+  label: string;
+  color: string;
+  group?: string;
+}
+
+export type TransitionType = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
+
+export interface Keyframe {
+  id: string;
+  timestamp: number;
+  positions: Map<string, Position>;
+  transition?: TransitionType;
+  duration?: number;
+}
+
+export interface AudioTrack {
+  id: string;
+  url: string;
+  filename: string;
+  duration: number;
+  waveformData?: number[];
+}
+
+export interface Formation {
+  id: string;
+  name: string;
+  description?: string;
+  projectId: string;
+  stageWidth: number;
+  stageHeight: number;
+  gridSize: number;
+  performers: Performer[];
+  keyframes: Keyframe[];
+  audioTrack?: AudioTrack;
+  musicTrackUrl?: string;
+  musicDuration?: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+
+export interface FormationExportOptions {
+  format: 'pdf' | 'png' | 'jpg' | 'svg' | 'video' | 'gif';
+  includeGrid: boolean;
+  includeLabels: boolean;
+  includeTimestamps: boolean;
+  paperSize?: 'letter' | 'a4' | 'tabloid';
+  orientation?: 'portrait' | 'landscape';
+  quality?: number;
+  fps?: number;
+  resolution?: { width: number; height: number };
+}
+
+export interface PlaybackState {
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  loop: boolean;
+  speed: number;
+}

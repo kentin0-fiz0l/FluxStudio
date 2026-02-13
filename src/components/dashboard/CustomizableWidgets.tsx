@@ -27,9 +27,9 @@ interface Widget {
   id: string;
   title: string;
   type: 'stat' | 'chart' | 'list' | 'activity';
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
   visible: boolean;
-  content: any;
+  content: { value?: string; label?: string; trend?: number; items?: Array<{ label: string; value: string }>; activities?: Array<{ action: string; time: string }> };
   size: 'small' | 'medium' | 'large';
 }
 
@@ -107,7 +107,7 @@ function SortableWidget({ widget, onToggleVisibility }: { widget: Widget; onTogg
 
           {widget.type === 'list' && (
             <div className="space-y-2">
-              {widget.content.items.slice(0, 3).map((item: any, index: number) => (
+              {widget.content.items!.slice(0, 3).map((item, index: number) => (
                 <div key={index} className="flex items-center justify-between text-sm">
                   <span className="text-gray-700">{item.label}</span>
                   <Badge variant="outline">{item.value}</Badge>
@@ -118,7 +118,7 @@ function SortableWidget({ widget, onToggleVisibility }: { widget: Widget; onTogg
 
           {widget.type === 'activity' && (
             <div className="space-y-2">
-              {widget.content.activities.slice(0, 3).map((activity: any, index: number) => (
+              {widget.content.activities!.slice(0, 3).map((activity, index: number) => (
                 <div key={index} className="flex items-start gap-2 text-sm">
                   <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5" />
                   <div>
@@ -238,13 +238,13 @@ export function CustomizableWidgets() {
     })
   );
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: import('@dnd-kit/core').DragEndEvent) => {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
+    if (!over || String(active.id) !== String(over.id)) {
       setWidgets((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
+        const oldIndex = items.findIndex((item) => item.id === String(active.id));
+        const newIndex = items.findIndex((item) => item.id === String(over!.id));
         return arrayMove(items, oldIndex, newIndex);
       });
     }

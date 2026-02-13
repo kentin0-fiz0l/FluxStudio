@@ -59,7 +59,7 @@ export interface CollaborationInsight {
   confidence: number;
   actionable: boolean;
   suggestions: string[];
-  data: any;
+  data: Record<string, unknown>;
 }
 
 class AIDesignAssistant {
@@ -79,9 +79,9 @@ class AIDesignAssistant {
    */
   async analyzeDesign(_designData: {
     imageUrl?: string;
-    designElements?: any[];
+    designElements?: Record<string, unknown>[];
     context?: string;
-    userPreferences?: any;
+    userPreferences?: Record<string, unknown>;
   }): Promise<DesignSuggestion[]> {
     try {
       // Simulate AI analysis
@@ -175,7 +175,7 @@ class AIDesignAssistant {
     industry?: string;
     mood?: string[];
     brand?: string;
-    preferences?: any;
+    preferences?: Record<string, unknown>;
   }): Promise<ColorPalette[]> {
     try {
       await this.delay(1200);
@@ -272,7 +272,7 @@ class AIDesignAssistant {
    * Analyze layout for usability and aesthetic issues
    */
   async analyzeLayout(_layoutData: {
-    elements: any[];
+    elements: Record<string, unknown>[];
     viewport: { width: number; height: number };
     userFlow?: string[];
   }): Promise<LayoutAnalysis> {
@@ -332,10 +332,10 @@ class AIDesignAssistant {
    * Analyze collaboration patterns and provide insights
    */
   async analyzeCollaboration(_collaborationData: {
-    messages: any[];
-    feedback: any[];
-    designIterations: any[];
-    teamMembers: any[];
+    messages: Record<string, unknown>[];
+    feedback: Record<string, unknown>[];
+    designIterations: Record<string, unknown>[];
+    teamMembers: Record<string, unknown>[];
   }): Promise<CollaborationInsight[]> {
     try {
       await this.delay(2000);
@@ -393,7 +393,7 @@ class AIDesignAssistant {
    * Get real-time design suggestions during editing
    */
   async getRealTimeSuggestions(_currentContext: {
-    selectedElement?: any;
+    selectedElement?: Record<string, unknown>;
     recentActions?: string[];
     userIntent?: string;
   }): Promise<DesignSuggestion[]> {
@@ -429,9 +429,9 @@ class AIDesignAssistant {
   /**
    * Generate accessibility report
    */
-  async generateAccessibilityReport(_designData: any): Promise<{
+  async generateAccessibilityReport(_designData: Record<string, unknown>): Promise<{
     score: number;
-    issues: any[];
+    issues: { type: string; severity: string; element: string; description: string; fix: string }[];
     recommendations: DesignSuggestion[];
   }> {
     try {

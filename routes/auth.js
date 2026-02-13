@@ -144,7 +144,7 @@ router.post('/signup',
       }
 
       // Validate userType
-      const validUserTypes = ['client', 'designer', 'admin'];
+      const validUserTypes = ['client', 'designer'];
       if (!validUserTypes.includes(userType)) {
         return res.status(400).json({ message: 'Invalid user type' });
       }

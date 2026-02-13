@@ -10,7 +10,7 @@ import { useStore } from '../store';
 
 interface SocketLike {
   emit(event: string, ...args: unknown[]): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Socket.IO event emitter pattern
   on(event: string, cb: (...args: any[]) => void): void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   off(event: string, cb: (...args: any[]) => void): void;
@@ -63,7 +63,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     socket.emit('notifications:subscribe');
 
-    const onNew = (notification: any) => handleNewNotification(notification);
+    const onNew = (notification: unknown) => handleNewNotification(notification as import('../store/slices/notificationSlice').Notification);
     const onCount = ({ count }: { count: number }) => setUnreadCount(count);
     const onAllRead = () => markAllAsRead();
 

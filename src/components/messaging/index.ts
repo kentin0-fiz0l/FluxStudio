@@ -3,27 +3,7 @@
  * Central export point for all messaging-related components
  */
 
-// Main Components
-export { default as MessagingDashboard } from './MessagingDashboard';
-export { default as MessageInterface } from './MessageInterface';
-export { default as ConversationList } from './ConversationList';
-export { default as NotificationCenter } from './NotificationCenter';
-
-// Message Components
-export { default as MessageBubble } from './MessageBubble';
-export { default as TypingIndicator } from './TypingIndicator';
-export { default as FileUploadButton } from './FileUploadButton';
-
-// Dialog Components
-export { default as CreateConversationDialog } from './CreateConversationDialog';
-export { default as MessageSearchDialog } from './MessageSearchDialog';
-
-// Feature Components
-export { default as UserPresenceIndicator } from './UserPresenceIndicator';
-export { default as ImageAnnotationTool } from './ImageAnnotationTool';
-export { default as QuickChatActions } from './QuickChatActions';
-
-// NEW: Refactored Components (MessagesNew.tsx extraction)
+// Core Components
 export { ChatMessageBubble, ChatAvatar } from './ChatMessageBubble';
 
 export { MessageComposer } from './MessageComposer';
@@ -32,8 +12,17 @@ export type { MessageComposerProps } from './MessageComposer';
 export { ConversationSidebar, ConversationItem, EmptyMessagesState } from './ConversationSidebar';
 export type { ConversationSidebarProps, ConversationItemProps, EmptyMessagesStateProps } from './ConversationSidebar';
 
-export { ChatPanel, PinnedMessagesPanel, EmptyChatState } from './ChatPanel';
+export { ChatPanel, EmptyChatState } from './ChatPanel';
 export type { ChatPanelProps, ChatPanelRef } from './ChatPanel';
+
+export { PinnedMessagesPanel } from './PinnedMessagesPanel';
+export type { PinnedMessagesPanelProps } from './PinnedMessagesPanel';
+
+export { ChatMessageList } from './ChatMessageList';
+export type { ChatMessageListProps, ChatMessageListRef } from './ChatMessageList';
+
+export { ChatInputArea } from './ChatInputArea';
+export type { ChatInputAreaProps } from './ChatInputArea';
 
 export { NewConversationDialog } from './NewConversationDialog';
 export type { NewConversationDialogProps } from './NewConversationDialog';
@@ -52,7 +41,7 @@ export type { MessageListViewProps, MessageListViewRef } from './MessageListView
 
 export { default as ThreadPanel } from './ThreadPanel';
 
-// NEW: Local types and utilities (explicitly named to avoid conflicts)
+// Local types and utilities
 export {
   EMOJI_CATEGORIES,
   type PendingAttachment,

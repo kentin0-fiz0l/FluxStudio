@@ -201,7 +201,7 @@ export function SmartTemplates() {
         userId: user?.id || '',
         userName: user?.name || ''
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to start workflow:', error);
     }
   };

@@ -8,8 +8,43 @@
 import { getApiUrl, getAuthToken } from '../utils/apiHelpers';
 import { Formation, Performer, Keyframe, Position, AudioTrack } from './formationService';
 
+// Raw API response shapes (before transform)
+interface ApiFormationRaw {
+  id: string;
+  name: string;
+  description?: string;
+  projectId: string;
+  stageWidth: number;
+  stageHeight: number;
+  gridSize: number;
+  performers?: ApiPerformerRaw[];
+  keyframes?: ApiKeyframeRaw[];
+  audioTrack?: AudioTrack;
+  musicTrackUrl?: string;
+  musicDuration?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+}
+
+interface ApiPerformerRaw {
+  id: string;
+  name: string;
+  label: string;
+  color?: string;
+  group?: string;
+}
+
+interface ApiKeyframeRaw {
+  id: string;
+  timestamp: number;
+  positions?: Record<string, Position>;
+  transition?: string;
+  duration?: number;
+}
+
 // API Response types
-export interface FormationsApiResponse<T = any> {
+export interface FormationsApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -96,7 +131,7 @@ export async function fetchFormations(projectId: string): Promise<FormationListI
  * Fetch a single formation with all data
  */
 export async function fetchFormation(formationId: string): Promise<Formation> {
-  const result = await apiRequest<{ success: boolean; formation: any }>(
+  const result = await apiRequest<{ success: boolean; formation: ApiFormationRaw }>(
     `/api/formations/${formationId}`
   );
 
@@ -118,7 +153,7 @@ export async function createFormation(
     gridSize?: number;
   }
 ): Promise<Formation> {
-  const result = await apiRequest<{ success: boolean; formation: any }>(
+  const result = await apiRequest<{ success: boolean; formation: ApiFormationRaw }>(
     `/api/projects/${projectId}/formations`,
     {
       method: 'POST',
@@ -144,7 +179,7 @@ export async function updateFormation(
     isArchived?: boolean;
   }
 ): Promise<Formation> {
-  const result = await apiRequest<{ success: boolean; formation: any }>(
+  const result = await apiRequest<{ success: boolean; formation: ApiFormationRaw }>(
     `/api/formations/${formationId}`,
     {
       method: 'PATCH',
@@ -188,7 +223,7 @@ export async function saveFormation(
       : kf.positions
   }));
 
-  const result = await apiRequest<{ success: boolean; formation: any }>(
+  const result = await apiRequest<{ success: boolean; formation: ApiFormationRaw }>(
     `/api/formations/${formationId}/save`,
     {
       method: 'PUT',
@@ -214,7 +249,7 @@ export async function addPerformer(
   formationId: string,
   data: { name: string; label: string; color?: string; groupName?: string }
 ): Promise<Performer> {
-  const result = await apiRequest<{ success: boolean; performer: any }>(
+  const result = await apiRequest<{ success: boolean; performer: ApiPerformerRaw }>(
     `/api/formations/${formationId}/performers`,
     {
       method: 'POST',
@@ -232,7 +267,7 @@ export async function updatePerformer(
   performerId: string,
   data: { name?: string; label?: string; color?: string; groupName?: string }
 ): Promise<Performer> {
-  const result = await apiRequest<{ success: boolean; performer: any }>(
+  const result = await apiRequest<{ success: boolean; performer: ApiPerformerRaw }>(
     `/api/formations/${formationId}/performers/${performerId}`,
     {
       method: 'PATCH',
@@ -262,7 +297,7 @@ export async function addKeyframe(
   formationId: string,
   data: { timestampMs?: number; transition?: string; duration?: number }
 ): Promise<Keyframe> {
-  const result = await apiRequest<{ success: boolean; keyframe: any }>(
+  const result = await apiRequest<{ success: boolean; keyframe: ApiKeyframeRaw }>(
     `/api/formations/${formationId}/keyframes`,
     {
       method: 'POST',
@@ -280,7 +315,7 @@ export async function updateKeyframe(
   keyframeId: string,
   data: { timestampMs?: number; transition?: string; duration?: number }
 ): Promise<Keyframe> {
-  const result = await apiRequest<{ success: boolean; keyframe: any }>(
+  const result = await apiRequest<{ success: boolean; keyframe: ApiKeyframeRaw }>(
     `/api/formations/${formationId}/keyframes/${keyframeId}`,
     {
       method: 'PATCH',
@@ -312,7 +347,7 @@ export async function setPosition(
   performerId: string,
   position: Position
 ): Promise<Position> {
-  const result = await apiRequest<{ success: boolean; position: any }>(
+  const result = await apiRequest<{ success: boolean; position: Position }>(
     `/api/formations/${formationId}/keyframes/${keyframeId}/positions/${performerId}`,
     {
       method: 'PUT',
@@ -360,7 +395,7 @@ export async function removeAudio(formationId: string): Promise<void> {
 // TRANSFORM HELPERS
 // ============================================================================
 
-function transformApiFormation(api: any): Formation {
+function transformApiFormation(api: ApiFormationRaw): Formation {
   return {
     id: api.id,
     name: api.name,
@@ -374,23 +409,23 @@ function transformApiFormation(api: any): Formation {
     audioTrack: api.audioTrack,
     musicTrackUrl: api.musicTrackUrl || api.audioTrack?.url,
     musicDuration: api.musicDuration || api.audioTrack?.duration,
-    createdAt: api.createdAt,
-    updatedAt: api.updatedAt,
-    createdBy: api.createdBy
+    createdAt: api.createdAt ?? new Date().toISOString(),
+    updatedAt: api.updatedAt ?? new Date().toISOString(),
+    createdBy: api.createdBy ?? ''
   };
 }
 
-function transformApiPerformer(api: any): Performer {
+function transformApiPerformer(api: ApiPerformerRaw): Performer {
   return {
     id: api.id,
     name: api.name,
     label: api.label,
-    color: api.color,
+    color: api.color ?? '#000000',
     group: api.group
   };
 }
 
-function transformApiKeyframe(api: any): Keyframe {
+function transformApiKeyframe(api: ApiKeyframeRaw): Keyframe {
   // Convert positions object to Map
   const positionsMap = new Map<string, Position>();
   if (api.positions) {
@@ -408,7 +443,7 @@ function transformApiKeyframe(api: any): Keyframe {
     id: api.id,
     timestamp: api.timestamp,
     positions: positionsMap,
-    transition: api.transition,
+    transition: api.transition as Keyframe['transition'],
     duration: api.duration
   };
 }

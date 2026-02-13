@@ -27,8 +27,16 @@ interface ScanResult {
   };
 }
 
+interface UploadResult {
+  uploadId: string;
+  original_name: string;
+  file_size: number;
+  securityStatus?: string;
+  [key: string]: unknown;
+}
+
 interface EnhancedFileUploadProps {
-  onUploadComplete?: (file: any) => void;
+  onUploadComplete?: (file: UploadResult) => void;
   onUploadError?: (error: string) => void;
   accept?: string;
   maxSize?: number;
@@ -48,7 +56,7 @@ export const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
 }) => {
   const [uploads, setUploads] = useState<Map<string, UploadSession>>(new Map());
   const [dragActive, setDragActive] = useState(false);
-  const [completedUploads, setCompletedUploads] = useState<any[]>([]);
+  const [completedUploads, setCompletedUploads] = useState<UploadResult[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { socket, connected } = useWebSocket('/files');
@@ -351,7 +359,7 @@ export const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
                   <span className="font-medium">{file.original_name}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Badge variant={getSecurityBadgeVariant(file.securityStatus)}>
+                  <Badge variant={getSecurityBadgeVariant(file.securityStatus ?? 'clean')}>
                     {file.securityStatus || 'clean'}
                   </Badge>
                   <span className="text-sm text-gray-500">

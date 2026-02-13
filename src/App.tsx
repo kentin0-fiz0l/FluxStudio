@@ -25,9 +25,14 @@ import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 import { useAuth, AuthProvider } from './contexts/AuthContext';
 
 // All pages lazy loaded for smaller initial bundle
-const { Component: SimpleHomePage } = lazyLoadWithRetry(
-  () => import('./pages/SimpleHomePage').then(m => ({ default: m.SimpleHomePage })) as Promise<{ default: React.ComponentType<Record<string, unknown>> }>
-);
+// SimpleHomePage kept as backup -- replaced by LandingPage
+// const { Component: SimpleHomePage } = lazyLoadWithRetry(
+//   () => import('./pages/SimpleHomePage').then(m => ({ default: m.SimpleHomePage })) as Promise<{ default: React.ComponentType<Record<string, unknown>> }>
+// );
+
+// Landing page - synthesized from best sections of 3 design variants
+const LandingPage = React.lazy(() => import('./pages/landing/LandingPage'));
+
 const { Component: Login } = lazyLoadWithRetry(
   () => import('./pages/Login').then(m => ({ default: m.Login })) as Promise<{ default: React.ComponentType<Record<string, unknown>> }>
 );
@@ -115,7 +120,7 @@ function RootRedirect() {
   }
 
   // If not authenticated, show the landing page
-  return <SimpleHomePage />;
+  return <LandingPage />;
 }
 
 // OAuth callback routes wrapper - minimal providers (only AuthProvider)
@@ -166,6 +171,9 @@ function AuthenticatedRoutes() {
                   {/* Root route - redirects based on auth state */}
                   <Route path="/" element={<RootRedirect />} />
                   <Route path="/login" element={<Login />} />
+
+                  {/* Dev preview: mock auth prevents seeing landing at / */}
+                  <Route path="/landing" element={<LandingPage />} />
 
                   {/* Lazy-loaded auth pages */}
                   <Route path="/signup" element={<SignupWizard />} />

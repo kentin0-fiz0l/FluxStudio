@@ -17,13 +17,20 @@ interface UseGoogleOAuthReturn {
       size?: 'large' | 'medium' | 'small';
       text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
       shape?: 'rectangular' | 'pill' | 'circle' | 'square';
-      onSuccess: (response: any) => void;
-      onError?: (error: any) => void;
+      onSuccess: (response: { credential: string; select_by?: string; clientId?: string }) => void;
+      onError?: (error: unknown) => void;
     }
   ) => Promise<string>;
   removeButton: (containerId: string) => void;
   cleanup: () => void;
-  getStatus: () => any;
+  getStatus: () => {
+    isInitialized: boolean;
+    isScriptLoaded: boolean;
+    isScriptLoading: boolean;
+    activeButtonsCount: number;
+    hasConfigurationError: boolean;
+    config: unknown;
+  };
 }
 
 /**
@@ -90,8 +97,8 @@ export function useGoogleOAuth(options: UseGoogleOAuthOptions): UseGoogleOAuthRe
       size?: 'large' | 'medium' | 'small';
       text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
       shape?: 'rectangular' | 'pill' | 'circle' | 'square';
-      onSuccess: (response: any) => void;
-      onError?: (error: any) => void;
+      onSuccess: (response: { credential: string; select_by?: string; clientId?: string }) => void;
+      onError?: (error: unknown) => void;
     }
   ): Promise<string> => {
     if (!isReady) {

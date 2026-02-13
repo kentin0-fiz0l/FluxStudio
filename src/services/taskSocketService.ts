@@ -427,7 +427,7 @@ class TaskSocketService {
   /**
    * Emit event to all registered listeners
    */
-  private emit(event: string, ...args: any[]) {
+  private emit(event: string, ...args: unknown[]) {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
       listeners.forEach((callback) => {

@@ -108,6 +108,50 @@ export const queryKeys = {
     details: () => [...queryKeys.organizations.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.organizations.details(), id] as const,
   },
+
+  // File-related keys
+  files: {
+    all: ['files'] as const,
+    lists: () => [...queryKeys.files.all, 'list'] as const,
+    list: (projectId?: string) => [...queryKeys.files.lists(), projectId] as const,
+    details: () => [...queryKeys.files.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.files.details(), id] as const,
+  },
+
+  // Formation-related keys
+  formations: {
+    all: ['formations'] as const,
+    lists: () => [...queryKeys.formations.all, 'list'] as const,
+    list: (projectId: string) => [...queryKeys.formations.lists(), projectId] as const,
+    details: () => [...queryKeys.formations.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.formations.details(), id] as const,
+  },
+
+  // Project counts keys
+  projectCounts: {
+    all: ['projectCounts'] as const,
+    detail: (projectId: string) => [...queryKeys.projectCounts.all, projectId] as const,
+  },
+
+  // Project channel keys
+  projectChannels: {
+    all: ['projectChannels'] as const,
+    detail: (projectId: string) => [...queryKeys.projectChannels.all, projectId] as const,
+  },
+
+  // Notification keys
+  notifications: {
+    all: ['notifications'] as const,
+    list: (params?: { limit?: number; offset?: number }) =>
+      [...queryKeys.notifications.all, 'list', params] as const,
+  },
+
+  // Message search keys
+  messageSearch: {
+    all: ['messageSearch'] as const,
+    search: (query: string, conversationId?: string | null) =>
+      [...queryKeys.messageSearch.all, query, conversationId] as const,
+  },
 };
 
 /**

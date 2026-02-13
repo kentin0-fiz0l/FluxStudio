@@ -1,21 +1,12 @@
 {
-  "app": {
-    "name": "FluxStudio",
-    "tagline": "منصة التصميم الإبداعي"
-  },
-  "navigation": {
-    "home": "الرئيسية",
-    "dashboard": "لوحة التحكم",
-    "projects": "المشاريع",
-    "files": "الملفات",
-    "assets": "الأصول",
-    "messages": "الرسائل",
-    "team": "الفريق",
-    "settings": "الإعدادات",
-    "profile": "الملف الشخصي",
-    "notifications": "الإشعارات",
-    "help": "المساعدة",
-    "logout": "تسجيل الخروج"
+  "accessibility": {
+    "skipToContent": "تخطي إلى المحتوى",
+    "openMenu": "فتح القائمة",
+    "closeMenu": "إغلاق القائمة",
+    "expandSection": "توسيع القسم",
+    "collapseSection": "طي القسم",
+    "loading": "جارٍ تحميل المحتوى",
+    "newWindow": "يفتح في نافذة جديدة"
   },
   "actions": {
     "save": "حفظ",
@@ -58,6 +49,194 @@
     "move": "نقل",
     "rename": "إعادة تسمية"
   },
+  "app": {
+    "name": "FluxStudio",
+    "tagline": "منصة التصميم الإبداعي"
+  },
+  "call": {
+    "voiceCall": "مكالمة صوتية",
+    "videoCall": "مكالمة فيديو",
+    "connecting": "جارٍ الاتصال...",
+    "ringing": "جارٍ الرنين...",
+    "ended": "انتهت المكالمة",
+    "failed": "فشلت المكالمة",
+    "participants": "المشاركون",
+    "you": "أنت",
+    "mute": "كتم الصوت",
+    "unmute": "إلغاء كتم الصوت",
+    "videoOn": "تشغيل الكاميرا",
+    "videoOff": "إيقاف الكاميرا",
+    "endCall": "إنهاء المكالمة",
+    "screenShare": "مشاركة الشاشة",
+    "stopScreenShare": "إيقاف المشاركة",
+    "settings": "إعدادات المكالمة",
+    "fullscreen": "ملء الشاشة",
+    "exitFullscreen": "الخروج من ملء الشاشة",
+    "chat": "فتح المحادثة",
+    "incomingCall": "مكالمة واردة",
+    "accept": "قبول",
+    "decline": "رفض"
+  },
+  "confirmation": {
+    "delete": "هل أنت متأكد من أنك تريد حذف هذا؟",
+    "unsavedChanges": "لديك تغييرات غير محفوظة. هل أنت متأكد من أنك تريد المغادرة؟",
+    "logout": "هل أنت متأكد من أنك تريد تسجيل الخروج؟",
+    "archive": "هل أنت متأكد من أنك تريد أرشفة هذا؟"
+  },
+  "empty": {
+    "noResults": "لم يتم العثور على نتائج",
+    "noData": "لا توجد بيانات متاحة",
+    "noItems": "لا توجد عناصر",
+    "noNotifications": "لا توجد إشعارات"
+  },
+  "errors": {
+    "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "notFound": "غير موجود",
+    "unauthorized": "غير مصرح لك بتنفيذ هذا الإجراء",
+    "forbidden": "تم رفض الوصول",
+    "networkError": "خطأ في الشبكة. يرجى التحقق من الاتصال.",
+    "serverError": "خطأ في الخادم. يرجى المحاولة لاحقاً.",
+    "validationError": "يرجى التحقق من المدخلات والمحاولة مرة أخرى.",
+    "sessionExpired": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.",
+    "rateLimited": "طلبات كثيرة جداً. يرجى الانتظار والمحاولة مرة أخرى."
+  },
+  "formation": {
+    "untitled": "تشكيل بدون عنوان",
+    "performers": "المؤدون",
+    "performersCount": "مؤدون",
+    "keyframes": "الإطارات الرئيسية",
+    "keyframesCount": "إطارات رئيسية",
+    "keyframe": "إطار رئيسي",
+    "addPerformer": "إضافة مؤدي",
+    "noPerformers": "لا يوجد مؤدون بعد. انقر + للإضافة.",
+    "removeKeyframe": "إزالة الإطار الرئيسي",
+    "rotatePerformer": "اسحب للتدوير",
+    "selectTool": "تحديد",
+    "panTool": "تحريك",
+    "addTool": "إضافة مؤدي",
+    "toggleGrid": "إظهار/إخفاء الشبكة",
+    "toggleLabels": "إظهار/إخفاء التسميات",
+    "toggleRotation": "إظهار/إخفاء مقابض التدوير",
+    "togglePerformers": "إظهار/إخفاء لوحة المؤدين",
+    "export": "تصدير",
+    "exportFormat": "تنسيق التصدير",
+    "displayOptions": "خيارات العرض",
+    "includeGrid": "تضمين خطوط الشبكة",
+    "includeLabels": "تضمين تسميات المؤدين",
+    "includeTimestamps": "تضمين الطوابع الزمنية",
+    "pdfOptions": "خيارات PDF",
+    "paperSize": "حجم الورق",
+    "orientation": "الاتجاه",
+    "landscape": "أفقي",
+    "portrait": "عمودي",
+    "imageOptions": "خيارات الصورة",
+    "quality": "الجودة",
+    "animationOptions": "خيارات الرسوم المتحركة",
+    "resolution": "الدقة",
+    "fps": "معدل الإطارات",
+    "width": "العرض",
+    "height": "الارتفاع",
+    "play": "تشغيل",
+    "pause": "إيقاف مؤقت",
+    "stop": "إيقاف",
+    "skipToEnd": "التخطي إلى النهاية",
+    "loop": "تكرار",
+    "speed": "السرعة",
+    "zoomIn": "تكبير",
+    "zoomOut": "تصغير",
+    "addKeyframe": "إضافة إطار رئيسي عند الوقت الحالي"
+  },
+  "language": {
+    "select": "اختر اللغة",
+    "current": "اللغة الحالية"
+  },
+  "navigation": {
+    "home": "الرئيسية",
+    "dashboard": "لوحة التحكم",
+    "projects": "المشاريع",
+    "files": "الملفات",
+    "assets": "الأصول",
+    "messages": "الرسائل",
+    "team": "الفريق",
+    "settings": "الإعدادات",
+    "profile": "الملف الشخصي",
+    "notifications": "الإشعارات",
+    "help": "المساعدة",
+    "logout": "تسجيل الخروج"
+  },
+  "pagination": {
+    "page": "صفحة",
+    "of": "من",
+    "showing": "عرض",
+    "results": "نتائج",
+    "perPage": "لكل صفحة",
+    "first": "الأولى",
+    "last": "الأخيرة"
+  },
+  "screenShare": {
+    "youAreSharing": "أنت تشارك شاشتك",
+    "viewing": "{{name}} يشارك الشاشة",
+    "watching": "يشاهدون",
+    "openChat": "فتح المحادثة",
+    "fullscreen": "ملء الشاشة",
+    "exitFullscreen": "الخروج من ملء الشاشة",
+    "pointer": "المؤشر",
+    "draw": "رسم",
+    "clearAnnotations": "مسح التعليقات التوضيحية",
+    "requestControl": "طلب التحكم",
+    "stopSharing": "إيقاف المشاركة",
+    "presenter": "مقدم العرض",
+    "startSharing": "بدء مشاركة الشاشة",
+    "selectWindow": "اختر نافذة أو شاشة للمشاركة"
+  },
+  "search": {
+    "placeholder": "البحث في المشاريع والملفات والمهام والرسائل...",
+    "searching": "جارٍ البحث...",
+    "resultsCount": "{{count}} نتائج",
+    "noResults": {
+      "title": "لم يتم العثور على نتائج",
+      "description": "جرب كلمات مختلفة أو عدّل عوامل التصفية."
+    },
+    "emptyState": {
+      "title": "ابحث في مساحة العمل",
+      "description": "ابحث عن المشاريع والملفات والمهام والرسائل في مساحة العمل بأكملها."
+    },
+    "types": {
+      "project": "المشاريع",
+      "file": "الملفات",
+      "task": "المهام",
+      "message": "الرسائل"
+    },
+    "filters": {
+      "title": "عوامل التصفية",
+      "clear": "مسح",
+      "contentType": "نوع المحتوى",
+      "project": "المشروع",
+      "dateRange": "النطاق الزمني",
+      "from": "من",
+      "to": "إلى",
+      "today": "اليوم",
+      "week": "الأسبوع",
+      "month": "الشهر",
+      "year": "السنة"
+    },
+    "sort": {
+      "relevance": "الصلة",
+      "date": "التاريخ",
+      "title": "العنوان",
+      "ascending": "تصاعدي",
+      "descending": "تنازلي"
+    },
+    "history": "سجل البحث",
+    "recentSearches": "عمليات البحث الأخيرة",
+    "savedSearches": "عمليات البحث المحفوظة",
+    "clearAll": "مسح الكل",
+    "noHistory": "لا توجد عمليات بحث حديثة",
+    "saveSearch": "حفظ البحث",
+    "saveSearchPlaceholder": "أدخل اسماً لهذا البحث...",
+    "loadMore": "تحميل المزيد من النتائج",
+    "loading": "جارٍ التحميل..."
+  },
   "status": {
     "loading": "جارٍ التحميل...",
     "saving": "جارٍ الحفظ...",
@@ -77,6 +256,11 @@
     "offline": "غير متصل",
     "connecting": "جارٍ الاتصال..."
   },
+  "theme": {
+    "light": "فاتح",
+    "dark": "داكن",
+    "system": "النظام"
+  },
   "time": {
     "now": "الآن",
     "minutesAgo": "منذ {{count}} دقيقة",
@@ -94,55 +278,5 @@
     "today": "اليوم",
     "yesterday": "أمس",
     "tomorrow": "غداً"
-  },
-  "errors": {
-    "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
-    "notFound": "غير موجود",
-    "unauthorized": "غير مصرح لك بتنفيذ هذا الإجراء",
-    "forbidden": "تم رفض الوصول",
-    "networkError": "خطأ في الشبكة. يرجى التحقق من الاتصال.",
-    "serverError": "خطأ في الخادم. يرجى المحاولة لاحقاً.",
-    "validationError": "يرجى التحقق من المدخلات والمحاولة مرة أخرى.",
-    "sessionExpired": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.",
-    "rateLimited": "طلبات كثيرة جداً. يرجى الانتظار والمحاولة مرة أخرى."
-  },
-  "confirmation": {
-    "delete": "هل أنت متأكد من أنك تريد حذف هذا؟",
-    "unsavedChanges": "لديك تغييرات غير محفوظة. هل أنت متأكد من أنك تريد المغادرة؟",
-    "logout": "هل أنت متأكد من أنك تريد تسجيل الخروج؟",
-    "archive": "هل أنت متأكد من أنك تريد أرشفة هذا؟"
-  },
-  "empty": {
-    "noResults": "لم يتم العثور على نتائج",
-    "noData": "لا توجد بيانات متاحة",
-    "noItems": "لا توجد عناصر",
-    "noNotifications": "لا توجد إشعارات"
-  },
-  "pagination": {
-    "page": "صفحة",
-    "of": "من",
-    "showing": "عرض",
-    "results": "نتائج",
-    "perPage": "لكل صفحة",
-    "first": "الأولى",
-    "last": "الأخيرة"
-  },
-  "accessibility": {
-    "skipToContent": "تخطي إلى المحتوى",
-    "openMenu": "فتح القائمة",
-    "closeMenu": "إغلاق القائمة",
-    "expandSection": "توسيع القسم",
-    "collapseSection": "طي القسم",
-    "loading": "جارٍ تحميل المحتوى",
-    "newWindow": "يفتح في نافذة جديدة"
-  },
-  "theme": {
-    "light": "فاتح",
-    "dark": "داكن",
-    "system": "النظام"
-  },
-  "language": {
-    "select": "اختر اللغة",
-    "current": "اللغة الحالية"
   }
 }

@@ -17,7 +17,7 @@ interface SecurityEvent {
   userEmail?: string;
   ipAddress?: string;
   userAgent?: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 interface EventSummary {

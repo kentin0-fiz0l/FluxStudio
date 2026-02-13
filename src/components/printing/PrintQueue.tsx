@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 /**
  * Get badge variant based on job status
  */
-const getStatusBadge = (status: QueueJobStatus): { variant: any; label: string } => {
+const getStatusBadge = (status: QueueJobStatus): { variant: 'success' | 'error' | 'secondary' | 'default'; label: string } => {
   switch (status) {
     case 'printing':
       return { variant: 'success', label: 'Printing' };

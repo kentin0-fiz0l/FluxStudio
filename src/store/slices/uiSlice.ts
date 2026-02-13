@@ -3,6 +3,7 @@
  */
 
 import { StateCreator } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { FluxStore } from '../store';
 
 // ============================================================================
@@ -501,7 +502,7 @@ export const useSidebar = () => {
  * Returns { state, actions } shape for consumer compatibility.
  */
 export const useWorkspace = () => {
-  return useStore((s) => ({
+  return useStore(useShallow((s) => ({
     state: {
       currentContext: s.ui.currentContext,
       currentMode: s.ui.currentMode,
@@ -534,11 +535,11 @@ export const useWorkspace = () => {
       getContextualActions: () => [] as Array<{ title: string; description: string; type: string; action: () => void; priority: string }>,
       isLoading: s.ui.isWorkspaceLoading,
     },
-  }));
+  })));
 };
 
 export const useWorkingContext = () => {
-  return useStore((state) => ({
+  return useStore(useShallow((state) => ({
     workingContext: state.ui.workingContext,
     hasResumableContext: state.ui.hasResumableContext,
     updateWorkingContext: state.ui.updateWorkingContext,
@@ -547,5 +548,5 @@ export const useWorkingContext = () => {
     clearWorkingContext: state.ui.clearWorkingContext,
     loadWorkingContextForProject: state.ui.loadWorkingContextForProject,
     getWorkingContextForProject: state.ui.getWorkingContextForProject,
-  }));
+  })));
 };

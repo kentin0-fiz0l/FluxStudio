@@ -1,7 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getApiUrl } from '../utils/apiHelpers';
 import { useAuth } from '../contexts/AuthContext';
 import { hookLogger } from '../lib/logger';
+import { queryKeys } from '../lib/queryClient';
+
 
 const projectsLogger = hookLogger.child('useProjects');
 
@@ -66,24 +69,40 @@ export interface ProjectFile {
   size: number;
 }
 
+// ---------- helpers ----------
+
+function getAuthHeaders() {
+  const token = localStorage.getItem('auth_token');
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
+}
+
+async function fetchCsrfToken(): Promise<string> {
+  const res = await fetch(getApiUrl('/api/csrf-token'), { credentials: 'include' });
+  const data = await res.json();
+  return data.csrfToken;
+}
+
+// ---------- hook ----------
+
 export function useProjects() {
   const { user } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchProjects = useCallback(async () => {
-    if (!user) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
+  // Query: fetch projects list
+  const {
+    data: projects = [],
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery<Project[], Error>({
+    queryKey: queryKeys.projects.all,
+    queryFn: async () => {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(getApiUrl('/api/projects'), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
       if (!response.ok) {
@@ -91,47 +110,43 @@ export function useProjects() {
       }
 
       const result = await response.json();
-      setProjects(result.projects || []);
-    } catch (error) {
-      projectsLogger.error('Error fetching projects', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch projects');
-      setProjects([]);
-    } finally {
-      setLoading(false);
+      return result.projects || [];
+    },
+    enabled: !!user,
+  });
+
+  const error = queryError?.message ?? null;
+
+  // Mutation: create project
+  const createProjectMutation = useMutation<
+    Project,
+    Error,
+    {
+      name: string;
+      description?: string;
+      organizationId?: string;
+      teamId?: string;
+      startDate?: string;
+      dueDate?: string;
+      priority?: Project['priority'];
+      members?: string[];
     }
-  }, [user]);
+  >({
+    mutationFn: async (projectData) => {
+      if (!user) throw new Error('Authentication required');
 
-  const createProject = useCallback(async (projectData: {
-    name: string;
-    description?: string;
-    organizationId?: string;
-    teamId?: string;
-    startDate?: string;
-    dueDate?: string;
-    priority?: Project['priority'];
-    members?: string[];
-  }) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
+      const csrfToken = await fetchCsrfToken();
       const token = localStorage.getItem('auth_token');
-
-      // Fetch CSRF token for POST request
-      const csrfResponse = await fetch(getApiUrl('/api/csrf-token'), {
-        credentials: 'include'
-      });
-      const csrfData = await csrfResponse.json();
-      const csrfToken = csrfData.csrfToken;
 
       const response = await fetch(getApiUrl('/api/projects'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken
+          'X-CSRF-Token': csrfToken,
         },
         credentials: 'include',
-        body: JSON.stringify(projectData)
+        body: JSON.stringify(projectData),
       });
 
       if (!response.ok) {
@@ -140,28 +155,33 @@ export function useProjects() {
       }
 
       const result = await response.json();
-      const newProject = result.project;
+      return result.project;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    },
+    onError: (err) => {
+      projectsLogger.error('Error creating project', err);
+    },
+  });
 
-      setProjects(prev => [...prev, newProject]);
-      return newProject;
-    } catch (error) {
-      projectsLogger.error('Error creating project', error);
-      throw error;
-    }
-  }, [user]);
+  // Mutation: update project
+  const updateProjectMutation = useMutation<
+    Project,
+    Error,
+    { projectId: string; updates: Partial<Project> }
+  >({
+    mutationFn: async ({ projectId, updates }) => {
+      if (!user) throw new Error('Authentication required');
 
-  const updateProject = useCallback(async (projectId: string, updates: Partial<Project>) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(getApiUrl(`/api/projects/${projectId}`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updates)
+        body: JSON.stringify(updates),
       });
 
       if (!response.ok) {
@@ -170,201 +190,232 @@ export function useProjects() {
       }
 
       const result = await response.json();
-      const updatedProject = result.project;
+      return result.project;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    },
+    onError: (err) => {
+      projectsLogger.error('Error updating project', err);
+    },
+  });
 
-      setProjects(prev => prev.map(project =>
-        project.id === projectId ? updatedProject : project
-      ));
+  // Mutation: delete project
+  const deleteProjectMutation = useMutation<void, Error, string>({
+    mutationFn: async (projectId) => {
+      if (!user) throw new Error('Authentication required');
 
-      return updatedProject;
-    } catch (error) {
-      projectsLogger.error('Error updating project', error);
-      throw error;
-    }
-  }, [user]);
-
-  const deleteProject = useCallback(async (projectId: string) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(getApiUrl(`/api/projects/${projectId}`), {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to delete project');
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    },
+    onError: (err) => {
+      projectsLogger.error('Error deleting project', err);
+    },
+  });
 
-      setProjects(prev => prev.filter(project => project.id !== projectId));
-    } catch (error) {
-      projectsLogger.error('Error deleting project', error);
-      throw error;
-    }
-  }, [user]);
-
-  // Task management functions
-  const createTask = useCallback(async (projectId: string, taskData: {
-    title: string;
-    description?: string;
-    assignedTo?: string;
-    dueDate?: string;
-    priority?: Task['priority'];
-  }) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
-      const token = localStorage.getItem('auth_token');
+  // Task mutations
+  const createTaskMutation = useMutation<
+    Task,
+    Error,
+    { projectId: string; taskData: { title: string; description?: string; assignedTo?: string; dueDate?: string; priority?: Task['priority'] } }
+  >({
+    mutationFn: async ({ projectId, taskData }) => {
+      if (!user) throw new Error('Authentication required');
       const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks`), {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(taskData)
+        headers: getAuthHeaders(),
+        body: JSON.stringify(taskData),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to create task');
       }
-
       const result = await response.json();
-      await fetchProjects(); // Refresh projects to get updated tasks
       return result.task;
-    } catch (error) {
-      projectsLogger.error('Error creating task', error);
-      throw error;
-    }
-  }, [user, fetchProjects]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    },
+    onError: (err) => {
+      projectsLogger.error('Error creating task', err);
+    },
+  });
 
-  const updateTask = useCallback(async (projectId: string, taskId: string, updates: Partial<Task>) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
-      const token = localStorage.getItem('auth_token');
+  const updateTaskMutation = useMutation<
+    Task,
+    Error,
+    { projectId: string; taskId: string; updates: Partial<Task> }
+  >({
+    mutationFn: async ({ projectId, taskId, updates }) => {
+      if (!user) throw new Error('Authentication required');
       const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks/${taskId}`), {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updates)
+        headers: getAuthHeaders(),
+        body: JSON.stringify(updates),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update task');
       }
-
       const result = await response.json();
-      await fetchProjects(); // Refresh projects to get updated tasks
       return result.task;
-    } catch (error) {
-      projectsLogger.error('Error updating task', error);
-      throw error;
-    }
-  }, [user, fetchProjects]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    },
+    onError: (err) => {
+      projectsLogger.error('Error updating task', err);
+    },
+  });
 
-  const deleteTask = useCallback(async (projectId: string, taskId: string) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
-      const token = localStorage.getItem('auth_token');
+  const deleteTaskMutation = useMutation<void, Error, { projectId: string; taskId: string }>({
+    mutationFn: async ({ projectId, taskId }) => {
+      if (!user) throw new Error('Authentication required');
       const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks/${taskId}`), {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to delete task');
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    },
+    onError: (err) => {
+      projectsLogger.error('Error deleting task', err);
+    },
+  });
 
-      await fetchProjects(); // Refresh projects to get updated tasks
-    } catch (error) {
-      projectsLogger.error('Error deleting task', error);
-      throw error;
-    }
-  }, [user, fetchProjects]);
-
-  // Milestone management functions
-  const createMilestone = useCallback(async (projectId: string, milestoneData: {
-    title: string;
-    description?: string;
-    dueDate?: string;
-  }) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
-      const token = localStorage.getItem('auth_token');
+  // Milestone mutations
+  const createMilestoneMutation = useMutation<
+    Milestone,
+    Error,
+    { projectId: string; milestoneData: { title: string; description?: string; dueDate?: string } }
+  >({
+    mutationFn: async ({ projectId, milestoneData }) => {
+      if (!user) throw new Error('Authentication required');
       const response = await fetch(getApiUrl(`/api/projects/${projectId}/milestones`), {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(milestoneData)
+        headers: getAuthHeaders(),
+        body: JSON.stringify(milestoneData),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to create milestone');
       }
-
       const result = await response.json();
-      await fetchProjects(); // Refresh projects to get updated milestones
       return result.milestone;
-    } catch (error) {
-      projectsLogger.error('Error creating milestone', error);
-      throw error;
-    }
-  }, [user, fetchProjects]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    },
+    onError: (err) => {
+      projectsLogger.error('Error creating milestone', err);
+    },
+  });
 
-  const updateMilestone = useCallback(async (projectId: string, milestoneId: string, updates: Partial<Milestone>) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
-      const token = localStorage.getItem('auth_token');
+  const updateMilestoneMutation = useMutation<
+    Milestone,
+    Error,
+    { projectId: string; milestoneId: string; updates: Partial<Milestone> }
+  >({
+    mutationFn: async ({ projectId, milestoneId, updates }) => {
+      if (!user) throw new Error('Authentication required');
       const response = await fetch(getApiUrl(`/api/projects/${projectId}/milestones/${milestoneId}`), {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updates)
+        headers: getAuthHeaders(),
+        body: JSON.stringify(updates),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update milestone');
       }
-
       const result = await response.json();
-      await fetchProjects(); // Refresh projects to get updated milestones
       return result.milestone;
-    } catch (error) {
-      projectsLogger.error('Error updating milestone', error);
-      throw error;
-    }
-  }, [user, fetchProjects]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    },
+    onError: (err) => {
+      projectsLogger.error('Error updating milestone', err);
+    },
+  });
 
-  // Fetch projects on mount
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+  // Wrap mutations to keep the same call signatures
+  const createProject = useCallback(
+    async (projectData: Parameters<typeof createProjectMutation.mutateAsync>[0]) => {
+      return createProjectMutation.mutateAsync(projectData);
+    },
+    [createProjectMutation]
+  );
+
+  const updateProject = useCallback(
+    async (projectId: string, updates: Partial<Project>) => {
+      return updateProjectMutation.mutateAsync({ projectId, updates });
+    },
+    [updateProjectMutation]
+  );
+
+  const deleteProject = useCallback(
+    async (projectId: string) => {
+      return deleteProjectMutation.mutateAsync(projectId);
+    },
+    [deleteProjectMutation]
+  );
+
+  const createTask = useCallback(
+    async (projectId: string, taskData: { title: string; description?: string; assignedTo?: string; dueDate?: string; priority?: Task['priority'] }) => {
+      return createTaskMutation.mutateAsync({ projectId, taskData });
+    },
+    [createTaskMutation]
+  );
+
+  const updateTask = useCallback(
+    async (projectId: string, taskId: string, updates: Partial<Task>) => {
+      return updateTaskMutation.mutateAsync({ projectId, taskId, updates });
+    },
+    [updateTaskMutation]
+  );
+
+  const deleteTask = useCallback(
+    async (projectId: string, taskId: string) => {
+      return deleteTaskMutation.mutateAsync({ projectId, taskId });
+    },
+    [deleteTaskMutation]
+  );
+
+  const createMilestone = useCallback(
+    async (projectId: string, milestoneData: { title: string; description?: string; dueDate?: string }) => {
+      return createMilestoneMutation.mutateAsync({ projectId, milestoneData });
+    },
+    [createMilestoneMutation]
+  );
+
+  const updateMilestone = useCallback(
+    async (projectId: string, milestoneId: string, updates: Partial<Milestone>) => {
+      return updateMilestoneMutation.mutateAsync({ projectId, milestoneId, updates });
+    },
+    [updateMilestoneMutation]
+  );
 
   return {
     projects,
     loading,
     error,
-    fetchProjects,
+    fetchProjects: refetch,
     createProject,
     updateProject,
     deleteProject,
@@ -372,6 +423,6 @@ export function useProjects() {
     updateTask,
     deleteTask,
     createMilestone,
-    updateMilestone
+    updateMilestone,
   };
 }

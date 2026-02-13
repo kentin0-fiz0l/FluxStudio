@@ -32,9 +32,9 @@ export function SlackIntegration() {
     try {
       const slackChannels = await integrationService.getSlackChannels(teamId);
       setChannels(slackChannels);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load Slack channels:', error);
-      setChannelsError(error.message || 'Failed to load Slack channels');
+      setChannelsError(error instanceof Error ? error.message : 'Failed to load Slack channels');
     } finally {
       setIsLoadingChannels(false);
     }

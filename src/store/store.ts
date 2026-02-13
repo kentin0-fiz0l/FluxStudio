@@ -84,6 +84,25 @@ export const useStore = create<FluxStore>()(
               pendingActions: state.offline.pendingActions,
             },
           }),
+          // Deep merge to preserve action functions inside nested slice objects
+          merge: (persistedState, currentState) => {
+            const persisted = persistedState as Record<string, unknown> | undefined;
+            if (!persisted) return currentState;
+            const merged = { ...currentState } as Record<string, unknown>;
+            for (const key of Object.keys(persisted)) {
+              const currentVal = merged[key];
+              const persistedVal = persisted[key];
+              if (
+                currentVal && typeof currentVal === 'object' && !Array.isArray(currentVal) &&
+                persistedVal && typeof persistedVal === 'object' && !Array.isArray(persistedVal)
+              ) {
+                merged[key] = { ...currentVal, ...(persistedVal as Record<string, unknown>) };
+              } else {
+                merged[key] = persistedVal;
+              }
+            }
+            return merged as unknown as FluxStore;
+          },
         }
       )
     ),
@@ -121,17 +140,13 @@ export const subscribe = useStore.subscribe;
 export const resetStore = () => {
   useStore.setState((state) => {
     // Reset all slices to initial state
-    state.auth = {
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null,
-      login: state.auth.login,
-      logout: state.auth.logout,
-      setUser: state.auth.setUser,
-      setLoading: state.auth.setLoading,
-      setError: state.auth.setError,
-    };
+    // Preserve all action functions, reset only state values
+    state.auth.user = null;
+    state.auth.isAuthenticated = false;
+    state.auth.isLoading = false;
+    state.auth.error = null;
+    state.auth.token = null;
+    state.auth.isReturningSession = false;
     state.projects.activeProjectId = null;
     state.projects.projects = [];
     state.messaging.conversations = [];

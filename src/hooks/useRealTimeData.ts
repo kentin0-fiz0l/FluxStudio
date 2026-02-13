@@ -1,21 +1,19 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 
 interface RealTimeDataConfig {
   endpoint: string;
   refreshInterval?: number;
   enabled?: boolean;
-  transform?: (data: any) => any;
+  transform?: (data: unknown) => unknown;
 }
 
-interface RealTimeDataState<T = any> {
+interface RealTimeDataHook<T = any> {
   data: T | null;
   isLoading: boolean;
   error: string | null;
   lastUpdated: Date | null;
-}
-
-interface RealTimeDataHook<T = any> extends RealTimeDataState<T> {
   refresh: () => Promise<void>;
   setData: (data: T) => void;
 }
@@ -83,13 +81,13 @@ const mockDataGenerators = {
     ][Math.floor(Math.random() * 4)],
     description: `Activity generated at ${new Date().toLocaleTimeString()}`,
     user: ['John Doe', 'Jane Smith', 'Mike Johnson'][Math.floor(Math.random() * 3)],
-    timestamp: new Date(Date.now() - Math.random() * 3600000), // Random time in last hour
+    timestamp: new Date(Date.now() - Math.random() * 3600000),
   })),
   '/api/files': () => Array.from({ length: 3 }, (_, i) => ({
     id: Date.now() + i,
     name: `design_file_${i + 1}.${['pdf', 'jpg', 'ai'][Math.floor(Math.random() * 3)]}`,
     size: `${Math.floor(Math.random() * 500) + 100}KB`,
-    modifiedAt: new Date(Date.now() - Math.random() * 86400000), // Random time in last day
+    modifiedAt: new Date(Date.now() - Math.random() * 86400000),
     modifiedBy: ['Designer A', 'Designer B', 'Client'][Math.floor(Math.random() * 3)],
     type: ['design', 'draft', 'final'][Math.floor(Math.random() * 3)],
   })),
@@ -97,20 +95,15 @@ const mockDataGenerators = {
 
 // Simulate API call
 const fetchData = async (endpoint: string): Promise<any> => {
-  // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
 
-  // Simulate occasional errors (5% chance)
   if (Math.random() < 0.05) {
     throw new Error('Network error occurred');
   }
 
   const generator = mockDataGenerators[endpoint as keyof typeof mockDataGenerators];
-  if (generator) {
-    return generator();
-  }
+  if (generator) return generator();
 
-  // Default mock data
   return {
     timestamp: new Date().toISOString(),
     status: 'success',
@@ -120,84 +113,37 @@ const fetchData = async (endpoint: string): Promise<any> => {
 
 export function useRealTimeData<T = any>(config: RealTimeDataConfig): RealTimeDataHook<T> {
   const { user } = useAuth();
-  const [state, setState] = useState<RealTimeDataState<T>>({
-    data: null,
-    isLoading: false,
-    error: null,
-    lastUpdated: null,
+  const queryClient = useQueryClient();
+  const isEnabled = config.enabled !== false && !!user;
+
+  const {
+    data,
+    isLoading,
+    error: queryError,
+    dataUpdatedAt,
+    refetch,
+  } = useQuery<T, Error>({
+    queryKey: ['realtime', config.endpoint],
+    queryFn: async () => {
+      const rawData = await fetchData(config.endpoint);
+      return config.transform ? config.transform(rawData) : rawData;
+    },
+    enabled: isEnabled,
+    refetchInterval: config.refreshInterval ? config.refreshInterval * 1000 : false,
+    staleTime: (config.refreshInterval ?? 30) * 1000,
   });
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const mountedRef = useRef(true);
+  const refresh = useCallback(async () => { await refetch(); }, [refetch]);
 
-  const refresh = useCallback(async () => {
-    if (!config.enabled || !user) return;
-
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-
-    try {
-      const rawData = await fetchData(config.endpoint);
-      const processedData = config.transform ? config.transform(rawData) : rawData;
-
-      if (mountedRef.current) {
-        setState(prev => ({
-          ...prev,
-          data: processedData,
-          isLoading: false,
-          lastUpdated: new Date(),
-        }));
-      }
-    } catch (error) {
-      if (mountedRef.current) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: error instanceof Error ? error.message : 'Unknown error occurred',
-        }));
-      }
-    }
-  }, [config.endpoint, config.transform, config.enabled, user]);
-
-  const setData = useCallback((data: T) => {
-    setState(prev => ({
-      ...prev,
-      data,
-      lastUpdated: new Date(),
-    }));
-  }, []);
-
-  // Initial data fetch
-  useEffect(() => {
-    if (config.enabled !== false && user) {
-      refresh();
-    }
-  }, [refresh, config.enabled, user]);
-
-  // Set up refresh interval
-  useEffect(() => {
-    if (config.refreshInterval && config.enabled !== false && user) {
-      intervalRef.current = setInterval(refresh, config.refreshInterval * 1000);
-
-      return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-        }
-      };
-    }
-  }, [refresh, config.refreshInterval, config.enabled, user]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
+  const setData = useCallback((newData: T) => {
+    queryClient.setQueryData(['realtime', config.endpoint], newData);
+  }, [queryClient, config.endpoint]);
 
   return {
-    ...state,
+    data: data ?? null,
+    isLoading,
+    error: queryError?.message ?? null,
+    lastUpdated: dataUpdatedAt ? new Date(dataUpdatedAt) : null,
     refresh,
     setData,
   };
@@ -207,7 +153,7 @@ export function useRealTimeData<T = any>(config: RealTimeDataConfig): RealTimeDa
 export function useProjectsData() {
   return useRealTimeData({
     endpoint: '/api/projects',
-    refreshInterval: 30, // 30 seconds
+    refreshInterval: 30,
     enabled: true,
   });
 }
@@ -215,7 +161,7 @@ export function useProjectsData() {
 export function useNotificationsData() {
   return useRealTimeData({
     endpoint: '/api/notifications',
-    refreshInterval: 10, // 10 seconds
+    refreshInterval: 10,
     enabled: true,
   });
 }
@@ -223,7 +169,7 @@ export function useNotificationsData() {
 export function useStatsData() {
   return useRealTimeData({
     endpoint: '/api/stats',
-    refreshInterval: 60, // 1 minute
+    refreshInterval: 60,
     enabled: true,
   });
 }
@@ -231,7 +177,7 @@ export function useStatsData() {
 export function useActivityData() {
   return useRealTimeData({
     endpoint: '/api/activity',
-    refreshInterval: 15, // 15 seconds
+    refreshInterval: 15,
     enabled: true,
   });
 }
@@ -239,7 +185,7 @@ export function useActivityData() {
 export function useFilesData() {
   return useRealTimeData({
     endpoint: '/api/files',
-    refreshInterval: 45, // 45 seconds
+    refreshInterval: 45,
     enabled: true,
   });
 }

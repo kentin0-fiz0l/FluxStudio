@@ -15,7 +15,7 @@
   "author": "Flux Studio Team",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "dotenv": "^16.4.5",
     "undici": "^7.3.0",
     "ws": "^8.18.0",

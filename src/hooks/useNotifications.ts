@@ -90,7 +90,7 @@ interface UseNotificationsReturn {
   markAllAsRead: () => void;
   markAsArchived: (notificationId: string) => void;
   snoozeNotification: (notificationId: string, until: Date) => void;
-  executeAction: (notificationId: string, actionId: string, data?: any) => void;
+  executeAction: (notificationId: string, actionId: string, data?: unknown) => void;
   dismissNotification: (notificationId: string) => void;
 
   // Filtering
@@ -678,7 +678,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     );
   }, []);
 
-  const executeAction = useCallback((notificationId: string, actionId: string, data?: any) => {
+  const executeAction = useCallback((notificationId: string, actionId: string, data?: unknown) => {
     const notification = notifications.find(n => n.id === notificationId);
     const action = notification?.actions?.find(a => a.id === actionId);
 

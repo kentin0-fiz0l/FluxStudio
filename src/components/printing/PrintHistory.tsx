@@ -141,7 +141,7 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
       const response = await fetch('/projects');
       if (response.ok) {
         const data = await response.json();
-        setProjects(data.projects?.map((p: any) => ({
+        setProjects(data.projects?.map((p: Record<string, unknown>) => ({
           id: p.id,
           title: p.title
         })) || []);

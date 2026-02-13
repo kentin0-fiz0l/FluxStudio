@@ -146,7 +146,7 @@ class GoogleOAuthManager {
 
     // Listen for console errors that indicate OAuth configuration problems
     const originalConsoleError = console.error;
-    console.error = (...args: any[]) => {
+    console.error = (...args: unknown[]) => {
       const message = args.join(' ').toLowerCase();
       if (message.includes('not allowed') && message.includes('client id')) {
         this.hasConfigurationError = true;
@@ -178,7 +178,7 @@ class GoogleOAuthManager {
 
     // Listen for Cross-Origin-Opener-Policy errors from Google OAuth
     const originalConsoleWarn = console.warn;
-    console.warn = (...args: any[]) => {
+    console.warn = (...args: unknown[]) => {
       const message = args.join(' ').toLowerCase();
       if (message.includes('cross-origin-opener-policy') &&
           message.includes('postmessage')) {
@@ -201,8 +201,8 @@ class GoogleOAuthManager {
       size?: 'large' | 'medium' | 'small';
       text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
       shape?: 'rectangular' | 'pill' | 'circle' | 'square';
-      onSuccess: (response: any) => void;
-      onError?: (error: any) => void;
+      onSuccess: (response: GoogleCredentialResponse) => void;
+      onError?: (error: unknown) => void;
     }
   ): Promise<string> {
     if (!this.isInitialized || !this.config) {
@@ -238,7 +238,7 @@ class GoogleOAuthManager {
       // Initialize Google Identity Services FIRST
       window.google.accounts.id.initialize({
         client_id: this.config.clientId,
-        callback: (response: any) => {
+        callback: (response: GoogleCredentialResponse) => {
           try {
             options.onSuccess(response);
           } catch (error) {
@@ -726,13 +726,34 @@ class GoogleOAuthManager {
 }
 
 // Global type definitions
+interface GoogleCredentialResponse {
+  credential: string;
+  select_by?: string;
+  clientId?: string;
+}
+
+interface GoogleInitConfig {
+  client_id: string;
+  callback: (response: GoogleCredentialResponse) => void;
+  auto_select?: boolean;
+  cancel_on_tap_outside?: boolean;
+}
+
+interface GoogleButtonConfig {
+  theme?: 'outline' | 'filled_blue' | 'filled_black';
+  size?: 'large' | 'medium' | 'small';
+  text?: string;
+  shape?: string;
+  click_listener?: () => void;
+}
+
 declare global {
   interface Window {
     google: {
       accounts: {
         id: {
-          initialize: (config: any) => void;
-          renderButton: (element: HTMLElement, options: any) => void;
+          initialize: (config: GoogleInitConfig) => void;
+          renderButton: (element: HTMLElement, options: GoogleButtonConfig) => void;
           prompt: () => void;
         };
       };

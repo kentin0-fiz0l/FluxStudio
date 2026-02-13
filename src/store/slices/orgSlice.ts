@@ -64,7 +64,7 @@ export interface OrgActions {
   createProject: (data: Partial<Project>) => Promise<Project>;
   updateProject: (id: string, data: Partial<Project>) => Promise<Project>;
   deleteProject: (id: string) => Promise<void>;
-  uploadFile: (projectId: string, file: File, metadata?: any) => Promise<ProjectFile>;
+  uploadFile: (projectId: string, file: File, metadata?: Record<string, unknown>) => Promise<ProjectFile>;
   updateFile: (id: string, data: Partial<ProjectFile>) => Promise<ProjectFile>;
   deleteFile: (id: string) => Promise<void>;
   getOrganizationStats: (id: string) => Promise<OrganizationStats>;

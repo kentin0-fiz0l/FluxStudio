@@ -131,7 +131,6 @@ function initializeEnvironment() {
       // Don't throw in case auto-generated value works, but warn loudly
     } else {
       console.log('✅ JWT_SECRET is properly configured');
-      console.log('   Secret prefix:', config.JWT_SECRET.substring(0, 8) + '...');
     }
   }
 

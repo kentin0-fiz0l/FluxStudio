@@ -31,13 +31,13 @@ interface WorkflowTrigger {
 interface TriggerCondition {
   type: 'message_pattern' | 'time_based' | 'user_action' | 'conversation_state' | 'keyword_detection';
   operator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'matches_regex';
-  value: any;
+  value: string | number | string[] | RegExp;
   field?: string; // For specific field conditions
 }
 
 interface WorkflowAction {
   type: 'notification' | 'auto_reply' | 'task_creation' | 'status_update' | 'escalation' | 'reminder';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   delay?: number; // Delay in milliseconds before executing
 }
 
@@ -62,7 +62,7 @@ interface WorkflowContext {
   recentMessages: Message[];
   currentUser: MessageUser;
   conversationMetrics?: ConversationMetrics;
-  projectContext?: any;
+  projectContext?: { id?: string; [key: string]: unknown };
 }
 
 interface AutomationRule {
@@ -112,7 +112,7 @@ interface EscalationConfig {
 class WorkflowAutomationService {
   private activeTriggers = new Map<string, WorkflowTrigger>();
   private suggestionCache = new Map<string, AutomationSuggestion[]>();
-  private automationHistory: Array<{ triggerId: string; timestamp: Date; success: boolean; context: any }> = [];
+  private automationHistory: Array<{ triggerId: string; timestamp: Date; success: boolean; context: Record<string, unknown> }> = [];
 
   // Pre-defined automation templates
   private readonly automationTemplates: Partial<WorkflowTrigger>[] = [
@@ -479,21 +479,21 @@ class WorkflowAutomationService {
   }
 
   private evaluateKeywordCondition(condition: TriggerCondition, message: Message): boolean {
-    const keywords = Array.isArray(condition.value) ? condition.value : [condition.value];
+    const keywords = Array.isArray(condition.value) ? condition.value : [String(condition.value)];
     const content = message.content.toLowerCase();
 
     switch (condition.operator) {
       case 'contains':
-        return keywords.some(keyword => content.includes(keyword.toLowerCase()));
+        return keywords.some(keyword => content.includes(String(keyword).toLowerCase()));
       case 'equals':
-        return keywords.some(keyword => content === keyword.toLowerCase());
+        return keywords.some(keyword => content === String(keyword).toLowerCase());
       default:
         return false;
     }
   }
 
   private evaluatePatternCondition(condition: TriggerCondition, message: Message): boolean {
-    const pattern = condition.value instanceof RegExp ? condition.value : new RegExp(condition.value, 'i');
+    const pattern = condition.value instanceof RegExp ? condition.value : new RegExp(String(condition.value), 'i');
 
     switch (condition.operator) {
       case 'matches_regex':
@@ -513,9 +513,9 @@ class WorkflowAutomationService {
 
     switch (condition.operator) {
       case 'greater_than':
-        return timeSinceLastMessage > condition.value;
+        return timeSinceLastMessage > Number(condition.value);
       case 'less_than':
-        return timeSinceLastMessage < condition.value;
+        return timeSinceLastMessage < Number(condition.value);
       default:
         return false;
     }
@@ -561,29 +561,30 @@ class WorkflowAutomationService {
     message: Message,
     context: WorkflowContext
   ): Promise<void> {
+    const config = action.config as unknown;
     switch (action.type) {
       case 'notification':
-        await this.sendNotification(action.config as NotificationConfig, context);
+        await this.sendNotification(config as NotificationConfig, context);
         break;
 
       case 'auto_reply':
-        await this.sendAutoReply(action.config as AutoReplyConfig, context);
+        await this.sendAutoReply(config as AutoReplyConfig, context);
         break;
 
       case 'task_creation':
-        await this.createTask(action.config as TaskCreationConfig, message, context);
+        await this.createTask(config as TaskCreationConfig, message, context);
         break;
 
       case 'reminder':
-        await this.scheduleReminder(action.config as ReminderConfig, context);
+        await this.scheduleReminder(config as ReminderConfig, context);
         break;
 
       case 'status_update':
-        await this.updateStatus(action.config as StatusUpdateConfig, context);
+        await this.updateStatus(config as StatusUpdateConfig, context);
         break;
 
       case 'escalation':
-        await this.escalateIssue(action.config as EscalationConfig, message, context);
+        await this.escalateIssue(config as EscalationConfig, message, context);
         break;
     }
   }
@@ -806,7 +807,7 @@ class WorkflowAutomationService {
     );
   }
 
-  private async analyzeMessagePatterns(messages: Message[]): Promise<any[]> {
+  private async analyzeMessagePatterns(messages: Message[]): Promise<{ type: string; count: number }[]> {
     // Simplified pattern analysis
     const patterns = [];
 
@@ -827,7 +828,7 @@ class WorkflowAutomationService {
     return patterns;
   }
 
-  private async createSuggestionFromPattern(pattern: any, _context: WorkflowContext): Promise<AutomationSuggestion | null> {
+  private async createSuggestionFromPattern(pattern: { type: string; count: number }, _context: WorkflowContext): Promise<AutomationSuggestion | null> {
     // Convert patterns to automation suggestions
     if (pattern.type === 'frequent_questions') {
       return {

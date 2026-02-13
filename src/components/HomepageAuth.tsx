@@ -21,7 +21,7 @@ export function HomepageAuth() {
   const { loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
-  const handleGoogleSuccess = async (credentialResponse: any) => {
+  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
     setError('');
 
     if (!credentialResponse.credential) {

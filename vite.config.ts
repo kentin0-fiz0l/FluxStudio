@@ -119,13 +119,9 @@
         output: {
           manualChunks: (id) => {
             // Vendor chunks - Split by library for better caching
-            // IMPORTANT: Keep React with main vendor to avoid createContext errors
+            // NOTE: Specific library checks MUST come before the generic 'react' check
+            // because many packages contain 'react' in their path
             if (id.includes('node_modules')) {
-              // React ecosystem - MUST stay together to avoid context errors
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || id.includes('scheduler')) {
-                return 'vendor-react';
-              }
-
               // Socket.io - completely independent, no React dependency
               if (id.includes('socket.io-client') || id.includes('engine.io')) {
                 return 'vendor-socket';
@@ -136,14 +132,52 @@
                 return 'vendor-charts';
               }
 
+              // Lodash (recharts transitive dep)
+              if (id.includes('lodash')) {
+                return 'vendor-charts';
+              }
+
+              // Decimal.js (recharts dep)
+              if (id.includes('decimal.js')) {
+                return 'vendor-charts';
+              }
+
               // Date utilities - date-fns, dayjs, moment
               if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment')) {
                 return 'vendor-dates';
               }
 
+              // Export/document processing deps (canvg, html2canvas, pako, etc.)
+              if (id.includes('canvg') || id.includes('html2canvas') || id.includes('pako') ||
+                  id.includes('iobuffer') || id.includes('fast-png') || id.includes('fflate') ||
+                  id.includes('rgbcolor') || id.includes('stackblur') || id.includes('svg-pathdata')) {
+                return 'vendor-docs';
+              }
+
+              // Core-js polyfills (canvg/jsPDF transitive dep)
+              if (id.includes('core-js')) {
+                return 'vendor-docs';
+              }
+
               // PDF/Document processing
               if (id.includes('pdf') || id.includes('docx') || id.includes('xlsx')) {
                 return 'vendor-docs';
+              }
+
+              // Grid layout (used only by DraggableWidgetGrid)
+              if (id.includes('react-grid-layout') || id.includes('react-draggable') ||
+                  id.includes('react-resizable') || id.includes('resize-observer-polyfill')) {
+                return 'vendor-grid';
+              }
+
+              // Prop-types and react-is (react-grid-layout transitive)
+              if (id.includes('prop-types') || id.includes('react-is')) {
+                return 'vendor-grid';
+              }
+
+              // Fuzzy search
+              if (id.includes('fuse.js')) {
+                return 'vendor-search';
               }
 
               // Editor libraries - Monaco, CodeMirror, TipTap
@@ -159,6 +193,11 @@
               // Three.js and 3D - large, load on demand
               if (id.includes('three') || id.includes('@react-three')) {
                 return 'vendor-3d';
+              }
+
+              // Floating UI positioning (Radix UI dependency)
+              if (id.includes('@floating-ui') || id.includes('floating-ui')) {
+                return 'vendor-radix';
               }
 
               // Radix UI primitives (substantial size)
@@ -206,6 +245,37 @@
                 return 'vendor-dnd';
               }
 
+              // Chart.js (separate from recharts)
+              if (id.includes('chart.js') || id.includes('react-chartjs')) {
+                return 'vendor-charts';
+              }
+
+              // 3D/Spring animation libraries
+              if (id.includes('@react-spring') || id.includes('@use-gesture') || id.includes('react-reconciler')) {
+                return 'vendor-animation';
+              }
+
+              // ShadCN UI utilities
+              if (id.includes('class-variance-authority') || id.includes('clsx') || id.includes('tailwind-merge') ||
+                  id.includes('cmdk') || id.includes('sonner') || id.includes('vaul') ||
+                  id.includes('embla-carousel') || id.includes('input-otp') || id.includes('next-themes') ||
+                  id.includes('react-day-picker') || id.includes('react-dropzone') ||
+                  id.includes('react-remove-scroll') || id.includes('react-style-singleton')) {
+                return 'vendor-ui-utils';
+              }
+
+              // Google OAuth
+              if (id.includes('@react-oauth') || id.includes('react-oauth')) {
+                return 'vendor-common';
+              }
+
+              // React ecosystem - MUST stay together to avoid context errors
+              // This check comes AFTER specific libraries so react-hook-form, lucide-react,
+              // react-i18next, @react-three etc. go to their own chunks
+              if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/react-router') || id.includes('/scheduler/')) {
+                return 'vendor-react';
+              }
+
               // Everything else goes into a smaller vendor-common bundle
               return 'vendor-common';
             }
@@ -226,7 +296,11 @@
             }
 
             // Large dashboard components
-            if (id.includes('/src/components/AdaptiveDashboard')) {
+            if (
+              id.includes('/src/components/dashboard/') ||
+              id.includes('/src/components/widgets/') ||
+              id.includes('/src/components/AdaptiveDashboard')
+            ) {
               return 'feature-dashboard';
             }
 

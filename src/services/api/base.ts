@@ -204,7 +204,7 @@ export class ApiService {
     return this.makeRequest<T>(url, { method: 'GET' });
   }
 
-  async post<T = any>(endpoint: string, data?: any, options: { headers?: Record<string, string> } = {}): Promise<ApiResponse<T>> {
+  async post<T = unknown>(endpoint: string, data?: unknown, options: { headers?: Record<string, string> } = {}): Promise<ApiResponse<T>> {
     const url = endpoint.startsWith('http') ? endpoint : buildApiUrl(endpoint);
     const isFormData = data instanceof FormData;
     return this.makeRequest<T>(url, {
@@ -214,7 +214,7 @@ export class ApiService {
     });
   }
 
-  async patch<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+  async patch<T = unknown>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
     const url = endpoint.startsWith('http') ? endpoint : buildApiUrl(endpoint);
     return this.makeRequest<T>(url, { method: 'PATCH', body: JSON.stringify(data) });
   }

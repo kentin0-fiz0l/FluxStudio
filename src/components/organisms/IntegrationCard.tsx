@@ -75,7 +75,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ isConnecting, isExpir
 interface IntegrationCardProps {
   provider: IntegrationProvider;
   onSuccess?: (integration: Integration) => void;
-  onError?: (error: any) => void;
+  onError?: (error: unknown) => void;
   children?: React.ReactNode;
 }
 

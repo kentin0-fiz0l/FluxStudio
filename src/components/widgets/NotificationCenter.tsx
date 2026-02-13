@@ -36,7 +36,7 @@ interface NotificationItemProps {
   onMarkAsRead: (id: string) => void;
   onArchive: (id: string) => void;
   onSnooze: (id: string, until: Date) => void;
-  onExecuteAction: (id: string, actionId: string, data?: any) => void;
+  onExecuteAction: (id: string, actionId: string, data?: unknown) => void;
   onDismiss: (id: string) => void;
 }
 

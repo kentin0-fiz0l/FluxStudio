@@ -7,18 +7,22 @@ interface MCPRequest {
   jsonrpc: '2.0';
   id: number | string;
   method: string;
-  params?: any;
+  params?: Record<string, unknown>;
 }
 
 interface MCPResponse {
   jsonrpc: '2.0';
   id: number | string;
-  result?: any;
+  result?: unknown;
   error?: {
     code: number;
     message: string;
-    data?: any;
+    data?: unknown;
   };
+}
+
+interface MCPToolResult {
+  content?: { text?: string }[];
 }
 
 interface PreviewResult {
@@ -34,8 +38,8 @@ export class MCPClient {
   private url: string;
   private requestId = 0;
   private pendingRequests = new Map<number | string, {
-    resolve: (value: any) => void;
-    reject: (error: any) => void;
+    resolve: (value: unknown) => void;
+    reject: (error: unknown) => void;
     timeout: ReturnType<typeof setTimeout>;
   }>();
   private reconnectAttempts = 0;
@@ -134,7 +138,7 @@ export class MCPClient {
   /**
    * Send request to MCP server
    */
-  private async sendRequest(method: string, params?: any): Promise<any> {
+  private async sendRequest(method: string, params?: Record<string, unknown>): Promise<unknown> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       await this.connect();
     }
@@ -164,7 +168,7 @@ export class MCPClient {
   /**
    * Create a preview deployment for a branch
    */
-  async createPreview(branch: string, payload?: Record<string, any>): Promise<PreviewResult> {
+  async createPreview(branch: string, payload?: Record<string, unknown>): Promise<PreviewResult> {
 
     const result = await this.sendRequest('tools/call', {
       name: 'builds.createPreview',
@@ -172,7 +176,7 @@ export class MCPClient {
         branch,
         payload,
       },
-    });
+    }) as MCPToolResult;
 
     // Parse the text content from MCP response
     if (result.content && result.content[0]?.text) {
@@ -192,7 +196,7 @@ export class MCPClient {
       arguments: {
         run_id: runId,
       },
-    });
+    }) as MCPToolResult;
 
     // Return the formatted text from MCP response
     if (result.content && result.content[0]?.text) {

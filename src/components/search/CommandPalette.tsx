@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import Fuse from 'fuse.js';
+import type Fuse from 'fuse.js';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCommandPalette } from '../../hooks/useCommandPalette';
 import { useProjectsData, useActivityData } from '../../hooks/useRealTimeData';
@@ -234,34 +234,62 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
     return items;
   }, [user, projects, activities, navigate]);
 
-  // Set up Fuse.js for fuzzy search
-  const fuse = useMemo(() => {
-    return new Fuse(searchableItems, {
-      keys: [
-        { name: 'title', weight: 0.4 },
-        { name: 'description', weight: 0.3 },
-        { name: 'keywords', weight: 0.2 },
-        { name: 'category', weight: 0.1 },
-      ],
-      threshold: 0.4,
-      includeScore: true,
-      includeMatches: true,
-    });
-  }, [searchableItems]);
+  // Lazily loaded Fuse instance
+  const fuseRef = useRef<Fuse<SearchableItem> | null>(null);
+  const itemsRef = useRef(searchableItems);
+  itemsRef.current = searchableItems;
+
+  const fuseOptions = useMemo(() => ({
+    keys: [
+      { name: 'title', weight: 0.4 },
+      { name: 'description', weight: 0.3 },
+      { name: 'keywords', weight: 0.2 },
+      { name: 'category', weight: 0.1 },
+    ],
+    threshold: 0.4,
+    includeScore: true,
+    includeMatches: true,
+  }), []);
+
+  const loadFuse = useCallback(async () => {
+    if (fuseRef.current) return fuseRef.current;
+    const FuseModule = await import('fuse.js');
+    fuseRef.current = new FuseModule.default(itemsRef.current, fuseOptions);
+    return fuseRef.current;
+  }, [fuseOptions]);
+
+  // Rebuild Fuse index when items change (only if already loaded)
+  useEffect(() => {
+    if (fuseRef.current) {
+      import('fuse.js').then(FuseModule => {
+        fuseRef.current = new FuseModule.default(searchableItems, fuseOptions);
+      });
+    }
+  }, [searchableItems, fuseOptions]);
 
   // Filter and sort results
-  const results = useMemo(() => {
-    if (!query.trim()) {
-      // Show high-priority items when no query
-      return searchableItems
-        .filter(item => (item.priority || 0) >= 5)
-        .sort((a, b) => (b.priority || 0) - (a.priority || 0))
-        .slice(0, 8);
-    }
+  const defaultResults = useMemo(() => {
+    return searchableItems
+      .filter(item => (item.priority || 0) >= 5)
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+      .slice(0, 8);
+  }, [searchableItems]);
 
-    const fuseResults = fuse.search(query);
-    return fuseResults.map(result => result.item).slice(0, 10);
-  }, [query, searchableItems, fuse]);
+  const [results, setResults] = useState<SearchableItem[]>(defaultResults);
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults(defaultResults);
+      return;
+    }
+    let cancelled = false;
+    loadFuse().then(fuse => {
+      if (cancelled) return;
+      const fuseResults = fuse.search(query);
+      setResults(fuseResults.map(r => r.item).slice(0, 10));
+    });
+    return () => { cancelled = true; };
+  }, [query, defaultResults, loadFuse]);
 
   // Group results by category
   const groupedResults = useMemo(() => {

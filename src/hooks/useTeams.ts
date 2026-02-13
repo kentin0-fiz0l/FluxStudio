@@ -1,6 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getApiUrl } from '../utils/apiHelpers';
 import { useAuth } from '../contexts/AuthContext';
+import { queryKeys } from '../lib/queryClient';
 
 export interface TeamMember {
   userId: string;
@@ -27,223 +29,190 @@ export interface Team {
   invites: TeamInvite[];
 }
 
+function getAuthHeaders() {
+  const token = localStorage.getItem('auth_token');
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
+}
+
 export function useTeams() {
   const { user } = useAuth();
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchTeams = useCallback(async () => {
-    if (!user) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
+  const {
+    data: teams = [],
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery<Team[], Error>({
+    queryKey: queryKeys.teams.all,
+    queryFn: async () => {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(getApiUrl('/api/teams'), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` },
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch teams');
-      }
-
+      if (!response.ok) throw new Error('Failed to fetch teams');
       const result = await response.json();
-      setTeams(result.teams);
-    } catch (error) {
-      console.error('Error fetching teams:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch teams');
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+      return result.teams;
+    },
+    enabled: !!user,
+  });
 
-  const createTeam = useCallback(async (teamData: {
-    name: string;
-    description?: string;
-    organizationId?: string;
-  }) => {
-    if (!user) throw new Error('Authentication required');
+  const error = queryError?.message ?? null;
 
-    try {
-      const token = localStorage.getItem('auth_token');
+  const createTeamMutation = useMutation<Team, Error, { name: string; description?: string; organizationId?: string }>({
+    mutationFn: async (teamData) => {
+      if (!user) throw new Error('Authentication required');
       const response = await fetch(getApiUrl('/api/teams'), {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(teamData)
+        headers: getAuthHeaders(),
+        body: JSON.stringify(teamData),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to create team');
       }
-
       const result = await response.json();
-      setTeams(prev => [...prev, result.team]);
       return result.team;
-    } catch (error) {
-      console.error('Error creating team:', error);
-      throw error;
-    }
-  }, [user]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+    },
+  });
 
-  const updateTeam = useCallback(async (teamId: string, updates: Partial<Pick<Team, 'name' | 'description'>>) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
-      const token = localStorage.getItem('auth_token');
+  const updateTeamMutation = useMutation<Team, Error, { teamId: string; updates: Partial<Pick<Team, 'name' | 'description'>> }>({
+    mutationFn: async ({ teamId, updates }) => {
+      if (!user) throw new Error('Authentication required');
       const response = await fetch(getApiUrl(`/api/teams/${teamId}`), {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updates)
+        headers: getAuthHeaders(),
+        body: JSON.stringify(updates),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update team');
       }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+    },
+  });
 
-      const updatedTeam = await response.json();
-      setTeams(prev => prev.map(team => team.id === teamId ? updatedTeam : team));
-      return updatedTeam;
-    } catch (error) {
-      console.error('Error updating team:', error);
-      throw error;
-    }
-  }, [user]);
-
-  const inviteMember = useCallback(async (teamId: string, email: string, role: 'admin' | 'member' = 'member') => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
-      const token = localStorage.getItem('auth_token');
+  const inviteMemberMutation = useMutation<unknown, Error, { teamId: string; email: string; role: 'admin' | 'member' }>({
+    mutationFn: async ({ teamId, email, role }) => {
+      if (!user) throw new Error('Authentication required');
       const response = await fetch(getApiUrl(`/api/teams/${teamId}/invite`), {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, role })
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ email, role }),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to send invitation');
       }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+    },
+  });
 
-      const result = await response.json();
-      // Refresh teams to get updated invites
-      await fetchTeams();
-      return result;
-    } catch (error) {
-      console.error('Error inviting member:', error);
-      throw error;
-    }
-  }, [user, fetchTeams]);
-
-  const acceptInvite = useCallback(async (teamId: string) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
-      const token = localStorage.getItem('auth_token');
+  const acceptInviteMutation = useMutation<unknown, Error, string>({
+    mutationFn: async (teamId) => {
+      if (!user) throw new Error('Authentication required');
       const response = await fetch(getApiUrl(`/api/teams/${teamId}/accept-invite`), {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: getAuthHeaders(),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to accept invitation');
       }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+    },
+  });
 
-      const result = await response.json();
-      setTeams(prev => [...prev, result.team]);
-      return result;
-    } catch (error) {
-      console.error('Error accepting invitation:', error);
-      throw error;
-    }
-  }, [user]);
-
-  const removeMember = useCallback(async (teamId: string, userId: string) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
-      const token = localStorage.getItem('auth_token');
+  const removeMemberMutation = useMutation<void, Error, { teamId: string; userId: string }>({
+    mutationFn: async ({ teamId, userId }) => {
+      if (!user) throw new Error('Authentication required');
       const response = await fetch(getApiUrl(`/api/teams/${teamId}/members/${userId}`), {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to remove member');
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+    },
+  });
 
-      // Refresh teams to get updated members
-      await fetchTeams();
-    } catch (error) {
-      console.error('Error removing member:', error);
-      throw error;
-    }
-  }, [user, fetchTeams]);
-
-  const updateMemberRole = useCallback(async (teamId: string, userId: string, role: 'owner' | 'admin' | 'member') => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
-      const token = localStorage.getItem('auth_token');
+  const updateMemberRoleMutation = useMutation<void, Error, { teamId: string; userId: string; role: 'owner' | 'admin' | 'member' }>({
+    mutationFn: async ({ teamId, userId, role }) => {
+      if (!user) throw new Error('Authentication required');
       const response = await fetch(getApiUrl(`/api/teams/${teamId}/members/${userId}`), {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ role })
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ role }),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update member role');
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
+    },
+  });
 
-      // Refresh teams to get updated members
-      await fetchTeams();
-    } catch (error) {
-      console.error('Error updating member role:', error);
-      throw error;
-    }
-  }, [user, fetchTeams]);
-
-  // Fetch teams on mount
-  useEffect(() => {
-    fetchTeams();
-  }, [fetchTeams]);
+  // Preserve original call signatures
+  const createTeam = useCallback(
+    async (teamData: { name: string; description?: string; organizationId?: string }) =>
+      createTeamMutation.mutateAsync(teamData),
+    [createTeamMutation]
+  );
+  const updateTeam = useCallback(
+    async (teamId: string, updates: Partial<Pick<Team, 'name' | 'description'>>) =>
+      updateTeamMutation.mutateAsync({ teamId, updates }),
+    [updateTeamMutation]
+  );
+  const inviteMember = useCallback(
+    async (teamId: string, email: string, role: 'admin' | 'member' = 'member') =>
+      inviteMemberMutation.mutateAsync({ teamId, email, role }),
+    [inviteMemberMutation]
+  );
+  const acceptInvite = useCallback(
+    async (teamId: string) => acceptInviteMutation.mutateAsync(teamId),
+    [acceptInviteMutation]
+  );
+  const removeMember = useCallback(
+    async (teamId: string, userId: string) => removeMemberMutation.mutateAsync({ teamId, userId }),
+    [removeMemberMutation]
+  );
+  const updateMemberRole = useCallback(
+    async (teamId: string, userId: string, role: 'owner' | 'admin' | 'member') =>
+      updateMemberRoleMutation.mutateAsync({ teamId, userId, role }),
+    [updateMemberRoleMutation]
+  );
 
   return {
     teams,
     loading,
     error,
-    fetchTeams,
+    fetchTeams: refetch,
     createTeam,
     updateTeam,
     inviteMember,
     acceptInvite,
     removeMember,
-    updateMemberRole
+    updateMemberRole,
   };
 }

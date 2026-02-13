@@ -31,7 +31,7 @@ interface Notification {
   actionUrl?: string;
   actionLabel?: string;
   priority: 'low' | 'medium' | 'high';
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 // Factory function to generate initial notifications - called once
@@ -288,7 +288,7 @@ export function NotificationCenter() {
                 {/* Filters and Actions */}
                 <div className="p-4 border-b bg-gray-50">
                   <div className="flex items-center justify-between mb-3">
-                    <Tabs value={filter} onValueChange={(v: any) => setFilter(v)} className="w-full">
+                    <Tabs value={filter} onValueChange={(v: string) => setFilter(v as typeof filter)} className="w-full">
                       <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="all">All</TabsTrigger>
                         <TabsTrigger value="unread">

@@ -15,8 +15,10 @@ interface UseWebSocketReturn {
   error: string | null;
   connect: () => void;
   disconnect: () => void;
-  emit: (event: string, data?: any) => void;
+  emit: (event: string, data?: unknown) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Socket.IO event emitter callbacks accept arbitrary payloads
   on: (event: string, callback: (...args: any[]) => void) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   off: (event: string, callback?: (...args: any[]) => void) => void;
 }
 
@@ -99,7 +101,7 @@ export function useWebSocket(
     }
   }, []);
 
-  const emit = useCallback((event: string, data?: any) => {
+  const emit = useCallback((event: string, data?: unknown) => {
     if (socketRef.current?.connected) {
       socketRef.current.emit(event, data);
     } else {
@@ -107,12 +109,14 @@ export function useWebSocket(
     }
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Socket.IO event emitter callbacks accept arbitrary payloads
   const on = useCallback((event: string, callback: (...args: any[]) => void) => {
     if (socketRef.current) {
       socketRef.current.on(event, callback);
     }
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const off = useCallback((event: string, callback?: (...args: any[]) => void) => {
     if (socketRef.current) {
       if (callback) {

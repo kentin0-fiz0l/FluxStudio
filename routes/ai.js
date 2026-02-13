@@ -418,4 +418,82 @@ if (process.env.NODE_ENV !== 'production') {
   console.log('⚠️  AI test endpoint enabled (development mode only): POST /api/ai/test');
 }
 
+/**
+ * POST /design-feedback/analyze
+ * Analyze a design image using Claude Vision
+ * Body: { imageUrl: string, context?: { projectType, industry, targetAudience, brandGuidelines, focusAreas } }
+ */
+router.post('/design-feedback/analyze', authenticateToken, rateLimitByUser(10, 60), async (req, res) => {
+  try {
+    const { imageUrl, context } = req.body;
+    if (!imageUrl) {
+      return res.status(400).json({ error: 'imageUrl is required' });
+    }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(200).json({ success: true, data: null, mock: true });
+    }
+
+    const contextStr = context
+      ? `Design Context:\n- Project Type: ${context.projectType || 'General'}\n- Industry: ${context.industry || 'Not specified'}\n- Target Audience: ${context.targetAudience || 'General'}\n- Brand Guidelines: ${context.brandGuidelines || 'None provided'}\n- Specific Areas to Focus: ${(context.focusAreas || []).join(', ') || 'All aspects'}`
+      : '';
+
+    const prompt = `Analyze this design image and provide detailed feedback. ${contextStr}
+
+Please analyze the following aspects and respond in JSON format:
+{
+  "elements": [{ "type": "color|typography|layout|imagery|spacing|composition", "description": "string", "confidence": 0.0-1.0 }],
+  "overallScore": 0.0-1.0,
+  "strengths": ["string"],
+  "improvements": ["string"],
+  "brandAlignment": 0.0-1.0,
+  "accessibilityScore": 0.0-1.0,
+  "moodAnalysis": { "mood": "string", "confidence": 0.0-1.0, "emotions": ["string"] }
+}
+
+Be specific, actionable, and constructive in your feedback.`;
+
+    // Fetch image and convert to base64
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      return res.status(400).json({ error: `Failed to fetch image: ${imageResponse.status}` });
+    }
+    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+    const base64 = imageBuffer.toString('base64');
+    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+    let mediaType = 'image/jpeg';
+    if (contentType.includes('png')) mediaType = 'image/png';
+    else if (contentType.includes('gif')) mediaType = 'image/gif';
+    else if (contentType.includes('webp')) mediaType = 'image/webp';
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+          { type: 'text', text: prompt },
+        ],
+      }],
+    });
+
+    const textContent = response.content.find(c => c.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      return res.status(500).json({ error: 'No text response from AI' });
+    }
+
+    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return res.status(500).json({ error: 'Could not parse AI response as JSON' });
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    res.json({ success: true, data: parsed });
+  } catch (error) {
+    console.error('[AI] Design feedback analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze design', details: error.message });
+  }
+});
+
 module.exports = router;

@@ -23,6 +23,13 @@ import { serviceLogger } from '../lib/logger';
 
 const msgServiceLogger = serviceLogger.child('MessagingService');
 
+// Raw API response types (before normalization)
+interface ApiConversationRaw extends Omit<Conversation, 'participants'> {
+  participants: (string | MessageUser | null | undefined)[];
+  isPinned?: boolean;
+  tags?: string[];
+}
+
 class MessagingService {
   private apiBaseUrl: string;
   private currentUser: MessageUser | null = null;
@@ -104,9 +111,9 @@ class MessagingService {
     }
 
     // Transform participants from strings to MessageUser objects if needed
-    return conversations.map((conv: any) => ({
+    return conversations.map((conv: ApiConversationRaw) => ({
       ...conv,
-      participants: (conv.participants || []).filter((p: any) => p !== null && p !== undefined).map((p: string | MessageUser) => {
+      participants: (conv.participants || []).filter((p): p is string | MessageUser => p !== null && p !== undefined).map((p: string | MessageUser) => {
         if (typeof p === 'string') {
           // Convert string to MessageUser object
           return {
@@ -145,12 +152,12 @@ class MessagingService {
    * Get a specific conversation by ID
    */
   async getConversation(conversationId: string): Promise<Conversation> {
-    const conv = await this.apiRequest(`/conversations/${conversationId}`);
+    const conv = await this.apiRequest(`/conversations/${conversationId}`) as ApiConversationRaw;
 
     // Transform participants from strings to MessageUser objects if needed
     return {
       ...conv,
-      participants: (conv.participants || []).filter((p: any) => p !== null && p !== undefined).map((p: string | MessageUser) => {
+      participants: (conv.participants || []).filter((p): p is string | MessageUser => p !== null && p !== undefined).map((p: string | MessageUser) => {
         if (typeof p === 'string') {
           // Convert string to MessageUser object
           return {
@@ -631,15 +638,15 @@ class MessagingService {
     socketService.on('typing:stopped', callback);
   }
 
-  onUserOnline(callback: (user: any) => void) {
+  onUserOnline(callback: (user: { userId: string; status: string; lastSeen?: Date }) => void) {
     socketService.on('user:online', callback);
   }
 
-  onUserOffline(callback: (user: any) => void) {
+  onUserOffline(callback: (user: { userId: string; status: string; lastSeen?: Date }) => void) {
     socketService.on('user:offline', callback);
   }
 
-  onMentionReceived(callback: (notification: any) => void) {
+  onMentionReceived(callback: (notification: { messageId: string; conversationId: string; mentionedBy: MessageUser; content: string; priority: string; timestamp: Date }) => void) {
     socketService.on('notification:mention', callback);
   }
 
@@ -675,7 +682,7 @@ class MessagingService {
     const response = await this.apiRequest(`/users?${params.toString()}`);
     const users = response.users || [];
 
-    return users.map((u: any) => ({
+    return users.map((u: { id: string; name?: string; email?: string; avatar?: string; userType?: string; isOnline?: boolean; lastSeen?: string }) => ({
       id: u.id,
       name: u.name || 'Unknown',
       email: u.email,
@@ -743,7 +750,7 @@ class MessagingService {
   /**
    * Get pinned messages for a conversation
    */
-  async getPinnedMessages(conversationId: string): Promise<any[]> {
+  async getPinnedMessages(conversationId: string): Promise<Message[]> {
     try {
       const response = await this.apiRequest(`/conversations/${conversationId}/pinned`);
       return response.pinnedMessages || [];
@@ -807,7 +814,7 @@ class MessagingService {
   /**
    * Toggle a reaction on a message
    */
-  async toggleReaction(messageId: string, conversationId: string, reaction: string): Promise<{ action: 'added' | 'removed'; reactionCounts: any[] } | null> {
+  async toggleReaction(messageId: string, conversationId: string, reaction: string): Promise<{ action: 'added' | 'removed'; reactionCounts: { emoji: string; count: number; users: string[] }[] } | null> {
     try {
       const response = await this.apiRequest(`/messages/${messageId}/reactions`, {
         method: 'POST',
@@ -825,7 +832,7 @@ class MessagingService {
   /**
    * Get reactions for a message
    */
-  async getReactions(messageId: string): Promise<any[]> {
+  async getReactions(messageId: string): Promise<{ emoji: string; count: number; users: string[] }[]> {
     try {
       const response = await this.apiRequest(`/messages/${messageId}/reactions`);
       return response.reactions || [];
@@ -841,7 +848,7 @@ class MessagingService {
   /**
    * Reply to a message
    */
-  async replyToMessage(messageId: string, conversationId: string, content: string, attachments?: any[]): Promise<Message | null> {
+  async replyToMessage(messageId: string, conversationId: string, content: string, attachments?: MessageAttachment[]): Promise<Message | null> {
     try {
       const response = await this.apiRequest(`/messages/${messageId}/reply`, {
         method: 'POST',
@@ -905,7 +912,7 @@ class MessagingService {
   /**
    * Get read receipts for a message
    */
-  async getMessageReceipts(messageId: string): Promise<any[]> {
+  async getMessageReceipts(messageId: string): Promise<{ userId: string; readAt: string }[]> {
     try {
       const response = await this.apiRequest(`/messages/${messageId}/receipts`);
       return response.receipts || [];
@@ -921,7 +928,7 @@ class MessagingService {
   /**
    * Upload a file for a message
    */
-  async uploadMessageFile(file: File, conversationId: string): Promise<any | null> {
+  async uploadMessageFile(file: File, conversationId: string): Promise<MessageAttachment | null> {
     try {
       // Convert file to base64
       const base64 = await this.fileToBase64(file);

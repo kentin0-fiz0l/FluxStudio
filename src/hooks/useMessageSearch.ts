@@ -1,11 +1,13 @@
 /**
  * useMessageSearch Hook - Flux Studio
  *
- * Custom hook for searching messages with debounced API calls.
+ * Custom hook for searching messages with debounced queries via TanStack Query.
  * Supports both scoped (single conversation) and global (all conversations) search.
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '../lib/queryClient';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -30,38 +32,23 @@ export interface MessageSearchResult {
 }
 
 export interface UseMessageSearchOptions {
-  /** Optional conversation ID to scope search */
   conversationId?: string | null;
-  /** Debounce delay in ms (default: 300) */
   debounceDelay?: number;
-  /** Maximum results to fetch (default: 50) */
   limit?: number;
-  /** Minimum query length to trigger search (default: 2) */
   minQueryLength?: number;
 }
 
 export interface UseMessageSearchReturn {
-  /** Current search query */
   query: string;
-  /** Set the search query */
   setQuery: (query: string) => void;
-  /** Debounced query that triggers API calls */
   debouncedQuery: string;
-  /** Search results */
   results: MessageSearchResult[];
-  /** Loading state */
   isLoading: boolean;
-  /** Error message if search failed */
   error: string | null;
-  /** Clear search query and results */
   clearSearch: () => void;
-  /** Number of results */
   resultCount: number;
-  /** Whether search is active (has query) */
   isSearchActive: boolean;
-  /** Load more results (pagination) */
   loadMore: () => Promise<void>;
-  /** Whether there are more results to load */
   hasMore: boolean;
 }
 
@@ -73,16 +60,52 @@ function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
   }, [value, delay]);
 
   return debouncedValue;
+}
+
+// ============================================================================
+// SEARCH FUNCTION
+// ============================================================================
+
+async function searchMessages(
+  query: string,
+  conversationId: string | null | undefined,
+  limit: number,
+  offset: number
+): Promise<{ results: MessageSearchResult[]; hasMore: boolean }> {
+  const token = localStorage.getItem('auth_token');
+  if (!token) throw new Error('Not authenticated');
+
+  const params = new URLSearchParams({
+    q: query.trim(),
+    limit: String(limit),
+    offset: String(offset),
+  });
+
+  if (conversationId) params.set('conversationId', conversationId);
+
+  const response = await fetch(`/api/messages/search?${params.toString()}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.error || 'Search failed');
+  }
+
+  const data = await response.json();
+  if (!data.success) throw new Error(data.error || 'Search failed');
+
+  const results = data.results || [];
+  return { results, hasMore: results.length >= limit };
 }
 
 // ============================================================================
@@ -98,152 +121,63 @@ export function useMessageSearch(options: UseMessageSearchOptions = {}): UseMess
   } = options;
 
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<MessageSearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [additionalResults, setAdditionalResults] = useState<MessageSearchResult[]>([]);
   const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
+  const [hasMorePages, setHasMorePages] = useState(false);
 
-  // Debounce the query
   const debouncedQuery = useDebounce(query, debounceDelay);
+  const shouldSearch = debouncedQuery.trim().length >= minQueryLength;
 
-  // Reset offset when query or conversationId changes
+  // Reset pagination when query or conversation changes
   useEffect(() => {
     setOffset(0);
-    setResults([]);
-    setHasMore(false);
+    setAdditionalResults([]);
+    setHasMorePages(false);
   }, [debouncedQuery, conversationId]);
 
-  // Perform search when debounced query changes
+  const {
+    data: searchData,
+    isLoading,
+    error: queryError,
+  } = useQuery<{ results: MessageSearchResult[]; hasMore: boolean }, Error>({
+    queryKey: queryKeys.messageSearch.search(debouncedQuery, conversationId),
+    queryFn: () => searchMessages(debouncedQuery, conversationId, limit, 0),
+    enabled: shouldSearch,
+    staleTime: 30 * 1000, // 30 seconds
+  });
+
+  // Track hasMore from the query data
   useEffect(() => {
-    const performSearch = async () => {
-      // Don't search if query is too short
-      if (!debouncedQuery || debouncedQuery.trim().length < minQueryLength) {
-        setResults([]);
-        setError(null);
-        setHasMore(false);
-        return;
-      }
+    if (searchData) setHasMorePages(searchData.hasMore);
+  }, [searchData]);
 
-      setIsLoading(true);
-      setError(null);
+  const results = useMemo(() => {
+    if (!searchData?.results) return [];
+    return [...searchData.results, ...additionalResults];
+  }, [searchData, additionalResults]);
 
-      try {
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        // Build query params
-        const params = new URLSearchParams({
-          q: debouncedQuery.trim(),
-          limit: String(limit),
-          offset: '0',
-        });
-
-        if (conversationId) {
-          params.set('conversationId', conversationId);
-        }
-
-        const response = await fetch(`/api/messages/search?${params.toString()}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Search failed');
-        }
-
-        const data = await response.json();
-
-        if (data.success) {
-          setResults(data.results || []);
-          setHasMore((data.results || []).length >= limit);
-        } else {
-          throw new Error(data.error || 'Search failed');
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Search failed';
-        setError(message);
-        setResults([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    performSearch();
-  }, [debouncedQuery, conversationId, limit, minQueryLength]);
-
-  // Load more results
   const loadMore = useCallback(async () => {
-    if (!debouncedQuery || debouncedQuery.trim().length < minQueryLength || isLoading || !hasMore) {
-      return;
-    }
+    if (!shouldSearch || isLoading || !hasMorePages) return;
 
     const newOffset = offset + limit;
-    setIsLoading(true);
-
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
-
-      const params = new URLSearchParams({
-        q: debouncedQuery.trim(),
-        limit: String(limit),
-        offset: String(newOffset),
-      });
-
-      if (conversationId) {
-        params.set('conversationId', conversationId);
-      }
-
-      const response = await fetch(`/api/messages/search?${params.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Load more failed');
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        const newResults = data.results || [];
-        setResults(prev => [...prev, ...newResults]);
-        setOffset(newOffset);
-        setHasMore(newResults.length >= limit);
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Load more failed';
-      setError(message);
-    } finally {
-      setIsLoading(false);
+      const data = await searchMessages(debouncedQuery, conversationId, limit, newOffset);
+      setAdditionalResults(prev => [...prev, ...data.results]);
+      setOffset(newOffset);
+      setHasMorePages(data.hasMore);
+    } catch {
+      // silently fail load more
     }
-  }, [debouncedQuery, conversationId, limit, minQueryLength, offset, isLoading, hasMore]);
+  }, [shouldSearch, isLoading, hasMorePages, offset, limit, debouncedQuery, conversationId]);
 
-  // Clear search
   const clearSearch = useCallback(() => {
     setQuery('');
-    setResults([]);
-    setError(null);
+    setAdditionalResults([]);
     setOffset(0);
-    setHasMore(false);
+    setHasMorePages(false);
   }, []);
 
-  // Computed values
   const isSearchActive = useMemo(() => query.trim().length >= minQueryLength, [query, minQueryLength]);
-  const resultCount = results.length;
 
   return {
     query,
@@ -251,12 +185,12 @@ export function useMessageSearch(options: UseMessageSearchOptions = {}): UseMess
     debouncedQuery,
     results,
     isLoading,
-    error,
+    error: queryError?.message ?? null,
     clearSearch,
-    resultCount,
+    resultCount: results.length,
     isSearchActive,
     loadMore,
-    hasMore,
+    hasMore: hasMorePages,
   };
 }
 

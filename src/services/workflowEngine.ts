@@ -10,7 +10,7 @@ export interface WorkflowStep {
   id: string;
   name: string;
   type: 'action' | 'condition' | 'parallel' | 'sequential' | 'wait';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   nextSteps?: string[];
   errorHandler?: string;
 }
@@ -22,7 +22,7 @@ export interface WorkflowTemplate {
   category: 'project' | 'communication' | 'review' | 'onboarding' | 'custom';
   triggers: WorkflowTrigger[];
   steps: WorkflowStep[];
-  variables: Record<string, any>;
+  variables: Record<string, unknown>;
   requiredRoles?: string[];
 }
 
@@ -43,7 +43,7 @@ export interface WorkflowInstance {
   context: WorkflowContext;
   startedAt: Date;
   completedAt?: Date;
-  results: Record<string, any>;
+  results: Record<string, unknown>;
   errors: WorkflowError[];
 }
 
@@ -53,14 +53,14 @@ export interface WorkflowContext {
   organization?: Organization;
   team?: Team;
   user: MessageUser;
-  variables: Record<string, any>;
+  variables: Record<string, unknown>;
 }
 
 export interface WorkflowError {
   stepId: string;
   message: string;
   timestamp: Date;
-  details?: any;
+  details?: unknown;
 }
 
 export type StepHandler = (
@@ -71,7 +71,7 @@ export type StepHandler = (
   nextStep?: string;
   waiting?: boolean;
   timeout?: number;
-  results?: any[];
+  results?: unknown[];
   error?: string;
 }>;
 
@@ -306,13 +306,13 @@ export class WorkflowEngine {
     // Action handler
     this.stepHandlers.set('action', async (step: WorkflowStep, context: WorkflowContext) => {
       const { action, ...params } = step.config;
-      return await this.executeAction(action, params, context);
+      return await this.executeAction(action as string, params, context);
     });
 
     // Condition handler
     this.stepHandlers.set('condition', async (step: WorkflowStep, context: WorkflowContext) => {
       const { condition } = step.config;
-      const result = await this.evaluateCondition(condition, context);
+      const result = await this.evaluateCondition(condition as string, context);
       return {
         success: true,
         nextStep: result ? step.nextSteps?.[0] : step.nextSteps?.[1]
@@ -326,7 +326,7 @@ export class WorkflowEngine {
       return {
         success: true,
         waiting: true,
-        timeout
+        timeout: timeout as number | undefined
       };
     });
 
@@ -400,7 +400,7 @@ export class WorkflowEngine {
   /**
    * Execute a workflow step
    */
-  private async executeStep(stepId: string, context: WorkflowContext): Promise<any> {
+  private async executeStep(stepId: string, context: WorkflowContext): Promise<{ success: boolean; error?: string; nextStep?: string; waiting?: boolean; timeout?: number; results?: unknown[] }> {
     const instance = Array.from(this.instances.values())
       .find(i => i.currentStep === stepId);
 
@@ -429,15 +429,16 @@ export class WorkflowEngine {
       }
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       instance.errors.push({
         stepId,
-        message: error.message,
+        message,
         timestamp: new Date(),
         details: error
       });
       instance.status = 'failed';
-      return { success: false, error: error.message };
+      return { success: false, error: message };
     }
   }
 
@@ -446,9 +447,9 @@ export class WorkflowEngine {
    */
   private async executeAction(
     action: string,
-    params: any,
+    params: Record<string, unknown>,
     _context: WorkflowContext
-  ): Promise<any> {
+  ): Promise<{ success: boolean; [key: string]: unknown }> {
     // In production, these would call actual services
 
     // Simulate different actions
@@ -457,7 +458,7 @@ export class WorkflowEngine {
         return { success: true, conversationId: this.generateId() };
 
       case 'inviteTeamMembers':
-        return { success: true, invitedCount: params.roles?.length || 0 };
+        return { success: true, invitedCount: Array.isArray(params.roles) ? params.roles.length : 0 };
 
       case 'sendMessage':
         return { success: true, messageId: this.generateId() };

@@ -8,8 +8,9 @@
  * const { counts, loading, error, refetch } = useProjectCounts(projectId);
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getApiUrl } from '@/utils/apiHelpers';
+import { queryKeys } from '@/lib/queryClient';
 
 export interface ProjectCounts {
   messages: number;
@@ -25,21 +26,19 @@ interface UseProjectCountsResult {
   refetch: () => Promise<void>;
 }
 
+const defaultCounts: ProjectCounts = { messages: 0, files: 0, assets: 0, boards: 0 };
+
 export function useProjectCounts(projectId: string | undefined): UseProjectCountsResult {
-  const [counts, setCounts] = useState<ProjectCounts | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: counts = null,
+    isLoading: loading,
+    error: queryError,
+    refetch: queryRefetch,
+  } = useQuery<ProjectCounts | null, Error>({
+    queryKey: queryKeys.projectCounts.detail(projectId || ''),
+    queryFn: async () => {
+      if (!projectId) return null;
 
-  const fetchCounts = useCallback(async () => {
-    if (!projectId) {
-      setCounts(null);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(getApiUrl(`/projects/${projectId}/counts`), {
         headers: {
@@ -48,39 +47,21 @@ export function useProjectCounts(projectId: string | undefined): UseProjectCount
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch counts: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Failed to fetch counts: ${response.status}`);
 
       const data = await response.json();
-      if (data.success && data.counts) {
-        setCounts(data.counts);
-      } else {
-        throw new Error(data.error || 'Invalid response');
-      }
-    } catch (err) {
-      console.error('Error fetching project counts:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      // Set default counts on error to avoid breaking the UI
-      setCounts({
-        messages: 0,
-        files: 0,
-        assets: 0,
-        boards: 0,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId]);
+      if (data.success && data.counts) return data.counts;
+      throw new Error(data.error || 'Invalid response');
+    },
+    enabled: !!projectId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    // Return default counts on error so UI doesn't break
+    placeholderData: defaultCounts,
+  });
 
-  useEffect(() => {
-    fetchCounts();
-  }, [fetchCounts]);
+  const error = queryError?.message ?? null;
 
-  return {
-    counts,
-    loading,
-    error,
-    refetch: fetchCounts,
-  };
+  const refetch = async () => { await queryRefetch(); };
+
+  return { counts, loading, error, refetch };
 }

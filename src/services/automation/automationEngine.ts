@@ -14,18 +14,18 @@ export interface AutomationRule {
 
 export interface AutomationTrigger {
   type: 'file_upload' | 'file_analysis' | 'schedule' | 'manual';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 export interface AutomationCondition {
   field: string;
   operator: 'equals' | 'contains' | 'greater_than' | 'less_than';
-  value: any;
+  value: unknown;
 }
 
 export interface AutomationAction {
   type: 'tag' | 'notify' | 'move' | 'analyze' | 'webhook';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 export class AutomationEngine {

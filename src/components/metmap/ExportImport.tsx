@@ -16,8 +16,8 @@ interface ExportImportProps {
   className?: string;
   projectId?: string;
   token?: string;
-  onAssetCreated?: (asset: any) => void;
-  onShareToChat?: (asset: any) => void;
+  onAssetCreated?: (asset: { id: string; name: string }) => void;
+  onShareToChat?: (asset: { id: string; name: string }) => void;
 }
 
 export function ExportImport({

@@ -30,6 +30,46 @@ interface CollaborationRoom {
   lastActivity: Date;
 }
 
+// Socket event data shapes
+interface RoomEventData {
+  roomId: string;
+  userId: string;
+  userData?: { name: string; email: string; avatar?: string };
+}
+
+interface PresenceEventData {
+  roomId: string;
+  presence: CollaboratorPresence;
+}
+
+interface TypingEventData {
+  roomId: string;
+  userId: string;
+  isTyping: boolean;
+}
+
+interface CursorEventData {
+  roomId: string;
+  userId: string;
+  cursor: { x: number; y: number };
+}
+
+interface ContentChangeEventData {
+  roomId: string;
+  userId: string;
+  elementId: string;
+  content: unknown;
+  operation: string;
+  timestamp: string;
+}
+
+interface SelectionChangeEventData {
+  roomId: string;
+  userId: string;
+  elementId: string;
+  selection: { start: number; end: number };
+}
+
 class CollaborationService {
   private socket: Socket | null = null;
   private currentRoom: CollaborationRoom | null = null;
@@ -208,7 +248,7 @@ class CollaborationService {
   }
 
   // Content Synchronization
-  public sendContentChange(elementId: string, content: any, operation: 'insert' | 'update' | 'delete') {
+  public sendContentChange(elementId: string, content: unknown, operation: 'insert' | 'update' | 'delete') {
     if (!this.socket || !this.currentRoom) return;
 
     this.socket.emit('content_change', {
@@ -233,14 +273,14 @@ class CollaborationService {
   }
 
   // Event Handlers
-  private handleUserJoined(data: any) {
+  private handleUserJoined(data: RoomEventData) {
     if (!this.currentRoom || data.roomId !== this.currentRoom.id) return;
 
     const presence: CollaboratorPresence = {
       userId: data.userId,
-      name: data.userData.name,
-      email: data.userData.email,
-      avatar: data.userData.avatar,
+      name: data.userData?.name ?? '',
+      email: data.userData?.email ?? '',
+      avatar: data.userData?.avatar,
       status: 'online',
       lastSeen: new Date()
     };
@@ -252,7 +292,7 @@ class CollaborationService {
     }
   }
 
-  private handleUserLeft(data: any) {
+  private handleUserLeft(data: RoomEventData) {
     if (!this.currentRoom || data.roomId !== this.currentRoom.id) return;
 
     this.currentRoom.participants.delete(data.userId);
@@ -262,7 +302,7 @@ class CollaborationService {
     }
   }
 
-  private handlePresenceUpdate(data: any) {
+  private handlePresenceUpdate(data: PresenceEventData) {
     if (!this.currentRoom || data.roomId !== this.currentRoom.id) return;
 
     this.currentRoom.participants.set(data.presence.userId, data.presence);
@@ -272,7 +312,7 @@ class CollaborationService {
     }
   }
 
-  private handleTypingIndicator(data: any) {
+  private handleTypingIndicator(data: TypingEventData) {
     if (!this.currentRoom || data.roomId !== this.currentRoom.id) return;
 
     if (this.onTypingUpdate) {
@@ -280,7 +320,7 @@ class CollaborationService {
     }
   }
 
-  private handleCursorPosition(data: any) {
+  private handleCursorPosition(data: CursorEventData) {
     if (!this.currentRoom || data.roomId !== this.currentRoom.id) return;
 
     if (this.onCursorUpdate) {
@@ -288,7 +328,7 @@ class CollaborationService {
     }
   }
 
-  private handleContentChange(data: any) {
+  private handleContentChange(data: ContentChangeEventData) {
     if (!this.currentRoom || data.roomId !== this.currentRoom.id) return;
 
     // Emit custom event for content changes
@@ -303,7 +343,7 @@ class CollaborationService {
     }));
   }
 
-  private handleSelectionChange(data: any) {
+  private handleSelectionChange(data: SelectionChangeEventData) {
     if (!this.currentRoom || data.roomId !== this.currentRoom.id) return;
 
     // Emit custom event for selection changes

@@ -51,7 +51,7 @@ export interface ActivityMetadata {
   oldValue?: string; // Previous value
   newValue?: string; // New value
   preview?: string; // For comments - preview of content
-  [key: string]: any; // Allow additional metadata
+  [key: string]: string | undefined; // Allow additional metadata
 }
 
 // ============================================================================

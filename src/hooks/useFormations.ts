@@ -2,12 +2,14 @@
  * Formations Hooks - FluxStudio Drill Writer
  *
  * React hooks for formation data fetching and mutations.
- * Provides loading states, error handling, and cache invalidation.
+ * Uses TanStack Query for caching, loading states, and error handling.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { hookLogger } from '../lib/logger';
+import { queryKeys } from '../lib/queryClient';
 import {
   fetchFormations,
   fetchFormation,
@@ -41,68 +43,70 @@ export interface UseFormationsResult {
 
 export function useFormations({ projectId, enabled = true }: UseFormationsOptions): UseFormationsResult {
   const { user } = useAuth();
-  const [formations, setFormations] = useState<FormationListItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const refetch = useCallback(async () => {
-    if (!user || !projectId || !enabled) return;
+  const {
+    data: formations = [],
+    isLoading: loading,
+    error: queryError,
+    refetch: queryRefetch,
+  } = useQuery<FormationListItem[], Error>({
+    queryKey: queryKeys.formations.list(projectId),
+    queryFn: async () => {
+      return fetchFormations(projectId);
+    },
+    enabled: !!user && !!projectId && enabled,
+  });
 
-    setLoading(true);
-    setError(null);
+  const error = queryError?.message ?? null;
 
-    try {
-      const result = await fetchFormations(projectId);
-      setFormations(result);
-    } catch (err) {
-      formationsLogger.error('Error fetching formations', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch formations');
-      setFormations([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, projectId, enabled]);
-
-  const create = useCallback(async (data: { name: string; description?: string }) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
-      const formation = await createFormation(projectId, data);
-      // Refetch list to include new formation
-      await refetch();
-      return formation;
-    } catch (err) {
+  const createMutation = useMutation<Formation, Error, { name: string; description?: string }>({
+    mutationFn: async (data) => {
+      if (!user) throw new Error('Authentication required');
+      return createFormation(projectId, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.formations.list(projectId) });
+    },
+    onError: (err) => {
       formationsLogger.error('Error creating formation', err);
-      throw err;
-    }
-  }, [user, projectId, refetch]);
+    },
+  });
 
-  const remove = useCallback(async (formationId: string) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
+  const deleteMutation = useMutation<void, Error, string>({
+    mutationFn: async (formationId) => {
+      if (!user) throw new Error('Authentication required');
       await deleteFormation(formationId);
-      // Update local state immediately
-      setFormations(prev => prev.filter(f => f.id !== formationId));
-    } catch (err) {
-      formationsLogger.error('Error deleting formation', err);
-      throw err;
-    }
-  }, [user]);
+    },
+    onMutate: async (formationId) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.formations.list(projectId) });
+      const previous = queryClient.getQueryData<FormationListItem[]>(queryKeys.formations.list(projectId));
+      queryClient.setQueryData<FormationListItem[]>(
+        queryKeys.formations.list(projectId),
+        (old = []) => old.filter(f => f.id !== formationId)
+      );
+      return { previous };
+    },
+    onError: (_err, _formationId, context: unknown) => {
+      queryClient.setQueryData(queryKeys.formations.list(projectId), (context as { previous?: FormationListItem[] })?.previous);
+      formationsLogger.error('Error deleting formation', _err);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.formations.list(projectId) });
+    },
+  });
 
-  // Fetch formations when projectId changes or on mount
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
+  const create = useCallback(
+    async (data: { name: string; description?: string }) => createMutation.mutateAsync(data),
+    [createMutation]
+  );
+  const remove = useCallback(
+    async (formationId: string) => { await deleteMutation.mutateAsync(formationId); },
+    [deleteMutation]
+  );
+  const refetch = useCallback(async () => { await queryRefetch(); }, [queryRefetch]);
 
-  return {
-    formations,
-    loading,
-    error,
-    refetch,
-    create,
-    remove
-  };
+  return { formations, loading, error, refetch, create, remove };
 }
 
 // ============================================================================
@@ -136,43 +140,39 @@ export interface UseFormationResult {
 
 export function useFormation({ formationId, enabled = true }: UseFormationOptions): UseFormationResult {
   const { user } = useAuth();
-  const [formation, setFormation] = useState<Formation | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const refetch = useCallback(async () => {
-    if (!user || !formationId || !enabled) return;
+  const {
+    data: formation = null,
+    isLoading: loading,
+    error: queryError,
+    refetch: queryRefetch,
+  } = useQuery<Formation | null, Error>({
+    queryKey: queryKeys.formations.detail(formationId || ''),
+    queryFn: async () => {
+      if (!formationId) return null;
+      return fetchFormation(formationId);
+    },
+    enabled: !!user && !!formationId && enabled,
+  });
 
-    setLoading(true);
-    setError(null);
+  const error = queryError?.message ?? null;
 
-    try {
-      const result = await fetchFormation(formationId);
-      setFormation(result);
-    } catch (err) {
-      formationsLogger.error('Error fetching formation', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch formation');
-      setFormation(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, formationId, enabled]);
-
-  const update = useCallback(async (data: { name?: string; description?: string }) => {
-    if (!user || !formationId) throw new Error('Authentication required');
-
-    try {
-      const updated = await updateFormation(formationId, data);
-      setFormation(prev => prev ? { ...prev, ...updated } : updated);
-      return updated;
-    } catch (err) {
+  const updateMut = useMutation<Formation, Error, { name?: string; description?: string }>({
+    mutationFn: async (data) => {
+      if (!user || !formationId) throw new Error('Authentication required');
+      return updateFormation(formationId, data);
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(queryKeys.formations.detail(formationId || ''), updated);
+      queryClient.invalidateQueries({ queryKey: queryKeys.formations.lists() });
+    },
+    onError: (err) => {
       formationsLogger.error('Error updating formation', err);
-      throw err;
-    }
-  }, [user, formationId]);
+    },
+  });
 
-  const save = useCallback(async (data: {
+  const saveMut = useMutation<Formation, Error, {
     name?: string;
     performers: Performer[];
     keyframes: Array<{
@@ -182,40 +182,30 @@ export function useFormation({ formationId, enabled = true }: UseFormationOption
       duration?: number;
       positions: Record<string, Position> | Map<string, Position>;
     }>;
-  }) => {
-    if (!user || !formationId) throw new Error('Authentication required');
-
-    setSaving(true);
-    try {
-      const saved = await saveFormation(formationId, data);
-      setFormation(saved);
-      return saved;
-    } catch (err) {
+  }>({
+    mutationFn: async (data) => {
+      if (!user || !formationId) throw new Error('Authentication required');
+      return saveFormation(formationId, data);
+    },
+    onSuccess: (saved) => {
+      queryClient.setQueryData(queryKeys.formations.detail(formationId || ''), saved);
+    },
+    onError: (err) => {
       formationsLogger.error('Error saving formation', err);
-      throw err;
-    } finally {
-      setSaving(false);
-    }
-  }, [user, formationId]);
+    },
+  });
 
-  // Fetch formation when formationId changes or on mount
-  useEffect(() => {
-    if (formationId) {
-      refetch();
-    } else {
-      setFormation(null);
-    }
-  }, [formationId, refetch]);
+  const update = useCallback(
+    async (data: { name?: string; description?: string }) => updateMut.mutateAsync(data),
+    [updateMut]
+  );
+  const save = useCallback(
+    async (data: Parameters<typeof saveMut.mutateAsync>[0]) => saveMut.mutateAsync(data),
+    [saveMut]
+  );
+  const refetch = useCallback(async () => { await queryRefetch(); }, [queryRefetch]);
 
-  return {
-    formation,
-    loading,
-    error,
-    refetch,
-    update,
-    save,
-    saving
-  };
+  return { formation, loading, error, refetch, update, save, saving: saveMut.isPending };
 }
 
 // ============================================================================
@@ -230,29 +220,28 @@ export interface UseCreateFormationResult {
 
 export function useCreateFormation(): UseCreateFormationResult {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const create = useCallback(async (projectId: string, data: { name: string; description?: string }) => {
-    if (!user) throw new Error('Authentication required');
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const formation = await createFormation(projectId, data);
-      return formation;
-    } catch (err) {
+  const mutation = useMutation<Formation, Error, { projectId: string; data: { name: string; description?: string } }>({
+    mutationFn: async ({ projectId, data }) => {
+      if (!user) throw new Error('Authentication required');
+      return createFormation(projectId, data);
+    },
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.formations.list(projectId) });
+    },
+    onError: (err) => {
       formationsLogger.error('Error creating formation', err);
-      const message = err instanceof Error ? err.message : 'Failed to create formation';
-      setError(message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+    },
+  });
 
-  return { create, loading, error };
+  const create = useCallback(
+    async (projectId: string, data: { name: string; description?: string }) =>
+      mutation.mutateAsync({ projectId, data }),
+    [mutation]
+  );
+
+  return { create, loading: mutation.isPending, error: mutation.error?.message ?? null };
 }
 
 // ============================================================================
@@ -278,41 +267,40 @@ export interface UseSaveFormationResult {
 
 export function useSaveFormation(): UseSaveFormationResult {
   const { user } = useAuth();
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const queryClient = useQueryClient();
 
-  const save = useCallback(async (formationId: string, data: {
-    name?: string;
-    performers: Performer[];
-    keyframes: Array<{
-      id: string;
-      timestamp: number;
-      transition?: string;
-      duration?: number;
-      positions: Record<string, Position> | Map<string, Position>;
-    }>;
-  }) => {
-    if (!user) throw new Error('Authentication required');
-
-    setSaving(true);
-    setError(null);
-
-    try {
+  const mutation = useMutation<
+    { formation: Formation; savedAt: Date },
+    Error,
+    { formationId: string; data: Parameters<typeof saveFormation>[1] }
+  >({
+    mutationFn: async ({ formationId, data }) => {
+      if (!user) throw new Error('Authentication required');
       const formation = await saveFormation(formationId, data);
-      setLastSaved(new Date());
-      return formation;
-    } catch (err) {
+      return { formation, savedAt: new Date() };
+    },
+    onSuccess: ({ formation }, { formationId }) => {
+      queryClient.setQueryData(queryKeys.formations.detail(formationId), formation);
+    },
+    onError: (err) => {
       formationsLogger.error('Error saving formation', err);
-      const message = err instanceof Error ? err.message : 'Failed to save formation';
-      setError(message);
-      throw err;
-    } finally {
-      setSaving(false);
-    }
-  }, [user]);
+    },
+  });
 
-  return { save, saving, error, lastSaved };
+  const save = useCallback(
+    async (formationId: string, data: Parameters<typeof saveFormation>[1]) => {
+      const result = await mutation.mutateAsync({ formationId, data });
+      return result.formation;
+    },
+    [mutation]
+  );
+
+  return {
+    save,
+    saving: mutation.isPending,
+    error: mutation.error?.message ?? null,
+    lastSaved: mutation.data?.savedAt ?? null,
+  };
 }
 
 export default {

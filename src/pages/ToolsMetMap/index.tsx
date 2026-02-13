@@ -307,7 +307,7 @@ export default function ToolsMetMap() {
     }
   };
 
-  const handleAssetCreated = (_asset: any) => {
+  const handleAssetCreated = (_asset: { id: string; name: string }) => {
     showNotification({
       type: 'success',
       title: 'Asset Saved',
@@ -315,7 +315,7 @@ export default function ToolsMetMap() {
     });
   };
 
-  const handleShareToChat = async (asset: any) => {
+  const handleShareToChat = async (asset: { id: string; name: string }) => {
     if (!projectId || !token) return;
 
     try {

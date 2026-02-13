@@ -86,6 +86,57 @@ export interface SavedSearch {
 // SEARCH SERVICE
 // ============================================================================
 
+// Raw API response types for search result mapping
+interface ApiProjectRaw {
+  id: string;
+  name: string;
+  description?: string;
+  status?: string;
+  createdAt: string;
+  updatedAt?: string;
+  owner?: { id: string; name: string; avatar?: string };
+}
+
+interface ApiFileRaw {
+  id: string;
+  name: string;
+  description?: string;
+  snippet?: string;
+  projectId: string;
+  projectName?: string;
+  mimeType?: string;
+  type?: string;
+  createdAt: string;
+  updatedAt?: string;
+  uploadedBy?: { id: string; name: string; avatar?: string };
+}
+
+interface ApiTaskRaw {
+  id: string;
+  title: string;
+  description?: string;
+  projectId: string;
+  projectName?: string;
+  status?: string;
+  priority?: string;
+  createdAt: string;
+  updatedAt?: string;
+  createdBy?: string | { id: string; name?: string };
+  createdByName?: string;
+}
+
+interface ApiMessageRaw {
+  id: string;
+  text?: string;
+  conversationId: string;
+  conversationName?: string;
+  projectId?: string;
+  createdAt: string;
+  userId: string;
+  userName?: string;
+  userAvatar?: string;
+}
+
 class SearchService {
   private searchHistory: string[] = [];
   private readonly maxHistoryItems = 20;
@@ -202,7 +253,7 @@ class SearchService {
       const data = await response.json();
       const projects = Array.isArray(data) ? data : data.projects || [];
 
-      return projects.map((project: any) => this.mapProjectToResult(project, query));
+      return projects.map((project: ApiProjectRaw) => this.mapProjectToResult(project, query));
     } catch {
       return [];
     }
@@ -232,7 +283,7 @@ class SearchService {
       const data = await response.json();
       const files = Array.isArray(data) ? data : data.files || [];
 
-      return files.map((file: any) => this.mapFileToResult(file, query));
+      return files.map((file: ApiFileRaw) => this.mapFileToResult(file, query));
     } catch {
       return [];
     }
@@ -262,7 +313,7 @@ class SearchService {
       const data = await response.json();
       const tasks = Array.isArray(data) ? data : data.tasks || [];
 
-      return tasks.map((task: any) => this.mapTaskToResult(task, query));
+      return tasks.map((task: ApiTaskRaw) => this.mapTaskToResult(task, query));
     } catch {
       return [];
     }
@@ -291,7 +342,7 @@ class SearchService {
       const data = await response.json();
       const messages = data.success ? data.results || [] : [];
 
-      return messages.map((message: any) => this.mapMessageToResult(message, query));
+      return messages.map((message: ApiMessageRaw) => this.mapMessageToResult(message, query));
     } catch {
       return [];
     }
@@ -300,7 +351,7 @@ class SearchService {
   /**
    * Map project to search result
    */
-  private mapProjectToResult(project: any, query: string): SearchResult {
+  private mapProjectToResult(project: ApiProjectRaw, query: string): SearchResult {
     return {
       id: project.id,
       type: 'project',
@@ -326,7 +377,7 @@ class SearchService {
   /**
    * Map file to search result
    */
-  private mapFileToResult(file: any, query: string): SearchResult {
+  private mapFileToResult(file: ApiFileRaw, query: string): SearchResult {
     return {
       id: file.id,
       type: 'file',
@@ -354,7 +405,7 @@ class SearchService {
   /**
    * Map task to search result
    */
-  private mapTaskToResult(task: any, query: string): SearchResult {
+  private mapTaskToResult(task: ApiTaskRaw, query: string): SearchResult {
     return {
       id: task.id,
       type: 'task',
@@ -370,7 +421,7 @@ class SearchService {
         createdAt: task.createdAt,
         updatedAt: task.updatedAt,
         author: task.createdBy ? {
-          id: task.createdBy.id || task.createdBy,
+          id: typeof task.createdBy === 'string' ? task.createdBy : task.createdBy.id,
           name: task.createdByName || 'Unknown',
         } : undefined,
       },
@@ -382,7 +433,7 @@ class SearchService {
   /**
    * Map message to search result
    */
-  private mapMessageToResult(message: any, query: string): SearchResult {
+  private mapMessageToResult(message: ApiMessageRaw, query: string): SearchResult {
     return {
       id: message.id,
       type: 'message',
@@ -402,7 +453,7 @@ class SearchService {
           avatar: message.userAvatar,
         },
       },
-      score: this.calculateScore(message.text, '', query),
+      score: this.calculateScore(message.text || '', '', query),
       url: `/messages/${message.conversationId}?highlight=${message.id}`,
     };
   }

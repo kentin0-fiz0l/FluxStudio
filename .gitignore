@@ -71,6 +71,9 @@ coverage/
 tests/load/auth-results.json
 .turbo/
 
+# Data files that should not be committed
+users.json
+
 # Package manager - using pnpm for main project
 # Root package-lock.json is ignored since we use pnpm
 # Subdirectory lock files are allowed for standalone packages

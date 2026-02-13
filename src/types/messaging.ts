@@ -301,7 +301,7 @@ export interface RealtimeEvent {
   type: RealtimeEventType;
   conversationId?: string;
   userId?: string;
-  data: any;
+  data: unknown;
   timestamp: Date;
 }
 

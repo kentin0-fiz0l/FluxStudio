@@ -258,10 +258,10 @@ interface MessagingContextType {
   actions: {
     setCurrentUser: (user: MessageUser) => void;
     loadConversations: () => Promise<void>;
-    createConversation: (data: any) => Promise<Conversation>;
+    createConversation: (data: Parameters<typeof messagingService.createConversation>[0]) => Promise<Conversation>;
     selectConversation: (conversationId: string) => void;
     loadMessages: (conversationId: string) => Promise<void>;
-    sendMessage: (data: any) => Promise<void>;
+    sendMessage: (data: Parameters<typeof messagingService.sendMessage>[0]) => Promise<void>;
     loadNotifications: () => Promise<void>;
     markNotificationAsRead: (notificationId: string) => Promise<void>;
     markAllNotificationsAsRead: () => Promise<void>;
@@ -309,16 +309,29 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
     };
 
     // Presence events
-    const handleUserOnline = (user: any) => {
-      dispatch({ type: 'UPDATE_USER_PRESENCE', payload: user });
+    const handleUserOnline = (user: { userId: string; status: string; lastSeen?: Date }) => {
+      dispatch({ type: 'UPDATE_USER_PRESENCE', payload: user as UserPresence });
     };
 
-    const handleUserOffline = (user: any) => {
-      dispatch({ type: 'UPDATE_USER_PRESENCE', payload: user });
+    const handleUserOffline = (user: { userId: string; status: string; lastSeen?: Date }) => {
+      dispatch({ type: 'UPDATE_USER_PRESENCE', payload: user as UserPresence });
     };
 
     // Notification events
-    const handleMentionReceived = (notification: any) => {
+    const handleMentionReceived = (data: { messageId: string; conversationId: string; mentionedBy: MessageUser; content: string; priority: string; timestamp: Date }) => {
+      const notification: Notification = {
+        id: `mention-${data.messageId}-${Date.now()}`,
+        type: 'mention',
+        priority: data.priority as Notification['priority'],
+        title: `${data.mentionedBy.name} mentioned you`,
+        message: data.content,
+        messageId: data.messageId,
+        conversationId: data.conversationId,
+        isRead: false,
+        isArchived: false,
+        isSnoozed: false,
+        createdAt: data.timestamp,
+      };
       dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
     };
 
@@ -360,7 +373,7 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
       }
     },
 
-    createConversation: async (data: any) => {
+    createConversation: async (data: Parameters<typeof messagingService.createConversation>[0]) => {
       const conversation = await messagingService.createConversation(data);
       dispatch({ type: 'ADD_CONVERSATION', payload: conversation });
       return conversation;
@@ -387,7 +400,7 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
       }
     },
 
-    sendMessage: async (data: any) => {
+    sendMessage: async (data: Parameters<typeof messagingService.sendMessage>[0]) => {
       try {
         await messagingService.sendMessage(data);
         // Message will be added via real-time listener

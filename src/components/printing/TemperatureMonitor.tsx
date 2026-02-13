@@ -36,7 +36,7 @@ const getTempStatusColor = (actual: number, target: number): string => {
 /**
  * Format chart data from temperature history
  */
-const formatChartData = (readings: any[]) => {
+const formatChartData = (readings: Array<{ time: number; bed: { actual: number; target: number }; tool0: { actual: number; target: number } }>) => {
   if (!readings || readings.length === 0) return [];
 
   return readings.map((reading) => ({

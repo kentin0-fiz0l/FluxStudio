@@ -11,7 +11,7 @@
  */
 
 const { query } = require('../database/config');
-const { cuid } = require('cuid');
+const { createId } = require('@paralleldrive/cuid2');
 
 // Configuration
 const CONFIG = {
@@ -27,7 +27,7 @@ async function createTranscodingJob({ fileId, fileName, spacesKey, userId }) {
   try {
     console.log(`[Transcoding] Creating job for file ${fileId}`);
 
-    const jobId = cuid();
+    const jobId = createId();
     const outputPrefix = `hls/${fileId}/`;
 
     // Construct input URL from Spaces bucket and key
@@ -213,7 +213,7 @@ async function retryJob(jobId) {
     const originalJob = result.rows[0];
 
     // Create new job
-    const newJobId = cuid();
+    const newJobId = createId();
     await query(
       `INSERT INTO transcoding_jobs
        (id, file_id, status, input_url, output_prefix, created_at)

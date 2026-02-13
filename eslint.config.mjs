@@ -48,7 +48,7 @@ export default [
         varsIgnorePattern: '^_',
         caughtErrorsIgnorePattern: '^_'
       }],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
       'prefer-const': 'error',
       // Disable no-undef - TypeScript handles this better
       'no-undef': 'off',

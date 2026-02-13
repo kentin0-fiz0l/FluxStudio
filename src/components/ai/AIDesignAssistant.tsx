@@ -30,7 +30,7 @@ import { aiDesignAssistant, type DesignSuggestion, type ColorPalette, type Layou
 
 interface AIDesignAssistantProps {
   projectId?: string;
-  currentDesign?: any;
+  currentDesign?: { elements?: Record<string, unknown>[]; context?: string; industry?: string; mood?: string[] };
   isVisible: boolean;
   onSuggestionApply?: (suggestion: DesignSuggestion) => void;
 }

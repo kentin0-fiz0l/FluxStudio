@@ -67,9 +67,9 @@ async function rejectAction(actionId: string) {
   return response.data;
 }
 
-async function createSession(projectId?: string) {
+async function createSession(projectId?: string): Promise<{ id?: string }> {
   const response = await apiService.post('/agent/session', { projectId });
-  return response.data;
+  return response.data as { id?: string };
 }
 
 // ============================================================================

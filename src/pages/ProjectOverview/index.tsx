@@ -111,7 +111,7 @@ export default function ProjectOverview() {
           const msgResponse = await fetch(getApiUrl(`/api/messaging/conversations/${conv.id}/messages?limit=2`), { headers: { 'Authorization': `Bearer ${token}` } });
           if (msgResponse.ok) {
             const msgData = await msgResponse.json();
-            messages.push(...(msgData.messages || []).map((m: any) => ({ id: m.id, content: m.content, authorName: m.author?.name || 'Unknown', authorAvatar: m.author?.avatar, conversationId: conv.id, conversationName: conv.name, createdAt: m.createdAt })));
+            messages.push(...(msgData.messages || []).map((m: Record<string, unknown>) => ({ id: m.id as string, content: m.content as string, authorName: (m.author as Record<string, unknown>)?.name as string || 'Unknown', authorAvatar: (m.author as Record<string, unknown>)?.avatar as string | undefined, conversationId: conv.id, conversationName: conv.name, createdAt: m.createdAt as string })));
           }
         }
         messages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

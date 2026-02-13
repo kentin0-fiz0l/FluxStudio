@@ -30,7 +30,7 @@ interface CanvasToolbarProps {
   formationName: string;
   onNameChange: (name: string) => void;
   isCollaborativeEnabled: boolean;
-  collab: { collaborators: any[]; isConnected: boolean; isSyncing: boolean };
+  collab: { collaborators: import('@/services/formation/yjs/formationYjsTypes').FormationAwarenessState[]; isConnected: boolean; isSyncing: boolean };
   currentUser: { id: string; name: string; color: string; avatar?: string } | null;
   showPerformerPanel: boolean;
   setShowPerformerPanel: (show: boolean) => void;

@@ -29,9 +29,9 @@ export function FigmaIntegration() {
     try {
       const figmaFiles = await integrationService.getFigmaFiles();
       setFiles(figmaFiles);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load Figma files:', error);
-      setFilesError(error.message || 'Failed to load Figma files');
+      setFilesError(error instanceof Error ? error.message : 'Failed to load Figma files');
     } finally {
       setIsLoadingFiles(false);
     }

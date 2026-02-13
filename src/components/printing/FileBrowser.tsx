@@ -242,7 +242,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
         const response = await fetch('/projects');
         if (response.ok) {
           const data = await response.json();
-          setProjects(data.projects?.map((p: any) => ({
+          setProjects(data.projects?.map((p: Record<string, unknown>) => ({
             id: p.id,
             title: p.title
           })) || []);
@@ -271,7 +271,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
           const data = await response.json();
           const fileMap = new Map<string, string>();
 
-          data.files?.forEach((f: any) => {
+          data.files?.forEach((f: { filename: string }) => {
             fileMap.set(f.filename, selectedProject);
           });
 

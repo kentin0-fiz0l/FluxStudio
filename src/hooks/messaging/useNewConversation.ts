@@ -70,7 +70,7 @@ export function useNewConversation({
       });
       if (res.ok) {
         const data = await res.json();
-        const users = (data.users || data || []).map((u: any) => ({
+        const users = (data.users || data || []).map((u: { id: string; name?: string; email?: string; avatar?: string; isOnline?: boolean }) => ({
           id: u.id,
           name: u.name || u.email?.split('@')[0] || 'Unknown',
           avatar: u.avatar,

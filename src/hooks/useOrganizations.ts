@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getApiUrl } from '../utils/apiHelpers';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/apiService';
+import { queryKeys } from '../lib/queryClient';
 
 export interface Organization {
   id: string;
@@ -45,199 +47,164 @@ export interface OrganizationInvite {
 
 export function useOrganizations() {
   const { user } = useAuth();
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const queryClient = useQueryClient();
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchOrganizations = useCallback(async () => {
-    if (!user) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
+  const {
+    data: organizations = [],
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery<Organization[], Error>({
+    queryKey: queryKeys.organizations.all,
+    queryFn: async () => {
       const response = await apiService.getOrganizations();
-
       if (response.success && response.data) {
         const data = response.data as { organizations?: Organization[] } | Organization[] | undefined;
-        const organizations: Organization[] = Array.isArray(data) ? data : (data?.organizations ?? []);
-        setOrganizations(organizations);
-
-        // Set current organization if user has one
-        if (organizations.length > 0) {
-          setCurrentOrganization(organizations[0]);
-        }
-      } else {
-        throw new Error(response.error || 'Failed to fetch organizations');
+        return Array.isArray(data) ? data : (data?.organizations ?? []);
       }
-    } catch (error) {
-      console.error('Error fetching organizations:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch organizations');
-      // Initialize with empty array on error
-      setOrganizations([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+      throw new Error(response.error || 'Failed to fetch organizations');
+    },
+    enabled: !!user,
+  });
 
-  const createOrganization = useCallback(async (orgData: {
+  const error = queryError?.message ?? null;
+
+  // Set current organization when data loads
+  useEffect(() => {
+    if (organizations.length > 0) {
+      const storedOrgId = localStorage.getItem('current_organization');
+      const org = storedOrgId ? organizations.find(o => o.id === storedOrgId) : null;
+      setCurrentOrganization(org || organizations[0]);
+    }
+  }, [organizations]);
+
+  const createOrgMutation = useMutation<Organization, Error, {
     name: string;
     description?: string;
     website?: string;
     industry?: string;
     size?: Organization['size'];
-  }) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
+  }>({
+    mutationFn: async (orgData) => {
+      if (!user) throw new Error('Authentication required');
       const response = await apiService.createOrganization(orgData);
-
       if (!response.success) {
         throw new Error(response.error || 'Failed to create organization');
       }
-
       const orgData2 = response.data as { organization?: Organization } | Organization;
-      const newOrg = (orgData2 && 'organization' in orgData2 ? orgData2.organization : orgData2) as Organization;
-
-      setOrganizations(prev => [...prev, newOrg]);
-
-      // Set as current organization if it's the user's first org
+      return (orgData2 && 'organization' in orgData2 ? orgData2.organization : orgData2) as Organization;
+    },
+    onSuccess: (newOrg) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
       if (organizations.length === 0) {
         setCurrentOrganization(newOrg);
       }
+    },
+  });
 
-      return newOrg;
-    } catch (error) {
-      console.error('Error creating organization:', error);
-      throw error;
-    }
-  }, [user, organizations.length]);
-
-  const updateOrganization = useCallback(async (orgId: string, updates: Partial<Organization>) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
+  const updateOrgMutation = useMutation<Organization, Error, { orgId: string; updates: Partial<Organization> }>({
+    mutationFn: async ({ orgId, updates }) => {
+      if (!user) throw new Error('Authentication required');
       const token = localStorage.getItem('auth_token');
       const response = await fetch(getApiUrl(`/api/organizations/${orgId}`), {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updates)
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update organization');
       }
-
-      const updatedOrg = await response.json();
-      setOrganizations(prev => prev.map(org => org.id === orgId ? updatedOrg : org));
-
+      return await response.json();
+    },
+    onSuccess: (updatedOrg, { orgId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
       if (currentOrganization?.id === orgId) {
         setCurrentOrganization(updatedOrg);
       }
+    },
+  });
 
-      return updatedOrg;
-    } catch (error) {
-      console.error('Error updating organization:', error);
-      throw error;
-    }
-  }, [user, currentOrganization?.id]);
-
-  const inviteToOrganization = useCallback(async (orgId: string, email: string, role: 'admin' | 'member' = 'member', message?: string) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
+  const inviteMutation = useMutation<unknown, Error, { orgId: string; email: string; role: 'admin' | 'member'; message?: string }>({
+    mutationFn: async ({ orgId, email, role, message }) => {
+      if (!user) throw new Error('Authentication required');
       const token = localStorage.getItem('auth_token');
       const response = await fetch(getApiUrl(`/api/organizations/${orgId}/invite`), {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, role, message })
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, role, message }),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to send invitation');
       }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
+    },
+  });
 
-      const result = await response.json();
-      await fetchOrganizations(); // Refresh to get updated invites
-      return result;
-    } catch (error) {
-      console.error('Error inviting to organization:', error);
-      throw error;
-    }
-  }, [user, fetchOrganizations]);
-
-  const switchOrganization = useCallback((orgId: string) => {
-    const org = organizations.find(o => o.id === orgId);
-    if (org) {
-      setCurrentOrganization(org);
-      // Store preference in localStorage
-      localStorage.setItem('current_organization', orgId);
-    }
-  }, [organizations]);
-
-  const leaveOrganization = useCallback(async (orgId: string) => {
-    if (!user) throw new Error('Authentication required');
-
-    try {
+  const leaveMutation = useMutation<void, Error, string>({
+    mutationFn: async (orgId) => {
+      if (!user) throw new Error('Authentication required');
       const token = localStorage.getItem('auth_token');
       const response = await fetch(getApiUrl(`/api/organizations/${orgId}/leave`), {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` },
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to leave organization');
       }
-
-      setOrganizations(prev => prev.filter(org => org.id !== orgId));
-
+    },
+    onSuccess: (_, orgId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
       if (currentOrganization?.id === orgId) {
         setCurrentOrganization(organizations.find(org => org.id !== orgId) || null);
       }
-    } catch (error) {
-      console.error('Error leaving organization:', error);
-      throw error;
-    }
-  }, [user, currentOrganization?.id, organizations]);
+    },
+  });
 
-  // Fetch organizations on mount
-  useEffect(() => {
-    fetchOrganizations();
-  }, [fetchOrganizations]);
-
-  // Restore current organization from localStorage
-  useEffect(() => {
-    const storedOrgId = localStorage.getItem('current_organization');
-    if (storedOrgId && organizations.length > 0) {
-      const org = organizations.find(o => o.id === storedOrgId);
-      if (org) {
-        setCurrentOrganization(org);
-      }
+  // Preserve original call signatures
+  const createOrganization = useCallback(
+    async (orgData: Parameters<typeof createOrgMutation.mutateAsync>[0]) =>
+      createOrgMutation.mutateAsync(orgData),
+    [createOrgMutation]
+  );
+  const updateOrganization = useCallback(
+    async (orgId: string, updates: Partial<Organization>) =>
+      updateOrgMutation.mutateAsync({ orgId, updates }),
+    [updateOrgMutation]
+  );
+  const inviteToOrganization = useCallback(
+    async (orgId: string, email: string, role: 'admin' | 'member' = 'member', message?: string) =>
+      inviteMutation.mutateAsync({ orgId, email, role, message }),
+    [inviteMutation]
+  );
+  const switchOrganization = useCallback((orgId: string) => {
+    const org = organizations.find(o => o.id === orgId);
+    if (org) {
+      setCurrentOrganization(org);
+      localStorage.setItem('current_organization', orgId);
     }
   }, [organizations]);
+  const leaveOrganization = useCallback(
+    async (orgId: string) => leaveMutation.mutateAsync(orgId),
+    [leaveMutation]
+  );
 
   return {
     organizations,
     currentOrganization,
     loading,
     error,
-    fetchOrganizations,
+    fetchOrganizations: refetch,
     createOrganization,
     updateOrganization,
     inviteToOrganization,
     switchOrganization,
-    leaveOrganization
+    leaveOrganization,
   };
 }

@@ -72,7 +72,7 @@ export function useThreadMessages({
       if (response.ok) {
         const data = await response.json();
         // Transform to Message format
-        const transformedMessages = (data.messages || []).map((m: any): Message => ({
+        const transformedMessages = (data.messages || []).map((m: { id: string; text: string; createdAt: string; userId: string; userName?: string }): Message => ({
           id: m.id,
           content: m.text,
           timestamp: new Date(m.createdAt),

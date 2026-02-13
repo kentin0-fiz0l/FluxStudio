@@ -130,7 +130,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       }
 
       const result = await response.json();
-      const projectList: ProjectSummary[] = (result.projects || []).map((p: any) => ({
+      const projectList: ProjectSummary[] = (result.projects || []).map((p: Record<string, unknown>) => ({
         id: p.id,
         name: p.name,
         description: p.description,

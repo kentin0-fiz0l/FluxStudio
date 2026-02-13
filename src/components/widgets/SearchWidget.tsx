@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCommandPalette } from '../../hooks/useCommandPalette';
@@ -9,7 +9,7 @@ import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { WidgetProps } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
-import Fuse from 'fuse.js';
+import type Fuse from 'fuse.js';
 import {
   Search,
   Command,
@@ -98,23 +98,50 @@ export function SearchWidget(props: WidgetProps) {
     return results;
   }, [projects, activities, navigate]);
 
-  // Set up fuzzy search
-  const fuse = useMemo(() => {
-    return new Fuse(searchData, {
+  // Lazily loaded Fuse instance
+  const fuseRef = useRef<Fuse<QuickSearchResult> | null>(null);
+  const fuseDataRef = useRef(searchData);
+  fuseDataRef.current = searchData;
+
+  const loadFuse = useCallback(async () => {
+    if (fuseRef.current) return fuseRef.current;
+    const FuseModule = await import('fuse.js');
+    const FuseClass = FuseModule.default;
+    fuseRef.current = new FuseClass(fuseDataRef.current, {
       keys: ['title', 'description'],
       threshold: 0.4,
     });
+    return fuseRef.current;
+  }, []);
+
+  // Rebuild Fuse index when data changes (only if already loaded)
+  useEffect(() => {
+    if (fuseRef.current) {
+      import('fuse.js').then(FuseModule => {
+        fuseRef.current = new FuseModule.default(searchData, {
+          keys: ['title', 'description'],
+          threshold: 0.4,
+        });
+      });
+    }
   }, [searchData]);
 
   // Filter results based on query
-  const filteredResults = useMemo(() => {
-    if (!query.trim()) {
-      return searchData.slice(0, 4);
-    }
+  const [filteredResults, setFilteredResults] = useState<QuickSearchResult[]>(searchData.slice(0, 4));
 
-    const results = fuse.search(query);
-    return results.map(result => result.item).slice(0, 4);
-  }, [query, searchData, fuse]);
+  useEffect(() => {
+    if (!query.trim()) {
+      setFilteredResults(searchData.slice(0, 4));
+      return;
+    }
+    let cancelled = false;
+    loadFuse().then(fuse => {
+      if (cancelled) return;
+      const results = fuse.search(query);
+      setFilteredResults(results.map(r => r.item).slice(0, 4));
+    });
+    return () => { cancelled = true; };
+  }, [query, searchData, loadFuse]);
 
   // Auto-expand when typing
   useEffect(() => {

@@ -70,7 +70,7 @@ interface ProjectFilesTabProps {
   project: {
     id: string;
     name: string;
-    files?: any[];
+    files?: ProjectFile[];
   };
   className?: string;
 }
@@ -351,8 +351,8 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
       // Close dialog
       setIsPrintDialogOpen(false);
       setSelectedFile(null);
-    } catch (error: any) {
-      toast.error(`Failed to print: ${error.message}`);
+    } catch (error: unknown) {
+      toast.error(`Failed to print: ${error instanceof Error ? error.message : String(error)}`);
       throw error; // Re-throw so QuickPrintDialog can handle loading state
     }
   };

@@ -57,9 +57,9 @@ export function GitHubIntegration() {
     try {
       const response = await integrationService.getGitHubRepositories();
       setRepos(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load GitHub repositories:', error);
-      setReposError(error.message || 'Failed to load repositories');
+      setReposError(error instanceof Error ? error.message : 'Failed to load repositories');
     } finally {
       setIsLoadingRepos(false);
     }
@@ -86,9 +86,9 @@ export function GitHubIntegration() {
 
       const data = await response.json();
       setIssues(data.issues || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load GitHub issues:', error);
-      setIssuesError(error.message || 'Failed to load issues');
+      setIssuesError(error instanceof Error ? error.message : 'Failed to load issues');
     } finally {
       setIsLoadingIssues(false);
     }

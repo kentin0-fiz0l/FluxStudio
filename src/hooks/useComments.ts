@@ -460,7 +460,7 @@ export const useDeleteCommentMutation = (projectId: string, taskId: string) => {
  * Useful after external updates (e.g., WebSocket events)
  */
 export const invalidateTaskComments = (
-  queryClient: any,
+  queryClient: import('@tanstack/react-query').QueryClient,
   projectId: string,
   taskId: string
 ) => {

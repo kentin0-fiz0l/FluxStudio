@@ -142,7 +142,7 @@ function validateTask(
 // ============================================================================
 
 interface EditorToolbarProps {
-  editor: any;
+  editor: ReturnType<typeof import('@tiptap/react').useEditor> | null;
 }
 
 const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {

@@ -13,13 +13,13 @@ export interface Integration {
   connectedAt: string;
   expiresAt?: string;
   lastUsed?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface OAuthError {
   code: 'POPUP_BLOCKED' | 'AUTHORIZATION_DENIED' | 'NETWORK_ERROR' | 'TOKEN_EXPIRED' | 'UNKNOWN';
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 export interface OAuthState {

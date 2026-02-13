@@ -21,7 +21,7 @@ interface SocketContextType {
     content: string;
     type?: string;
     priority?: string;
-    attachments?: any[];
+    attachments?: unknown[];
     mentions?: string[];
     replyTo?: string;
   }) => void;
@@ -48,7 +48,7 @@ interface SocketContextType {
   onMessageReceived: (callback: (message: Message) => void) => () => void;
   onUserPresenceChanged: (callback: (user: UserPresence) => void) => () => void;
   onTypingChanged: (callback: (data: { conversationId: string; userId: string; isTyping: boolean }) => void) => () => void;
-  onMentionReceived: (callback: (notification: any) => void) => () => void;
+  onMentionReceived: (callback: (notification: unknown) => void) => () => void;
 
   // Project presence
   joinProject: (projectId: string) => void;
@@ -214,7 +214,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     content: string;
     type?: string;
     priority?: string;
-    attachments?: any[];
+    attachments?: unknown[];
     mentions?: string[];
     replyTo?: string;
   }) => {
@@ -293,7 +293,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     };
   }, []);
 
-  const onMentionReceived = useCallback((callback: (notification: any) => void) => {
+  const onMentionReceived = useCallback((callback: (notification: unknown) => void) => {
     socketService.on('notification:mention', callback);
     return () => socketService.off('notification:mention', callback);
   }, []);

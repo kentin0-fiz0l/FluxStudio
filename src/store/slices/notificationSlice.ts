@@ -36,8 +36,8 @@ export interface Notification {
   title: string;
   body?: string;
   message?: string;
-  data?: Record<string, any>;
-  metadata?: Record<string, any>;
+  data?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
   priority?: NotificationPriority;
   isRead: boolean;
   readAt: string | null;
@@ -284,33 +284,35 @@ export const useNotifications = () => {
   const slice = useStore((state) => state.notifications);
 
   // Backward-compatible dispatch for consumers using reducer-style actions
-  const dispatch = (action: { type: string; payload?: any }) => {
+  const dispatch = (action: { type: string; payload?: unknown }) => {
     switch (action.type) {
       case 'ADD_NOTIFICATION':
-        slice.handleNewNotification(action.payload);
+        slice.handleNewNotification(action.payload as Notification);
         break;
       case 'ADD_TOAST':
-        slice.addToast(action.payload);
+        slice.addToast(action.payload as Omit<Notification, 'id' | 'createdAt' | 'isRead' | 'readAt' | 'userId'>);
         break;
       case 'REMOVE_TOAST':
-        slice.dismissToast(action.payload);
+        slice.dismissToast(action.payload as string);
         break;
       case 'SET_UNREAD_COUNT':
-        slice.setUnreadCount(action.payload);
+        slice.setUnreadCount(action.payload as number);
         break;
       case 'MARK_ALL_READ':
         slice.markAllAsRead();
         break;
-      case 'UPDATE_NOTIFICATION':
+      case 'UPDATE_NOTIFICATION': {
         // Replace notification in list
+        const update = action.payload as Partial<Notification> & { id: string };
         slice.setNotifications(
           slice.notifications.map((n: Notification) =>
-            n.id === action.payload.id ? { ...n, ...action.payload } : n
+            n.id === update.id ? { ...n, ...update } : n
           )
         );
         break;
+      }
       case 'SET_NOTIFICATIONS':
-        slice.setNotifications(action.payload);
+        slice.setNotifications(action.payload as Notification[]);
         break;
     }
   };

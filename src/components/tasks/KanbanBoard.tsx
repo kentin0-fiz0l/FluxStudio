@@ -120,7 +120,7 @@ const SortableTaskCard: React.FC<TaskCardProps & { id: string }> = ({
 
 // Task Card Component
 interface TaskCardInternalProps extends TaskCardProps {
-  dragHandleProps?: any;
+  dragHandleProps?: Record<string, unknown>;
 }
 
 const TaskCard: React.FC<TaskCardInternalProps> = ({

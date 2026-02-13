@@ -3,16 +3,17 @@
  * Single dashboard that adapts to user role, context, and current workflow
  */
 
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '@/store';
 import { DashboardShell } from './DashboardShell';
-import { DraggableWidgetGrid } from './widgets/DraggableWidgetGrid';
 import { EnhancedCommandPalette } from './EnhancedCommandPalette';
 import { IntegratedActivityFeed } from './IntegratedActivityFeed';
-import { SmartTemplates } from './workflows/SmartTemplates';
-import { AIWorkflowAssistant } from './workflows/AIWorkflowAssistant';
+
+const DraggableWidgetGrid = lazy(() => import('./widgets/DraggableWidgetGrid').then(m => ({ default: m.DraggableWidgetGrid })));
+const SmartTemplates = lazy(() => import('./workflows/SmartTemplates').then(m => ({ default: m.SmartTemplates })));
+const AIWorkflowAssistant = lazy(() => import('./workflows/AIWorkflowAssistant').then(m => ({ default: m.AIWorkflowAssistant })));
 import { GettingStartedCard } from './common/GettingStartedCard';
 import { useFirstTimeExperience } from '../hooks/useFirstTimeExperience';
 import { useProjects } from '../hooks/useProjects';
@@ -164,6 +165,7 @@ export function AdaptiveDashboard() {
     <>
       <EnhancedCommandPalette />
       <DashboardShell>
+        <Suspense fallback={<div className="flex-1 p-6 animate-pulse"><div className="h-8 bg-gray-200 rounded w-1/3 mb-4" /><div className="h-64 bg-gray-100 rounded" /></div>}>
         <div className="flex-1 space-y-6 p-6">
         {/* Welcome Header */}
         <header className="flex items-center justify-between">
@@ -579,6 +581,7 @@ export function AdaptiveDashboard() {
           </Card>
         )}
         </div>
+        </Suspense>
       </DashboardShell>
     </>
   );

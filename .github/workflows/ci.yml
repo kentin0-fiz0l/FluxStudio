@@ -41,9 +41,12 @@ jobs:
         run: pnpm turbo typecheck
 
   test:
-    name: Unit & Integration Tests
+    name: Unit & Integration Tests (${{ matrix.shard }})
     runs-on: ubuntu-latest
     needs: lint
+    strategy:
+      matrix:
+        shard: [1/2, 2/2]
     steps:
       - uses: actions/checkout@v4
 
@@ -65,15 +68,23 @@ jobs:
         run: pnpm --filter @fluxstudio/database db:generate
 
       - name: Run unit tests with coverage
-        run: pnpm turbo test -- --coverage
-        continue-on-error: true
+        run: npx vitest run --coverage --shard=${{ matrix.shard }}
 
       - name: Upload coverage to Codecov
+        if: matrix.shard == '1/2'
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
           verbose: true
+          flags: shard-${{ strategy.job-index }}
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request' && matrix.shard == '1/2'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
 
   build:
     name: Build
@@ -102,6 +113,20 @@ jobs:
       - name: Build all packages
         run: pnpm turbo build
 
+      - name: Check bundle size
+        run: |
+          MAX_SIZE_KB=600
+          OVERSIZED=$(find apps/*/dist/assets packages/*/dist -name "*.js" -size +${MAX_SIZE_KB}k 2>/dev/null || true)
+          if [ -n "$OVERSIZED" ]; then
+            echo "::error::Bundle size check failed. The following chunks exceed ${MAX_SIZE_KB}KB:"
+            echo "$OVERSIZED" | while read -r f; do
+              SIZE=$(du -k "$f" | cut -f1)
+              echo "  OVERSIZED: $f (${SIZE}KB)"
+            done
+            exit 1
+          fi
+          echo "All chunks are under ${MAX_SIZE_KB}KB"
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -111,6 +136,48 @@ jobs:
             apps/*/dist/
             apps/*/.next/
           retention-days: 7
+
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
 
   security:
     name: Security Audit
@@ -134,4 +201,3 @@ jobs:
 
       - name: Run pnpm audit
         run: pnpm audit --audit-level=high
-        continue-on-error: true

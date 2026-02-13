@@ -183,7 +183,7 @@ class ConversationInsightsService {
   /**
    * Analyze project progress from conversation context
    */
-  async analyzeProjectProgress(messages: Message[], _projectContext?: any): Promise<ProjectProgressInsight> {
+  async analyzeProjectProgress(messages: Message[], _projectContext?: unknown): Promise<ProjectProgressInsight> {
     const progressIndicators = this.extractProgressIndicators(messages);
     const blockers = this.identifyBlockers(messages);
     const momentum = this.calculateMomentum(messages);

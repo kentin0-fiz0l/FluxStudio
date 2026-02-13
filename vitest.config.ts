@@ -45,7 +45,13 @@ export default defineConfig({
         '**/*.config.*',
         '**/index.ts',
         'src/main.tsx'
-      ]
+      ],
+      thresholds: {
+        branches: 50,
+        functions: 60,
+        lines: 50,
+        statements: 50,
+      },
     }
   },
 })

@@ -39,7 +39,7 @@ interface PendingSyncItem {
   action: 'create' | 'update' | 'delete';
   endpoint: string;
   method: string;
-  body?: any;
+  body?: unknown;
   timestamp: number;
   retryCount: number;
 }
@@ -244,7 +244,7 @@ export async function addToPendingSync(
   action: PendingSyncItem['action'],
   endpoint: string,
   method: string,
-  body?: any
+  body?: unknown
 ): Promise<string> {
   const id = `sync_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -325,7 +325,7 @@ export async function processPendingSync(
 /**
  * Cache songs for offline access
  */
-export async function cacheSongs(songs: any[]): Promise<void> {
+export async function cacheSongs(songs: Array<{ id: string; [key: string]: unknown }>): Promise<void> {
   const TTL = 24 * 60 * 60 * 1000; // 24 hours
 
   for (const song of songs) {
@@ -342,14 +342,14 @@ export async function cacheSongs(songs: any[]): Promise<void> {
 /**
  * Get cached songs
  */
-export async function getCachedSongs(): Promise<any[]> {
+export async function getCachedSongs(): Promise<unknown[]> {
   return getAllItems(STORES.SONGS);
 }
 
 /**
  * Cache a single song with sections
  */
-export async function cacheSongWithSections(song: any): Promise<void> {
+export async function cacheSongWithSections(song: { id: string; sections?: Array<{ id: string; [key: string]: unknown }>; [key: string]: unknown }): Promise<void> {
   const TTL = 24 * 60 * 60 * 1000; // 24 hours
 
   await setItem(STORES.SONGS, song.id, song, TTL);
@@ -364,7 +364,7 @@ export async function cacheSongWithSections(song: any): Promise<void> {
 /**
  * Get cached song by ID
  */
-export async function getCachedSong(songId: string): Promise<any | null> {
+export async function getCachedSong(songId: string): Promise<unknown | null> {
   return getItem(STORES.SONGS, songId);
 }
 

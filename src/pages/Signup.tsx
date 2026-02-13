@@ -104,7 +104,7 @@ export function Signup() {
     return () => googleOAuth.removeButton('google-oauth-signup');
   }, [googleOAuth.isReady, googleOAuth.error]);
 
-  const handleGoogleSignup = async (response: any) => {
+  const handleGoogleSignup = async (response: { credential?: string }) => {
     if (!response.credential) {
       setError('Google authentication failed');
       return;
