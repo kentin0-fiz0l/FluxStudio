@@ -118,61 +118,35 @@
       rollupOptions: {
         output: {
           manualChunks: (id) => {
-            // Vendor chunks - Split by library for better caching
-            // NOTE: Specific library checks MUST come before the generic 'react' check
-            // because many packages contain 'react' in their path
+            // Vendor chunk splitting strategy:
+            // Only manually chunk packages with ZERO React dependency.
+            // All React-dependent packages fall through to Rollup's automatic
+            // splitting to avoid circular chunk dependencies.
             if (id.includes('node_modules')) {
-              // Socket.io - completely independent, no React dependency
+              // === Pure packages (no React dependency) ===
+
+              // Socket.io - WebSocket transport
               if (id.includes('socket.io-client') || id.includes('engine.io')) {
                 return 'vendor-socket';
               }
 
-              // Recharts and D3 - large charting libraries (loaded lazily)
-              if (id.includes('recharts') || id.includes('d3-')) {
+              // D3, Lodash, Decimal.js, Chart.js - pure data/math/charting
+              if (id.includes('d3-') || id.includes('lodash') || id.includes('decimal.js') ||
+                  (id.includes('chart.js') && !id.includes('react-chartjs'))) {
                 return 'vendor-charts';
               }
 
-              // Lodash (recharts transitive dep)
-              if (id.includes('lodash')) {
-                return 'vendor-charts';
-              }
-
-              // Decimal.js (recharts dep)
-              if (id.includes('decimal.js')) {
-                return 'vendor-charts';
-              }
-
-              // Date utilities - date-fns, dayjs, moment
+              // Date utilities
               if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment')) {
                 return 'vendor-dates';
               }
 
-              // Export/document processing deps (canvg, html2canvas, pako, etc.)
+              // Document/export processing (canvg, html2canvas, pako, pdf, etc.)
               if (id.includes('canvg') || id.includes('html2canvas') || id.includes('pako') ||
                   id.includes('iobuffer') || id.includes('fast-png') || id.includes('fflate') ||
-                  id.includes('rgbcolor') || id.includes('stackblur') || id.includes('svg-pathdata')) {
+                  id.includes('rgbcolor') || id.includes('stackblur') || id.includes('svg-pathdata') ||
+                  id.includes('core-js') || id.includes('pdf') || id.includes('docx') || id.includes('xlsx')) {
                 return 'vendor-docs';
-              }
-
-              // Core-js polyfills (canvg/jsPDF transitive dep)
-              if (id.includes('core-js')) {
-                return 'vendor-docs';
-              }
-
-              // PDF/Document processing
-              if (id.includes('pdf') || id.includes('docx') || id.includes('xlsx')) {
-                return 'vendor-docs';
-              }
-
-              // Grid layout (used only by DraggableWidgetGrid)
-              if (id.includes('react-grid-layout') || id.includes('react-draggable') ||
-                  id.includes('react-resizable') || id.includes('resize-observer-polyfill')) {
-                return 'vendor-grid';
-              }
-
-              // Prop-types and react-is (react-grid-layout transitive)
-              if (id.includes('prop-types') || id.includes('react-is')) {
-                return 'vendor-grid';
               }
 
               // Fuzzy search
@@ -180,44 +154,25 @@
                 return 'vendor-search';
               }
 
-              // Editor libraries - Monaco, CodeMirror, TipTap
-              if (id.includes('monaco') || id.includes('codemirror') || id.includes('@tiptap') || id.includes('prosemirror')) {
+              // Editor libraries (Monaco, CodeMirror, ProseMirror core)
+              if (id.includes('monaco') || id.includes('codemirror') || id.includes('prosemirror')) {
                 return 'vendor-editor';
               }
 
-              // Animation libraries
-              if (id.includes('framer-motion') || id.includes('gsap') || id.includes('animejs')) {
-                return 'vendor-animation';
-              }
-
-              // Three.js and 3D - large, load on demand
-              if (id.includes('three') || id.includes('@react-three')) {
-                return 'vendor-3d';
-              }
-
-              // Floating UI positioning (Radix UI dependency)
-              if (id.includes('@floating-ui') || id.includes('floating-ui')) {
-                return 'vendor-radix';
-              }
-
-              // Radix UI primitives (substantial size)
-              if (id.includes('@radix-ui')) {
-                return 'vendor-radix';
-              }
-
-              // Form libraries
-              if (id.includes('react-hook-form') || id.includes('zod') || id.includes('yup')) {
-                return 'vendor-forms';
-              }
-
-              // Query/State management
-              if (id.includes('@tanstack') || id.includes('zustand') || id.includes('immer')) {
-                return 'vendor-state';
-              }
-
-              // Yjs and collaboration libraries
-              if (id.includes('yjs') || id.includes('y-websocket') || id.includes('y-indexeddb') || id.includes('y-prosemirror') || id.includes('y-protocols') || id.includes('lib0')) {
+              // Yjs collaboration (CRDT, no React dependency)
+              if (id.includes('yjs') || id.includes('y-websocket') || id.includes('y-indexeddb') ||
+                  id.includes('y-prosemirror') || id.includes('y-protocols') || id.includes('lib0')) {
                 return 'vendor-collab';
+              }
+
+              // Pure CSS/class utilities
+              if (id.includes('class-variance-authority') || id.includes('clsx') || id.includes('tailwind-merge')) {
+                return 'vendor-ui-utils';
+              }
+
+              // Zod/Yup - pure validation (no React dependency)
+              if (id.includes('zod') || id.includes('yup')) {
+                return 'vendor-forms';
               }
 
               // HTTP clients
@@ -225,59 +180,11 @@
                 return 'vendor-http';
               }
 
-              // Icons - lucide is large
-              if (id.includes('lucide-react')) {
-                return 'vendor-icons';
-              }
-
-              // i18n - internationalization
-              if (id.includes('i18next') || id.includes('react-i18next')) {
-                return 'vendor-i18n';
-              }
-
-              // Stripe - payment processing
-              if (id.includes('stripe')) {
-                return 'vendor-stripe';
-              }
-
-              // Drag and drop
-              if (id.includes('@dnd-kit')) {
-                return 'vendor-dnd';
-              }
-
-              // Chart.js (separate from recharts)
-              if (id.includes('chart.js') || id.includes('react-chartjs')) {
-                return 'vendor-charts';
-              }
-
-              // 3D/Spring animation libraries
-              if (id.includes('@react-spring') || id.includes('@use-gesture') || id.includes('react-reconciler')) {
-                return 'vendor-animation';
-              }
-
-              // ShadCN UI utilities
-              if (id.includes('class-variance-authority') || id.includes('clsx') || id.includes('tailwind-merge') ||
-                  id.includes('cmdk') || id.includes('sonner') || id.includes('vaul') ||
-                  id.includes('embla-carousel') || id.includes('input-otp') || id.includes('next-themes') ||
-                  id.includes('react-day-picker') || id.includes('react-dropzone') ||
-                  id.includes('react-remove-scroll') || id.includes('react-style-singleton')) {
-                return 'vendor-ui-utils';
-              }
-
-              // Google OAuth
-              if (id.includes('@react-oauth') || id.includes('react-oauth')) {
-                return 'vendor-common';
-              }
-
-              // React ecosystem - MUST stay together to avoid context errors
-              // This check comes AFTER specific libraries so react-hook-form, lucide-react,
-              // react-i18next, @react-three etc. go to their own chunks
-              if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/react-router') || id.includes('/scheduler/')) {
-                return 'vendor-react';
-              }
-
-              // Everything else goes into a smaller vendor-common bundle
-              return 'vendor-common';
+              // === All other node_modules (including React-dependent ones) ===
+              // Let Rollup handle placement to avoid circular dependencies.
+              // This includes: react, react-dom, recharts, framer-motion, radix-ui,
+              // tanstack, zustand, lucide-react, dnd-kit, i18next, stripe, etc.
+              return;
             }
 
             // IMPORTANT: Fix circular dependencies by NOT splitting these into separate chunks
