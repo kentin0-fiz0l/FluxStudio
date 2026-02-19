@@ -34,8 +34,11 @@ export const queryClient = new QueryClient({
       // Disable refetch on mount if data is not stale (avoid unnecessary requests)
       refetchOnMount: false,
 
-      // Disable refetch on reconnect (handled by window focus)
-      refetchOnReconnect: false,
+      // Refetch all stale queries when network reconnects
+      refetchOnReconnect: 'always',
+
+      // Serve cached data when offline, refetch in background when online
+      networkMode: 'offlineFirst',
 
       // Single retry attempt for failed requests
       retry: 1,
@@ -44,6 +47,9 @@ export const queryClient = new QueryClient({
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
+      // Mutations also operate offline-first
+      networkMode: 'offlineFirst',
+
       // Single retry for mutations
       retry: 1,
 

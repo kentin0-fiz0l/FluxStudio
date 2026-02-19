@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/apiHelpers';
 import { queryKeys } from '../lib/queryClient';
+import { toast } from '../lib/toast';
+import { useStore } from '../store/store';
 
 export interface FileRecord {
   id: string;
@@ -43,9 +45,19 @@ function normalizeFile(file: unknown): FileRecord {
   };
 }
 
+function isNetworkError(error: unknown): boolean {
+  if (error instanceof TypeError && error.message === 'Failed to fetch') return true;
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return msg.includes('network') || msg.includes('fetch') || msg.includes('offline');
+  }
+  return false;
+}
+
 export function useFiles(projectId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const queueAction = useStore((s) => s.offline.queueAction);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   const {
@@ -114,7 +126,7 @@ export function useFiles(projectId?: string) {
     });
   }, [user, queryClient]);
 
-  const deleteFileMutation = useMutation<void, Error, string>({
+  const deleteFileMutation = useMutation<void, Error, string, { previous: FileRecord[] | undefined }>({
     mutationFn: async (fileId) => {
       if (!user) throw new Error('Authentication required');
       const token = localStorage.getItem('auth_token');
@@ -127,12 +139,44 @@ export function useFiles(projectId?: string) {
         throw new Error(errorData.error || 'Failed to delete file');
       }
     },
+    onMutate: async (fileId) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.files.list(projectId) });
+      const previous = queryClient.getQueryData<FileRecord[]>(queryKeys.files.list(projectId));
+      queryClient.setQueryData<FileRecord[]>(
+        queryKeys.files.list(projectId),
+        (old = []) => old.filter((f) => f.id !== fileId),
+      );
+      return { previous };
+    },
     onSuccess: () => {
+      toast.success('File deleted');
       queryClient.invalidateQueries({ queryKey: queryKeys.files.all });
+    },
+    onError: (err, fileId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.files.list(projectId), context.previous);
+      }
+      if (isNetworkError(err)) {
+        queueAction({
+          type: 'delete-file',
+          payload: { id: fileId },
+          endpoint: getApiUrl(`/api/files/${fileId}`),
+          method: 'DELETE',
+          maxRetries: 3,
+        });
+        toast.info('Saved offline — will sync when back online');
+        return;
+      }
+      toast.error(err.message || 'Failed to delete file');
     },
   });
 
-  const updateFileMutation = useMutation<FileRecord, Error, { fileId: string; updates: { originalName?: string; projectId?: string } }>({
+  const updateFileMutation = useMutation<
+    FileRecord,
+    Error,
+    { fileId: string; updates: { originalName?: string; projectId?: string } },
+    { previous: FileRecord[] | undefined }
+  >({
     mutationFn: async ({ fileId, updates }) => {
       if (!user) throw new Error('Authentication required');
       const token = localStorage.getItem('auth_token');
@@ -147,8 +191,36 @@ export function useFiles(projectId?: string) {
       }
       return await response.json();
     },
+    onMutate: async ({ fileId, updates }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.files.list(projectId) });
+      const previous = queryClient.getQueryData<FileRecord[]>(queryKeys.files.list(projectId));
+      queryClient.setQueryData<FileRecord[]>(
+        queryKeys.files.list(projectId),
+        (old = []) => old.map((f) =>
+          f.id === fileId ? { ...f, ...updates, name: updates.originalName || f.name } : f,
+        ),
+      );
+      return { previous };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.files.all });
+    },
+    onError: (err, { fileId, updates }, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.files.list(projectId), context.previous);
+      }
+      if (isNetworkError(err)) {
+        queueAction({
+          type: 'update-file',
+          payload: updates,
+          endpoint: getApiUrl(`/api/files/${fileId}`),
+          method: 'PUT',
+          maxRetries: 3,
+        });
+        toast.info('Saved offline — will sync when back online');
+        return;
+      }
+      toast.error(err.message || 'Failed to update file');
     },
   });
 

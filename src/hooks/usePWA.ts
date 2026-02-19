@@ -9,12 +9,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  initDB,
-  processPendingSync,
-  getCacheStats,
-  hasOfflineData
-} from '../utils/offlineStorage';
+import { db } from '../services/db';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl } from '../utils/apiHelpers';
 
@@ -59,16 +54,38 @@ export function usePWA(): UsePWAReturn {
 
     try {
       const apiBaseUrl = getApiUrl('');
-      const result = await processPendingSync(token, apiBaseUrl);
+      const pending = await db.pendingMutations.toArray();
+      let success = 0;
+      let failed = 0;
 
-      // Log sync results for debugging
-      if (result.failed > 0) {
-        console.warn(`Sync complete: ${result.success} succeeded, ${result.failed} failed`);
+      for (const item of pending) {
+        try {
+          const response = await fetch(`${apiBaseUrl}${item.endpoint}`, {
+            method: item.method,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: item.payload ? JSON.stringify(item.payload) : undefined,
+          });
+
+          if (response.ok) {
+            await db.pendingMutations.delete(item.id);
+            success++;
+          } else {
+            failed++;
+          }
+        } catch {
+          failed++;
+        }
       }
 
-      // Update stats
-      const stats = await getCacheStats();
-      setPendingSyncCount(stats.pendingSyncCount);
+      if (failed > 0) {
+        console.warn(`Sync complete: ${success} succeeded, ${failed} failed`);
+      }
+
+      const remainingCount = await db.pendingMutations.count();
+      setPendingSyncCount(remainingCount);
       setLastSyncTime(Date.now());
     } catch (error) {
       console.error('Failed to sync offline data:', error);
@@ -132,17 +149,16 @@ export function usePWA(): UsePWAReturn {
     };
   }, []);
 
-  // Initialize IndexedDB and check offline readiness
+  // Initialize Dexie and check offline readiness
   useEffect(() => {
     const init = async () => {
       try {
-        await initDB();
-        const hasData = await hasOfflineData();
-        setIsOfflineReady(hasData);
+        // Dexie auto-opens on first query; check if we have cached data
+        const projectCount = await db.projects.count();
+        setIsOfflineReady(projectCount > 0);
 
-        const stats = await getCacheStats();
-        setPendingSyncCount(stats.pendingSyncCount);
-        setLastSyncTime(stats.lastSync);
+        const pendingCount = await db.pendingMutations.count();
+        setPendingSyncCount(pendingCount);
       } catch (error) {
         console.error('Failed to initialize offline storage:', error);
       }

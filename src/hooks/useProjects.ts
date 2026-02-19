@@ -4,6 +4,8 @@ import { getApiUrl } from '../utils/apiHelpers';
 import { useAuth } from '../contexts/AuthContext';
 import { hookLogger } from '../lib/logger';
 import { queryKeys } from '../lib/queryClient';
+import { toast } from '../lib/toast';
+import { useStore } from '../store/store';
 
 
 const projectsLogger = hookLogger.child('useProjects');
@@ -87,9 +89,19 @@ async function fetchCsrfToken(): Promise<string> {
 
 // ---------- hook ----------
 
+function isNetworkError(error: unknown): boolean {
+  if (error instanceof TypeError && error.message === 'Failed to fetch') return true;
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return msg.includes('network') || msg.includes('fetch') || msg.includes('offline');
+  }
+  return false;
+}
+
 export function useProjects() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const queueAction = useStore((s) => s.offline.queueAction);
 
   // Query: fetch projects list
   const {
@@ -157,11 +169,56 @@ export function useProjects() {
       const result = await response.json();
       return result.project;
     },
+    onMutate: async (projectData) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.projects.all });
+      const previous = queryClient.getQueryData<Project[]>(queryKeys.projects.all);
+      const tempProject: Project = {
+        id: `temp-${Date.now()}`,
+        name: projectData.name,
+        description: projectData.description || '',
+        status: 'planning',
+        priority: projectData.priority || 'medium',
+        organizationId: projectData.organizationId,
+        teamId: projectData.teamId,
+        createdBy: user?.id || '',
+        startDate: projectData.startDate || new Date().toISOString(),
+        dueDate: projectData.dueDate,
+        progress: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        members: projectData.members || [],
+        tasks: [],
+        milestones: [],
+        files: [],
+        settings: { isPrivate: false, allowComments: true, requireApproval: false },
+      };
+      queryClient.setQueryData<Project[]>(
+        queryKeys.projects.all,
+        (old = []) => [...old, tempProject],
+      );
+      return { previous };
+    },
     onSuccess: () => {
+      toast.success('Project created');
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
     },
-    onError: (err) => {
+    onError: (err, input, context) => {
+      if ((context as { previous?: Project[] })?.previous) {
+        queryClient.setQueryData(queryKeys.projects.all, (context as { previous: Project[] }).previous);
+      }
+      if (isNetworkError(err)) {
+        queueAction({
+          type: 'create-project',
+          payload: input,
+          endpoint: getApiUrl('/api/projects'),
+          method: 'POST',
+          maxRetries: 3,
+        });
+        toast.info('Saved offline — will sync when back online');
+        return;
+      }
       projectsLogger.error('Error creating project', err);
+      toast.error(err.message || 'Failed to create project');
     },
   });
 
@@ -192,16 +249,42 @@ export function useProjects() {
       const result = await response.json();
       return result.project;
     },
+    onMutate: async ({ projectId, updates }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.projects.all });
+      const previous = queryClient.getQueryData<Project[]>(queryKeys.projects.all);
+      queryClient.setQueryData<Project[]>(
+        queryKeys.projects.all,
+        (old = []) => old.map((p) =>
+          p.id === projectId ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p,
+        ),
+      );
+      return { previous };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
     },
-    onError: (err) => {
+    onError: (err, { projectId, updates }, context) => {
+      if ((context as { previous?: Project[] })?.previous) {
+        queryClient.setQueryData(queryKeys.projects.all, (context as { previous: Project[] }).previous);
+      }
+      if (isNetworkError(err)) {
+        queueAction({
+          type: 'update-project',
+          payload: updates,
+          endpoint: getApiUrl(`/api/projects/${projectId}`),
+          method: 'PUT',
+          maxRetries: 3,
+        });
+        toast.info('Saved offline — will sync when back online');
+        return;
+      }
       projectsLogger.error('Error updating project', err);
+      toast.error(err.message || 'Failed to update project');
     },
   });
 
   // Mutation: delete project
-  const deleteProjectMutation = useMutation<void, Error, string>({
+  const deleteProjectMutation = useMutation<void, Error, string, { previous: Project[] | undefined }>({
     mutationFn: async (projectId) => {
       if (!user) throw new Error('Authentication required');
 
@@ -216,11 +299,35 @@ export function useProjects() {
         throw new Error(errorData.message || 'Failed to delete project');
       }
     },
+    onMutate: async (projectId) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.projects.all });
+      const previous = queryClient.getQueryData<Project[]>(queryKeys.projects.all);
+      queryClient.setQueryData<Project[]>(
+        queryKeys.projects.all,
+        (old = []) => old.filter((p) => p.id !== projectId),
+      );
+      return { previous };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
     },
-    onError: (err) => {
+    onError: (err, projectId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.projects.all, context.previous);
+      }
+      if (isNetworkError(err)) {
+        queueAction({
+          type: 'delete-project',
+          payload: { id: projectId },
+          endpoint: getApiUrl(`/api/projects/${projectId}`),
+          method: 'DELETE',
+          maxRetries: 3,
+        });
+        toast.info('Saved offline — will sync when back online');
+        return;
+      }
       projectsLogger.error('Error deleting project', err);
+      toast.error(err.message || 'Failed to delete project');
     },
   });
 

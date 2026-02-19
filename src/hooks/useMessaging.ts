@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { messagingService } from '../services/messagingService';
 import { buildApiUrl } from '../config/environment';
 import { hookLogger } from '../lib/logger';
+import { toast } from '../lib/toast';
 import type { MessageUser } from '../store/slices/messagingSlice';
 
 const messagingLogger = hookLogger.child('useMessaging');
@@ -280,24 +281,37 @@ export function useMessaging(): UseMessagingReturn {
     const token = localStorage.getItem('auth_token');
     if (!token) throw new Error('Not authenticated');
 
-    const response = await fetch(
-      buildApiUrl(`/conversations/${activeId}/messages/${messageId}`),
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ text: content }),
+    // Optimistic update — apply edit to Zustand immediately
+    const prevMessages = [...(useStore.getState().messaging.messages[activeId] || [])];
+    useStore.getState().messaging.updateMessage(messageId, { content, updatedAt: new Date().toISOString() });
+
+    try {
+      const response = await fetch(
+        buildApiUrl(`/conversations/${activeId}/messages/${messageId}`),
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ text: content }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to edit message');
       }
-    );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to edit message');
+      useStore.getState().messaging.fetchMessages(activeId);
+    } catch (err) {
+      // Rollback optimistic update
+      useStore.setState((state) => {
+        state.messaging.messages[activeId] = prevMessages;
+      });
+      toast.error(err instanceof Error ? err.message : 'Failed to edit message');
+      throw err;
     }
-
-    useStore.getState().messaging.fetchMessages(activeId);
   }, []);
 
   const deleteMessage = useCallback(async (messageId: string): Promise<void> => {
@@ -307,20 +321,33 @@ export function useMessaging(): UseMessagingReturn {
     const token = localStorage.getItem('auth_token');
     if (!token) throw new Error('Not authenticated');
 
-    const response = await fetch(
-      buildApiUrl(`/conversations/${activeId}/messages/${messageId}`),
-      {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
+    // Optimistic update — remove message from Zustand immediately
+    const prevMessages = [...(useStore.getState().messaging.messages[activeId] || [])];
+    useStore.getState().messaging.deleteMessage(activeId, messageId);
+
+    try {
+      const response = await fetch(
+        buildApiUrl(`/conversations/${activeId}/messages/${messageId}`),
+        {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to delete message');
       }
-    );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to delete message');
+      useStore.getState().messaging.fetchMessages(activeId);
+    } catch (err) {
+      // Rollback optimistic update
+      useStore.setState((state) => {
+        state.messaging.messages[activeId] = prevMessages;
+      });
+      toast.error(err instanceof Error ? err.message : 'Failed to delete message');
+      throw err;
     }
-
-    useStore.getState().messaging.fetchMessages(activeId);
   }, []);
 
   // Store types are structurally compatible with types/messaging at runtime

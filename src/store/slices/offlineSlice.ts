@@ -10,6 +10,8 @@
 
 import { StateCreator } from 'zustand';
 import { FluxStore } from '../store';
+import { apiService } from '../../services/apiService';
+import { db } from '../../services/db';
 
 // ============================================================================
 // Types
@@ -177,26 +179,20 @@ export const createOfflineSlice: StateCreator<
         state.offline.syncError = null;
       });
 
-      const token = localStorage.getItem('auth_token');
-
-      for (const action of pendingActions) {
+      for (const action of [...pendingActions]) {
         try {
           if (action.endpoint) {
-            const response = await fetch(action.endpoint, {
-              method: action.method || 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify(action.payload),
+            const method = action.method || 'POST';
+            const body = method === 'DELETE' ? undefined : action.payload;
+            await apiService.makeRequest(action.endpoint, {
+              method,
+              body: body ? JSON.stringify(body) : undefined,
             });
-
-            if (!response.ok) {
-              throw new Error(`Sync failed: ${response.status}`);
-            }
           }
 
           get().offline.removeAction(action.id);
+          // Also remove from Dexie persistence
+          db.pendingMutations.delete(action.id).catch(() => {});
         } catch (error) {
           console.error(`Failed to sync action ${action.id}:`, error);
 

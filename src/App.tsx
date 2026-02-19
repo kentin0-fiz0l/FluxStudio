@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { RootProviders } from './components/providers';
 import { ToastContainer } from './components/notifications/ToastContainer';
@@ -18,6 +18,7 @@ import { apiService } from './services/apiService';
 import { logger } from './lib/logger';
 import { lazyLoadWithRetry, DefaultLoadingFallback } from './utils/lazyLoad';
 import { queryClient } from './lib/queryClient';
+import { queryPersister } from './lib/queryPersister';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useTheme } from './hooks/useTheme';
 import { CommandPalette, useCommandPalette } from './components/CommandPalette';
@@ -335,7 +336,10 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister: queryPersister, maxAge: 1000 * 60 * 60 * 24 }}
+      >
         <Router>
           <ThemeProvider>
             {/* Global Command Palette - accessible via ⌘K */}
@@ -352,7 +356,7 @@ export default function App() {
             </Routes>
           </ThemeProvider>
         </Router>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ErrorBoundary>
   );
 }

@@ -19,7 +19,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { useSyncStatus, useOffline } from '@/store';
-import { offlineStorage } from '@/services/offlineStorage';
+import { db } from '@/services/db';
 
 interface SyncStatusBarProps {
   className?: string;
@@ -40,7 +40,7 @@ export function SyncStatusBar({ className = '', collapsible = true }: SyncStatus
   React.useEffect(() => {
     const loadPendingActions = async () => {
       try {
-        const actions = await offlineStorage.pendingActions.getAll();
+        const actions = await db.pendingMutations.toArray();
         setPendingActions(actions);
       } catch (e) {
         console.error('Failed to load pending actions:', e);
@@ -67,7 +67,7 @@ export function SyncStatusBar({ className = '', collapsible = true }: SyncStatus
     try {
       await sync();
       // Refresh pending actions list
-      const actions = await offlineStorage.pendingActions.getAll();
+      const actions = await db.pendingMutations.toArray();
       setPendingActions(actions);
     } finally {
       setIsSyncing(false);
@@ -77,13 +77,13 @@ export function SyncStatusBar({ className = '', collapsible = true }: SyncStatus
   const handleClearPending = async () => {
     if (!confirm('Are you sure you want to discard all pending changes?')) return;
 
-    await offlineStorage.pendingActions.clear();
+    await db.pendingMutations.clear();
     offline.clearPending();
     setPendingActions([]);
   };
 
   const handleRemoveAction = async (id: string) => {
-    await offlineStorage.pendingActions.remove(id);
+    await db.pendingMutations.delete(id);
     offline.removeAction(id);
     setPendingActions((prev) => prev.filter((a) => a.id !== id));
   };

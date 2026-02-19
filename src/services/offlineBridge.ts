@@ -3,12 +3,12 @@
  *
  * Connects the Zustand offlineSlice to:
  * 1. Browser online/offline events
- * 2. IndexedDB persistence (via offlineStorage service)
+ * 2. IndexedDB persistence (via Dexie)
  *
  * Call `initOfflineBridge(store)` once at app startup.
  */
 
-import { offlineStorage } from './offlineStorage';
+import { db, generateId, deleteLegacyDB } from './db';
 import type { FluxStore } from '@/store';
 
 type Store = {
@@ -36,8 +36,8 @@ export function initOfflineBridge(store: Store) {
     store.getState().offline.setNetworkStatus('offline');
   });
 
-  // 3. Hydrate pending actions from IndexedDB
-  offlineStorage.pendingActions.getAll().then((persisted) => {
+  // 3. Hydrate pending actions from Dexie
+  db.pendingMutations.toArray().then((persisted) => {
     if (persisted.length === 0) return;
 
     const { queueAction, sync } = store.getState().offline;
@@ -58,33 +58,39 @@ export function initOfflineBridge(store: Store) {
     if (navigator.onLine) {
       sync();
     }
+  }).catch(() => {
+    // Dexie may be unavailable (private browsing, etc.)
   });
 
-  // 4. Subscribe to pending actions changes → persist to IndexedDB
+  // 4. Subscribe to pending actions changes → persist to Dexie
   store.subscribe((state, prevState) => {
     const curr = state.offline.pendingActions;
     const prev = prevState.offline.pendingActions;
     if (curr !== prev) {
-      syncActionsToIDB(curr);
+      syncActionsToDexie(curr);
     }
   });
+
+  // 5. Clean up legacy IndexedDB database (one-time)
+  deleteLegacyDB().catch(() => {});
 }
 
-async function syncActionsToIDB(actions: FluxStore['offline']['pendingActions']) {
+async function syncActionsToDexie(actions: FluxStore['offline']['pendingActions']) {
   try {
-    // Clear and re-write (simple approach; fine for small queues)
-    await offlineStorage.pendingActions.clear();
-    for (const action of actions) {
-      await offlineStorage.pendingActions.add({
-        type: action.type,
-        endpoint: action.endpoint ?? '',
-        method: action.method ?? 'POST',
-        payload: action.payload,
-        maxRetries: action.maxRetries,
-        priority: 'normal',
-      });
-    }
+    await db.pendingMutations.clear();
+    const records = actions.map((action) => ({
+      id: action.id || generateId('action'),
+      type: action.type,
+      endpoint: action.endpoint ?? '',
+      method: (action.method ?? 'POST') as 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+      payload: action.payload,
+      timestamp: action.timestamp,
+      retryCount: action.retryCount,
+      maxRetries: action.maxRetries,
+      priority: 'normal' as const,
+    }));
+    await db.pendingMutations.bulkPut(records);
   } catch {
-    // IndexedDB may be unavailable (private browsing, etc.)
+    // Dexie may be unavailable (private browsing, etc.)
   }
 }

@@ -9,9 +9,21 @@ const API_CACHE_NAME = 'fluxstudio-api-v4-0';
 const OFFLINE_URL = '/offline.html';
 
 // Check if we're in development environment
-const isDevelopment = self.location.hostname === 'localhost' ||
-                     self.location.hostname.includes('figma') ||
-                     self.location.hostname.includes('127.0.0.1');
+const isDevHost = self.location.hostname === 'localhost' ||
+                  self.location.hostname.includes('figma') ||
+                  self.location.hostname.includes('127.0.0.1');
+
+// Dev-mode caching override — set via postMessage({ type: 'ENABLE_DEV_CACHE' })
+// In the browser console: navigator.serviceWorker.controller.postMessage({ type: 'ENABLE_DEV_CACHE' })
+let devCacheEnabled = false;
+
+// API cache TTLs (ms)
+const API_CACHE_TTL = {
+  '/api/projects': 5 * 60 * 1000,         // 5 minutes
+  '/api/organizations': 10 * 60 * 1000,   // 10 minutes
+  '/api/teams': 10 * 60 * 1000,           // 10 minutes
+  '/api/files': 5 * 60 * 1000,            // 5 minutes
+};
 
 // Essential assets to cache for offline functionality
 const ESSENTIAL_ASSETS = [
@@ -34,7 +46,7 @@ self.addEventListener('install', (event) => {
   console.log('Service Worker installing...');
   
   // Skip caching in development
-  if (isDevelopment) {
+  if ((isDevHost && !devCacheEnabled)) {
     console.log('Development environment detected, skipping cache installation');
     self.skipWaiting();
     return;
@@ -96,7 +108,7 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
 
   // Skip fetch handling in development
-  if (isDevelopment) {
+  if ((isDevHost && !devCacheEnabled)) {
     return;
   }
 
@@ -133,7 +145,11 @@ self.addEventListener('fetch', (event) => {
     else if (isImageRequest(request)) {
       event.respondWith(imageCache(request));
     }
-    // API requests - network first with cache fallback
+    // Cacheable API GET requests — stale-while-revalidate
+    else if (isAPIRequest(url) && isCacheableApi(url)) {
+      event.respondWith(staleWhileRevalidate(request, url));
+    }
+    // Other API requests - network first with cache fallback
     else if (isAPIRequest(url)) {
       event.respondWith(networkFirst(request));
     }
@@ -143,6 +159,65 @@ self.addEventListener('fetch', (event) => {
     }
   }
 });
+
+// Check if an API endpoint qualifies for stale-while-revalidate
+function isCacheableApi(url) {
+  // Only cache list/detail GET endpoints, never auth, uploads, or mutations
+  if (url.pathname.startsWith('/api/auth')) return false;
+  if (url.pathname.includes('/upload')) return false;
+  if (url.pathname.startsWith('/api/csrf')) return false;
+
+  return Object.keys(API_CACHE_TTL).some(prefix => url.pathname.startsWith(prefix));
+}
+
+// Get TTL for a cacheable API endpoint
+function getApiCacheTtl(url) {
+  for (const [prefix, ttl] of Object.entries(API_CACHE_TTL)) {
+    if (url.pathname.startsWith(prefix)) return ttl;
+  }
+  return 5 * 60 * 1000; // default 5 min
+}
+
+// Stale-while-revalidate: serve cached response immediately, revalidate in background
+async function staleWhileRevalidate(request, url) {
+  const cache = await caches.open(API_CACHE_NAME);
+  const cached = await cache.match(request);
+
+  // Start network fetch in background regardless
+  const networkPromise = fetch(request).then(async (response) => {
+    if (response.ok) {
+      await cache.put(request, response.clone());
+    }
+    return response;
+  }).catch((err) => {
+    console.log('[SW] Revalidation failed:', err.message);
+    return null;
+  });
+
+  if (cached) {
+    // Check if cache is still within TTL
+    const cachedDate = cached.headers.get('date');
+    const age = cachedDate ? Date.now() - new Date(cachedDate).getTime() : Infinity;
+    const ttl = getApiCacheTtl(url);
+
+    if (age < ttl) {
+      // Fresh enough — serve cached, revalidate in background
+      return cached;
+    }
+  }
+
+  // No valid cache — wait for network
+  const networkResponse = await networkPromise;
+  if (networkResponse) return networkResponse;
+
+  // Network failed — serve stale cache if available
+  if (cached) return cached;
+
+  return new Response(JSON.stringify({ error: 'Offline — no cached data' }), {
+    status: 503,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
 
 // Cache strategies
 async function cacheFirst(request) {
@@ -359,32 +434,33 @@ async function syncContactForm() {
 async function syncPendingActions() {
   try {
     const db = await openFluxDatabase();
-    const tx = db.transaction('pendingActions', 'readonly');
-    const store = tx.objectStore('pendingActions');
+    const tx = db.transaction('pendingMutations', 'readonly');
+    const store = tx.objectStore('pendingMutations');
     const actions = await getAllFromStore(store);
 
-    console.log('[SW] Syncing', actions.length, 'pending actions');
+    console.log('[SW] Syncing', actions.length, 'pending mutations');
 
     for (const action of actions) {
       try {
+        const token = action.token || '';
         const response = await fetch(action.endpoint, {
           method: action.method || 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${action.token}`,
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify(action.payload),
+          body: action.method === 'DELETE' ? undefined : JSON.stringify(action.payload),
         });
 
         if (response.ok) {
           // Remove from pending queue
-          const deleteTx = db.transaction('pendingActions', 'readwrite');
-          const deleteStore = deleteTx.objectStore('pendingActions');
+          const deleteTx = db.transaction('pendingMutations', 'readwrite');
+          const deleteStore = deleteTx.objectStore('pendingMutations');
           deleteStore.delete(action.id);
-          console.log('[SW] Synced action:', action.id);
+          console.log('[SW] Synced mutation:', action.id);
         }
       } catch (error) {
-        console.error('[SW] Failed to sync action:', action.id, error);
+        console.error('[SW] Failed to sync mutation:', action.id, error);
       }
     }
 
@@ -401,26 +477,13 @@ async function syncPendingActions() {
   }
 }
 
-// IndexedDB helpers
+// IndexedDB helpers — uses Dexie-managed 'fluxstudio-db'
 function openFluxDatabase() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('fluxstudio-offline', 1);
+    const request = indexedDB.open('fluxstudio-db');
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-
-      if (!db.objectStoreNames.contains('pendingActions')) {
-        db.createObjectStore('pendingActions', { keyPath: 'id' });
-      }
-
-      if (!db.objectStoreNames.contains('cachedData')) {
-        const store = db.createObjectStore('cachedData', { keyPath: 'key' });
-        store.createIndex('timestamp', 'timestamp');
-      }
-    };
   });
 }
 
@@ -439,6 +502,16 @@ self.addEventListener('message', (event) => {
   switch (event.data?.type) {
     case 'SKIP_WAITING':
       self.skipWaiting();
+      break;
+
+    case 'ENABLE_DEV_CACHE':
+      devCacheEnabled = true;
+      console.log('[SW] Dev-mode caching ENABLED — SW will now cache in development');
+      break;
+
+    case 'DISABLE_DEV_CACHE':
+      devCacheEnabled = false;
+      console.log('[SW] Dev-mode caching DISABLED — SW will skip caching in development');
       break;
 
     case 'CACHE_URLS':

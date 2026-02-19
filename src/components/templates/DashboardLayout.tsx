@@ -21,6 +21,7 @@ import { SkipLink, Button } from '@/components/ui';
 import { AIChatPanel } from '@/components/ai/AIChatPanel';
 import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
 import { KeyboardShortcutsDialog, useKeyboardShortcuts } from '@/components/ui/KeyboardShortcutsDialog';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { cn } from '@/lib/utils';
 
 export interface DashboardLayoutProps {
@@ -244,6 +245,9 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
             onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
             user={user}
           />
+
+          {/* Offline / Sync Status Banner */}
+          <OfflineIndicator />
 
           {/* Page Content */}
           <main
