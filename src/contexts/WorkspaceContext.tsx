@@ -90,7 +90,7 @@ type WorkspaceAction =
   | { type: 'SET_ACTIVE_TEAM'; payload: Team | null }
   | { type: 'SET_ACTIVE_PROJECT'; payload: Project | null }
   | { type: 'SET_ACTIVE_CONVERSATION'; payload: Conversation | null }
-  | { type: 'LINK_PROJECT_CONVERSATION'; payload: { projectId: string; conversationId: string } }
+  | { type: 'LINK_PROJECT_CONVERSATION'; payload: { projectId: string; conversationId: string; project: Project | null } }
   | { type: 'ADD_ACTIVITY'; payload: WorkspaceActivity }
   | { type: 'SET_SUGGESTIONS'; payload: ContextualSuggestion[] }
   | { type: 'SET_SIDEBAR_COLLAPSED'; payload: boolean }
@@ -176,8 +176,9 @@ function workspaceReducer(state: WorkspaceState, action: WorkspaceAction): Works
       }
 
       // Add to conversation->project mapping
-      // TODO: This should look up and store the actual Project object, not the action payload
-      newConversationProjects.set(conversationId, action.payload as unknown as Project);
+      if (action.payload.project) {
+        newConversationProjects.set(conversationId, action.payload.project);
+      }
 
       return {
         ...state,
@@ -278,7 +279,7 @@ interface WorkspaceProviderProps {
 export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const [state, dispatch] = useReducer(workspaceReducer, initialState);
   const { user: _user } = useAuth();
-  const { currentOrganization, currentTeam, currentProject } = useOrganization();
+  const { currentOrganization, currentTeam, currentProject, projects } = useOrganization();
   const { state: _messagingState } = useMessaging();
 
   // Sync with organization context
@@ -359,13 +360,14 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     },
 
     linkProjectConversation: (projectId: string, conversationId: string) => {
-      dispatch({ type: 'LINK_PROJECT_CONVERSATION', payload: { projectId, conversationId } });
+      const project = projects.find(p => p.id === projectId) || null;
+      dispatch({ type: 'LINK_PROJECT_CONVERSATION', payload: { projectId, conversationId, project } });
     },
 
     addActivity: (activity: Omit<WorkspaceActivity, 'id' | 'timestamp'>) => {
       const fullActivity: WorkspaceActivity = {
         ...activity,
-        id: `activity-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `activity-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         timestamp: new Date(),
       };
       dispatch({ type: 'ADD_ACTIVITY', payload: fullActivity });
@@ -456,7 +458,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     getConversationProject: (conversationId: string) => {
       return state.conversationProjects.get(conversationId) || null;
     },
-  }), [state]);
+  }), [state, projects]);
 
   return (
     <WorkspaceContext.Provider value={{ state, dispatch, actions }}>

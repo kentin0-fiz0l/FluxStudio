@@ -393,7 +393,7 @@ export interface FileBrowserProps {
   files: FileList | null;
   loading?: boolean;
   error?: string | null;
-  onUpload?: (files: FileList) => Promise<void>;
+  onUpload?: (files: File[]) => Promise<void>;
   onDelete?: (filename: string) => Promise<void>;
   onAddToQueue?: (filename: string) => Promise<void>;
   className?: string;
@@ -452,7 +452,7 @@ export interface UsePrinterStatusReturn {
   startJob: (id: number) => Promise<void>;
 
   // File operations
-  uploadFile: (files: FileList) => Promise<FileUploadResponse>;
+  uploadFile: (files: File[]) => Promise<FileUploadResponse>;
   deleteFile: (filename: string) => Promise<void>;
 
   // Service status

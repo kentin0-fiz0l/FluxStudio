@@ -93,7 +93,7 @@ describe('ConversationInsightsService', () => {
     it('should extract action items from messages', async () => {
       const messages = [
         makeMessage('1', 'We need to update the homepage design', 'u1', new Date().toISOString()),
-        makeMessage('2', 'TODO: fix the logo alignment', 'u2', new Date().toISOString()),
+        makeMessage('2', 'Action item: fix the logo alignment', 'u2', new Date().toISOString()),
         makeMessage('3', 'This looks great!', 'u1', new Date().toISOString()),
       ];
 

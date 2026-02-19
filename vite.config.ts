@@ -202,13 +202,14 @@
               return 'page-settings';
             }
 
-            // Large dashboard components
-            if (
-              id.includes('/src/components/dashboard/') ||
-              id.includes('/src/components/widgets/') ||
-              id.includes('/src/components/AdaptiveDashboard')
-            ) {
+            // Dashboard components (split from widgets for smaller chunks)
+            if (id.includes('/src/components/dashboard/')) {
               return 'feature-dashboard';
+            }
+
+            // Widget components (lazy-loaded heavy widgets split further via dynamic imports in registry.ts)
+            if (id.includes('/src/components/widgets/')) {
+              return 'feature-widgets';
             }
 
             // Printing dashboard (large, rarely used)

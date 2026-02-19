@@ -491,11 +491,9 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
    * Upload G-code files
    */
   const uploadFile = useCallback(
-    async (fileList: FileList): Promise<FileUploadResponse> => {
+    async (files: File[]): Promise<FileUploadResponse> => {
       try {
         const formData = new FormData();
-        // Convert FileList to array using spread for better compatibility
-        const files: File[] = [...(fileList as unknown as File[])];
 
         for (const file of files) {
           formData.append('files', file);

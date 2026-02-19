@@ -401,8 +401,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
         });
       }, 200);
 
-      // TODO: onUpload expects printing.FileList but receives DOM FileList - needs adapter
-      await onUpload(selectedFiles as unknown as Parameters<NonNullable<typeof onUpload>>[0]);
+      await onUpload(Array.from(selectedFiles));
 
       setUploadProgress(100);
       setTimeout(() => setUploadProgress(null), 1000);

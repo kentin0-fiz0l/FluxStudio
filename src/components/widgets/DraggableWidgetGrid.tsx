@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { Suspense, useCallback, useMemo } from 'react';
 // @ts-expect-error - react-grid-layout types are provided by the package
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -136,9 +136,13 @@ export function DraggableWidgetGrid({
 
     return (
       <AnimatedWidgetWrapper widgetId={widgetId} index={index}>
-        <div className="h-full w-full">
-          <WidgetComponent {...widgetProps} />
-        </div>
+        <Suspense fallback={
+          <div className="h-full w-full flex items-center justify-center bg-white/5 border border-white/10 rounded-lg animate-pulse" />
+        }>
+          <div className="h-full w-full">
+            <WidgetComponent {...widgetProps} />
+          </div>
+        </Suspense>
       </AnimatedWidgetWrapper>
     );
   }, [handleWidgetRefresh, handleWidgetConfigChange, handleWidgetRemove]);

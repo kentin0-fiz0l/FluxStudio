@@ -4,7 +4,8 @@ export interface WidgetConfig {
   id: string;
   title: string;
   description?: string;
-  component: React.ComponentType<WidgetProps>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  component: React.ComponentType<any> | React.LazyExoticComponent<React.ComponentType<any>>;
   category: WidgetCategory;
   size: WidgetSize;
   permissions: UserType[];
