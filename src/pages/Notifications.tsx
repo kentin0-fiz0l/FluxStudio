@@ -488,6 +488,12 @@ export default function Notifications() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
+            <Link
+              to="/projects"
+              className="inline-block text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 mb-2"
+            >
+              &larr; Back to Projects
+            </Link>
             <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100" id="notifications-page-heading">
               Notifications
               {hasProjectContext && currentProject && (

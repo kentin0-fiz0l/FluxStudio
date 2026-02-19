@@ -53,7 +53,7 @@ export function Profile() {
               ← Back to Projects
             </Link>
             <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Profile</h1>
-            <p className="text-neutral-600 mt-1">
+            <p className="text-neutral-600 dark:text-neutral-300 mt-1">
               Manage your account information and preferences
             </p>
           </div>
@@ -73,10 +73,10 @@ export function Profile() {
                   <User className="w-5 h-5 text-primary-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-neutral-900">
+                  <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
                     Personal Information
                   </h2>
-                  <p className="text-sm text-neutral-600">
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
                     Your account details
                   </p>
                 </div>
@@ -84,47 +84,49 @@ export function Profile() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label htmlFor="profile-name" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                     Full Name
                   </label>
                   <input
+                    id="profile-name"
                     type="text"
                     value={user?.name || ''}
-                    className="w-full px-4 py-3 text-sm border border-neutral-200 rounded-lg bg-neutral-50 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-4 py-3 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                     readOnly
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label htmlFor="profile-email" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                     Email Address
                   </label>
                   <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-neutral-400" />
+                    <Mail className="w-4 h-4 text-neutral-400" aria-hidden="true" />
                     <input
+                      id="profile-email"
                       type="email"
                       value={user?.email || ''}
-                      className="flex-1 px-4 py-3 text-sm border border-neutral-200 rounded-lg bg-neutral-50 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="flex-1 px-4 py-3 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                       readOnly
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                     User Type
                   </label>
-                  <div className="px-4 py-3 rounded-lg bg-neutral-50 border border-neutral-200 text-neutral-900 capitalize">
+                  <div className="px-4 py-3 rounded-lg bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 capitalize">
                     {user?.userType || 'Not specified'}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                     Member Since
                   </label>
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-neutral-50 border border-neutral-200 text-neutral-900">
-                    <Calendar className="w-4 h-4 text-neutral-400" />
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100">
+                    <Calendar className="w-4 h-4 text-neutral-400" aria-hidden="true" />
                     {formatDate(user?.createdAt)}
                   </div>
                 </div>
@@ -138,23 +140,23 @@ export function Profile() {
                   <Shield className="w-5 h-5 text-success-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-neutral-900">
+                  <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
                     Security Settings
                   </h2>
-                  <p className="text-sm text-neutral-600">
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
                     Manage your account security
                   </p>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <button className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-lg border border-neutral-200 hover:bg-neutral-100 transition-colors">
+                <button className="w-full flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">
                   <div className="text-left">
-                    <div className="flex items-center gap-2 font-medium text-neutral-900 mb-1">
-                      <Lock className="w-4 h-4" />
+                    <div className="flex items-center gap-2 font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+                      <Lock className="w-4 h-4" aria-hidden="true" />
                       <span>Change Password</span>
                     </div>
-                    <p className="text-sm text-neutral-600">
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
                       Update your account password
                     </p>
                   </div>
@@ -163,13 +165,13 @@ export function Profile() {
                   </Button>
                 </button>
 
-                <button className="w-full flex items-center justify-between p-4 bg-neutral-50 rounded-lg border border-neutral-200 hover:bg-neutral-100 transition-colors">
+                <button className="w-full flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">
                   <div className="text-left">
-                    <div className="flex items-center gap-2 font-medium text-neutral-900 mb-1">
-                      <Shield className="w-4 h-4" />
+                    <div className="flex items-center gap-2 font-medium text-neutral-900 dark:text-neutral-100 mb-1">
+                      <Shield className="w-4 h-4" aria-hidden="true" />
                       <span>Two-Factor Authentication</span>
                     </div>
-                    <p className="text-sm text-neutral-600">
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
                       Add an extra layer of security
                     </p>
                   </div>
@@ -187,13 +189,13 @@ export function Profile() {
             <Card className="p-6">
               <div className="flex items-center gap-2 mb-6">
                 <BarChart3 className="w-5 h-5 text-primary-600" />
-                <h3 className="text-lg font-semibold text-neutral-900">
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
                   Account Stats
                 </h3>
               </div>
 
               <div className="space-y-4">
-                <div className="flex justify-between items-center py-3 border-b border-neutral-100">
+                <div className="flex justify-between items-center py-3 border-b border-neutral-100 dark:border-neutral-800">
                   <div className="flex items-center gap-2 text-neutral-600">
                     <FileText className="w-4 h-4" />
                     <span className="text-sm">Projects Created</span>
@@ -205,7 +207,7 @@ export function Profile() {
                   )}
                 </div>
 
-                <div className="flex justify-between items-center py-3 border-b border-neutral-100">
+                <div className="flex justify-between items-center py-3 border-b border-neutral-100 dark:border-neutral-800">
                   <div className="flex items-center gap-2 text-neutral-600">
                     <FileText className="w-4 h-4" />
                     <span className="text-sm">Files Uploaded</span>
@@ -225,7 +227,7 @@ export function Profile() {
 
             {/* Quick Actions */}
             <Card className="p-6">
-              <h3 className="text-lg font-semibold text-neutral-900 mb-4">
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">
                 Quick Actions
               </h3>
 

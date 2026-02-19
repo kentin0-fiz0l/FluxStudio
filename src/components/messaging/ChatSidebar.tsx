@@ -11,8 +11,9 @@
  * Extracted from MessagesNew.tsx for Phase 4.2 Technical Debt Resolution
  */
 
-import { Search, UserPlus, Star, BellOff, MessageCircle, Loader2 } from 'lucide-react';
+import { Search, UserPlus, Star, BellOff, MessageCircle } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ConversationItem } from './ConversationSidebar';
 import { EmptyState, emptyStateConfigs } from '@/components/common/EmptyState';
 import type { Conversation, ConversationFilter } from './types';
@@ -120,8 +121,19 @@ export function ChatSidebar({
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
         {isLoading && conversations.length === 0 ? (
-          <div className="flex items-center justify-center h-32">
-            <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
+          <div className="p-4 space-y-3" role="status" aria-busy="true" aria-label="Loading conversations">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-lg">
+                <Skeleton animation="shimmer" variant="avatar" size="md" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Skeleton animation="shimmer" className="h-4 w-24" />
+                    <Skeleton animation="shimmer" className="h-3 w-10" />
+                  </div>
+                  <Skeleton animation="shimmer" className="h-3 w-full" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredConversations.length === 0 ? (
           searchTerm ? (
@@ -145,14 +157,39 @@ export function ChatSidebar({
             />
           )
         ) : (
-          filteredConversations.map((conversation) => (
-            <ConversationItem
-              key={conversation.id}
-              conversation={conversation}
-              isSelected={selectedConversation?.id === conversation.id}
-              onClick={() => onConversationClick(conversation)}
-            />
-          ))
+          (() => {
+            const unread = filteredConversations.filter(c => c.unreadCount > 0);
+            const read = filteredConversations.filter(c => c.unreadCount === 0);
+            return (
+              <>
+                {unread.map((conversation) => (
+                  <ConversationItem
+                    key={conversation.id}
+                    conversation={conversation}
+                    isSelected={selectedConversation?.id === conversation.id}
+                    onClick={() => onConversationClick(conversation)}
+                  />
+                ))}
+                {unread.length > 0 && read.length > 0 && (
+                  <div className="flex items-center gap-3 px-4 py-2" role="separator">
+                    <div className="flex-1 h-px bg-neutral-200 dark:bg-neutral-700" />
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
+                      Earlier
+                    </span>
+                    <div className="flex-1 h-px bg-neutral-200 dark:bg-neutral-700" />
+                  </div>
+                )}
+                {read.map((conversation) => (
+                  <ConversationItem
+                    key={conversation.id}
+                    conversation={conversation}
+                    isSelected={selectedConversation?.id === conversation.id}
+                    onClick={() => onConversationClick(conversation)}
+                  />
+                ))}
+              </>
+            );
+          })()
         )}
       </div>
     </Card>
