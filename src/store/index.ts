@@ -10,16 +10,16 @@
  *   const setProject = useStore(state => state.projects.setActive);
  */
 
-export { useStore, useAuthStore, useProjectStore, useUIStore } from './store';
+export { useStore, useAuthStore, useProjectStore, useUIStore, useCurrentContext, useUnreadCounts } from './store';
 export type { FluxStore } from './store';
 
 // Domain-specific hooks for convenience
 export { useAuth, useSession } from './slices/authSlice';
-export { useProjects, useActiveProject, useProjectContext } from './slices/projectSlice';
+export { useProjects, useActiveProject, useProjectContext, useCurrentProjectId, useRequiredProject } from './slices/projectSlice';
 export { useUI, useTheme, useSidebar, useWorkspace, useWorkingContext } from './slices/uiSlice';
 export { useOrganization, useOrg } from './slices/orgSlice';
 export { useNotifications, useNotification } from './slices/notificationSlice';
-export { useMessaging } from './slices/messagingSlice';
+export { useMessagingStore, useMessagingStore as useMessaging } from './slices/messagingSlice';
 export { useOffline, useSyncStatus } from './slices/offlineSlice';
 export {
   useCollaboration,

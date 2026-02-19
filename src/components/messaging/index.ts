@@ -56,8 +56,9 @@ export {
   QUICK_REACTIONS,
 } from './utils';
 
-// Context
-export { MessagingProvider, useMessaging } from '../../contexts/MessagingContext';
+// Messaging hooks (migrated to Zustand in Sprint 24)
+export { MessagingProvider } from '../../contexts/MessagingContext';
+export { useMessaging } from '../../hooks/useMessaging';
 
 // Types (re-export for convenience)
 export type {

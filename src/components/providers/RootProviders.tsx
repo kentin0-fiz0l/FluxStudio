@@ -28,6 +28,7 @@ import { AuthProvider } from '../../contexts/AuthContext';
 import { SocketProvider } from '../../contexts/SocketContext';
 import { NotificationProvider } from '../../contexts/NotificationContext';
 import { RealtimeNotifications } from '../notifications/RealtimeNotifications';
+import { MessagingSocketBridge } from '../../contexts/MessagingContext';
 import { SessionProvider } from '../../contexts/SessionContext';
 import { OrganizationProvider } from '../../contexts/OrganizationContext';
 
@@ -54,6 +55,7 @@ function RealtimeProviders({ children }: ProvidersProps) {
     <SocketProvider>
       <NotificationProvider>
         <RealtimeNotifications enabled={true} soundEnabled={true} />
+        <MessagingSocketBridge />
         {children}
       </NotificationProvider>
     </SocketProvider>

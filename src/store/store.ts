@@ -126,6 +126,36 @@ export const useUIStore = () => useStore((state) => state.ui);
 // Agent
 export const useAgentStore = () => useStore((state) => state.agent);
 
+// Messaging
+export const useMessagingStoreRoot = () => useStore((state) => state.messaging);
+
+// Assets / Files
+export const useAssetStoreRoot = () => useStore((state) => state.assets);
+
+// Notifications
+export const useNotificationStore = () => useStore((state) => state.notifications);
+
+// ============================================================================
+// Cross-Slice Selectors
+// ============================================================================
+
+/** Current user + active project in one shot (common in page headers) */
+export const useCurrentContext = () => useStore((state) => ({
+  user: state.auth.user,
+  isAuthenticated: state.auth.isAuthenticated,
+  activeProject: state.projects.activeProjectId
+    ? state.projects.projects.find((p) => p.id === state.projects.activeProjectId) || null
+    : null,
+  activeProjectId: state.projects.activeProjectId,
+  theme: state.ui.theme,
+}));
+
+/** Unread counts across messaging and notifications */
+export const useUnreadCounts = () => useStore((state) => ({
+  messages: state.messaging.unreadCounts?.messages || 0,
+  notifications: state.notifications?.unreadCount || 0,
+}));
+
 // ============================================================================
 // Store Utilities
 // ============================================================================

@@ -265,5 +265,34 @@ export const useActiveProject = () => {
     setActiveProject,
     clearActiveProject,
     isProjectFocused: (id: string) => id === activeProjectId,
+    isReady: true,
+  };
+};
+
+/**
+ * useCurrentProjectId - returns just the active project ID (or null).
+ * Drop-in replacement for the old ProjectContext utility hook.
+ */
+export const useCurrentProjectId = (): string | null => {
+  return useStore((s) => s.projects.activeProjectId);
+};
+
+/**
+ * useRequiredProject - returns project + loading state for gated UIs.
+ * Drop-in replacement for the old ProjectContext utility hook.
+ */
+export const useRequiredProject = () => {
+  const activeProjectId = useStore((s) => s.projects.activeProjectId);
+  const projects = useStore((s) => s.projects.projects);
+  const isLoading = useStore((s) => s.projects.isLoading);
+
+  const project = activeProjectId
+    ? projects.find((p) => p.id === activeProjectId) || null
+    : null;
+
+  return {
+    project,
+    isLoading,
+    hasProject: project !== null,
   };
 };

@@ -1,5 +1,8 @@
 /**
  * Messaging Slice - Chat and conversation state
+ *
+ * Migrated from MessagingContext (Sprint 24).
+ * All messaging state now lives here. The old Context is a socket bridge only.
  */
 
 import { StateCreator } from 'zustand';
@@ -9,6 +12,21 @@ import { storeLogger } from '@/services/logging';
 // ============================================================================
 // Types
 // ============================================================================
+
+export interface MessageUser {
+  id: string;
+  name: string;
+  userType: string;
+  avatar?: string;
+  isOnline?: boolean;
+  lastSeen?: Date;
+}
+
+export interface UserPresence {
+  userId: string;
+  status: string;
+  lastSeen?: Date;
+}
 
 export interface Message {
   id: string;
@@ -34,6 +52,11 @@ export interface Conversation {
   projectId?: string;
   createdAt: string;
   updatedAt: string;
+  // Extended fields from messaging types
+  type?: string;
+  participants?: Array<{ id: string; name: string; [key: string]: unknown }>;
+  metadata?: { priority?: string; isArchived?: boolean; isMuted?: boolean; isPinned?: boolean; tags?: string[] };
+  lastActivity?: string;
 }
 
 export interface TypingIndicator {
@@ -44,25 +67,53 @@ export interface TypingIndicator {
 }
 
 export interface MessagingState {
+  currentUser: MessageUser | null;
   conversations: Conversation[];
   activeConversationId: string | null;
-  messages: Record<string, Message[]>; // conversationId -> messages
+  messages: Record<string, Message[]>;
   typingIndicators: TypingIndicator[];
+  userPresence: Record<string, UserPresence>;
+  connectionStatus: boolean;
+  loadingStates: Record<string, boolean>;
+  unreadCounts: { messages: number; notifications: number };
   isLoading: boolean;
   error: string | null;
 }
 
 export interface MessagingActions {
+  // User
+  setCurrentUser: (user: MessageUser) => void;
+
+  // Conversations
   setConversations: (conversations: Conversation[]) => void;
   addConversation: (conversation: Conversation) => void;
+  updateConversation: (id: string, updates: Partial<Conversation>) => void;
   setActiveConversation: (id: string | null) => void;
+
+  // Messages
   setMessages: (conversationId: string, messages: Message[]) => void;
   addMessage: (message: Message) => void;
   updateMessage: (messageId: string, updates: Partial<Message>) => void;
   deleteMessage: (conversationId: string, messageId: string) => void;
+
+  // Typing
   setTyping: (indicator: TypingIndicator) => void;
   clearTyping: (conversationId: string, userId: string) => void;
+
+  // Presence
+  setUserPresence: (presenceList: UserPresence[]) => void;
+  updateUserPresence: (presence: UserPresence) => void;
+
+  // Connection
+  setConnectionStatus: (connected: boolean) => void;
+
+  // Loading
+  setLoadingState: (key: string, loading: boolean) => void;
+
+  // Read state
   markAsRead: (conversationId: string) => void;
+
+  // Async actions
   fetchConversations: () => Promise<void>;
   fetchMessages: (conversationId: string) => Promise<void>;
   sendMessage: (conversationId: string, content: string, replyToId?: string) => Promise<void>;
@@ -77,13 +128,26 @@ export interface MessagingSlice {
 // ============================================================================
 
 const initialState: MessagingState = {
+  currentUser: null,
   conversations: [],
   activeConversationId: null,
   messages: {},
   typingIndicators: [],
+  userPresence: {},
+  connectionStatus: false,
+  loadingStates: {},
+  unreadCounts: { messages: 0, notifications: 0 },
   isLoading: false,
   error: null,
 };
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function computeUnreadMessages(conversations: Conversation[]): number {
+  return conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
+}
 
 // ============================================================================
 // Slice Creator
@@ -98,9 +162,20 @@ export const createMessagingSlice: StateCreator<
   messaging: {
     ...initialState,
 
+    // ── User ──────────────────────────────────────────────────────────
+
+    setCurrentUser: (user) => {
+      set((state) => {
+        state.messaging.currentUser = user;
+      });
+    },
+
+    // ── Conversations ────────────────────────────────────────────────
+
     setConversations: (conversations) => {
       set((state) => {
         state.messaging.conversations = conversations;
+        state.messaging.unreadCounts.messages = computeUnreadMessages(conversations);
       });
     },
 
@@ -110,11 +185,22 @@ export const createMessagingSlice: StateCreator<
       });
     },
 
+    updateConversation: (id, updates) => {
+      set((state) => {
+        const conv = state.messaging.conversations.find((c) => c.id === id);
+        if (conv) {
+          Object.assign(conv, updates);
+        }
+      });
+    },
+
     setActiveConversation: (id) => {
       set((state) => {
         state.messaging.activeConversationId = id;
       });
     },
+
+    // ── Messages ─────────────────────────────────────────────────────
 
     setMessages: (conversationId, messages) => {
       set((state) => {
@@ -128,13 +214,20 @@ export const createMessagingSlice: StateCreator<
         messages.push(message);
         state.messaging.messages[message.conversationId] = messages;
 
-        // Update conversation's last message
+        // Update conversation's last message and unread count
         const conversation = state.messaging.conversations.find(
           (c) => c.id === message.conversationId
         );
         if (conversation) {
           conversation.lastMessage = message;
           conversation.updatedAt = message.createdAt;
+          if (conversation.lastActivity !== undefined) {
+            conversation.lastActivity = message.createdAt;
+          }
+          // Increment unread if not the active conversation
+          if (message.conversationId !== state.messaging.activeConversationId) {
+            conversation.unreadCount = (conversation.unreadCount || 0) + 1;
+          }
         }
       });
     },
@@ -160,9 +253,10 @@ export const createMessagingSlice: StateCreator<
       });
     },
 
+    // ── Typing ───────────────────────────────────────────────────────
+
     setTyping: (indicator) => {
       set((state) => {
-        // Remove existing indicator for this user/conversation
         state.messaging.typingIndicators = state.messaging.typingIndicators.filter(
           (t) => !(t.conversationId === indicator.conversationId && t.userId === indicator.userId)
         );
@@ -183,17 +277,58 @@ export const createMessagingSlice: StateCreator<
       });
     },
 
+    // ── Presence ─────────────────────────────────────────────────────
+
+    setUserPresence: (presenceList) => {
+      set((state) => {
+        const map: Record<string, UserPresence> = {};
+        for (const p of presenceList) {
+          map[p.userId] = p;
+        }
+        state.messaging.userPresence = map;
+      });
+    },
+
+    updateUserPresence: (presence) => {
+      set((state) => {
+        state.messaging.userPresence[presence.userId] = presence;
+      });
+    },
+
+    // ── Connection ───────────────────────────────────────────────────
+
+    setConnectionStatus: (connected) => {
+      set((state) => {
+        state.messaging.connectionStatus = connected;
+      });
+    },
+
+    // ── Loading ──────────────────────────────────────────────────────
+
+    setLoadingState: (key, loading) => {
+      set((state) => {
+        state.messaging.loadingStates[key] = loading;
+      });
+    },
+
+    // ── Read state ───────────────────────────────────────────────────
+
     markAsRead: (conversationId) => {
       set((state) => {
         const conversation = state.messaging.conversations.find((c) => c.id === conversationId);
         if (conversation) {
           conversation.unreadCount = 0;
         }
+        // Recompute total
+        state.messaging.unreadCounts.messages = computeUnreadMessages(state.messaging.conversations);
       });
     },
 
+    // ── Async actions ────────────────────────────────────────────────
+
     fetchConversations: async () => {
       set((state) => {
+        state.messaging.loadingStates.conversations = true;
         state.messaging.isLoading = true;
       });
 
@@ -206,19 +341,27 @@ export const createMessagingSlice: StateCreator<
         if (!response.ok) throw new Error('Failed to fetch conversations');
 
         const data = await response.json();
+        const conversations = data.conversations || data;
         set((state) => {
-          state.messaging.conversations = data.conversations || data;
+          state.messaging.conversations = conversations;
+          state.messaging.unreadCounts.messages = computeUnreadMessages(conversations);
+          state.messaging.loadingStates.conversations = false;
           state.messaging.isLoading = false;
         });
       } catch (error) {
         set((state) => {
           state.messaging.error = error instanceof Error ? error.message : 'Failed to fetch';
+          state.messaging.loadingStates.conversations = false;
           state.messaging.isLoading = false;
         });
       }
     },
 
     fetchMessages: async (conversationId) => {
+      set((state) => {
+        state.messaging.loadingStates[`messages-${conversationId}`] = true;
+      });
+
       try {
         const token = localStorage.getItem('auth_token');
         const response = await fetch(`/api/conversations/${conversationId}/messages`, {
@@ -230,9 +373,13 @@ export const createMessagingSlice: StateCreator<
         const data = await response.json();
         set((state) => {
           state.messaging.messages[conversationId] = data.messages || data;
+          state.messaging.loadingStates[`messages-${conversationId}`] = false;
         });
       } catch (error) {
         storeLogger.error('Failed to fetch messages', error);
+        set((state) => {
+          state.messaging.loadingStates[`messages-${conversationId}`] = false;
+        });
       }
     },
 
@@ -261,11 +408,11 @@ export const createMessagingSlice: StateCreator<
 });
 
 // ============================================================================
-// Convenience Hook
+// Convenience Hooks
 // ============================================================================
 
 import { useStore } from '../store';
 
-export const useMessaging = () => {
+export const useMessagingStore = () => {
   return useStore((state) => state.messaging);
 };

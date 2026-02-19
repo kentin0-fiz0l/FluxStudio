@@ -1,21 +1,24 @@
 /**
  * Messaging Hook
- * Simplified wrapper around MessagingContext for backward compatibility
- * Includes API calls for message edit/delete operations
+ *
+ * Public API for all messaging state and actions.
+ * Reads from the Zustand messaging slice (Sprint 24 migration).
+ * Includes API calls for message edit/delete operations.
  */
 
-import { useMessaging as useMessagingContext, useMessagingOptional as useMessagingContextOptional } from '../contexts/MessagingContext';
-import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useCallback } from 'react';
+import { useStore } from '../store/store';
+import { useAuth } from '../contexts/AuthContext';
+import { messagingService } from '../services/messagingService';
 import { buildApiUrl } from '../config/environment';
 import { hookLogger } from '../lib/logger';
+import type { MessageUser } from '../store/slices/messagingSlice';
 
 const messagingLogger = hookLogger.child('useMessaging');
-import {
+
+import type {
   Message,
   Conversation,
-  MessageUser,
-  ConversationType,
   MessageType,
   Priority,
   MessageAttachment,
@@ -23,6 +26,7 @@ import {
   MessageSearchOptions,
   TypingIndicator,
   UserPresence,
+  ConversationType,
 } from '../types/messaging';
 
 interface SendMessageOptions {
@@ -87,7 +91,7 @@ interface UseMessagingReturn {
   unreadCount: number;
 }
 
-// Default values for when context is not available
+// Default values for when store has no data yet
 const defaultReturn: UseMessagingReturn = {
   conversations: [],
   activeConversation: null,
@@ -125,33 +129,24 @@ const defaultReturn: UseMessagingReturn = {
 };
 
 /**
- * Optional messaging hook that returns default values when context is not available
- * Use this in components that may render outside the MessagingProvider
+ * Optional messaging hook that returns default values when not ready
  */
 export function useMessagingOptional(): UseMessagingReturn {
-  const context = useMessagingContextOptional();
-
-  // If context is not available, return defaults
-  if (!context) {
-    return defaultReturn;
-  }
-
-  // Delegate to the full hook logic via a wrapper
-  // Note: We can't call useMessaging() here because it would throw
-  // Instead, we duplicate the minimal logic needed
-  const { state } = context;
+  const conversations = useStore((s) => s.messaging.conversations);
+  const unreadCounts = useStore((s) => s.messaging.unreadCounts);
+  const loadingStates = useStore((s) => s.messaging.loadingStates);
 
   return {
     ...defaultReturn,
-    conversations: state.conversations,
-    unreadCount: state.unreadCounts?.messages || 0,
-    isLoading: state.loading.conversations || state.loading.notifications || false,
+    conversations: conversations as unknown as Conversation[],
+    unreadCount: unreadCounts?.messages || 0,
+    isLoading: loadingStates?.conversations || false,
   };
 }
 
 export function useMessaging(): UseMessagingReturn {
   const { user } = useAuth();
-  const { state, actions } = useMessagingContext();
+  const store = useStore((s) => s.messaging);
 
   // Set current user when auth changes
   useEffect(() => {
@@ -164,25 +159,25 @@ export function useMessaging(): UseMessagingReturn {
         isOnline: true,
         lastSeen: new Date(),
       };
-      actions.setCurrentUser(messageUser);
+      store.setCurrentUser(messageUser);
+      messagingService.setCurrentUser(messageUser as Parameters<typeof messagingService.setCurrentUser>[0]);
     }
-  }, [user, actions]);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load conversations on mount
   useEffect(() => {
     if (user) {
-      actions.loadConversations();
-      actions.loadNotifications();
+      store.fetchConversations();
     }
-  }, [user, actions]);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const activeConversation = state.conversations.find(c => c.id === state.activeConversationId) || null;
-  const conversationMessages = state.activeConversationId
-    ? state.messages[state.activeConversationId] || []
+  const activeConversation = store.conversations.find((c) => c.id === store.activeConversationId) || null;
+  const conversationMessages = store.activeConversationId
+    ? store.messages[store.activeConversationId] || []
     : [];
 
-  const createConversation = async (options: CreateConversationOptions): Promise<string> => {
-    const conversation = await actions.createConversation({
+  const createConversation = useCallback(async (options: CreateConversationOptions): Promise<string> => {
+    const conversation = await messagingService.createConversation({
       type: options.type,
       name: options.name,
       description: options.description,
@@ -196,13 +191,15 @@ export function useMessaging(): UseMessagingReturn {
         tags: [],
       },
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    store.addConversation(conversation as any);
     return conversation.id;
-  };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const sendMessage = async (conversationId: string, options: SendMessageOptions): Promise<void> => {
-    if (!state.currentUser) return;
+  const sendMessage = useCallback(async (conversationId: string, options: SendMessageOptions): Promise<void> => {
+    if (!store.currentUser) return;
 
-    await actions.sendMessage({
+    await messagingService.sendMessage({
       conversationId,
       type: options.type || 'text',
       content: options.content,
@@ -215,43 +212,21 @@ export function useMessaging(): UseMessagingReturn {
         projectId: options.projectId,
       },
     });
-  };
+  }, [store.currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const setActiveConversation = (conversationId: string | null) => {
-    actions.selectConversation(conversationId || '');
+  const setActiveConversation = useCallback((conversationId: string | null) => {
+    store.setActiveConversation(conversationId);
     if (conversationId) {
-      actions.loadMessages(conversationId);
+      store.markAsRead(conversationId);
+      store.fetchMessages(conversationId);
     }
-  };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const joinConversation = (_conversationId: string) => {
-    // Implementation handled by messaging service
-  };
-
-  const leaveConversation = (_conversationId: string) => {
-    // Implementation handled by messaging service
-  };
-
-  const addParticipant = (_conversationId: string, _userId: string) => {
-    // Would call messaging service to add participant
-  };
-
-  const removeParticipant = (_conversationId: string, _userId: string) => {
-    // Would call messaging service to remove participant
-  };
-
-  const searchMessages = (_options: MessageSearchOptions): Message[] => {
-    // For now, return empty array - would implement search
-    return [];
-  };
-
-  const filterConversations = (filter: ConversationFilter): Conversation[] => {
+  const filterConversations = useCallback((filter: ConversationFilter): Conversation[] => {
     try {
-      return state.conversations.filter(conv => {
-        if (!conv) {
-          messagingLogger.warn('Undefined conversation in array');
-          return false;
-        }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return store.conversations.filter((conv: any) => {
+        if (!conv) return false;
         if (filter.type && conv.type !== filter.type) return false;
         if (filter.priority && conv.metadata?.priority !== filter.priority) return false;
         if (filter.hasUnread && conv.unreadCount === 0) return false;
@@ -260,33 +235,19 @@ export function useMessaging(): UseMessagingReturn {
         if (filter.isPinned !== undefined && conv.metadata?.isPinned !== filter.isPinned) return false;
         if (filter.projectId && conv.projectId !== filter.projectId) return false;
         if (filter.participantId) {
-          if (!conv.participants || !Array.isArray(conv.participants)) {
-            messagingLogger.warn('Invalid participants array', { participants: conv.participants });
-            return false;
-          }
-          const hasParticipant = conv.participants.some(p => {
-            if (!p) {
-              messagingLogger.warn('Undefined participant in conversation', { conversationId: conv.id });
-              return false;
-            }
-            if (!p.id) {
-              messagingLogger.warn('Participant without id', { participant: p });
-              return false;
-            }
-            return p.id === filter.participantId;
-          });
+          if (!conv.participants || !Array.isArray(conv.participants)) return false;
+          const hasParticipant = conv.participants.some((p: { id?: string }) => p && p.id === filter.participantId);
           if (!hasParticipant) return false;
         }
         return true;
-      });
+      }) as unknown as Conversation[];
     } catch (error) {
       messagingLogger.error('Error in filterConversations', error);
       return [];
     }
-  };
+  }, [store.conversations]);
 
-  const uploadFile = async (file: File, _conversationId: string): Promise<MessageAttachment> => {
-    // Mock implementation - would upload file and return attachment
+  const uploadFile = useCallback(async (file: File, _conversationId: string): Promise<MessageAttachment> => {
     return {
       id: `file-${Date.now()}`,
       name: file.name,
@@ -296,42 +257,38 @@ export function useMessaging(): UseMessagingReturn {
       isImage: file.type.startsWith('image/'),
       isVideo: file.type.startsWith('video/'),
       uploadedAt: new Date(),
-      uploadedBy: state.currentUser?.id || '',
+      uploadedBy: store.currentUser?.id || '',
     };
-  };
+  }, [store.currentUser?.id]);
 
-  const setTyping = (conversationId: string, isTyping: boolean) => {
+  const setTyping = useCallback((conversationId: string, isTyping: boolean) => {
     if (isTyping) {
-      actions.startTyping(conversationId);
+      messagingService.startTyping(conversationId);
     } else {
-      actions.stopTyping(conversationId);
+      messagingService.stopTyping(conversationId);
     }
-  };
+  }, []);
 
-  const refresh = async () => {
-    await actions.loadConversations();
-    await actions.loadNotifications();
-  };
+  const refresh = useCallback(async () => {
+    await store.fetchConversations();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const editMessage = useCallback(async (messageId: string, content: string): Promise<void> => {
-    if (!state.activeConversationId) {
-      throw new Error('No active conversation');
-    }
+    const activeId = useStore.getState().messaging.activeConversationId;
+    if (!activeId) throw new Error('No active conversation');
 
     const token = localStorage.getItem('auth_token');
-    if (!token) {
-      throw new Error('Not authenticated');
-    }
+    if (!token) throw new Error('Not authenticated');
 
     const response = await fetch(
-      buildApiUrl(`/conversations/${state.activeConversationId}/messages/${messageId}`),
+      buildApiUrl(`/conversations/${activeId}/messages/${messageId}`),
       {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ text: content })
+        body: JSON.stringify({ text: content }),
       }
     );
 
@@ -340,27 +297,21 @@ export function useMessaging(): UseMessagingReturn {
       throw new Error(errorData.error || 'Failed to edit message');
     }
 
-    // Reload messages to reflect the edit
-    await actions.loadMessages(state.activeConversationId);
-  }, [state.activeConversationId, actions]);
+    useStore.getState().messaging.fetchMessages(activeId);
+  }, []);
 
   const deleteMessage = useCallback(async (messageId: string): Promise<void> => {
-    if (!state.activeConversationId) {
-      throw new Error('No active conversation');
-    }
+    const activeId = useStore.getState().messaging.activeConversationId;
+    if (!activeId) throw new Error('No active conversation');
 
     const token = localStorage.getItem('auth_token');
-    if (!token) {
-      throw new Error('Not authenticated');
-    }
+    if (!token) throw new Error('Not authenticated');
 
     const response = await fetch(
-      buildApiUrl(`/conversations/${state.activeConversationId}/messages/${messageId}`),
+      buildApiUrl(`/conversations/${activeId}/messages/${messageId}`),
       {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` },
       }
     );
 
@@ -369,49 +320,35 @@ export function useMessaging(): UseMessagingReturn {
       throw new Error(errorData.error || 'Failed to delete message');
     }
 
-    // Reload messages to reflect the deletion
-    await actions.loadMessages(state.activeConversationId);
-  }, [state.activeConversationId, actions]);
+    useStore.getState().messaging.fetchMessages(activeId);
+  }, []);
 
+  // Store types are structurally compatible with types/messaging at runtime
+  // but have fewer required fields. Cast at the boundary.
   return {
-    // Conversations
-    conversations: state.conversations,
-    activeConversation,
-    conversationMessages,
-
-    // Real-time features
-    typingIndicators: [], // Would implement from state
-    userPresence: state.userPresence,
-
-    // Actions
+    conversations: store.conversations as unknown as Conversation[],
+    activeConversation: activeConversation as unknown as Conversation | null,
+    conversationMessages: conversationMessages as unknown as Message[],
+    typingIndicators: store.typingIndicators as unknown as TypingIndicator[],
+    userPresence: store.userPresence as unknown as Record<string, UserPresence>,
     createConversation,
     sendMessage,
     editMessage,
     deleteMessage,
     setActiveConversation,
-    joinConversation,
-    leaveConversation,
-    addParticipant,
-    removeParticipant,
-
-    // Search and filtering
-    searchMessages,
+    joinConversation: () => {},
+    leaveConversation: () => {},
+    addParticipant: () => {},
+    removeParticipant: () => {},
+    searchMessages: () => [],
     filterConversations,
-
-    // File handling
     uploadFile,
-
-    // Typing indicators
     setTyping,
-
-    // State
-    isLoading: state.loading.conversations || state.loading.notifications || false,
-    error: null,
+    isLoading: store.loadingStates?.conversations || false,
+    error: store.error,
     lastUpdated: new Date(),
     refresh,
-
-    // Unread counts
-    unreadCount: state.unreadCounts?.messages || 0,
+    unreadCount: store.unreadCounts?.messages || 0,
   };
 }
 
