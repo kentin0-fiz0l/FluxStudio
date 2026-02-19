@@ -215,7 +215,7 @@ describe('WorkflowAutomationService', () => {
       });
 
       await workflowAutomationService.processMessageForTriggers(
-        createMockMessage({ content: 'TODO: Update the landing page' }),
+        createMockMessage({ content: 'Task: Update the landing page' }),
         createContext()
       );
 
