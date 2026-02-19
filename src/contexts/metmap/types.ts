@@ -21,9 +21,22 @@ export interface Song {
   totalBars: number;
   practiceCount: number;
   sections?: Section[];
+  audioFileUrl?: string;
+  audioDurationSeconds?: number;
+  detectedBpm?: number;
+  beatMap?: BeatMap;
   createdAt: string;
   updatedAt: string;
 }
+
+export interface BeatMap {
+  bpm: number;
+  beats: number[];       // timestamps in seconds
+  onsets: number[];       // onset timestamps in seconds
+  confidence: number;     // 0-1 detection confidence
+}
+
+export type PlaybackMode = 'metronome' | 'audio' | 'both';
 
 export interface Section {
   id?: string;
@@ -106,6 +119,8 @@ export interface PlaybackState {
   elapsedMs: number;
   countingOff: boolean;
   countoffBeatsRemaining: number;
+  playbackMode: PlaybackMode;
+  currentTimeSeconds: number;
 }
 
 export const initialPlaybackState: PlaybackState = {
@@ -118,7 +133,9 @@ export const initialPlaybackState: PlaybackState = {
   currentSectionIndex: 0,
   elapsedMs: 0,
   countingOff: false,
-  countoffBeatsRemaining: 0
+  countoffBeatsRemaining: 0,
+  playbackMode: 'metronome',
+  currentTimeSeconds: 0,
 };
 
 // ==================== State Types ====================
@@ -150,6 +167,11 @@ export interface MetMapState {
 
   // Stats
   stats: MetMapStats | null;
+
+  // Audio
+  audioLoading: boolean;
+  audioError: string | null;
+  beatDetectionLoading: boolean;
 }
 
 export const initialMetMapState: MetMapState = {
@@ -177,7 +199,10 @@ export const initialMetMapState: MetMapState = {
   activePracticeSession: null,
   practiceHistory: [],
   practiceHistoryLoading: false,
-  stats: null
+  stats: null,
+  audioLoading: false,
+  audioError: null,
+  beatDetectionLoading: false,
 };
 
 // ==================== Action Types ====================
@@ -201,7 +226,13 @@ export type MetMapAction =
   | { type: 'SET_ACTIVE_PRACTICE_SESSION'; payload: PracticeSession | null }
   | { type: 'SET_PRACTICE_HISTORY_LOADING'; payload: boolean }
   | { type: 'SET_PRACTICE_HISTORY'; payload: PracticeSession[] }
-  | { type: 'SET_STATS'; payload: MetMapStats };
+  | { type: 'SET_STATS'; payload: MetMapStats }
+  | { type: 'SET_AUDIO_LOADING'; payload: boolean }
+  | { type: 'SET_AUDIO_ERROR'; payload: string | null }
+  | { type: 'SET_BEAT_DETECTION_LOADING'; payload: boolean }
+  | { type: 'SET_SONG_AUDIO'; payload: { songId: string; audioFileUrl: string; audioDurationSeconds: number } }
+  | { type: 'SET_SONG_BEAT_MAP'; payload: { songId: string; beatMap: BeatMap; detectedBpm: number } }
+  | { type: 'CLEAR_SONG_AUDIO'; payload: string };
 
 // ==================== Reducer ====================
 
@@ -264,6 +295,48 @@ export function metmapReducer(state: MetMapState, action: MetMapAction): MetMapS
       return { ...state, practiceHistory: action.payload, practiceHistoryLoading: false };
     case 'SET_STATS':
       return { ...state, stats: action.payload };
+    case 'SET_AUDIO_LOADING':
+      return { ...state, audioLoading: action.payload, audioError: null };
+    case 'SET_AUDIO_ERROR':
+      return { ...state, audioError: action.payload, audioLoading: false };
+    case 'SET_BEAT_DETECTION_LOADING':
+      return { ...state, beatDetectionLoading: action.payload };
+    case 'SET_SONG_AUDIO': {
+      const { songId, audioFileUrl, audioDurationSeconds } = action.payload;
+      const updatedSong = state.currentSong?.id === songId
+        ? { ...state.currentSong, audioFileUrl, audioDurationSeconds }
+        : state.currentSong;
+      return {
+        ...state,
+        currentSong: updatedSong,
+        songs: state.songs.map(s => s.id === songId ? { ...s, audioFileUrl, audioDurationSeconds } : s),
+        audioLoading: false,
+      };
+    }
+    case 'SET_SONG_BEAT_MAP': {
+      const { songId, beatMap, detectedBpm } = action.payload;
+      const updatedSong2 = state.currentSong?.id === songId
+        ? { ...state.currentSong, beatMap, detectedBpm }
+        : state.currentSong;
+      return {
+        ...state,
+        currentSong: updatedSong2,
+        songs: state.songs.map(s => s.id === songId ? { ...s, beatMap, detectedBpm } : s),
+        beatDetectionLoading: false,
+      };
+    }
+    case 'CLEAR_SONG_AUDIO': {
+      const clearedSong = state.currentSong?.id === action.payload
+        ? { ...state.currentSong, audioFileUrl: undefined, audioDurationSeconds: undefined, beatMap: undefined, detectedBpm: undefined }
+        : state.currentSong;
+      return {
+        ...state,
+        currentSong: clearedSong,
+        songs: state.songs.map(s => s.id === action.payload
+          ? { ...s, audioFileUrl: undefined, audioDurationSeconds: undefined, beatMap: undefined, detectedBpm: undefined }
+          : s),
+      };
+    }
     default:
       return state;
   }
@@ -304,6 +377,8 @@ export interface PlaybackContextValue {
   pause: () => void;
   stop: () => void;
   seekToBar: (bar: number) => void;
+  seekToTime: (seconds: number) => void;
+  setPlaybackMode: (mode: PlaybackMode) => void;
 }
 
 export interface PracticeContextValue {
@@ -354,4 +429,81 @@ export function calculateGlobalBeat(sections: Section[], bar: number, beat: numb
 export function getBeatsPerBar(timeSignature: string): number {
   const [numerator] = timeSignature.split('/').map(Number);
   return numerator || 4;
+}
+
+/**
+ * Convert elapsed seconds to global beat position using tempo map.
+ * Walks through sections, accumulating time per beat at each section's tempo.
+ */
+export function secondsToGlobalBeat(sections: Section[], seconds: number): number {
+  let elapsedSeconds = 0;
+  let globalBeat = 0;
+
+  for (const section of sections) {
+    const beatsPerBar = getBeatsPerBar(section.timeSignature);
+    const sectionBeats = section.bars * beatsPerBar;
+    const tempoStart = section.tempoStart;
+    const tempoEnd = section.tempoEnd ?? tempoStart;
+    const hasRamp = tempoEnd !== tempoStart;
+
+    for (let b = 0; b < sectionBeats; b++) {
+      const progress = sectionBeats > 1 ? b / sectionBeats : 0;
+      let tempo: number;
+      if (!hasRamp) {
+        tempo = tempoStart;
+      } else if (section.tempoCurve === 'step') {
+        tempo = tempoStart;
+      } else if (section.tempoCurve === 'exponential') {
+        tempo = tempoStart * Math.pow(tempoEnd / tempoStart, progress);
+      } else {
+        tempo = tempoStart + (tempoEnd - tempoStart) * progress;
+      }
+
+      const beatDuration = 60 / tempo;
+      if (elapsedSeconds + beatDuration > seconds) {
+        // Fractional beat
+        const fraction = (seconds - elapsedSeconds) / beatDuration;
+        return globalBeat + fraction;
+      }
+      elapsedSeconds += beatDuration;
+      globalBeat++;
+    }
+  }
+
+  return globalBeat;
+}
+
+/**
+ * Convert global beat position to elapsed seconds using tempo map.
+ */
+export function globalBeatToSeconds(sections: Section[], targetBeat: number): number {
+  let elapsedSeconds = 0;
+  let globalBeat = 0;
+
+  for (const section of sections) {
+    const beatsPerBar = getBeatsPerBar(section.timeSignature);
+    const sectionBeats = section.bars * beatsPerBar;
+    const tempoStart = section.tempoStart;
+    const tempoEnd = section.tempoEnd ?? tempoStart;
+    const hasRamp = tempoEnd !== tempoStart;
+
+    for (let b = 0; b < sectionBeats; b++) {
+      if (globalBeat >= targetBeat) return elapsedSeconds;
+      const progress = sectionBeats > 1 ? b / sectionBeats : 0;
+      let tempo: number;
+      if (!hasRamp) {
+        tempo = tempoStart;
+      } else if (section.tempoCurve === 'step') {
+        tempo = tempoStart;
+      } else if (section.tempoCurve === 'exponential') {
+        tempo = tempoStart * Math.pow(tempoEnd / tempoStart, progress);
+      } else {
+        tempo = tempoStart + (tempoEnd - tempoStart) * progress;
+      }
+      elapsedSeconds += 60 / tempo;
+      globalBeat++;
+    }
+  }
+
+  return elapsedSeconds;
 }

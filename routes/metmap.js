@@ -12,8 +12,19 @@
 
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const { authenticateToken } = require('../lib/auth/middleware');
 const metmapAdapter = require('../database/metmap-adapter');
+const { fileStorage } = require('../lib/storage');
+
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/flac', 'audio/mp4', 'audio/x-m4a', 'audio/aac'];
+    cb(null, allowed.includes(file.mimetype));
+  }
+});
 
 // ========================================
 // SONGS
@@ -149,6 +160,94 @@ router.delete('/songs/:songId', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error deleting song:', error);
     res.status(500).json({ error: 'Failed to delete song' });
+  }
+});
+
+// ========================================
+// AUDIO
+// ========================================
+
+/**
+ * POST /api/metmap/songs/:songId/audio
+ * Upload an audio file for a song
+ */
+router.post('/songs/:songId/audio', authenticateToken, audioUpload.single('audio'), async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ error: 'No audio file provided' });
+    }
+
+    // Verify song ownership
+    const song = await metmapAdapter.getSongById(songId, req.user.id);
+    if (!song) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    // Upload to storage
+    const ext = file.originalname.split('.').pop() || 'mp3';
+    const storageKey = `metmap/audio/${songId}.${ext}`;
+    const url = await fileStorage.uploadToStorage(storageKey, file.buffer, file.mimetype);
+    const audioUrl = url.startsWith('http') ? url : `/api/files/serve/${url}`;
+
+    // Save audio metadata to song
+    const updated = await metmapAdapter.setSongAudio(songId, req.user.id, {
+      audioFileUrl: audioUrl,
+      audioDurationSeconds: null, // Client will detect and update
+    });
+
+    res.json({ song: updated, audioFileUrl: audioUrl });
+  } catch (error) {
+    console.error('Error uploading song audio:', error);
+    res.status(500).json({ error: 'Failed to upload audio' });
+  }
+});
+
+/**
+ * DELETE /api/metmap/songs/:songId/audio
+ * Remove audio file from a song
+ */
+router.delete('/songs/:songId/audio', authenticateToken, async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const updated = await metmapAdapter.clearSongAudio(songId, req.user.id);
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    res.json({ song: updated });
+  } catch (error) {
+    console.error('Error removing song audio:', error);
+    res.status(500).json({ error: 'Failed to remove audio' });
+  }
+});
+
+/**
+ * PUT /api/metmap/songs/:songId/beat-map
+ * Save detected beat map for a song
+ */
+router.put('/songs/:songId/beat-map', authenticateToken, async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const { beatMap, detectedBpm, audioDurationSeconds } = req.body;
+
+    const updated = await metmapAdapter.setSongBeatMap(songId, req.user.id, {
+      beatMap,
+      detectedBpm,
+      audioDurationSeconds,
+    });
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    res.json({ song: updated });
+  } catch (error) {
+    console.error('Error saving beat map:', error);
+    res.status(500).json({ error: 'Failed to save beat map' });
   }
 });
 

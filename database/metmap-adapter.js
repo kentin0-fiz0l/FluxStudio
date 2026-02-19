@@ -672,6 +672,10 @@ function transformSong(row) {
     sectionCount: parseInt(row.section_count || 0, 10),
     totalBars: parseInt(row.total_bars || 0, 10),
     practiceCount: parseInt(row.practice_count || 0, 10),
+    audioFileUrl: row.audio_file_url || null,
+    audioDurationSeconds: row.audio_duration_seconds ? parseFloat(row.audio_duration_seconds) : null,
+    detectedBpm: row.detected_bpm ? parseFloat(row.detected_bpm) : null,
+    beatMap: row.beat_map || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -726,6 +730,66 @@ function transformPracticeSession(row) {
   };
 }
 
+// ==================== AUDIO ====================
+
+/**
+ * Set audio file metadata on a song
+ */
+async function setSongAudio(songId, userId, { audioFileUrl, audioDurationSeconds }) {
+  try {
+    const result = await query(
+      `UPDATE metmap_songs
+       SET audio_file_url = $1, audio_duration_seconds = $2, updated_at = NOW()
+       WHERE id = $3 AND user_id = $4
+       RETURNING *`,
+      [audioFileUrl, audioDurationSeconds, songId, userId]
+    );
+    return result.rows[0] ? transformSong(result.rows[0]) : null;
+  } catch (error) {
+    console.error('Error setting song audio:', error);
+    throw error;
+  }
+}
+
+/**
+ * Clear audio file from a song
+ */
+async function clearSongAudio(songId, userId) {
+  try {
+    const result = await query(
+      `UPDATE metmap_songs
+       SET audio_file_url = NULL, audio_duration_seconds = NULL,
+           detected_bpm = NULL, beat_map = NULL, updated_at = NOW()
+       WHERE id = $1 AND user_id = $2
+       RETURNING *`,
+      [songId, userId]
+    );
+    return result.rows[0] ? transformSong(result.rows[0]) : null;
+  } catch (error) {
+    console.error('Error clearing song audio:', error);
+    throw error;
+  }
+}
+
+/**
+ * Save beat detection results for a song
+ */
+async function setSongBeatMap(songId, userId, { beatMap, detectedBpm, audioDurationSeconds }) {
+  try {
+    const result = await query(
+      `UPDATE metmap_songs
+       SET beat_map = $1, detected_bpm = $2, audio_duration_seconds = COALESCE($3, audio_duration_seconds), updated_at = NOW()
+       WHERE id = $4 AND user_id = $5
+       RETURNING *`,
+      [JSON.stringify(beatMap), detectedBpm, audioDurationSeconds, songId, userId]
+    );
+    return result.rows[0] ? transformSong(result.rows[0]) : null;
+  } catch (error) {
+    console.error('Error setting song beat map:', error);
+    throw error;
+  }
+}
+
 // ==================== EXPORTS ====================
 
 module.exports = {
@@ -750,6 +814,11 @@ module.exports = {
   createPracticeSession,
   endPracticeSession,
   getPracticeHistory,
+
+  // Audio
+  setSongAudio,
+  clearSongAudio,
+  setSongBeatMap,
 
   // Stats
   getStatsForUser

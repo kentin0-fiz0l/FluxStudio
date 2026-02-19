@@ -1,14 +1,21 @@
 /**
  * Playback Context - FluxStudio
  *
- * Provides the timer-based playback engine for MetMap.
+ * Timer-based playback engine for MetMap with dual-source support:
+ * - 'metronome' mode: existing setTimeout tick loop (no audio file needed)
+ * - 'audio' mode: driven by an external audio clock (wavesurfer/AudioContext)
+ * - 'both' mode: audio plays while metronome clicks overlay
+ *
+ * The engine always ticks through sections using the tempo map.
+ * When an audio file is present and mode includes audio, the
+ * `currentTimeSeconds` field is also updated for waveform sync.
  */
 
 import * as React from 'react';
 import { useNotification } from '../NotificationContext';
 import { useMetMapCore } from './MetMapCoreContext';
-import type { PlaybackContextValue, Section } from './types';
-import { getBeatsPerBar, calculateGlobalBeat } from './types';
+import type { PlaybackContextValue, PlaybackMode, Section } from './types';
+import { getBeatsPerBar, calculateGlobalBeat, secondsToGlobalBeat, globalBeatToSeconds } from './types';
 
 const PlaybackContext = React.createContext<PlaybackContextValue | null>(null);
 
@@ -17,7 +24,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   const { state, dispatch } = useMetMapCore();
 
   // Refs for playback
-  const playbackIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  const playbackIntervalRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const playbackStartTimeRef = React.useRef<number>(0);
 
   const calculateTotalBeats = React.useCallback((sections: Section[]): number => {
@@ -161,6 +168,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         });
       } else {
         const { bar, beat } = getBarAndBeatAtGlobalBeat(state.editedSections, globalBeat);
+        const currentTimeSeconds = globalBeatToSeconds(state.editedSections, globalBeat);
         dispatch({
           type: 'UPDATE_PLAYBACK',
           payload: {
@@ -169,7 +177,8 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
             currentTempo,
             currentSectionId: sectionId,
             currentSectionIndex: sectionIndex,
-            elapsedMs: Date.now() - playbackStartTimeRef.current
+            elapsedMs: Date.now() - playbackStartTimeRef.current,
+            currentTimeSeconds,
           }
         });
 
@@ -209,6 +218,8 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     for (let i = 0; i < state.editedSections.length; i++) {
       const section = state.editedSections[i];
       if (bar < currentBar + section.bars) {
+        const globalBeat = calculateGlobalBeat(state.editedSections, bar, 1);
+        const timeSeconds = globalBeatToSeconds(state.editedSections, globalBeat);
         dispatch({
           type: 'UPDATE_PLAYBACK',
           payload: {
@@ -216,7 +227,8 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
             currentBeat: 1,
             currentSectionIndex: i,
             currentSectionId: section.id,
-            currentTempo: section.tempoStart
+            currentTempo: section.tempoStart,
+            currentTimeSeconds: timeSeconds,
           }
         });
         break;
@@ -226,6 +238,31 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
     if (wasPlaying) play();
   }, [state.playback.isPlaying, state.editedSections, pause, play, dispatch]);
+
+  const seekToTime = React.useCallback((seconds: number) => {
+    const globalBeat = Math.floor(secondsToGlobalBeat(state.editedSections, seconds));
+    const { bar, beat } = getBarAndBeatAtGlobalBeat(state.editedSections, globalBeat);
+    const { tempo, sectionIndex, sectionId } = getTempoAtBeat(state.editedSections, globalBeat);
+
+    dispatch({
+      type: 'UPDATE_PLAYBACK',
+      payload: {
+        currentBar: bar,
+        currentBeat: beat,
+        currentTempo: tempo,
+        currentSectionIndex: sectionIndex,
+        currentSectionId: sectionId,
+        currentTimeSeconds: seconds,
+      }
+    });
+  }, [state.editedSections, getBarAndBeatAtGlobalBeat, getTempoAtBeat, dispatch]);
+
+  const setPlaybackMode = React.useCallback((mode: PlaybackMode) => {
+    dispatch({
+      type: 'UPDATE_PLAYBACK',
+      payload: { playbackMode: mode }
+    });
+  }, [dispatch]);
 
   // Cleanup on unmount
   React.useEffect(() => {
@@ -240,7 +277,9 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     play,
     pause,
     stop,
-    seekToBar
+    seekToBar,
+    seekToTime,
+    setPlaybackMode,
   };
 
   return (

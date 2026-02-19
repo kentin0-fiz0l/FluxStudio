@@ -28,6 +28,12 @@ import { SectionTemplates, SectionTemplate } from '../../components/metmap/Secti
 import { VisualTimeline } from '../../components/metmap/VisualTimeline';
 import { PracticeMode } from '../../components/metmap/PracticeMode';
 import { ExportImport } from '../../components/metmap/ExportImport';
+import { WaveformTimeline } from '../../components/metmap/WaveformTimeline';
+import { TimelineCanvas } from '../../components/metmap/TimelineCanvas';
+import { BeatMarkers } from '../../components/metmap/BeatMarkers';
+import { AudioTrackPanel } from '../../components/metmap/AudioTrackPanel';
+import { detectBeatsWithCache } from '../../services/beatDetection';
+import { usePlayback, useMetMapCore } from '../../contexts/metmap';
 import { useMetronomeAudio, ClickSound } from '../../components/metmap/MetronomeAudio';
 import { useMetMapKeyboardShortcuts, ShortcutsHelp } from '../../hooks/useMetMapKeyboardShortcuts';
 import { announceToScreenReader } from '../../utils/accessibility';
@@ -105,6 +111,12 @@ export default function ToolsMetMap() {
   const [clickVolume, _setClickVolume] = useState(80);
   const [accentFirstBeat, _setAccentFirstBeat] = useState(true);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+
+  // Audio timeline state
+  const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
+  const [timelineZoom, setTimelineZoom] = useState(50);
+  const { state: metmapState, dispatch: metmapDispatch } = useMetMapCore();
+  const { seekToTime, setPlaybackMode } = usePlayback();
 
   // Metronome audio hook
   const { playClick } = useMetronomeAudio();
@@ -374,6 +386,100 @@ export default function ToolsMetMap() {
       const startBar = editedSections.slice(0, sectionIndex).reduce((sum, s) => sum + s.bars, 0) + 1;
       seekToBar(startBar);
     }
+  };
+
+  // Audio handlers
+  const handleUploadAudio = async (file: File) => {
+    if (!currentSong) return;
+    metmapDispatch({ type: 'SET_AUDIO_LOADING', payload: true });
+    try {
+      const formData = new FormData();
+      formData.append('audio', file);
+      const url = getApiUrl(`/api/metmap/songs/${currentSong.id}/audio`);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      metmapDispatch({
+        type: 'SET_SONG_AUDIO',
+        payload: {
+          songId: currentSong.id,
+          audioFileUrl: data.audioFileUrl,
+          audioDurationSeconds: 0,
+        },
+      });
+      showNotification({ type: 'success', title: 'Audio uploaded', message: 'Audio file attached to song' });
+    } catch {
+      metmapDispatch({ type: 'SET_AUDIO_ERROR', payload: 'Failed to upload audio' });
+    }
+  };
+
+  const handleRemoveAudio = async () => {
+    if (!currentSong) return;
+    try {
+      const url = getApiUrl(`/api/metmap/songs/${currentSong.id}/audio`);
+      await fetch(url, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      metmapDispatch({ type: 'CLEAR_SONG_AUDIO', payload: currentSong.id });
+      setAudioBuffer(null);
+      showNotification({ type: 'success', title: 'Audio removed', message: 'Audio file removed from song' });
+    } catch {
+      showNotification({ type: 'error', title: 'Error', message: 'Failed to remove audio' });
+    }
+  };
+
+  const handleDetectBeats = async () => {
+    if (!currentSong || !audioBuffer) return;
+    metmapDispatch({ type: 'SET_BEAT_DETECTION_LOADING', payload: true });
+    try {
+      const beatMap = await detectBeatsWithCache(audioBuffer);
+      // Save to backend
+      const url = getApiUrl(`/api/metmap/songs/${currentSong.id}/beat-map`);
+      await fetch(url, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ beatMap, detectedBpm: beatMap.bpm, audioDurationSeconds: audioBuffer.duration }),
+      });
+      metmapDispatch({
+        type: 'SET_SONG_BEAT_MAP',
+        payload: { songId: currentSong.id, beatMap, detectedBpm: beatMap.bpm },
+      });
+      showNotification({ type: 'success', title: 'Beat detection complete', message: `Detected ${beatMap.bpm} BPM` });
+    } catch {
+      metmapDispatch({ type: 'SET_BEAT_DETECTION_LOADING', payload: false });
+      showNotification({ type: 'error', title: 'Error', message: 'Beat detection failed' });
+    }
+  };
+
+  const handleAlignBpm = () => {
+    if (!currentSong?.detectedBpm) return;
+    updateSong(currentSong.id, { bpmDefault: Math.round(currentSong.detectedBpm) });
+  };
+
+  const handleWaveformReady = (duration: number) => {
+    if (!currentSong) return;
+    metmapDispatch({
+      type: 'SET_SONG_AUDIO',
+      payload: { songId: currentSong.id, audioFileUrl: currentSong.audioFileUrl!, audioDurationSeconds: duration },
+    });
+  };
+
+  const handleWaveformDecode = (buffer: AudioBuffer) => {
+    setAudioBuffer(buffer);
+  };
+
+  const handleWaveformSeek = (time: number) => {
+    seekToTime(time);
+  };
+
+  const handleTimelineBarClick = (bar: number) => {
+    seekToBar(bar);
+  };
+
+  const handleTimelineTimeClick = (time: number) => {
+    seekToTime(time);
   };
 
   // Keyboard shortcuts
@@ -698,20 +804,77 @@ export default function ToolsMetMap() {
                 <div className="px-4 py-2 border-b border-gray-200 bg-white">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-gray-500 uppercase">Timeline</span>
-                    <button
-                      onClick={() => setShowVisualTimeline(false)}
-                      className="text-xs text-gray-400 hover:text-gray-600"
-                    >
-                      Hide
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {currentSong?.audioFileUrl && (
+                        <label className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <span>Zoom</span>
+                          <input
+                            type="range"
+                            min={20}
+                            max={120}
+                            value={timelineZoom}
+                            onChange={(e) => setTimelineZoom(Number(e.target.value))}
+                            className="w-16 h-1 accent-indigo-500"
+                          />
+                        </label>
+                      )}
+                      <button
+                        onClick={() => setShowVisualTimeline(false)}
+                        className="text-xs text-gray-400 hover:text-gray-600"
+                      >
+                        Hide
+                      </button>
+                    </div>
                   </div>
-                  <VisualTimeline
-                    sections={editedSections}
-                    currentBar={playback.currentBar}
-                    isPlaying={playback.isPlaying}
-                    onSectionClick={handleTimelineSectionClick}
-                    loopSection={practiceMode ? loopSection : null}
-                  />
+
+                  {/* Canvas timeline (shown when audio present for richer rendering) */}
+                  {currentSong?.audioFileUrl ? (
+                    <div className="space-y-1">
+                      <TimelineCanvas
+                        sections={editedSections}
+                        currentBar={playback.currentBar}
+                        currentTimeSeconds={playback.currentTimeSeconds ?? 0}
+                        isPlaying={playback.isPlaying}
+                        beatMap={currentSong.beatMap}
+                        audioDuration={currentSong.audioDurationSeconds}
+                        loopSection={practiceMode ? loopSection : null}
+                        pixelsPerBar={timelineZoom}
+                        height={100}
+                        onBarClick={handleTimelineBarClick}
+                        onTimeClick={handleTimelineTimeClick}
+                      />
+
+                      {/* Waveform + beat markers overlay */}
+                      <div className="relative">
+                        <WaveformTimeline
+                          audioUrl={currentSong.audioFileUrl}
+                          currentTime={playback.currentTimeSeconds ?? 0}
+                          zoom={timelineZoom}
+                          onSeek={handleWaveformSeek}
+                          onReady={handleWaveformReady}
+                          onDecode={handleWaveformDecode}
+                        />
+                        {currentSong.beatMap && currentSong.audioDurationSeconds && (
+                          <div className="absolute inset-0">
+                            <BeatMarkers
+                              beatMap={currentSong.beatMap}
+                              duration={currentSong.audioDurationSeconds}
+                              containerWidth={editedSections.reduce((sum, s) => sum + s.bars, 0) * timelineZoom}
+                              height={96}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <VisualTimeline
+                      sections={editedSections}
+                      currentBar={playback.currentBar}
+                      isPlaying={playback.isPlaying}
+                      onSectionClick={handleTimelineSectionClick}
+                      loopSection={practiceMode ? loopSection : null}
+                    />
+                  )}
                 </div>
               )}
 
@@ -731,6 +894,24 @@ export default function ToolsMetMap() {
                   }}
                 />
               </div>
+
+              {/* Audio Track Panel */}
+              {currentSong && (
+                <div className="px-4 py-2 border-b border-gray-200 bg-white">
+                  <AudioTrackPanel
+                    song={currentSong}
+                    playbackMode={playback.playbackMode ?? 'metronome'}
+                    beatDetectionLoading={metmapState.beatDetectionLoading}
+                    audioLoading={metmapState.audioLoading}
+                    audioError={metmapState.audioError}
+                    onUploadAudio={handleUploadAudio}
+                    onRemoveAudio={handleRemoveAudio}
+                    onDetectBeats={handleDetectBeats}
+                    onAlignBpm={handleAlignBpm}
+                    onPlaybackModeChange={setPlaybackMode}
+                  />
+                </div>
+              )}
 
               {/* Section timeline */}
               <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
