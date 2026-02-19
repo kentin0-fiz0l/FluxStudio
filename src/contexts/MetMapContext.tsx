@@ -46,6 +46,10 @@ export {
   type SectionEditorContextValue,
   type PlaybackContextValue,
   type PracticeContextValue,
+  type Keyframe,
+  type Animation,
+  type AnimatableProperty,
+  type EasingType,
 
   // Constants and helpers
   initialPlaybackState,

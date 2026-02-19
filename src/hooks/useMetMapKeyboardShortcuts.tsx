@@ -16,6 +16,8 @@ interface MetMapShortcutHandlers {
   onToggleClick?: () => void;
   onSave?: () => void;
   onNewSection?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 interface KeyboardShortcut {
@@ -37,6 +39,8 @@ export const METMAP_SHORTCUTS: KeyboardShortcut[] = [
   { key: 'm', description: 'Toggle metronome click', action: 'onToggleClick' },
   { key: 's', ctrl: true, description: 'Save', action: 'onSave' },
   { key: 'n', ctrl: true, description: 'New section', action: 'onNewSection' },
+  { key: 'z', ctrl: true, description: 'Undo', action: 'onUndo' },
+  { key: 'z', ctrl: true, shift: true, description: 'Redo', action: 'onRedo' },
 ];
 
 export function useMetMapKeyboardShortcuts(
@@ -63,7 +67,9 @@ export function useMetMapKeyboardShortcuts(
       const shortcut = METMAP_SHORTCUTS.find((s) => {
         if (s.key !== event.key) return false;
         if (s.ctrl && !event.ctrlKey && !event.metaKey) return false;
+        if (!s.ctrl && (event.ctrlKey || event.metaKey)) return false;
         if (s.shift && !event.shiftKey) return false;
+        if (!s.shift && event.shiftKey) return false;
         return true;
       });
 

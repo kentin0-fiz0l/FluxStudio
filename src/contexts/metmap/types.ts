@@ -38,6 +38,28 @@ export interface BeatMap {
 
 export type PlaybackMode = 'metronome' | 'audio' | 'both';
 
+// ==================== Keyframe / Animation Types ====================
+
+export type AnimatableProperty = 'tempo' | 'volume' | 'pan' | 'emphasis';
+export type EasingType = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'step';
+
+export interface Keyframe {
+  id: string;
+  /** Time position in seconds (relative to section start) */
+  time: number;
+  /** Property value at this keyframe */
+  value: number;
+  /** Easing curve applied from this keyframe to the next */
+  easing: EasingType;
+}
+
+export interface Animation {
+  id: string;
+  property: AnimatableProperty;
+  keyframes: Keyframe[];
+  enabled: boolean;
+}
+
 export interface Section {
   id?: string;
   songId?: string;
@@ -49,6 +71,7 @@ export interface Section {
   tempoStart: number;
   tempoEnd?: number;
   tempoCurve?: 'linear' | 'exponential' | 'step';
+  animations?: Animation[];
   chords?: Chord[];
   createdAt?: string;
   updatedAt?: string;

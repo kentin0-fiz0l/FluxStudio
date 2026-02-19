@@ -32,10 +32,12 @@ import { WaveformTimeline } from '../../components/metmap/WaveformTimeline';
 import { TimelineCanvas } from '../../components/metmap/TimelineCanvas';
 import { BeatMarkers } from '../../components/metmap/BeatMarkers';
 import { AudioTrackPanel } from '../../components/metmap/AudioTrackPanel';
+import { KeyframeEditor } from '../../components/metmap/KeyframeEditor';
 import { detectBeatsWithCache } from '../../services/beatDetection';
 import { usePlayback, useMetMapCore } from '../../contexts/metmap';
 import { useMetronomeAudio, ClickSound } from '../../components/metmap/MetronomeAudio';
 import { useMetMapKeyboardShortcuts, ShortcutsHelp } from '../../hooks/useMetMapKeyboardShortcuts';
+import { useMetMapHistory } from '../../hooks/useMetMapHistory';
 import { announceToScreenReader } from '../../utils/accessibility';
 
 // Decomposed sub-components
@@ -115,11 +117,15 @@ export default function ToolsMetMap() {
   // Audio timeline state
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const [timelineZoom, setTimelineZoom] = useState(50);
+  const [selectedKeyframeId, setSelectedKeyframeId] = useState<string | null>(null);
   const { state: metmapState, dispatch: metmapDispatch } = useMetMapCore();
   const { seekToTime, setPlaybackMode } = usePlayback();
 
   // Metronome audio hook
   const { playClick } = useMetronomeAudio();
+
+  // Undo/Redo history
+  const { saveSnapshot, undo, redo, canUndo, canRedo } = useMetMapHistory();
 
   const totalBars = useMemo(() =>
     editedSections.reduce((sum, s) => sum + s.bars, 0),
@@ -292,7 +298,62 @@ export default function ToolsMetMap() {
     setTempoOverride(bpm);
   };
 
+  // Undo/redo-aware mutation wrappers
+  const snapshotAndAddSection = (data: Partial<Section>) => {
+    saveSnapshot(editedSections);
+    addSection(data);
+  };
+
+  const snapshotAndRemoveSection = (index: number) => {
+    saveSnapshot(editedSections);
+    removeSection(index);
+  };
+
+  const snapshotAndUpdateSection = (index: number, changes: Partial<Section>) => {
+    saveSnapshot(editedSections);
+    updateSection(index, changes);
+  };
+
+  const snapshotAndReorderSections = (from: number, to: number) => {
+    saveSnapshot(editedSections);
+    reorderSections(from, to);
+  };
+
+  const snapshotAndUpdateChords = (index: number, chords: import('../../contexts/metmap/types').Chord[]) => {
+    saveSnapshot(editedSections);
+    updateSectionChords(index, chords);
+  };
+
+  const handleUndo = () => {
+    const restored = undo(editedSections);
+    if (restored) {
+      // Rebuild sections from snapshot by calling updateSection for each
+      // Since MetMap context doesn't expose a bulk-set, we clear and re-add
+      // Actually: a simpler approach — call removeSection/addSection in batch
+      // But the cleanest approach: iterate and update each section
+      for (let i = editedSections.length - 1; i >= 0; i--) {
+        removeSection(i);
+      }
+      for (const section of restored) {
+        addSection(section);
+      }
+    }
+  };
+
+  const handleRedo = () => {
+    const restored = redo(editedSections);
+    if (restored) {
+      for (let i = editedSections.length - 1; i >= 0; i--) {
+        removeSection(i);
+      }
+      for (const section of restored) {
+        addSection(section);
+      }
+    }
+  };
+
   const handleAddSectionTemplate = (template: SectionTemplate) => {
+    saveSnapshot(editedSections);
     addSection({
       name: template.name,
       bars: template.bars,
@@ -482,6 +543,11 @@ export default function ToolsMetMap() {
     seekToTime(time);
   };
 
+  const handleUpdateAnimations = (sectionIndex: number, animations: import('../../contexts/metmap/types').Animation[]) => {
+    saveSnapshot(editedSections);
+    updateSection(sectionIndex, { animations });
+  };
+
   // Keyboard shortcuts
   useMetMapKeyboardShortcuts({
     onPlayPause: () => {
@@ -510,7 +576,9 @@ export default function ToolsMetMap() {
     },
     onToggleClick: () => setUseClick((prev) => !prev),
     onSave: saveSections,
-    onNewSection: () => addSection({})
+    onNewSection: () => snapshotAndAddSection({}),
+    onUndo: handleUndo,
+    onRedo: handleRedo,
   }, !!currentSong);
 
   return (
@@ -756,6 +824,28 @@ export default function ToolsMetMap() {
                     )}
                     <TapTempo onTempoDetected={handleTapTempo} />
                     <button
+                      onClick={handleUndo}
+                      disabled={!canUndo}
+                      className="p-1.5 text-gray-500 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      aria-label="Undo"
+                      title="Undo (Ctrl+Z)"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={handleRedo}
+                      disabled={!canRedo}
+                      className="p-1.5 text-gray-500 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      aria-label="Redo"
+                      title="Redo (Ctrl+Shift+Z)"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
+                      </svg>
+                    </button>
+                    <button
                       onClick={saveSections}
                       disabled={!hasUnsavedChanges}
                       className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -840,6 +930,7 @@ export default function ToolsMetMap() {
                         loopSection={practiceMode ? loopSection : null}
                         pixelsPerBar={timelineZoom}
                         height={100}
+                        selectedKeyframeId={selectedKeyframeId}
                         onBarClick={handleTimelineBarClick}
                         onTimeClick={handleTimelineTimeClick}
                       />
@@ -873,6 +964,18 @@ export default function ToolsMetMap() {
                       isPlaying={playback.isPlaying}
                       onSectionClick={handleTimelineSectionClick}
                       loopSection={practiceMode ? loopSection : null}
+                    />
+                  )}
+
+                  {/* Keyframe Editor */}
+                  {editedSections.length > 0 && (
+                    <KeyframeEditor
+                      sections={editedSections}
+                      activeSectionIndex={playback.currentSectionIndex}
+                      pixelsPerBar={timelineZoom}
+                      selectedKeyframeId={selectedKeyframeId}
+                      onSelectKeyframe={setSelectedKeyframeId}
+                      onUpdateAnimations={handleUpdateAnimations}
                     />
                   )}
                 </div>
@@ -945,7 +1048,7 @@ export default function ToolsMetMap() {
                   <div className="text-center py-12 text-gray-500">
                     <div className="mb-2">No sections yet</div>
                     <button
-                      onClick={() => addSection({})}
+                      onClick={() => snapshotAndAddSection({})}
                       className="text-indigo-600 hover:text-indigo-700"
                     >
                       Add your first section
@@ -960,10 +1063,10 @@ export default function ToolsMetMap() {
                           index={index}
                           isPlaying={playback.isPlaying}
                           isCurrentSection={playback.currentSectionIndex === index}
-                          onUpdate={(changes) => updateSection(index, changes)}
-                          onRemove={() => removeSection(index)}
-                          onMoveUp={() => reorderSections(index, index - 1)}
-                          onMoveDown={() => reorderSections(index, index + 1)}
+                          onUpdate={(changes) => snapshotAndUpdateSection(index, changes)}
+                          onRemove={() => snapshotAndRemoveSection(index)}
+                          onMoveUp={() => snapshotAndReorderSections(index, index - 1)}
+                          onMoveDown={() => snapshotAndReorderSections(index, index + 1)}
                           canMoveUp={index > 0}
                           canMoveDown={index < editedSections.length - 1}
                         />
@@ -972,7 +1075,7 @@ export default function ToolsMetMap() {
                             section={section}
                             sectionIndex={index}
                             chords={section.chords || []}
-                            onChordsChange={(chords) => updateSectionChords(index, chords)}
+                            onChordsChange={(chords) => snapshotAndUpdateChords(index, chords)}
                           />
                         )}
                       </div>

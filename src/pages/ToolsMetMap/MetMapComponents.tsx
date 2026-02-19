@@ -2,7 +2,7 @@
  * MetMap sub-components: SectionRow, ChordGrid, PlaybackControls
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import type { Section, Chord } from '../../contexts/MetMapContext';
 import { COMMON_CHORDS, TIME_SIGNATURES } from './MetMapHelpers';
 
@@ -231,6 +231,16 @@ export function ChordGrid({
 }) {
   const [selectedCell, setSelectedCell] = useState<{ bar: number; beat: number } | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [dragState, setDragState] = useState<{
+    sourceBar: number;
+    sourceBeat: number;
+    symbol: string;
+    currentBar: number;
+    currentBeat: number;
+    active: boolean; // true once drag threshold exceeded
+  } | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const dragStartPos = useRef<{ x: number; y: number } | null>(null);
 
   const beatsPerBar = parseInt(section.timeSignature.split('/')[0]) || 4;
 
@@ -242,9 +252,69 @@ export function ChordGrid({
     return map;
   }, [chords]);
 
+  const getCellFromPoint = useCallback((x: number, y: number): { bar: number; beat: number } | null => {
+    const grid = gridRef.current;
+    if (!grid) return null;
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    const cellBar = el.getAttribute('data-bar');
+    const cellBeat = el.getAttribute('data-beat');
+    if (cellBar && cellBeat) {
+      return { bar: parseInt(cellBar), beat: parseInt(cellBeat) };
+    }
+    return null;
+  }, []);
+
+  const handlePointerDown = useCallback((bar: number, beat: number, e: React.PointerEvent) => {
+    const chord = chordMap[`${bar}-${beat}`];
+    if (!chord) return; // Only drag existing chords
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    setDragState({
+      sourceBar: bar,
+      sourceBeat: beat,
+      symbol: chord.symbol,
+      currentBar: bar,
+      currentBeat: beat,
+      active: false,
+    });
+  }, [chordMap]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragState || !dragStartPos.current) return;
+
+    // Check drag threshold (5px) before activating
+    if (!dragState.active) {
+      const dx = Math.abs(e.clientX - dragStartPos.current.x);
+      const dy = Math.abs(e.clientY - dragStartPos.current.y);
+      if (dx + dy < 5) return;
+      setDragState(prev => prev ? { ...prev, active: true } : null);
+    }
+
+    const target = getCellFromPoint(e.clientX, e.clientY);
+    if (target && (target.bar !== dragState.currentBar || target.beat !== dragState.currentBeat)) {
+      setDragState(prev => prev ? { ...prev, currentBar: target.bar, currentBeat: target.beat } : null);
+    }
+  }, [dragState, getCellFromPoint]);
+
+  const handlePointerUp = useCallback(() => {
+    if (dragState?.active) {
+      const { sourceBar, sourceBeat, symbol, currentBar, currentBeat } = dragState;
+      if (sourceBar !== currentBar || sourceBeat !== currentBeat) {
+        let newChords = chords.filter(c => !(c.bar === sourceBar && c.beat === sourceBeat));
+        newChords = newChords.filter(c => !(c.bar === currentBar && c.beat === currentBeat));
+        newChords.push({ bar: currentBar, beat: currentBeat, symbol, durationBeats: 1 });
+        onChordsChange(newChords);
+      }
+    }
+    setDragState(null);
+    dragStartPos.current = null;
+  }, [dragState, chords, onChordsChange]);
+
   const handleCellClick = (bar: number, beat: number) => {
-    const key = `${bar}-${beat}`;
-    const existing = chordMap[key];
+    // Skip if we just finished a drag
+    if (dragState?.active) return;
+    const existing = chordMap[`${bar}-${beat}`];
     setSelectedCell({ bar, beat });
     setEditValue(existing?.symbol || '');
   };
@@ -253,12 +323,11 @@ export function ChordGrid({
     if (!selectedCell) return;
 
     const { bar, beat } = selectedCell;
-    const key = `${bar}-${beat}`;
 
     if (!symbol.trim()) {
       onChordsChange(chords.filter(c => !(c.bar === bar && c.beat === beat)));
     } else {
-      const existing = chordMap[key];
+      const existing = chordMap[`${bar}-${beat}`];
       if (existing) {
         onChordsChange(chords.map(c =>
           c.bar === bar && c.beat === beat ? { ...c, symbol: symbol.trim() } : c
@@ -280,7 +349,12 @@ export function ChordGrid({
   return (
     <div className="mt-2">
       <div className="text-xs text-gray-500 mb-1">{section.name} Chords</div>
-      <div className="flex flex-wrap gap-1">
+      <div
+        ref={gridRef}
+        className="flex flex-wrap gap-1"
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
         {Array.from({ length: section.bars }, (_, barIndex) => (
           <div key={barIndex} className="flex border border-gray-200 rounded overflow-hidden">
             {Array.from({ length: beatsPerBar }, (_, beatIndex) => {
@@ -289,23 +363,33 @@ export function ChordGrid({
               const key = `${bar}-${beat}`;
               const chord = chordMap[key];
               const isSelected = selectedCell?.bar === bar && selectedCell?.beat === beat;
+              const isDragSource = dragState?.active && dragState.sourceBar === bar && dragState.sourceBeat === beat;
+              const isDragTarget = dragState?.active && dragState.currentBar === bar && dragState.currentBeat === beat
+                && (dragState.sourceBar !== bar || dragState.sourceBeat !== beat);
 
               return (
                 <button
                   type="button"
                   key={beatIndex}
+                  data-bar={bar}
+                  data-beat={beat}
                   onClick={() => handleCellClick(bar, beat)}
-                  className={`w-12 h-8 flex items-center justify-center text-xs cursor-pointer transition-colors ${
-                    isSelected
-                      ? 'bg-indigo-500 text-white'
-                      : chord
-                        ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-400'
+                  onPointerDown={(e) => handlePointerDown(bar, beat, e)}
+                  className={`w-12 h-8 flex items-center justify-center text-xs cursor-pointer transition-colors touch-none ${
+                    isDragTarget
+                      ? 'bg-indigo-300 text-white ring-2 ring-indigo-400'
+                      : isDragSource
+                        ? 'bg-gray-200 text-gray-400 opacity-50'
+                        : isSelected
+                          ? 'bg-indigo-500 text-white'
+                          : chord
+                            ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                            : 'bg-gray-50 hover:bg-gray-100 text-gray-400'
                   } ${beatIndex > 0 ? 'border-l border-gray-200' : ''}`}
-                  aria-label={`Bar ${bar}, Beat ${beat}${chord ? `: ${chord.symbol}` : ''}`}
+                  aria-label={`Bar ${bar}, Beat ${beat}${chord ? `: ${chord.symbol}` : ''}${chord ? ' (drag to move)' : ''}`}
                   aria-pressed={isSelected}
                 >
-                  {chord?.symbol || '-'}
+                  {isDragTarget ? dragState?.symbol : (chord?.symbol || '-')}
                 </button>
               );
             })}

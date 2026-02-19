@@ -15,6 +15,7 @@
 import { useRef, useEffect, useCallback, memo } from 'react';
 import type { Section, BeatMap } from '../../contexts/metmap/types';
 import { getBeatsPerBar } from '../../contexts/metmap/types';
+import { evaluateAt } from '../../services/keyframeEngine';
 
 // Color palette matching VisualTimeline's Tailwind colors
 const SECTION_COLORS = [
@@ -39,6 +40,8 @@ interface TimelineCanvasProps {
   /** Pixels per bar — controls horizontal zoom */
   pixelsPerBar?: number;
   height?: number;
+  /** Selected keyframe ID for highlight */
+  selectedKeyframeId?: string | null;
   onBarClick?: (bar: number) => void;
   onTimeClick?: (timeInSeconds: number) => void;
   className?: string;
@@ -55,6 +58,7 @@ export const TimelineCanvas = memo(function TimelineCanvas({
   pixelsPerBar = 40,
   height = 120,
   onBarClick,
+  selectedKeyframeId,
   onTimeClick,
   className = '',
 }: TimelineCanvasProps) {
@@ -201,6 +205,78 @@ export const TimelineCanvas = memo(function TimelineCanvas({
       }
     }
 
+    // --- Keyframe dots + interpolation curves ---
+    const PROPERTY_COLORS: Record<string, string> = {
+      tempo: '#818cf8',    // indigo-400
+      volume: '#34d399',   // emerald-400
+      pan: '#fbbf24',      // amber-400
+      emphasis: '#fb7185', // rose-400
+    };
+
+    let kfBarOffset = 0;
+    for (let si = 0; si < sections.length; si++) {
+      const section = sections[si];
+      const sectionWidth = section.bars * pixelsPerBar;
+      const animations = section.animations || [];
+
+      for (const anim of animations) {
+        if (!anim.enabled || anim.keyframes.length === 0) continue;
+        const propColor = PROPERTY_COLORS[anim.property] || '#94a3b8';
+
+        // Draw connecting lines between keyframes
+        ctx.strokeStyle = propColor;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+
+        for (let px = 0; px <= sectionWidth; px += 2) {
+          const progress = px / sectionWidth;
+          // Map section progress to keyframe time range
+          const kfTime = progress * (anim.keyframes[anim.keyframes.length - 1]?.time ?? 1);
+          const val = evaluateAt(anim, kfTime);
+          if (val === undefined) continue;
+          // Normalize value to [0,1] for Y mapping (use tempo range as reference)
+          const normalized = maxTempo !== minTempo
+            ? (val - minTempo) / (maxTempo - minTempo)
+            : 0.5;
+          const y = height - normalized * (height * 0.6) - height * 0.15;
+          if (px === 0) ctx.moveTo(kfBarOffset + px, y);
+          else ctx.lineTo(kfBarOffset + px, y);
+        }
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Draw keyframe dots
+        for (const kf of anim.keyframes) {
+          const kfMaxTime = anim.keyframes[anim.keyframes.length - 1]?.time || 1;
+          const xProgress = kfMaxTime > 0 ? kf.time / kfMaxTime : 0;
+          const x = kfBarOffset + xProgress * sectionWidth;
+          const normalized = maxTempo !== minTempo
+            ? (kf.value - minTempo) / (maxTempo - minTempo)
+            : 0.5;
+          const y = height - normalized * (height * 0.6) - height * 0.15;
+          const isSelected = kf.id === selectedKeyframeId;
+
+          // Outer ring for selected
+          if (isSelected) {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          // Keyframe dot
+          ctx.fillStyle = propColor;
+          ctx.beginPath();
+          ctx.arc(x, y, isSelected ? 5 : 3.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      kfBarOffset += sectionWidth;
+    }
+
     // --- Playback cursor ---
     if (isPlaying || currentBar > 1) {
       const cursorX = (currentBar - 1) * pixelsPerBar;
@@ -220,7 +296,7 @@ export const TimelineCanvas = memo(function TimelineCanvas({
       ctx.closePath();
       ctx.fill();
     }
-  }, [sections, currentBar, isPlaying, beatMap, audioDuration, loopSection, pixelsPerBar, height, canvasWidth, tempoToY]);
+  }, [sections, currentBar, isPlaying, beatMap, audioDuration, loopSection, pixelsPerBar, height, canvasWidth, tempoToY, selectedKeyframeId, minTempo, maxTempo]);
 
   // Animate on playback
   useEffect(() => {

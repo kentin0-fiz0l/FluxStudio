@@ -320,8 +320,8 @@ async function upsertSections(songId, userId, sectionsArray) {
         const result = await client.query(`
           INSERT INTO metmap_sections (
             id, song_id, name, order_index, start_bar, bars,
-            time_signature, tempo_start, tempo_end, tempo_curve
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            time_signature, tempo_start, tempo_end, tempo_curve, animations
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           ON CONFLICT (id) DO UPDATE SET
             name = EXCLUDED.name,
             order_index = EXCLUDED.order_index,
@@ -331,6 +331,7 @@ async function upsertSections(songId, userId, sectionsArray) {
             tempo_start = EXCLUDED.tempo_start,
             tempo_end = EXCLUDED.tempo_end,
             tempo_curve = EXCLUDED.tempo_curve,
+            animations = EXCLUDED.animations,
             updated_at = NOW()
           RETURNING *
         `, [
@@ -343,7 +344,8 @@ async function upsertSections(songId, userId, sectionsArray) {
           section.timeSignature || '4/4',
           section.tempoStart || 120,
           section.tempoEnd || null,
-          section.tempoCurve || null
+          section.tempoCurve || null,
+          JSON.stringify(section.animations || [])
         ]);
 
         upsertedSections.push(transformSection(result.rows[0]));
@@ -694,6 +696,7 @@ function transformSection(row) {
     tempoStart: row.tempo_start,
     tempoEnd: row.tempo_end,
     tempoCurve: row.tempo_curve,
+    animations: row.animations || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
