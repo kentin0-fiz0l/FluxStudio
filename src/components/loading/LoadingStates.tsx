@@ -9,7 +9,7 @@ import { cn } from '../../lib/utils';
 
 export function DashboardSkeleton() {
   return (
-    <div className="flex-1 space-y-6 p-6">
+    <div className="flex-1 space-y-6 p-6" role="status" aria-busy="true" aria-label="Loading dashboard">
       {/* Header Skeleton */}
       <div className="flex items-center justify-between">
         <div className="space-y-2">
@@ -29,7 +29,7 @@ export function DashboardSkeleton() {
       {/* Contextual Cards Skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="border-l-4 border-l-gray-200">
+          <Card key={i} className="border-l-4 border-l-neutral-200 dark:border-l-neutral-700">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export function DashboardSkeleton() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
               <div className="lg:col-span-2 space-y-4">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-start gap-3 pb-3 border-b border-gray-100">
+                  <div key={i} className="flex items-start gap-3 pb-3 border-b border-neutral-100 dark:border-neutral-800">
                     <Skeleton animation="shimmer" className="w-8 h-8 rounded-lg flex-shrink-0" />
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center justify-between">
@@ -105,7 +105,7 @@ export function DashboardSkeleton() {
 
 export function WorkflowSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" role="status" aria-busy="true" aria-label="Loading workflows">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-2">
@@ -137,9 +137,9 @@ export function WorkflowSkeleton() {
 
 export function MessagingSkeleton() {
   return (
-    <div className="flex h-[600px] border rounded-lg overflow-hidden">
+    <div className="flex h-[600px] border rounded-lg overflow-hidden" role="status" aria-busy="true" aria-label="Loading messages">
       {/* Sidebar */}
-      <div className="w-80 border-r bg-gray-50 p-4 space-y-4">
+      <div className="w-80 border-r bg-neutral-50 dark:bg-neutral-800 p-4 space-y-4">
         <div className="flex items-center justify-between">
           <Skeleton animation="shimmer" className="h-6 w-24" />
           <Skeleton animation="shimmer" variant="circular" size="sm" />
@@ -164,7 +164,7 @@ export function MessagingSkeleton() {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b bg-white">
+        <div className="p-4 border-b bg-white dark:bg-neutral-900">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Skeleton animation="shimmer" variant="avatar" size="sm" />
@@ -205,7 +205,7 @@ export function MessagingSkeleton() {
         </div>
 
         {/* Input */}
-        <div className="p-4 border-t bg-white">
+        <div className="p-4 border-t bg-white dark:bg-neutral-900">
           <div className="flex items-center gap-2">
             <Skeleton animation="shimmer" className="h-8 w-8 rounded" />
             <Skeleton animation="shimmer" className="h-10 flex-1" />
@@ -219,7 +219,7 @@ export function MessagingSkeleton() {
 
 export function NotificationSkeleton() {
   return (
-    <Card className="w-full max-w-96 max-h-[600px]">
+    <Card className="w-full max-w-96 max-h-[600px]" role="status" aria-busy="true" aria-label="Loading notifications">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -269,7 +269,7 @@ export function NotificationSkeleton() {
 
 export function CollaborationSkeleton() {
   return (
-    <div className="absolute top-4 right-4">
+    <div className="absolute top-4 right-4" role="status" aria-busy="true" aria-label="Loading collaboration panel">
       <Card className="w-80">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -313,7 +313,9 @@ export function CollaborationSkeleton() {
  */
 export function ProjectCardSkeleton() {
   return (
-    <SkeletonCard animation="shimmer" showHeader showFooter contentLines={2} />
+    <div role="status" aria-busy="true" aria-label="Loading project">
+      <SkeletonCard animation="shimmer" showHeader showFooter contentLines={2} />
+    </div>
   );
 }
 
@@ -322,7 +324,7 @@ export function ProjectCardSkeleton() {
  */
 export function ActivityFeedSkeleton({ count = 5 }: { count?: number }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" role="status" aria-busy="true" aria-label="Loading activity feed">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="flex items-start gap-3 p-3">
           <Skeleton animation="shimmer" className="w-8 h-8 rounded-lg flex-shrink-0" />
@@ -339,6 +341,59 @@ export function ActivityFeedSkeleton({ count = 5 }: { count?: number }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Project Detail Skeleton - For project detail page loading
+ */
+export function ProjectDetailSkeleton() {
+  return (
+    <div className="flex flex-col h-full" role="status" aria-busy="true" aria-label="Loading project details">
+      {/* Header Skeleton */}
+      <div className="bg-white dark:bg-neutral-900 border-b px-6 py-4">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2">
+              <Skeleton animation="shimmer" className="h-8 w-8 rounded" />
+              <Skeleton animation="shimmer" className="h-7 w-64" />
+            </div>
+            <div className="flex items-center gap-3 ml-12">
+              <Skeleton animation="shimmer" className="h-6 w-20 rounded-full" />
+              <Skeleton animation="shimmer" className="h-6 w-28 rounded-full" />
+              <Skeleton animation="shimmer" className="h-6 w-24" />
+              <Skeleton animation="shimmer" className="h-6 w-20" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton animation="shimmer" className="h-9 w-20" />
+            <Skeleton animation="shimmer" className="h-9 w-24" />
+            <Skeleton animation="shimmer" className="h-9 w-9" />
+          </div>
+        </div>
+      </div>
+
+      {/* Tab Navigation Skeleton */}
+      <div className="border-b px-6 py-2">
+        <div className="flex gap-1">
+          {['Overview', 'Tasks', 'Documents', 'Files', 'Assets', 'Boards', 'Messages'].map((tab) => (
+            <Skeleton key={tab} animation="shimmer" className="h-10 w-24" />
+          ))}
+        </div>
+      </div>
+
+      {/* Content Area Skeleton */}
+      <div className="flex-1 p-6 space-y-4">
+        <Skeleton animation="shimmer" className="h-6 w-48" />
+        <Skeleton animation="shimmer" className="h-4 w-full" />
+        <Skeleton animation="shimmer" className="h-4 w-3/4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+          {[1, 2, 3].map((i) => (
+            <SkeletonCard key={i} animation="shimmer" contentLines={3} showFooter />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -406,7 +461,7 @@ export function TableSkeleton({ rows = 5, columns = 4 }: { rows?: number; column
 }
 
 interface LoadingScreenProps {
-  type: 'dashboard' | 'workflow' | 'messaging' | 'notification' | 'collaboration';
+  type: 'dashboard' | 'workflow' | 'messaging' | 'notification' | 'collaboration' | 'projectDetail';
   className?: string;
 }
 
@@ -416,7 +471,8 @@ export function LoadingScreen({ type, className }: LoadingScreenProps) {
     workflow: WorkflowSkeleton,
     messaging: MessagingSkeleton,
     notification: NotificationSkeleton,
-    collaboration: CollaborationSkeleton
+    collaboration: CollaborationSkeleton,
+    projectDetail: ProjectDetailSkeleton,
   };
 
   const Component = components[type];

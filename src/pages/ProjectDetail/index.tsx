@@ -46,6 +46,7 @@ import { TiptapCollaborativeEditor } from '@/components/documents/TiptapCollabor
 import { FormationsTab } from '@/components/projects/FormationsTab';
 import { useFormations } from '@/hooks/useFormations';
 
+import { ProjectDetailSkeleton } from '@/components/loading/LoadingStates';
 import { PresenceIndicators, statusVariants, priorityVariants } from './ProjectDetailHelpers';
 import { TasksTabPanel, AssetsTabPanel, BoardsTabPanel } from './ProjectDetailTabs';
 import type { DesignBoard, ViewMode } from './ProjectDetailTabs';
@@ -199,12 +200,7 @@ export const ProjectDetail = () => {
   if (projectsLoading) {
     return (
       <DashboardLayout user={user || undefined} breadcrumbs={[{ label: 'Projects', path: '/projects' }, { label: 'Loading...', path: '#' }]}>
-        <div className="flex items-center justify-center h-full" role="status" aria-live="polite">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" aria-hidden="true" />
-            <p className="text-neutral-600">Loading project details...</p>
-          </div>
-        </div>
+        <ProjectDetailSkeleton />
       </DashboardLayout>
     );
   }
@@ -234,7 +230,7 @@ export const ProjectDetail = () => {
     >
       <div className="flex flex-col h-full">
         {/* Project Header */}
-        <header className="bg-white border-b px-6 py-4">
+        <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700 px-6 py-4">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
@@ -283,7 +279,7 @@ export const ProjectDetail = () => {
         </header>
 
         {/* Tab Navigation */}
-        <nav className="sticky top-0 z-10 bg-white border-b" aria-label="Project sections">
+        <nav className="sticky top-0 z-10 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700" aria-label="Project sections">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6">
             <TabsList ref={tabListRef} className="w-full justify-start h-12 bg-transparent p-0 gap-1" role="tablist" aria-label="Project navigation tabs">
               <TabsTrigger value="overview" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'overview'} aria-controls="overview-panel" id="overview-tab">

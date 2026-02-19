@@ -1,8 +1,7 @@
-import React from 'react';
-import { useLocation, Link, useNavigate } from 'react-router-dom';
+import React, { lazy, Suspense } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useMessaging } from '../hooks/useMessaging';
 import { useFiles } from '../hooks/useFiles';
 import { Button } from './ui/button';
@@ -30,10 +29,11 @@ import {
   MessageSquare,
   Wrench
 } from 'lucide-react';
-// SidebarTrigger removed - no longer using sidebar
-import { UnifiedNotificationCenter } from './notifications/UnifiedNotificationCenter';
 import { OfflineIndicator } from './common/OfflineIndicator';
 import { cn } from '../lib/utils';
+
+// Lazy-load the notification center (heavy component, only opens on click)
+const UnifiedNotificationCenter = lazy(() => import('./notifications/UnifiedNotificationCenter').then(m => ({ default: m.UnifiedNotificationCenter })));
 
 interface EnhancedHeaderProps {
   openCommandPalette: () => void;
@@ -44,11 +44,9 @@ interface EnhancedHeaderProps {
 }
 
 export function EnhancedHeader({ openCommandPalette, className, activeView = 'organizations', onViewChange, onMessagingToggle }: EnhancedHeaderProps) {
-  useLocation(); // Reserved for location-based features
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { organizations, teams, projects } = useOrganization();
-  const { isMobile: _isMobile } = useBreakpoint();
   const { unreadCount } = useMessaging();
   const { files } = useFiles();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -92,7 +90,7 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border-b border-gray-700/50 shadow-lg",
+        "sticky top-0 z-50 w-full bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 shadow-lg",
         className
       )}
     >
@@ -106,12 +104,12 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
             </div>
             <div className="hidden md:block">
               <h1 className="text-lg font-bold text-white tracking-tight">Flux Studio</h1>
-              <p className="text-xs text-gray-400">Creative Design Platform</p>
+              <p className="text-xs text-neutral-400">Creative Design Platform</p>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1" aria-label="Main navigation">
             {navigationItems.map((item) => (
               <Button
                 key={item.label}
@@ -126,14 +124,14 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 h-auto",
                   item.isActive
-                    ? "bg-gray-700/50 text-white shadow-inner"
-                    : "text-gray-300 hover:text-white hover:bg-gray-700/30"
+                    ? "bg-neutral-700/50 text-white shadow-inner"
+                    : "text-neutral-300 hover:text-white hover:bg-neutral-700/30"
                 )}
               >
                 <item.icon className="h-4 w-4" />
                 <span>{item.label}</span>
                 {item.badge > 0 && (
-                  <Badge className="ml-1 h-5 px-1.5 bg-gray-600 text-white border-gray-500">
+                  <Badge className="ml-1 h-5 px-1.5 bg-neutral-600 text-white border-neutral-500">
                     {item.badge}
                   </Badge>
                 )}
@@ -149,16 +147,17 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
           {/* Offline status */}
           <OfflineIndicator />
 
-          {/* Search */}
+          {/* Search - visible on all screen sizes */}
           <Button
             variant="ghost"
             size="sm"
             onClick={openCommandPalette}
-            className="hidden md:flex h-9 px-3 text-gray-300 hover:text-white hover:bg-gray-700/50"
+            aria-label="Search (⌘K)"
+            className="h-9 px-3 text-neutral-300 hover:text-white hover:bg-neutral-700/50"
           >
             <Search className="h-4 w-4" />
             <span className="hidden lg:inline-block ml-2">Search</span>
-            <kbd className="hidden lg:inline-flex ml-2 h-5 items-center gap-0.5 rounded border border-gray-600 bg-gray-700/50 px-1.5 font-mono text-[10px] font-medium text-gray-400">
+            <kbd className="hidden lg:inline-flex ml-2 h-5 items-center gap-0.5 rounded border border-neutral-600 bg-neutral-700/50 px-1.5 font-mono text-[10px] font-medium text-neutral-400">
               ⌘K
             </kbd>
           </Button>
@@ -168,24 +167,27 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
             variant="ghost"
             size="sm"
             onClick={() => onMessagingToggle?.()}
-            className="relative h-9 px-3 text-gray-300 hover:text-white hover:bg-gray-700/50"
+            aria-label={unreadCount > 0 ? `Messages (${unreadCount} unread)` : 'Messages'}
+            className="relative h-9 px-3 text-neutral-300 hover:text-white hover:bg-neutral-700/50"
           >
             <MessageSquare className="h-4 w-4" />
             <span className="hidden lg:inline-block ml-2">Messages</span>
             {unreadCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-red-500 border-2 border-gray-800">
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-red-500 border-2 border-neutral-800">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </Badge>
             )}
           </Button>
 
           {/* Notifications */}
-          <UnifiedNotificationCenter />
+          <Suspense fallback={null}>
+            <UnifiedNotificationCenter />
+          </Suspense>
 
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-9 px-2 text-gray-300 hover:text-white hover:bg-gray-700/50">
+              <Button variant="ghost" className="h-9 px-2 text-neutral-300 hover:text-white hover:bg-neutral-700/50">
                 <Avatar className="h-8 w-8 mr-2">
                   <AvatarFallback className="bg-primary-600 text-white text-sm font-bold">
                     {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
@@ -194,32 +196,32 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
                 <span className="hidden md:inline-block text-sm font-medium">{user?.name}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-gray-900 border-gray-700">
+            <DropdownMenuContent align="end" className="w-48 bg-neutral-900 border-neutral-700">
               <DropdownMenuItem
                 onClick={() => navigate('/profile')}
-                className="text-gray-300 hover:text-white hover:bg-gray-800 focus:bg-gray-800 cursor-pointer"
+                className="text-neutral-300 hover:text-white hover:bg-neutral-800 focus:bg-neutral-800 cursor-pointer"
               >
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => navigate('/tools')}
-                className="text-gray-300 hover:text-white hover:bg-gray-800 focus:bg-gray-800 cursor-pointer"
+                className="text-neutral-300 hover:text-white hover:bg-neutral-800 focus:bg-neutral-800 cursor-pointer"
               >
                 <Wrench className="mr-2 h-4 w-4" />
                 Tools
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => navigate('/settings')}
-                className="text-gray-300 hover:text-white hover:bg-gray-800 focus:bg-gray-800 cursor-pointer"
+                className="text-neutral-300 hover:text-white hover:bg-neutral-800 focus:bg-neutral-800 cursor-pointer"
               >
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-gray-700" />
+              <DropdownMenuSeparator className="bg-neutral-700" />
               <DropdownMenuItem
                 onClick={logout}
-                className="text-gray-300 hover:text-white hover:bg-gray-800 focus:bg-gray-800 cursor-pointer"
+                className="text-neutral-300 hover:text-white hover:bg-neutral-800 focus:bg-neutral-800 cursor-pointer"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out
@@ -232,7 +234,9 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
             variant="ghost"
             size="sm"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden h-9 w-9 p-0 text-gray-300 hover:text-white hover:bg-gray-700/50"
+            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={mobileMenuOpen}
+            className="lg:hidden h-9 w-9 p-0 text-neutral-300 hover:text-white hover:bg-neutral-700/50"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
@@ -241,7 +245,7 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
 
       {/* Mobile Navigation Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-700/50 bg-gray-800/95 backdrop-blur-sm">
+        <div className="lg:hidden border-t border-neutral-700/50 bg-neutral-800/95 backdrop-blur-sm">
           <nav className="flex flex-col p-4 gap-2">
             {navigationItems.map((item) => (
               <Button
@@ -258,14 +262,14 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 h-auto justify-start",
                   item.isActive
-                    ? "bg-gray-700/50 text-white"
-                    : "text-gray-300 hover:text-white hover:bg-gray-700/30"
+                    ? "bg-neutral-700/50 text-white"
+                    : "text-neutral-300 hover:text-white hover:bg-neutral-700/30"
                 )}
               >
                 <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>
                 {item.badge > 0 && (
-                  <Badge className="ml-auto h-5 px-1.5 bg-gray-600 text-white border-gray-500">
+                  <Badge className="ml-auto h-5 px-1.5 bg-neutral-600 text-white border-neutral-500">
                     {item.badge}
                   </Badge>
                 )}
