@@ -52,6 +52,7 @@ import { ConnectionStatus } from '../../components/metmap/ConnectionStatus';
 import { CanvasCommentLayer } from '../../components/metmap/CanvasCommentLayer';
 import { SnapshotPanel } from '../../components/metmap/SnapshotPanel';
 import { BranchSwitcher } from '../../components/metmap/BranchSwitcher';
+import { MetMapAIPanel } from '../../components/metmap/MetMapAIPanel';
 import { announceToScreenReader } from '../../utils/accessibility';
 
 // Decomposed sub-components
@@ -129,6 +130,7 @@ export default function ToolsMetMap() {
   const [accentFirstBeat, _setAccentFirstBeat] = useState(true);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [showPracticeStats, setShowPracticeStats] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
 
   // Audio timeline state
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
@@ -891,7 +893,8 @@ export default function ToolsMetMap() {
           />
         )}
 
-        {/* Main content */}
+        {/* Main content + AI panel */}
+        <div className="flex-1 flex min-w-0">
         <div className={`flex-1 flex flex-col min-w-0 ${isMobile ? 'pt-12' : ''}`}>
           {currentSongLoading ? (
             <div className="flex-1 flex items-center justify-center">
@@ -993,6 +996,18 @@ export default function ToolsMetMap() {
                       onAssetCreated={handleAssetCreated}
                       onShareToChat={handleShareToChat}
                     />
+                    <button
+                      onClick={() => setShowAIPanel(!showAIPanel)}
+                      className={`p-1.5 transition-colors ${
+                        showAIPanel ? 'text-violet-600 bg-violet-50 rounded' : 'text-gray-400 hover:text-violet-600'
+                      }`}
+                      aria-label="AI Co-Pilot"
+                      title="AI Co-Pilot"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                    </button>
                     <button
                       onClick={() => setShowShortcutsHelp(!showShortcutsHelp)}
                       className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
@@ -1413,6 +1428,21 @@ export default function ToolsMetMap() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* AI Co-Pilot Panel (Sprint 34) */}
+        {showAIPanel && currentSong && token && (
+          <MetMapAIPanel
+            songId={currentSong.id}
+            token={token}
+            sections={editedSections}
+            onClose={() => setShowAIPanel(false)}
+            onApplyChords={(sectionIndex, chords) => {
+              snapshotAndUpdateChords(sectionIndex, chords);
+              showNotification({ type: 'success', title: 'Chords Applied', message: `Applied AI chord suggestion to ${editedSections[sectionIndex]?.name || 'section'}` });
+            }}
+          />
+        )}
         </div>
       </div>}
 

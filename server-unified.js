@@ -452,8 +452,11 @@ app.use('/monitoring', createMonitoringRouter());
 
 // Mount AI Design Assistant routes
 const aiRoutes = require('./routes/ai');
+const aiMetmapRoutes = require('./routes/ai-metmap');
 app.use('/ai', aiRoutes);  // Direct path (DO ingress strips /api prefix)
 app.use('/api/ai', aiRoutes);
+app.use('/ai/metmap', aiMetmapRoutes);
+app.use('/api/ai/metmap', aiMetmapRoutes);
 
 // Mount Documents routes (collaborative editing)
 const documentsRoutes = require('./routes/documents');
