@@ -17,6 +17,7 @@ import {
   PenTool,
   Target,
   Play,
+  BarChart3,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -46,6 +47,9 @@ import { TiptapCollaborativeEditor } from '@/components/documents/TiptapCollabor
 import { FormationsTab } from '@/components/projects/FormationsTab';
 import { useFormations } from '@/hooks/useFormations';
 
+import { ProjectHealthDashboard } from '@/components/analytics/ProjectHealthDashboard';
+import { DeadlineRiskPanel } from '@/components/analytics/DeadlineRiskPanel';
+import { TeamWorkloadPanel } from '@/components/analytics/TeamWorkloadPanel';
 import { ProjectDetailSkeleton } from '@/components/loading/LoadingStates';
 import { PresenceIndicators, statusVariants, priorityVariants } from './ProjectDetailHelpers';
 import { TasksTabPanel, AssetsTabPanel, BoardsTabPanel } from './ProjectDetailTabs';
@@ -84,7 +88,7 @@ export const ProjectDetail = () => {
 
   const tabLabels: Record<string, string> = {
     overview: 'Overview', tasks: 'Tasks', documents: 'Documents',
-    files: 'Files', assets: 'Assets', boards: 'Boards', messages: 'Messages',
+    files: 'Files', assets: 'Assets', boards: 'Boards', analytics: 'Analytics', messages: 'Messages',
   };
 
   // Boards state
@@ -303,6 +307,9 @@ export const ProjectDetail = () => {
               <TabsTrigger value="formations" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'formations'} aria-controls="formations-panel" id="formations-tab" aria-label={`Formations, ${formations.length} items`}>
                 <Play className="h-4 w-4 mr-2" aria-hidden="true" />Formations<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{formations.length}</Badge>
               </TabsTrigger>
+              <TabsTrigger value="analytics" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'analytics'} aria-controls="analytics-panel" id="analytics-tab">
+                <BarChart3 className="h-4 w-4 mr-2" aria-hidden="true" />Analytics
+              </TabsTrigger>
               <TabsTrigger value="messages" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'messages'} aria-controls="messages-panel" id="messages-tab" aria-label={`Messages, ${messagesCount} conversations`}>
                 <MessageSquare className="h-4 w-4 mr-2" aria-hidden="true" />Messages<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{messagesCount}</Badge>
               </TabsTrigger>
@@ -386,6 +393,21 @@ export const ProjectDetail = () => {
             <div className="h-full overflow-y-auto p-6" role="tabpanel" id="formations-panel" aria-labelledby="formations-tab" tabIndex={0}>
               <div role="status" aria-live="polite" className="sr-only">Showing formations tab</div>
               <FormationsTab projectId={id || ''} />
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div className="h-full overflow-y-auto p-6" role="tabpanel" id="analytics-panel" aria-labelledby="analytics-tab" tabIndex={0}>
+              <div role="status" aria-live="polite" className="sr-only">Showing {tabLabels.analytics} tab</div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <ProjectHealthDashboard projectId={id || ''} />
+                </div>
+                <div className="space-y-6">
+                  <DeadlineRiskPanel projectId={id || ''} />
+                  <TeamWorkloadPanel teamId={project.teamId || project.organizationId || ''} />
+                </div>
+              </div>
             </div>
           )}
 

@@ -458,6 +458,11 @@ app.use('/api/ai', aiRoutes);
 app.use('/ai/metmap', aiMetmapRoutes);
 app.use('/api/ai/metmap', aiMetmapRoutes);
 
+// Mount Analytics routes (Sprint 35)
+const analyticsRoutes = require('./routes/analytics');
+app.use('/analytics', analyticsRoutes);
+app.use('/api/analytics', analyticsRoutes);
+
 // Mount Documents routes (collaborative editing)
 const documentsRoutes = require('./routes/documents');
 app.use('/', documentsRoutes);  // Direct path (DO ingress strips /api prefix)
