@@ -630,6 +630,13 @@ app.use('/api/organizations/:orgId/roles', rolesRoutes);
 app.use('/sessions', sessionsRoutes);
 app.use('/api/sessions', sessionsRoutes);
 
+// Sprint 42: Feature Flags
+const adminFlagsRoutes = require('./routes/admin-flags');
+const { featureFlagMiddleware } = require('./lib/featureFlags');
+
+app.use(featureFlagMiddleware);
+app.use('/admin/flags', adminFlagsRoutes);
+app.use('/api/admin/flags', adminFlagsRoutes);
 
 // Import health check module
 const { createHealthCheck, authHealthChecks, messagingHealthChecks } = require('./health-check');

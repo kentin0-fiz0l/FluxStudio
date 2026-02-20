@@ -78,6 +78,11 @@ jobs:
               body: comment
             });
 
+      - name: Post-deployment smoke tests
+        if: success() && github.ref == 'refs/heads/main'
+        run: ./tests/smoke/run-smoke.sh ${{ secrets.PRODUCTION_API_URL || 'https://api.fluxstudio.art' }}
+        continue-on-error: true
+
       - name: Report deployment status
         if: always()
         run: |
