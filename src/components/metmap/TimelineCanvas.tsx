@@ -16,6 +16,7 @@ import { useRef, useEffect, useCallback, memo } from 'react';
 import type { Section, BeatMap } from '../../contexts/metmap/types';
 import { getBeatsPerBar } from '../../contexts/metmap/types';
 import { evaluateAt } from '../../services/keyframeEngine';
+import type { MetMapPresence } from '../../services/metmapCollaboration';
 
 // Color palette matching VisualTimeline's Tailwind colors
 const SECTION_COLORS = [
@@ -28,6 +29,30 @@ const SECTION_COLORS = [
   { fill: 'rgba(249, 115, 22, 0.5)', stroke: '#f97316' },    // orange
   { fill: 'rgba(20, 184, 166, 0.5)', stroke: '#14b8a6' },    // teal
 ];
+
+/** Canvas comment (Sprint 32) — rendered as pin markers. */
+export interface CanvasCommentPin {
+  id: string;
+  color: string;
+  barStart: number;
+  barEnd?: number;
+  resolved: boolean;
+}
+
+/** Helper: draw a rounded rectangle path. */
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
 
 interface TimelineCanvasProps {
   sections: Section[];
@@ -44,6 +69,14 @@ interface TimelineCanvasProps {
   selectedKeyframeId?: string | null;
   onBarClick?: (bar: number) => void;
   onTimeClick?: (timeInSeconds: number) => void;
+  /** Remote peers for ghost cursor rendering */
+  remotePeers?: MetMapPresence[];
+  /** Called on mouse-move over canvas with the current bar position */
+  onCursorMove?: (bar: number) => void;
+  /** Called when mouse leaves the canvas */
+  onCursorLeave?: () => void;
+  /** Comment pins to render on the canvas */
+  comments?: CanvasCommentPin[];
   className?: string;
 }
 
@@ -60,6 +93,10 @@ export const TimelineCanvas = memo(function TimelineCanvas({
   onBarClick,
   selectedKeyframeId,
   onTimeClick,
+  remotePeers,
+  onCursorMove,
+  onCursorLeave,
+  comments,
   className = '',
 }: TimelineCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -277,7 +314,76 @@ export const TimelineCanvas = memo(function TimelineCanvas({
       kfBarOffset += sectionWidth;
     }
 
-    // --- Playback cursor ---
+    // --- Comment pins (Sprint 32) ---
+    if (comments && comments.length > 0) {
+      for (const comment of comments) {
+        if (comment.resolved) continue;
+        const pinX = (comment.barStart - 1) * pixelsPerBar;
+
+        // Bar range highlight
+        if (comment.barEnd && comment.barEnd > comment.barStart) {
+          const rangeWidth = (comment.barEnd - comment.barStart) * pixelsPerBar;
+          ctx.fillStyle = `${comment.color}15`;
+          ctx.fillRect(pinX, 0, rangeWidth, height);
+        }
+
+        // Pin circle
+        ctx.fillStyle = comment.color;
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath();
+        ctx.arc(pinX + pixelsPerBar * 0.5, 10, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Pin stem
+        ctx.strokeStyle = comment.color;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.moveTo(pinX + pixelsPerBar * 0.5, 15);
+        ctx.lineTo(pinX + pixelsPerBar * 0.5, height);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // --- Ghost cursors (remote peers, Sprint 32) ---
+    if (remotePeers && remotePeers.length > 0) {
+      for (const peer of remotePeers) {
+        if (peer.cursorBar == null || peer.cursorBar < 1) continue;
+        const ghostX = (peer.cursorBar - 1) * pixelsPerBar;
+
+        // Semi-transparent vertical line
+        ctx.strokeStyle = peer.color;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(ghostX, 0);
+        ctx.lineTo(ghostX, height);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Name label pill
+        const label = peer.username.split(' ')[0];
+        ctx.font = '9px system-ui, sans-serif';
+        const textWidth = ctx.measureText(label).width;
+        const pillX = ghostX - textWidth / 2 - 4;
+        const pillY = height - 18;
+
+        ctx.fillStyle = peer.color;
+        ctx.globalAlpha = 0.8;
+        roundRect(ctx, pillX, pillY, textWidth + 8, 14, 3);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, ghostX, height - 8);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    // --- Playback cursor (rendered on top of ghost cursors) ---
     if (isPlaying || currentBar > 1) {
       const cursorX = (currentBar - 1) * pixelsPerBar;
       ctx.strokeStyle = '#f59e0b';
@@ -296,7 +402,7 @@ export const TimelineCanvas = memo(function TimelineCanvas({
       ctx.closePath();
       ctx.fill();
     }
-  }, [sections, currentBar, isPlaying, beatMap, audioDuration, loopSection, pixelsPerBar, height, canvasWidth, tempoToY, selectedKeyframeId, minTempo, maxTempo]);
+  }, [sections, currentBar, isPlaying, beatMap, audioDuration, loopSection, pixelsPerBar, height, canvasWidth, tempoToY, selectedKeyframeId, minTempo, maxTempo, remotePeers, comments]);
 
   // Animate on playback
   useEffect(() => {
@@ -333,6 +439,22 @@ export const TimelineCanvas = memo(function TimelineCanvas({
     }
   }, [pixelsPerBar, canvasWidth, audioDuration, onBarClick, onTimeClick]);
 
+  // Handle mouse-move for ghost cursor broadcasting
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!onCursorMove) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const bar = Math.floor(x / pixelsPerBar) + 1;
+    onCursorMove(bar);
+  }, [pixelsPerBar, onCursorMove]);
+
+  // Handle mouse-leave to clear ghost cursor
+  const handleMouseLeave = useCallback(() => {
+    onCursorLeave?.();
+  }, [onCursorLeave]);
+
   return (
     <div
       ref={containerRef}
@@ -343,6 +465,8 @@ export const TimelineCanvas = memo(function TimelineCanvas({
       <canvas
         ref={canvasRef}
         onClick={handleClick}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
         className="cursor-pointer"
         style={{ display: 'block' }}
       />

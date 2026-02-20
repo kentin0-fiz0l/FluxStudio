@@ -43,8 +43,11 @@ import { useMetMapHistory } from '../../hooks/useMetMapHistory';
 import { useMetMapCollaboration } from '../../hooks/useMetMapCollaboration';
 import { useMetMapPresence } from '../../hooks/useMetMapPresence';
 import { useMetMapUndo } from '../../hooks/useMetMapUndo';
+import { useConflictDetection } from '../../hooks/useConflictDetection';
+import { useMetMapComments } from '../../hooks/useMetMapComments';
 import { PresenceAvatars } from '../../components/metmap/PresenceAvatars';
 import { ConnectionStatus } from '../../components/metmap/ConnectionStatus';
+import { CanvasCommentLayer } from '../../components/metmap/CanvasCommentLayer';
 import { announceToScreenReader } from '../../utils/accessibility';
 
 // Decomposed sub-components
@@ -160,7 +163,12 @@ export default function ToolsMetMap() {
   const canRedo = isCollabActive ? yjsUndo.canRedo : snapshotHistory.canRedo;
 
   // Presence (awareness-based live indicators)
-  const { peers: collabPeers, remotePeers, setEditingSection: setPresenceEditingSection } = useMetMapPresence(
+  const {
+    peers: collabPeers,
+    remotePeers,
+    setEditingSection: setPresenceEditingSection,
+    setCursorBarFast,
+  } = useMetMapPresence(
     collabAwareness,
     {
       userId: user?.id || '',
@@ -168,6 +176,18 @@ export default function ToolsMetMap() {
       avatar: user?.avatar,
     }
   );
+
+  // Canvas comments (Yjs-synced, Sprint 32)
+  const {
+    comments: canvasComments,
+    addComment: addCanvasComment,
+    resolveComment: resolveCanvasComment,
+    deleteComment: deleteCanvasComment,
+  } = useMetMapComments(collabDoc);
+
+  // Conflict detection toasts (Sprint 32)
+  const [currentEditingSection, setCurrentEditingSection] = useState<string | null>(null);
+  useConflictDetection(currentEditingSection, selectedKeyframeId, remotePeers, editedSections);
 
   const totalBars = useMemo(() =>
     editedSections.reduce((sum, s) => sum + s.bars, 0),
@@ -995,20 +1015,52 @@ export default function ToolsMetMap() {
                   {/* Canvas timeline (shown when audio present for richer rendering) */}
                   {currentSong?.audioFileUrl ? (
                     <div className="space-y-1">
-                      <TimelineCanvas
-                        sections={editedSections}
-                        currentBar={playback.currentBar}
-                        currentTimeSeconds={playback.currentTimeSeconds ?? 0}
-                        isPlaying={playback.isPlaying}
-                        beatMap={currentSong.beatMap}
-                        audioDuration={currentSong.audioDurationSeconds}
-                        loopSection={practiceMode ? loopSection : null}
-                        pixelsPerBar={timelineZoom}
-                        height={100}
-                        selectedKeyframeId={selectedKeyframeId}
-                        onBarClick={handleTimelineBarClick}
-                        onTimeClick={handleTimelineTimeClick}
-                      />
+                      <div className="relative">
+                        <TimelineCanvas
+                          sections={editedSections}
+                          currentBar={playback.currentBar}
+                          currentTimeSeconds={playback.currentTimeSeconds ?? 0}
+                          isPlaying={playback.isPlaying}
+                          beatMap={currentSong.beatMap}
+                          audioDuration={currentSong.audioDurationSeconds}
+                          loopSection={practiceMode ? loopSection : null}
+                          pixelsPerBar={timelineZoom}
+                          height={100}
+                          selectedKeyframeId={selectedKeyframeId}
+                          onBarClick={handleTimelineBarClick}
+                          onTimeClick={handleTimelineTimeClick}
+                          remotePeers={remotePeers}
+                          onCursorMove={setCursorBarFast}
+                          onCursorLeave={() => setCursorBarFast(null)}
+                          comments={canvasComments.filter(c => !c.resolved).map(c => ({
+                            id: c.id,
+                            color: c.color,
+                            barStart: c.barStart,
+                            barEnd: c.barEnd,
+                            resolved: c.resolved,
+                          }))}
+                        />
+                        {isCollabActive && (
+                          <CanvasCommentLayer
+                            comments={canvasComments}
+                            pixelsPerBar={timelineZoom}
+                            canvasHeight={100}
+                            currentUserId={user?.id || ''}
+                            onAddComment={(barStart, text) => {
+                              const presence = collabAwareness?.getLocalState();
+                              addCanvasComment(
+                                barStart,
+                                text,
+                                user?.id || '',
+                                user?.displayName || user?.name || 'You',
+                                (presence as Record<string, unknown>)?.color as string || '#6366f1'
+                              );
+                            }}
+                            onResolveComment={resolveCanvasComment}
+                            onDeleteComment={deleteCanvasComment}
+                          />
+                        )}
+                      </div>
 
                       {/* Waveform + beat markers overlay */}
                       <div className="relative">
@@ -1173,8 +1225,8 @@ export default function ToolsMetMap() {
                       <div
                         key={section.id || index}
                         className="relative"
-                        onFocus={() => setPresenceEditingSection(section.id || null)}
-                        onClick={() => setPresenceEditingSection(section.id || null)}
+                        onFocus={() => { setPresenceEditingSection(section.id || null); setCurrentEditingSection(section.id || null); }}
+                        onClick={() => { setPresenceEditingSection(section.id || null); setCurrentEditingSection(section.id || null); }}
                       >
                         {/* Presence: colored left border when a remote peer is editing */}
                         {editingPeer && (

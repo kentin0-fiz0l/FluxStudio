@@ -22,6 +22,7 @@ const PRESENCE_COLORS = [
 
 const IDLE_TIMEOUT_MS = 60_000; // 60 seconds
 const ACTIVITY_THROTTLE_MS = 5_000; // throttle lastActive updates
+const CURSOR_THROTTLE_MS = 100; // fast path for cursor bar updates
 
 interface UseMetMapPresenceOptions {
   userId: string;
@@ -38,8 +39,10 @@ interface UseMetMapPresenceReturn {
   setEditingSection: (sectionId: string | null) => void;
   /** Set the keyframe currently selected */
   setSelectedKeyframe: (keyframeId: string | null) => void;
-  /** Set the cursor bar position */
+  /** Set the cursor bar position (slow path, 5s throttle) */
   setCursorBar: (bar: number | null) => void;
+  /** Set the cursor bar position (fast path, 100ms throttle — for mouse-move) */
+  setCursorBarFast: (bar: number | null) => void;
 }
 
 export function useMetMapPresence(
@@ -49,6 +52,7 @@ export function useMetMapPresence(
   const { userId, username, avatar } = options;
   const [peers, setPeers] = useState<MetMapPresence[]>([]);
   const lastActivityRef = useRef(0);
+  const cursorThrottleRef = useRef(0);
   const localStateRef = useRef<Partial<MetMapPresence>>({});
 
   // Assign color based on awareness clientID
@@ -126,6 +130,19 @@ export function useMetMapPresence(
     [updateLocal]
   );
 
+  // Fast cursor path — 100ms throttle for smooth mouse-move tracking
+  const setCursorBarFast = useCallback(
+    (bar: number | null) => {
+      if (!awareness) return;
+      const now = Date.now();
+      if (now - cursorThrottleRef.current < CURSOR_THROTTLE_MS) return;
+      cursorThrottleRef.current = now;
+      const current = awareness.getLocalState() || {};
+      awareness.setLocalState({ ...current, cursorBar: bar });
+    },
+    [awareness]
+  );
+
   // Filter remote peers
   const remotePeers = peers.filter((p) => p.userId !== userId);
 
@@ -135,6 +152,7 @@ export function useMetMapPresence(
     setEditingSection,
     setSelectedKeyframe,
     setCursorBar,
+    setCursorBarFast,
   };
 }
 
