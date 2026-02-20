@@ -88,6 +88,13 @@ function csrfProtection(options = {}) {
       return next();
     }
 
+    // Skip CSRF for requests using Bearer token authentication.
+    // Bearer tokens are set explicitly by the client (not auto-sent by browsers),
+    // so they are not vulnerable to CSRF attacks.
+    if (req.headers.authorization?.startsWith('Bearer ')) {
+      return next();
+    }
+
     // Skip CSRF check for ignored paths
     if (ignorePaths.some(path => req.path.startsWith(path))) {
       return next();

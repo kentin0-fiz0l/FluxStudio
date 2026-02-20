@@ -1,0 +1,17 @@
+{
+  "name": "@fluxstudio/cli",
+  "version": "0.1.0",
+  "description": "FluxStudio CLI - manage projects, agents, and files from the terminal",
+  "type": "module",
+  "bin": {
+    "flux": "./bin/flux.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "ora": "^8.2.0"
+  }
+}
