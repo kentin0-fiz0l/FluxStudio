@@ -86,15 +86,32 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
   /**
    * Get or create a Y.Doc for a room, loading persisted state from DB.
    */
+  /**
+   * Parse room name to extract songId and optional branchId.
+   * Room format: "song:{songId}" or "song:{songId}:branch:{branchId}"
+   */
+  function parseRoom(room) {
+    const branchMatch = room.match(/^song:(.+):branch:(.+)$/);
+    if (branchMatch) {
+      return { songId: branchMatch[1], branchId: branchMatch[2] };
+    }
+    return { songId: room.replace('song:', ''), branchId: null };
+  }
+
   async function getOrCreateDoc(room) {
     let doc = docCache.get(room);
     if (doc) return doc;
 
     doc = new Y.Doc();
-    const songId = room.replace('song:', '');
+    const { songId, branchId } = parseRoom(room);
 
     try {
-      const dbState = await metmapAdapter.getYjsState(songId);
+      let dbState;
+      if (branchId) {
+        dbState = await metmapAdapter.getBranchYjsState(branchId);
+      } else {
+        dbState = await metmapAdapter.getYjsState(songId);
+      }
       if (dbState) {
         const bytes = Buffer.isBuffer(dbState)
           ? new Uint8Array(dbState)
@@ -115,8 +132,12 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
   async function flushDoc(room, doc, adapter) {
     try {
       const state = Y.encodeStateAsUpdate(doc);
-      const songId = room.replace('song:', '');
-      await adapter.saveYjsState(songId, Buffer.from(state));
+      const { songId, branchId } = parseRoom(room);
+      if (branchId) {
+        await adapter.saveBranchYjsState(branchId, Buffer.from(state));
+      } else {
+        await adapter.saveYjsState(songId, Buffer.from(state));
+      }
       console.log(`[metmap-collab] Flushed Yjs state for ${room} to DB (${state.length} bytes)`);
     } catch (err) {
       console.error(`[metmap-collab] Failed to flush ${room}:`, err);
@@ -244,6 +265,96 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
       if (!room || !update) return;
       // Broadcast to other room members (don't persist awareness)
       socket.to(room).emit('yjs:awareness-update', { update });
+    });
+
+    // ---------- Create snapshot from current doc state ----------
+    socket.on('yjs:create-snapshot', async ({ room, name, description }) => {
+      if (!room || !name) return;
+
+      try {
+        const doc = docCache.get(room);
+        if (!doc) {
+          socket.emit('yjs:snapshot-error', { error: 'No active document for this room' });
+          return;
+        }
+
+        const songId = room.replace('song:', '');
+        const state = Y.encodeStateAsUpdate(doc);
+
+        // Count sections and bars from the doc
+        let sectionCount = 0;
+        let totalBars = 0;
+        try {
+          const ySections = doc.getArray('sections');
+          sectionCount = ySections.length;
+          for (let i = 0; i < ySections.length; i++) {
+            const s = ySections.get(i);
+            if (s && typeof s.get === 'function') {
+              totalBars += (s.get('bars') || 0);
+            }
+          }
+        } catch { /* ignore count errors */ }
+
+        const snapshot = await metmapAdapter.createSnapshot(songId, socket.userId, {
+          name,
+          description: description || null,
+          yjsState: Buffer.from(state),
+          sectionCount,
+          totalBars,
+        });
+
+        // Notify all clients in room
+        namespace.to(room).emit('yjs:snapshot-created', { snapshot });
+      } catch (err) {
+        console.error(`[metmap-collab] create-snapshot error for ${room}:`, err);
+        socket.emit('yjs:snapshot-error', { error: 'Failed to create snapshot' });
+      }
+    });
+
+    // ---------- Restore snapshot ----------
+    socket.on('yjs:restore-snapshot', async ({ room, snapshotId }) => {
+      if (!room || !snapshotId) return;
+
+      try {
+        const snapshot = await metmapAdapter.getSnapshot(snapshotId, socket.userId);
+        if (!snapshot || !snapshot.yjsState) {
+          socket.emit('yjs:snapshot-error', { error: 'Snapshot not found' });
+          return;
+        }
+
+        // Create a fresh doc from the snapshot state
+        const newDoc = new Y.Doc();
+        const bytes = Buffer.isBuffer(snapshot.yjsState)
+          ? new Uint8Array(snapshot.yjsState)
+          : new Uint8Array(snapshot.yjsState.buffer || snapshot.yjsState);
+        Y.applyUpdate(newDoc, bytes);
+
+        // Replace in-memory doc
+        const oldDoc = docCache.get(room);
+        if (oldDoc) oldDoc.destroy();
+        docCache.set(room, newDoc);
+
+        // Encode full state and broadcast to all clients
+        const fullUpdate = Y.encodeStateAsUpdate(newDoc);
+        namespace.to(room).emit('yjs:sync-response', {
+          update: Array.from(fullUpdate),
+        });
+
+        // Persist to DB
+        const songId = room.replace('song:', '');
+        await metmapAdapter.saveYjsState(songId, Buffer.from(fullUpdate));
+
+        namespace.to(room).emit('yjs:snapshot-restored', {
+          snapshotId,
+          name: snapshot.name,
+          restoredBy: socket.username,
+        });
+
+        console.log(`[metmap-collab] Snapshot "${snapshot.name}" restored for ${room} by ${socket.username}`);
+      } catch (err) {
+        console.error(`[metmap-collab] restore-snapshot error for ${room}:`, err);
+        socket.emit('yjs:snapshot-error', { error: 'Failed to restore snapshot' });
+      }
     });
 
     // ---------- Disconnect ----------

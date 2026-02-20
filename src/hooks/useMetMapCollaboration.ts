@@ -29,6 +29,8 @@ interface UseMetMapCollaborationOptions {
   enabled?: boolean;
   /** Debounce time in ms for remote → React state sync (default: 100) */
   debounceMs?: number;
+  /** Optional branch ID — routes to a branch room instead of main */
+  branchId?: string | null;
 }
 
 interface UseMetMapCollaborationReturn {
@@ -63,7 +65,7 @@ export function useMetMapCollaboration(
   onRemoteSectionsChange: (sections: Section[]) => void,
   options: UseMetMapCollaborationOptions = {}
 ): UseMetMapCollaborationReturn {
-  const { enabled = true, debounceMs = 100 } = options;
+  const { enabled = true, debounceMs = 100, branchId = null } = options;
   const { token } = useAuth();
 
   const [status, setStatus] = useState<CollaborationStatus>('disconnected');
@@ -106,8 +108,8 @@ export function useMetMapCollaboration(
     });
     socketRef.current = socket;
 
-    // Create Yjs provider
-    const roomName = `song:${songId}`;
+    // Create Yjs provider — branch rooms route separately
+    const roomName = branchId ? `song:${songId}:branch:${branchId}` : `song:${songId}`;
     const provider = new YSocketIOProvider(socket, roomName, ydoc);
     providerRef.current = provider;
     setAwareness(provider.awareness);
@@ -174,7 +176,7 @@ export function useMetMapCollaboration(
       setAwareness(null);
       setReconnectAttempts(0);
     };
-  }, [songId, token, enabled, debounceMs, onRemoteSectionsChange]);
+  }, [songId, token, enabled, debounceMs, branchId, onRemoteSectionsChange]);
 
   // Push all sections to Yjs doc
   const pushSections = useCallback((sections: Section[]) => {

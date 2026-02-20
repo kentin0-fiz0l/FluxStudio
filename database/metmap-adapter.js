@@ -976,6 +976,278 @@ function transformTrack(row) {
   };
 }
 
+// ==================== SNAPSHOTS ====================
+
+/**
+ * Get all snapshots for a song
+ */
+async function getSnapshotsForSong(songId, userId) {
+  try {
+    const songCheck = await query(
+      'SELECT id FROM metmap_songs WHERE id = $1 AND user_id = $2',
+      [songId, userId]
+    );
+    if (songCheck.rows.length === 0) return null;
+
+    const result = await query(
+      `SELECT id, song_id, user_id, name, description, section_count, total_bars, created_at
+       FROM metmap_snapshots
+       WHERE song_id = $1
+       ORDER BY created_at DESC`,
+      [songId]
+    );
+    return result.rows.map(transformSnapshot);
+  } catch (error) {
+    console.error('Error getting snapshots:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a snapshot (checkpoint) of the current Yjs state
+ */
+async function createSnapshot(songId, userId, { name, description, yjsState, sectionCount, totalBars }) {
+  try {
+    const id = uuidv4();
+    const result = await query(
+      `INSERT INTO metmap_snapshots (id, song_id, user_id, name, description, yjs_state, section_count, total_bars)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, song_id, user_id, name, description, section_count, total_bars, created_at`,
+      [id, songId, userId, name, description || null, yjsState, sectionCount || 0, totalBars || 0]
+    );
+    return transformSnapshot(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating snapshot:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get a single snapshot (including full BYTEA state for restore)
+ */
+async function getSnapshot(snapshotId, userId) {
+  try {
+    const result = await query(
+      'SELECT * FROM metmap_snapshots WHERE id = $1',
+      [snapshotId]
+    );
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return {
+      ...transformSnapshot(row),
+      yjsState: row.yjs_state, // Buffer (BYTEA)
+    };
+  } catch (error) {
+    console.error('Error getting snapshot:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a snapshot (own snapshots only)
+ */
+async function deleteSnapshot(snapshotId, userId) {
+  try {
+    const result = await query(
+      'DELETE FROM metmap_snapshots WHERE id = $1 AND user_id = $2 RETURNING id',
+      [snapshotId, userId]
+    );
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Error deleting snapshot:', error);
+    throw error;
+  }
+}
+
+function transformSnapshot(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    songId: row.song_id,
+    userId: row.user_id,
+    name: row.name,
+    description: row.description,
+    sectionCount: row.section_count || 0,
+    totalBars: row.total_bars || 0,
+    createdAt: row.created_at,
+  };
+}
+
+// ==================== BRANCHES ====================
+
+/**
+ * Get all branches for a song
+ */
+async function getBranchesForSong(songId, userId) {
+  try {
+    const songCheck = await query(
+      'SELECT id FROM metmap_songs WHERE id = $1 AND user_id = $2',
+      [songId, userId]
+    );
+    if (songCheck.rows.length === 0) return null;
+
+    const result = await query(
+      `SELECT b.id, b.song_id, b.user_id, b.name, b.description,
+              b.source_snapshot_id, b.is_main, b.merged_at, b.created_at, b.updated_at,
+              s.name as source_snapshot_name
+       FROM metmap_branches b
+       LEFT JOIN metmap_snapshots s ON b.source_snapshot_id = s.id
+       WHERE b.song_id = $1
+       ORDER BY b.is_main DESC, b.created_at DESC`,
+      [songId]
+    );
+    return result.rows.map(transformBranch);
+  } catch (error) {
+    console.error('Error getting branches:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new branch, optionally from a snapshot
+ */
+async function createBranch(songId, userId, { name, description, sourceSnapshotId }) {
+  try {
+    let yjsState = null;
+
+    if (sourceSnapshotId) {
+      // Copy state from snapshot
+      const snap = await query('SELECT yjs_state FROM metmap_snapshots WHERE id = $1', [sourceSnapshotId]);
+      if (snap.rows.length > 0) {
+        yjsState = snap.rows[0].yjs_state;
+      }
+    } else {
+      // Copy current state from song
+      const song = await query('SELECT yjs_state FROM metmap_songs WHERE id = $1 AND user_id = $2', [songId, userId]);
+      if (song.rows.length > 0) {
+        yjsState = song.rows[0].yjs_state;
+      }
+    }
+
+    const id = uuidv4();
+    const result = await query(
+      `INSERT INTO metmap_branches (id, song_id, user_id, name, description, source_snapshot_id, yjs_state)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [id, songId, userId, name, description || null, sourceSnapshotId || null, yjsState]
+    );
+    return transformBranch(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating branch:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get a single branch (including BYTEA state)
+ */
+async function getBranch(branchId, userId) {
+  try {
+    const result = await query('SELECT * FROM metmap_branches WHERE id = $1', [branchId]);
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return {
+      ...transformBranch(row),
+      yjsState: row.yjs_state,
+    };
+  } catch (error) {
+    console.error('Error getting branch:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a branch (own branches only, cannot delete main)
+ */
+async function deleteBranch(branchId, userId) {
+  try {
+    const result = await query(
+      'DELETE FROM metmap_branches WHERE id = $1 AND user_id = $2 AND is_main = FALSE RETURNING id',
+      [branchId, userId]
+    );
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Error deleting branch:', error);
+    throw error;
+  }
+}
+
+/**
+ * Merge a branch to main — copies branch yjs_state to the song's yjs_state
+ */
+async function mergeBranch(branchId, userId) {
+  try {
+    const branch = await query('SELECT * FROM metmap_branches WHERE id = $1', [branchId]);
+    if (branch.rows.length === 0) return null;
+
+    const row = branch.rows[0];
+    if (row.is_main) return null; // Can't merge main into main
+
+    // Copy branch state to song
+    await query(
+      'UPDATE metmap_songs SET yjs_state = $2, updated_at = NOW() WHERE id = $1',
+      [row.song_id, row.yjs_state]
+    );
+
+    // Mark branch as merged
+    const updated = await query(
+      'UPDATE metmap_branches SET merged_at = NOW(), updated_at = NOW() WHERE id = $1 RETURNING *',
+      [branchId]
+    );
+    return transformBranch(updated.rows[0]);
+  } catch (error) {
+    console.error('Error merging branch:', error);
+    throw error;
+  }
+}
+
+/**
+ * Save Yjs state for a branch
+ */
+async function saveBranchYjsState(branchId, state) {
+  try {
+    const result = await query(
+      'UPDATE metmap_branches SET yjs_state = $2, updated_at = NOW() WHERE id = $1 RETURNING id',
+      [branchId, state]
+    );
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Error saving branch Yjs state:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get Yjs state for a branch
+ */
+async function getBranchYjsState(branchId) {
+  try {
+    const result = await query('SELECT yjs_state FROM metmap_branches WHERE id = $1', [branchId]);
+    if (result.rows.length === 0) return null;
+    return result.rows[0].yjs_state;
+  } catch (error) {
+    console.error('Error getting branch Yjs state:', error);
+    throw error;
+  }
+}
+
+function transformBranch(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    songId: row.song_id,
+    userId: row.user_id,
+    name: row.name,
+    description: row.description,
+    sourceSnapshotId: row.source_snapshot_id,
+    sourceSnapshotName: row.source_snapshot_name || null,
+    isMain: row.is_main,
+    mergedAt: row.merged_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 // ==================== YJS STATE PERSISTENCE ====================
 
 /**
@@ -1051,6 +1323,21 @@ module.exports = {
 
   // Stats
   getStatsForUser,
+
+  // Snapshots
+  getSnapshotsForSong,
+  createSnapshot,
+  getSnapshot,
+  deleteSnapshot,
+
+  // Branches
+  getBranchesForSong,
+  createBranch,
+  getBranch,
+  deleteBranch,
+  mergeBranch,
+  saveBranchYjsState,
+  getBranchYjsState,
 
   // Yjs collaboration
   getYjsState,

@@ -613,4 +613,182 @@ router.put('/tracks/:trackId/beat-map', authenticateToken, async (req, res) => {
   }
 });
 
+// ========================================
+// SNAPSHOTS
+// ========================================
+
+/**
+ * GET /api/metmap/songs/:songId/snapshots
+ * List all snapshots for a song
+ */
+router.get('/songs/:songId/snapshots', authenticateToken, async (req, res) => {
+  try {
+    const snapshots = await metmapAdapter.getSnapshotsForSong(req.params.songId, req.user.id);
+    if (snapshots === null) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+    res.json({ snapshots });
+  } catch (error) {
+    console.error('Error getting snapshots:', error);
+    res.status(500).json({ error: 'Failed to get snapshots' });
+  }
+});
+
+/**
+ * POST /api/metmap/songs/:songId/snapshots
+ * Create a snapshot from the current Yjs state
+ */
+router.post('/songs/:songId/snapshots', authenticateToken, async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const { name, description, sectionCount, totalBars } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'name is required' });
+    }
+
+    // Get current Yjs state from the song
+    const yjsState = await metmapAdapter.getYjsState(songId);
+    if (!yjsState) {
+      return res.status(404).json({ error: 'Song not found or no Yjs state' });
+    }
+
+    const snapshot = await metmapAdapter.createSnapshot(songId, req.user.id, {
+      name: name.trim(),
+      description: description?.trim() || null,
+      yjsState,
+      sectionCount: sectionCount || 0,
+      totalBars: totalBars || 0,
+    });
+
+    res.status(201).json({ snapshot });
+  } catch (error) {
+    console.error('Error creating snapshot:', error);
+    res.status(500).json({ error: 'Failed to create snapshot' });
+  }
+});
+
+/**
+ * DELETE /api/metmap/songs/:songId/snapshots/:id
+ * Delete a snapshot (own only)
+ */
+router.delete('/songs/:songId/snapshots/:id', authenticateToken, async (req, res) => {
+  try {
+    const deleted = await metmapAdapter.deleteSnapshot(req.params.id, req.user.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Snapshot not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting snapshot:', error);
+    res.status(500).json({ error: 'Failed to delete snapshot' });
+  }
+});
+
+/**
+ * POST /api/metmap/songs/:songId/snapshots/:id/restore
+ * Restore a snapshot — replaces song Yjs state
+ */
+router.post('/songs/:songId/snapshots/:id/restore', authenticateToken, async (req, res) => {
+  try {
+    const snapshot = await metmapAdapter.getSnapshot(req.params.id, req.user.id);
+    if (!snapshot || !snapshot.yjsState) {
+      return res.status(404).json({ error: 'Snapshot not found' });
+    }
+
+    // Replace song's Yjs state with snapshot state
+    await metmapAdapter.saveYjsState(req.params.songId, snapshot.yjsState);
+
+    res.json({ success: true, snapshot: { id: snapshot.id, name: snapshot.name } });
+  } catch (error) {
+    console.error('Error restoring snapshot:', error);
+    res.status(500).json({ error: 'Failed to restore snapshot' });
+  }
+});
+
+// ========================================
+// BRANCHES
+// ========================================
+
+/**
+ * GET /api/metmap/songs/:songId/branches
+ * List all branches for a song
+ */
+router.get('/songs/:songId/branches', authenticateToken, async (req, res) => {
+  try {
+    const branches = await metmapAdapter.getBranchesForSong(req.params.songId, req.user.id);
+    if (branches === null) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+    res.json({ branches });
+  } catch (error) {
+    console.error('Error getting branches:', error);
+    res.status(500).json({ error: 'Failed to get branches' });
+  }
+});
+
+/**
+ * POST /api/metmap/songs/:songId/branches
+ * Create a branch (optionally from a snapshot)
+ */
+router.post('/songs/:songId/branches', authenticateToken, async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const { name, description, sourceSnapshotId } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'name is required' });
+    }
+
+    const branch = await metmapAdapter.createBranch(songId, req.user.id, {
+      name: name.trim(),
+      description: description?.trim() || null,
+      sourceSnapshotId: sourceSnapshotId || null,
+    });
+
+    if (!branch) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+
+    res.status(201).json({ branch });
+  } catch (error) {
+    console.error('Error creating branch:', error);
+    res.status(500).json({ error: 'Failed to create branch' });
+  }
+});
+
+/**
+ * DELETE /api/metmap/songs/:songId/branches/:id
+ * Delete a branch (own only, cannot delete main)
+ */
+router.delete('/songs/:songId/branches/:id', authenticateToken, async (req, res) => {
+  try {
+    const deleted = await metmapAdapter.deleteBranch(req.params.id, req.user.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Branch not found or is main branch' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting branch:', error);
+    res.status(500).json({ error: 'Failed to delete branch' });
+  }
+});
+
+/**
+ * POST /api/metmap/songs/:songId/branches/:id/merge
+ * Merge branch to main — replaces main Yjs state with branch state
+ */
+router.post('/songs/:songId/branches/:id/merge', authenticateToken, async (req, res) => {
+  try {
+    const merged = await metmapAdapter.mergeBranch(req.params.id, req.user.id);
+    if (!merged) {
+      return res.status(404).json({ error: 'Branch not found or is main branch' });
+    }
+    res.json({ success: true, branch: merged });
+  } catch (error) {
+    console.error('Error merging branch:', error);
+    res.status(500).json({ error: 'Failed to merge branch' });
+  }
+});
+
 module.exports = router;

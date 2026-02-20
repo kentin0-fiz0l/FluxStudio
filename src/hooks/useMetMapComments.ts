@@ -2,7 +2,7 @@
  * useMetMapComments — Yjs-backed comment CRUD for canvas comments.
  *
  * Sprint 32: Comments are stored in a Y.Array<Y.Map> at doc.getArray('comments').
- * Separate from the 'sections' array so Y.UndoManager doesn't undo comments.
+ * Sprint 33: Added parentId for threading + reactions map.
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -18,7 +18,11 @@ export interface CanvasComment {
   text: string;
   createdAt: number;
   resolved: boolean;
+  parentId: string | null;
+  reactions: Record<string, string[]>; // emoji → [userId, ...]
 }
+
+export const REACTION_EMOJIS = ['👍', '✅', '👀', '❤️'] as const;
 
 function commentToYMap(comment: CanvasComment): Y.Map<unknown> {
   const yMap = new Y.Map<unknown>();
@@ -31,11 +35,17 @@ function commentToYMap(comment: CanvasComment): Y.Map<unknown> {
   yMap.set('text', comment.text);
   yMap.set('createdAt', comment.createdAt);
   yMap.set('resolved', comment.resolved);
+  yMap.set('parentId', comment.parentId ?? null);
+  yMap.set('reactions', JSON.stringify(comment.reactions || {}));
   return yMap;
 }
 
 function yMapToComment(yMap: Y.Map<unknown>): CanvasComment {
   const data = yMap.toJSON();
+  let reactions: Record<string, string[]> = {};
+  if (typeof data.reactions === 'string') {
+    try { reactions = JSON.parse(data.reactions); } catch { /* empty */ }
+  }
   return {
     id: data.id as string,
     userId: data.userId as string,
@@ -46,14 +56,18 @@ function yMapToComment(yMap: Y.Map<unknown>): CanvasComment {
     text: (data.text as string) || '',
     createdAt: (data.createdAt as number) || Date.now(),
     resolved: (data.resolved as boolean) || false,
+    parentId: (data.parentId as string) || null,
+    reactions,
   };
 }
 
 interface UseMetMapCommentsReturn {
   comments: CanvasComment[];
   addComment: (barStart: number, text: string, userId: string, username: string, color: string, barEnd?: number) => void;
+  replyToComment: (parentId: string, text: string, userId: string, username: string, color: string) => void;
   resolveComment: (commentId: string) => void;
   deleteComment: (commentId: string) => void;
+  toggleReaction: (commentId: string, emoji: string, userId: string) => void;
 }
 
 export function useMetMapComments(doc: Y.Doc | null): UseMetMapCommentsReturn {
@@ -100,9 +114,43 @@ export function useMetMapComments(doc: Y.Doc | null): UseMetMapCommentsReturn {
         text,
         createdAt: Date.now(),
         resolved: false,
+        parentId: null,
+        reactions: {},
       };
       doc.transact(() => {
         yComments.push([commentToYMap(comment)]);
+      });
+    },
+    [doc]
+  );
+
+  const replyToComment = useCallback(
+    (parentId: string, text: string, userId: string, username: string, color: string) => {
+      if (!doc) return;
+      const yComments: Y.Array<Y.Map<unknown>> = doc.getArray('comments');
+      // Find parent to inherit barStart
+      let barStart = 1;
+      for (let i = 0; i < yComments.length; i++) {
+        const yMap = yComments.get(i);
+        if (yMap instanceof Y.Map && yMap.get('id') === parentId) {
+          barStart = (yMap.get('barStart') as number) || 1;
+          break;
+        }
+      }
+      const reply: CanvasComment = {
+        id: crypto.randomUUID(),
+        userId,
+        username,
+        color,
+        barStart,
+        text,
+        createdAt: Date.now(),
+        resolved: false,
+        parentId,
+        reactions: {},
+      };
+      doc.transact(() => {
+        yComments.push([commentToYMap(reply)]);
       });
     },
     [doc]
@@ -130,10 +178,53 @@ export function useMetMapComments(doc: Y.Doc | null): UseMetMapCommentsReturn {
       if (!doc) return;
       const yComments: Y.Array<Y.Map<unknown>> = doc.getArray('comments');
       doc.transact(() => {
+        // Delete the comment and all its replies
+        const toDelete: number[] = [];
+        for (let i = 0; i < yComments.length; i++) {
+          const yMap = yComments.get(i);
+          if (yMap instanceof Y.Map) {
+            const id = yMap.get('id') as string;
+            const parent = yMap.get('parentId') as string | null;
+            if (id === commentId || parent === commentId) {
+              toDelete.push(i);
+            }
+          }
+        }
+        // Delete in reverse order to maintain indices
+        for (let i = toDelete.length - 1; i >= 0; i--) {
+          yComments.delete(toDelete[i], 1);
+        }
+      });
+    },
+    [doc]
+  );
+
+  const toggleReaction = useCallback(
+    (commentId: string, emoji: string, userId: string) => {
+      if (!doc) return;
+      const yComments: Y.Array<Y.Map<unknown>> = doc.getArray('comments');
+      doc.transact(() => {
         for (let i = 0; i < yComments.length; i++) {
           const yMap = yComments.get(i);
           if (yMap instanceof Y.Map && yMap.get('id') === commentId) {
-            yComments.delete(i, 1);
+            let reactions: Record<string, string[]> = {};
+            const raw = yMap.get('reactions');
+            if (typeof raw === 'string') {
+              try { reactions = JSON.parse(raw); } catch { /* empty */ }
+            }
+            const users = reactions[emoji] || [];
+            const idx = users.indexOf(userId);
+            if (idx >= 0) {
+              users.splice(idx, 1);
+              if (users.length === 0) {
+                delete reactions[emoji];
+              } else {
+                reactions[emoji] = users;
+              }
+            } else {
+              reactions[emoji] = [...users, userId];
+            }
+            yMap.set('reactions', JSON.stringify(reactions));
             break;
           }
         }
@@ -142,5 +233,5 @@ export function useMetMapComments(doc: Y.Doc | null): UseMetMapCommentsReturn {
     [doc]
   );
 
-  return { comments, addComment, resolveComment, deleteComment };
+  return { comments, addComment, replyToComment, resolveComment, deleteComment, toggleReaction };
 }

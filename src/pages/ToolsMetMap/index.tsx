@@ -45,9 +45,13 @@ import { useMetMapPresence } from '../../hooks/useMetMapPresence';
 import { useMetMapUndo } from '../../hooks/useMetMapUndo';
 import { useConflictDetection } from '../../hooks/useConflictDetection';
 import { useMetMapComments } from '../../hooks/useMetMapComments';
+import { useMetMapSnapshots } from '../../hooks/useMetMapSnapshots';
+import { useMetMapBranches } from '../../hooks/useMetMapBranches';
 import { PresenceAvatars } from '../../components/metmap/PresenceAvatars';
 import { ConnectionStatus } from '../../components/metmap/ConnectionStatus';
 import { CanvasCommentLayer } from '../../components/metmap/CanvasCommentLayer';
+import { SnapshotPanel } from '../../components/metmap/SnapshotPanel';
+import { BranchSwitcher } from '../../components/metmap/BranchSwitcher';
 import { announceToScreenReader } from '../../utils/accessibility';
 
 // Decomposed sub-components
@@ -140,6 +144,9 @@ export default function ToolsMetMap() {
   // Snapshot undo (fallback for non-collab mode)
   const snapshotHistory = useMetMapHistory();
 
+  // Active branch state (null = main)
+  const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
+
   // Collaboration (Yjs real-time sync)
   const handleRemoteSectionsChange = useCallback((remoteSections: Section[]) => {
     metmapDispatch({ type: 'SET_EDITED_SECTIONS', payload: remoteSections });
@@ -152,7 +159,7 @@ export default function ToolsMetMap() {
     awareness: collabAwareness,
     reconnectAttempts: collabReconnectAttempts,
     forceReconnect: collabForceReconnect,
-  } = useMetMapCollaboration(currentSong?.id, handleRemoteSectionsChange);
+  } = useMetMapCollaboration(currentSong?.id, handleRemoteSectionsChange, { branchId: activeBranchId });
 
   // Y.UndoManager (collaborative undo — only undoes your changes)
   const yjsUndo = useMetMapUndo(collabDoc);
@@ -181,8 +188,10 @@ export default function ToolsMetMap() {
   const {
     comments: canvasComments,
     addComment: addCanvasComment,
+    replyToComment: replyCanvasComment,
     resolveComment: resolveCanvasComment,
     deleteComment: deleteCanvasComment,
+    toggleReaction: toggleCanvasReaction,
   } = useMetMapComments(collabDoc);
 
   // Conflict detection toasts (Sprint 32)
@@ -193,6 +202,28 @@ export default function ToolsMetMap() {
     editedSections.reduce((sum, s) => sum + s.bars, 0),
     [editedSections]
   );
+
+  // Snapshots (Sprint 33)
+  const {
+    snapshots,
+    isLoading: snapshotsLoading,
+    createSnapshot: createSnapshotMutation,
+    deleteSnapshot: deleteSnapshotMutation,
+    restoreSnapshot: restoreSnapshotMutation,
+    isCreating: isSnapshotCreating,
+    isRestoring: isSnapshotRestoring,
+  } = useMetMapSnapshots(currentSong?.id);
+
+  // Branches (Sprint 33)
+  const {
+    branches,
+    isLoading: _branchesLoading,
+    createBranch: createBranchMutation,
+    deleteBranch: deleteBranchMutation,
+    mergeBranch: mergeBranchMutation,
+    isCreating: isBranchCreating,
+    isMerging: isBranchMerging,
+  } = useMetMapBranches(currentSong?.id);
 
   // Play metronome click on beat change
   useEffect(() => {
@@ -907,6 +938,19 @@ export default function ToolsMetMap() {
                         )}
                       </div>
                     )}
+                    {/* Branch switcher (Sprint 33) */}
+                    <BranchSwitcher
+                      branches={branches}
+                      snapshots={snapshots}
+                      activeBranchId={activeBranchId}
+                      currentUserId={user?.id || ''}
+                      onSwitchBranch={setActiveBranchId}
+                      onCreateBranch={createBranchMutation}
+                      onDeleteBranch={deleteBranchMutation}
+                      onMergeBranch={mergeBranchMutation}
+                      isCreating={isBranchCreating}
+                      isMerging={isBranchMerging}
+                    />
                     {hasUnsavedChanges && (
                       <span className="text-xs text-orange-500">Unsaved changes</span>
                     )}
@@ -1056,8 +1100,19 @@ export default function ToolsMetMap() {
                                 (presence as Record<string, unknown>)?.color as string || '#6366f1'
                               );
                             }}
+                            onReplyToComment={(parentId, text) => {
+                              const presence = collabAwareness?.getLocalState();
+                              replyCanvasComment(
+                                parentId,
+                                text,
+                                user?.id || '',
+                                user?.displayName || user?.name || 'You',
+                                (presence as Record<string, unknown>)?.color as string || '#6366f1'
+                              );
+                            }}
                             onResolveComment={resolveCanvasComment}
                             onDeleteComment={deleteCanvasComment}
+                            onToggleReaction={(commentId, emoji) => toggleCanvasReaction(commentId, emoji, user?.id || '')}
                           />
                         )}
                       </div>
@@ -1091,6 +1146,22 @@ export default function ToolsMetMap() {
                       isPlaying={playback.isPlaying}
                       onSectionClick={handleTimelineSectionClick}
                       loopSection={practiceMode ? loopSection : null}
+                    />
+                  )}
+
+                  {/* Snapshot Panel (Sprint 33) */}
+                  {isCollabActive && (
+                    <SnapshotPanel
+                      snapshots={snapshots}
+                      isLoading={snapshotsLoading}
+                      currentUserId={user?.id || ''}
+                      sectionCount={editedSections.length}
+                      totalBars={totalBars}
+                      onCreateSnapshot={createSnapshotMutation}
+                      onDeleteSnapshot={deleteSnapshotMutation}
+                      onRestoreSnapshot={restoreSnapshotMutation}
+                      isCreating={isSnapshotCreating}
+                      isRestoring={isSnapshotRestoring}
                     />
                   )}
 
