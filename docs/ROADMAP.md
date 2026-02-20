@@ -116,6 +116,29 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 
 ---
 
+## Phase 6: Launch & Growth
+**Goal:** Hit performance targets, attract the first 100 users, and harden for public traffic
+
+### 6.1 Performance & Launch Optimization
+- Bundle size reduction to <500KB per chunk (tree-shaking, compression, lazy splitting)
+- Lighthouse CI enforcement at 90+ (performance, a11y, best practices)
+- SEO foundation (meta tags, Open Graph, sitemap, robots.txt)
+- IP-based rate limiting and abuse prevention
+- First-run product tour (<30s to first creative action)
+
+### 6.2 Enterprise SSO
+- SAML 2.0 with IdP discovery (Okta, Azure AD, OneLogin)
+- Just-in-time provisioning for enterprise users
+- Domain-verified SSO enforcement per organization
+
+### 6.3 Growth & Engagement
+- User funnel analytics (signup → activation → retention)
+- Email notification expansion (collaboration events, digests)
+- Onboarding analytics and drop-off tracking
+- Referral and invite system
+
+---
+
 ## Technical Principles
 
 1. **Incremental Migration** - Never big-bang rewrites; always working software
@@ -128,14 +151,14 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 
 ## Success Metrics
 
-| Metric | Phase 1 Baseline | Current | Phase 5 Target |
-|--------|-----------------|---------|----------------|
+| Metric | Phase 1 Baseline | Current | Target |
+|--------|-----------------|---------|--------|
 | Time to Interactive | ~3s | ~1.5s | <1s |
 | Offline Capability | None | Partial (Dexie + SW) | Full sync |
 | Real-time Latency | ~200ms | ~80ms | <50ms |
-| Provider Nesting | 13 levels | 1 level (Zustand) | 1 level |
+| Provider Nesting | 13 levels | 1 level (Zustand) | 1 level ✅ |
 | Bundle Size | 1.07MB | ~650KB | <500KB |
-| Test Coverage | ~20% | ~55% | 75%+ |
+| Test Coverage | ~20% | ~55% (thresholds at 75%) | 75%+ |
 | Lighthouse Score | — | — | 90+ |
 | Monthly Active Users | 0 | 0 | First 100 |
 
