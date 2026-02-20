@@ -62,6 +62,7 @@ const { Component: Billing } = lazyLoadWithRetry(() => import('./pages/Billing')
 const { Component: WelcomeFlow } = lazyLoadWithRetry(() => import('./pages/WelcomeFlow'));
 const { Component: AdaptiveDashboard } = lazyLoadWithRetry(() => import('./components/AdaptiveDashboard'));
 const { Component: Connectors } = lazyLoadWithRetry(() => import('./pages/Connectors'));
+const { Component: PluginManagerPage } = lazyLoadWithRetry(() => import('./pages/PluginManagerPage'));
 
 // Legacy pages removed - redirects handle backwards compatibility
 // These imports are no longer needed as legacy routes now redirect to new pages
@@ -227,6 +228,7 @@ function AuthenticatedRoutes() {
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                   <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
                   <Route path="/connectors" element={<ProtectedRoute><Connectors /></ProtectedRoute>} />
+                  <Route path="/plugins" element={<ProtectedRoute><PluginManagerPage /></ProtectedRoute>} />
 
                   {/* Admin Routes */}
                   <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />

@@ -463,6 +463,11 @@ const analyticsRoutes = require('./routes/analytics');
 app.use('/analytics', analyticsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
+// Mount Plugin routes (Sprint 36)
+const pluginRoutes = require('./routes/plugins');
+app.use('/plugins', pluginRoutes);
+app.use('/api/plugins', pluginRoutes);
+
 // Mount Documents routes (collaborative editing)
 const documentsRoutes = require('./routes/documents');
 app.use('/', documentsRoutes);  // Direct path (DO ingress strips /api prefix)

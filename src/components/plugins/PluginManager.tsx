@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { pluginRegistry, PluginInstance } from '@/services/plugins/PluginRegistry';
 import { pluginMarketplace, MarketplacePlugin } from '@/services/plugins/PluginMarketplace';
+import { PluginPermissionDialog } from './PluginPermissionDialog';
 import { cn } from '@/lib/utils';
 
 type TabType = 'installed' | 'marketplace' | 'updates';
@@ -41,6 +42,7 @@ export function PluginManager() {
   const [marketplacePlugins, setMarketplacePlugins] = React.useState<MarketplacePlugin[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [, setSelectedPlugin] = React.useState<string | null>(null);
+  const [pendingInstall, setPendingInstall] = React.useState<MarketplacePlugin | null>(null);
 
   // Load installed plugins
   React.useEffect(() => {
@@ -112,12 +114,19 @@ export function PluginManager() {
     }
   };
 
-  const handleInstall = async (plugin: MarketplacePlugin) => {
+  const handleInstallRequest = (plugin: MarketplacePlugin) => {
+    setPendingInstall(plugin);
+  };
+
+  const handleInstallApprove = async () => {
+    if (!pendingInstall) return;
     try {
-      await pluginRegistry.install(plugin.manifest, 'marketplace');
-      await pluginRegistry.activate(plugin.id);
+      await pluginRegistry.install(pendingInstall.manifest, 'marketplace');
+      await pluginRegistry.activate(pendingInstall.id);
     } catch (error) {
       console.error('Failed to install plugin:', error);
+    } finally {
+      setPendingInstall(null);
     }
   };
 
@@ -128,12 +137,12 @@ export function PluginManager() {
   );
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="h-full flex flex-col bg-neutral-50 dark:bg-neutral-900">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
         <div className="flex items-center gap-3">
           <Package className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
             Plugins
           </h1>
         </div>
@@ -141,25 +150,25 @@ export function PluginManager() {
         <div className="flex items-center gap-3">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search plugins..."
-              className="pl-9 pr-4 py-2 w-64 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="pl-9 pr-4 py-2 w-64 bg-neutral-100 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           {/* View toggle */}
-          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+          <div className="flex items-center bg-neutral-100 dark:bg-neutral-700 rounded-lg p-1">
             <button
               onClick={() => setViewMode('grid')}
               className={cn(
                 'p-1.5 rounded',
                 viewMode === 'grid'
-                  ? 'bg-white dark:bg-gray-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  ? 'bg-white dark:bg-neutral-600 shadow-sm'
+                  : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
               )}
             >
               <Grid className="w-4 h-4" />
@@ -169,8 +178,8 @@ export function PluginManager() {
               className={cn(
                 'p-1.5 rounded',
                 viewMode === 'list'
-                  ? 'bg-white dark:bg-gray-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  ? 'bg-white dark:bg-neutral-600 shadow-sm'
+                  : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
               )}
             >
               <List className="w-4 h-4" />
@@ -180,7 +189,7 @@ export function PluginManager() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 px-6 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center gap-1 px-6 py-2 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
         {(['installed', 'marketplace', 'updates'] as TabType[]).map((tab) => (
           <button
             key={tab}
@@ -189,7 +198,7 @@ export function PluginManager() {
               'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
               activeTab === tab
                 ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700'
             )}
           >
             {tab === 'installed' && `Installed (${installedPlugins.length})`}
@@ -255,7 +264,7 @@ export function PluginManager() {
                 plugin={plugin}
                 viewMode={viewMode}
                 isInstalled={pluginRegistry.isInstalled(plugin.id)}
-                onInstall={() => handleInstall(plugin)}
+                onInstall={() => handleInstallRequest(plugin)}
               />
             ))}
           </div>
@@ -268,7 +277,14 @@ export function PluginManager() {
         )}
       </div>
 
-      {/* Plugin settings modal would go here */}
+      {/* Permission dialog */}
+      {pendingInstall && (
+        <PluginPermissionDialog
+          manifest={pendingInstall.manifest}
+          onApprove={handleInstallApprove}
+          onDeny={() => setPendingInstall(null)}
+        />
+      )}
     </div>
   );
 }
@@ -295,16 +311,16 @@ function InstalledPluginCard({
 
   if (viewMode === 'list') {
     return (
-      <div className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
         <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
           {plugin.manifest.name.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+            <h3 className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
               {plugin.manifest.name}
             </h3>
-            <span className="text-xs text-gray-500">v{plugin.manifest.version}</span>
+            <span className="text-xs text-neutral-500">v{plugin.manifest.version}</span>
             {isActive && (
               <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
                 Active
@@ -316,7 +332,7 @@ function InstalledPluginCard({
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate">
             {plugin.manifest.description}
           </p>
         </div>
@@ -324,7 +340,7 @@ function InstalledPluginCard({
           {isActive ? (
             <button
               onClick={() => onDeactivate(plugin.manifest.id)}
-              className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              className="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg"
               title="Disable"
             >
               <PowerOff className="w-4 h-4" />
@@ -340,7 +356,7 @@ function InstalledPluginCard({
           )}
           <button
             onClick={onSettings}
-            className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            className="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg"
             title="Settings"
           >
             <Settings className="w-4 h-4" />
@@ -358,22 +374,22 @@ function InstalledPluginCard({
   }
 
   return (
-    <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div className="p-4 bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm">
       <div className="flex items-start gap-3 mb-3">
         <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
           {plugin.manifest.name.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+          <h3 className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
             {plugin.manifest.name}
           </h3>
-          <p className="text-xs text-gray-500">v{plugin.manifest.version}</p>
+          <p className="text-xs text-neutral-500">v{plugin.manifest.version}</p>
         </div>
         {isActive && <CheckCircle className="w-5 h-5 text-green-500" />}
         {hasError && <AlertTriangle className="w-5 h-5 text-red-500" />}
       </div>
 
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+      <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4 line-clamp-2">
         {plugin.manifest.description}
       </p>
 
@@ -384,14 +400,14 @@ function InstalledPluginCard({
       )}
 
       <div className="flex items-center justify-between">
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-neutral-500">
           by {plugin.manifest.author.name}
         </div>
         <div className="flex items-center gap-1">
           {isActive ? (
             <button
               onClick={() => onDeactivate(plugin.manifest.id)}
-              className="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              className="p-1.5 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded"
               title="Disable"
             >
               <PowerOff className="w-4 h-4" />
@@ -407,7 +423,7 @@ function InstalledPluginCard({
           )}
           <button
             onClick={onSettings}
-            className="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            className="p-1.5 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded"
             title="Settings"
           >
             <Settings className="w-4 h-4" />
@@ -440,22 +456,22 @@ function MarketplacePluginCard({
 }: MarketplacePluginCardProps) {
   if (viewMode === 'list') {
     return (
-      <div className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
         <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold">
           {plugin.manifest.name.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+            <h3 className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
               {plugin.manifest.name}
             </h3>
             {plugin.verified && <span title="Verified"><Shield className="w-4 h-4 text-blue-500" aria-hidden="true" /></span>}
             {plugin.featured && <span title="Featured"><Star className="w-4 h-4 text-amber-500 fill-amber-500" aria-hidden="true" /></span>}
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate">
             {plugin.manifest.description}
           </p>
-          <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+          <div className="flex items-center gap-4 mt-1 text-xs text-neutral-500">
             <span className="flex items-center gap-1">
               <Download className="w-3 h-3" />
               {formatNumber(plugin.downloads)}
@@ -472,7 +488,7 @@ function MarketplacePluginCard({
           className={cn(
             'px-4 py-2 rounded-lg font-medium text-sm transition-colors',
             isInstalled
-              ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+              ? 'bg-neutral-100 dark:bg-neutral-700 text-neutral-400 cursor-not-allowed'
               : 'bg-indigo-600 text-white hover:bg-indigo-700'
           )}
         >
@@ -483,19 +499,19 @@ function MarketplacePluginCard({
   }
 
   return (
-    <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div className="p-4 bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm">
       <div className="flex items-start gap-3 mb-3">
         <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold">
           {plugin.manifest.name.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
-            <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+            <h3 className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
               {plugin.manifest.name}
             </h3>
             {plugin.verified && <Shield className="w-4 h-4 text-blue-500" />}
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-neutral-500">
             <span className="flex items-center gap-0.5">
               <Star className="w-3 h-3 text-amber-500" />
               {plugin.rating.toFixed(1)}
@@ -505,12 +521,12 @@ function MarketplacePluginCard({
         </div>
       </div>
 
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+      <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4 line-clamp-2">
         {plugin.manifest.description}
       </p>
 
       <div className="flex items-center justify-between">
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-neutral-500">
           by {plugin.manifest.author.name}
         </div>
         <button
@@ -519,7 +535,7 @@ function MarketplacePluginCard({
           className={cn(
             'px-3 py-1.5 rounded-lg font-medium text-sm transition-colors',
             isInstalled
-              ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+              ? 'bg-neutral-100 dark:bg-neutral-700 text-neutral-400 cursor-not-allowed'
               : 'bg-indigo-600 text-white hover:bg-indigo-700'
           )}
         >
@@ -540,9 +556,9 @@ interface EmptyStateProps {
 function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="text-gray-300 dark:text-gray-600 mb-4">{icon}</div>
-      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">{title}</h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{description}</p>
+      <div className="text-neutral-300 dark:text-neutral-600 mb-4">{icon}</div>
+      <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-1">{title}</h3>
+      <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">{description}</p>
       {action}
     </div>
   );

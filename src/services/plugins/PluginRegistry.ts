@@ -11,9 +11,9 @@ import {
   PluginStorage,
   PluginLogger,
   PluginSubscription,
-  PluginModule,
-  FluxStudioAPI,
 } from './types';
+import { PluginSandbox } from './PluginSandbox';
+import { createPluginAPI, cleanupPlugin } from './PluginAPIFactory';
 
 // Re-export PluginInstance type for consumers
 export type { PluginInstance } from './types';
@@ -31,7 +31,7 @@ type EventCallback<K extends keyof PluginRegistryEvents> = PluginRegistryEvents[
 
 class PluginRegistry {
   private plugins: Map<string, PluginInstance> = new Map();
-  private activeModules: Map<string, PluginModule> = new Map();
+  private activeSandboxes: Map<string, PluginSandbox> = new Map();
   private subscriptions: Map<string, PluginSubscription[]> = new Map();
   private eventListeners: Map<keyof PluginRegistryEvents, Set<EventCallback<keyof PluginRegistryEvents>>> = new Map();
 
@@ -101,22 +101,22 @@ class PluginRegistry {
     plugin.state = 'loading';
 
     try {
-      // Load the plugin module
-      const module = await this.loadPluginModule(plugin.manifest);
-      this.activeModules.set(pluginId, module);
+      // Create sandbox and API
+      const sandbox = new PluginSandbox(pluginId);
+      const api = createPluginAPI(plugin);
+      sandbox.setAPI(api);
 
-      // Create plugin context
+      // Load the plugin code into the sandbox
+      const code = await this.fetchPluginCode(plugin.manifest);
+      await sandbox.load(code);
+
+      this.activeSandboxes.set(pluginId, sandbox);
+
+      // Create plugin context and activate
       const context = this.createPluginContext(plugin);
-      const api = this.createPluginAPI(plugin);
-
-      // Initialize subscriptions array
       this.subscriptions.set(pluginId, []);
 
-      // Activate the plugin
-      const activator = module.default || module;
-      if (activator.activate) {
-        await activator.activate(context, api);
-      }
+      await sandbox.activate(context);
 
       plugin.state = 'active';
       plugin.enabledAt = new Date().toISOString();
@@ -144,12 +144,12 @@ class PluginRegistry {
     }
 
     try {
-      const module = this.activeModules.get(pluginId);
-      if (module) {
-        const deactivator = module.default || module;
-        if (deactivator.deactivate) {
-          await deactivator.deactivate();
-        }
+      // Deactivate and dispose sandbox
+      const sandbox = this.activeSandboxes.get(pluginId);
+      if (sandbox) {
+        await sandbox.deactivate();
+        sandbox.dispose();
+        this.activeSandboxes.delete(pluginId);
       }
 
       // Dispose all subscriptions
@@ -159,8 +159,8 @@ class PluginRegistry {
       }
       this.subscriptions.delete(pluginId);
 
-      // Remove module
-      this.activeModules.delete(pluginId);
+      // Clean up API registrations (commands, panels, events)
+      cleanupPlugin(pluginId);
 
       plugin.state = 'inactive';
       delete plugin.enabledAt;
@@ -317,19 +317,28 @@ class PluginRegistry {
     return settings;
   }
 
-  private async loadPluginModule(_manifest: PluginManifest): Promise<PluginModule> {
-    // In production, this would load from a CDN or local file
-    // For now, we simulate dynamic import
-    // This would be something like:
-    // return await import(/* webpackIgnore: true */ manifest.main);
+  private async fetchPluginCode(manifest: PluginManifest): Promise<string> {
+    // Try to fetch the plugin bundle from its main entry point.
+    // In production this would be a CDN URL; for local/sample plugins
+    // we return a minimal no-op module so install/activate still works.
+    try {
+      const res = await fetch(manifest.main);
+      if (res.ok) {
+        return await res.text();
+      }
+    } catch {
+      // Fetch failed — fall through to default
+    }
 
-    // For simulation, return a no-op module
-    return {
-      activate: async () => {
-      },
-      deactivate: async () => {
-      },
-    };
+    // Return a minimal plugin module for sample/marketplace plugins
+    return `
+      module.exports = {
+        activate: function(context, api) {
+          api.ui.showNotification({ type: 'info', title: context.manifest.name + ' activated' });
+        },
+        deactivate: function() {}
+      };
+    `;
   }
 
   private createPluginContext(plugin: PluginInstance): PluginContext {
@@ -395,69 +404,6 @@ class PluginRegistry {
       warn: (message, ...args) => console.warn(prefix, message, ...args),
       error: (message, ...args) => console.error(prefix, message, ...args),
       debug: (_message, ..._args) => {},
-    };
-  }
-
-  private createPluginAPI(_plugin: PluginInstance): FluxStudioAPI {
-    // This would provide the actual API implementation
-    // For now, return a skeleton
-    return {
-      version: '1.0.0',
-      commands: {
-        register: (_id, _callback) => ({
-          dispose: () => {},
-        }),
-        execute: async (_id, ..._args) => {
-        },
-        getAll: () => [],
-      },
-      ui: {
-        showNotification: (_options) => {},
-        showModal: async (_component) => null,
-        registerPanel: (_panel, _component) => ({
-          dispose: () => {},
-        }),
-        registerToolbarItem: (_item) => ({
-          dispose: () => {},
-        }),
-      },
-      projects: {
-        getCurrent: async () => null,
-        getAll: async () => [],
-        open: async (_projectId) => {},
-        create: async (options) => ({
-          id: 'new-project',
-          name: options.name,
-          type: options.type,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }),
-      },
-      files: {
-        read: async (_path) => '',
-        write: async (_path, _content) => {},
-        delete: async (_path) => {},
-        exists: async (_path) => false,
-        list: async (_path) => [],
-      },
-      ai: {
-        chat: async (_messages) => ({ content: 'AI response' }),
-        generate: async (_prompt, type) => ({ result: null, type }),
-        suggest: async (_context) => [],
-      },
-      events: {
-        on: (_event, _callback) => ({
-          dispose: () => {},
-        }),
-        emit: (_event, ..._args) => {},
-      },
-      workspace: {
-        getConfiguration: (_section) => ({}),
-        updateConfiguration: async (_section, _value) => {},
-        onDidChangeConfiguration: (_callback) => ({
-          dispose: () => {},
-        }),
-      },
     };
   }
 
