@@ -14,6 +14,11 @@ import {
   Shield
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { UsageBar } from '../components/payments/UsageBar';
+import { fetchUsage } from '../services/usageService';
+import { getPlan } from '../config/plans';
+import type { UsageData } from '../services/usageService';
+import type { PlanId } from '../config/plans';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://fluxstudio.art';
 
@@ -35,6 +40,8 @@ export function Billing() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [error, setError] = useState('');
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
+  const [usage, setUsage] = useState<UsageData | null>(null);
+  const [planId, setPlanId] = useState<PlanId>('free');
 
   useEffect(() => {
     if (!user) {
@@ -42,6 +49,12 @@ export function Billing() {
       return;
     }
     fetchSubscriptionStatus();
+    fetchUsage()
+      .then((data) => {
+        setUsage(data.usage);
+        setPlanId(data.plan);
+      })
+      .catch(() => { /* usage fetch is best-effort */ });
   }, [user, navigate]);
 
   const fetchSubscriptionStatus = async () => {
@@ -175,6 +188,36 @@ export function Billing() {
       )}
 
       <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* Current Plan & Usage */}
+        {usage && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-b from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-6 mb-6"
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold">Current Plan</h2>
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400 uppercase tracking-wide">
+                  {getPlan(planId).name}
+                </span>
+              </div>
+              <button
+                onClick={() => navigate('/pricing')}
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+              >
+                Change Plan
+              </button>
+            </div>
+            <div className="space-y-4">
+              <UsageBar label="Projects" current={usage.projects.current} limit={usage.projects.limit} />
+              <UsageBar label="Storage" current={usage.storage.current} limit={usage.storage.limit} unit="storage" />
+              <UsageBar label="AI Calls" current={usage.aiCalls.current} limit={usage.aiCalls.limit} />
+              <UsageBar label="Collaborators" current={usage.collaborators.current} limit={usage.collaborators.limit} />
+            </div>
+          </motion.div>
+        )}
+
         {/* Subscription Status Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

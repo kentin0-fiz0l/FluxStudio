@@ -18,7 +18,10 @@ import { ArrowLeft, Plus, LayoutTemplate, Sparkles } from 'lucide-react';
 import { TemplateSelector } from '../components/templates/TemplateSelector';
 import { AIProjectCreator } from '../components/projects/AIProjectCreator';
 import { templateService } from '../services/templates/TemplateService';
+import { UpgradePrompt } from '../components/payments/UpgradePrompt';
+import { fetchUsage, isAtLimit } from '../services/usageService';
 import type { CreateFromTemplateOptions } from '../services/templates/types';
+import type { UsageData } from '../services/usageService';
 
 type CreationMode = 'blank' | 'template' | 'ai';
 
@@ -40,6 +43,20 @@ export function NewProject() {
   useEffect(() => {
     if (mode === 'ai') setAiDialogOpen(true);
   }, [mode]);
+
+  // Quota check (Sprint 38)
+  const [usage, setUsage] = useState<UsageData | null>(null);
+  const [planName, setPlanName] = useState('Free');
+  const atProjectLimit = usage ? isAtLimit(usage, 'projects') : false;
+
+  useEffect(() => {
+    fetchUsage()
+      .then((data) => {
+        setUsage(data.usage);
+        setPlanName(data.plan.charAt(0).toUpperCase() + data.plan.slice(1));
+      })
+      .catch(() => { /* best-effort */ });
+  }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string>('');
@@ -187,8 +204,18 @@ export function NewProject() {
           ))}
         </div>
 
+        {/* Quota Limit Warning */}
+        {atProjectLimit && usage && (
+          <UpgradePrompt
+            resource="Projects"
+            current={usage.projects.current}
+            limit={usage.projects.limit}
+            planName={planName}
+          />
+        )}
+
         {/* Template View */}
-        {mode === 'template' && (
+        {!atProjectLimit && mode === 'template' && (
           <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6">
             <TemplateSelector
               onSelect={handleTemplateSelect}
@@ -198,17 +225,17 @@ export function NewProject() {
         )}
 
         {/* AI Create Dialog */}
-        <AIProjectCreator
+        {!atProjectLimit && <AIProjectCreator
           open={aiDialogOpen}
           onOpenChange={(open) => {
             setAiDialogOpen(open);
             if (!open) setMode('blank');
           }}
           onProjectCreated={handleAiProjectCreated}
-        />
+        />}
 
         {/* Blank Project Form */}
-        {mode === 'blank' && (
+        {!atProjectLimit && mode === 'blank' && (
         <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6">
           {formError && (
             <div

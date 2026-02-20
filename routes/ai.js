@@ -14,6 +14,13 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { authenticateToken, rateLimitByUser } = require('../lib/auth/middleware');
 
+// Quota check middleware (Sprint 38)
+let checkAiQuota = (_req, _res, next) => next();
+try {
+  const { checkQuota } = require('../middleware/quotaCheck');
+  checkAiQuota = checkQuota('aiCalls');
+} catch { /* quotaCheck may not be available yet */ }
+
 const router = express.Router();
 
 // Initialize Anthropic client
@@ -76,7 +83,7 @@ Status: ${project.status || 'Unknown'}`;
  * POST /api/ai/chat
  * Send message and stream response (SSE)
  */
-router.post('/chat', authenticateToken, rateLimitByUser(30, 60000), async (req, res) => {
+router.post('/chat', authenticateToken, rateLimitByUser(30, 60000), checkAiQuota, async (req, res) => {
   const { message, context, conversationId, model = 'claude-sonnet-4-20250514' } = req.body;
   const userId = req.user.id;
 

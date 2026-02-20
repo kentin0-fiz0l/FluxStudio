@@ -197,7 +197,14 @@ router.get('/:projectId', authenticateToken, async (req, res) => {
  * POST /api/projects
  * Create a new project
  */
-router.post('/', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+// Quota check middleware (Sprint 38)
+let checkProjectQuota = (_req, _res, next) => next();
+try {
+  const { checkQuota } = require('../middleware/quotaCheck');
+  checkProjectQuota = checkQuota('projects');
+} catch { /* quotaCheck may not be available yet */ }
+
+router.post('/', authenticateToken, validateInput.sanitizeInput, checkProjectQuota, async (req, res) => {
   try {
     const userId = req.user.id;
     const {

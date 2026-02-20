@@ -473,6 +473,11 @@ const templateRoutes = require('./routes/templates');
 app.use('/templates', templateRoutes);
 app.use('/api/templates', templateRoutes);
 
+// Mount Usage routes (Sprint 38)
+const usageRoutes = require('./routes/usage');
+app.use('/usage', usageRoutes);
+app.use('/api/usage', usageRoutes);
+
 // Mount Documents routes (collaborative editing)
 const documentsRoutes = require('./routes/documents');
 app.use('/', documentsRoutes);  // Direct path (DO ingress strips /api prefix)
