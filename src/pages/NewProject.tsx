@@ -5,8 +5,8 @@
  * WCAG 2.1 Level A Compliant.
  */
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/templates';
 import { Button, Input } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,14 +14,32 @@ import { useProjects, Project } from '../hooks/useProjects';
 import { useTeams } from '../hooks/useTeams';
 import { useOrganizations } from '../hooks/useOrganizations';
 import { toast } from '../lib/toast';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, LayoutTemplate, Sparkles } from 'lucide-react';
+import { TemplateSelector } from '../components/templates/TemplateSelector';
+import { AIProjectCreator } from '../components/projects/AIProjectCreator';
+import { templateService } from '../services/templates/TemplateService';
+import type { CreateFromTemplateOptions } from '../services/templates/types';
+
+type CreationMode = 'blank' | 'template' | 'ai';
 
 export function NewProject() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { createProject } = useProjects();
   const { teams } = useTeams();
   const { currentOrganization } = useOrganizations();
+
+  // Determine initial mode from URL params
+  const initialMode: CreationMode = searchParams.get('templates') === 'true' ? 'template'
+    : searchParams.get('ai') === 'true' ? 'ai' : 'blank';
+  const [mode, setMode] = useState<CreationMode>(initialMode);
+  const [aiDialogOpen, setAiDialogOpen] = useState(initialMode === 'ai');
+
+  // Sync AI dialog state with mode
+  useEffect(() => {
+    if (mode === 'ai') setAiDialogOpen(true);
+  }, [mode]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string>('');
@@ -92,6 +110,31 @@ export function NewProject() {
     }
   };
 
+  const handleTemplateSelect = async (options: CreateFromTemplateOptions) => {
+    setIsSubmitting(true);
+    try {
+      const result = await templateService.createFromTemplate(options);
+      toast.success(`Project "${result.projectName}" created from template!`);
+      navigate(`/projects/${result.projectId}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to create project from template';
+      toast.error(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAiProjectCreated = (projectId: string) => {
+    setAiDialogOpen(false);
+    navigate(`/projects/${projectId}`);
+  };
+
+  const modes: { id: CreationMode; label: string; icon: React.ReactNode }[] = [
+    { id: 'blank', label: 'Blank Project', icon: <Plus className="w-4 h-4" /> },
+    { id: 'template', label: 'From Template', icon: <LayoutTemplate className="w-4 h-4" /> },
+    { id: 'ai', label: 'AI Create', icon: <Sparkles className="w-4 h-4" /> },
+  ];
+
   return (
     <DashboardLayout
       user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
@@ -117,17 +160,56 @@ export function NewProject() {
         </div>
 
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-neutral-900 dark:text-white flex items-center gap-3">
             <Plus className="w-6 h-6 text-primary-600" />
             Create New Project
           </h1>
-          <p className="text-neutral-600 mt-1">
-            Set up a new project to start collaborating with your team.
+          <p className="text-neutral-600 dark:text-neutral-400 mt-1">
+            Start from scratch, use a template, or let AI scaffold your project.
           </p>
         </div>
 
-        {/* Form */}
-        <div className="bg-white rounded-xl border border-neutral-200 p-6">
+        {/* Mode Tabs */}
+        <div className="flex gap-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
+          {modes.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setMode(m.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors flex-1 justify-center ${
+                mode === m.id
+                  ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-sm'
+                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+              }`}
+            >
+              {m.icon}
+              {m.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Template View */}
+        {mode === 'template' && (
+          <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6">
+            <TemplateSelector
+              onSelect={handleTemplateSelect}
+              onCancel={() => setMode('blank')}
+            />
+          </div>
+        )}
+
+        {/* AI Create Dialog */}
+        <AIProjectCreator
+          open={aiDialogOpen}
+          onOpenChange={(open) => {
+            setAiDialogOpen(open);
+            if (!open) setMode('blank');
+          }}
+          onProjectCreated={handleAiProjectCreated}
+        />
+
+        {/* Blank Project Form */}
+        {mode === 'blank' && (
+        <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6">
           {formError && (
             <div
               role="alert"
@@ -301,6 +383,7 @@ export function NewProject() {
             </div>
           </form>
         </div>
+        )}
       </div>
     </DashboardLayout>
   );

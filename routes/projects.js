@@ -203,7 +203,7 @@ router.post('/', authenticateToken, validateInput.sanitizeInput, async (req, res
     const {
       name, description, organizationId, teamId, startDate, dueDate,
       priority, projectType, serviceCategory, serviceTier, ensembleType,
-      tags, settings, members
+      tags, settings, members, templateId, templateVariables
     } = req.body;
 
     if (!name || name.trim().length < 3) {
@@ -226,8 +226,21 @@ router.post('/', authenticateToken, validateInput.sanitizeInput, async (req, res
         serviceTier: serviceTier || 'standard',
         ensembleType: ensembleType || 'general',
         tags,
-        settings
+        settings,
+        templateId: templateId || null,
       }, userId);
+
+      // If created from a template, store the template reference
+      if (templateId) {
+        try {
+          await query(
+            'UPDATE projects SET template_id = $1, metadata = COALESCE(metadata, \'{}\'::jsonb) || $2::jsonb WHERE id = $3',
+            [templateId, JSON.stringify({ templateVariables: templateVariables || {} }), newProject.id]
+          );
+        } catch (tmplErr) {
+          console.warn('Could not store template reference:', tmplErr.message);
+        }
+      }
 
       // Add additional members if specified
       if (members && Array.isArray(members)) {

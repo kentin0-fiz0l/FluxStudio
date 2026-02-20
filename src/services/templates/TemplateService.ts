@@ -16,6 +16,7 @@ import {
   AITemplateRequest,
   AITemplateResponse,
 } from './types';
+import { apiFetch } from '@/utils/apiHelpers';
 
 class TemplateService {
   private templates: Map<string, ProjectTemplate> = new Map();
@@ -31,29 +32,49 @@ class TemplateService {
   // ============================================================================
 
   async search(filter: TemplateFilter = {}): Promise<TemplateSearchResult> {
+    // Try fetching from API (includes both built-in and user custom templates)
+    try {
+      const params = new URLSearchParams();
+      if (filter.category) params.set('category', filter.category);
+      if (filter.complexity) params.set('complexity', filter.complexity);
+      if (filter.featured) params.set('featured', 'true');
+      if (filter.search) params.set('search', filter.search);
+      if (filter.sortBy) params.set('sortBy', filter.sortBy);
+
+      const res = await apiFetch(`/api/templates?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.templates) {
+          return {
+            templates: data.templates,
+            total: data.total || data.templates.length,
+            page: 1,
+            hasMore: false,
+          };
+        }
+      }
+    } catch {
+      // API unavailable, fall back to local
+    }
+
+    // Fallback: local search
     let results = [...this.templates.values(), ...this.customTemplates.values()];
 
-    // Apply filters
     if (filter.category) {
       results = results.filter((t) => t.category === filter.category);
     }
-
     if (filter.complexity) {
       results = results.filter((t) => t.complexity === filter.complexity);
     }
-
     if (filter.featured) {
       results = results.filter((t) => t.featured);
     }
-
     if (filter.official) {
       results = results.filter((t) => t.official);
     }
-
     if (filter.premium !== undefined) {
       results = results.filter((t) => t.premium === filter.premium);
     }
-
     if (filter.search) {
       const query = filter.search.toLowerCase();
       results = results.filter(
@@ -64,7 +85,6 @@ class TemplateService {
       );
     }
 
-    // Sort
     switch (filter.sortBy) {
       case 'downloads':
         results.sort((a, b) => b.downloads - a.downloads);
@@ -79,7 +99,6 @@ class TemplateService {
         results.sort((a, b) => a.name.localeCompare(b.name));
         break;
       default:
-        // Featured first, then by downloads
         results.sort((a, b) => {
           if (a.featured !== b.featured) return b.featured ? 1 : -1;
           return b.downloads - a.downloads;
@@ -160,39 +179,63 @@ class TemplateService {
       }
     }
 
-    // Create project structure
+    // Create project via backend API with template reference
+    try {
+      const res = await apiFetch('/api/projects', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: options.projectName || String(variables.projectName || 'New Project'),
+          description: String(variables.description || template.description || ''),
+          projectType: template.structure.projectType || template.category,
+          templateId: options.templateId,
+          templateVariables: variables,
+          tags: template.tags,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const project = data.project;
+
+        // Compute what was created for the result
+        const createdFiles = [
+          ...template.structure.folders.map((f) => this.interpolateVariables(f.path, variables)),
+          ...template.structure.files.map((f) => this.interpolateVariables(f.path, variables)),
+        ];
+        const createdEntities = (template.structure.entities || []).map((e) => ({
+          type: e.type,
+          id: `${e.type}-${Date.now()}`,
+          name: this.interpolateVariables(e.name, variables),
+        }));
+
+        return {
+          projectId: project.id,
+          projectName: project.name,
+          createdFiles,
+          createdEntities,
+        };
+      }
+    } catch {
+      // API unavailable, fall through to local fallback
+    }
+
+    // Fallback: local-only creation
     const createdFiles: string[] = [];
     const createdEntities: { type: string; id: string; name: string }[] = [];
 
-    // Process folders
     for (const folder of template.structure.folders) {
-      const path = this.interpolateVariables(folder.path, variables);
-      createdFiles.push(path);
-      // In production, would actually create folders
+      createdFiles.push(this.interpolateVariables(folder.path, variables));
     }
-
-    // Process files
     for (const file of template.structure.files) {
-      const path = this.interpolateVariables(file.path, variables);
-      let content = file.content || file.templateContent || '';
-      content = this.interpolateVariables(content, variables);
-      createdFiles.push(path);
-      // In production, would actually create files
+      createdFiles.push(this.interpolateVariables(file.path, variables));
     }
-
-    // Create entities
     for (const entity of template.structure.entities || []) {
       const name = this.interpolateVariables(entity.name, variables);
-      const id = `${entity.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      createdEntities.push({ type: entity.type, id, name });
-      // In production, would actually create entities
+      createdEntities.push({ type: entity.type, id: `${entity.type}-${Date.now()}`, name });
     }
 
-    // Generate project ID
-    const projectId = `proj-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
     return {
-      projectId,
+      projectId: `proj-${Date.now()}`,
       projectName: options.projectName,
       createdFiles,
       createdEntities,
@@ -224,9 +267,59 @@ class TemplateService {
   // ============================================================================
 
   async createCustomTemplate(options: CustomTemplateOptions): Promise<ProjectTemplate> {
-    const id = `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const now = new Date().toISOString();
 
+    // Try saving to backend
+    try {
+      const res = await apiFetch('/api/templates/custom', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: options.name,
+          description: options.description,
+          category: options.category,
+          structure: {
+            projectType: options.category,
+            defaultSettings: {},
+            folders: [],
+            files: [],
+            entities: [],
+          },
+          variables: options.variables || [],
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const row = data.template;
+        const template: ProjectTemplate = {
+          id: row.id,
+          name: row.name,
+          description: row.description || '',
+          category: row.category || 'custom',
+          complexity: 'basic',
+          tags: [],
+          author: { id: 'current-user', name: 'You' },
+          version: '1.0.0',
+          createdAt: row.created_at || now,
+          updatedAt: row.updated_at || now,
+          downloads: 0,
+          rating: 0,
+          featured: false,
+          official: false,
+          premium: false,
+          structure: row.structure || { projectType: options.category, defaultSettings: {}, folders: [], files: [], entities: [] },
+          variables: row.variables || options.variables || [],
+          presets: [],
+        };
+        this.customTemplates.set(template.id, template);
+        return template;
+      }
+    } catch {
+      // API unavailable, fall back to local
+    }
+
+    // Fallback: local-only
+    const id = `custom-${Date.now()}`;
     const template: ProjectTemplate = {
       id,
       name: options.name,
@@ -234,10 +327,7 @@ class TemplateService {
       category: options.category,
       complexity: 'basic',
       tags: [],
-      author: {
-        id: 'current-user',
-        name: 'You',
-      },
+      author: { id: 'current-user', name: 'You' },
       version: '1.0.0',
       createdAt: now,
       updatedAt: now,
@@ -246,21 +336,13 @@ class TemplateService {
       featured: false,
       official: false,
       premium: false,
-      structure: {
-        projectType: options.category,
-        defaultSettings: {},
-        folders: [],
-        files: [],
-        entities: [],
-      },
+      structure: { projectType: options.category, defaultSettings: {}, folders: [], files: [], entities: [] },
       variables: options.variables || [],
       presets: [],
     };
 
-    // In production, would extract structure from source project
     this.customTemplates.set(id, template);
     this.persistCustomTemplates();
-
     return template;
   }
 
@@ -286,8 +368,11 @@ class TemplateService {
   }
 
   async deleteCustomTemplate(templateId: string): Promise<void> {
-    if (!this.customTemplates.has(templateId)) {
-      throw new Error(`Custom template ${templateId} not found`);
+    // Try deleting from backend
+    try {
+      await apiFetch(`/api/templates/custom/${templateId}`, { method: 'DELETE' });
+    } catch {
+      // API unavailable, just remove locally
     }
 
     this.customTemplates.delete(templateId);
@@ -303,10 +388,39 @@ class TemplateService {
   // ============================================================================
 
   async generateTemplate(request: AITemplateRequest): Promise<AITemplateResponse> {
-    // Simulate AI processing
-    await new Promise((r) => setTimeout(r, 1500));
+    // Try real AI generation via backend
+    try {
+      const res = await apiFetch('/api/ai/generate-template', {
+        method: 'POST',
+        body: JSON.stringify({
+          description: request.description,
+          category: request.category,
+          complexity: request.complexity,
+        }),
+      });
 
-    // Generate template based on request
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.data?.template) {
+          const template = data.data.template as Partial<ProjectTemplate>;
+          return {
+            template,
+            suggestions: {
+              name: template.name || 'New Project',
+              description: template.description || '',
+              variables: template.variables || [],
+              structure: template.structure || {},
+            },
+            confidence: data.data.confidence || 0.85,
+            alternatives: this.generateAlternatives(request),
+          };
+        }
+      }
+    } catch {
+      // AI unavailable, fall back to local generation
+    }
+
+    // Fallback: local generation
     const category = request.category || this.inferCategory(request.description);
     const complexity = request.complexity || 'basic';
 
@@ -329,7 +443,7 @@ class TemplateService {
         variables: template.variables || [],
         structure: template.structure || {},
       },
-      confidence: 0.85,
+      confidence: 0.65,
       alternatives: this.generateAlternatives(request),
     };
   }

@@ -496,4 +496,184 @@ Be specific, actionable, and constructive in your feedback.`;
   }
 });
 
+/**
+ * POST /api/ai/generate-project-structure
+ * Generate project structure from natural language description
+ */
+router.post('/generate-project-structure', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
+  const { description, category, complexity } = req.body;
+
+  if (!description || description.trim().length < 10) {
+    return res.status(400).json({ error: 'Please provide a project description (at least 10 characters)' });
+  }
+
+  try {
+    const systemPrompt = `You are a project planning assistant for FluxStudio, a creative collaboration platform.
+Given a project description, generate a structured project scaffold.
+
+Respond with ONLY valid JSON in this exact shape:
+{
+  "name": "Short project name (2-5 words)",
+  "folders": ["array of folder paths like /assets, /designs, /docs"],
+  "tasks": [
+    { "title": "Task title", "week": 1, "description": "Brief task description" }
+  ],
+  "teamRoles": ["Designer", "Developer", etc.],
+  "tags": ["relevant", "tags"],
+  "projectType": "one of: design, development, marketing, music, video, photography, branding, social-media, presentation, documentation, general"
+}
+
+Rules:
+- Generate 4-8 realistic folders
+- Generate 5-12 tasks spread across 2-6 weeks
+- Suggest 2-5 team roles
+- Keep names concise and professional
+- Match the complexity level: ${complexity || 'basic'}
+${category ? `- The project category is: ${category}` : ''}`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: description.trim() }],
+    });
+
+    const textContent = response.content.find(c => c.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      return res.status(500).json({ error: 'No response from AI' });
+    }
+
+    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return res.status(500).json({ error: 'Could not parse AI response' });
+    }
+
+    const suggestion = JSON.parse(jsonMatch[0]);
+    res.json({ success: true, data: suggestion });
+  } catch (error) {
+    console.error('[AI] Project structure generation error:', error);
+
+    // Fallback: generate locally if AI fails
+    const fallback = generateLocalStructure(description, category);
+    res.json({ success: true, data: fallback, fallback: true });
+  }
+});
+
+/**
+ * POST /api/ai/generate-template
+ * AI-generate a full project template from description
+ */
+router.post('/generate-template', authenticateToken, rateLimitByUser(5, 60000), async (req, res) => {
+  const { description, category, complexity } = req.body;
+
+  if (!description || description.trim().length < 10) {
+    return res.status(400).json({ error: 'Please provide a template description (at least 10 characters)' });
+  }
+
+  try {
+    const systemPrompt = `You are a project template generator for FluxStudio.
+Generate a reusable project template from the description.
+
+Respond with ONLY valid JSON:
+{
+  "name": "Template name",
+  "description": "Template description",
+  "category": "one of: design, development, marketing, music, video, photography, branding, social-media, presentation, documentation, custom",
+  "complexity": "one of: starter, basic, advanced, enterprise",
+  "tags": ["tag1", "tag2"],
+  "structure": {
+    "projectType": "category value",
+    "folders": [{ "path": "/folder", "name": "Folder Name", "description": "Purpose" }],
+    "files": [{ "path": "/README.md", "name": "README", "type": "markdown", "templateContent": "# {{projectName}}\\n\\n{{description}}" }],
+    "entities": [{ "type": "board|document|task|timeline", "name": "Entity Name", "data": {} }]
+  },
+  "variables": [
+    { "id": "projectName", "name": "Project Name", "type": "text", "defaultValue": "My Project", "required": true },
+    { "id": "description", "name": "Description", "type": "text", "defaultValue": "", "required": false }
+  ],
+  "suggestedTasks": [
+    { "title": "Task", "week": 1, "description": "Description" }
+  ],
+  "teamRoles": ["Role1", "Role2"]
+}
+
+Rules:
+- Generate 3-6 folders, 1-3 template files with {{variable}} placeholders
+- Generate 2-4 meaningful variables
+- Include 3-8 entities (mix of boards, documents, tasks)
+- Complexity: ${complexity || 'basic'}
+${category ? `- Category: ${category}` : ''}`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: description.trim() }],
+    });
+
+    const textContent = response.content.find(c => c.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      return res.status(500).json({ error: 'No response from AI' });
+    }
+
+    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return res.status(500).json({ error: 'Could not parse AI response' });
+    }
+
+    const template = JSON.parse(jsonMatch[0]);
+    res.json({ success: true, data: { template, confidence: 0.85 } });
+  } catch (error) {
+    console.error('[AI] Template generation error:', error);
+    res.status(500).json({ error: 'Failed to generate template', details: error.message });
+  }
+});
+
+/**
+ * Local fallback for project structure generation
+ */
+function generateLocalStructure(description, category) {
+  const lower = (description || '').toLowerCase();
+
+  // Infer category
+  const inferredCategory = category ||
+    (lower.includes('design') || lower.includes('ui') ? 'design' :
+    lower.includes('music') || lower.includes('audio') ? 'music' :
+    lower.includes('video') || lower.includes('film') ? 'video' :
+    lower.includes('brand') || lower.includes('logo') ? 'branding' :
+    lower.includes('market') || lower.includes('campaign') ? 'marketing' :
+    'general');
+
+  // Generate name from first few words
+  const words = description.split(' ').slice(0, 4);
+  const name = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+  const baseFolders = ['/assets', '/docs', '/exports'];
+  const categoryFolders = {
+    design: ['/designs', '/mockups', '/brand'],
+    music: ['/tracks', '/samples', '/mixes'],
+    video: ['/footage', '/edits', '/graphics'],
+    branding: ['/logos', '/guidelines', '/brand-assets'],
+    marketing: ['/campaigns', '/analytics', '/creatives'],
+    general: ['/resources', '/drafts'],
+  };
+
+  const baseTasks = [
+    { title: 'Set up project structure', week: 1, description: 'Initialize folders and configuration' },
+    { title: 'Gather requirements', week: 1, description: 'Document project scope and goals' },
+    { title: 'Create initial drafts', week: 2, description: 'First pass at deliverables' },
+    { title: 'Review and iterate', week: 3, description: 'Collect feedback and refine' },
+    { title: 'Final delivery', week: 4, description: 'Polish and deliver final assets' },
+  ];
+
+  return {
+    name,
+    folders: [...baseFolders, ...(categoryFolders[inferredCategory] || categoryFolders.general)],
+    tasks: baseTasks,
+    teamRoles: ['Project Lead', 'Designer', 'Reviewer'],
+    tags: [inferredCategory],
+    projectType: inferredCategory,
+  };
+}
+
 module.exports = router;
