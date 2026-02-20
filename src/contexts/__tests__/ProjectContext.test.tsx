@@ -1,25 +1,14 @@
 /**
  * ProjectContext Tests
+ *
+ * Sprint 24: ProjectContext was migrated to Zustand.
+ * ProjectProvider is a no-op passthrough and all hooks delegate to the store.
+ * These tests verify the backward-compatible wrapper behavior.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-
-// Mock AuthContext
-const mockUser = { id: 'user-1', name: 'Test User', email: 'test@example.com' };
-
-vi.mock('../AuthContext', () => ({
-  useAuth: vi.fn(() => ({
-    user: mockUser,
-    isAuthenticated: true,
-  })),
-}));
-
-// Mock apiHelpers
-vi.mock('@/utils/apiHelpers', () => ({
-  getApiUrl: (path: string) => `http://localhost:3001${path}`,
-}));
 
 // Mock logger
 vi.mock('@/lib/logger', () => ({
@@ -31,22 +20,36 @@ vi.mock('@/lib/logger', () => ({
   }),
 }));
 
+// Mock store state
+const mockSetActiveProject = vi.fn();
+const mockClearActiveProject = vi.fn();
+const mockFetchProjects = vi.fn().mockResolvedValue(undefined);
+
+const mockStoreState = {
+  projects: {
+    projects: [] as Array<{ id: string; name: string; status: string; description?: string }>,
+    activeProjectId: null as string | null,
+    isLoading: false,
+    error: null as string | null,
+    setActiveProject: mockSetActiveProject,
+    clearActiveProject: mockClearActiveProject,
+    fetchProjects: mockFetchProjects,
+  },
+};
+
+vi.mock('../../store/store', () => ({
+  useStore: (selector: (state: typeof mockStoreState) => unknown) => selector(mockStoreState),
+}));
+
 import { ProjectProvider, useProjectContext, useProjectContextOptional, useCurrentProjectId } from '../ProjectContext';
 
 describe('ProjectProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
-
-    // Default mock for fetch
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ projects: [] }),
-    });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
+    mockStoreState.projects.projects = [];
+    mockStoreState.projects.activeProjectId = null;
+    mockStoreState.projects.isLoading = false;
+    mockStoreState.projects.error = null;
   });
 
   it('renders children', () => {
@@ -60,31 +63,8 @@ describe('ProjectProvider', () => {
     expect(getByText('Hello Child')).toBeInTheDocument();
   });
 
-  it('fetches projects on mount when user is present', async () => {
-    localStorage.setItem('auth_token', 'test-token');
-
-    render(
-      <MemoryRouter>
-        <ProjectProvider>
-          <div>Test</div>
-        </ProjectProvider>
-      </MemoryRouter>
-    );
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/projects'),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-token',
-          }),
-        })
-      );
-    });
-  });
-
-  it('provides initial context values', async () => {
-    let contextValue: any = null;
+  it('provides initial context values', () => {
+    let contextValue: ReturnType<typeof useProjectContext> | null = null;
 
     function Consumer() {
       contextValue = useProjectContext();
@@ -99,26 +79,21 @@ describe('ProjectProvider', () => {
       </MemoryRouter>
     );
 
-    await waitFor(() => {
-      expect(contextValue).not.toBeNull();
-      expect(contextValue.projects).toEqual([]);
-      expect(contextValue.currentProject).toBeNull();
-      expect(contextValue.error).toBeNull();
-    });
+    expect(contextValue).not.toBeNull();
+    expect(contextValue!.projects).toEqual([]);
+    expect(contextValue!.currentProject).toBeNull();
+    expect(contextValue!.error).toBeNull();
+    expect(contextValue!.isReady).toBe(true);
   });
 
-  it('populates projects after fetch', async () => {
+  it('reflects projects from store', () => {
     const mockProjects = [
       { id: 'p1', name: 'Project 1', description: 'Desc 1', status: 'in_progress' },
       { id: 'p2', name: 'Project 2', description: 'Desc 2', status: 'planning' },
     ];
+    mockStoreState.projects.projects = mockProjects;
 
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ projects: mockProjects }),
-    });
-
-    let contextValue: any = null;
+    let contextValue: ReturnType<typeof useProjectContext> | null = null;
 
     function Consumer() {
       contextValue = useProjectContext();
@@ -133,25 +108,18 @@ describe('ProjectProvider', () => {
       </MemoryRouter>
     );
 
-    await waitFor(() => {
-      expect(contextValue.projects).toHaveLength(2);
-      expect(contextValue.projects[0].name).toBe('Project 1');
-    });
+    expect(contextValue!.projects).toHaveLength(2);
+    expect(contextValue!.projects[0].name).toBe('Project 1');
   });
 
-  it('restores project from localStorage', async () => {
+  it('reflects active project from store', () => {
     const mockProjects = [
       { id: 'p1', name: 'Project 1', status: 'in_progress' },
     ];
+    mockStoreState.projects.projects = mockProjects;
+    mockStoreState.projects.activeProjectId = 'p1';
 
-    localStorage.setItem('fluxstudio.currentProjectId', 'p1');
-
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ projects: mockProjects }),
-    });
-
-    let contextValue: any = null;
+    let contextValue: ReturnType<typeof useProjectContext> | null = null;
 
     function Consumer() {
       contextValue = useProjectContext();
@@ -166,19 +134,14 @@ describe('ProjectProvider', () => {
       </MemoryRouter>
     );
 
-    await waitFor(() => {
-      expect(contextValue.currentProject).not.toBeNull();
-      expect(contextValue.currentProject.id).toBe('p1');
-    });
+    expect(contextValue!.currentProject).not.toBeNull();
+    expect(contextValue!.currentProject!.id).toBe('p1');
   });
 
-  it('handles fetch error gracefully', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      statusText: 'Unauthorized',
-    });
+  it('reflects error state from store', () => {
+    mockStoreState.projects.error = 'Unauthorized';
 
-    let contextValue: any = null;
+    let contextValue: ReturnType<typeof useProjectContext> | null = null;
 
     function Consumer() {
       contextValue = useProjectContext();
@@ -193,20 +156,15 @@ describe('ProjectProvider', () => {
       </MemoryRouter>
     );
 
-    await waitFor(() => {
-      expect(contextValue.error).toBeTruthy();
-      expect(contextValue.isReady).toBe(true);
-    });
+    expect(contextValue!.error).toBe('Unauthorized');
+    expect(contextValue!.isReady).toBe(true);
   });
 
-  it('clears state when user is null', async () => {
-    const { useAuth } = await import('../AuthContext');
-    vi.mocked(useAuth).mockReturnValue({
-      user: null,
-      isAuthenticated: false,
-    } as any);
+  it('returns null currentProject when no user (empty store)', () => {
+    mockStoreState.projects.projects = [];
+    mockStoreState.projects.activeProjectId = null;
 
-    let contextValue: any = null;
+    let contextValue: ReturnType<typeof useProjectContext> | null = null;
 
     function Consumer() {
       contextValue = useProjectContext();
@@ -221,35 +179,48 @@ describe('ProjectProvider', () => {
       </MemoryRouter>
     );
 
-    expect(contextValue.currentProject).toBeNull();
-    expect(contextValue.projects).toEqual([]);
+    expect(contextValue!.currentProject).toBeNull();
+    expect(contextValue!.projects).toEqual([]);
   });
 });
 
 describe('useProjectContext', () => {
-  it('throws when used outside provider', () => {
-    // Suppress console.error for expected error
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  beforeEach(() => {
+    mockStoreState.projects.projects = [];
+    mockStoreState.projects.activeProjectId = null;
+  });
 
-    expect(() => {
-      function Test() {
-        useProjectContext();
-        return null;
-      }
-      render(
-        <MemoryRouter>
-          <Test />
-        </MemoryRouter>
-      );
-    }).toThrow('useProjectContext must be used within a ProjectProvider');
+  it('works without ProjectProvider (since provider is a no-op)', () => {
+    // Sprint 24: useProjectContext now reads from Zustand directly,
+    // so it no longer throws when used outside a provider.
+    let contextValue: ReturnType<typeof useProjectContext> | null = null;
 
-    consoleSpy.mockRestore();
+    function Test() {
+      contextValue = useProjectContext();
+      return null;
+    }
+
+    render(
+      <MemoryRouter>
+        <Test />
+      </MemoryRouter>
+    );
+
+    expect(contextValue).not.toBeNull();
+    expect(contextValue!.projects).toEqual([]);
   });
 });
 
 describe('useProjectContextOptional', () => {
-  it('returns null when used outside provider', () => {
-    let contextValue: any = 'unset';
+  beforeEach(() => {
+    mockStoreState.projects.projects = [];
+    mockStoreState.projects.activeProjectId = null;
+  });
+
+  it('returns context value (same as useProjectContext since Sprint 24)', () => {
+    // Sprint 24: useProjectContextOptional no longer returns null outside provider.
+    // It delegates to Zustand just like useProjectContext.
+    let contextValue: ReturnType<typeof useProjectContextOptional> | null = null;
 
     function Test() {
       contextValue = useProjectContextOptional();
@@ -262,13 +233,18 @@ describe('useProjectContextOptional', () => {
       </MemoryRouter>
     );
 
-    expect(contextValue).toBeNull();
+    expect(contextValue).not.toBeNull();
+    expect(contextValue!.projects).toEqual([]);
   });
 });
 
 describe('useCurrentProjectId', () => {
+  beforeEach(() => {
+    mockStoreState.projects.activeProjectId = null;
+  });
+
   it('returns null when no project is selected', () => {
-    let projectId: any = 'unset';
+    let projectId: string | null = 'unset' as any;
 
     function Test() {
       projectId = useCurrentProjectId();
@@ -281,7 +257,25 @@ describe('useCurrentProjectId', () => {
       </MemoryRouter>
     );
 
-    // Outside provider, returns null
     expect(projectId).toBeNull();
+  });
+
+  it('returns active project ID from store', () => {
+    mockStoreState.projects.activeProjectId = 'proj-42';
+
+    let projectId: string | null = null;
+
+    function Test() {
+      projectId = useCurrentProjectId();
+      return null;
+    }
+
+    render(
+      <MemoryRouter>
+        <Test />
+      </MemoryRouter>
+    );
+
+    expect(projectId).toBe('proj-42');
   });
 });

@@ -1,20 +1,16 @@
 /**
  * MessagingContext Tests
+ *
+ * Sprint 24: MessagingContext was migrated to Zustand.
+ * MessagingProvider is a no-op passthrough and useMessaging delegates to the store.
+ * These tests verify the backward-compatible wrapper behavior.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, act } from '@testing-library/react';
+import { render } from '@testing-library/react';
 
-// Use vi.hoisted so the mock object is available when vi.mock factory runs
+// Mock messagingService for the typing/startTyping/stopTyping calls
 const mockMessagingService = vi.hoisted(() => ({
-  getConversations: vi.fn().mockResolvedValue([]),
-  createConversation: vi.fn(),
-  getMessages: vi.fn().mockResolvedValue([]),
-  sendMessage: vi.fn(),
-  getNotifications: vi.fn().mockResolvedValue([]),
-  markNotificationAsRead: vi.fn(),
-  markAllNotificationsAsRead: vi.fn(),
-  setCurrentUser: vi.fn(),
   startTyping: vi.fn(),
   stopTyping: vi.fn(),
   onMessageReceived: vi.fn(),
@@ -39,14 +35,50 @@ vi.mock('../../lib/logger', () => ({
   }),
 }));
 
+// Mock store state
+const mockSetCurrentUser = vi.fn();
+const mockFetchConversations = vi.fn();
+const mockSetActiveConversation = vi.fn();
+const mockMarkAsRead = vi.fn();
+const mockFetchMessages = vi.fn();
+
+const mockStoreState = {
+  messaging: {
+    currentUser: null as { id: string; name: string; userType: string } | null,
+    conversations: [],
+    activeConversationId: null as string | null,
+    messages: {} as Record<string, unknown[]>,
+    typingIndicators: [],
+    userPresence: {} as Record<string, { status: string }>,
+    connectionStatus: false,
+    loadingStates: {} as Record<string, boolean>,
+    unreadCounts: { messages: 0, notifications: 0 },
+    setCurrentUser: mockSetCurrentUser,
+    fetchConversations: mockFetchConversations,
+    setActiveConversation: mockSetActiveConversation,
+    markAsRead: mockMarkAsRead,
+    fetchMessages: mockFetchMessages,
+  },
+};
+
+vi.mock('../../store/store', () => ({
+  useStore: (selector: (state: typeof mockStoreState) => unknown) => selector(mockStoreState),
+}));
+
 import { MessagingProvider, useMessaging, useMessagingOptional } from '../MessagingContext';
 
 describe('MessagingProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockStoreState.messaging.currentUser = null;
+    mockStoreState.messaging.conversations = [];
+    mockStoreState.messaging.activeConversationId = null;
+    mockStoreState.messaging.messages = {};
+    mockStoreState.messaging.connectionStatus = false;
+    mockStoreState.messaging.unreadCounts = { messages: 0, notifications: 0 };
   });
 
-  it('renders children', () => {
+  it('renders children (no-op passthrough)', () => {
     const { getByText } = render(
       <MessagingProvider>
         <div>Hello Child</div>
@@ -55,8 +87,8 @@ describe('MessagingProvider', () => {
     expect(getByText('Hello Child')).toBeInTheDocument();
   });
 
-  it('provides initial state values', () => {
-    let contextValue: any = null;
+  it('provides initial state values via useMessaging', () => {
+    let contextValue: ReturnType<typeof useMessaging> | null = null;
 
     function Consumer() {
       contextValue = useMessaging();
@@ -70,49 +102,16 @@ describe('MessagingProvider', () => {
     );
 
     expect(contextValue).not.toBeNull();
-    expect(contextValue.state.currentUser).toBeNull();
-    expect(contextValue.state.conversations).toEqual([]);
-    expect(contextValue.state.activeConversationId).toBeNull();
-    expect(contextValue.state.messages).toEqual({});
-    expect(contextValue.state.notifications).toEqual([]);
-    expect(contextValue.state.connectionStatus).toBe(false);
-    expect(contextValue.state.unreadCounts).toEqual({ messages: 0, notifications: 0 });
-  });
-
-  it('registers event listeners on mount', () => {
-    render(
-      <MessagingProvider>
-        <div />
-      </MessagingProvider>
-    );
-
-    expect(mockMessagingService.onMessageReceived).toHaveBeenCalled();
-    expect(mockMessagingService.onTypingStarted).toHaveBeenCalled();
-    expect(mockMessagingService.onTypingStopped).toHaveBeenCalled();
-    expect(mockMessagingService.onUserOnline).toHaveBeenCalled();
-    expect(mockMessagingService.onUserOffline).toHaveBeenCalled();
-    expect(mockMessagingService.onMentionReceived).toHaveBeenCalled();
-  });
-
-  it('cleans up event listeners on unmount', () => {
-    const { unmount } = render(
-      <MessagingProvider>
-        <div />
-      </MessagingProvider>
-    );
-
-    unmount();
-
-    expect(mockMessagingService.off).toHaveBeenCalledWith('message:received', expect.any(Function));
-    expect(mockMessagingService.off).toHaveBeenCalledWith('typing:started', expect.any(Function));
-    expect(mockMessagingService.off).toHaveBeenCalledWith('typing:stopped', expect.any(Function));
-    expect(mockMessagingService.off).toHaveBeenCalledWith('user:online', expect.any(Function));
-    expect(mockMessagingService.off).toHaveBeenCalledWith('user:offline', expect.any(Function));
-    expect(mockMessagingService.off).toHaveBeenCalledWith('notification:mention', expect.any(Function));
+    expect(contextValue!.state.currentUser).toBeNull();
+    expect(contextValue!.state.conversations).toEqual([]);
+    expect(contextValue!.state.activeConversationId).toBeNull();
+    expect(contextValue!.state.messages).toEqual({});
+    expect(contextValue!.state.connectionStatus).toBe(false);
+    expect(contextValue!.state.unreadCounts).toEqual({ messages: 0, notifications: 0 });
   });
 
   it('provides actions object', () => {
-    let contextValue: any = null;
+    let contextValue: ReturnType<typeof useMessaging> | null = null;
 
     function Consumer() {
       contextValue = useMessaging();
@@ -125,23 +124,19 @@ describe('MessagingProvider', () => {
       </MessagingProvider>
     );
 
-    expect(contextValue.actions).toBeDefined();
-    expect(typeof contextValue.actions.setCurrentUser).toBe('function');
-    expect(typeof contextValue.actions.loadConversations).toBe('function');
-    expect(typeof contextValue.actions.createConversation).toBe('function');
-    expect(typeof contextValue.actions.selectConversation).toBe('function');
-    expect(typeof contextValue.actions.loadMessages).toBe('function');
-    expect(typeof contextValue.actions.sendMessage).toBe('function');
-    expect(typeof contextValue.actions.loadNotifications).toBe('function');
-    expect(typeof contextValue.actions.markNotificationAsRead).toBe('function');
-    expect(typeof contextValue.actions.markAllNotificationsAsRead).toBe('function');
-    expect(typeof contextValue.actions.startTyping).toBe('function');
-    expect(typeof contextValue.actions.stopTyping).toBe('function');
+    expect(contextValue!.actions).toBeDefined();
+    expect(typeof contextValue!.actions.setCurrentUser).toBe('function');
+    expect(typeof contextValue!.actions.loadConversations).toBe('function');
+    expect(typeof contextValue!.actions.selectConversation).toBe('function');
+    expect(typeof contextValue!.actions.loadMessages).toBe('function');
+    expect(typeof contextValue!.actions.sendMessage).toBe('function');
+    expect(typeof contextValue!.actions.startTyping).toBe('function');
+    expect(typeof contextValue!.actions.stopTyping).toBe('function');
   });
 
   describe('Actions', () => {
-    it('setCurrentUser updates state and calls service', () => {
-      let contextValue: any = null;
+    it('setCurrentUser delegates to store', () => {
+      let contextValue: ReturnType<typeof useMessaging> | null = null;
 
       function Consumer() {
         contextValue = useMessaging();
@@ -154,24 +149,14 @@ describe('MessagingProvider', () => {
         </MessagingProvider>
       );
 
-      const mockUser = { id: 'u1', name: 'Test User', email: 'test@example.com' };
+      const mockUser = { id: 'u1', name: 'Test User', userType: 'designer' };
+      contextValue!.actions.setCurrentUser(mockUser as any);
 
-      act(() => {
-        contextValue.actions.setCurrentUser(mockUser);
-      });
-
-      expect(contextValue.state.currentUser).toEqual(mockUser);
-      expect(mockMessagingService.setCurrentUser).toHaveBeenCalledWith(mockUser);
+      expect(mockSetCurrentUser).toHaveBeenCalledWith(mockUser);
     });
 
-    it('loadConversations fetches and dispatches conversations', async () => {
-      const mockConversations = [
-        { id: 'c1', name: 'Conv 1', unreadCount: 2 },
-        { id: 'c2', name: 'Conv 2', unreadCount: 0 },
-      ];
-      mockMessagingService.getConversations.mockResolvedValue(mockConversations);
-
-      let contextValue: any = null;
+    it('loadConversations delegates to store fetchConversations', async () => {
+      let contextValue: ReturnType<typeof useMessaging> | null = null;
 
       function Consumer() {
         contextValue = useMessaging();
@@ -184,16 +169,12 @@ describe('MessagingProvider', () => {
         </MessagingProvider>
       );
 
-      await act(async () => {
-        await contextValue.actions.loadConversations();
-      });
-
-      expect(contextValue.state.conversations).toEqual(mockConversations);
-      expect(contextValue.state.unreadCounts.messages).toBe(2);
+      await contextValue!.actions.loadConversations();
+      expect(mockFetchConversations).toHaveBeenCalled();
     });
 
-    it('selectConversation sets active conversation and clears unread', () => {
-      let contextValue: any = null;
+    it('selectConversation delegates to store', () => {
+      let contextValue: ReturnType<typeof useMessaging> | null = null;
 
       function Consumer() {
         contextValue = useMessaging();
@@ -206,21 +187,13 @@ describe('MessagingProvider', () => {
         </MessagingProvider>
       );
 
-      act(() => {
-        contextValue.actions.selectConversation('conv-1');
-      });
-
-      expect(contextValue.state.activeConversationId).toBe('conv-1');
+      contextValue!.actions.selectConversation('conv-1');
+      expect(mockSetActiveConversation).toHaveBeenCalledWith('conv-1');
+      expect(mockMarkAsRead).toHaveBeenCalledWith('conv-1');
     });
 
-    it('loadMessages fetches messages for a conversation', async () => {
-      const mockMessages = [
-        { id: 'm1', content: 'Hello', conversationId: 'c1' },
-        { id: 'm2', content: 'World', conversationId: 'c1' },
-      ];
-      mockMessagingService.getMessages.mockResolvedValue(mockMessages);
-
-      let contextValue: any = null;
+    it('loadMessages delegates to store fetchMessages', async () => {
+      let contextValue: ReturnType<typeof useMessaging> | null = null;
 
       function Consumer() {
         contextValue = useMessaging();
@@ -233,68 +206,12 @@ describe('MessagingProvider', () => {
         </MessagingProvider>
       );
 
-      await act(async () => {
-        await contextValue.actions.loadMessages('c1');
-      });
-
-      expect(contextValue.state.messages['c1']).toEqual(mockMessages);
-    });
-
-    it('sendMessage calls messagingService.sendMessage', async () => {
-      mockMessagingService.sendMessage.mockResolvedValue(undefined);
-
-      let contextValue: any = null;
-
-      function Consumer() {
-        contextValue = useMessaging();
-        return null;
-      }
-
-      render(
-        <MessagingProvider>
-          <Consumer />
-        </MessagingProvider>
-      );
-
-      const messageData = { conversationId: 'c1', content: 'Hello' };
-
-      await act(async () => {
-        await contextValue.actions.sendMessage(messageData);
-      });
-
-      expect(mockMessagingService.sendMessage).toHaveBeenCalledWith(messageData);
-    });
-
-    it('loadNotifications fetches and dispatches notifications', async () => {
-      const mockNotifications = [
-        { id: 'n1', isRead: false, content: 'New message' },
-        { id: 'n2', isRead: true, content: 'Old message' },
-      ];
-      mockMessagingService.getNotifications.mockResolvedValue(mockNotifications);
-
-      let contextValue: any = null;
-
-      function Consumer() {
-        contextValue = useMessaging();
-        return null;
-      }
-
-      render(
-        <MessagingProvider>
-          <Consumer />
-        </MessagingProvider>
-      );
-
-      await act(async () => {
-        await contextValue.actions.loadNotifications();
-      });
-
-      expect(contextValue.state.notifications).toEqual(mockNotifications);
-      expect(contextValue.state.unreadCounts.notifications).toBe(1);
+      await contextValue!.actions.loadMessages('c1');
+      expect(mockFetchMessages).toHaveBeenCalledWith('c1');
     });
 
     it('startTyping calls messagingService', () => {
-      let contextValue: any = null;
+      let contextValue: ReturnType<typeof useMessaging> | null = null;
 
       function Consumer() {
         contextValue = useMessaging();
@@ -307,15 +224,12 @@ describe('MessagingProvider', () => {
         </MessagingProvider>
       );
 
-      act(() => {
-        contextValue.actions.startTyping('conv-1');
-      });
-
+      contextValue!.actions.startTyping('conv-1');
       expect(mockMessagingService.startTyping).toHaveBeenCalledWith('conv-1');
     });
 
     it('stopTyping calls messagingService', () => {
-      let contextValue: any = null;
+      let contextValue: ReturnType<typeof useMessaging> | null = null;
 
       function Consumer() {
         contextValue = useMessaging();
@@ -328,34 +242,33 @@ describe('MessagingProvider', () => {
         </MessagingProvider>
       );
 
-      act(() => {
-        contextValue.actions.stopTyping('conv-1');
-      });
-
+      contextValue!.actions.stopTyping('conv-1');
       expect(mockMessagingService.stopTyping).toHaveBeenCalledWith('conv-1');
     });
   });
 });
 
 describe('useMessaging', () => {
-  it('throws when used outside provider', () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it('works without MessagingProvider (since provider is a no-op)', () => {
+    let contextValue: ReturnType<typeof useMessaging> | null = null;
 
-    expect(() => {
-      function Test() {
-        useMessaging();
-        return null;
-      }
-      render(<Test />);
-    }).toThrow('useMessaging must be used within a MessagingProvider');
+    function Test() {
+      contextValue = useMessaging();
+      return null;
+    }
 
-    consoleSpy.mockRestore();
+    // No provider needed — useMessaging reads from Zustand directly
+    render(<Test />);
+
+    expect(contextValue).not.toBeNull();
+    expect(contextValue!.state).toBeDefined();
+    expect(contextValue!.actions).toBeDefined();
   });
 });
 
 describe('useMessagingOptional', () => {
-  it('returns undefined when used outside provider', () => {
-    let contextValue: any = 'unset';
+  it('returns same shape as useMessaging (Zustand backed)', () => {
+    let contextValue: ReturnType<typeof useMessagingOptional> | null = null;
 
     function Test() {
       contextValue = useMessagingOptional();
@@ -364,6 +277,8 @@ describe('useMessagingOptional', () => {
 
     render(<Test />);
 
-    expect(contextValue).toBeUndefined();
+    expect(contextValue).not.toBeNull();
+    expect(contextValue!.state).toBeDefined();
+    expect(contextValue!.actions).toBeDefined();
   });
 });

@@ -19,6 +19,7 @@ export default defineConfig({
     reporters: ['verbose'],
     exclude: [
       '**/node_modules/**',
+      'cli/**',  // CLI uses node:test, not Vitest
       'tests/e2e/**',
       'tests/load/**',
       'tests/integration/**',  // Integration tests require running infrastructure

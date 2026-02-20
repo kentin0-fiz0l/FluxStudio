@@ -1,16 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock offlineStorage
-const mockPendingActions = {
-  getAll: vi.fn().mockResolvedValue([]),
-  add: vi.fn().mockResolvedValue('action-1'),
+// Stable mock references that survive vi.resetModules()
+const mockPendingMutations = {
+  toArray: vi.fn().mockResolvedValue([]),
   clear: vi.fn().mockResolvedValue(undefined),
+  bulkPut: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../offlineStorage', () => ({
-  offlineStorage: {
-    pendingActions: mockPendingActions,
-  },
+const mockDeleteLegacyDB = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('../db', () => ({
+  db: { pendingMutations: mockPendingMutations },
+  generateId: (prefix = 'mut') => `${prefix}-mock-${Date.now()}`,
+  deleteLegacyDB: mockDeleteLegacyDB,
 }));
 
 vi.mock('@/store', () => ({ useStore: vi.fn() }));
@@ -33,19 +35,15 @@ describe('offlineBridge', () => {
 
     // Reset module to clear `initialized` flag
     vi.resetModules();
-    vi.mock('../offlineStorage', () => ({
-      offlineStorage: {
-        pendingActions: mockPendingActions,
-      },
-    }));
-    vi.mock('@/store', () => ({ useStore: vi.fn() }));
+
+    // Re-setup mock implementations (vi.restoreAllMocks from prev afterEach clears them)
+    mockDeleteLegacyDB.mockResolvedValue(undefined);
+    mockPendingMutations.toArray.mockResolvedValue([]);
+    mockPendingMutations.clear.mockResolvedValue(undefined);
+    mockPendingMutations.bulkPut.mockResolvedValue(undefined);
 
     const mod = await import('../offlineBridge');
     initOfflineBridge = mod.initOfflineBridge;
-
-    mockPendingActions.getAll.mockResolvedValue([]);
-    mockPendingActions.add.mockClear();
-    mockPendingActions.clear.mockClear();
   });
 
   afterEach(() => {
@@ -129,7 +127,7 @@ describe('offlineBridge', () => {
     Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
     const store = createMockStore();
 
-    mockPendingActions.getAll.mockResolvedValueOnce([
+    mockPendingMutations.toArray.mockResolvedValueOnce([
       { id: 'persisted-1', type: 'CREATE', payload: {}, endpoint: '/api/x', method: 'POST', maxRetries: 3 },
     ]);
 
@@ -147,7 +145,7 @@ describe('offlineBridge', () => {
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
     const store = createMockStore();
 
-    mockPendingActions.getAll.mockResolvedValueOnce([
+    mockPendingMutations.toArray.mockResolvedValueOnce([
       { id: 'p-1', type: 'UPDATE', payload: {}, endpoint: '/api/y', method: 'PUT', maxRetries: 2 },
     ]);
 
@@ -163,14 +161,14 @@ describe('offlineBridge', () => {
     const existingAction = { id: 'existing-1', type: 'TEST', payload: {} };
     const store = createMockStore({ pendingActions: [existingAction] });
 
-    mockPendingActions.getAll.mockResolvedValueOnce([
+    mockPendingMutations.toArray.mockResolvedValueOnce([
       { id: 'existing-1', type: 'TEST', payload: {}, endpoint: '', method: 'POST', maxRetries: 3 },
     ]);
 
     initOfflineBridge(store as any);
 
     await vi.waitFor(() => {
-      expect(mockPendingActions.getAll).toHaveBeenCalled();
+      expect(mockPendingMutations.toArray).toHaveBeenCalled();
     });
 
     // queueAction should NOT have been called since the action already exists

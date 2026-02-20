@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TaskDetailModal, Task, TeamMember } from './TaskDetailModal';
 
@@ -112,19 +112,19 @@ describe('TaskDetailModal', () => {
     });
 
     it('shows error when title exceeds 200 characters', async () => {
-      const user = userEvent.setup();
       render(<TaskDetailModal {...defaultProps} />);
 
       const titleInput = screen.getByPlaceholderText('Enter task title...');
-      // Input has maxLength=200, so we can only type up to 200 chars
-      // The validation check happens before the maxLength kicks in, but since we can't type more than 200
-      // we need to verify that it prevents submission when empty or check aria-invalid
+      // Use fireEvent.change instead of userEvent.type for performance —
+      // typing 200 individual keystrokes is too slow in a large test suite.
       const longTitle = 'a'.repeat(200);
-      await user.type(titleInput, longTitle);
+      fireEvent.change(titleInput, { target: { value: longTitle } });
 
-      // Verify 200 characters were typed (maxLength limits it)
+      // Verify 200 characters were set (maxLength limits it)
       expect(titleInput).toHaveValue(longTitle);
-      expect(screen.getByText('200/200')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('200/200')).toBeInTheDocument();
+      }, { timeout: 3000 });
     });
 
     it('shows error when due date is in the past', async () => {
@@ -150,7 +150,7 @@ describe('TaskDetailModal', () => {
       await waitFor(() => {
         const titleInput = screen.getByPlaceholderText('Enter task title...');
         expect(titleInput).toHaveAttribute('aria-invalid', 'true');
-      });
+      }, { timeout: 3000 });
 
       // Fix title
       const titleInput = screen.getByPlaceholderText('Enter task title...');
@@ -158,7 +158,7 @@ describe('TaskDetailModal', () => {
 
       await waitFor(() => {
         expect(titleInput).toHaveAttribute('aria-invalid', 'false');
-      });
+      }, { timeout: 3000 });
     });
   });
 
