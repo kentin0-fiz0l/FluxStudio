@@ -211,6 +211,7 @@ let authAdapter = null;
 let messagingAdapter = null;
 let projectsAdapter = null;
 let designBoardsAdapter = null;
+let metmapAdapter = null;
 const USE_DATABASE = process.env.USE_DATABASE === 'true';
 
 if (USE_DATABASE) {
@@ -219,6 +220,7 @@ if (USE_DATABASE) {
     messagingAdapter = require('./database/messaging-adapter');
     projectsAdapter = require('./database/projects-adapter');
     designBoardsAdapter = require('./database/design-boards-adapter');
+    metmapAdapter = require('./database/metmap-adapter');
     console.log('✅ Database adapters loaded for unified service');
   } catch (error) {
     console.warn('⚠️ Failed to load database adapters, falling back to file-based storage:', error.message);

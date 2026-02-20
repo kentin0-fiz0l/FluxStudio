@@ -7,7 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../lib/auth/middleware');
-const { query } = require('../database/db');
+const { query } = require('../database/config');
 
 // All routes require authentication
 router.use(authenticateToken);
