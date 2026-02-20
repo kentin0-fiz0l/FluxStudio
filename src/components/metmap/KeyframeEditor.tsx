@@ -8,7 +8,7 @@
 
 import { useState, useRef, useCallback, useMemo, memo } from 'react';
 import { Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
-import type { Section, Animation, AnimatableProperty, EasingType, Keyframe } from '../../contexts/metmap/types';
+import type { Section, Animation, AnimatableProperty, EasingType, Keyframe, BezierHandles } from '../../contexts/metmap/types';
 import { addKeyframe, removeKeyframe, updateKeyframe } from '../../services/keyframeEngine';
 
 interface KeyframeEditorProps {
@@ -34,7 +34,10 @@ const EASING_OPTIONS: { value: EasingType; label: string }[] = [
   { value: 'easeOut', label: 'Ease Out' },
   { value: 'easeInOut', label: 'Ease In-Out' },
   { value: 'step', label: 'Step' },
+  { value: 'bezier', label: 'Bezier' },
 ];
+
+const DEFAULT_BEZIER_HANDLES: BezierHandles = { cp1x: 0.42, cp1y: 0, cp2x: 0.58, cp2y: 1 };
 
 const TRACK_HEIGHT = 48;
 
@@ -54,6 +57,11 @@ export const KeyframeEditor = memo(function KeyframeEditor({
 }: KeyframeEditorProps) {
   const [expanded, setExpanded] = useState(true);
   const [dragging, setDragging] = useState<{ animId: string; kfId: string; startX: number; startTime: number } | null>(null);
+  const [draggingHandle, setDraggingHandle] = useState<{
+    animId: string; kfId: string; handle: 'cp1' | 'cp2';
+    startX: number; startY: number;
+    startCpx: number; startCpy: number;
+  } | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
   const section = sections[activeSectionIndex] ?? null;
@@ -127,7 +135,52 @@ export const KeyframeEditor = memo(function KeyframeEditor({
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, [animations, onSelectKeyframe]);
 
+  const handleBezierHandleDown = useCallback((animId: string, kfId: string, handle: 'cp1' | 'cp2', e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const anim = animations.find(a => a.id === animId);
+    const kf = anim?.keyframes.find(k => k.id === kfId);
+    if (!kf?.bezierHandles) return;
+
+    const h = kf.bezierHandles;
+    setDraggingHandle({
+      animId, kfId, handle,
+      startX: e.clientX, startY: e.clientY,
+      startCpx: handle === 'cp1' ? h.cp1x : h.cp2x,
+      startCpy: handle === 'cp1' ? h.cp1y : h.cp2y,
+    });
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [animations]);
+
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    // Handle bezier control point drag
+    if (draggingHandle) {
+      const dx = (e.clientX - draggingHandle.startX) / sectionWidth;
+      const dy = -(e.clientY - draggingHandle.startY) / TRACK_HEIGHT;
+
+      const newCpx = Math.max(0, Math.min(1, draggingHandle.startCpx + dx));
+      const newCpy = Math.max(-0.5, Math.min(1.5, draggingHandle.startCpy + dy));
+
+      const anim = animations.find(a => a.id === draggingHandle.animId);
+      const kf = anim?.keyframes.find(k => k.id === draggingHandle.kfId);
+      if (!anim || !kf?.bezierHandles) return;
+
+      const newHandles = { ...kf.bezierHandles };
+      if (draggingHandle.handle === 'cp1') {
+        newHandles.cp1x = newCpx;
+        newHandles.cp1y = newCpy;
+      } else {
+        newHandles.cp2x = newCpx;
+        newHandles.cp2y = newCpy;
+      }
+
+      const newKeyframes = updateKeyframe(anim, draggingHandle.kfId, { bezierHandles: newHandles });
+      const newAnimations = animations.map(a => a.id === draggingHandle.animId ? { ...a, keyframes: newKeyframes } : a);
+      onUpdateAnimations(activeSectionIndex, newAnimations);
+      return;
+    }
+
+    // Handle keyframe dot drag
     if (!dragging) return;
     const dx = e.clientX - dragging.startX;
     const dtTime = (dx / sectionWidth) * sectionDuration;
@@ -139,10 +192,11 @@ export const KeyframeEditor = memo(function KeyframeEditor({
     const newKeyframes = updateKeyframe(anim, dragging.kfId, { time: newTime });
     const newAnimations = animations.map(a => a.id === dragging.animId ? { ...a, keyframes: newKeyframes } : a);
     onUpdateAnimations(activeSectionIndex, newAnimations);
-  }, [dragging, sectionWidth, sectionDuration, animations, activeSectionIndex, onUpdateAnimations]);
+  }, [dragging, draggingHandle, sectionWidth, sectionDuration, animations, activeSectionIndex, onUpdateAnimations]);
 
   const handlePointerUp = useCallback(() => {
     setDragging(null);
+    setDraggingHandle(null);
   }, []);
 
   const handleDeleteSelected = useCallback(() => {
@@ -161,7 +215,15 @@ export const KeyframeEditor = memo(function KeyframeEditor({
   const handleEasingChange = useCallback((animId: string, kfId: string, easing: EasingType) => {
     const anim = animations.find(a => a.id === animId);
     if (!anim) return;
-    const newKeyframes = updateKeyframe(anim, kfId, { easing });
+    const changes: Partial<Pick<Keyframe, 'easing' | 'bezierHandles'>> = { easing };
+    // Set default handles when switching to bezier
+    if (easing === 'bezier') {
+      const kf = anim.keyframes.find(k => k.id === kfId);
+      if (kf && !kf.bezierHandles) {
+        changes.bezierHandles = { ...DEFAULT_BEZIER_HANDLES };
+      }
+    }
+    const newKeyframes = updateKeyframe(anim, kfId, changes);
     const newAnimations = animations.map(a => a.id === animId ? { ...a, keyframes: newKeyframes } : a);
     onUpdateAnimations(activeSectionIndex, newAnimations);
   }, [animations, activeSectionIndex, onUpdateAnimations]);
@@ -294,29 +356,66 @@ export const KeyframeEditor = memo(function KeyframeEditor({
                   <div className="absolute left-0 right-0 top-1/2 border-t border-neutral-600" />
                 </div>
 
-                {/* Keyframe dots */}
+                {/* Keyframe dots + bezier handles */}
                 {anim.keyframes.map(kf => {
                   const x = timeToX(kf.time);
                   const yProgress = (kf.value - config.min) / (config.max - config.min);
                   const y = TRACK_HEIGHT - yProgress * (TRACK_HEIGHT - 8) - 4;
                   const isSelected = kf.id === selectedKeyframeId;
+                  const showHandles = isSelected && kf.easing === 'bezier' && kf.bezierHandles;
 
                   return (
-                    <div
-                      key={kf.id}
-                      onPointerDown={(e) => handlePointerDown(anim.id, kf.id, e)}
-                      className={`absolute rounded-full cursor-grab active:cursor-grabbing transition-shadow ${
-                        isSelected ? 'ring-2 ring-white shadow-lg' : 'hover:ring-1 hover:ring-white/50'
-                      }`}
-                      style={{
-                        left: x - (isSelected ? 5 : 4),
-                        top: y - (isSelected ? 5 : 4),
-                        width: isSelected ? 10 : 8,
-                        height: isSelected ? 10 : 8,
-                        backgroundColor: config.color,
-                      }}
-                      title={`${config.label}: ${kf.value}${config.unit} @ ${kf.time.toFixed(2)}s (${kf.easing})`}
-                    />
+                    <div key={kf.id}>
+                      {/* Bezier control handles */}
+                      {showHandles && kf.bezierHandles && (() => {
+                        const h = kf.bezierHandles;
+                        // Control point positions relative to track
+                        // cp1 is relative to keyframe position (start of curve segment)
+                        const cp1x = x + h.cp1x * 60; // Scale handle distance for visibility
+                        const cp1y = y - h.cp1y * (TRACK_HEIGHT - 8);
+                        const cp2x = x + h.cp2x * 60;
+                        const cp2y = y - (h.cp2y - 1) * (TRACK_HEIGHT - 8);
+
+                        return (
+                          <>
+                            {/* Line from keyframe to cp1 */}
+                            <svg className="absolute inset-0 pointer-events-none" style={{ width: sectionWidth, height: TRACK_HEIGHT }}>
+                              <line x1={x} y1={y} x2={cp1x} y2={cp1y} stroke="#818cf8" strokeWidth={1} opacity={0.6} />
+                              <line x1={x} y1={y} x2={cp2x} y2={cp2y} stroke="#f472b6" strokeWidth={1} opacity={0.6} />
+                            </svg>
+                            {/* CP1 handle */}
+                            <div
+                              onPointerDown={(e) => handleBezierHandleDown(anim.id, kf.id, 'cp1', e)}
+                              className="absolute w-[7px] h-[7px] rounded-sm cursor-grab active:cursor-grabbing border border-indigo-400 bg-indigo-500"
+                              style={{ left: cp1x - 3, top: cp1y - 3 }}
+                              title={`CP1: (${h.cp1x.toFixed(2)}, ${h.cp1y.toFixed(2)})`}
+                            />
+                            {/* CP2 handle */}
+                            <div
+                              onPointerDown={(e) => handleBezierHandleDown(anim.id, kf.id, 'cp2', e)}
+                              className="absolute w-[7px] h-[7px] rounded-sm cursor-grab active:cursor-grabbing border border-pink-400 bg-pink-500"
+                              style={{ left: cp2x - 3, top: cp2y - 3 }}
+                              title={`CP2: (${h.cp2x.toFixed(2)}, ${h.cp2y.toFixed(2)})`}
+                            />
+                          </>
+                        );
+                      })()}
+                      {/* Keyframe dot */}
+                      <div
+                        onPointerDown={(e) => handlePointerDown(anim.id, kf.id, e)}
+                        className={`absolute rounded-full cursor-grab active:cursor-grabbing transition-shadow ${
+                          isSelected ? 'ring-2 ring-white shadow-lg' : 'hover:ring-1 hover:ring-white/50'
+                        }`}
+                        style={{
+                          left: x - (isSelected ? 5 : 4),
+                          top: y - (isSelected ? 5 : 4),
+                          width: isSelected ? 10 : 8,
+                          height: isSelected ? 10 : 8,
+                          backgroundColor: config.color,
+                        }}
+                        title={`${config.label}: ${kf.value}${config.unit} @ ${kf.time.toFixed(2)}s (${kf.easing})`}
+                      />
+                    </div>
                   );
                 })}
               </div>

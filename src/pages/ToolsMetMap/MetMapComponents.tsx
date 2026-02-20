@@ -2,9 +2,11 @@
  * MetMap sub-components: SectionRow, ChordGrid, PlaybackControls
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { Section, Chord } from '../../contexts/MetMapContext';
+import type { BeatMap } from '../../contexts/metmap/types';
 import { COMMON_CHORDS, TIME_SIGNATURES } from './MetMapHelpers';
+import { nearestBeat } from '../../services/snapToBeat';
 
 // Section Editor Row
 export function SectionRow({
@@ -222,12 +224,16 @@ export function ChordGrid({
   section,
   sectionIndex: _sectionIndex,
   chords,
-  onChordsChange
+  onChordsChange,
+  beatMap,
+  onCrossSectionDrop
 }: {
   section: Section;
   sectionIndex: number;
   chords: Chord[];
   onChordsChange: (chords: Chord[]) => void;
+  beatMap?: BeatMap | null;
+  onCrossSectionDrop?: (chord: Chord, direction: 'prev' | 'next') => void;
 }) {
   const [selectedCell, setSelectedCell] = useState<{ bar: number; beat: number } | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -237,10 +243,21 @@ export function ChordGrid({
     symbol: string;
     currentBar: number;
     currentBeat: number;
-    active: boolean; // true once drag threshold exceeded
+    active: boolean;
+    snapped: boolean; // whether target snapped to a detected beat
   } | null>(null);
+  const [altHeld, setAltHeld] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
   const dragStartPos = useRef<{ x: number; y: number } | null>(null);
+
+  // Track Alt key for snap bypass
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => { if (e.key === 'Alt') setAltHeld(true); };
+    const up = (e: KeyboardEvent) => { if (e.key === 'Alt') setAltHeld(false); };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
+  }, []);
 
   const beatsPerBar = parseInt(section.timeSignature.split('/')[0]) || 4;
 
@@ -277,6 +294,7 @@ export function ChordGrid({
       currentBar: bar,
       currentBeat: beat,
       active: false,
+      snapped: false,
     });
   }, [chordMap]);
 
@@ -291,11 +309,51 @@ export function ChordGrid({
       setDragState(prev => prev ? { ...prev, active: true } : null);
     }
 
+    // Check if pointer left the grid (cross-section)
+    const grid = gridRef.current;
+    if (grid && onCrossSectionDrop) {
+      const rect = grid.getBoundingClientRect();
+      if (e.clientX < rect.left - 20) {
+        // Dragged past left edge → previous section
+        onCrossSectionDrop(
+          { bar: dragState.sourceBar, beat: dragState.sourceBeat, symbol: dragState.symbol, durationBeats: 1 },
+          'prev',
+        );
+        setDragState(null);
+        dragStartPos.current = null;
+        return;
+      }
+      if (e.clientX > rect.right + 20) {
+        // Dragged past right edge → next section
+        onCrossSectionDrop(
+          { bar: dragState.sourceBar, beat: dragState.sourceBeat, symbol: dragState.symbol, durationBeats: 1 },
+          'next',
+        );
+        setDragState(null);
+        dragStartPos.current = null;
+        return;
+      }
+    }
+
     const target = getCellFromPoint(e.clientX, e.clientY);
     if (target && (target.bar !== dragState.currentBar || target.beat !== dragState.currentBeat)) {
-      setDragState(prev => prev ? { ...prev, currentBar: target.bar, currentBeat: target.beat } : null);
+      // Snap-to-beat check (only when beatMap available and Alt not held)
+      let snapped = false;
+      if (beatMap && !altHeld) {
+        // Estimate time for this bar/beat position
+        const beatsPerBar = parseInt(section.timeSignature.split('/')[0]) || 4;
+        const avgTempo = section.tempoEnd
+          ? (section.tempoStart + section.tempoEnd) / 2
+          : section.tempoStart;
+        const beatDuration = 60 / avgTempo;
+        const sectionStartTime = 0; // Relative within section
+        const beatTime = sectionStartTime + ((target.bar - 1) * beatsPerBar + (target.beat - 1)) * beatDuration;
+        const snappedBeat = nearestBeat(beatTime, beatMap, 80);
+        snapped = snappedBeat !== null;
+      }
+      setDragState(prev => prev ? { ...prev, currentBar: target.bar, currentBeat: target.beat, snapped } : null);
     }
-  }, [dragState, getCellFromPoint]);
+  }, [dragState, getCellFromPoint, beatMap, altHeld, onCrossSectionDrop, section]);
 
   const handlePointerUp = useCallback(() => {
     if (dragState?.active) {
@@ -366,6 +424,8 @@ export function ChordGrid({
               const isDragSource = dragState?.active && dragState.sourceBar === bar && dragState.sourceBeat === beat;
               const isDragTarget = dragState?.active && dragState.currentBar === bar && dragState.currentBeat === beat
                 && (dragState.sourceBar !== bar || dragState.sourceBeat !== beat);
+              const isOccupiedTarget = isDragTarget && chord != null;
+              const isSnappedTarget = isDragTarget && dragState?.snapped;
 
               return (
                 <button
@@ -375,21 +435,29 @@ export function ChordGrid({
                   data-beat={beat}
                   onClick={() => handleCellClick(bar, beat)}
                   onPointerDown={(e) => handlePointerDown(bar, beat, e)}
-                  className={`w-12 h-8 flex items-center justify-center text-xs cursor-pointer transition-colors touch-none ${
-                    isDragTarget
-                      ? 'bg-indigo-300 text-white ring-2 ring-indigo-400'
-                      : isDragSource
-                        ? 'bg-gray-200 text-gray-400 opacity-50'
-                        : isSelected
-                          ? 'bg-indigo-500 text-white'
-                          : chord
-                            ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                            : 'bg-gray-50 hover:bg-gray-100 text-gray-400'
+                  className={`w-12 h-8 flex items-center justify-center text-xs transition-colors touch-none ${
+                    dragState?.active ? 'cursor-grabbing' : chord ? 'cursor-grab' : 'cursor-pointer'
+                  } ${
+                    isOccupiedTarget
+                      ? 'bg-red-100 text-red-500 ring-2 ring-red-400'
+                      : isSnappedTarget
+                        ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-400'
+                        : isDragTarget
+                          ? 'bg-indigo-300 text-white ring-2 ring-indigo-400'
+                          : isDragSource
+                            ? 'bg-gray-200 text-gray-400 opacity-50'
+                            : isSelected
+                              ? 'bg-indigo-500 text-white'
+                              : chord
+                                ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                                : 'bg-gray-50 hover:bg-gray-100 text-gray-400'
                   } ${beatIndex > 0 ? 'border-l border-gray-200' : ''}`}
                   aria-label={`Bar ${bar}, Beat ${beat}${chord ? `: ${chord.symbol}` : ''}${chord ? ' (drag to move)' : ''}`}
                   aria-pressed={isSelected}
                 >
-                  {isDragTarget ? dragState?.symbol : (chord?.symbol || '-')}
+                  {isDragTarget
+                    ? <span className={isOccupiedTarget ? '' : 'opacity-60'}>{dragState?.symbol}</span>
+                    : (chord?.symbol || '-')}
                 </button>
               );
             })}

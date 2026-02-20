@@ -41,7 +41,14 @@ export type PlaybackMode = 'metronome' | 'audio' | 'both';
 // ==================== Keyframe / Animation Types ====================
 
 export type AnimatableProperty = 'tempo' | 'volume' | 'pan' | 'emphasis';
-export type EasingType = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'step';
+export type EasingType = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'step' | 'bezier';
+
+export interface BezierHandles {
+  cp1x: number; // 0-1 normalized time offset
+  cp1y: number; // 0-1 normalized value offset
+  cp2x: number;
+  cp2y: number;
+}
 
 export interface Keyframe {
   id: string;
@@ -51,6 +58,8 @@ export interface Keyframe {
   value: number;
   /** Easing curve applied from this keyframe to the next */
   easing: EasingType;
+  /** Custom bezier control points (used when easing === 'bezier') */
+  bezierHandles?: BezierHandles;
 }
 
 export interface Animation {

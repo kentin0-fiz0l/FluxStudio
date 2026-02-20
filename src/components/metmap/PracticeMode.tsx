@@ -2,11 +2,19 @@
  * PracticeMode Component
  *
  * Controls for focused practice including section looping,
- * tempo gradual increase, and repetition tracking.
+ * tempo gradual increase, repetition tracking, and auto-ramp.
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Section } from '../../contexts/MetMapContext';
+
+export interface AutoRampSettings {
+  enabled: boolean;
+  startPercent: number;
+  targetPercent: number;
+  stepPercent: number;
+  loopsPerStep: number;
+}
 
 interface PracticeModeProps {
   sections: Section[];
@@ -21,6 +29,24 @@ interface PracticeModeProps {
 }
 
 const TEMPO_PRESETS = [50, 60, 70, 80, 90, 100];
+const STEP_OPTIONS = [5, 10, 15, 20];
+const LOOP_OPTIONS = [2, 4, 8];
+
+const STORAGE_KEY = 'metmap_auto_ramp';
+
+function loadAutoRamp(): AutoRampSettings {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch { /* ignore */ }
+  return { enabled: false, startPercent: 60, targetPercent: 100, stepPercent: 5, loopsPerStep: 4 };
+}
+
+function saveAutoRamp(settings: AutoRampSettings) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  } catch { /* ignore */ }
+}
 
 export function PracticeMode({
   sections,
@@ -34,6 +60,62 @@ export function PracticeMode({
   className = ''
 }: PracticeModeProps) {
   const [expanded, setExpanded] = useState(false);
+  const [autoRamp, setAutoRamp] = useState<AutoRampSettings>(loadAutoRamp);
+  const [showAutoRamp, setShowAutoRamp] = useState(false);
+  const [rampNotification, setRampNotification] = useState<string | null>(null);
+
+  // Persist auto-ramp settings
+  useEffect(() => { saveAutoRamp(autoRamp); }, [autoRamp]);
+
+  // Set start tempo when enabling auto-ramp
+  const handleToggleAutoRamp = useCallback(() => {
+    const next = { ...autoRamp, enabled: !autoRamp.enabled };
+    if (next.enabled) {
+      next.startPercent = tempoPercent;
+      onTempoPercentChange(tempoPercent);
+    }
+    setAutoRamp(next);
+  }, [autoRamp, tempoPercent, onTempoPercentChange]);
+
+  // Auto-ramp: check on repetition count changes (called by parent)
+  useEffect(() => {
+    if (!autoRamp.enabled || !isActive || repetitionCount === 0) return;
+    if (repetitionCount % autoRamp.loopsPerStep !== 0) return;
+
+    const newPercent = Math.min(tempoPercent + autoRamp.stepPercent, autoRamp.targetPercent);
+    if (newPercent <= tempoPercent) return;
+
+    // Defer to avoid synchronous setState-in-effect lint violation
+    const timer = setTimeout(() => {
+      onTempoPercentChange(newPercent);
+      const msg = `Tempo → ${newPercent}%`;
+      setRampNotification(msg);
+      // Announce to screen reader
+      const announcement = document.createElement('div');
+      announcement.setAttribute('role', 'status');
+      announcement.setAttribute('aria-live', 'polite');
+      announcement.className = 'sr-only';
+      announcement.textContent = msg;
+      document.body.appendChild(announcement);
+      setTimeout(() => announcement.remove(), 2000);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [repetitionCount]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Clear notification after a delay
+  useEffect(() => {
+    if (!rampNotification) return;
+    const timer = setTimeout(() => setRampNotification(null), 2500);
+    return () => clearTimeout(timer);
+  }, [rampNotification]);
+
+  // Reset auto-ramp when practice mode turns off
+  useEffect(() => {
+    if (!isActive && autoRamp.enabled) {
+      const timer = setTimeout(() => setAutoRamp(prev => ({ ...prev, enabled: false })), 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSectionSelect = (index: number) => {
     if (loopSection === index) {
@@ -42,6 +124,10 @@ export function PracticeMode({
       onLoopSectionChange(index);
     }
   };
+
+  const rampProgress = autoRamp.enabled
+    ? Math.min(1, (tempoPercent - autoRamp.startPercent) / Math.max(1, autoRamp.targetPercent - autoRamp.startPercent))
+    : 0;
 
   return (
     <div className={`bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg ${className}`}>
@@ -88,6 +174,13 @@ export function PracticeMode({
           </svg>
         </div>
       </div>
+
+      {/* Ramp notification toast */}
+      {rampNotification && (
+        <div className="mx-3 mb-2 px-3 py-1.5 bg-amber-500 text-white text-sm font-medium rounded-md text-center animate-pulse">
+          {rampNotification}
+        </div>
+      )}
 
       {/* Expanded content */}
       {expanded && (
@@ -154,9 +247,100 @@ export function PracticeMode({
                 ))}
               </div>
             </div>
-            <p className="text-xs text-amber-600 mt-1">
-              Start slow and gradually increase to full tempo
-            </p>
+          </div>
+
+          {/* Auto-Ramp */}
+          <div className="bg-white/50 rounded-lg p-2">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setShowAutoRamp(!showAutoRamp)}
+                className="text-sm font-medium text-amber-800 flex items-center gap-1"
+              >
+                <svg
+                  className={`w-3 h-3 transition-transform ${showAutoRamp ? 'rotate-90' : ''}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                Auto-Ramp
+              </button>
+              <button
+                onClick={handleToggleAutoRamp}
+                className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                  autoRamp.enabled
+                    ? 'bg-amber-600 text-white'
+                    : 'bg-white text-amber-600 border border-amber-300'
+                }`}
+              >
+                {autoRamp.enabled ? 'On' : 'Off'}
+              </button>
+            </div>
+
+            {/* Auto-ramp progress bar */}
+            {autoRamp.enabled && (
+              <div className="mt-2">
+                <div className="flex justify-between text-[10px] text-amber-600 mb-0.5">
+                  <span>{autoRamp.startPercent}%</span>
+                  <span>{tempoPercent}%</span>
+                  <span>{autoRamp.targetPercent}%</span>
+                </div>
+                <div className="h-1.5 bg-amber-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-amber-500 rounded-full transition-all duration-300"
+                    style={{ width: `${rampProgress * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Auto-ramp settings */}
+            {showAutoRamp && (
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-amber-700 w-20">Target:</span>
+                  <input
+                    type="range"
+                    min="50" max="150"
+                    value={autoRamp.targetPercent}
+                    onChange={(e) => setAutoRamp(prev => ({ ...prev, targetPercent: parseInt(e.target.value) }))}
+                    className="flex-1 accent-amber-600 h-1"
+                  />
+                  <span className="text-xs text-amber-800 w-10 text-right">{autoRamp.targetPercent}%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-amber-700 w-20">Step:</span>
+                  <div className="flex gap-1">
+                    {STEP_OPTIONS.map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setAutoRamp(prev => ({ ...prev, stepPercent: s }))}
+                        className={`px-2 py-0.5 text-[10px] rounded ${
+                          autoRamp.stepPercent === s ? 'bg-amber-500 text-white' : 'bg-white text-amber-700'
+                        }`}
+                      >
+                        +{s}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-amber-700 w-20">Every:</span>
+                  <div className="flex gap-1">
+                    {LOOP_OPTIONS.map(l => (
+                      <button
+                        key={l}
+                        onClick={() => setAutoRamp(prev => ({ ...prev, loopsPerStep: l }))}
+                        className={`px-2 py-0.5 text-[10px] rounded ${
+                          autoRamp.loopsPerStep === l ? 'bg-amber-500 text-white' : 'bg-white text-amber-700'
+                        }`}
+                      >
+                        {l} loops
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Repetition counter */}
@@ -177,6 +361,7 @@ export function PracticeMode({
               <li>Start at 50-60% tempo until you can play cleanly</li>
               <li>Increase tempo by 5-10% when comfortable</li>
               <li>Loop difficult sections until mastered</li>
+              <li>Use Auto-Ramp for automatic tempo progression</li>
             </ul>
           </div>
         </div>

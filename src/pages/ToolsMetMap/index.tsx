@@ -27,6 +27,7 @@ import { TapTempo } from '../../components/metmap/TapTempo';
 import { SectionTemplates, SectionTemplate } from '../../components/metmap/SectionTemplates';
 import { VisualTimeline } from '../../components/metmap/VisualTimeline';
 import { PracticeMode } from '../../components/metmap/PracticeMode';
+import { PracticeAnalytics } from '../../components/metmap/PracticeAnalytics';
 import { ExportImport } from '../../components/metmap/ExportImport';
 import { WaveformTimeline } from '../../components/metmap/WaveformTimeline';
 import { TimelineCanvas } from '../../components/metmap/TimelineCanvas';
@@ -34,7 +35,7 @@ import { BeatMarkers } from '../../components/metmap/BeatMarkers';
 import { AudioTrackPanel } from '../../components/metmap/AudioTrackPanel';
 import { KeyframeEditor } from '../../components/metmap/KeyframeEditor';
 import { detectBeatsWithCache } from '../../services/beatDetection';
-import { usePlayback, useMetMapCore } from '../../contexts/metmap';
+import { usePlayback, useMetMapCore, usePractice } from '../../contexts/metmap';
 import { useMetronomeAudio, ClickSound } from '../../components/metmap/MetronomeAudio';
 import { useMetMapKeyboardShortcuts, ShortcutsHelp } from '../../hooks/useMetMapKeyboardShortcuts';
 import { useMetMapHistory } from '../../hooks/useMetMapHistory';
@@ -113,6 +114,7 @@ export default function ToolsMetMap() {
   const [clickVolume, _setClickVolume] = useState(80);
   const [accentFirstBeat, _setAccentFirstBeat] = useState(true);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [showPracticeStats, setShowPracticeStats] = useState(false);
 
   // Audio timeline state
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
@@ -120,6 +122,7 @@ export default function ToolsMetMap() {
   const [selectedKeyframeId, setSelectedKeyframeId] = useState<string | null>(null);
   const { state: metmapState, dispatch: metmapDispatch } = useMetMapCore();
   const { seekToTime, setPlaybackMode } = usePlayback();
+  const { loadPracticeHistory } = usePractice();
 
   // Metronome audio hook
   const { playClick } = useMetronomeAudio();
@@ -148,6 +151,9 @@ export default function ToolsMetMap() {
   }, [practiceMode, playback.isPlaying, playback.currentBar, playback.currentBeat]);
 
   useEffect(() => { loadStats(); }, [loadStats]);
+  useEffect(() => {
+    if (showPracticeStats) loadPracticeHistory();
+  }, [showPracticeStats, loadPracticeHistory]);
 
   useEffect(() => {
     if (projectId) {
@@ -996,6 +1002,28 @@ export default function ToolsMetMap() {
                     if (!practiceMode) setRepetitionCount(0);
                   }}
                 />
+                {/* Stats toggle */}
+                <div className="mt-2 flex justify-end">
+                  <button
+                    onClick={() => setShowPracticeStats(!showPracticeStats)}
+                    className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                      showPracticeStats
+                        ? 'bg-amber-200 text-amber-800'
+                        : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
+                    }`}
+                  >
+                    {showPracticeStats ? 'Hide Stats' : 'Stats'}
+                  </button>
+                </div>
+                {showPracticeStats && (
+                  <PracticeAnalytics
+                    sessions={metmapState.practiceHistory}
+                    stats={metmapState.stats}
+                    sections={editedSections}
+                    loading={metmapState.practiceHistoryLoading}
+                    className="mt-2"
+                  />
+                )}
               </div>
 
               {/* Audio Track Panel */}
@@ -1076,6 +1104,21 @@ export default function ToolsMetMap() {
                             sectionIndex={index}
                             chords={section.chords || []}
                             onChordsChange={(chords) => snapshotAndUpdateChords(index, chords)}
+                            beatMap={currentSong?.beatMap}
+                            onCrossSectionDrop={(chord, direction) => {
+                              const targetIndex = direction === 'prev' ? index - 1 : index + 1;
+                              if (targetIndex < 0 || targetIndex >= editedSections.length) return;
+                              // Remove from source section
+                              const srcChords = (section.chords || []).filter(
+                                c => !(c.bar === chord.bar && c.beat === chord.beat)
+                              );
+                              snapshotAndUpdateChords(index, srcChords);
+                              // Add to target section (bar 1, beat 1 or last bar)
+                              const target = editedSections[targetIndex];
+                              const destBar = direction === 'prev' ? target.bars : 1;
+                              const destChords = [...(target.chords || []), { ...chord, bar: destBar, beat: 1 }];
+                              snapshotAndUpdateChords(targetIndex, destChords);
+                            }}
                           />
                         )}
                       </div>

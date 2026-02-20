@@ -5,7 +5,7 @@
  * between surrounding keyframes with configurable easing curves.
  */
 
-import type { Animation, Keyframe, EasingType } from '../contexts/metmap/types';
+import type { Animation, Keyframe, EasingType, BezierHandles } from '../contexts/metmap/types';
 
 // ==================== Easing Functions ====================
 // All take progress [0,1] and return eased value [0,1]
@@ -16,12 +16,65 @@ const easingFunctions: Record<EasingType, (t: number) => number> = {
   easeOut: (t) => t * (2 - t),
   easeInOut: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
   step: (_t) => 0, // Holds previous value; handled specially in interpolate()
+  bezier: (t) => cubicBezier(t, 0.42, 0, 0.58, 1), // Default ease-in-out; overridden by handles
 };
+
+// ==================== Cubic Bezier ====================
+
+/**
+ * Evaluate a cubic bezier curve at parameter t.
+ * The curve is defined by P0=(0,0), P1=(cp1x,cp1y), P2=(cp2x,cp2y), P3=(1,1).
+ */
+function bezierComponent(t: number, p1: number, p2: number): number {
+  const mt = 1 - t;
+  return 3 * mt * mt * t * p1 + 3 * mt * t * t * p2 + t * t * t;
+}
+
+function bezierComponentDerivative(t: number, p1: number, p2: number): number {
+  const mt = 1 - t;
+  return 3 * mt * mt * p1 + 6 * mt * t * (p2 - p1) + 3 * t * t * (1 - p2);
+}
+
+/**
+ * Solve for the parametric t where B_x(t) = x using Newton-Raphson.
+ * Then evaluate B_y(t) to get the eased value.
+ */
+export function cubicBezier(
+  x: number,
+  cp1x: number,
+  cp1y: number,
+  cp2x: number,
+  cp2y: number,
+): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+
+  // Newton-Raphson to find t where B_x(t) = x
+  let t = x; // initial guess
+  for (let i = 0; i < 8; i++) {
+    const currentX = bezierComponent(t, cp1x, cp2x) - x;
+    if (Math.abs(currentX) < 1e-6) break;
+    const dx = bezierComponentDerivative(t, cp1x, cp2x);
+    if (Math.abs(dx) < 1e-6) break;
+    t -= currentX / dx;
+    t = Math.max(0, Math.min(1, t));
+  }
+
+  return bezierComponent(t, cp1y, cp2y);
+}
 
 /**
  * Apply easing to a [0,1] progress value.
+ * For bezier easing, pass handles to use custom control points.
  */
-export function applyEasing(progress: number, easing: EasingType): number {
+export function applyEasing(
+  progress: number,
+  easing: EasingType,
+  handles?: BezierHandles,
+): number {
+  if (easing === 'bezier' && handles) {
+    return cubicBezier(progress, handles.cp1x, handles.cp1y, handles.cp2x, handles.cp2y);
+  }
   const fn = easingFunctions[easing];
   return fn ? fn(progress) : progress;
 }
@@ -36,9 +89,10 @@ export function interpolate(
   to: number,
   progress: number,
   easing: EasingType,
+  handles?: BezierHandles,
 ): number {
   if (easing === 'step') return from; // Hold until next keyframe
-  const easedProgress = applyEasing(Math.max(0, Math.min(1, progress)), easing);
+  const easedProgress = applyEasing(Math.max(0, Math.min(1, progress)), easing, handles);
   return from + (to - from) * easedProgress;
 }
 
@@ -97,7 +151,7 @@ export function evaluateAt(
     const duration = after.time - before.time;
     if (duration <= 0) return before.value;
     const progress = (time - before.time) / duration;
-    return interpolate(before.value, after.value, progress, before.easing);
+    return interpolate(before.value, after.value, progress, before.easing, before.bezierHandles);
   }
 
   return undefined;
@@ -158,7 +212,7 @@ export function removeKeyframe(
 export function updateKeyframe(
   animation: Animation,
   keyframeId: string,
-  changes: Partial<Pick<Keyframe, 'time' | 'value' | 'easing'>>,
+  changes: Partial<Pick<Keyframe, 'time' | 'value' | 'easing' | 'bezierHandles'>>,
 ): Keyframe[] {
   const kfs = animation.keyframes.map(kf =>
     kf.id === keyframeId ? { ...kf, ...changes } : kf,

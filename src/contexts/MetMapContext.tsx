@@ -47,6 +47,7 @@ export {
   type PlaybackContextValue,
   type PracticeContextValue,
   type Keyframe,
+  type BezierHandles,
   type Animation,
   type AnimatableProperty,
   type EasingType,
