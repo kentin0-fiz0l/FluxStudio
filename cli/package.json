@@ -9,6 +9,9 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 tests/*.test.js tests/**/*.test.js"
+  },
   "dependencies": {
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
