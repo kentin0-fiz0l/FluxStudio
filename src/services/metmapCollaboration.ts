@@ -1,74 +1,44 @@
 /**
- * MetMap Collaboration — Yjs Proof-of-Concept Binding
+ * MetMap Collaboration — Yjs Binding for Real-Time Collaborative Editing
  *
- * Sprint 29 spike: demonstrates how MetMap state maps to Yjs shared types
- * and how changes flow between local React state and the CRDT document.
- *
- * NOT wired into the app — standalone module with a clear API.
- * Yjs is a dev-only dependency for now (not in the main bundle).
+ * Sprint 30: Upgraded from Sprint 29 PoC mock interfaces to real Y.Doc.
+ * Provides the API for syncing MetMap sections between local React state
+ * and the Yjs CRDT document.
  */
 
+import * as Y from 'yjs';
 import type { Section } from '../contexts/metmap/types';
-
-// ---------------------------------------------------------------------------
-// Types (Yjs-like interfaces — actual Yjs import deferred to Sprint 30)
-// ---------------------------------------------------------------------------
-
-/** Minimal Y.Map-like interface for the PoC. */
-interface YMapLike {
-  get(key: string): unknown;
-  set(key: string, value: unknown): void;
-  toJSON(): Record<string, unknown>;
-  observe(fn: (event: unknown) => void): void;
-}
-
-/** Minimal Y.Array-like interface for the PoC. */
-interface YArrayLike<T = unknown> {
-  length: number;
-  get(index: number): T;
-  insert(index: number, items: T[]): void;
-  delete(index: number, count?: number): void;
-  toArray(): T[];
-  toJSON(): unknown[];
-  observe(fn: (event: unknown) => void): void;
-}
-
-/** Minimal Y.Doc-like interface for the PoC. */
-interface YDocLike {
-  getMap(name: string): YMapLike;
-  getArray(name: string): YArrayLike;
-  transact(fn: () => void): void;
-}
 
 // ---------------------------------------------------------------------------
 // Converters: MetMap state ↔ Yjs shared types
 // ---------------------------------------------------------------------------
 
 /**
- * Convert a MetMap Section to a plain object suitable for Y.Map.set().
- * Nested arrays (chords, animations) are stored as JSON — in production
- * these would be Y.Arrays for granular collaboration.
+ * Convert a MetMap Section to a Y.Map within a transaction.
+ * Nested arrays (chords, animations) are stored as JSON strings — in Sprint 31+
+ * these will be Y.Arrays for granular collaboration.
  */
-export function sectionToYMap(section: Section): Record<string, unknown> {
-  return {
-    id: section.id,
-    name: section.name,
-    bars: section.bars,
-    timeSignature: section.timeSignature,
-    tempoStart: section.tempoStart,
-    tempoEnd: section.tempoEnd ?? null,
-    tempoCurve: section.tempoCurve ?? null,
-    startBar: section.startBar,
-    orderIndex: section.orderIndex,
-    chords: JSON.stringify(section.chords || []),
-    animations: JSON.stringify(section.animations || []),
-  };
+export function sectionToYMap(_doc: Y.Doc, section: Section): Y.Map<unknown> {
+  const yMap = new Y.Map<unknown>();
+  yMap.set('id', section.id);
+  yMap.set('name', section.name);
+  yMap.set('bars', section.bars);
+  yMap.set('timeSignature', section.timeSignature);
+  yMap.set('tempoStart', section.tempoStart);
+  yMap.set('tempoEnd', section.tempoEnd ?? null);
+  yMap.set('tempoCurve', section.tempoCurve ?? null);
+  yMap.set('startBar', section.startBar);
+  yMap.set('orderIndex', section.orderIndex);
+  yMap.set('chords', JSON.stringify(section.chords || []));
+  yMap.set('animations', JSON.stringify(section.animations || []));
+  return yMap;
 }
 
 /**
- * Convert a Y.Map JSON snapshot back to a MetMap Section.
+ * Convert a Y.Map to a MetMap Section.
  */
-export function yMapToSection(data: Record<string, unknown>): Section {
+export function yMapToSection(yMap: Y.Map<unknown>): Section {
+  const data = yMap.toJSON();
   return {
     id: data.id as string,
     name: (data.name as string) || 'Section',
@@ -101,6 +71,9 @@ export interface MetMapCollaborationAPI {
   /** Remove a section from the Yjs document. */
   removeSection(index: number): void;
 
+  /** Replace all sections in the Yjs document (for initial load). */
+  setSections(sections: Section[]): void;
+
   /** Observe all section changes (for dispatching to React state). */
   onSectionsChange(callback: (sections: Section[]) => void): () => void;
 
@@ -109,17 +82,21 @@ export interface MetMapCollaborationAPI {
 }
 
 /**
- * Create a collaboration binding for a Yjs document.
- *
- * In Sprint 30 this will accept a real Y.Doc; for now it works
- * with the YDocLike interface to demonstrate the API shape.
+ * Create a collaboration binding for a real Y.Doc.
  */
-export function createMetMapCollaboration(doc: YDocLike): MetMapCollaborationAPI {
-  const ySections = doc.getArray('sections');
+export function createMetMapCollaboration(doc: Y.Doc): MetMapCollaborationAPI {
+  const ySections: Y.Array<Y.Map<unknown>> = doc.getArray('sections');
   const observers: Array<(sections: Section[]) => void> = [];
 
   function readSections(): Section[] {
-    return ySections.toJSON().map((item) => yMapToSection(item as Record<string, unknown>));
+    const result: Section[] = [];
+    for (let i = 0; i < ySections.length; i++) {
+      const yMap = ySections.get(i);
+      if (yMap instanceof Y.Map) {
+        result.push(yMapToSection(yMap));
+      }
+    }
+    return result;
   }
 
   function notifyObservers() {
@@ -127,8 +104,8 @@ export function createMetMapCollaboration(doc: YDocLike): MetMapCollaborationAPI
     for (const cb of observers) cb(sections);
   }
 
-  // Observe Y.Array changes
-  ySections.observe(() => {
+  // Observe Y.Array changes (deep — catches both array and nested map changes)
+  ySections.observeDeep(() => {
     notifyObservers();
   });
 
@@ -137,26 +114,48 @@ export function createMetMapCollaboration(doc: YDocLike): MetMapCollaborationAPI
 
     updateSection(index: number, section: Section) {
       doc.transact(() => {
-        const ySection = ySections.get(index) as YMapLike | undefined;
-        if (!ySection) return;
-        const data = sectionToYMap(section);
-        for (const [key, value] of Object.entries(data)) {
-          ySection.set(key, value);
-        }
+        const ySection = ySections.get(index);
+        if (!ySection || !(ySection instanceof Y.Map)) return;
+        ySection.set('id', section.id);
+        ySection.set('name', section.name);
+        ySection.set('bars', section.bars);
+        ySection.set('timeSignature', section.timeSignature);
+        ySection.set('tempoStart', section.tempoStart);
+        ySection.set('tempoEnd', section.tempoEnd ?? null);
+        ySection.set('tempoCurve', section.tempoCurve ?? null);
+        ySection.set('startBar', section.startBar);
+        ySection.set('orderIndex', section.orderIndex);
+        ySection.set('chords', JSON.stringify(section.chords || []));
+        ySection.set('animations', JSON.stringify(section.animations || []));
       });
     },
 
     addSection(section: Section) {
       doc.transact(() => {
-        // In production: ySections.insert(index, [new Y.Map(entries)])
-        // For PoC: insert the plain object
-        ySections.insert(ySections.length, [sectionToYMap(section) as unknown]);
+        const yMap = sectionToYMap(doc, section);
+        ySections.push([yMap]);
       });
     },
 
     removeSection(index: number) {
       doc.transact(() => {
-        ySections.delete(index, 1);
+        if (index >= 0 && index < ySections.length) {
+          ySections.delete(index, 1);
+        }
+      });
+    },
+
+    setSections(sections: Section[]) {
+      doc.transact(() => {
+        // Clear existing
+        if (ySections.length > 0) {
+          ySections.delete(0, ySections.length);
+        }
+        // Insert all
+        for (const section of sections) {
+          const yMap = sectionToYMap(doc, section);
+          ySections.push([yMap]);
+        }
       });
     },
 
@@ -175,7 +174,7 @@ export function createMetMapCollaboration(doc: YDocLike): MetMapCollaborationAPI
 }
 
 // ---------------------------------------------------------------------------
-// Presence types (for Sprint 30+)
+// Presence types
 // ---------------------------------------------------------------------------
 
 export interface MetMapPresence {
@@ -188,27 +187,7 @@ export interface MetMapPresence {
 }
 
 // ---------------------------------------------------------------------------
-// Usage example (not executed — documentation only)
+// Collaboration status types
 // ---------------------------------------------------------------------------
 
-/*
-import * as Y from 'yjs';
-
-// 1. Create Yjs document
-const ydoc = new Y.Doc();
-
-// 2. Create collaboration binding
-const collab = createMetMapCollaboration(ydoc as unknown as YDocLike);
-
-// 3. Observe changes for React dispatch
-const unsubscribe = collab.onSectionsChange((sections) => {
-  dispatch({ type: 'SET_SECTIONS', sections });
-});
-
-// 4. Push local edits to Yjs
-collab.updateSection(0, updatedSection);
-
-// 5. Cleanup
-unsubscribe();
-collab.destroy();
-*/
+export type CollaborationStatus = 'disconnected' | 'connecting' | 'synced';

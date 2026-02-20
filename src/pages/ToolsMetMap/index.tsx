@@ -9,7 +9,7 @@
  * WCAG 2.1 Level A Compliant
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/templates/DashboardLayout';
 import { useMetMap, Song, Section } from '../../contexts/MetMapContext';
@@ -33,12 +33,14 @@ import { WaveformTimeline } from '../../components/metmap/WaveformTimeline';
 import { TimelineCanvas } from '../../components/metmap/TimelineCanvas';
 import { BeatMarkers } from '../../components/metmap/BeatMarkers';
 import { AudioTrackPanel } from '../../components/metmap/AudioTrackPanel';
+import { AudioTrackMixer } from '../../components/metmap/AudioTrackMixer';
 import { KeyframeEditor } from '../../components/metmap/KeyframeEditor';
 import { detectBeatsWithCache } from '../../services/beatDetection';
 import { usePlayback, useMetMapCore, usePractice } from '../../contexts/metmap';
 import { useMetronomeAudio, ClickSound } from '../../components/metmap/MetronomeAudio';
 import { useMetMapKeyboardShortcuts, ShortcutsHelp } from '../../hooks/useMetMapKeyboardShortcuts';
 import { useMetMapHistory } from '../../hooks/useMetMapHistory';
+import { useMetMapCollaboration } from '../../hooks/useMetMapCollaboration';
 import { announceToScreenReader } from '../../utils/accessibility';
 
 // Decomposed sub-components
@@ -130,6 +132,17 @@ export default function ToolsMetMap() {
 
   // Undo/Redo history
   const { saveSnapshot, undo, redo, canUndo, canRedo } = useMetMapHistory();
+
+  // Collaboration (Yjs real-time sync)
+  const handleRemoteSectionsChange = useCallback((remoteSections: Section[]) => {
+    // Apply remote changes to local state
+    metmapDispatch({ type: 'SET_EDITED_SECTIONS', payload: remoteSections });
+  }, [metmapDispatch]);
+
+  const {
+    status: collabStatus,
+    peerCount: collabPeerCount,
+  } = useMetMapCollaboration(currentSong?.id, handleRemoteSectionsChange);
 
   const totalBars = useMemo(() =>
     editedSections.reduce((sum, s) => sum + s.bars, 0),
@@ -826,6 +839,17 @@ export default function ToolsMetMap() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Collaboration status */}
+                    {collabStatus !== 'disconnected' && (
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-neutral-50 border border-neutral-200" title={`Collaboration: ${collabStatus}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${
+                          collabStatus === 'synced' ? 'bg-green-500' : 'bg-amber-500 animate-pulse'
+                        }`} />
+                        <span className="text-[10px] text-neutral-600">
+                          {collabPeerCount <= 1 ? 'Solo' : `${collabPeerCount} editing`}
+                        </span>
+                      </div>
+                    )}
                     {hasUnsavedChanges && (
                       <span className="text-xs text-orange-500">Unsaved changes</span>
                     )}
@@ -1032,21 +1056,30 @@ export default function ToolsMetMap() {
                 )}
               </div>
 
-              {/* Audio Track Panel */}
+              {/* Audio Tracks — Multi-track mixer + legacy single-track fallback */}
               {currentSong && (
                 <div className="px-4 py-2 border-b border-gray-200 bg-white">
-                  <AudioTrackPanel
+                  <AudioTrackMixer
                     song={currentSong}
                     playbackMode={playback.playbackMode ?? 'metronome'}
-                    beatDetectionLoading={metmapState.beatDetectionLoading}
-                    audioLoading={metmapState.audioLoading}
-                    audioError={metmapState.audioError}
-                    onUploadAudio={handleUploadAudio}
-                    onRemoveAudio={handleRemoveAudio}
-                    onDetectBeats={handleDetectBeats}
-                    onAlignBpm={handleAlignBpm}
                     onPlaybackModeChange={setPlaybackMode}
                   />
+                  {/* Legacy single-track for songs with existing audio attachment */}
+                  {currentSong.audioFileUrl && (
+                    <AudioTrackPanel
+                      song={currentSong}
+                      playbackMode={playback.playbackMode ?? 'metronome'}
+                      beatDetectionLoading={metmapState.beatDetectionLoading}
+                      audioLoading={metmapState.audioLoading}
+                      audioError={metmapState.audioError}
+                      onUploadAudio={handleUploadAudio}
+                      onRemoveAudio={handleRemoveAudio}
+                      onDetectBeats={handleDetectBeats}
+                      onAlignBpm={handleAlignBpm}
+                      onPlaybackModeChange={setPlaybackMode}
+                      className="mt-2"
+                    />
+                  )}
                 </div>
               )}
 

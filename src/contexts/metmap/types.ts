@@ -38,6 +38,9 @@ export interface BeatMap {
 
 export type PlaybackMode = 'metronome' | 'audio' | 'both';
 
+/** Real-time collaboration status */
+export type CollaborationStatus = 'disconnected' | 'connecting' | 'synced';
+
 // ==================== Keyframe / Animation Types ====================
 
 export type AnimatableProperty = 'tempo' | 'volume' | 'pan' | 'emphasis';

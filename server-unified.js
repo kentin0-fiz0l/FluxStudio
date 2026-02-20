@@ -274,10 +274,12 @@ const authNamespace = io.of('/auth');
 const messagingNamespace = io.of('/messaging');
 const printingNamespace = io.of('/printing'); // Phase 3A: Real-time printing updates
 const designBoardsNamespace = io.of('/design-boards'); // Design boards real-time collaboration
+const metmapCollabNamespace = io.of('/metmap-collab'); // Phase 2.2: MetMap real-time collaboration (Yjs)
 
 // Store namespaces in app for access in routes
 app.set('printingNamespace', printingNamespace);
 app.set('designBoardsNamespace', designBoardsNamespace);
+app.set('metmapCollabNamespace', metmapCollabNamespace);
 
 // Google OAuth configuration
 const GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID;
@@ -600,6 +602,7 @@ require('./sockets/auth-socket')(authNamespace, performanceMonitor, authAdapter)
 require('./sockets/messaging-socket')(messagingNamespace, createMessage, getMessages, getChannels, messagingAdapter, JWT_SECRET);
 require('./sockets/printing-socket')(printingNamespace, JWT_SECRET); // Phase 3A + Security: Real-time printing updates with JWT auth
 require('./sockets/design-boards-socket')(designBoardsNamespace, designBoardsAdapter, JWT_SECRET); // Design boards real-time collaboration
+require('./sockets/metmap-collab-socket')(metmapCollabNamespace, metmapAdapter, JWT_SECRET); // Phase 2.2: MetMap real-time collaboration (Yjs)
 
 
 
@@ -629,6 +632,7 @@ httpServer.listen(PORT, async () => {
   console.log(`🔐 Auth namespace: ws://localhost:${PORT}/auth`);
   console.log(`💬 Messaging namespace: ws://localhost:${PORT}/messaging`);
   console.log(`🎨 Design Boards namespace: ws://localhost:${PORT}/design-boards`);
+  console.log(`🎵 MetMap Collab namespace: ws://localhost:${PORT}/metmap-collab`);
   console.log(`🏥 Health check: http://localhost:${PORT}/health`);
   console.log(`📊 Monitoring: http://localhost:${PORT}/api/monitoring`);
   console.log('');

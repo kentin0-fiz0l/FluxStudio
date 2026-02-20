@@ -976,6 +976,41 @@ function transformTrack(row) {
   };
 }
 
+// ==================== YJS STATE PERSISTENCE ====================
+
+/**
+ * Get Yjs document state for a song
+ */
+async function getYjsState(songId) {
+  try {
+    const result = await query(
+      'SELECT yjs_state FROM metmap_songs WHERE id = $1',
+      [songId]
+    );
+    if (result.rows.length === 0) return null;
+    return result.rows[0].yjs_state; // Buffer (BYTEA)
+  } catch (error) {
+    console.error('Error getting Yjs state:', error);
+    throw error;
+  }
+}
+
+/**
+ * Save Yjs document state for a song
+ */
+async function saveYjsState(songId, state) {
+  try {
+    const result = await query(
+      `UPDATE metmap_songs SET yjs_state = $2, updated_at = NOW() WHERE id = $1 RETURNING id`,
+      [songId, state] // state is a Buffer
+    );
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Error saving Yjs state:', error);
+    throw error;
+  }
+}
+
 // ==================== EXPORTS ====================
 
 module.exports = {
@@ -1015,5 +1050,9 @@ module.exports = {
   updateTrackBeatMap,
 
   // Stats
-  getStatsForUser
+  getStatsForUser,
+
+  // Yjs collaboration
+  getYjsState,
+  saveYjsState
 };
