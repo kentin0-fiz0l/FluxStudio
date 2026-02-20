@@ -32,6 +32,9 @@ try {
   console.warn('Activity logger not available');
 }
 
+// Audit logger (Sprint 41: Enterprise & Compliance)
+const { logAction } = require('../lib/auditLog');
+
 // Configure multer for file uploads (memory storage for processing)
 const fileUploadStorage = multer.memoryStorage();
 const fileUpload = multer({
@@ -246,6 +249,7 @@ router.delete('/:fileId', authenticateToken, async (req, res) => {
       await activityLogger.fileDeleted(userId, file.projectId, file);
     }
 
+    logAction(userId, 'delete', 'file', fileId, { name: file.originalName }, req);
     res.json({ success: true, message: 'File deleted successfully' });
   } catch (error) {
     console.error('Error deleting file:', error);

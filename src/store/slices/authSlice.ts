@@ -44,8 +44,14 @@ export interface AuthState {
   isReturningSession: boolean;
 }
 
+export interface TwoFARequired {
+  requires2FA: true;
+  tempToken: string;
+}
+
 export interface AuthActions {
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password: string) => Promise<User | TwoFARequired>;
+  loginWithToken: (authData: Record<string, unknown>) => Promise<User>;
   signup: (email: string, password: string, name: string, userType: UserType) => Promise<User>;
   loginWithGoogle: (credential: string) => Promise<User>;
   loginWithApple: () => Promise<User>;
@@ -310,7 +316,7 @@ export const createAuthSlice: StateCreator<
       }
     },
 
-    login: async (email: string, password: string): Promise<User> => {
+    login: async (email: string, password: string): Promise<User | TwoFARequired> => {
       set((state) => { state.auth.isLoading = true; state.auth.error = null; });
 
       try {
@@ -318,7 +324,14 @@ export const createAuthSlice: StateCreator<
         const response = await apiService.login(email, password);
         if (!response.success) throw new Error(response.error || 'Login failed');
 
-        const authData = response.data as AuthResponseData;
+        // Sprint 41: Check if 2FA is required
+        const data = response.data as Record<string, unknown>;
+        if (data?.requires2FA) {
+          set((state) => { state.auth.isLoading = false; });
+          return { requires2FA: true, tempToken: data.tempToken as string };
+        }
+
+        const authData = data as unknown as AuthResponseData;
         storeTokens(authData);
         set((state) => {
           state.auth.user = authData.user;
@@ -333,6 +346,19 @@ export const createAuthSlice: StateCreator<
         set((state) => { state.auth.error = msg; state.auth.isLoading = false; });
         throw error;
       }
+    },
+
+    loginWithToken: async (rawData: Record<string, unknown>): Promise<User> => {
+      const authData = rawData as unknown as AuthResponseData;
+      storeTokens(authData);
+      set((state) => {
+        state.auth.user = authData.user;
+        state.auth.isAuthenticated = true;
+        state.auth.isLoading = false;
+        state.auth.token = localStorage.getItem(ACCESS_TOKEN_KEY);
+      });
+      startTokenRefresh();
+      return authData.user;
     },
 
     signup: async (email: string, password: string, name: string, userType: UserType): Promise<User> => {

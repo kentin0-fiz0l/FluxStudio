@@ -333,6 +333,29 @@ router.post('/login',
       // Reset failed login counter on successful authentication
       await anomalyDetector.resetFailedLoginCounter(email, req.ip);
 
+      // Sprint 41: Check if 2FA is enabled — return temp token instead of full auth
+      if (USE_DATABASE && dbQuery) {
+        try {
+          const twoFAResult = await dbQuery(
+            `SELECT totp_enabled FROM users WHERE id = $1`,
+            [user.id]
+          );
+          if (twoFAResult.rows.length > 0 && twoFAResult.rows[0].totp_enabled) {
+            const tempToken = jwt.sign(
+              { id: user.id, type: '2fa_pending' },
+              JWT_SECRET,
+              { expiresIn: '5m' }
+            );
+            return res.json({
+              requires2FA: true,
+              tempToken,
+            });
+          }
+        } catch (e) {
+          console.warn('[Auth] 2FA check failed, proceeding without:', e.message);
+        }
+      }
+
       // Generate token pair with device tracking (Week 2 Security Sprint)
       const authResponse = await generateAuthResponse(user, req);
 

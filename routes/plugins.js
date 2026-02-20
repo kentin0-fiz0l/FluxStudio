@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
+const { logAction } = require('../lib/auditLog');
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -85,6 +86,7 @@ router.post('/install', async (req, res) => {
     );
 
     const row = result.rows[0];
+    logAction(req.user.id, 'install', 'plugin', row.plugin_id, { name: manifest.name }, req);
     res.status(201).json({
       success: true,
       plugin: {
@@ -165,6 +167,7 @@ router.delete('/:pluginId', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Plugin not found' });
     }
 
+    logAction(req.user.id, 'uninstall', 'plugin', req.params.pluginId, {}, req);
     res.json({ success: true });
   } catch (error) {
     console.error('Error uninstalling plugin:', error);

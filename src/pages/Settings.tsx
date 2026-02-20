@@ -22,7 +22,10 @@ import {
   Sun,
   Save,
   Puzzle,
-  Loader2
+  Loader2,
+  Monitor,
+  Download,
+  Trash2,
 } from 'lucide-react';
 import { FigmaIntegration } from '@/components/organisms/FigmaIntegration';
 import { SlackIntegration } from '@/components/organisms/SlackIntegration';
@@ -31,6 +34,7 @@ import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import { toast } from '../lib/toast';
 import { apiService, type UserSettings } from '../services/apiService';
+import { TwoFactorSetup } from '@/components/settings/TwoFactorSetup';
 
 function Settings() {
   const { user, logout } = useAuth();
@@ -292,7 +296,7 @@ function Settings() {
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <button
                 className="w-full p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-left min-h-[56px]"
                 aria-label="Change Password - Update your password"
@@ -306,23 +310,13 @@ function Settings() {
                 </div>
               </button>
 
-              <button
-                className="w-full p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-left min-h-[56px]"
-                aria-label="Two-Factor Authentication - Not enabled. Add extra security"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-neutral-900 dark:text-neutral-100">Two-Factor Auth</h3>
-                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300" aria-hidden="true">
-                        Not enabled
-                      </span>
-                    </div>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-300">Add extra security</p>
-                  </div>
-                  <Shield className="w-5 h-5 text-neutral-400 dark:text-neutral-500" aria-hidden="true" />
-                </div>
-              </button>
+              {/* Two-Factor Authentication — Sprint 41 */}
+              <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                <TwoFactorSetup
+                  is2FAEnabled={false}
+                  onStatusChange={(enabled) => toast.success(enabled ? '2FA enabled' : '2FA disabled')}
+                />
+              </div>
             </div>
           </Card>
 
@@ -350,6 +344,98 @@ function Settings() {
                   aria-label="Toggle auto-save"
                 />
               </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Active Sessions & Data — Sprint 41 */}
+        <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
+          {/* Active Sessions */}
+          <Card className="p-4 md:p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Monitor className="w-5 h-5 text-blue-600" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Active Sessions</h2>
+                <p className="text-sm text-neutral-600 dark:text-neutral-300">Manage your active login sessions</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                View and revoke sessions where you're signed in.
+              </p>
+              <a
+                href="/settings/sessions"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                <Monitor className="w-4 h-4" />
+                Manage Sessions
+              </a>
+            </div>
+          </Card>
+
+          {/* Data & Privacy (GDPR) */}
+          <Card className="p-4 md:p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                <Download className="w-5 h-5 text-orange-600" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Data & Privacy</h2>
+                <p className="text-sm text-neutral-600 dark:text-neutral-300">Export or delete your data</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={async () => {
+                  const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+                  const API_URL = import.meta.env.VITE_API_URL || '';
+                  const res = await fetch(`${API_URL}/api/account/export`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                  });
+                  if (!res.ok) { toast.error('Export failed'); return; }
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'fluxstudio-data-export.json';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast.success('Data export downloaded');
+                }}
+                className="w-full p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-neutral-900 dark:text-neutral-100">Export My Data</h3>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-300">Download all your personal data as JSON</p>
+                  </div>
+                  <Download className="w-5 h-5 text-neutral-400" aria-hidden="true" />
+                </div>
+              </button>
+              <button
+                onClick={async () => {
+                  if (!confirm('Are you sure? Your account will be permanently deleted after 30 days.')) return;
+                  const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+                  const API_URL = import.meta.env.VITE_API_URL || '';
+                  const res = await fetch(`${API_URL}/api/account/delete`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                  });
+                  if (!res.ok) { toast.error('Failed to request deletion'); return; }
+                  toast.success('Account deletion scheduled. You have 30 days to cancel.');
+                }}
+                className="w-full p-4 bg-red-50 dark:bg-red-900/10 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-red-700 dark:text-red-400">Delete My Account</h3>
+                    <p className="text-sm text-red-600 dark:text-red-300">Permanently delete your account and all data (30-day cooling off)</p>
+                  </div>
+                  <Trash2 className="w-5 h-5 text-red-400" aria-hidden="true" />
+                </div>
+              </button>
             </div>
           </Card>
         </div>

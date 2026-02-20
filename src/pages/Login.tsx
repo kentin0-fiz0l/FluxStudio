@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '65518208813-f4rgudom5b57qad0jlhjtsocsrb26mfc.apps.googleusercontent.com';
@@ -17,7 +17,11 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, loginWithGoogle } = useAuth();
+  const [twoFAStep, setTwoFAStep] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [totpCode, setTotpCode] = useState('');
+  const totpInputRef = useRef<HTMLInputElement>(null);
+  const { login, loginWithGoogle, loginWithToken } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,10 +30,48 @@ export function Login() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      const result = await login(email, password);
+      // Check if 2FA is required
+      if (result && 'requires2FA' in result && result.requires2FA) {
+        setTempToken(result.tempToken as string);
+        setTwoFAStep(true);
+        setTimeout(() => totpInputRef.current?.focus(), 100);
+        return;
+      }
       navigate(callbackUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid email or password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTwoFASubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${API_URL}/api/2fa/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempToken, code: totpCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Verification failed');
+      // Store tokens and log in
+      if (loginWithToken) {
+        await loginWithToken(data);
+      } else {
+        // Fallback: store manually
+        localStorage.setItem('accessToken', data.accessToken || data.token);
+        if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+        window.location.href = callbackUrl;
+        return;
+      }
+      navigate(callbackUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid verification code');
     } finally {
       setIsLoading(false);
     }
@@ -75,13 +117,57 @@ export function Login() {
               <h1 className="text-2xl font-bold text-white mb-2">Welcome back</h1>
               <p className="text-gray-400 mb-6">Sign in to access your creative workspace</p>
 
-              {error && (
+              {twoFAStep && (
+                <div className="mb-4 p-4 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ShieldCheck size={20} className="text-purple-400" />
+                    <h2 className="text-white font-medium">Two-Factor Authentication</h2>
+                  </div>
+                  <p className="text-gray-400 text-sm mb-4">Enter the 6-digit code from your authenticator app, or use a backup code.</p>
+                  {error && (
+                    <div className="mb-3 p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                      {error}
+                    </div>
+                  )}
+                  <form onSubmit={handleTwoFASubmit} className="space-y-3">
+                    <input
+                      ref={totpInputRef}
+                      type="text"
+                      value={totpCode}
+                      onChange={(e) => setTotpCode(e.target.value.replace(/\s/g, ''))}
+                      className="w-full px-4 py-3 bg-[#1a1a1a] border border-gray-700 rounded-lg text-white text-center text-lg tracking-widest font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="000000"
+                      maxLength={8}
+                      autoComplete="one-time-code"
+                      inputMode="numeric"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isLoading || totpCode.length < 6}
+                      className="w-full py-3 px-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium rounded-lg transition-all shadow-lg disabled:opacity-50"
+                    >
+                      {isLoading ? 'Verifying...' : 'Verify'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTwoFAStep(false); setTotpCode(''); setError(''); }}
+                      className="w-full py-2 text-gray-400 hover:text-gray-300 text-sm"
+                    >
+                      Back to sign in
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {!twoFAStep && error && (
                 <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
                   {error}
                 </div>
               )}
 
               {/* Google OAuth Button - using redirect mode to bypass COOP */}
+              {!twoFAStep && (
+              <>
               <div className="mb-4 flex justify-center">
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
@@ -168,6 +254,8 @@ export function Login() {
                   Sign up
                 </Link>
               </p>
+              </>
+              )}
             </div>
           </div>
 

@@ -40,6 +40,9 @@ try {
   console.warn('Activity logger not available');
 }
 
+// Audit logger (Sprint 41: Enterprise & Compliance)
+const { logAction } = require('../lib/auditLog');
+
 // Helper functions
 function uuidv4() {
   return crypto.randomUUID();
@@ -290,6 +293,7 @@ router.post('/', authenticateToken, validateInput.sanitizeInput, checkProjectQuo
       await saveProjectsToFile(projects);
     }
 
+    logAction(req.user.id, 'create', 'project', newProject.id, { name }, req);
     res.status(201).json({ success: true, project: newProject });
   } catch (error) {
     console.error('Create project error:', error);

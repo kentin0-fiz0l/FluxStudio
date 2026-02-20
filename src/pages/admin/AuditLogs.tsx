@@ -4,7 +4,7 @@
  * View and filter audit logs for security and compliance.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import {
@@ -49,20 +49,15 @@ interface AuditLog {
   userAgent?: string;
 }
 
-// ============================================================================
-// MOCK DATA
-// ============================================================================
+const API_URL = import.meta.env.VITE_API_URL || '';
 
-const mockAuditLogs: AuditLog[] = [
-  { id: '1', timestamp: '2024-03-15T10:30:00Z', user: { id: '1', name: 'John Doe', email: 'john@example.com' }, action: 'login', category: 'auth', resource: 'Session', details: 'Successful login via Google OAuth', ip: '192.168.1.100' },
-  { id: '2', timestamp: '2024-03-15T10:25:00Z', user: { id: '2', name: 'Jane Smith', email: 'jane@example.com' }, action: 'create', category: 'projects', resource: 'Project', resourceId: 'proj_123', details: 'Created project "Q2 Marketing Campaign"', ip: '192.168.1.101' },
-  { id: '3', timestamp: '2024-03-15T10:20:00Z', user: { id: '1', name: 'John Doe', email: 'john@example.com' }, action: 'update', category: 'settings', resource: 'Organization Settings', details: 'Updated billing email address', ip: '192.168.1.100' },
-  { id: '4', timestamp: '2024-03-15T10:15:00Z', user: { id: '3', name: 'Admin', email: 'admin@example.com' }, action: 'invite', category: 'users', resource: 'User', resourceId: 'user_456', details: 'Invited mike@example.com to organization', ip: '192.168.1.102' },
-  { id: '5', timestamp: '2024-03-15T10:10:00Z', user: { id: '2', name: 'Jane Smith', email: 'jane@example.com' }, action: 'delete', category: 'projects', resource: 'File', resourceId: 'file_789', details: 'Deleted file "draft_v1.pdf"', ip: '192.168.1.101' },
-  { id: '6', timestamp: '2024-03-15T10:05:00Z', user: { id: '4', name: 'Mike Johnson', email: 'mike@example.com' }, action: 'logout', category: 'auth', resource: 'Session', details: 'User logged out', ip: '192.168.1.103' },
-  { id: '7', timestamp: '2024-03-15T10:00:00Z', user: { id: '3', name: 'Admin', email: 'admin@example.com' }, action: 'update', category: 'security', resource: 'Security Settings', details: 'Enabled two-factor authentication requirement', ip: '192.168.1.102' },
-  { id: '8', timestamp: '2024-03-15T09:55:00Z', user: { id: '1', name: 'John Doe', email: 'john@example.com' }, action: 'remove', category: 'users', resource: 'Team Member', resourceId: 'user_321', details: 'Removed sarah@example.com from team', ip: '192.168.1.100' },
-];
+// Map resource_type → category for filtering
+function resourceToCategory(resourceType: string): AuditCategory {
+  if (['user', 'session'].includes(resourceType)) return 'auth';
+  if (['project'].includes(resourceType)) return 'projects';
+  if (['organization', 'role'].includes(resourceType)) return 'settings';
+  return 'security';
+}
 
 // ============================================================================
 // COMPONENT
@@ -75,46 +70,84 @@ export function AdminAuditLogs() {
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const pageSize = 10;
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 50;
 
-  // Filter logs
-  const filteredLogs = useMemo(() => {
-    return mockAuditLogs.filter((log) => {
-      const matchesSearch =
-        log.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.details.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.resource.toLowerCase().includes(searchQuery.toLowerCase());
+  const fetchLogs = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const params = new URLSearchParams({ page: String(currentPage), limit: String(pageSize) });
+      if (searchQuery) params.set('search', searchQuery);
+      if (categoryFilter !== 'all') params.set('resource', categoryFilter);
+      if (dateRange.start) params.set('startDate', dateRange.start);
+      if (dateRange.end) params.set('endDate', dateRange.end + 'T23:59:59Z');
 
-      const matchesCategory = categoryFilter === 'all' || log.category === categoryFilter;
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/audit-logs?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
 
-      let matchesDate = true;
-      if (dateRange.start) {
-        matchesDate = new Date(log.timestamp) >= new Date(dateRange.start);
-      }
-      if (dateRange.end && matchesDate) {
-        matchesDate = new Date(log.timestamp) <= new Date(dateRange.end + 'T23:59:59Z');
-      }
+      setLogs(
+        (data.logs || []).map((log: Record<string, unknown>) => ({
+          id: log.id as string,
+          timestamp: log.timestamp as string,
+          user: {
+            id: (log.userId as string) || '',
+            name: (log.userName as string) || 'System',
+            email: (log.userEmail as string) || '',
+          },
+          action: log.action as AuditAction,
+          category: resourceToCategory(log.resourceType as string),
+          resource: log.resourceType as string,
+          resourceId: log.resourceId as string,
+          details: typeof log.details === 'object' ? JSON.stringify(log.details) : String(log.details || ''),
+          ip: (log.ip as string) || '',
+          userAgent: log.userAgent as string,
+        }))
+      );
+      setTotalCount(data.pagination?.total || 0);
+    } catch (err) {
+      console.error('Failed to fetch audit logs:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [currentPage, searchQuery, categoryFilter, dateRange]);
 
-      return matchesSearch && matchesCategory && matchesDate;
-    });
-  }, [searchQuery, categoryFilter, dateRange]);
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  // Client-side filtering on fetched data
+  const filteredLogs = useMemo(() => logs, [logs]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredLogs.length / pageSize);
-  const paginatedLogs = filteredLogs.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const paginatedLogs = filteredLogs;
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsRefreshing(false);
-  };
+  const handleRefresh = () => fetchLogs();
 
-  const handleExport = (_format: 'csv' | 'pdf' | 'excel') => {
-    // Implementation would go here
+  const handleExport = async (format: 'csv' | 'pdf' | 'excel') => {
+    if (format !== 'csv') return;
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    const params = new URLSearchParams();
+    if (categoryFilter !== 'all') params.set('resource', categoryFilter);
+    if (dateRange.start) params.set('startDate', dateRange.start);
+    if (dateRange.end) params.set('endDate', dateRange.end + 'T23:59:59Z');
+
+    const res = await fetch(`${API_URL}/api/admin/audit-logs/export?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'audit-logs.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const getActionIcon = (action: AuditAction) => {

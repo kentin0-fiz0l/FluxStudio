@@ -608,6 +608,28 @@ app.use('/api', channelsRoutes);
 app.use('/', healthRoutes);
 app.use('/api', healthRoutes);
 
+// Sprint 41: Enterprise & Compliance routes
+const adminAuditRoutes = require('./routes/admin-audit');
+const accountRoutes = require('./routes/account');
+const twoFactorRoutes = require('./routes/two-factor');
+const rolesRoutes = require('./routes/roles');
+const sessionsRoutes = require('./routes/sessions');
+
+app.use('/admin/audit-logs', adminAuditRoutes);
+app.use('/api/admin/audit-logs', adminAuditRoutes);
+
+app.use('/account', accountRoutes);
+app.use('/api/account', accountRoutes);
+
+app.use('/2fa', twoFactorRoutes);
+app.use('/api/2fa', twoFactorRoutes);
+
+app.use('/organizations/:orgId/roles', rolesRoutes);
+app.use('/api/organizations/:orgId/roles', rolesRoutes);
+
+app.use('/sessions', sessionsRoutes);
+app.use('/api/sessions', sessionsRoutes);
+
 
 // Import health check module
 const { createHealthCheck, authHealthChecks, messagingHealthChecks } = require('./health-check');
