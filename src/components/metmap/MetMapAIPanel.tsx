@@ -92,11 +92,13 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
   }), []);
 
   const handleAnalyze = useCallback(() => {
+    setError(null);
     const controller = streamSongAnalysis(songId, token, analysisFocus, streamCallbacks());
     startStream(controller);
   }, [songId, token, analysisFocus, streamCallbacks, startStream]);
 
   const handleSuggestChords = useCallback(() => {
+    setError(null);
     const section = sections[chordSectionIndex];
     const controller = streamChordSuggestions(
       songId,
@@ -109,6 +111,7 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
   }, [songId, token, sections, chordSectionIndex, chordStyle, chordRequest, streamCallbacks, startStream]);
 
   const handlePracticeInsights = useCallback(() => {
+    setError(null);
     const controller = streamPracticeInsights(songId, token, streamCallbacks());
     startStream(controller);
   }, [songId, token, streamCallbacks, startStream]);
@@ -127,6 +130,11 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
   useEffect(() => {
     return () => { abortRef.current?.abort(); };
   }, []);
+
+  // Abort stream on tab switch (defensive — tabs are disabled during streaming)
+  useEffect(() => {
+    handleStop();
+  }, [activeTab, handleStop]);
 
   const tabs: { key: AITab; label: string; icon: React.ReactNode }[] = [
     { key: 'analyze', label: 'Analyze', icon: <Sparkles className="w-3.5 h-3.5" /> },
@@ -161,7 +169,7 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
               activeTab === tab.key
                 ? 'text-violet-700 border-b-2 border-violet-600 bg-violet-50/50'
                 : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50'
-            }`}
+            }${isStreaming && tab.key !== activeTab ? ' opacity-50 cursor-not-allowed' : ''}`}
           >
             {tab.icon}
             {tab.label}
@@ -241,6 +249,11 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
               {isStreaming ? <Loader2 className="w-3 h-3 animate-spin" /> : <Music className="w-3 h-3" />}
               Suggest Chords
             </button>
+            {sections.length === 0 && (
+              <p className="text-xs text-amber-600">
+                Add at least one section to your song before requesting chord suggestions
+              </p>
+            )}
           </>
         )}
 
@@ -311,6 +324,12 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {!isStreaming && parsedGrids.length === 0 && activeTab === 'chords' && streamedText && (
+          <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+            No chord patterns detected — try rephrasing your request
           </div>
         )}
       </div>

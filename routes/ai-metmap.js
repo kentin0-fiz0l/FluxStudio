@@ -13,11 +13,15 @@ const { buildMetMapContext } = require('../lib/metmap-ai-context');
 
 const router = express.Router();
 
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.error('[AI-MetMap] ANTHROPIC_API_KEY is not set — AI endpoints will return 503');
+}
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = process.env.METMAP_AI_MODEL || 'claude-sonnet-4-20250514';
 
 /**
  * Load full song context from DB for a given songId + userId.
@@ -46,12 +50,16 @@ async function loadSongContext(songId, userId, options = {}) {
 /**
  * Stream a Claude response as SSE events.
  */
-async function streamAnalysis(res, systemPrompt, userMessage) {
+async function streamAnalysis(req, res, systemPrompt, userMessage) {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
+
+  const controller = new AbortController();
+  req.on('close', () => controller.abort());
+  const timeoutId = setTimeout(() => controller.abort(), 90_000);
 
   try {
     const stream = await anthropic.messages.stream({
@@ -65,6 +73,7 @@ async function streamAnalysis(res, systemPrompt, userMessage) {
 
     let fullContent = '';
     for await (const event of stream) {
+      if (controller.signal.aborted) break;
       if (event.type === 'content_block_delta' && event.delta?.text) {
         const chunk = event.delta.text;
         fullContent += chunk;
@@ -72,12 +81,24 @@ async function streamAnalysis(res, systemPrompt, userMessage) {
       }
     }
 
-    res.write(`data: ${JSON.stringify({ type: 'done', length: fullContent.length })}\n\n`);
+    if (!controller.signal.aborted) {
+      res.write(`data: ${JSON.stringify({ type: 'done', length: fullContent.length })}\n\n`);
+    }
     res.end();
   } catch (error) {
+    if (controller.signal.aborted) {
+      res.end();
+      return;
+    }
     console.error('[AI-MetMap] Stream error:', error);
-    res.write(`data: ${JSON.stringify({ type: 'error', error: error.message || 'AI analysis failed' })}\n\n`);
+    let errorMessage = error.message || 'AI analysis failed';
+    if (error.status === 429 || error?.error?.type === 'rate_limit_error') {
+      errorMessage = 'Rate limit reached — try again in 30 seconds';
+    }
+    res.write(`data: ${JSON.stringify({ type: 'error', error: errorMessage })}\n\n`);
     res.end();
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -94,6 +115,10 @@ router.post('/analyze-song', authenticateToken, rateLimitByUser(15, 60000), asyn
 
   if (!songId) {
     return res.status(400).json({ error: 'songId is required' });
+  }
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'AI service not configured' });
   }
 
   const data = await loadSongContext(songId, req.user.id, { includePractice: false });
@@ -122,7 +147,7 @@ ${focusMap[focus] || focusMap.all}`;
 
   const userMessage = `Please analyze this song:\n\n${data.context}`;
 
-  await streamAnalysis(res, systemPrompt, userMessage);
+  await streamAnalysis(req, res, systemPrompt, userMessage);
 });
 
 // ========================================
@@ -138,6 +163,10 @@ router.post('/suggest-chords', authenticateToken, rateLimitByUser(15, 60000), as
 
   if (!songId) {
     return res.status(400).json({ error: 'songId is required' });
+  }
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'AI service not configured' });
   }
 
   const data = await loadSongContext(songId, req.user.id);
@@ -195,7 +224,7 @@ ${request ? `User request: ${request}` : 'Suggest improvements or creative varia
 
 Please suggest 2-3 chord progression options for this section.`;
 
-  await streamAnalysis(res, systemPrompt, userMessage);
+  await streamAnalysis(req, res, systemPrompt, userMessage);
 });
 
 // ========================================
@@ -211,6 +240,10 @@ router.post('/practice-insights', authenticateToken, rateLimitByUser(15, 60000),
 
   if (!songId) {
     return res.status(400).json({ error: 'songId is required' });
+  }
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'AI service not configured' });
   }
 
   const data = await loadSongContext(songId, req.user.id, { includePractice: true });
@@ -244,7 +277,7 @@ Guidelines:
 
   const userMessage = `Please analyze my practice data and give me coaching advice:\n\n${data.context}`;
 
-  await streamAnalysis(res, systemPrompt, userMessage);
+  await streamAnalysis(req, res, systemPrompt, userMessage);
 });
 
 module.exports = router;

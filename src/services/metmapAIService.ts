@@ -28,6 +28,19 @@ async function readSSEStream(
 
   const decoder = new TextDecoder();
   let buffer = '';
+  let timedOut = false;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const resetTimeout = () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      timedOut = true;
+      callbacks.onError(new Error('Stream timed out — no response from AI service'));
+      reader.cancel();
+    }, 60_000);
+  };
+
+  resetTimeout();
 
   try {
     while (true) {
@@ -35,6 +48,8 @@ async function readSSEStream(
 
       const { done, value } = await reader.read();
       if (done) break;
+
+      resetTimeout();
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
@@ -60,10 +75,11 @@ async function readSSEStream(
       }
     }
   } catch (err) {
-    if (!signal.aborted) {
+    if (!signal.aborted && !timedOut) {
       callbacks.onError(err instanceof Error ? err : new Error(String(err)));
     }
   } finally {
+    if (timeoutId) clearTimeout(timeoutId);
     reader.releaseLock();
   }
 }
@@ -95,7 +111,11 @@ export function streamSongAnalysis(
     })
     .catch((err) => {
       if (!controller.signal.aborted) {
-        callbacks.onError(err instanceof Error ? err : new Error(String(err)));
+        if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+          callbacks.onError(new Error('Unable to connect to AI service — check your internet connection'));
+        } else {
+          callbacks.onError(err instanceof Error ? err : new Error(String(err)));
+        }
       }
     });
 
@@ -129,7 +149,11 @@ export function streamChordSuggestions(
     })
     .catch((err) => {
       if (!controller.signal.aborted) {
-        callbacks.onError(err instanceof Error ? err : new Error(String(err)));
+        if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+          callbacks.onError(new Error('Unable to connect to AI service — check your internet connection'));
+        } else {
+          callbacks.onError(err instanceof Error ? err : new Error(String(err)));
+        }
       }
     });
 
@@ -161,7 +185,11 @@ export function streamPracticeInsights(
     })
     .catch((err) => {
       if (!controller.signal.aborted) {
-        callbacks.onError(err instanceof Error ? err : new Error(String(err)));
+        if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+          callbacks.onError(new Error('Unable to connect to AI service — check your internet connection'));
+        } else {
+          callbacks.onError(err instanceof Error ? err : new Error(String(err)));
+        }
       }
     });
 
@@ -195,17 +223,19 @@ export function parseChordGridsFromResponse(text: string): ParsedChordGrid[] {
       for (let beatIdx = 0; beatIdx < beats.length; beatIdx++) {
         const token = beats[beatIdx];
         if (token !== '.' && token !== '') {
-          // Count duration (consecutive dots after this chord)
-          let duration = 1;
+          // Calculate duration as distance to next chord, or remaining beats if last
+          let nextChordBeatIdx = beats.length;
           for (let d = beatIdx + 1; d < beats.length; d++) {
-            if (beats[d] === '.') duration++;
-            else break;
+            if (beats[d] !== '.' && beats[d] !== '') {
+              nextChordBeatIdx = d;
+              break;
+            }
           }
           chords.push({
             bar: barIdx + 1,
             beat: beatIdx + 1,
             symbol: token,
-            durationBeats: duration,
+            durationBeats: nextChordBeatIdx - beatIdx,
           });
         }
       }
