@@ -480,6 +480,11 @@ const usageRoutes = require('./routes/usage');
 app.use('/usage', usageRoutes);
 app.use('/api/usage', usageRoutes);
 
+// Mount Observability routes (Sprint 40)
+const observabilityRoutes = require('./routes/observability');
+app.use('/observability', observabilityRoutes);
+app.use('/api/observability', observabilityRoutes);
+
 // Mount Documents routes (collaborative editing)
 const documentsRoutes = require('./routes/documents');
 app.use('/', documentsRoutes);  // Direct path (DO ingress strips /api prefix)

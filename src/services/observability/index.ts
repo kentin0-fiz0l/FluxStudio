@@ -71,11 +71,17 @@ function getOrCreateSessionId(): string {
 // Analytics Service
 // ============================================================================
 
+const FLUSH_INTERVAL = 30_000; // 30 seconds
+const FLUSH_THRESHOLD = 20; // flush when queue reaches this size
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 class AnalyticsService {
   private userId: string | null = null;
   private userTraits: Record<string, unknown> = {};
   private queue: AnalyticsEvent[] = [];
   private maxQueueSize = 100;
+  private flushTimer: ReturnType<typeof setInterval> | null = null;
+  private isFlushing = false;
 
   identify(userId: string, traits?: Record<string, unknown>) {
     this.userId = userId;
@@ -101,6 +107,11 @@ class AnalyticsService {
     this.queue.push(event);
     if (this.queue.length > this.maxQueueSize) {
       this.queue.shift();
+    }
+
+    // Auto-flush when queue reaches threshold
+    if (this.queue.length >= FLUSH_THRESHOLD) {
+      this.flush();
     }
 
     // If user test mode is enabled, also log there
@@ -131,6 +142,62 @@ class AnalyticsService {
 
   clearEvents() {
     this.queue = [];
+  }
+
+  /** Flush queued events to the backend */
+  async flush(): Promise<void> {
+    if (this.isFlushing || this.queue.length === 0) return;
+    this.isFlushing = true;
+
+    const batch = this.queue.splice(0, 50);
+    const token = localStorage.getItem('auth_token');
+
+    try {
+      if (token) {
+        await fetch(`${API_URL}/api/observability/events`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ events: batch }),
+        });
+      }
+    } catch {
+      // Re-queue events on failure (prepend to keep order)
+      this.queue.unshift(...batch);
+    } finally {
+      this.isFlushing = false;
+    }
+  }
+
+  /** Flush using sendBeacon (for page unload) */
+  flushBeacon(): void {
+    if (this.queue.length === 0) return;
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+
+    const batch = this.queue.splice(0, 50);
+    const blob = new Blob(
+      [JSON.stringify({ events: batch })],
+      { type: 'application/json' }
+    );
+    navigator.sendBeacon(`${API_URL}/api/observability/events`, blob);
+  }
+
+  /** Start auto-flush timer and page lifecycle hooks */
+  startAutoFlush(): void {
+    if (this.flushTimer) return;
+
+    this.flushTimer = setInterval(() => this.flush(), FLUSH_INTERVAL);
+
+    // Flush on page hide (tab switch, close)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.flushBeacon();
+    });
+
+    // Flush on page unload
+    window.addEventListener('pagehide', () => this.flushBeacon());
   }
 
   // Export for analytics platforms (opt-in)
@@ -404,13 +471,19 @@ class SessionReplayMarkers {
 // Observability Singleton
 // ============================================================================
 
+const _analyticsInstance = new AnalyticsService();
+// Start auto-flushing events to the backend
+if (typeof window !== 'undefined') {
+  _analyticsInstance.startAutoFlush();
+}
+
 export const observability = {
   // Existing services
   userTest: userTestLogger,
   performance: performanceMonitoring,
 
   // New services
-  analytics: new AnalyticsService(),
+  analytics: _analyticsInstance,
   errors: new ErrorTrackingService(),
   flags: new FeatureFlagsService(),
   session: new SessionReplayMarkers(),

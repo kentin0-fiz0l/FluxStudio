@@ -4,6 +4,8 @@
   import { VitePWA } from 'vite-plugin-pwa';
   import path from 'path';
 
+  const isAnalyze = process.env.ANALYZE === 'true';
+
   export default defineConfig({
     plugins: [
       react(),
@@ -65,6 +67,13 @@
           ],
         },
       }),
+      // Bundle visualizer — run with ANALYZE=true vite build
+      ...(isAnalyze ? [
+        (async () => {
+          const { visualizer } = await import('rollup-plugin-visualizer');
+          return visualizer({ open: true, filename: 'build/stats.html', gzipSize: true, brotliSize: true }) as unknown as import('vite').Plugin;
+        })()
+      ] : []),
     ],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],

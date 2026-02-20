@@ -583,13 +583,21 @@ export class PerformanceMonitoringService {
 
   async sendReport(): Promise<void> {
     const report = this.getPerformanceReport();
-    const endpoint = this.config.analyticsEndpoint || '/api/analytics/performance';
+    const vitalsEndpoint = (import.meta.env.VITE_API_URL || '') + '/api/observability/vitals';
 
     try {
-      await fetch(endpoint, {
+      await fetch(vitalsEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(report),
+        body: JSON.stringify({
+          sessionId: report.sessionId,
+          url: window.location.pathname,
+          vitals: report.vitals,
+          viewport: report.viewport,
+          connectionType: report.connection?.effectiveType || 'unknown',
+          userAgent: report.userAgent,
+          performanceScore: this.getPerformanceScore(),
+        }),
       });
     } catch (error) {
       console.warn('Failed to send performance report:', error);
@@ -601,14 +609,21 @@ export class PerformanceMonitoringService {
       this.sendReport();
     }, this.config.reportingInterval);
 
-    // Send on page unload
+    // Send on page unload via beacon
     window.addEventListener('beforeunload', () => {
       if (navigator.sendBeacon) {
-        const report = JSON.stringify(this.getPerformanceReport());
-        navigator.sendBeacon(
-          this.config.analyticsEndpoint || '/api/analytics/performance',
-          report
-        );
+        const vitalsEndpoint = (import.meta.env.VITE_API_URL || '') + '/api/observability/vitals';
+        const report = this.getPerformanceReport();
+        const payload = JSON.stringify({
+          sessionId: report.sessionId,
+          url: window.location.pathname,
+          vitals: report.vitals,
+          viewport: report.viewport,
+          connectionType: report.connection?.effectiveType || 'unknown',
+          userAgent: report.userAgent,
+          performanceScore: this.getPerformanceScore(),
+        });
+        navigator.sendBeacon(vitalsEndpoint, payload);
       }
     });
 
