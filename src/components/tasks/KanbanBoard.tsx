@@ -11,6 +11,7 @@ import {
   DragEndEvent,
   DragOverEvent,
   PointerActivationConstraint,
+  TouchSensor,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -333,6 +334,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: pointerActivationConstraint,
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,

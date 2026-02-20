@@ -903,16 +903,16 @@ export default function ToolsMetMap() {
           ) : currentSong ? (
             <>
               {/* Song header */}
-              <div className="p-4 border-b border-gray-200 bg-white">
-                <div className="flex items-center justify-between">
-                  <div>
+              <div className="p-3 sm:p-4 border-b border-gray-200 bg-white">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="min-w-0">
                     <input
                       type="text"
                       value={currentSong.title}
                       onChange={(e) => updateSong(currentSong.id, { title: e.target.value })}
-                      className="text-xl font-semibold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded px-1 -ml-1"
+                      className="text-lg sm:text-xl font-semibold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded px-1 -ml-1 w-full"
                     />
-                    <div className="text-sm text-gray-500 mt-1 flex items-center gap-3">
+                    <div className="text-xs sm:text-sm text-gray-500 mt-1 flex items-center gap-2 sm:gap-3 flex-wrap">
                       <span>{currentSong.bpmDefault} BPM</span>
                       <span>{currentSong.timeSignatureDefault}</span>
                       <span>{currentSong.totalBars} bars total</span>
@@ -921,7 +921,7 @@ export default function ToolsMetMap() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                     {/* Collaboration status + presence */}
                     {collabStatus !== 'disconnected' && (
                       <div className="flex items-center gap-2">
@@ -1045,7 +1045,7 @@ export default function ToolsMetMap() {
 
               {/* Visual Timeline */}
               {showVisualTimeline && editedSections.length > 0 && (
-                <div className="px-4 py-2 border-b border-gray-200 bg-white">
+                <div className="px-3 sm:px-4 py-2 border-b border-gray-200 bg-white overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-gray-500 uppercase">Timeline</span>
                     <div className="flex items-center gap-2">
@@ -1266,10 +1266,10 @@ export default function ToolsMetMap() {
               )}
 
               {/* Section timeline */}
-              <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-                <div className="flex items-center justify-between mb-3">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-gray-50">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                   <h3 className="text-sm font-medium text-gray-700">Sections</h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => setShowChords(!showChords)}
                       className={`px-3 py-1 text-sm rounded-md transition-colors ${

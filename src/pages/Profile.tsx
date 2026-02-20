@@ -42,9 +42,9 @@ export function Profile() {
       breadcrumbs={[{ label: 'Profile' }]}
       onLogout={logout}
     >
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <Link
               to="/projects"
@@ -63,7 +63,7 @@ export function Profile() {
           </Button>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Main Profile Info */}
           <div className="lg:col-span-2 space-y-6">
             {/* Personal Information */}

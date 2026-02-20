@@ -22,6 +22,7 @@ import { AIChatPanel } from '@/components/ai/AIChatPanel';
 import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
 import { KeyboardShortcutsDialog, useKeyboardShortcuts } from '@/components/ui/KeyboardShortcutsDialog';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
+import { useSwipeBack } from '@/hooks/useSwipeBack';
 import { cn } from '@/lib/utils';
 
 export interface DashboardLayoutProps {
@@ -126,6 +127,9 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
 
     // Keyboard shortcuts dialog
     const { open: shortcutsOpen, setOpen: setShortcutsOpen } = useKeyboardShortcuts();
+
+    // Swipe-from-edge to go back (mobile)
+    useSwipeBack();
 
     // Keyboard shortcut for AI Panel (Cmd+K / Ctrl+K)
     React.useEffect(() => {

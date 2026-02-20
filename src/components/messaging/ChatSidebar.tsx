@@ -68,7 +68,7 @@ export function ChatSidebar({
   const filters: ConversationFilter[] = ['all', 'unread', 'starred', 'muted'];
 
   return (
-    <Card className={`w-full md:w-96 flex flex-col overflow-hidden border-0 md:border ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
+    <Card className={`w-full md:w-72 lg:w-96 flex-shrink-0 flex flex-col overflow-hidden border-0 md:border ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
       {/* Header */}
       <div className="p-4 border-b border-neutral-200 dark:border-neutral-700">
         <div className="flex items-center justify-between mb-4">
