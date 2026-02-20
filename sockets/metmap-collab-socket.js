@@ -1,22 +1,26 @@
 /**
  * MetMap Collaboration Socket — Yjs relay namespace.
  *
+ * Sprint 31: Upgraded from byte concatenation to real Y.Doc instances.
+ *
  * Socket.IO namespace `/metmap-collab` that:
  * - Authenticates via JWT middleware
  * - Manages rooms per song (song:{songId})
- * - Relays Yjs binary updates between clients
+ * - Maintains in-memory Y.Doc instances (LRU, max 50)
+ * - Relays Yjs binary updates between clients with proper merging
  * - Relays awareness updates (presence, cursors)
  * - Persists Yjs document state to PostgreSQL (debounced)
- * - Maintains in-memory document cache (LRU, max 50)
  */
 
 const jwt = require('jsonwebtoken');
+const Y = require('yjs');
 
-// Simple LRU cache for Yjs document state
-class LRUCache {
-  constructor(maxSize = 50) {
+// LRU cache for Y.Doc instances
+class DocLRUCache {
+  constructor(maxSize = 50, onEvict) {
     this.maxSize = maxSize;
     this.cache = new Map();
+    this.onEvict = onEvict || (() => {});
   }
 
   get(key) {
@@ -30,12 +34,14 @@ class LRUCache {
 
   set(key, value) {
     if (this.cache.has(key)) this.cache.delete(key);
-    this.cache.set(key, value);
     // Evict oldest if over capacity
-    if (this.cache.size > this.maxSize) {
+    if (this.cache.size >= this.maxSize) {
       const oldest = this.cache.keys().next().value;
+      const evicted = this.cache.get(oldest);
       this.cache.delete(oldest);
+      this.onEvict(oldest, evicted);
     }
+    this.cache.set(key, value);
   }
 
   has(key) {
@@ -48,7 +54,11 @@ class LRUCache {
 }
 
 module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtSecret) {
-  const docCache = new LRUCache(50);
+  const docCache = new DocLRUCache(50, (room, doc) => {
+    // Flush evicted doc to DB before discarding
+    flushDoc(room, doc, metmapAdapter);
+    doc.destroy();
+  });
   const roomClients = new Map(); // room -> Set of socket ids
   const pendingFlushes = new Map(); // room -> setTimeout id
 
@@ -71,6 +81,64 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
     }
   });
 
+  // ==================== Helpers ====================
+
+  /**
+   * Get or create a Y.Doc for a room, loading persisted state from DB.
+   */
+  async function getOrCreateDoc(room) {
+    let doc = docCache.get(room);
+    if (doc) return doc;
+
+    doc = new Y.Doc();
+    const songId = room.replace('song:', '');
+
+    try {
+      const dbState = await metmapAdapter.getYjsState(songId);
+      if (dbState) {
+        const bytes = Buffer.isBuffer(dbState)
+          ? new Uint8Array(dbState)
+          : new Uint8Array(dbState.buffer || dbState);
+        Y.applyUpdate(doc, bytes);
+      }
+    } catch (err) {
+      console.error(`[metmap-collab] Failed to load Yjs state for ${room}:`, err);
+    }
+
+    docCache.set(room, doc);
+    return doc;
+  }
+
+  /**
+   * Flush a Y.Doc's state to PostgreSQL.
+   */
+  async function flushDoc(room, doc, adapter) {
+    try {
+      const state = Y.encodeStateAsUpdate(doc);
+      const songId = room.replace('song:', '');
+      await adapter.saveYjsState(songId, Buffer.from(state));
+      console.log(`[metmap-collab] Flushed Yjs state for ${room} to DB (${state.length} bytes)`);
+    } catch (err) {
+      console.error(`[metmap-collab] Failed to flush ${room}:`, err);
+    }
+  }
+
+  function schedulePersist(room) {
+    if (pendingFlushes.has(room)) {
+      clearTimeout(pendingFlushes.get(room));
+    }
+
+    const timer = setTimeout(async () => {
+      const doc = docCache.get(room);
+      if (doc) {
+        await flushDoc(room, doc, metmapAdapter);
+      }
+      pendingFlushes.delete(room);
+    }, FLUSH_INTERVAL_MS);
+
+    pendingFlushes.set(room, timer);
+  }
+
   // ==================== Connection Handler ====================
 
   namespace.on('connection', (socket) => {
@@ -80,13 +148,20 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
     socket.on('yjs:join', async ({ room }) => {
       if (!room || typeof room !== 'string') return;
 
-      socket.join(room);
-
-      // Track clients per room
-      if (!roomClients.has(room)) roomClients.set(room, new Set());
-      roomClients.get(room).add(socket.id);
+      // Clean up stale membership (reconnect case)
+      if (roomClients.get(room)?.has(socket.id)) {
+        // Already in room — this is a rejoin
+        console.log(`[metmap-collab] ${socket.username} rejoined ${room}`);
+      } else {
+        socket.join(room);
+        if (!roomClients.has(room)) roomClients.set(room, new Set());
+        roomClients.get(room).add(socket.id);
+      }
 
       console.log(`[metmap-collab] ${socket.username} joined ${room} (${roomClients.get(room).size} clients)`);
+
+      // Ensure doc is loaded
+      await getOrCreateDoc(room);
 
       // Broadcast peer count
       namespace.to(room).emit('yjs:peer-count', {
@@ -102,8 +177,12 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
       roomClients.get(room)?.delete(socket.id);
 
       if (roomClients.get(room)?.size === 0) {
-        // Last client left — flush state to DB
-        flushRoomState(room, metmapAdapter);
+        // Last client left — flush and clean up
+        const doc = docCache.get(room);
+        if (doc) {
+          flushDoc(room, doc, metmapAdapter);
+          // Keep doc in cache for fast reconnect — LRU will evict if needed
+        }
         roomClients.delete(room);
       }
 
@@ -118,29 +197,20 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
       if (!room) return;
 
       try {
-        // Check cache first, then DB
-        let state = docCache.get(room);
+        const doc = await getOrCreateDoc(room);
 
-        if (!state) {
-          // Extract songId from room name (format: song:{uuid})
-          const songId = room.replace('song:', '');
-          const dbState = await metmapAdapter.getYjsState(songId);
-          if (dbState) {
-            state = Buffer.isBuffer(dbState)
-              ? new Uint8Array(dbState)
-              : new Uint8Array(dbState.buffer || dbState);
-            docCache.set(room, state);
-          }
-        }
-
-        if (state) {
+        if (stateVector && stateVector.length > 0) {
+          // Send diff based on client's state vector
+          const sv = new Uint8Array(stateVector);
+          const update = Y.encodeStateAsUpdate(doc, sv);
           socket.emit('yjs:sync-response', {
-            update: Array.from(state),
+            update: Array.from(update),
           });
         } else {
-          // No existing state — send empty update
+          // No state vector — send full state
+          const update = Y.encodeStateAsUpdate(doc);
           socket.emit('yjs:sync-response', {
-            update: [],
+            update: Array.from(update),
           });
         }
       } catch (err) {
@@ -150,33 +220,22 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
     });
 
     // ---------- Document update ----------
-    socket.on('yjs:update', ({ room, update }) => {
+    socket.on('yjs:update', async ({ room, update }) => {
       if (!room || !update) return;
 
       // Broadcast to other room members
       socket.to(room).emit('yjs:update', { update });
 
-      // Merge into cached state
+      // Apply to server-side Y.Doc
       try {
+        const doc = await getOrCreateDoc(room);
         const updateBytes = new Uint8Array(update);
-        const existing = docCache.get(room);
-
-        if (existing) {
-          // Merge updates using Yjs merge utility
-          // Since we can't import Yjs on the server easily, store latest full state
-          // The client sends incremental updates; we accumulate them
-          // For proper merging we'd need Yjs on server — for now, store the update
-          // and rely on sync-request to send whatever we have
-          const merged = mergeUpdates(existing, updateBytes);
-          docCache.set(room, merged);
-        } else {
-          docCache.set(room, updateBytes);
-        }
+        Y.applyUpdate(doc, updateBytes);
 
         // Schedule debounced flush to DB
-        schedulePersist(room, metmapAdapter);
+        schedulePersist(room);
       } catch (err) {
-        console.error(`[metmap-collab] update merge error for ${room}:`, err);
+        console.error(`[metmap-collab] update apply error for ${room}:`, err);
       }
     });
 
@@ -202,7 +261,10 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
           });
 
           if (clients.size === 0) {
-            flushRoomState(room, metmapAdapter);
+            const doc = docCache.get(room);
+            if (doc) {
+              flushDoc(room, doc, metmapAdapter);
+            }
             roomClients.delete(room);
           }
         }
@@ -210,48 +272,5 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
     });
   });
 
-  // ==================== Helpers ====================
-
-  /**
-   * Simple update concatenation. For proper merging, the server would need
-   * to import Yjs and apply updates to a Y.Doc. This concatenation approach
-   * works because the sync protocol handles diffing on reconnect.
-   * In Sprint 31 we'll add server-side Yjs for proper merge.
-   */
-  function mergeUpdates(existing, incoming) {
-    const merged = new Uint8Array(existing.length + incoming.length);
-    merged.set(existing, 0);
-    merged.set(incoming, existing.length);
-    return merged;
-  }
-
-  function schedulePersist(room, adapter) {
-    // Clear existing timer
-    if (pendingFlushes.has(room)) {
-      clearTimeout(pendingFlushes.get(room));
-    }
-
-    // Schedule new flush
-    const timer = setTimeout(() => {
-      flushRoomState(room, adapter);
-      pendingFlushes.delete(room);
-    }, FLUSH_INTERVAL_MS);
-
-    pendingFlushes.set(room, timer);
-  }
-
-  async function flushRoomState(room, adapter) {
-    const state = docCache.get(room);
-    if (!state) return;
-
-    const songId = room.replace('song:', '');
-    try {
-      await adapter.saveYjsState(songId, Buffer.from(state));
-      console.log(`[metmap-collab] Flushed Yjs state for ${room} to DB (${state.length} bytes)`);
-    } catch (err) {
-      console.error(`[metmap-collab] Failed to flush ${room}:`, err);
-    }
-  }
-
-  console.log('[metmap-collab] MetMap collaboration namespace initialized');
+  console.log('[metmap-collab] MetMap collaboration namespace initialized (server-side Yjs)');
 };

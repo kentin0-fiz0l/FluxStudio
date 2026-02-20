@@ -41,6 +41,10 @@ import { useMetronomeAudio, ClickSound } from '../../components/metmap/Metronome
 import { useMetMapKeyboardShortcuts, ShortcutsHelp } from '../../hooks/useMetMapKeyboardShortcuts';
 import { useMetMapHistory } from '../../hooks/useMetMapHistory';
 import { useMetMapCollaboration } from '../../hooks/useMetMapCollaboration';
+import { useMetMapPresence } from '../../hooks/useMetMapPresence';
+import { useMetMapUndo } from '../../hooks/useMetMapUndo';
+import { PresenceAvatars } from '../../components/metmap/PresenceAvatars';
+import { ConnectionStatus } from '../../components/metmap/ConnectionStatus';
 import { announceToScreenReader } from '../../utils/accessibility';
 
 // Decomposed sub-components
@@ -52,7 +56,7 @@ export default function ToolsMetMap() {
   const [searchParams] = useSearchParams();
   const { showNotification } = useNotification();
   const projectContext = useProjectContext();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const isMobile = useIsMobile();
   const { isOnline: _isOnline } = usePWA();
   const { markStepComplete } = useFirstTimeExperience({
@@ -130,19 +134,40 @@ export default function ToolsMetMap() {
   // Metronome audio hook
   const { playClick } = useMetronomeAudio();
 
-  // Undo/Redo history
-  const { saveSnapshot, undo, redo, canUndo, canRedo } = useMetMapHistory();
+  // Snapshot undo (fallback for non-collab mode)
+  const snapshotHistory = useMetMapHistory();
 
   // Collaboration (Yjs real-time sync)
   const handleRemoteSectionsChange = useCallback((remoteSections: Section[]) => {
-    // Apply remote changes to local state
     metmapDispatch({ type: 'SET_EDITED_SECTIONS', payload: remoteSections });
   }, [metmapDispatch]);
 
   const {
     status: collabStatus,
     peerCount: collabPeerCount,
+    doc: collabDoc,
+    awareness: collabAwareness,
+    reconnectAttempts: collabReconnectAttempts,
+    forceReconnect: collabForceReconnect,
   } = useMetMapCollaboration(currentSong?.id, handleRemoteSectionsChange);
+
+  // Y.UndoManager (collaborative undo — only undoes your changes)
+  const yjsUndo = useMetMapUndo(collabDoc);
+
+  // Choose active undo system: Yjs when collab is active, snapshot otherwise
+  const isCollabActive = collabStatus === 'synced' && collabDoc !== null;
+  const canUndo = isCollabActive ? yjsUndo.canUndo : snapshotHistory.canUndo;
+  const canRedo = isCollabActive ? yjsUndo.canRedo : snapshotHistory.canRedo;
+
+  // Presence (awareness-based live indicators)
+  const { peers: collabPeers, remotePeers, setEditingSection: setPresenceEditingSection } = useMetMapPresence(
+    collabAwareness,
+    {
+      userId: user?.id || '',
+      username: user?.displayName || user?.name || 'You',
+      avatar: user?.avatar,
+    }
+  );
 
   const totalBars = useMemo(() =>
     editedSections.reduce((sum, s) => sum + s.bars, 0),
@@ -320,60 +345,64 @@ export default function ToolsMetMap() {
 
   // Undo/redo-aware mutation wrappers
   const snapshotAndAddSection = (data: Partial<Section>) => {
-    saveSnapshot(editedSections);
+    snapshotHistory.saveSnapshot(editedSections);
     addSection(data);
   };
 
   const snapshotAndRemoveSection = (index: number) => {
-    saveSnapshot(editedSections);
+    snapshotHistory.saveSnapshot(editedSections);
     removeSection(index);
   };
 
   const snapshotAndUpdateSection = (index: number, changes: Partial<Section>) => {
-    saveSnapshot(editedSections);
+    snapshotHistory.saveSnapshot(editedSections);
     updateSection(index, changes);
   };
 
   const snapshotAndReorderSections = (from: number, to: number) => {
-    saveSnapshot(editedSections);
+    snapshotHistory.saveSnapshot(editedSections);
     reorderSections(from, to);
   };
 
   const snapshotAndUpdateChords = (index: number, chords: import('../../contexts/metmap/types').Chord[]) => {
-    saveSnapshot(editedSections);
+    snapshotHistory.saveSnapshot(editedSections);
     updateSectionChords(index, chords);
   };
 
   const handleUndo = () => {
-    const restored = undo(editedSections);
-    if (restored) {
-      // Rebuild sections from snapshot by calling updateSection for each
-      // Since MetMap context doesn't expose a bulk-set, we clear and re-add
-      // Actually: a simpler approach — call removeSection/addSection in batch
-      // But the cleanest approach: iterate and update each section
-      for (let i = editedSections.length - 1; i >= 0; i--) {
-        removeSection(i);
-      }
-      for (const section of restored) {
-        addSection(section);
+    if (isCollabActive) {
+      yjsUndo.undo();
+    } else {
+      const restored = snapshotHistory.undo(editedSections);
+      if (restored) {
+        for (let i = editedSections.length - 1; i >= 0; i--) {
+          removeSection(i);
+        }
+        for (const section of restored) {
+          addSection(section);
+        }
       }
     }
   };
 
   const handleRedo = () => {
-    const restored = redo(editedSections);
-    if (restored) {
-      for (let i = editedSections.length - 1; i >= 0; i--) {
-        removeSection(i);
-      }
-      for (const section of restored) {
-        addSection(section);
+    if (isCollabActive) {
+      yjsUndo.redo();
+    } else {
+      const restored = snapshotHistory.redo(editedSections);
+      if (restored) {
+        for (let i = editedSections.length - 1; i >= 0; i--) {
+          removeSection(i);
+        }
+        for (const section of restored) {
+          addSection(section);
+        }
       }
     }
   };
 
   const handleAddSectionTemplate = (template: SectionTemplate) => {
-    saveSnapshot(editedSections);
+    snapshotHistory.saveSnapshot(editedSections);
     addSection({
       name: template.name,
       bars: template.bars,
@@ -564,7 +593,7 @@ export default function ToolsMetMap() {
   };
 
   const handleUpdateAnimations = (sectionIndex: number, animations: import('../../contexts/metmap/types').Animation[]) => {
-    saveSnapshot(editedSections);
+    snapshotHistory.saveSnapshot(editedSections);
     updateSection(sectionIndex, { animations });
   };
 
@@ -839,15 +868,23 @@ export default function ToolsMetMap() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Collaboration status */}
+                    {/* Collaboration status + presence */}
                     {collabStatus !== 'disconnected' && (
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-neutral-50 border border-neutral-200" title={`Collaboration: ${collabStatus}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${
-                          collabStatus === 'synced' ? 'bg-green-500' : 'bg-amber-500 animate-pulse'
-                        }`} />
-                        <span className="text-[10px] text-neutral-600">
-                          {collabPeerCount <= 1 ? 'Solo' : `${collabPeerCount} editing`}
-                        </span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-neutral-50 border border-neutral-200" title={`Collaboration: ${collabStatus}`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            collabStatus === 'synced' ? 'bg-green-500' : 'bg-amber-500 animate-pulse'
+                          }`} />
+                          <span className="text-[10px] text-neutral-600">
+                            {collabPeerCount <= 1 ? 'Solo' : `${collabPeerCount} editing`}
+                          </span>
+                        </div>
+                        {collabPeers.length > 1 && (
+                          <PresenceAvatars
+                            peers={collabPeers}
+                            currentUserId={user?.id || ''}
+                          />
+                        )}
                       </div>
                     )}
                     {hasUnsavedChanges && (
@@ -919,6 +956,13 @@ export default function ToolsMetMap() {
                   </div>
                 )}
               </div>
+
+              {/* Connection status banner */}
+              <ConnectionStatus
+                status={collabStatus}
+                reconnectAttempts={collabReconnectAttempts}
+                onRetry={collabForceReconnect}
+              />
 
               {/* Visual Timeline */}
               {showVisualTimeline && editedSections.length > 0 && (
@@ -1123,8 +1167,30 @@ export default function ToolsMetMap() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {editedSections.map((section, index) => (
-                      <div key={section.id || index}>
+                    {editedSections.map((section, index) => {
+                      const editingPeer = remotePeers.find(p => p.editingSection === section.id);
+                      return (
+                      <div
+                        key={section.id || index}
+                        className="relative"
+                        onFocus={() => setPresenceEditingSection(section.id || null)}
+                        onClick={() => setPresenceEditingSection(section.id || null)}
+                      >
+                        {/* Presence: colored left border when a remote peer is editing */}
+                        {editingPeer && (
+                          <div
+                            className="absolute left-0 top-0 bottom-0 w-0.5 rounded-full transition-all duration-300 z-10"
+                            style={{ backgroundColor: editingPeer.color }}
+                            title={`${editingPeer.username} is editing`}
+                          >
+                            <span
+                              className="absolute -top-4 left-1 text-[9px] font-medium whitespace-nowrap px-1 rounded"
+                              style={{ color: editingPeer.color }}
+                            >
+                              {editingPeer.username}
+                            </span>
+                          </div>
+                        )}
                         <SectionRow
                           section={section}
                           index={index}
@@ -1161,7 +1227,8 @@ export default function ToolsMetMap() {
                           />
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

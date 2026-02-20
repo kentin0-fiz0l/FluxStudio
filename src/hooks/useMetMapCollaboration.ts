@@ -4,11 +4,13 @@
  * Creates a Y.Doc, connects via YSocketIOProvider, and provides bidirectional
  * sync between the Yjs CRDT document and MetMap's React state.
  *
- * Sprint 30: Basic 2-user sync. Presence/cursors deferred to Sprint 31.
+ * Sprint 30: Basic 2-user sync.
+ * Sprint 31: Expose doc + awareness for presence and Y.UndoManager.
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Y from 'yjs';
+import { Awareness } from 'y-protocols/awareness';
 import { io, type Socket } from 'socket.io-client';
 import { YSocketIOProvider, type ProviderStatus } from '../services/ySocketIOProvider';
 import {
@@ -36,6 +38,12 @@ interface UseMetMapCollaborationReturn {
   synced: boolean;
   /** Number of connected peers (including self) */
   peerCount: number;
+  /** The Y.Doc instance (for Y.UndoManager binding) */
+  doc: Y.Doc | null;
+  /** The Awareness instance (for presence) */
+  awareness: Awareness | null;
+  /** Number of reconnect attempts (for connection quality UI) */
+  reconnectAttempts: number;
   /** Push local section changes to the Yjs document */
   pushSections: (sections: Section[]) => void;
   /** Push a single section update */
@@ -44,6 +52,8 @@ interface UseMetMapCollaborationReturn {
   pushSectionAdd: (section: Section) => void;
   /** Push section removal */
   pushSectionRemove: (index: number) => void;
+  /** Force reconnect (for manual retry) */
+  forceReconnect: () => void;
 }
 
 // ==================== Hook ====================
@@ -59,6 +69,9 @@ export function useMetMapCollaboration(
   const [status, setStatus] = useState<CollaborationStatus>('disconnected');
   const [synced, setSynced] = useState(false);
   const [peerCount, setPeerCount] = useState(1);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [doc, setDoc] = useState<Y.Doc | null>(null);
+  const [awareness, setAwareness] = useState<Awareness | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
   const providerRef = useRef<YSocketIOProvider | null>(null);
@@ -73,12 +86,16 @@ export function useMetMapCollaboration(
       setStatus('disconnected');
       setSynced(false);
       setPeerCount(1);
+      setDoc(null);
+      setAwareness(null);
+      setReconnectAttempts(0);
       return;
     }
 
     // Create Y.Doc
-    const doc = new Y.Doc();
-    docRef.current = doc;
+    const ydoc = new Y.Doc();
+    docRef.current = ydoc;
+    setDoc(ydoc);
 
     // Create Socket.IO connection to /metmap-collab namespace
     const wsUrl = getWebSocketUrl('');
@@ -91,17 +108,19 @@ export function useMetMapCollaboration(
 
     // Create Yjs provider
     const roomName = `song:${songId}`;
-    const provider = new YSocketIOProvider(socket, roomName, doc);
+    const provider = new YSocketIOProvider(socket, roomName, ydoc);
     providerRef.current = provider;
+    setAwareness(provider.awareness);
 
     // Create collaboration binding
-    const collab = createMetMapCollaboration(doc);
+    const collab = createMetMapCollaboration(ydoc);
     collabRef.current = collab;
 
     // Listen for status changes
     provider.on('status', ((providerStatus: ProviderStatus) => {
       if (providerStatus === 'synced') {
         setStatus('synced');
+        setReconnectAttempts(0);
       } else if (providerStatus === 'connecting') {
         setStatus('connecting');
       } else {
@@ -111,6 +130,10 @@ export function useMetMapCollaboration(
 
     provider.on('sync', ((isSynced: boolean) => {
       setSynced(isSynced);
+    }) as (...args: unknown[]) => void);
+
+    provider.on('connection-error', ((attempts: number) => {
+      setReconnectAttempts(attempts);
     }) as (...args: unknown[]) => void);
 
     // Listen for peer count
@@ -136,7 +159,7 @@ export function useMetMapCollaboration(
       collab.destroy();
       provider.destroy();
       socket.disconnect();
-      doc.destroy();
+      ydoc.destroy();
 
       docRef.current = null;
       socketRef.current = null;
@@ -147,6 +170,9 @@ export function useMetMapCollaboration(
       setStatus('disconnected');
       setSynced(false);
       setPeerCount(1);
+      setDoc(null);
+      setAwareness(null);
+      setReconnectAttempts(0);
     };
   }, [songId, token, enabled, debounceMs, onRemoteSectionsChange]);
 
@@ -170,13 +196,22 @@ export function useMetMapCollaboration(
     collabRef.current?.removeSection(index);
   }, []);
 
+  // Force reconnect
+  const forceReconnect = useCallback(() => {
+    providerRef.current?.forceReconnect();
+  }, []);
+
   return {
     status,
     synced,
     peerCount,
+    doc,
+    awareness,
+    reconnectAttempts,
     pushSections,
     pushSectionUpdate,
     pushSectionAdd,
     pushSectionRemove,
+    forceReconnect,
   };
 }

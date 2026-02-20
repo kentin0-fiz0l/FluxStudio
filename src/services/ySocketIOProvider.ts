@@ -1,9 +1,8 @@
 /**
  * YSocketIOProvider — Yjs document sync over Socket.IO.
  *
- * Custom provider that syncs a Y.Doc with a server via the existing
- * Socket.IO infrastructure. Follows the architecture described in
- * docs/COLLABORATIVE_METMAP_ARCHITECTURE.md.
+ * Sprint 30: Initial implementation.
+ * Sprint 31: Offline queue, reconnection resilience, connection-error events.
  *
  * Protocol:
  *   Client → Server:  yjs:sync-request (stateVector)
@@ -41,6 +40,9 @@ export class YSocketIOProvider {
   private _listeners = new Map<string, Set<EventCallback>>();
   private _destroyed = false;
   private resyncOnReconnect: boolean;
+  private _offlineQueue: Uint8Array[] = [];
+  private _isConnected = false;
+  private _reconnectAttempts = 0;
 
   constructor(socket: Socket, roomName: string, ydoc: Y.Doc, options: ProviderOptions = {}) {
     this.socket = socket;
@@ -55,7 +57,10 @@ export class YSocketIOProvider {
     this._onSyncResponse = this._onSyncResponse.bind(this);
     this._onRemoteAwareness = this._onRemoteAwareness.bind(this);
     this._onAwarenessChange = this._onAwarenessChange.bind(this);
+    this._onSocketConnect = this._onSocketConnect.bind(this);
+    this._onSocketDisconnect = this._onSocketDisconnect.bind(this);
     this._onSocketReconnect = this._onSocketReconnect.bind(this);
+    this._onSocketReconnectAttempt = this._onSocketReconnectAttempt.bind(this);
 
     if (options.autoConnect !== false) {
       this.connect();
@@ -72,6 +77,10 @@ export class YSocketIOProvider {
     return this._status;
   }
 
+  get reconnectAttempts(): number {
+    return this._reconnectAttempts;
+  }
+
   connect(): void {
     if (this._destroyed) return;
     this._setStatus('connecting');
@@ -80,7 +89,10 @@ export class YSocketIOProvider {
     this.socket.on('yjs:sync-response', this._onSyncResponse);
     this.socket.on('yjs:update', this._onRemoteUpdate);
     this.socket.on('yjs:awareness-update', this._onRemoteAwareness);
+    this.socket.on('connect', this._onSocketConnect);
+    this.socket.on('disconnect', this._onSocketDisconnect);
     this.socket.on('reconnect', this._onSocketReconnect);
+    this.socket.on('reconnect_attempt', this._onSocketReconnectAttempt);
 
     // Listen for local doc changes
     this.doc.on('update', this._onDocUpdate);
@@ -97,7 +109,10 @@ export class YSocketIOProvider {
     this.socket.off('yjs:sync-response', this._onSyncResponse);
     this.socket.off('yjs:update', this._onRemoteUpdate);
     this.socket.off('yjs:awareness-update', this._onRemoteAwareness);
+    this.socket.off('connect', this._onSocketConnect);
+    this.socket.off('disconnect', this._onSocketDisconnect);
     this.socket.off('reconnect', this._onSocketReconnect);
+    this.socket.off('reconnect_attempt', this._onSocketReconnectAttempt);
 
     this.doc.off('update', this._onDocUpdate);
     this.awareness.off('change', this._onAwarenessChange);
@@ -105,6 +120,7 @@ export class YSocketIOProvider {
     this.socket.emit('yjs:leave', { room: this.roomName });
 
     this._synced = false;
+    this._isConnected = false;
     this._setStatus('disconnected');
   }
 
@@ -113,14 +129,30 @@ export class YSocketIOProvider {
     this.disconnect();
     this.awareness.destroy();
     this._listeners.clear();
+    this._offlineQueue = [];
   }
 
-  on(event: 'sync' | 'status', callback: EventCallback): void {
+  /** Force a reconnection attempt (for manual retry button) */
+  forceReconnect(): void {
+    if (this._destroyed) return;
+    this._reconnectAttempts = 0;
+    if (this.socket.disconnected) {
+      this.socket.connect();
+    } else {
+      // Already connected but maybe not synced — re-request
+      this._setStatus('connecting');
+      this.socket.emit('yjs:join', { room: this.roomName });
+      this._requestSync();
+      this._flushOfflineQueue();
+    }
+  }
+
+  on(event: 'sync' | 'status' | 'connection-error', callback: EventCallback): void {
     if (!this._listeners.has(event)) this._listeners.set(event, new Set());
     this._listeners.get(event)!.add(callback);
   }
 
-  off(event: 'sync' | 'status', callback: EventCallback): void {
+  off(event: 'sync' | 'status' | 'connection-error', callback: EventCallback): void {
     this._listeners.get(event)?.delete(callback);
   }
 
@@ -148,15 +180,35 @@ export class YSocketIOProvider {
     });
   }
 
-  /** Handle sync response from server (full document state). */
+  /** Flush queued offline updates to the server. */
+  private _flushOfflineQueue(): void {
+    if (this._offlineQueue.length === 0) return;
+    const queue = this._offlineQueue;
+    this._offlineQueue = [];
+    for (const update of queue) {
+      this.socket.emit('yjs:update', {
+        room: this.roomName,
+        update: Array.from(update),
+      });
+    }
+  }
+
+  /** Handle sync response from server. */
   private _onSyncResponse(data: { update: number[] }): void {
     if (this._destroyed) return;
     try {
       const update = new Uint8Array(data.update);
-      Y.applyUpdate(this.doc, update, 'server');
+      if (update.length > 0) {
+        Y.applyUpdate(this.doc, update, 'server');
+      }
       this._synced = true;
+      this._isConnected = true;
+      this._reconnectAttempts = 0;
       this._setStatus('synced');
       this._emit('sync', true);
+
+      // Flush any queued offline updates
+      this._flushOfflineQueue();
     } catch (err) {
       console.error('[YSocketIOProvider] sync-response error:', err);
     }
@@ -173,15 +225,21 @@ export class YSocketIOProvider {
     }
   }
 
-  /** Handle local doc changes — broadcast to server. */
+  /** Handle local doc changes — broadcast to server or queue offline. */
   private _onDocUpdate(update: Uint8Array, origin: unknown): void {
     if (this._destroyed) return;
     // Don't echo back updates from server or remote
     if (origin === 'server' || origin === 'remote') return;
-    this.socket.emit('yjs:update', {
-      room: this.roomName,
-      update: Array.from(update),
-    });
+
+    if (this._isConnected && this.socket.connected) {
+      this.socket.emit('yjs:update', {
+        room: this.roomName,
+        update: Array.from(update),
+      });
+    } else {
+      // Queue for when we reconnect
+      this._offlineQueue.push(new Uint8Array(update));
+    }
   }
 
   /** Handle remote awareness update. */
@@ -201,6 +259,7 @@ export class YSocketIOProvider {
     origin: unknown
   ): void {
     if (this._destroyed || origin === 'remote') return;
+    if (!this._isConnected || !this.socket.connected) return;
     const changedClients = [...changes.added, ...changes.updated, ...changes.removed];
     const update = encodeAwarenessUpdate(this.awareness, changedClients);
     this.socket.emit('yjs:awareness-update', {
@@ -209,11 +268,36 @@ export class YSocketIOProvider {
     });
   }
 
+  /** Socket.IO connected event. */
+  private _onSocketConnect(): void {
+    if (this._destroyed) return;
+    this._isConnected = true;
+    this._reconnectAttempts = 0;
+  }
+
+  /** Socket.IO disconnect event. */
+  private _onSocketDisconnect(): void {
+    if (this._destroyed) return;
+    this._isConnected = false;
+    this._synced = false;
+    this._setStatus('disconnected');
+    this._emit('sync', false);
+  }
+
   /** Re-sync after Socket.IO reconnection. */
   private _onSocketReconnect(): void {
     if (this._destroyed || !this.resyncOnReconnect) return;
+    this._isConnected = true;
+    this._reconnectAttempts = 0;
     this._setStatus('connecting');
     this.socket.emit('yjs:join', { room: this.roomName });
     this._requestSync();
+  }
+
+  /** Track reconnection attempts for UI feedback. */
+  private _onSocketReconnectAttempt(): void {
+    if (this._destroyed) return;
+    this._reconnectAttempts++;
+    this._emit('connection-error', this._reconnectAttempts);
   }
 }
