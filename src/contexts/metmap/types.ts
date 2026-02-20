@@ -116,6 +116,10 @@ export interface PracticeSettings {
   subdivision?: number;
   countoffBars?: number;
   tempoOverride?: number;
+  loopedSectionName?: string;
+  autoRampEnabled?: boolean;
+  startTempoPercent?: number;
+  endTempoPercent?: number;
 }
 
 export interface MetMapStats {

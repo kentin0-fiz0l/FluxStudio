@@ -43,6 +43,17 @@ export const METMAP_SHORTCUTS: KeyboardShortcut[] = [
   { key: 'z', ctrl: true, shift: true, description: 'Redo', action: 'onRedo' },
 ];
 
+// Keyframe editor shortcuts (handled locally in KeyframeEditor, shown here for help panel)
+export const KEYFRAME_SHORTCUTS = [
+  { key: 'Tab', description: 'Select next keyframe' },
+  { key: 'Tab', shift: true, description: 'Select previous keyframe' },
+  { key: 'ArrowLeft/Right', description: 'Nudge keyframe time (Shift: 10x)' },
+  { key: 'ArrowUp/Down', description: 'Nudge keyframe value (Shift: 10x)' },
+  { key: 'Delete', description: 'Delete selected keyframe' },
+  { key: 'A', description: 'Add keyframe at midpoint' },
+  { key: 'E', description: 'Cycle easing type' },
+];
+
 export function useMetMapKeyboardShortcuts(
   handlers: MetMapShortcutHandlers,
   enabled: boolean = true
@@ -108,6 +119,18 @@ export function ShortcutsHelp({ className = '' }: ShortcutsHelpProps) {
               {shortcut.ctrl && 'Ctrl+'}
               {shortcut.shift && 'Shift+'}
               {shortcut.key === ' ' ? 'Space' : shortcut.key}
+            </kbd>
+            <span>{shortcut.description}</span>
+          </div>
+        ))}
+      </div>
+      <div className="font-medium text-gray-600 mb-1 mt-3">Keyframe Editor</div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+        {KEYFRAME_SHORTCUTS.map((shortcut) => (
+          <div key={shortcut.key + shortcut.description} className="flex items-center gap-2">
+            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700 font-mono text-[10px]">
+              {shortcut.shift && 'Shift+'}
+              {shortcut.key}
             </kbd>
             <span>{shortcut.description}</span>
           </div>

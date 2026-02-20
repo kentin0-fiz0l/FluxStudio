@@ -793,6 +793,189 @@ async function setSongBeatMap(songId, userId, { beatMap, detectedBpm, audioDurat
   }
 }
 
+// ==================== AUDIO TRACKS ====================
+
+/**
+ * Get all audio tracks for a song
+ */
+async function getTracksForSong(songId, userId) {
+  try {
+    const songCheck = await query(
+      'SELECT id FROM metmap_songs WHERE id = $1 AND user_id = $2',
+      [songId, userId]
+    );
+    if (songCheck.rows.length === 0) return null;
+
+    const result = await query(
+      `SELECT * FROM metmap_audio_tracks
+       WHERE song_id = $1 AND user_id = $2
+       ORDER BY sort_order ASC, created_at ASC`,
+      [songId, userId]
+    );
+    return result.rows.map(transformTrack);
+  } catch (error) {
+    console.error('Error getting tracks:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create an audio track
+ */
+async function createTrack(songId, userId, trackData) {
+  try {
+    const songCheck = await query(
+      'SELECT id FROM metmap_songs WHERE id = $1 AND user_id = $2',
+      [songId, userId]
+    );
+    if (songCheck.rows.length === 0) return null;
+
+    // Get next sort order
+    const orderResult = await query(
+      'SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM metmap_audio_tracks WHERE song_id = $1',
+      [songId]
+    );
+    const sortOrder = orderResult.rows[0].next_order;
+
+    const id = uuidv4();
+    const result = await query(
+      `INSERT INTO metmap_audio_tracks
+       (id, song_id, user_id, name, audio_key, audio_url, audio_duration_seconds, mime_type, file_size_bytes, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [
+        id, songId, userId,
+        trackData.name || `Track ${sortOrder + 1}`,
+        trackData.audioKey || null,
+        trackData.audioUrl || null,
+        trackData.audioDurationSeconds || null,
+        trackData.mimeType || null,
+        trackData.fileSizeBytes || null,
+        sortOrder
+      ]
+    );
+    return transformTrack(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating track:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update an audio track (name, volume, pan, muted, solo)
+ */
+async function updateTrack(trackId, userId, changes) {
+  const allowedFields = ['name', 'volume', 'pan', 'muted', 'solo', 'audio_key', 'audio_url', 'audio_duration_seconds', 'mime_type', 'file_size_bytes'];
+  const updates = [];
+  const params = [trackId, userId];
+  let paramIndex = 3;
+
+  for (const [key, value] of Object.entries(changes)) {
+    const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+    if (allowedFields.includes(dbKey)) {
+      updates.push(`${dbKey} = $${paramIndex}`);
+      params.push(value);
+      paramIndex++;
+    }
+  }
+
+  if (updates.length === 0) return null;
+
+  try {
+    const result = await query(
+      `UPDATE metmap_audio_tracks
+       SET ${updates.join(', ')}, updated_at = NOW()
+       WHERE id = $1 AND user_id = $2
+       RETURNING *`,
+      params
+    );
+    return result.rows[0] ? transformTrack(result.rows[0]) : null;
+  } catch (error) {
+    console.error('Error updating track:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete an audio track
+ */
+async function deleteTrack(trackId, userId) {
+  try {
+    const result = await query(
+      `DELETE FROM metmap_audio_tracks
+       WHERE id = $1 AND user_id = $2
+       RETURNING id, audio_key`,
+      [trackId, userId]
+    );
+    if (result.rows.length === 0) return null;
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error deleting track:', error);
+    throw error;
+  }
+}
+
+/**
+ * Reorder a track
+ */
+async function reorderTrack(trackId, userId, newOrder) {
+  try {
+    const result = await query(
+      `UPDATE metmap_audio_tracks
+       SET sort_order = $3, updated_at = NOW()
+       WHERE id = $1 AND user_id = $2
+       RETURNING *`,
+      [trackId, userId, newOrder]
+    );
+    return result.rows[0] ? transformTrack(result.rows[0]) : null;
+  } catch (error) {
+    console.error('Error reordering track:', error);
+    throw error;
+  }
+}
+
+/**
+ * Save beat map for a track
+ */
+async function updateTrackBeatMap(trackId, userId, beatMap) {
+  try {
+    const result = await query(
+      `UPDATE metmap_audio_tracks
+       SET beat_map = $3, updated_at = NOW()
+       WHERE id = $1 AND user_id = $2
+       RETURNING *`,
+      [trackId, userId, JSON.stringify(beatMap)]
+    );
+    return result.rows[0] ? transformTrack(result.rows[0]) : null;
+  } catch (error) {
+    console.error('Error updating track beat map:', error);
+    throw error;
+  }
+}
+
+function transformTrack(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    songId: row.song_id,
+    userId: row.user_id,
+    name: row.name,
+    audioKey: row.audio_key,
+    audioUrl: row.audio_url,
+    audioDurationSeconds: row.audio_duration_seconds ? parseFloat(row.audio_duration_seconds) : null,
+    mimeType: row.mime_type,
+    fileSizeBytes: row.file_size_bytes ? parseInt(row.file_size_bytes, 10) : null,
+    volume: parseFloat(row.volume),
+    pan: parseFloat(row.pan),
+    muted: row.muted,
+    solo: row.solo,
+    sortOrder: row.sort_order,
+    beatMap: row.beat_map || null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
 // ==================== EXPORTS ====================
 
 module.exports = {
@@ -822,6 +1005,14 @@ module.exports = {
   setSongAudio,
   clearSongAudio,
   setSongBeatMap,
+
+  // Tracks
+  getTracksForSong,
+  createTrack,
+  updateTrack,
+  deleteTrack,
+  reorderTrack,
+  updateTrackBeatMap,
 
   // Stats
   getStatsForUser

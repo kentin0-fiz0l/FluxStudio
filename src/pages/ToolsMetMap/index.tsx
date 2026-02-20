@@ -26,7 +26,7 @@ import { getApiUrl } from '../../utils/apiHelpers';
 import { TapTempo } from '../../components/metmap/TapTempo';
 import { SectionTemplates, SectionTemplate } from '../../components/metmap/SectionTemplates';
 import { VisualTimeline } from '../../components/metmap/VisualTimeline';
-import { PracticeMode } from '../../components/metmap/PracticeMode';
+import { PracticeMode, type PracticeStartInfo } from '../../components/metmap/PracticeMode';
 import { PracticeAnalytics } from '../../components/metmap/PracticeAnalytics';
 import { ExportImport } from '../../components/metmap/ExportImport';
 import { WaveformTimeline } from '../../components/metmap/WaveformTimeline';
@@ -107,6 +107,7 @@ export default function ToolsMetMap() {
   // New feature state
   const [showVisualTimeline, setShowVisualTimeline] = useState(true);
   const [practiceMode, setPracticeMode] = useState(false);
+  const [practiceStartInfo, setPracticeStartInfo] = useState<PracticeStartInfo | null>(null);
   const [loopSection, setLoopSection] = useState<number | null>(null);
   const [tempoPercent, setTempoPercent] = useState(100);
   const [repetitionCount, setRepetitionCount] = useState(0);
@@ -997,7 +998,12 @@ export default function ToolsMetMap() {
                   onTempoPercentChange={setTempoPercent}
                   repetitionCount={repetitionCount}
                   isActive={practiceMode}
+                  onPracticeStart={(info) => setPracticeStartInfo(info)}
                   onToggleActive={() => {
+                    if (practiceMode && practiceStartInfo) {
+                      // Ending practice — record end tempo
+                      setPracticeStartInfo(prev => prev ? { ...prev, endTempoPercent: tempoPercent } as PracticeStartInfo & { endTempoPercent: number } : null);
+                    }
                     setPracticeMode(!practiceMode);
                     if (!practiceMode) setRepetitionCount(0);
                   }}

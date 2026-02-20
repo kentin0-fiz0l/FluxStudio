@@ -250,6 +250,120 @@ export const KeyframeEditor = memo(function KeyframeEditor({
     onUpdateAnimations(activeSectionIndex, [...animations, anim]);
   }, [animations, activeSectionIndex, onUpdateAnimations]);
 
+  // Keyboard navigation
+  const allKeyframes = useMemo(() => {
+    const kfs: { animId: string; kf: Keyframe; property: AnimatableProperty }[] = [];
+    for (const anim of animations) {
+      for (const kf of anim.keyframes) {
+        kfs.push({ animId: anim.id, kf, property: anim.property });
+      }
+    }
+    return kfs.sort((a, b) => a.kf.time - b.kf.time);
+  }, [animations]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!expanded) return;
+
+    const EASING_CYCLE: EasingType[] = ['linear', 'easeIn', 'easeOut', 'easeInOut', 'bezier', 'step'];
+
+    switch (e.key) {
+      case 'Tab': {
+        if (allKeyframes.length === 0) return;
+        e.preventDefault();
+        const currentIdx = allKeyframes.findIndex(k => k.kf.id === selectedKeyframeId);
+        let nextIdx: number;
+        if (e.shiftKey) {
+          nextIdx = currentIdx <= 0 ? allKeyframes.length - 1 : currentIdx - 1;
+        } else {
+          nextIdx = currentIdx >= allKeyframes.length - 1 ? 0 : currentIdx + 1;
+        }
+        onSelectKeyframe(allKeyframes[nextIdx].kf.id);
+        break;
+      }
+      case 'ArrowLeft':
+      case 'ArrowRight': {
+        if (!selectedKeyframeId) return;
+        e.preventDefault();
+        const step = e.shiftKey ? 0.5 : 0.05;
+        const delta = e.key === 'ArrowLeft' ? -step : step;
+        for (const anim of animations) {
+          const kf = anim.keyframes.find(k => k.id === selectedKeyframeId);
+          if (!kf) continue;
+          const newTime = Math.max(0, Math.min(sectionDuration, kf.time + delta));
+          const newKeyframes = updateKeyframe(anim, selectedKeyframeId, { time: newTime });
+          const newAnims = animations.map(a => a.id === anim.id ? { ...a, keyframes: newKeyframes } : a);
+          onUpdateAnimations(activeSectionIndex, newAnims);
+          break;
+        }
+        break;
+      }
+      case 'ArrowUp':
+      case 'ArrowDown': {
+        if (!selectedKeyframeId) return;
+        e.preventDefault();
+        const valStep = e.shiftKey ? 10 : 1;
+        const valDelta = e.key === 'ArrowUp' ? valStep : -valStep;
+        for (const anim of animations) {
+          const kf = anim.keyframes.find(k => k.id === selectedKeyframeId);
+          if (!kf) continue;
+          const config = PROPERTY_CONFIG[anim.property];
+          const newValue = Math.max(config.min, Math.min(config.max, kf.value + valDelta));
+          const newKeyframes = updateKeyframe(anim, selectedKeyframeId, { value: newValue });
+          const newAnims = animations.map(a => a.id === anim.id ? { ...a, keyframes: newKeyframes } : a);
+          onUpdateAnimations(activeSectionIndex, newAnims);
+          break;
+        }
+        break;
+      }
+      case 'Delete':
+      case 'Backspace': {
+        if (!selectedKeyframeId) return;
+        e.preventDefault();
+        handleDeleteSelected();
+        break;
+      }
+      case 'a':
+      case 'A': {
+        if (e.ctrlKey || e.metaKey) return;
+        e.preventDefault();
+        // Add keyframe at midpoint of section on first active track
+        const targetAnim = animations.find(a => a.enabled) || animations[0];
+        if (!targetAnim) return;
+        const config = PROPERTY_CONFIG[targetAnim.property];
+        const midTime = sectionDuration / 2;
+        const newKf: Keyframe = { id: generateId(), time: midTime, value: Math.round((config.min + config.max) / 2), easing: 'linear' };
+        const newKeyframes = addKeyframe(targetAnim, newKf);
+        const newAnims = animations.map(a => a.id === targetAnim.id ? { ...a, keyframes: newKeyframes } : a);
+        onUpdateAnimations(activeSectionIndex, newAnims);
+        onSelectKeyframe(newKf.id);
+        break;
+      }
+      case 'e':
+      case 'E': {
+        if (e.ctrlKey || e.metaKey || !selectedKeyframeId) return;
+        e.preventDefault();
+        for (const anim of animations) {
+          const kf = anim.keyframes.find(k => k.id === selectedKeyframeId);
+          if (!kf) continue;
+          const curIdx = EASING_CYCLE.indexOf(kf.easing);
+          const nextEasing = EASING_CYCLE[(curIdx + 1) % EASING_CYCLE.length];
+          handleEasingChange(anim.id, kf.id, nextEasing);
+          break;
+        }
+        break;
+      }
+      case 'Enter': {
+        // Focus the easing dropdown if there's a selected keyframe
+        if (!selectedKeyframeId) return;
+        e.preventDefault();
+        const selectEl = trackRef.current?.closest('.border-t')?.querySelector('select');
+        if (selectEl) (selectEl as HTMLSelectElement).focus();
+        break;
+      }
+    }
+  }, [expanded, allKeyframes, selectedKeyframeId, animations, sectionDuration,
+      activeSectionIndex, onUpdateAnimations, onSelectKeyframe, handleDeleteSelected, handleEasingChange]);
+
   // Find selected keyframe's animation for easing dropdown
   const selectedKfInfo = (() => {
     for (const anim of animations) {
@@ -325,7 +439,11 @@ export const KeyframeEditor = memo(function KeyframeEditor({
       {expanded && (
         <div
           ref={trackRef}
-          className="overflow-x-auto"
+          className="overflow-x-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 focus-visible:ring-inset"
+          tabIndex={0}
+          role="application"
+          aria-label="Keyframe editor tracks"
+          onKeyDown={handleKeyDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
         >
@@ -414,6 +532,7 @@ export const KeyframeEditor = memo(function KeyframeEditor({
                           backgroundColor: config.color,
                         }}
                         title={`${config.label}: ${kf.value}${config.unit} @ ${kf.time.toFixed(2)}s (${kf.easing})`}
+                        aria-label={`${config.label} keyframe: ${kf.value}${config.unit} at ${kf.time.toFixed(2)} seconds, ${kf.easing} easing`}
                       />
                     </div>
                   );

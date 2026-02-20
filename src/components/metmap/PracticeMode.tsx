@@ -16,6 +16,12 @@ export interface AutoRampSettings {
   loopsPerStep: number;
 }
 
+export interface PracticeStartInfo {
+  loopedSectionName?: string;
+  autoRampEnabled: boolean;
+  startTempoPercent: number;
+}
+
 interface PracticeModeProps {
   sections: Section[];
   loopSection: number | null;
@@ -25,6 +31,7 @@ interface PracticeModeProps {
   repetitionCount: number;
   isActive: boolean;
   onToggleActive: () => void;
+  onPracticeStart?: (info: PracticeStartInfo) => void;
   className?: string;
 }
 
@@ -57,6 +64,7 @@ export function PracticeMode({
   repetitionCount,
   isActive,
   onToggleActive,
+  onPracticeStart,
   className = ''
 }: PracticeModeProps) {
   const [expanded, setExpanded] = useState(false);
@@ -154,6 +162,13 @@ export function PracticeMode({
           <button
             onClick={(e) => {
               e.stopPropagation();
+              if (!isActive && onPracticeStart) {
+                onPracticeStart({
+                  loopedSectionName: loopSection !== null ? sections[loopSection]?.name : undefined,
+                  autoRampEnabled: autoRamp.enabled,
+                  startTempoPercent: tempoPercent,
+                });
+              }
               onToggleActive();
             }}
             className={`px-3 py-1 text-sm rounded-md transition-colors ${

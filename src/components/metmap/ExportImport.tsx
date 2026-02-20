@@ -8,7 +8,7 @@
 import React, { useRef, useState } from 'react';
 import { Song, Section } from '../../contexts/MetMapContext';
 import { getApiUrl } from '../../utils/apiHelpers';
-import { exportMetMapVideo, downloadBlob, type MetMapExportProgress } from '../../services/metmapExport';
+import { exportMetMapVideo, exportMetMapGif, downloadBlob, type MetMapExportProgress } from '../../services/metmapExport';
 
 interface ExportImportProps {
   currentSong: Song | null;
@@ -38,6 +38,8 @@ export function ExportImport({
   const [lastCreatedAsset, setLastCreatedAsset] = useState<any>(null);
   const [videoExporting, setVideoExporting] = useState(false);
   const [videoProgress, setVideoProgress] = useState<MetMapExportProgress | null>(null);
+  const [gifExporting, setGifExporting] = useState(false);
+  const [gifProgress, setGifProgress] = useState<MetMapExportProgress | null>(null);
 
   // Export song to JSON
   const handleExport = () => {
@@ -255,6 +257,31 @@ ${exportData.sections}`;
     }
   };
 
+  // Export GIF
+  const handleExportGif = async () => {
+    if (!currentSong || sections.length === 0) return;
+    setGifExporting(true);
+    setGifProgress(null);
+    try {
+      const blob = await exportMetMapGif(
+        sections,
+        currentSong.beatMap,
+        currentSong.audioDurationSeconds,
+        { width: 800, height: 150, fps: 10 },
+        (progress) => setGifProgress(progress),
+      );
+      const filename = `${currentSong.title.replace(/[^a-z0-9]/gi, '_')}_metmap.gif`;
+      downloadBlob(blob, filename);
+      setShowDropdown(false);
+    } catch (err) {
+      console.error('GIF export failed:', err);
+      setImportError(err instanceof Error ? err.message : 'GIF export failed');
+    } finally {
+      setGifExporting(false);
+      setGifProgress(null);
+    }
+  };
+
   // Export video
   const handleExportVideo = async () => {
     if (!currentSong || sections.length === 0) return;
@@ -338,6 +365,18 @@ ${exportData.sections}`;
               {videoExporting
                 ? `Exporting... ${videoProgress?.percent ?? 0}%`
                 : 'Export Video (.webm)'}
+            </button>
+            <button
+              onClick={handleExportGif}
+              disabled={!currentSong || gifExporting || sections.length === 0}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {gifExporting
+                ? `Exporting... ${gifProgress?.percent ?? 0}%`
+                : 'Export GIF'}
             </button>
 
             {/* Project Asset Export - only show when project is available */}

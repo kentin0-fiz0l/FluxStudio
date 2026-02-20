@@ -14,6 +14,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { authenticateToken } = require('../lib/auth/middleware');
+const { v4: uuidv4 } = require('uuid');
 const metmapAdapter = require('../database/metmap-adapter');
 const { fileStorage } = require('../lib/storage');
 
@@ -468,6 +469,147 @@ router.get('/songs/:songId/practice-history', authenticateToken, async (req, res
   } catch (error) {
     console.error('Error getting practice history:', error);
     res.status(500).json({ error: 'Failed to get practice history' });
+  }
+});
+
+// ========================================
+// AUDIO TRACKS
+// ========================================
+
+/**
+ * GET /api/metmap/songs/:songId/tracks
+ * List all tracks for a song
+ */
+router.get('/songs/:songId/tracks', authenticateToken, async (req, res) => {
+  try {
+    const tracks = await metmapAdapter.getTracksForSong(req.params.songId, req.user.id);
+    if (tracks === null) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+    res.json({ tracks });
+  } catch (error) {
+    console.error('Error getting tracks:', error);
+    res.status(500).json({ error: 'Failed to get tracks' });
+  }
+});
+
+/**
+ * POST /api/metmap/songs/:songId/tracks
+ * Create a track (with optional audio upload)
+ */
+router.post('/songs/:songId/tracks', authenticateToken, audioUpload.single('audio'), async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const { name } = req.body;
+    const trackData = { name };
+
+    // Handle audio file upload
+    if (req.file && fileStorage) {
+      const key = `metmap/tracks/${songId}/${uuidv4()}-${req.file.originalname}`;
+      const uploadResult = await fileStorage.uploadFile(key, req.file.buffer, {
+        contentType: req.file.mimetype,
+      });
+      trackData.audioKey = key;
+      trackData.audioUrl = uploadResult.url || uploadResult.Location;
+      trackData.mimeType = req.file.mimetype;
+      trackData.fileSizeBytes = req.file.size;
+    }
+
+    const track = await metmapAdapter.createTrack(songId, req.user.id, trackData);
+    if (!track) {
+      return res.status(404).json({ error: 'Song not found' });
+    }
+    res.status(201).json({ track });
+  } catch (error) {
+    console.error('Error creating track:', error);
+    res.status(500).json({ error: 'Failed to create track' });
+  }
+});
+
+/**
+ * PUT /api/metmap/tracks/:trackId
+ * Update track metadata
+ */
+router.put('/tracks/:trackId', authenticateToken, async (req, res) => {
+  try {
+    const { name, volume, pan, muted, solo } = req.body;
+    const track = await metmapAdapter.updateTrack(req.params.trackId, req.user.id, {
+      name, volume, pan, muted, solo
+    });
+    if (!track) {
+      return res.status(404).json({ error: 'Track not found' });
+    }
+    res.json({ track });
+  } catch (error) {
+    console.error('Error updating track:', error);
+    res.status(500).json({ error: 'Failed to update track' });
+  }
+});
+
+/**
+ * DELETE /api/metmap/tracks/:trackId
+ * Delete a track and its S3 audio
+ */
+router.delete('/tracks/:trackId', authenticateToken, async (req, res) => {
+  try {
+    const deleted = await metmapAdapter.deleteTrack(req.params.trackId, req.user.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Track not found' });
+    }
+    // Clean up S3 file if exists
+    if (deleted.audio_key && fileStorage) {
+      try {
+        await fileStorage.deleteFile(deleted.audio_key);
+      } catch (e) {
+        console.warn('Failed to delete track audio from S3:', e.message);
+      }
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting track:', error);
+    res.status(500).json({ error: 'Failed to delete track' });
+  }
+});
+
+/**
+ * PUT /api/metmap/tracks/:trackId/reorder
+ * Change sort_order
+ */
+router.put('/tracks/:trackId/reorder', authenticateToken, async (req, res) => {
+  try {
+    const { sortOrder } = req.body;
+    if (typeof sortOrder !== 'number') {
+      return res.status(400).json({ error: 'sortOrder must be a number' });
+    }
+    const track = await metmapAdapter.reorderTrack(req.params.trackId, req.user.id, sortOrder);
+    if (!track) {
+      return res.status(404).json({ error: 'Track not found' });
+    }
+    res.json({ track });
+  } catch (error) {
+    console.error('Error reordering track:', error);
+    res.status(500).json({ error: 'Failed to reorder track' });
+  }
+});
+
+/**
+ * PUT /api/metmap/tracks/:trackId/beat-map
+ * Store beat detection results for a track
+ */
+router.put('/tracks/:trackId/beat-map', authenticateToken, async (req, res) => {
+  try {
+    const { beatMap } = req.body;
+    if (!beatMap) {
+      return res.status(400).json({ error: 'beatMap is required' });
+    }
+    const track = await metmapAdapter.updateTrackBeatMap(req.params.trackId, req.user.id, beatMap);
+    if (!track) {
+      return res.status(404).json({ error: 'Track not found' });
+    }
+    res.json({ track });
+  } catch (error) {
+    console.error('Error updating track beat map:', error);
+    res.status(500).json({ error: 'Failed to update beat map' });
   }
 });
 

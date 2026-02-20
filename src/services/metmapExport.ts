@@ -394,6 +394,363 @@ export async function exportMetMapVideo(
   });
 }
 
+// ---------------------------------------------------------------------------
+// GIF Export (no external dependencies)
+// ---------------------------------------------------------------------------
+
+/** Quantize an RGBA ImageData to a 256-color palette using median cut. */
+function quantizeFrame(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+): { indexedPixels: Uint8Array; palette: Uint8Array } {
+  // Collect unique colors (sample for speed)
+  const colorMap = new Map<number, [number, number, number, number]>();
+  const step = Math.max(1, Math.floor((width * height) / 4096));
+  for (let i = 0; i < data.length; i += 4 * step) {
+    const key = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
+    if (!colorMap.has(key)) {
+      colorMap.set(key, [data[i], data[i + 1], data[i + 2], 1]);
+    } else {
+      colorMap.get(key)![3]++;
+    }
+  }
+
+  // Median cut into 256 buckets
+  type ColorBox = { colors: [number, number, number, number][] };
+  const boxes: ColorBox[] = [{ colors: Array.from(colorMap.values()) }];
+
+  while (boxes.length < 256) {
+    // Find box with largest range
+    let bestIdx = 0;
+    let bestRange = -1;
+    for (let bi = 0; bi < boxes.length; bi++) {
+      const box = boxes[bi];
+      if (box.colors.length < 2) continue;
+      for (let ch = 0; ch < 3; ch++) {
+        let min = 255, max = 0;
+        for (const c of box.colors) {
+          if (c[ch] < min) min = c[ch];
+          if (c[ch] > max) max = c[ch];
+        }
+        const range = max - min;
+        if (range > bestRange) {
+          bestRange = range;
+          bestIdx = bi;
+        }
+      }
+    }
+    if (bestRange <= 0) break;
+
+    const box = boxes[bestIdx];
+    // Find channel with widest range
+    let splitCh = 0, splitRange = 0;
+    for (let ch = 0; ch < 3; ch++) {
+      let min = 255, max = 0;
+      for (const c of box.colors) {
+        if (c[ch] < min) min = c[ch];
+        if (c[ch] > max) max = c[ch];
+      }
+      if (max - min > splitRange) {
+        splitRange = max - min;
+        splitCh = ch;
+      }
+    }
+
+    box.colors.sort((a, b) => a[splitCh] - b[splitCh]);
+    const mid = Math.floor(box.colors.length / 2);
+    boxes.splice(bestIdx, 1, { colors: box.colors.slice(0, mid) }, { colors: box.colors.slice(mid) });
+  }
+
+  // Build palette from box averages
+  const palette = new Uint8Array(256 * 3);
+  const paletteColors: [number, number, number][] = [];
+  for (let bi = 0; bi < Math.min(boxes.length, 256); bi++) {
+    const box = boxes[bi];
+    let r = 0, g = 0, b = 0, total = 0;
+    for (const c of box.colors) {
+      r += c[0] * c[3];
+      g += c[1] * c[3];
+      b += c[2] * c[3];
+      total += c[3];
+    }
+    const pr = total > 0 ? Math.round(r / total) : 0;
+    const pg = total > 0 ? Math.round(g / total) : 0;
+    const pb = total > 0 ? Math.round(b / total) : 0;
+    palette[bi * 3] = pr;
+    palette[bi * 3 + 1] = pg;
+    palette[bi * 3 + 2] = pb;
+    paletteColors.push([pr, pg, pb]);
+  }
+
+  // Map each pixel to nearest palette entry
+  const pixelCount = width * height;
+  const indexedPixels = new Uint8Array(pixelCount);
+  for (let i = 0; i < pixelCount; i++) {
+    const off = i * 4;
+    const pr = data[off], pg = data[off + 1], pb = data[off + 2];
+    let bestDist = Infinity, bestPi = 0;
+    for (let pi = 0; pi < paletteColors.length; pi++) {
+      const [cr, cg, cb] = paletteColors[pi];
+      const dist = (pr - cr) ** 2 + (pg - cg) ** 2 + (pb - cb) ** 2;
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestPi = pi;
+        if (dist === 0) break;
+      }
+    }
+    indexedPixels[i] = bestPi;
+  }
+
+  return { indexedPixels, palette };
+}
+
+/** LZW encoder for GIF. */
+function lzwEncode(indexedPixels: Uint8Array, minCodeSize: number): Uint8Array {
+  const clearCode = 1 << minCodeSize;
+  const eoiCode = clearCode + 1;
+  const output: number[] = [];
+
+  let codeSize = minCodeSize + 1;
+  let nextCode = eoiCode + 1;
+  const maxCode = 4096;
+
+  // Use string-keyed map for the code table
+  const codeTable = new Map<string, number>();
+  function resetTable() {
+    codeTable.clear();
+    for (let i = 0; i < clearCode; i++) {
+      codeTable.set(String(i), i);
+    }
+    codeSize = minCodeSize + 1;
+    nextCode = eoiCode + 1;
+  }
+
+  // Bit packing
+  let curByte = 0;
+  let curBit = 0;
+  const bytes: number[] = [];
+
+  function writeBits(code: number, size: number) {
+    curByte |= (code << curBit);
+    curBit += size;
+    while (curBit >= 8) {
+      bytes.push(curByte & 0xff);
+      curByte >>= 8;
+      curBit -= 8;
+    }
+  }
+
+  resetTable();
+  writeBits(clearCode, codeSize);
+
+  if (indexedPixels.length === 0) {
+    writeBits(eoiCode, codeSize);
+    if (curBit > 0) bytes.push(curByte & 0xff);
+    // Pack into sub-blocks
+    for (let i = 0; i < bytes.length; ) {
+      const blockSize = Math.min(255, bytes.length - i);
+      output.push(blockSize);
+      for (let j = 0; j < blockSize; j++) output.push(bytes[i + j]);
+      i += blockSize;
+    }
+    output.push(0);
+    return new Uint8Array(output);
+  }
+
+  let current = String(indexedPixels[0]);
+
+  for (let i = 1; i < indexedPixels.length; i++) {
+    const pixel = indexedPixels[i];
+    const combined = current + ',' + pixel;
+
+    if (codeTable.has(combined)) {
+      current = combined;
+    } else {
+      writeBits(codeTable.get(current)!, codeSize);
+
+      if (nextCode < maxCode) {
+        codeTable.set(combined, nextCode++);
+        if (nextCode > (1 << codeSize) && codeSize < 12) {
+          codeSize++;
+        }
+      } else {
+        writeBits(clearCode, codeSize);
+        resetTable();
+      }
+
+      current = String(pixel);
+    }
+  }
+
+  writeBits(codeTable.get(current)!, codeSize);
+  writeBits(eoiCode, codeSize);
+  if (curBit > 0) bytes.push(curByte & 0xff);
+
+  // Pack into sub-blocks (max 255 bytes each)
+  for (let i = 0; i < bytes.length; ) {
+    const blockSize = Math.min(255, bytes.length - i);
+    output.push(blockSize);
+    for (let j = 0; j < blockSize; j++) output.push(bytes[i + j]);
+    i += blockSize;
+  }
+  output.push(0); // block terminator
+
+  return new Uint8Array(output);
+}
+
+/** Encode frames into GIF89a binary. */
+function encodeGif(
+  frames: { indexedPixels: Uint8Array; palette: Uint8Array }[],
+  width: number,
+  height: number,
+  delayCs: number, // delay in centiseconds
+): Uint8Array {
+  const parts: Uint8Array[] = [];
+
+  function pushBytes(...bytes: number[]) {
+    parts.push(new Uint8Array(bytes));
+  }
+
+  // Header
+  parts.push(new TextEncoder().encode('GIF89a'));
+
+  // Logical Screen Descriptor
+  pushBytes(
+    width & 0xff, (width >> 8) & 0xff,
+    height & 0xff, (height >> 8) & 0xff,
+    0xf7, // GCT flag, 8 bits color resolution, 256 colors (2^(7+1))
+    0,    // background color index
+    0,    // pixel aspect ratio
+  );
+
+  // Global Color Table (use first frame's palette)
+  parts.push(frames[0].palette);
+
+  // Netscape application extension for looping
+  pushBytes(0x21, 0xff, 0x0b);
+  parts.push(new TextEncoder().encode('NETSCAPE2.0'));
+  pushBytes(0x03, 0x01, 0x00, 0x00, 0x00); // loop forever
+
+  for (const frame of frames) {
+    // Graphic Control Extension
+    pushBytes(
+      0x21, 0xf9, 0x04,
+      0x00,          // no disposal, no transparency
+      delayCs & 0xff, (delayCs >> 8) & 0xff,
+      0x00,          // transparent color index (unused)
+      0x00,          // block terminator
+    );
+
+    // Image Descriptor
+    pushBytes(
+      0x2c,
+      0x00, 0x00, 0x00, 0x00, // left, top
+      width & 0xff, (width >> 8) & 0xff,
+      height & 0xff, (height >> 8) & 0xff,
+      0x00, // no local color table
+    );
+
+    // LZW minimum code size
+    const minCodeSize = 8;
+    pushBytes(minCodeSize);
+
+    // LZW compressed data
+    parts.push(lzwEncode(frame.indexedPixels, minCodeSize));
+  }
+
+  // Trailer
+  pushBytes(0x3b);
+
+  // Concatenate
+  const totalLength = parts.reduce((sum, p) => sum + p.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const part of parts) {
+    result.set(part, offset);
+    offset += part.length;
+  }
+  return result;
+}
+
+/**
+ * Export MetMap playback as an animated GIF.
+ */
+export async function exportMetMapGif(
+  sections: Section[],
+  beatMap?: BeatMap | null,
+  audioDuration?: number | null,
+  options: MetMapExportOptions = {},
+  onProgress?: (progress: MetMapExportProgress) => void,
+): Promise<Blob> {
+  const width = options.width ?? 800;
+  const height = options.height ?? 150;
+  const fps = options.fps ?? 10; // lower fps for GIF
+
+  const resolvedOptions = {
+    includeSectionLabels: options.includeSectionLabels ?? true,
+    includeTempoCurve: options.includeTempoCurve ?? true,
+    includeBeatMarkers: options.includeBeatMarkers ?? true,
+    includeKeyframes: options.includeKeyframes ?? true,
+  };
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not create canvas context');
+
+  const duration = audioDuration || computeSongDuration(sections);
+  const totalBars = sections.reduce((sum, s) => sum + s.bars, 0);
+  const pixelsPerBar = Math.max(40, width / totalBars);
+  const frameCount = Math.ceil(duration * fps);
+
+  // Phase 1: Render frames (0-60%)
+  onProgress?.({ phase: 'rendering', percent: 0 });
+  const rawFrames: ImageData[] = [];
+
+  for (let i = 0; i < frameCount; i++) {
+    const time = i / fps;
+    const currentBar = timeToBars(sections, time);
+
+    drawFrame(
+      ctx, sections, currentBar,
+      width, height, pixelsPerBar,
+      beatMap ?? null, audioDuration ?? null,
+      resolvedOptions,
+    );
+
+    rawFrames.push(ctx.getImageData(0, 0, width, height));
+
+    if (i % 5 === 0) {
+      onProgress?.({ phase: 'rendering', percent: Math.round((i / frameCount) * 60) });
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  // Phase 2: Quantize to 256 colors (60-80%)
+  onProgress?.({ phase: 'encoding', percent: 60 });
+  const quantizedFrames: { indexedPixels: Uint8Array; palette: Uint8Array }[] = [];
+
+  for (let i = 0; i < rawFrames.length; i++) {
+    const frame = rawFrames[i];
+    quantizedFrames.push(quantizeFrame(frame.data, width, height));
+
+    if (i % 5 === 0) {
+      onProgress?.({ phase: 'encoding', percent: 60 + Math.round((i / rawFrames.length) * 20) });
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  // Phase 3: Encode GIF binary (80-100%)
+  onProgress?.({ phase: 'encoding', percent: 80 });
+  const delayCs = Math.round(100 / fps); // centiseconds per frame
+  const gifData = encodeGif(quantizedFrames, width, height, delayCs);
+
+  onProgress?.({ phase: 'done', percent: 100 });
+  return new Blob([gifData.buffer as ArrayBuffer], { type: 'image/gif' });
+}
+
 /**
  * Trigger a browser download of the given blob.
  */

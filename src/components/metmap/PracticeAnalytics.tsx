@@ -34,11 +34,25 @@ function SummaryCards({ stats, sessions }: { stats: MetMapStats | null; sessions
     return Math.round(totalMs / completed.length / 60000);
   }, [sessions]);
 
-  const cards = [
+  const mostPracticed = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of sessions) {
+      const name = s.settings?.loopedSectionName;
+      if (name) counts.set(name, (counts.get(name) || 0) + 1);
+    }
+    let best = '';
+    let bestCount = 0;
+    for (const [name, count] of counts) {
+      if (count > bestCount) { best = name; bestCount = count; }
+    }
+    return best;
+  }, [sessions]);
+
+  const cards: { label: string; value: string | number; unit: string }[] = [
     { label: 'Total Sessions', value: stats?.practiceCount ?? sessions.length, unit: '' },
     { label: 'Total Time', value: stats?.totalPracticeMinutes ?? 0, unit: 'min' },
     { label: 'Avg Session', value: avgMinutes, unit: 'min' },
-    { label: 'This Week', value: thisWeekCount, unit: '' },
+    { label: mostPracticed ? 'Top Section' : 'This Week', value: mostPracticed || thisWeekCount, unit: '' },
   ];
 
   return (
@@ -62,11 +76,11 @@ function TempoChart({ sessions }: { sessions: PracticeSession[] }) {
 
   const dataPoints = useMemo(() => {
     return sessions
-      .filter(s => s.settings?.tempoOverride)
+      .filter(s => s.settings?.tempoOverride || s.settings?.startTempoPercent)
       .sort((a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime())
       .map(s => ({
         date: new Date(s.startedAt),
-        tempo: s.settings.tempoOverride!,
+        tempo: s.settings.endTempoPercent ?? s.settings.startTempoPercent ?? s.settings.tempoOverride!,
       }));
   }, [sessions]);
 
@@ -173,12 +187,17 @@ function SectionHeatmap({ sections, sessions }: { sections: Section[]; sessions:
   const sectionCounts = useMemo(() => {
     const counts = new Map<string, number>();
     sections.forEach(s => counts.set(s.name, 0));
-    // We don't have per-section practice data in PracticeSession yet,
-    // so estimate: distribute sessions across sections proportionally
-    // In a real implementation, settings could track which section was looped
-    sessions.forEach(() => {
-      sections.forEach(s => counts.set(s.name, (counts.get(s.name) || 0) + 1));
-    });
+
+    for (const session of sessions) {
+      const sectionName = session.settings?.loopedSectionName;
+      if (sectionName && counts.has(sectionName)) {
+        // Real per-section tracking data
+        counts.set(sectionName, (counts.get(sectionName) || 0) + 1);
+      } else if (!sectionName) {
+        // Old session without section data — distribute evenly
+        sections.forEach(s => counts.set(s.name, (counts.get(s.name) || 0) + 1));
+      }
+    }
     return counts;
   }, [sections, sessions]);
 
