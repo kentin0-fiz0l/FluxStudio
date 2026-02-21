@@ -44,6 +44,7 @@ const { Component: OAuthCallback } = lazyLoadWithRetry(
 
 // Large pages - lazy loaded for better initial bundle
 const { Component: Settings } = lazyLoadWithRetry(() => import('./pages/Settings'));
+const { Component: PrivacySettings } = lazyLoadWithRetry(() => import('./pages/settings/PrivacySettings'));
 const { Component: MessagesNew } = lazyLoadWithRetry(() => import('./pages/MessagesNew'));
 
 // Tools page - uses DashboardLayout like other authenticated pages
@@ -230,6 +231,7 @@ function AuthenticatedRoutes() {
                   <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                  <Route path="/settings/privacy" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
                   <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
                   <Route path="/connectors" element={<ProtectedRoute><Connectors /></ProtectedRoute>} />
                   <Route path="/plugins" element={<ProtectedRoute><PluginManagerPage /></ProtectedRoute>} />

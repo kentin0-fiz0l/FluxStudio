@@ -489,6 +489,11 @@ const observabilityRoutes = require('./routes/observability');
 app.use('/observability', observabilityRoutes);
 app.use('/api/observability', observabilityRoutes);
 
+// Sprint 41 T2: GDPR/CCPA Compliance routes
+const complianceRoutes = require('./routes/compliance');
+app.use('/compliance', complianceRoutes);
+app.use('/api/compliance', complianceRoutes);
+
 // Mount Documents routes (collaborative editing)
 const documentsRoutes = require('./routes/documents');
 app.use('/', documentsRoutes);  // Direct path (DO ingress strips /api prefix)
