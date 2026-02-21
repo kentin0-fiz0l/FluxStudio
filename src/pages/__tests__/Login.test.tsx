@@ -148,7 +148,7 @@ describe('Login', () => {
       fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }));
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+        expect(mockNavigate).toHaveBeenCalledWith('/projects');
       });
     });
 

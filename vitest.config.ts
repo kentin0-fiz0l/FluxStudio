@@ -23,6 +23,7 @@ export default defineConfig({
       'tests/e2e/**',
       'tests/load/**',
       'tests/integration/**',  // Integration tests require running infrastructure
+      'tests/smoke/**',  // Smoke tests use Playwright, not Vitest
       'tests/routes/**',  // Route tests use Jest, not Vitest
       'tests/unit/**',  // Unit tests in tests/ folder use Jest
       '**/*.e2e.*',

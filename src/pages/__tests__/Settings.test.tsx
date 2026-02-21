@@ -81,6 +81,15 @@ vi.mock('@/components/ui/LanguageSwitcher', () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher" />,
 }));
 
+vi.mock('@/components/settings/TwoFactorSetup', () => ({
+  TwoFactorSetup: ({ is2FAEnabled }: any) => (
+    <div data-testid="two-factor-setup">
+      <p>Two-Factor Authentication</p>
+      <p>{is2FAEnabled ? 'Enabled' : 'Disabled'}</p>
+    </div>
+  ),
+}));
+
 import Settings from '../Settings';
 
 describe('Settings', () => {
@@ -118,7 +127,7 @@ describe('Settings', () => {
     renderSettings();
     expect(screen.getByText('Privacy & Security')).toBeInTheDocument();
     expect(screen.getByText('Change Password')).toBeInTheDocument();
-    expect(screen.getByText('Two-Factor Auth')).toBeInTheDocument();
+    expect(screen.getByText('Two-Factor Authentication')).toBeInTheDocument();
   });
 
   test('displays performance section', () => {

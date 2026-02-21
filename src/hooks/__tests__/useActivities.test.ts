@@ -164,6 +164,7 @@ describe('useActivitiesQuery', () => {
 describe('useRecentActivitiesQuery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
     vi.stubGlobal('localStorage', {
       getItem: vi.fn(() => 'mock-token'),
       setItem: vi.fn(),
