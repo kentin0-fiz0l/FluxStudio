@@ -172,12 +172,25 @@ export function AdminMetrics() {
 
         {/* Server Overview */}
         {summary && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <MetricCard label="Avg Latency" value={Math.round(summary.latency.avg)} unit="ms" icon={Clock} />
-            <MetricCard label="Requests/min" value={Math.round(summary.requests.avgPerMinute)} icon={Activity} />
-            <MetricCard label="Memory" value={summary.system.currentMemory} unit="MB" icon={HardDrive} color="text-amber-600" />
-            <MetricCard label="CPU" value={`${summary.system.currentCpu}%`} icon={Cpu} color={summary.system.currentCpu > 80 ? 'text-red-600' : 'text-green-600'} />
-          </div>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <MetricCard label="Avg Latency" value={Math.round(summary.latency.avg)} unit="ms" icon={Clock} />
+              <MetricCard label="p95 Latency" value={Math.round(summary.latency.max)} unit="ms" icon={Clock} color="text-amber-600" />
+              <MetricCard label="Requests/min" value={Math.round(summary.requests.avgPerMinute)} icon={Activity} />
+              <MetricCard
+                label="Error Rate"
+                value={`${summary.requests.errorRate.toFixed(1)}%`}
+                icon={AlertTriangle}
+                color={summary.requests.errorRate > 5 ? 'text-red-600' : summary.requests.errorRate > 1 ? 'text-amber-600' : 'text-green-600'}
+              />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <MetricCard label="Total Requests" value={summary.requests.total.toLocaleString()} icon={Activity} color="text-primary-600" />
+              <MetricCard label="Errors" value={summary.requests.errors} icon={AlertTriangle} color={summary.requests.errors > 0 ? 'text-red-600' : 'text-green-600'} />
+              <MetricCard label="Memory" value={summary.system.currentMemory} unit="MB" icon={HardDrive} color="text-amber-600" />
+              <MetricCard label="CPU" value={`${summary.system.currentCpu}%`} icon={Cpu} color={summary.system.currentCpu > 80 ? 'text-red-600' : 'text-green-600'} />
+            </div>
+          </>
         )}
 
         {/* Web Vitals */}

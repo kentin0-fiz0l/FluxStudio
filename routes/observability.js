@@ -134,6 +134,63 @@ router.post('/vitals', async (req, res) => {
 });
 
 // ========================================
+// GET /vitals/summary — Aggregated Web Vitals p75
+// ========================================
+
+router.get('/vitals/summary', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const hours = Math.min(parseInt(req.query.hours) || 24, 168); // max 7 days
+
+    const result = await query(
+      `SELECT
+        COUNT(*) as total_sessions,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY lcp) as lcp_p75,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY fcp) as fcp_p75,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY fid) as fid_p75,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY cls) as cls_p75,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY ttfb) as ttfb_p75,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY tti) as tti_p75,
+        ROUND(AVG(performance_score)::numeric, 0) as avg_score
+       FROM web_vitals
+       WHERE created_at >= NOW() - ($1 || ' hours')::INTERVAL
+       AND lcp IS NOT NULL`,
+      [hours]
+    );
+
+    // Per-page breakdown (top 10 slowest pages by LCP p75)
+    const perPage = await query(
+      `SELECT
+        url,
+        COUNT(*) as sessions,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY lcp) as lcp_p75,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY cls) as cls_p75,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY fcp) as fcp_p75
+       FROM web_vitals
+       WHERE created_at >= NOW() - ($1 || ' hours')::INTERVAL
+       AND lcp IS NOT NULL
+       GROUP BY url
+       ORDER BY lcp_p75 DESC
+       LIMIT 10`,
+      [hours]
+    );
+
+    res.json({
+      success: true,
+      period: { hours },
+      summary: result.rows[0] || null,
+      perPage: perPage.rows,
+    });
+  } catch (error) {
+    console.error('[Observability] Vitals summary error:', error);
+    res.status(500).json({ error: 'Failed to fetch vitals summary' });
+  }
+});
+
+// ========================================
 // GET /metrics — Admin metrics dashboard
 // ========================================
 

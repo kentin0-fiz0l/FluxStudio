@@ -1045,7 +1045,7 @@ export default function ToolsMetMap() {
 
               {/* Visual Timeline */}
               {showVisualTimeline && editedSections.length > 0 && (
-                <div className="px-3 sm:px-4 py-2 border-b border-gray-200 bg-white overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+                <div className="px-3 sm:px-4 py-2 border-b border-gray-200 bg-white overflow-x-auto scroll-smooth snap-x snap-mandatory [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full touch-pan-x">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-gray-500 uppercase">Timeline</span>
                     <div className="flex items-center gap-2">

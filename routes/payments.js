@@ -198,10 +198,18 @@ router.get('/subscription', requireAuth, async (req, res) => {
     `, [userId]);
 
     if (subResult.rows.length === 0) {
+      // Check if user has already used a free trial
+      const trialCheck = await query(
+        `SELECT trial_used_at FROM subscriptions
+         WHERE user_id = $1 AND trial_used_at IS NOT NULL
+         LIMIT 1`,
+        [userId]
+      );
+
       return res.json({
         hasSubscription: false,
         subscription: null,
-        canTrial: true // TODO: Check if user has used trial
+        canTrial: trialCheck.rows.length === 0
       });
     }
 
