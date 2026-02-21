@@ -2,6 +2,7 @@
       "name": "fluxstudio",
       "version": "2.0.0",
       "private": true,
+      "sideEffects": false,
       "packageManager": "pnpm@10.28.0",
       "dependencies": {
             "@anthropic-ai/sdk": "^0.67.0",
@@ -99,6 +100,7 @@
             "react-dom": "^18.3.1",
             "react-dropzone": "^14.3.8",
             "react-grid-layout": "^1.5.2",
+            "react-helmet-async": "^2.0.5",
             "react-hook-form": "^7.55.0",
             "react-i18next": "^16.5.3",
             "react-resizable": "^3.1.3",
@@ -164,6 +166,7 @@
             "turbo": "^2.7.4",
             "typescript": "^5.9.3",
             "vite": "^7.3.0",
+            "vite-plugin-compression": "^0.5.1",
             "vitest": "^3.2.4",
             "vitest-axe": "^0.1.0"
       },

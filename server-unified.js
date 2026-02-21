@@ -339,6 +339,10 @@ const upload = multer({
   }
 });
 
+// Sprint 43: IP-based rate limiting (applied before all other middleware)
+const { ipRateLimiters } = require('./lib/security/ipRateLimit');
+app.use(ipRateLimiters.global());
+
 // Security middleware (applied first)
 app.use(traceIdMiddleware); // Generate unique trace ID for each request
 app.use(helmet);

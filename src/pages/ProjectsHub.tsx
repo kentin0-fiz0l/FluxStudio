@@ -8,7 +8,7 @@
  * Zone 3 (30%): Activity stream - context, collapsible
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -38,6 +38,8 @@ import { useDashboardActivities } from '@/hooks/useActivities';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { useFirstTimeExperience } from '@/hooks/useFirstTimeExperience';
+import { ProductTour } from '@/components/onboarding/ProductTour';
 
 type ViewMode = 'grid' | 'list';
 
@@ -46,6 +48,27 @@ export function ProjectsHub() {
   const { user, logout } = useAuth();
   const { projects, loading } = useProjects();
   const { data: activitiesData, isLoading: activitiesLoading } = useDashboardActivities({ limit: 10 });
+
+  // First-time experience / product tour
+  const firstTime = useFirstTimeExperience({
+    projectCount: loading ? undefined : projects.length,
+  });
+  const [tourActive, setTourActive] = useState(false);
+
+  // Activate tour once data is loaded and user qualifies
+  useEffect(() => {
+    const tourDone = localStorage.getItem('fx_product_tour_done_v1');
+    if (!tourDone && firstTime.isFirstTime && !loading) {
+      const timer = setTimeout(() => setTourActive(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [firstTime.isFirstTime, loading]);
+
+  const handleTourComplete = useCallback(() => {
+    setTourActive(false);
+    localStorage.setItem('fx_product_tour_done_v1', 'true');
+    firstTime.completeAll();
+  }, [firstTime]);
 
   // View state
   const [searchTerm, setSearchTerm] = useState('');
@@ -121,7 +144,7 @@ export function ProjectsHub() {
                 : 'Create your first project to get started'}
             </p>
           </div>
-          <Button onClick={handleCreateProject} className="gap-2" aria-label="Create new project">
+          <Button onClick={handleCreateProject} className="gap-2" aria-label="Create new project" data-tour="create-project">
             <Plus className="w-4 h-4" aria-hidden="true" />
             New Project
           </Button>
@@ -482,6 +505,8 @@ export function ProjectsHub() {
           </div>
         </div>
       </div>
+      {/* Product Tour — first-run experience */}
+      <ProductTour isActive={tourActive} onComplete={handleTourComplete} />
     </DashboardLayout>
   );
 }

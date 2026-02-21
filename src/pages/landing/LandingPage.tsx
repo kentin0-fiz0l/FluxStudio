@@ -28,10 +28,32 @@ import { UseCases } from './EditorialLanding';
 import { Testimonials } from './EditorialLanding';
 import { Pricing } from './MinimalistLanding';
 import { CTAFooter } from './EditorialLanding';
+import { SEOHead } from '../../components/SEOHead';
+
+const LANDING_STRUCTURED_DATA = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Flux Studio',
+  applicationCategory: 'DesignApplication',
+  operatingSystem: 'Web',
+  description:
+    'The creative collaboration platform where teams design, prototype, and ship together in real time.',
+  url: 'https://fluxstudio.art',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+  },
+};
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
+      <SEOHead
+        description="The creative collaboration platform where teams design, prototype, and ship together in real time. AI-assisted workflows, offline-first, and built for speed."
+        canonicalUrl="https://fluxstudio.art"
+        structuredData={LANDING_STRUCTURED_DATA}
+      />
       <Header />
       <main id="main-content" tabIndex={-1}>
         <Hero />

@@ -15,6 +15,7 @@ const STORAGE_KEYS = {
   completed: 'fx_onboarding_completed_v1',
   stepPrefix: 'fx_onboarding_step_',
   metmapVisited: 'fx_metmap_visited_v1',
+  tourCompleted: 'fx_product_tour_done_v1',
 } as const;
 
 export interface OnboardingStep {

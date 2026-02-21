@@ -27,6 +27,7 @@ const crypto = require('crypto');
 const { config } = require('../config/environment');
 const { authRateLimit, validateInput } = require('../middleware/security');
 const { getCsrfToken } = require('../middleware/csrf');
+const { ipRateLimiters } = require('../lib/security/ipRateLimit');
 
 // Import helpers
 const { generateAuthResponse } = require('../lib/auth/authHelpers');
@@ -98,6 +99,7 @@ router.get('/csrf-token', getCsrfToken);
 
 // Signup endpoint
 router.post('/signup',
+  ipRateLimiters.signup(),
   authRateLimit,
   validateInput.email,
   validateInput.password,
@@ -261,6 +263,7 @@ router.post('/signup',
 
 // Login endpoint
 router.post('/login',
+  ipRateLimiters.login(),
   authRateLimit,
   validateInput.email,
   validateInput.sanitizeInput,
@@ -870,6 +873,7 @@ router.post('/resend-verification',
  * POST /api/auth/forgot-password
  */
 router.post('/forgot-password',
+  ipRateLimiters.passwordReset(),
   authRateLimit,
   validateInput.email,
   validateInput.sanitizeInput,
@@ -973,6 +977,7 @@ router.post('/forgot-password',
  * POST /api/auth/reset-password
  */
 router.post('/reset-password',
+  ipRateLimiters.passwordReset(),
   authRateLimit,
   validateInput.password,
   validateInput.sanitizeInput,

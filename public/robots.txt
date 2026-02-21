@@ -1,0 +1,25 @@
+# FluxStudio robots.txt
+# Sprint 43: Phase 6.1 SEO Foundation
+
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /signup
+Allow: /pricing
+Allow: /terms
+Allow: /privacy
+Allow: /help
+
+Disallow: /api/
+Disallow: /auth/
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /projects/
+Disallow: /settings
+Disallow: /messages
+Disallow: /notifications
+Disallow: /profile
+Disallow: /connectors
+Disallow: /plugins
+
+Sitemap: https://fluxstudio.art/sitemap.xml

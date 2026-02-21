@@ -22,6 +22,7 @@ import { queryPersister } from './lib/queryPersister';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useTheme } from './hooks/useTheme';
 import { CommandPalette, useCommandPalette } from './components/CommandPalette';
+import { HelmetProvider } from 'react-helmet-async';
 
 import { useAuth, AuthProvider } from './contexts/AuthContext';
 
@@ -341,6 +342,7 @@ export default function App() {
   }, []);
 
   return (
+    <HelmetProvider>
     <ErrorBoundary>
       <PersistQueryClientProvider
         client={queryClient}
@@ -364,5 +366,6 @@ export default function App() {
         </Router>
       </PersistQueryClientProvider>
     </ErrorBoundary>
+    </HelmetProvider>
   );
 }

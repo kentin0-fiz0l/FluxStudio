@@ -2,6 +2,7 @@
   import { defineConfig } from 'vite';
   import react from '@vitejs/plugin-react-swc';
   import { VitePWA } from 'vite-plugin-pwa';
+  import compression from 'vite-plugin-compression';
   import path from 'path';
 
   const isAnalyze = process.env.ANALYZE === 'true';
@@ -67,6 +68,9 @@
           ],
         },
       }),
+      // Gzip + Brotli pre-compression for production builds
+      compression({ algorithm: 'gzip', ext: '.gz', threshold: 1024 }),
+      compression({ algorithm: 'brotliCompress', ext: '.br', threshold: 1024 }),
       // Bundle visualizer — run with ANALYZE=true vite build
       ...(isAnalyze ? [
         (async () => {
@@ -139,6 +143,16 @@
                 return 'vendor-socket';
               }
 
+              // Recharts (heavy — ~300KB) — only loaded on analytics/dashboard pages
+              if (id.includes('recharts') || id.includes('victory')) {
+                return 'vendor-recharts';
+              }
+
+              // Three.js + React Three Fiber (heavy — ~400KB) — only loaded on 3D pages
+              if (id.includes('three') || id.includes('@react-three')) {
+                return 'vendor-three';
+              }
+
               // D3, Lodash, Decimal.js, Chart.js - pure data/math/charting
               if (id.includes('d3-') || id.includes('lodash') || id.includes('decimal.js') ||
                   (id.includes('chart.js') && !id.includes('react-chartjs'))) {
@@ -189,6 +203,21 @@
                 return 'vendor-http';
               }
 
+              // i18n (loaded asynchronously, not needed for first paint)
+              if (id.includes('i18next') || id.includes('intl-')) {
+                return 'vendor-i18n';
+              }
+
+              // Framer Motion (animation library, can defer)
+              if (id.includes('framer-motion') || id.includes('popmotion')) {
+                return 'vendor-motion';
+              }
+
+              // TipTap editor (only on collaboration pages)
+              if (id.includes('@tiptap') || id.includes('tiptap')) {
+                return 'vendor-tiptap';
+              }
+
               // === All other node_modules (including React-dependent ones) ===
               // Let Rollup handle placement to avoid circular dependencies.
               // This includes: react, react-dom, recharts, framer-motion, radix-ui,
@@ -226,9 +255,23 @@
               return 'feature-printing';
             }
 
-            // Onboarding flow (only used for new users)
+            // Onboarding flow — split into sub-chunks to avoid mega-chunk
+            if (id.includes('/src/components/onboarding/ClientOnboarding')) {
+              return 'feature-onboarding-client';
+            }
+            if (id.includes('/src/components/onboarding/QuickOnboarding')) {
+              return 'feature-onboarding-quick';
+            }
+            if (id.includes('/src/components/onboarding/ProductTour')) {
+              return 'feature-onboarding-tour';
+            }
             if (id.includes('/src/components/onboarding/')) {
               return 'feature-onboarding';
+            }
+
+            // Admin pages (rarely accessed)
+            if (id.includes('/src/pages/admin/')) {
+              return 'feature-admin';
             }
 
             // Analytics components (dashboard widgets)
@@ -262,6 +305,7 @@
       chunkSizeWarningLimit: 500, // Warn for chunks > 500KB
       reportCompressedSize: true,
       sourcemap: false, // Disable sourcemaps in production for smaller bundles
+      cssCodeSplit: true, // Split CSS per chunk for smaller initial load
     },
     server: {
       port: 5173,
