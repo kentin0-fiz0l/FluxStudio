@@ -154,7 +154,7 @@ export default function FormationEditor() {
                   showLabels={settings.showLabels}
                   showShadows={settings.showShadows}
                   onSelectObject={selectObject}
-                  onUpdateObjectPosition={(id: string, pos: Partial<Position3D>) => {
+                  onUpdateObjectPosition={(id: string, pos: { x?: number; y?: number; z?: number }) => {
                     updateObjectPosition(id, pos);
                   }}
                 />
