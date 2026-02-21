@@ -7,7 +7,7 @@
 
 import { useState, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Outlines } from '@react-three/drei';
 import { X, Plus, Trash2, Save } from 'lucide-react';
 import { Button } from '@/components/ui';
 import type {
@@ -279,16 +279,7 @@ function BuilderPrimitiveMesh({
         metalness={primitive.material.metalness ?? 0.1}
         roughness={primitive.material.roughness ?? 0.7}
       />
-      {isSelected && (
-        <lineSegments>
-          <edgesGeometry args={[
-            primitive.shape === 'box'
-              ? new (require('three')).BoxGeometry(1.01, 1.01, 1.01)
-              : new (require('three')).BoxGeometry(1.01, 1.01, 1.01)
-          ]} />
-          <lineBasicMaterial color="#f59e0b" />
-        </lineSegments>
-      )}
+      {isSelected && <Outlines thickness={0.04} color="#f59e0b" />}
     </mesh>
   );
 }

@@ -73,14 +73,15 @@ export function FieldMesh({ length, width, showGrid }: FieldMeshProps) {
       </mesh>
 
       {/* Yard lines */}
-      <lineSegments geometry={linesMesh}>
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      <lineSegments geometry={linesMesh as any}>
         <lineBasicMaterial color="white" linewidth={1} />
       </lineSegments>
 
       {/* Optional grid overlay */}
       {showGrid && (
         <gridHelper
-          args={[Math.max(length, width) + 20, 40, '#ffffff30', '#ffffff15']}
+          args={[Math.max(length, width) + 20, 40, '#5a7a4e', '#4a6a3e']}
           position={[0, 0.005, 0]}
         />
       )}

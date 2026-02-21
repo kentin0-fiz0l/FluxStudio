@@ -130,6 +130,15 @@ export interface FormationAwarenessState {
   selectedPerformerIds?: string[];
   /** Performer being dragged (for conflict prevention) */
   draggingPerformerId?: string;
+  /** 3D cursor position (for 3D view collaboration) */
+  cursor3D?: {
+    x: number;
+    y: number;
+    z: number;
+    timestamp: number;
+  };
+  /** Scene object being dragged (for 3D conflict prevention) */
+  draggingObjectId?: string;
   /** Current keyframe being edited */
   activeKeyframeId?: string;
   /** Is user actively editing */
@@ -157,6 +166,7 @@ export interface FormationYjsDoc {
   meta: YFormationMeta;
   performers: YPerformers;
   keyframes: YKeyframes;
+  sceneObjects: Y.Map<Y.Map<unknown>>;
 }
 
 // ============================================================================
@@ -301,6 +311,7 @@ export const FORMATION_YJS_TYPES = {
   KEYFRAMES: 'formation:keyframes',
   POSITIONS: 'formation:positions',
   AUDIO: 'audioTrack',
+  SCENE_OBJECTS: 'scene:objects',
 } as const;
 
 /**

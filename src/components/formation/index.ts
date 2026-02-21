@@ -13,6 +13,9 @@ export { PathOverlay } from './PathOverlay';
 export { TemplatePicker } from './TemplatePicker';
 export { FormationCursorOverlay } from './FormationCursorOverlay';
 export type { FormationCursorOverlayProps } from './FormationCursorOverlay';
+export { ViewToggle } from './ViewToggle';
+export { Scene3DToolbar } from './Scene3DToolbar';
+export { Formation3DView } from './Formation3DView';
 
 // Re-export types from service for convenience
 export type {

@@ -7,8 +7,7 @@
 
 import { useMemo, useRef } from 'react';
 import { Outlines } from '@react-three/drei';
-import * as THREE from 'three';
-import type { SceneObject, PrimitiveSource, MaterialConfig } from '../../../services/scene3d/types';
+import type { SceneObject, PrimitiveSource, CustomSource } from '../../../services/scene3d/types';
 
 interface SceneObjectRendererProps {
   object: SceneObject;
@@ -23,13 +22,14 @@ interface SceneObjectRendererProps {
 export function SceneObjectRenderer({
   object,
   isSelected,
-  stageWidth,
-  stageHeight,
+  stageWidth: _stageWidth,
+  stageHeight: _stageHeight,
   fieldLength,
   fieldWidth,
   onSelect,
 }: SceneObjectRendererProps) {
-  const groupRef = useRef<THREE.Group>(null!);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const groupRef = useRef<any>(null!);
 
   // Convert normalized position to world coordinates
   const worldPosition = useMemo(() => {
@@ -174,7 +174,7 @@ function PrimitiveMesh({
 // Prop Placeholder (renders a colored box until GLB models are loaded)
 // ============================================================================
 
-function PropPlaceholder({ name, isSelected }: { name: string; isSelected: boolean }) {
+function PropPlaceholder({ isSelected }: { name: string; isSelected: boolean }) {
   return (
     <mesh castShadow receiveShadow>
       <boxGeometry args={[1.5, 1.5, 1.5]} />
@@ -192,14 +192,7 @@ function CustomObjectMesh({
   source,
   isSelected,
 }: {
-  source: { type: 'custom'; primitives: Array<{
-    shape: string;
-    dimensions: Record<string, number | undefined>;
-    material: MaterialConfig;
-    position: { x: number; y: number; z: number };
-    rotation: { x: number; y: number; z: number };
-    scale: { x: number; y: number; z: number };
-  }> };
+  source: CustomSource;
   isSelected: boolean;
 }) {
   return (
@@ -240,7 +233,7 @@ function CustomObjectMesh({
 // Imported Model Placeholder
 // ============================================================================
 
-function ImportedModelPlaceholder({ name, isSelected }: { name: string; isSelected: boolean }) {
+function ImportedModelPlaceholder({ isSelected }: { name: string; isSelected: boolean }) {
   return (
     <mesh castShadow receiveShadow>
       <dodecahedronGeometry args={[1, 0]} />

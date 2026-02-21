@@ -404,3 +404,49 @@ CREATE TRIGGER update_time_entries_updated_at BEFORE UPDATE ON time_entries FOR 
 CREATE TRIGGER update_service_packages_updated_at BEFORE UPDATE ON service_packages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_client_requests_updated_at BEFORE UPDATE ON client_requests FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_portfolios_updated_at BEFORE UPDATE ON portfolios FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- Formation Scene Objects (3D objects in Drillwriter formations)
+-- ============================================================================
+
+-- Formations table (used by Drillwriter)
+CREATE TABLE IF NOT EXISTS formations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    stage_width INTEGER NOT NULL DEFAULT 40,
+    stage_height INTEGER NOT NULL DEFAULT 30,
+    grid_size INTEGER NOT NULL DEFAULT 5,
+    performers JSONB DEFAULT '[]',
+    keyframes JSONB DEFAULT '[]',
+    audio_track JSONB,
+    drill_settings JSONB DEFAULT '{}',
+    created_by UUID NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_formations_project ON formations(project_id);
+CREATE TRIGGER update_formations_updated_at BEFORE UPDATE ON formations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- 3D scene objects placed within a formation
+CREATE TABLE formation_scene_objects (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    formation_id UUID NOT NULL REFERENCES formations(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    object_type VARCHAR(50) NOT NULL CHECK (object_type IN ('prop', 'custom', 'primitive', 'imported')),
+    position_data JSONB NOT NULL DEFAULT '{"x":50,"y":50,"z":0}',
+    source_data JSONB NOT NULL DEFAULT '{}',
+    attached_to_performer_id VARCHAR(255),
+    visible BOOLEAN DEFAULT TRUE,
+    locked BOOLEAN DEFAULT FALSE,
+    layer INTEGER DEFAULT 0,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_scene_objects_formation ON formation_scene_objects(formation_id);
+CREATE INDEX idx_scene_objects_type ON formation_scene_objects(object_type);
+CREATE TRIGGER update_scene_objects_updated_at BEFORE UPDATE ON formation_scene_objects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

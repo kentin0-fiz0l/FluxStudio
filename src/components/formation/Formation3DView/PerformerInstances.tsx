@@ -28,13 +28,14 @@ const tempColor = new THREE.Color();
 export function PerformerInstances({
   positions,
   performers,
-  stageWidth,
-  stageHeight,
+  stageWidth: _stageWidth,
+  stageHeight: _stageHeight,
   fieldLength,
   fieldWidth,
   showLabels,
 }: PerformerInstancesProps) {
-  const meshRef = useRef<THREE.InstancedMesh>(null!);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const meshRef = useRef<any>(null!);
 
   // Convert normalized positions to world coordinates
   const worldPositions = useMemo(() => {

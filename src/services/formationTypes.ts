@@ -81,3 +81,11 @@ export interface PlaybackState {
   loop: boolean;
   speed: number;
 }
+
+// Re-export 3D scene types for convenience
+export type {
+  Position3D,
+  SceneObject,
+  Scene3DTool,
+  FormationViewMode,
+} from './scene3d/types';

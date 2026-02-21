@@ -28,6 +28,7 @@ export interface Scene3DState {
   isObjectEditorOpen: boolean;
   isPropLibraryOpen: boolean;
   isModelImporterOpen: boolean;
+  isPrimitiveBuilderOpen: boolean;
 }
 
 export interface Scene3DActions {
@@ -45,6 +46,7 @@ export interface Scene3DActions {
   setObjectEditorOpen(open: boolean): void;
   setPropLibraryOpen(open: boolean): void;
   setModelImporterOpen(open: boolean): void;
+  setPrimitiveBuilderOpen(open: boolean): void;
   clearScene(): void;
 }
 
@@ -65,6 +67,7 @@ const initialState: Scene3DState = {
   isObjectEditorOpen: false,
   isPropLibraryOpen: false,
   isModelImporterOpen: false,
+  isPrimitiveBuilderOpen: false,
 };
 
 // ============================================================================
@@ -194,6 +197,12 @@ export const createScene3DSlice: StateCreator<FluxStore, [['zustand/immer', neve
     setModelImporterOpen(open: boolean) {
       set((state) => {
         state.scene3d.isModelImporterOpen = open;
+      });
+    },
+
+    setPrimitiveBuilderOpen(open: boolean) {
+      set((state) => {
+        state.scene3d.isPrimitiveBuilderOpen = open;
       });
     },
 

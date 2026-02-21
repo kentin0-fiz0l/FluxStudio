@@ -214,7 +214,8 @@ function TransformGizmo({
   fieldWidth,
   onUpdate,
 }: TransformGizmoProps) {
-  const meshRef = useRef<THREE.Mesh>(null!);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const meshRef = useRef<any>(null!);
 
   const worldPos = useMemo(() => {
     const { wx, wz } = posToWorld(object.position.x, object.position.y);

@@ -130,6 +130,7 @@ export function useScene3D() {
     isObjectEditorOpen: scene3d.isObjectEditorOpen,
     isPropLibraryOpen: scene3d.isPropLibraryOpen,
     isModelImporterOpen: scene3d.isModelImporterOpen,
+    isPrimitiveBuilderOpen: scene3d.isPrimitiveBuilderOpen,
 
     // Object CRUD
     addObject: scene3d.addObject,
@@ -154,5 +155,6 @@ export function useScene3D() {
     setObjectEditorOpen: scene3d.setObjectEditorOpen,
     setPropLibraryOpen: scene3d.setPropLibraryOpen,
     setModelImporterOpen: scene3d.setModelImporterOpen,
+    setPrimitiveBuilderOpen: scene3d.setPrimitiveBuilderOpen,
   };
 }

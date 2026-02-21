@@ -15,7 +15,13 @@ import { Formation } from '../services/formationService';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { ViewToggle } from '../components/formation/ViewToggle';
+import { Scene3DToolbar } from '../components/formation/Scene3DToolbar';
 import { useScene3D } from '../hooks/useScene3D';
+import { ObjectEditorModal } from '../components/object-editor/ObjectEditorModal';
+import { PropLibraryPanel } from '../components/object-editor/PropLibraryPanel';
+import { ModelImporter } from '../components/object-editor/ModelImporter';
+import { PrimitiveBuilder } from '../components/object-editor/PrimitiveBuilder';
+import type { ComposedPrimitive } from '../services/scene3d/types';
 const Formation3DViewLazy = React.lazy(
   () => import('../components/formation/Formation3DView').then((m) => ({ default: m.Formation3DView }))
 );
@@ -35,11 +41,28 @@ export default function FormationEditor() {
     viewMode,
     setViewMode,
     objectList,
+    selectedObject,
     selectedObjectId,
     activeTool,
     settings,
     selectObject,
+    updateObject,
     updateObjectPosition,
+    removeObject,
+    addPrimitive,
+    addProp,
+    addObject,
+    setActiveTool,
+    updateSettings,
+    duplicateSelected,
+    isObjectEditorOpen,
+    isPropLibraryOpen,
+    isModelImporterOpen,
+    isPrimitiveBuilderOpen,
+    setObjectEditorOpen,
+    setPropLibraryOpen,
+    setModelImporterOpen,
+    setPrimitiveBuilderOpen,
   } = useScene3D();
 
   // Track current positions and performers for 3D view (from FormationCanvas internal state)
@@ -73,6 +96,74 @@ export default function FormationEditor() {
       navigate('/projects');
     }
   }, [navigate, projectId]);
+
+  // Handle adding shapes from toolbar tool selection
+  const handleToolChange = React.useCallback((tool: import('../services/scene3d/types').Scene3DTool) => {
+    // If it's an add-* tool, immediately add the shape and switch back to select
+    if (tool.startsWith('add-')) {
+      const shape = tool.replace('add-', '') as import('../services/scene3d/types').PrimitiveShape;
+      addPrimitive(shape);
+      setActiveTool('select');
+    } else {
+      setActiveTool(tool);
+    }
+  }, [addPrimitive, setActiveTool]);
+
+  // Handle placing a prop from the library
+  const handlePlaceProp = React.useCallback((catalogId: string, variant?: string) => {
+    addProp(catalogId, undefined, variant);
+    setPropLibraryOpen(false);
+  }, [addProp, setPropLibraryOpen]);
+
+  // Handle importing a model
+  const handleImportModel = React.useCallback((file: File) => {
+    const now = new Date().toISOString();
+    addObject({
+      id: `obj-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: file.name.replace(/\.[^.]+$/, ''),
+      type: 'imported',
+      position: { x: 50, y: 50, z: 0, rotation: 0, scale: 1 },
+      source: {
+        type: 'imported',
+        fileId: `file-${Date.now()}`,
+        fileUrl: URL.createObjectURL(file),
+        filename: file.name,
+        boundingBox: { width: 2, height: 2, depth: 2 },
+        polyCount: 0, // Will be computed after loading
+      },
+      visible: true,
+      locked: false,
+      layer: objectList.length,
+      createdAt: now,
+      updatedAt: now,
+    });
+    setModelImporterOpen(false);
+  }, [addObject, objectList.length, setModelImporterOpen]);
+
+  // Handle saving a custom object from primitive builder
+  const handleSaveCustom = React.useCallback((name: string, primitives: ComposedPrimitive[]) => {
+    const now = new Date().toISOString();
+    addObject({
+      id: `obj-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      type: 'custom',
+      position: { x: 50, y: 50, z: 0, rotation: 0, scale: 1 },
+      source: { type: 'custom', primitives, name },
+      visible: true,
+      locked: false,
+      layer: objectList.length,
+      createdAt: now,
+      updatedAt: now,
+    });
+    setPrimitiveBuilderOpen(false);
+  }, [addObject, objectList.length, setPrimitiveBuilderOpen]);
+
+  // Auto-open object editor when selecting an object
+  React.useEffect(() => {
+    if (selectedObjectId && (viewMode === '3d' || viewMode === 'split')) {
+      setObjectEditorOpen(true);
+    }
+  }, [selectedObjectId, viewMode, setObjectEditorOpen]);
 
   // Validate project ID
   if (!projectId) {
@@ -119,6 +210,23 @@ export default function FormationEditor() {
           <ViewToggle mode={viewMode} onChange={setViewMode} />
         </div>
 
+        {/* 3D Toolbar (only when 3D view is active) */}
+        {show3D && (
+          <Scene3DToolbar
+            activeTool={activeTool}
+            showGrid={settings.showGrid}
+            showLabels={settings.showLabels}
+            showShadows={settings.showShadows}
+            onToolChange={handleToolChange}
+            onToggleGrid={() => updateSettings({ showGrid: !settings.showGrid })}
+            onToggleLabels={() => updateSettings({ showLabels: !settings.showLabels })}
+            onToggleShadows={() => updateSettings({ showShadows: !settings.showShadows })}
+            onOpenPropLibrary={() => setPropLibraryOpen(true)}
+            onOpenModelImporter={() => setModelImporterOpen(true)}
+            onOpenPrimitiveBuilder={() => setPrimitiveBuilderOpen(true)}
+          />
+        )}
+
         {/* Content area with view mode */}
         <div className={`flex-1 overflow-hidden ${viewMode === 'split' ? 'flex' : ''}`}>
           {/* 2D Canvas */}
@@ -163,6 +271,41 @@ export default function FormationEditor() {
           )}
         </div>
       </div>
+
+      {/* Object Editor Panel (right sidebar) */}
+      {isObjectEditorOpen && selectedObject && (
+        <ObjectEditorModal
+          object={selectedObject}
+          onUpdate={updateObject}
+          onRemove={(id) => { removeObject(id); setObjectEditorOpen(false); }}
+          onDuplicate={() => { duplicateSelected(); }}
+          onClose={() => setObjectEditorOpen(false)}
+        />
+      )}
+
+      {/* Prop Library Panel */}
+      {isPropLibraryOpen && (
+        <PropLibraryPanel
+          onPlaceProp={handlePlaceProp}
+          onClose={() => setPropLibraryOpen(false)}
+        />
+      )}
+
+      {/* Model Importer Modal */}
+      {isModelImporterOpen && (
+        <ModelImporter
+          onImport={handleImportModel}
+          onClose={() => setModelImporterOpen(false)}
+        />
+      )}
+
+      {/* Primitive Builder Modal */}
+      {isPrimitiveBuilderOpen && (
+        <PrimitiveBuilder
+          onSave={handleSaveCustom}
+          onClose={() => setPrimitiveBuilderOpen(false)}
+        />
+      )}
     </DashboardLayout>
   );
 }
