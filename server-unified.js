@@ -398,7 +398,8 @@ app.use(csrfProtection({
     '/health',
     '/monitoring',
     '/payments/webhooks/stripe',
-    '/api/payments/webhooks/stripe'
+    '/api/payments/webhooks/stripe',
+    '/api/observability/vitals'
   ]
 }));
 

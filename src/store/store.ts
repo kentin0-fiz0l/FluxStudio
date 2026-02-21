@@ -9,6 +9,7 @@ import { create } from 'zustand';
 import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 
+import { registerStore } from './storeRef';
 import { createAuthSlice, AuthSlice } from './slices/authSlice';
 import { createProjectSlice, ProjectSlice } from './slices/projectSlice';
 import { createUISlice, UISlice } from './slices/uiSlice';
@@ -109,6 +110,9 @@ export const useStore = create<FluxStore>()(
     { name: 'FluxStudio' }
   )
 );
+
+// Register store reference so slices can access it without circular imports
+registerStore(useStore as unknown as (...args: unknown[]) => unknown);
 
 // ============================================================================
 // Convenience Selectors

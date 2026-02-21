@@ -25,6 +25,7 @@ import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 import { HelmetProvider } from 'react-helmet-async';
 
 import { useAuth, AuthProvider } from './contexts/AuthContext';
+import { AssetsProvider } from './contexts/AssetsContext';
 
 // All pages lazy loaded for smaller initial bundle
 // SimpleHomePage kept as backup -- replaced by LandingPage
@@ -226,7 +227,7 @@ function AuthenticatedRoutes() {
                   {/* Organization & Settings */}
                   <Route path="/organization" element={<ProtectedRoute><OrganizationNew /></ProtectedRoute>} />
                   <Route path="/projects/:projectId/overview" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectOverview /></ProjectsErrorBoundary></ProtectedRoute>} />
-                  <Route path="/projects/:id" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectDetail /></ProjectsErrorBoundary></ProtectedRoute>} />
+                  <Route path="/projects/:id" element={<ProtectedRoute><ProjectsErrorBoundary><AssetsProvider><ProjectDetail /></AssetsProvider></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/projects/:projectId/formations" element={<ProtectedRoute><FormationEditor /></ProtectedRoute>} />
                   <Route path="/projects/:projectId/formations/:formationId" element={<ProtectedRoute><FormationEditor /></ProtectedRoute>} />
                   <Route path="/boards/:boardId" element={<ProtectedRoute><DesignBoardPage /></ProtectedRoute>} />

@@ -512,15 +512,11 @@ export const createAuthSlice: StateCreator<
 // Convenience Hooks
 // ============================================================================
 
-// Lazy-resolve useStore to break circular dependency: authSlice ↔ store
-// These hooks only run during React render, well after all modules initialize.
-let _useStore: typeof import('../store').useStore;
+// Resolve useStore via registry to break circular dependency: authSlice ↔ store
+// These hooks only run during React render, well after store initialization.
+import { getUseStore as _getUseStore } from '../storeRef';
 function getUseStore() {
-  if (!_useStore) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    _useStore = (require('../store') as typeof import('../store')).useStore;
-  }
-  return _useStore;
+  return _getUseStore() as typeof import('../store').useStore;
 }
 
 export const useAuth = () => {
