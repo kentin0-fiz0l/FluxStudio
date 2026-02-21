@@ -148,10 +148,10 @@
                 return 'vendor-recharts';
               }
 
-              // Three.js + React Three Fiber (heavy — ~400KB) — only loaded on 3D pages
-              if (id.includes('three') || id.includes('@react-three')) {
-                return 'vendor-three';
-              }
+              // Three.js + React Three Fiber — let Vite's natural code splitting handle this.
+              // Manual chunking creates circular dependency chains with page-project-detail
+              // and vendor-tiptap. The React.lazy() import in FormationEditor already ensures
+              // Three.js is only loaded when the 3D view is activated.
 
               // D3, Lodash, Decimal.js, Chart.js - pure data/math/charting
               if (id.includes('d3-') || id.includes('lodash') || id.includes('decimal.js') ||
