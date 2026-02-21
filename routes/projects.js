@@ -18,6 +18,7 @@ const path = require('path');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { validateInput } = require('../middleware/security');
 const { query } = require('../database/config');
+const { ingestEvent } = require('../lib/analytics/funnelTracker');
 
 const router = express.Router();
 
@@ -294,6 +295,19 @@ router.post('/', authenticateToken, validateInput.sanitizeInput, checkProjectQuo
     }
 
     logAction(req.user.id, 'create', 'project', newProject.id, { name }, req);
+
+    // Sprint 44: Track first project creation funnel event
+    ingestEvent(req.user.id, 'first_project_created', {
+      projectId: newProject.id,
+    }, { ipAddress: req.ip, userAgent: req.get('user-agent') }).catch(() => {});
+
+    // Sprint 44: Mark referral as converted when user creates first project
+    query(
+      `UPDATE referral_signups SET converted = TRUE, converted_at = NOW()
+       WHERE referred_user_id = $1 AND converted = FALSE`,
+      [req.user.id]
+    ).catch(() => {});
+
     res.status(201).json({ success: true, project: newProject });
   } catch (error) {
     console.error('Create project error:', error);

@@ -10,7 +10,7 @@ const GOOGLE_LOGIN_URI = `${API_URL}/api/auth/google/callback`;
 
 export function Login() {
   const [searchParams] = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const callbackUrl = searchParams.get('callbackUrl') || '/projects';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -248,7 +248,7 @@ export function Login() {
               <p className="mt-6 text-center text-gray-400 text-sm">
                 Don't have an account?{' '}
                 <Link
-                  to={`/signup${callbackUrl !== '/dashboard' ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`}
+                  to={`/signup${callbackUrl !== '/projects' ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`}
                   className="text-pink-400 hover:text-pink-300 transition-colors font-medium"
                 >
                   Sign up

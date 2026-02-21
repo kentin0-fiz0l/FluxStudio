@@ -18,6 +18,7 @@ import {
   Notification as SocketNotification,
 } from '../services/messagingSocketService';
 import { hookLogger } from '../lib/logger';
+import { io, Socket } from 'socket.io-client';
 
 const notifLogger = hookLogger.child('useNotifications');
 
@@ -541,6 +542,41 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       messagingSocketService.subscribeToNotifications();
     }
   }, [autoConnect, user]);
+
+  // Sprint 44: Connect to dedicated /notifications Socket.IO namespace for real-time push
+  const notifSocketRef = useRef<Socket | null>(null);
+  useEffect(() => {
+    if (!autoConnect || !user) return;
+
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+
+    const baseUrl = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.host}`;
+    const socket = io(`${baseUrl}/notifications`, {
+      path: '/api/socket.io',
+      auth: { token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 3000,
+    });
+
+    notifSocketRef.current = socket;
+
+    socket.on('notification:new', (notification: SocketNotification) => {
+      const converted = convertSocketNotification(notification);
+      setNotifications(prev => {
+        // Deduplicate — the messaging socket may also deliver the same event
+        if (prev.some(n => n.id === converted.id)) return prev;
+        return [converted, ...prev];
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+      notifSocketRef.current = null;
+    };
+  }, [autoConnect, user, convertSocketNotification]);
 
   // Initial load
   useEffect(() => {

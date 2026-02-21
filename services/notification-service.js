@@ -19,6 +19,8 @@
 
 const messagingAdapter = require('../database/messaging-conversations-adapter');
 const { query } = require('../database/config');
+const { emitNotification } = require('../sockets/notifications-socket');
+const emailService = require('../lib/email/emailService');
 
 // =============================================================================
 // Constants
@@ -688,7 +690,7 @@ class NotificationService {
     metadata = {}
   }) {
     try {
-      return await messagingAdapter.createNotification({
+      const notification = await messagingAdapter.createNotification({
         userId,
         type,
         title,
@@ -705,9 +707,85 @@ class NotificationService {
         },
         entityId: null
       });
+
+      // Sprint 44: Push to connected clients via Socket.IO
+      if (notification) {
+        emitNotification(userId, notification);
+      }
+
+      // Sprint 44: Queue collaboration email if user has email_digest_enabled
+      if (notification && ['mention', 'reply', 'file_shared'].includes(type)) {
+        this._queueCollaborationEmail(userId, type, notification, {
+          category, title, body, actorUserId, projectId,
+        }).catch(() => {});
+      }
+
+      return notification;
     } catch (error) {
       console.error('[NotificationService] Failed to create notification:', error.message);
       return null;
+    }
+  }
+
+  // ===========================================================================
+  // Private Methods - Email Dispatch (Sprint 44)
+  // ===========================================================================
+
+  /**
+   * Queue a collaboration email for a notification.
+   * Checks user preferences before sending.
+   */
+  async _queueCollaborationEmail(userId, type, notification, context) {
+    try {
+      const prefs = await this._getUserPreferences(userId);
+      if (!prefs.email_digest_enabled) return;
+
+      // Look up recipient email and sender name
+      const userResult = await query(
+        'SELECT email, name FROM users WHERE id = $1', [userId]
+      );
+      if (!userResult.rows[0]?.email) return;
+      const recipientEmail = userResult.rows[0].email;
+
+      let senderName = 'Someone';
+      if (context.actorUserId) {
+        const actorResult = await query(
+          'SELECT name FROM users WHERE id = $1', [context.actorUserId]
+        );
+        senderName = actorResult.rows[0]?.name || 'Someone';
+      }
+
+      let projectName = 'a project';
+      if (context.projectId) {
+        const projResult = await query(
+          'SELECT name FROM projects WHERE id = $1', [context.projectId]
+        );
+        projectName = projResult.rows[0]?.name || 'a project';
+      }
+
+      const frontendUrl = process.env.FRONTEND_URL || 'https://fluxstudio.art';
+
+      const emailTypeMap = {
+        mention: 'mention',
+        reply: 'reply',
+        file_shared: 'project_shared',
+      };
+
+      const emailData = {
+        senderName,
+        projectName,
+        commentPreview: context.body || '',
+        deepLink: `${frontendUrl}/projects`,
+        role: 'collaborator',
+      };
+
+      await emailService.sendCollaborationEmail(
+        emailTypeMap[type] || type,
+        recipientEmail,
+        emailData
+      );
+    } catch (err) {
+      console.error('[NotificationService] Email dispatch failed:', err.message);
     }
   }
 

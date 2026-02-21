@@ -8,7 +8,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '65518208813-f
 
 export function Signup() {
   const [searchParams] = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const callbackUrl = searchParams.get('callbackUrl') || '/projects';
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -321,7 +321,7 @@ export function Signup() {
             <p className="mt-6 text-center text-gray-400 text-sm">
               Already have an account?{' '}
               <Link
-                to={`/login${callbackUrl !== '/dashboard' ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`}
+                to={`/login${callbackUrl !== '/projects' ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`}
                 className="text-pink-400 hover:text-pink-300 transition-colors font-medium"
               >
                 Sign in

@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, ArrowRight, Check, Sparkles, FolderPlus, Music, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { eventTracker } from '@/services/analytics/eventTracking';
 
 export interface TourStep {
   id: string;
@@ -103,13 +104,16 @@ export function ProductTour({
 
   const handleNext = useCallback(() => {
     if (isLastStep) {
+      eventTracker.trackEvent('product_tour_completed', { steps: steps.length });
       onComplete();
     } else {
+      eventTracker.trackEvent('product_tour_step', { step: currentStep + 1, stepId: step?.id });
       setCurrentStep((prev) => prev + 1);
     }
-  }, [isLastStep, onComplete]);
+  }, [isLastStep, onComplete, currentStep, step, steps.length]);
 
   const handleCTA = useCallback(() => {
+    eventTracker.trackEvent('product_tour_cta_clicked', { stepId: step?.id, href: step?.ctaHref });
     if (step?.ctaHref) {
       onComplete();
       navigate(step.ctaHref);
@@ -119,8 +123,9 @@ export function ProductTour({
   }, [step, navigate, onComplete, handleNext]);
 
   const handleSkip = useCallback(() => {
+    eventTracker.trackEvent('product_tour_skipped', { atStep: currentStep, stepId: step?.id });
     onComplete();
-  }, [onComplete]);
+  }, [onComplete, currentStep, step]);
 
   // Keyboard navigation
   useEffect(() => {

@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { eventTracker } from '@/services/analytics/eventTracking';
 
 export interface OnboardingStep {
   id: string;
@@ -220,6 +221,9 @@ export function useOnboardingState(): UseOnboardingStateReturn {
       const currentStep = calculateCurrentStep(updatedSteps);
       const hasCompletedOnboarding = updatedSteps.every((s) => s.completed);
 
+      // Sprint 44: Track onboarding step completion
+      eventTracker.trackEvent('onboarding_wizard_step', { stepId, stepIndex: currentStep });
+
       return {
         ...prev,
         steps: updatedSteps,
@@ -314,8 +318,10 @@ export function useOnboardingState(): UseOnboardingStateReturn {
   // Skip onboarding
   const skipOnboarding = useCallback(() => {
     localStorage.setItem('welcome_flow_completed', 'true');
+    // Sprint 44: Track onboarding skip (drop-off)
+    eventTracker.trackEvent('onboarding_wizard_skipped', { atStep: state.currentStep });
     completeOnboarding();
-  }, [completeOnboarding]);
+  }, [completeOnboarding, state.currentStep]);
 
   return {
     state,

@@ -33,6 +33,7 @@ const { ipRateLimiters } = require('../lib/security/ipRateLimit');
 const { generateAuthResponse } = require('../lib/auth/authHelpers');
 const securityLogger = require('../lib/auth/securityLogger');
 const { captureAuthError } = require('../lib/monitoring/sentry');
+const { ingestEvent } = require('../lib/analytics/funnelTracker');
 const anomalyDetector = require('../lib/security/anomalyDetector');
 
 // Import email service for verification and password reset
@@ -233,6 +234,32 @@ router.post('/signup',
         userType,
         name
       });
+
+      // Sprint 44: Track signup funnel event
+      ingestEvent(newUser.id, 'signup_completed', {
+        userType,
+        referralCode: req.body.referralCode || null,
+      }, { ipAddress: req.ip, userAgent: req.get('user-agent') }).catch(() => {});
+
+      // Sprint 44: Track referral if code provided
+      if (req.body.referralCode) {
+        (async () => {
+          try {
+            const refResult = await query(
+              `SELECT id, user_id FROM referral_codes WHERE code = $1 AND is_active = TRUE`,
+              [req.body.referralCode.toUpperCase()]
+            );
+            if (refResult.rows.length > 0) {
+              const { id: codeId, user_id: referrerId } = refResult.rows[0];
+              await query(
+                `INSERT INTO referral_signups (referral_code_id, referrer_user_id, referred_user_id)
+                 VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+                [codeId, referrerId, newUser.id]
+              );
+            }
+          } catch (_) { /* best-effort */ }
+        })();
+      }
 
       // Return auth response with access + refresh tokens
       // Include emailVerified status so frontend knows to show verification reminder
@@ -738,6 +765,11 @@ router.post('/verify-email',
           securityLogger.SEVERITY.INFO,
           { userId: user.id, email: user.email }
         );
+
+        // Sprint 44: Track email verification funnel event
+        ingestEvent(user.id, 'email_verified', {}, {
+          ipAddress: req.ip, userAgent: req.get('user-agent'),
+        }).catch(() => {});
 
         return res.json({ message: 'Email verified successfully', verified: true });
       }

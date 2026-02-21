@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth, UserType } from '../contexts/AuthContext';
 import { useGoogleOAuth } from '../hooks/useGoogleOAuth';
+import { eventTracker } from '../services/analytics/eventTracking';
 import {
   ChevronRight,
   ChevronLeft,
@@ -67,6 +68,8 @@ const steps = [
 ];
 
 export function SignupWizard() {
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get('ref') || undefined;
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<SignupFormData>({
     name: '',
@@ -79,6 +82,11 @@ export function SignupWizard() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Sprint 44: Track signup_started on mount
+  useState(() => {
+    eventTracker.trackEvent('signup_started', { hasReferral: !!referralCode });
+  });
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
@@ -115,6 +123,7 @@ export function SignupWizard() {
 
   const nextStep = () => {
     if (currentStep < steps.length - 1) {
+      eventTracker.trackEvent('signup_step', { step: currentStep + 1, stepId: steps[currentStep + 1]?.id });
       setCurrentStep(prev => prev + 1);
     }
   };
@@ -181,7 +190,7 @@ export function SignupWizard() {
     setError('');
 
     try {
-      await signup(formData.email, formData.password, formData.name, formData.userType);
+      await signup(formData.email, formData.password, formData.name, formData.userType, referralCode);
       nextStep(); // Move to success step
 
       // Redirect after showing success

@@ -2,6 +2,7 @@
  * Analytics Routes — Project health, team workload, velocity, risk assessment.
  *
  * Sprint 35: Phase 3.2 Predictive Analytics.
+ * Sprint 44: Phase 6.3 Growth — funnel analytics ingest + query endpoints.
  */
 
 const express = require('express');
@@ -13,6 +14,7 @@ const {
   calculateVelocity,
   forecastCompletion,
 } = require('../lib/analytics-scoring');
+const { ingestEvent, queryFunnel, queryRetention, FUNNEL_STAGES } = require('../lib/analytics/funnelTracker');
 
 const router = express.Router();
 
@@ -408,6 +410,78 @@ router.get('/project/:projectId/risks', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('[Analytics] Risks error:', error);
     res.status(500).json({ error: 'Failed to calculate risks' });
+  }
+});
+
+// =============================================================================
+// Sprint 44: Funnel Analytics — ingest + query endpoints
+// =============================================================================
+
+/**
+ * POST /api/analytics/events
+ * Ingest a single funnel/growth event from the client.
+ * Accepts both authenticated and anonymous requests.
+ */
+router.post('/events', async (req, res) => {
+  try {
+    const { eventName, properties = {}, sessionId } = req.body;
+    if (!eventName) {
+      return res.status(400).json({ error: 'eventName is required' });
+    }
+
+    // Extract userId from JWT if present (but don't require auth)
+    let userId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(
+          authHeader.slice(7),
+          process.env.JWT_SECRET || process.env.SESSION_SECRET
+        );
+        userId = decoded.userId || decoded.id || null;
+      } catch (_) {
+        // Invalid token — treat as anonymous
+      }
+    }
+
+    const event = await ingestEvent(userId, eventName, properties, {
+      sessionId,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.status(201).json({ success: true, eventId: event.id });
+  } catch (error) {
+    console.error('[Analytics] Ingest error:', error.message);
+    res.status(500).json({ error: 'Failed to record event' });
+  }
+});
+
+/**
+ * GET /api/analytics/funnel
+ * Admin-only: query funnel conversion and retention data.
+ */
+router.get('/funnel', authenticateToken, async (req, res) => {
+  try {
+    // Simple admin check — requires admin role
+    const userResult = await query('SELECT role FROM users WHERE id = $1', [req.user.id]);
+    if (!userResult.rows[0] || userResult.rows[0].role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const startDate = req.query.start || new Date(Date.now() - 30 * 86400000).toISOString();
+    const endDate = req.query.end || new Date().toISOString();
+
+    const [funnel, retention] = await Promise.all([
+      queryFunnel(FUNNEL_STAGES, startDate, endDate),
+      queryRetention(startDate, endDate),
+    ]);
+
+    res.json({ success: true, funnel, retention, period: { startDate, endDate } });
+  } catch (error) {
+    console.error('[Analytics] Funnel query error:', error.message);
+    res.status(500).json({ error: 'Failed to query funnel data' });
   }
 });
 

@@ -1,6 +1,8 @@
 /**
  * Event Tracking System
- * Captures and analyzes user interactions and system events
+ *
+ * Sprint 44: Added trackEvent() to send funnel events to backend.
+ * Captures and analyzes user interactions and system events.
  */
 
 export interface AnalyticsEvent {
@@ -13,8 +15,10 @@ export interface AnalyticsEvent {
   userId?: string;
   sessionId?: string;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
+
+const ANALYTICS_ENDPOINT = '/api/analytics/events';
 
 export class EventTracker {
   private events: AnalyticsEvent[] = [];
@@ -36,7 +40,7 @@ export class EventTracker {
     this.sendToAnalytics(fullEvent);
   }
 
-  trackPageView(page: string, metadata?: Record<string, any>): void {
+  trackPageView(page: string, metadata?: Record<string, unknown>): void {
     this.track({
       type: 'pageview',
       category: 'navigation',
@@ -44,6 +48,7 @@ export class EventTracker {
       label: page,
       metadata,
     });
+    this.trackEvent('page_view', { page });
   }
 
   trackAction(action: string, category: string, label?: string, value?: number): void {
@@ -56,6 +61,32 @@ export class EventTracker {
     });
   }
 
+  /**
+   * Track a funnel/growth event — sent to POST /api/analytics/events.
+   *
+   * @param eventName - e.g. 'signup_started', 'first_project_created'
+   * @param properties - arbitrary key-value pairs
+   */
+  trackEvent(eventName: string, properties: Record<string, unknown> = {}): void {
+    const token =
+      typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    fetch(ANALYTICS_ENDPOINT, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        eventName,
+        properties,
+        sessionId: this.sessionId,
+      }),
+      keepalive: true,
+    }).catch(() => {
+      // Silently drop — analytics are best-effort
+    });
+  }
+
   private generateSessionId(): string {
     return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
@@ -65,14 +96,16 @@ export class EventTracker {
   }
 
   private sendToAnalytics(_event: AnalyticsEvent): void {
-    // Send to analytics backend
+    // Legacy stub — real delivery goes through trackEvent
   }
 
   getEvents(filter?: Partial<AnalyticsEvent>): AnalyticsEvent[] {
     if (!filter) return this.events;
 
     return this.events.filter((event) =>
-      Object.entries(filter).every(([key, value]) => event[key as keyof AnalyticsEvent] === value)
+      Object.entries(filter).every(
+        ([key, value]) => event[key as keyof AnalyticsEvent] === value
+      )
     );
   }
 }

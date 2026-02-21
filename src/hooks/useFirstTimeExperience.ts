@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { eventTracker } from '@/services/analytics/eventTracking';
 
 // localStorage keys
 const STORAGE_KEYS = {
@@ -221,6 +222,9 @@ export function useFirstTimeExperience(
         setStorageItem(STORAGE_KEYS.metmapVisited, 'true');
       }
 
+      // Sprint 44: Track onboarding step completion
+      eventTracker.trackEvent('onboarding_step_completed', { stepId });
+
       return updated;
     });
   }, []);
@@ -229,12 +233,16 @@ export function useFirstTimeExperience(
   const dismiss = useCallback(() => {
     setIsDismissed(true);
     setStorageItem(STORAGE_KEYS.dismissed, 'true');
-  }, []);
+    // Sprint 44: Track onboarding dismissal (drop-off)
+    eventTracker.trackEvent('onboarding_dismissed', { completedCount });
+  }, [completedCount]);
 
   // Complete all steps
   const completeAll = useCallback(() => {
     setIsCompleted(true);
     setStorageItem(STORAGE_KEYS.completed, 'true');
+    // Sprint 44: Track onboarding completion
+    eventTracker.trackEvent('onboarding_completed', { totalSteps });
 
     // Also mark all steps complete
     STEP_DEFINITIONS.forEach((step) => {

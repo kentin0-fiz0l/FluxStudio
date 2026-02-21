@@ -63,7 +63,7 @@ const { Component: CheckoutSuccess } = lazyLoadWithRetry(() => import('./pages/C
 const { Component: Billing } = lazyLoadWithRetry(() => import('./pages/Billing'));
 const { Component: Pricing } = lazyLoadWithRetry(() => import('./pages/Pricing'));
 const { Component: WelcomeFlow } = lazyLoadWithRetry(() => import('./pages/WelcomeFlow'));
-const { Component: AdaptiveDashboard } = lazyLoadWithRetry(() => import('./components/AdaptiveDashboard'));
+// AdaptiveDashboard removed — /dashboard now redirects to /projects
 const { Component: Connectors } = lazyLoadWithRetry(() => import('./pages/Connectors'));
 const { Component: PluginManagerPage } = lazyLoadWithRetry(() => import('./pages/PluginManagerPage'));
 
@@ -105,6 +105,9 @@ const { Component: Support } = lazyLoadWithRetry(() => import('./pages/Support')
 
 // FluxPrint Integration - 3D Printing Dashboard
 const PrintingDashboard = React.lazy(() => import('./components/printing/PrintingDashboard'));
+
+// Sprint 44: Referral dashboard
+const Referrals = React.lazy(() => import('./pages/Referrals'));
 
 // AI Agent Panel
 const { Component: AgentPanel } = lazyLoadWithRetry(() => import('./components/agent/AgentPanel'));
@@ -235,6 +238,7 @@ function AuthenticatedRoutes() {
                   <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
                   <Route path="/connectors" element={<ProtectedRoute><Connectors /></ProtectedRoute>} />
                   <Route path="/plugins" element={<ProtectedRoute><PluginManagerPage /></ProtectedRoute>} />
+                  <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
 
                   {/* Admin Routes */}
                   <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
@@ -271,12 +275,11 @@ function AuthenticatedRoutes() {
                   <Route path="/file/legacy" element={<Navigate to="/projects?view=files" replace />} />
                   <Route path="/messages/legacy" element={<Navigate to="/messages" replace />} />
 
-                  {/* Unified Dashboard - adapts to user role and context - Protected */}
-                  <Route path="/dashboard" element={<ProtectedRoute><AdaptiveDashboard /></ProtectedRoute>} />
-                  <Route path="/dashboard/unified" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
-                  <Route path="/dashboard/client" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
-                  <Route path="/dashboard/designer" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
-                  <Route path="/dashboard/admin" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
+                  {/* Legacy dashboard sub-routes redirect to /projects */}
+                  <Route path="/dashboard/unified" element={<Navigate to="/projects" replace />} />
+                  <Route path="/dashboard/client" element={<Navigate to="/projects" replace />} />
+                  <Route path="/dashboard/designer" element={<Navigate to="/projects" replace />} />
+                  <Route path="/dashboard/admin" element={<Navigate to="/projects" replace />} />
 
                   {/* Core Platform Features - Protected */}
                   <Route path="/onboarding" element={<ProtectedRoute><ClientOnboarding /></ProtectedRoute>} />
