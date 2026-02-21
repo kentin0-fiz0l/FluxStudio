@@ -35,6 +35,14 @@ export interface AudioTrack {
   waveformData?: number[];
 }
 
+export interface DrillSettings {
+  bpm: number;
+  countsPerPhrase: number;
+  startOffset: number;
+  fieldOverlay: boolean;
+  snapToGrid: boolean;
+}
+
 export interface Formation {
   id: string;
   name: string;
@@ -48,6 +56,7 @@ export interface Formation {
   audioTrack?: AudioTrack;
   musicTrackUrl?: string;
   musicDuration?: number;
+  drillSettings?: DrillSettings;
   createdAt: string;
   updatedAt: string;
   createdBy: string;

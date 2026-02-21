@@ -21,6 +21,8 @@ import {
   Music,
 } from 'lucide-react';
 import { Keyframe, PlaybackState, AudioTrack } from '../../services/formationService';
+import type { DrillSettings } from '../../services/formationTypes';
+import { generateCountMarkers, timeToCount } from '../../utils/drillGeometry';
 import { useAudioPlayback } from '../../hooks/useAudioPlayback';
 
 // ============================================================================
@@ -34,6 +36,9 @@ interface TimelineProps {
   playbackState: PlaybackState;
   selectedKeyframeId?: string;
   audioTrack?: AudioTrack | null;
+  drillSettings?: DrillSettings;
+  timeDisplayMode?: 'time' | 'counts';
+  onDrillSettingsChange?: (settings: DrillSettings) => void;
   onPlay: () => void;
   onPause: () => void;
   onStop: () => void;
@@ -56,6 +61,14 @@ function formatTime(ms: number): string {
   const seconds = totalSeconds % 60;
   const milliseconds = Math.floor((ms % 1000) / 10);
   return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+}
+
+function formatCount(ms: number, settings: DrillSettings): string {
+  const countSettings = { bpm: settings.bpm, countsPerPhrase: settings.countsPerPhrase, startOffset: settings.startOffset };
+  const count = timeToCount(ms, countSettings);
+  const phrase = Math.ceil(count / settings.countsPerPhrase);
+  const beatInPhrase = ((count - 1) % settings.countsPerPhrase) + 1;
+  return `Count ${count} (Set ${phrase}, Beat ${beatInPhrase})`;
 }
 
 // ============================================================================
@@ -207,12 +220,21 @@ export function Timeline({
   onKeyframeSelect,
   onKeyframeAdd,
   onKeyframeRemove,
+  drillSettings,
+  timeDisplayMode = 'time',
+  onDrillSettingsChange,
   onKeyframeMove,
 }: TimelineProps) {
   const { t } = useTranslation('common');
   const timelineRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+  const [showBpmInput, setShowBpmInput] = useState(false);
+  const isCountMode = timeDisplayMode === 'counts' && !!drillSettings;
+  const countMarkers = React.useMemo(() => {
+    if (!isCountMode || !drillSettings) return [];
+    return generateCountMarkers(duration, { bpm: drillSettings.bpm, countsPerPhrase: drillSettings.countsPerPhrase, startOffset: drillSettings.startOffset });
+  }, [isCountMode, drillSettings, duration]);
 
   // Audio playback integration
   const {
@@ -390,7 +412,9 @@ export function Timeline({
         <div className="flex items-center gap-2 text-sm">
           <Clock className="w-4 h-4 text-gray-400" />
           <span className="font-mono text-gray-700 dark:text-gray-300">
-            {formatTime(currentTime)} / {formatTime(duration)}
+            {isCountMode && drillSettings
+              ? formatCount(currentTime, drillSettings)
+              : `${formatTime(currentTime)} / ${formatTime(duration)}`}
           </span>
         </div>
 
@@ -410,6 +434,42 @@ export function Timeline({
               </option>
             ))}
           </select>
+
+          {/* BPM Input (visible in count mode) */}
+          {isCountMode && drillSettings && (
+            <div className="relative flex items-center gap-1 ml-1">
+              <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mr-1" />
+              <button
+                onClick={() => setShowBpmInput(!showBpmInput)}
+                className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50"
+              >
+                {drillSettings.bpm} BPM
+              </button>
+              {showBpmInput && onDrillSettingsChange && (
+                <div className="absolute bottom-full left-0 mb-2 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 min-w-[180px]">
+                  <label className="block text-xs text-gray-500 mb-1">BPM</label>
+                  <input
+                    type="number"
+                    min={40}
+                    max={300}
+                    value={drillSettings.bpm}
+                    onChange={(e) => onDrillSettingsChange({ ...drillSettings, bpm: Math.max(40, Math.min(300, Number(e.target.value))) })}
+                    className="w-full px-2 py-1 text-sm border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                  />
+                  <label className="block text-xs text-gray-500 mt-2 mb-1">Counts per Phrase</label>
+                  <select
+                    value={drillSettings.countsPerPhrase}
+                    onChange={(e) => onDrillSettingsChange({ ...drillSettings, countsPerPhrase: Number(e.target.value) })}
+                    className="w-full px-2 py-1 text-sm border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                  >
+                    {[4, 6, 8, 12, 16].map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Zoom Controls */}
@@ -446,20 +506,40 @@ export function Timeline({
 
       {/* Timeline Track */}
       <div className="relative">
-        {/* Time Ruler */}
-        <div className="h-6 flex items-end border-b border-gray-300 dark:border-gray-600 mb-2">
-          {Array.from({ length: Math.ceil(duration / 1000) + 1 }).map((_, i) => {
-            const position = duration > 0 ? ((i * 1000) / duration) * 100 : 0;
-            return (
-              <div
-                key={i}
-                className="absolute text-xs text-gray-500"
-                style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
-              >
-                {i}s
-              </div>
-            );
-          })}
+        {/* Time / Count Ruler */}
+        <div className="h-6 flex items-end border-b border-gray-300 dark:border-gray-600 mb-2 relative">
+          {isCountMode && countMarkers.length > 0
+            ? countMarkers.map((marker) => {
+                const position = duration > 0 ? (marker.timeMs / duration) * 100 : 0;
+                return (
+                  <div
+                    key={marker.count}
+                    className="absolute flex flex-col items-center"
+                    style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
+                  >
+                    <div
+                      className={`w-px ${marker.isPhraseBoundary ? 'h-4 bg-blue-500' : 'h-2 bg-gray-400'}`}
+                    />
+                    {marker.isPhraseBoundary && (
+                      <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                        S{marker.phrase}
+                      </span>
+                    )}
+                  </div>
+                );
+              })
+            : Array.from({ length: Math.ceil(duration / 1000) + 1 }).map((_, i) => {
+                const position = duration > 0 ? ((i * 1000) / duration) * 100 : 0;
+                return (
+                  <div
+                    key={i}
+                    className="absolute text-xs text-gray-500"
+                    style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
+                  >
+                    {i}s
+                  </div>
+                );
+              })}
         </div>
 
         {/* Timeline Bar */}
@@ -517,7 +597,7 @@ export function Timeline({
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
             }`}
           >
-            {index + 1}: {formatTime(keyframe.timestamp)}
+            {index + 1}: {isCountMode && drillSettings ? formatCount(keyframe.timestamp, drillSettings) : formatTime(keyframe.timestamp)}
           </button>
         ))}
       </div>

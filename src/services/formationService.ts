@@ -29,6 +29,7 @@ export type {
   Keyframe,
   AudioTrack,
   Formation,
+  DrillSettings,
   FormationExportOptions,
   PlaybackState,
 } from './formationTypes';

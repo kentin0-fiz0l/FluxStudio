@@ -7,11 +7,12 @@ import { useTranslation } from 'react-i18next';
 import {
   Plus, Grid, Download, Save, ZoomIn, ZoomOut,
   Move, MousePointer, Layers, Eye, EyeOff,
-  Loader2, Check, Music, Route, LayoutGrid, Users,
+  Loader2, Check, Music, Route, LayoutGrid, Users, Magnet, Hash,
+  Minus, CircleDot, Grid3x3, Map,
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
 
-type Tool = 'select' | 'pan' | 'add';
+type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block';
 
 interface CanvasToolbarProps {
   activeTool: Tool;
@@ -24,6 +25,12 @@ interface CanvasToolbarProps {
   setShowRotation: (show: boolean) => void;
   showPaths: boolean;
   setShowPaths: (show: boolean) => void;
+  snapEnabled: boolean;
+  setSnapEnabled: (snap: boolean) => void;
+  timeDisplayMode: 'time' | 'counts';
+  setTimeDisplayMode: (mode: 'time' | 'counts') => void;
+  showFieldOverlay: boolean;
+  setShowFieldOverlay: (show: boolean) => void;
   zoom: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -48,6 +55,9 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   activeTool, setActiveTool,
   showGrid, setShowGrid, showLabels, setShowLabels,
   showRotation, setShowRotation, showPaths, setShowPaths,
+  snapEnabled, setSnapEnabled,
+  timeDisplayMode, setTimeDisplayMode,
+  showFieldOverlay, setShowFieldOverlay,
   zoom, onZoomIn, onZoomOut,
   formationName, onNameChange,
   isCollaborativeEnabled, collab, currentUser,
@@ -72,6 +82,16 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
           <button onClick={() => setActiveTool('add')} className={`p-2 rounded ${activeTool === 'add' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title={t('formation.addTool', 'Add Performer')}>
             <Plus className="w-4 h-4" />
           </button>
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5" />
+          <button onClick={() => setActiveTool('line')} className={`p-2 rounded ${activeTool === 'line' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title={t('formation.lineTool', 'Line Tool')}>
+            <Minus className="w-4 h-4" />
+          </button>
+          <button onClick={() => setActiveTool('arc')} className={`p-2 rounded ${activeTool === 'arc' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title={t('formation.arcTool', 'Arc Tool')}>
+            <CircleDot className="w-4 h-4" />
+          </button>
+          <button onClick={() => setActiveTool('block')} className={`p-2 rounded ${activeTool === 'block' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title={t('formation.blockTool', 'Block Tool')}>
+            <Grid3x3 className="w-4 h-4" />
+          </button>
         </div>
 
         <div className="w-px h-6 bg-gray-300 dark:bg-gray-600" />
@@ -87,6 +107,15 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         </button>
         <button onClick={() => setShowPaths(!showPaths)} className={`p-2 rounded ${showPaths ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title={t('formation.togglePaths', 'Toggle Path Lines')}>
           <Route className="w-4 h-4" />
+        </button>
+        <button onClick={() => setSnapEnabled(!snapEnabled)} className={`p-2 rounded ${snapEnabled ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title={t('formation.snapToGrid', 'Snap to Grid')}>
+          <Magnet className="w-4 h-4" />
+        </button>
+        <button onClick={() => setTimeDisplayMode(timeDisplayMode === 'time' ? 'counts' : 'time')} className={`p-2 rounded ${timeDisplayMode === 'counts' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title={t('formation.countMode', 'Toggle Count Mode')}>
+          <Hash className="w-4 h-4" />
+        </button>
+        <button onClick={() => setShowFieldOverlay(!showFieldOverlay)} className={`p-2 rounded ${showFieldOverlay ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title={t('formation.fieldOverlay', 'Toggle Field Overlay')}>
+          <Map className="w-4 h-4" />
         </button>
 
         <div className="w-px h-6 bg-gray-300 dark:bg-gray-600" />

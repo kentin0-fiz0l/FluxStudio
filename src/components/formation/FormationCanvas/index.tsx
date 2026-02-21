@@ -28,8 +28,14 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from '../../../lib/toast';
 import { getUserColor } from '../../../services/formation/yjs/formationYjsTypes';
 import * as formationsApi from '../../../services/formationsApi';
+import { snapToGrid, snapToCount, alignPositions, distributePositions, generateLinePositions, generateArcPositions, generateBlockPositions, DEFAULT_DRILL_SETTINGS } from '../../../utils/drillGeometry';
+import type { AlignmentType, DistributionType } from '../../../utils/drillGeometry';
+import type { DrillSettings } from '../../../services/formationTypes';
 import { CanvasToolbar } from './CanvasToolbar';
 import { PerformerPanel } from './PerformerPanel';
+import { AlignmentToolbar } from './AlignmentToolbar';
+import { ShapeToolOverlay } from './ShapeToolOverlay';
+import { FieldOverlay } from '../FieldOverlay';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -43,7 +49,7 @@ interface FormationCanvasProps {
   collaborativeMode?: boolean;
 }
 
-type Tool = 'select' | 'pan' | 'add';
+type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block';
 
 const defaultColors = [
   '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6',
@@ -138,6 +144,12 @@ export function FormationCanvas({
   const [showPerformerPanel, setShowPerformerPanel] = useState(true);
   const [showAudioPanel, setShowAudioPanel] = useState(false);
   const [showPaths, setShowPaths] = useState(false);
+  const [snapEnabled, setSnapEnabled] = useState(false);
+  const [timeDisplayMode, setTimeDisplayMode] = useState<'time' | 'counts'>('time');
+  const [drillSettings, setDrillSettings] = useState<DrillSettings>(DEFAULT_DRILL_SETTINGS);
+  const [showFieldOverlay, setShowFieldOverlay] = useState(false);
+  const [shapeToolStart, setShapeToolStart] = useState<Position | null>(null);
+  const [shapeToolCurrent, setShapeToolCurrent] = useState<Position | null>(null);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [playbackState, setPlaybackState] = useState<PlaybackState>({ isPlaying: false, currentTime: 0, duration: 5000, loop: false, speed: 1 });
   const [_historyIndex, _setHistoryIndex] = useState(0);
@@ -211,10 +223,80 @@ export function FormationCanvas({
 
   const handleMovePerformer = useCallback((performerId: string, position: Position) => {
     if (!formation || playbackState.isPlaying) return;
-    if (isCollaborativeEnabled && collab.isConnected) collab.updatePosition(selectedKeyframeId, performerId, position);
-    else formationService.updatePosition(formation.id, selectedKeyframeId, performerId, position);
-    setCurrentPositions((prev) => new Map(prev).set(performerId, position));
-  }, [formation, selectedKeyframeId, playbackState.isPlaying, isCollaborativeEnabled, collab]);
+    const finalPosition = snapEnabled
+      ? snapToGrid(position, formation.gridSize, formation.stageWidth, formation.stageHeight)
+      : position;
+
+    // Group drag: if dragged performer is in multi-selection, move all selected by the same delta
+    if (selectedPerformerIds.has(performerId) && selectedPerformerIds.size > 1) {
+      const prevPos = currentPositions.get(performerId);
+      if (prevPos) {
+        const dx = finalPosition.x - prevPos.x;
+        const dy = finalPosition.y - prevPos.y;
+        const updates = new Map<string, Position>();
+        for (const id of selectedPerformerIds) {
+          const p = currentPositions.get(id);
+          if (p) {
+            updates.set(id, {
+              x: Math.max(0, Math.min(100, p.x + dx)),
+              y: Math.max(0, Math.min(100, p.y + dy)),
+              rotation: p.rotation,
+            });
+          }
+        }
+        setCurrentPositions((prev) => {
+          const next = new Map(prev);
+          updates.forEach((pos, id) => {
+            next.set(id, pos);
+            if (isCollaborativeEnabled && collab.isConnected) collab.updatePosition(selectedKeyframeId, id, pos);
+            else formationService.updatePosition(formation.id, selectedKeyframeId, id, pos);
+          });
+          return next;
+        });
+        return;
+      }
+    }
+
+    if (isCollaborativeEnabled && collab.isConnected) collab.updatePosition(selectedKeyframeId, performerId, finalPosition);
+    else formationService.updatePosition(formation.id, selectedKeyframeId, performerId, finalPosition);
+    setCurrentPositions((prev) => new Map(prev).set(performerId, finalPosition));
+  }, [formation, selectedKeyframeId, playbackState.isPlaying, isCollaborativeEnabled, collab, snapEnabled, selectedPerformerIds, currentPositions]);
+
+  const handleAlign = useCallback((type: AlignmentType) => {
+    if (!formation || selectedPerformerIds.size < 2) return;
+    const ids = Array.from(selectedPerformerIds);
+    const positions = ids.map((id) => currentPositions.get(id)).filter((p): p is Position => !!p);
+    const aligned = alignPositions(positions, type);
+    setCurrentPositions((prev) => {
+      const next = new Map(prev);
+      ids.forEach((id, i) => {
+        if (aligned[i]) {
+          next.set(id, aligned[i]);
+          if (isCollaborativeEnabled && collab.isConnected) collab.updatePosition(selectedKeyframeId, id, aligned[i]);
+          else formationService.updatePosition(formation.id, selectedKeyframeId, id, aligned[i]);
+        }
+      });
+      return next;
+    });
+  }, [formation, selectedPerformerIds, currentPositions, selectedKeyframeId, isCollaborativeEnabled, collab]);
+
+  const handleDistribute = useCallback((type: DistributionType) => {
+    if (!formation || selectedPerformerIds.size < 3) return;
+    const ids = Array.from(selectedPerformerIds);
+    const positions = ids.map((id) => currentPositions.get(id)).filter((p): p is Position => !!p);
+    const distributed = distributePositions(positions, type);
+    setCurrentPositions((prev) => {
+      const next = new Map(prev);
+      ids.forEach((id, i) => {
+        if (distributed[i]) {
+          next.set(id, distributed[i]);
+          if (isCollaborativeEnabled && collab.isConnected) collab.updatePosition(selectedKeyframeId, id, distributed[i]);
+          else formationService.updatePosition(formation.id, selectedKeyframeId, id, distributed[i]);
+        }
+      });
+      return next;
+    });
+  }, [formation, selectedPerformerIds, currentPositions, selectedKeyframeId, isCollaborativeEnabled, collab]);
 
   const handleDragStart = useCallback((performerId: string): boolean => {
     if (!isCollaborativeEnabled || !collab.isConnected) { setDraggingPerformerId(performerId); return true; }
@@ -242,10 +324,13 @@ export function FormationCanvas({
 
   const handleKeyframeAdd = useCallback((timestamp: number) => {
     if (!formation) return;
-    if (isCollaborativeEnabled && collab.isConnected) { const kf = collab.addKeyframe(timestamp, new Map(currentPositions)); setSelectedKeyframeId(kf.id); return; }
-    const kf = formationService.addKeyframe(formation.id, timestamp, new Map(currentPositions));
+    const finalTimestamp = timeDisplayMode === 'counts'
+      ? snapToCount(timestamp, { bpm: drillSettings.bpm, countsPerPhrase: drillSettings.countsPerPhrase, startOffset: drillSettings.startOffset })
+      : timestamp;
+    if (isCollaborativeEnabled && collab.isConnected) { const kf = collab.addKeyframe(finalTimestamp, new Map(currentPositions)); setSelectedKeyframeId(kf.id); return; }
+    const kf = formationService.addKeyframe(formation.id, finalTimestamp, new Map(currentPositions));
     if (kf) { setFormation({ ...formation, keyframes: [...formation.keyframes, kf].sort((a, b) => a.timestamp - b.timestamp) }); setSelectedKeyframeId(kf.id); }
-  }, [formation, currentPositions, isCollaborativeEnabled, collab]);
+  }, [formation, currentPositions, isCollaborativeEnabled, collab, timeDisplayMode, drillSettings]);
 
   const handleKeyframeRemove = useCallback((keyframeId: string) => {
     if (!formation) return;
@@ -260,26 +345,105 @@ export function FormationCanvas({
     if (kf) { kf.timestamp = timestamp; setFormation({ ...formation, keyframes: [...formation.keyframes].sort((a, b) => a.timestamp - b.timestamp) }); }
   }, [formation]);
 
+  const isShapeTool = activeTool === 'line' || activeTool === 'arc' || activeTool === 'block';
+
   const handleCanvasMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!canvasRef.current || !isCollaborativeEnabled || !collab.isConnected) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    collab.updateCursor(((e.clientX - rect.left) / rect.width) * 100, ((e.clientY - rect.top) / rect.height) * 100);
-  }, [isCollaborativeEnabled, collab]);
-
-  const handleCanvasMouseLeave = useCallback(() => { if (isCollaborativeEnabled && collab.isConnected) collab.clearCursor(); }, [isCollaborativeEnabled, collab]);
-
-  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
-    if (activeTool !== 'add' || !canvasRef.current || !formation) return;
+    if (!canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    // Track mouse for shape tool preview
+    if (isShapeTool && shapeToolStart) {
+      setShapeToolCurrent({ x, y });
+    }
+
+    // Update collaborator cursor
+    if (isCollaborativeEnabled && collab.isConnected) {
+      collab.updateCursor(x, y);
+    }
+  }, [isCollaborativeEnabled, collab, isShapeTool, shapeToolStart]);
+
+  const handleCanvasMouseLeave = useCallback(() => {
+    if (isCollaborativeEnabled && collab.isConnected) collab.clearCursor();
+    setShapeToolCurrent(null);
+  }, [isCollaborativeEnabled, collab]);
+
+  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+    if (!canvasRef.current || !formation) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    // Shape tool: two-click interaction
+    if (isShapeTool) {
+      if (!shapeToolStart) {
+        // First click: set start point
+        setShapeToolStart({ x, y });
+        setShapeToolCurrent({ x, y });
+        return;
+      }
+      // Second click: generate positions and apply
+      const shapeTool = activeTool as 'line' | 'arc' | 'block';
+      let positions: Position[] = [];
+      const count = Math.max(1, formation.performers.length);
+
+      if (shapeTool === 'line') {
+        positions = generateLinePositions(shapeToolStart, { x, y }, count);
+      } else if (shapeTool === 'arc') {
+        const dx = x - shapeToolStart.x;
+        const dy = y - shapeToolStart.y;
+        const radius = Math.sqrt(dx * dx + dy * dy);
+        const endAngle = Math.atan2(dy, dx);
+        const startAngle = endAngle - Math.PI;
+        positions = generateArcPositions(shapeToolStart, radius, startAngle, endAngle, count);
+      } else if (shapeTool === 'block') {
+        const topLeft = { x: Math.min(shapeToolStart.x, x), y: Math.min(shapeToolStart.y, y) };
+        const bottomRight = { x: Math.max(shapeToolStart.x, x), y: Math.max(shapeToolStart.y, y) };
+        positions = generateBlockPositions(topLeft, bottomRight, count);
+      }
+
+      // Apply generated positions to performers
+      setCurrentPositions((prev) => {
+        const next = new Map(prev);
+        formation.performers.forEach((performer, i) => {
+          if (i < positions.length) {
+            const pos = positions[i];
+            next.set(performer.id, pos);
+            if (isCollaborativeEnabled && collab.isConnected) collab.updatePosition(selectedKeyframeId, performer.id, pos);
+            else formationService.updatePosition(formation.id, selectedKeyframeId, performer.id, pos);
+          }
+        });
+        return next;
+      });
+
+      // Reset shape tool state
+      setShapeToolStart(null);
+      setShapeToolCurrent(null);
+      return;
+    }
+
+    // Add tool: click to add performer
+    if (activeTool !== 'add') return;
     const index = formation.performers.length;
     const performer = formationService.addPerformer(formation.id, { name: `Performer ${index + 1}`, label: `P${index + 1}`, color: defaultColors[index % defaultColors.length] }, { x, y });
     if (performer) {
       const uf = formationService.getFormation(formation.id);
       if (uf) { setFormation({ ...uf, keyframes: uf.keyframes.map(kf => ({ ...kf, positions: new Map(kf.positions) })) }); const kf = uf.keyframes.find((k) => k.id === selectedKeyframeId); if (kf) setCurrentPositions(new Map(kf.positions)); }
     }
-  }, [activeTool, formation, selectedKeyframeId]);
+  }, [activeTool, formation, selectedKeyframeId, isShapeTool, shapeToolStart, isCollaborativeEnabled, collab]);
+
+  // Escape key cancels shape tool in progress
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && shapeToolStart) {
+        setShapeToolStart(null);
+        setShapeToolCurrent(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [shapeToolStart]);
 
   const handleSave = useCallback(async () => {
     if (!formation) return;
@@ -352,6 +516,9 @@ export function FormationCanvas({
         showLabels={showLabels} setShowLabels={setShowLabels}
         showRotation={showRotation} setShowRotation={setShowRotation}
         showPaths={showPaths} setShowPaths={setShowPaths}
+        snapEnabled={snapEnabled} setSnapEnabled={setSnapEnabled}
+        timeDisplayMode={timeDisplayMode} setTimeDisplayMode={setTimeDisplayMode}
+        showFieldOverlay={showFieldOverlay} setShowFieldOverlay={setShowFieldOverlay}
         zoom={zoom} onZoomIn={handleZoomIn} onZoomOut={handleZoomOut}
         formationName={formation.name} onNameChange={handleNameChange}
         isCollaborativeEnabled={isCollaborativeEnabled} collab={collab} currentUser={currentUser}
@@ -364,10 +531,15 @@ export function FormationCanvas({
 
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 relative overflow-auto p-8 bg-gray-100 dark:bg-gray-900">
+          <AlignmentToolbar
+            selectedCount={selectedPerformerIds.size}
+            onAlign={handleAlign}
+            onDistribute={handleDistribute}
+          />
           <div
             ref={canvasRef}
             className="relative bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto"
-            style={{ width: `${formation.stageWidth * 20 * zoom}px`, height: `${formation.stageHeight * 20 * zoom}px`, cursor: activeTool === 'add' ? 'crosshair' : activeTool === 'pan' ? 'grab' : 'default' }}
+            style={{ width: `${formation.stageWidth * 20 * zoom}px`, height: `${formation.stageHeight * 20 * zoom}px`, cursor: activeTool === 'add' || isShapeTool ? 'crosshair' : activeTool === 'pan' ? 'grab' : 'default' }}
             onClick={handleCanvasClick} onMouseMove={handleCanvasMouseMove} onMouseLeave={handleCanvasMouseLeave}
           >
             {showGrid && (
@@ -377,7 +549,23 @@ export function FormationCanvas({
               </svg>
             )}
             <div className="absolute inset-0 border-2 border-gray-300 dark:border-gray-600 pointer-events-none" style={{ zIndex: 1 }} />
+            {showFieldOverlay && (
+              <FieldOverlay
+                canvasWidth={formation.stageWidth * 20 * zoom}
+                canvasHeight={formation.stageHeight * 20 * zoom}
+              />
+            )}
             {showPaths && !playbackState.isPlaying && <PathOverlay performers={formation.performers} paths={performerPaths} currentTime={playbackState.currentTime} canvasWidth={formation.stageWidth * 20 * zoom} canvasHeight={formation.stageHeight * 20 * zoom} showPaths={showPaths} selectedPerformerIds={selectedPerformerIds} />}
+            {isShapeTool && shapeToolStart && shapeToolCurrent && (
+              <ShapeToolOverlay
+                tool={activeTool as 'line' | 'arc' | 'block'}
+                start={shapeToolStart}
+                current={shapeToolCurrent}
+                performerCount={formation.performers.length}
+                canvasWidth={formation.stageWidth * 20 * zoom}
+                canvasHeight={formation.stageHeight * 20 * zoom}
+              />
+            )}
             {isCollaborativeEnabled && collab.collaborators.length > 0 && <SelectionRingsOverlay collaborators={collab.collaborators} performerPositions={currentPositions} canvasWidth={formation.stageWidth * 20 * zoom} canvasHeight={formation.stageHeight * 20 * zoom} />}
             {formation.performers.map((performer) => {
               const position = currentPositions.get(performer.id);
@@ -404,7 +592,7 @@ export function FormationCanvas({
         </div>
       )}
 
-      <Timeline keyframes={formation.keyframes} duration={playbackState.duration} currentTime={playbackState.currentTime} playbackState={playbackState} selectedKeyframeId={selectedKeyframeId} audioTrack={formation.audioTrack} onPlay={handlePlay} onPause={handlePause} onStop={handleStop} onSeek={handleSeek} onSpeedChange={handleSpeedChange} onToggleLoop={handleToggleLoop} onKeyframeSelect={handleKeyframeSelect} onKeyframeAdd={handleKeyframeAdd} onKeyframeRemove={handleKeyframeRemove} onKeyframeMove={handleKeyframeMove} />
+      <Timeline keyframes={formation.keyframes} duration={playbackState.duration} currentTime={playbackState.currentTime} playbackState={playbackState} selectedKeyframeId={selectedKeyframeId} audioTrack={formation.audioTrack} drillSettings={drillSettings} timeDisplayMode={timeDisplayMode} onDrillSettingsChange={setDrillSettings} onPlay={handlePlay} onPause={handlePause} onStop={handleStop} onSeek={handleSeek} onSpeedChange={handleSpeedChange} onToggleLoop={handleToggleLoop} onKeyframeSelect={handleKeyframeSelect} onKeyframeAdd={handleKeyframeAdd} onKeyframeRemove={handleKeyframeRemove} onKeyframeMove={handleKeyframeMove} />
       <ExportDialog isOpen={isExportDialogOpen} formationName={formation.name} onClose={() => setIsExportDialogOpen(false)} onExport={handleExport} />
       {showTemplatePicker && <TemplatePicker performerCount={formation.performers.length} onApply={handleApplyTemplate} onCancel={() => setShowTemplatePicker(false)} />}
     </div>

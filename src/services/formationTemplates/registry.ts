@@ -412,6 +412,230 @@ const diagonalTemplate: DrillTemplate = createTemplate(
 );
 
 // ============================================================================
+// DRILL TEMPLATES
+// ============================================================================
+
+// Company Front - performers in a straight line across the field
+const companyFrontTemplate: DrillTemplate = createTemplate(
+  'drill-company-front',
+  'Company Front',
+  'All performers in a straight horizontal line across the field, the signature marching band formation',
+  'drill',
+  Array.from({ length: 12 }, (_, i) => ({
+    index: i,
+    label: String(i + 1),
+    relativePosition: { x: 10 + (i * 80) / 11, y: 50, rotation: 0 },
+  })),
+  [
+    createInitialKeyframe(
+      new Map(Array.from({ length: 12 }, (_, i) => [i, { x: 10 + (i * 80) / 11, y: 50, rotation: 0 }]))
+    ),
+  ],
+  {
+    tags: ['drill', 'company-front', 'line', 'marching'],
+    parameters: { minPerformers: 4, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+  }
+);
+
+// Wedge - inverted V formation moving forward
+const wedgeTemplate: DrillTemplate = createTemplate(
+  'drill-wedge',
+  'Wedge',
+  'Inverted V-shape with point performer at the front, classic marching band attack formation',
+  'drill',
+  [
+    { index: 0, label: '1', relativePosition: { x: 50, y: 30, rotation: 0 } },
+    { index: 1, label: '2', relativePosition: { x: 42, y: 38, rotation: 0 } },
+    { index: 2, label: '3', relativePosition: { x: 58, y: 38, rotation: 0 } },
+    { index: 3, label: '4', relativePosition: { x: 34, y: 46, rotation: 0 } },
+    { index: 4, label: '5', relativePosition: { x: 66, y: 46, rotation: 0 } },
+    { index: 5, label: '6', relativePosition: { x: 26, y: 54, rotation: 0 } },
+    { index: 6, label: '7', relativePosition: { x: 74, y: 54, rotation: 0 } },
+    { index: 7, label: '8', relativePosition: { x: 18, y: 62, rotation: 0 } },
+    { index: 8, label: '9', relativePosition: { x: 82, y: 62, rotation: 0 } },
+  ],
+  [
+    createInitialKeyframe(
+      new Map([
+        [0, { x: 50, y: 30, rotation: 0 }],
+        [1, { x: 42, y: 38, rotation: 0 }],
+        [2, { x: 58, y: 38, rotation: 0 }],
+        [3, { x: 34, y: 46, rotation: 0 }],
+        [4, { x: 66, y: 46, rotation: 0 }],
+        [5, { x: 26, y: 54, rotation: 0 }],
+        [6, { x: 74, y: 54, rotation: 0 }],
+        [7, { x: 18, y: 62, rotation: 0 }],
+        [8, { x: 82, y: 62, rotation: 0 }],
+      ])
+    ),
+  ],
+  {
+    tags: ['drill', 'wedge', 'v-shape', 'marching'],
+    parameters: { minPerformers: 3, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+  }
+);
+
+// Stagger - offset rows for visual density
+const staggerTemplate: DrillTemplate = createTemplate(
+  'drill-stagger',
+  'Stagger',
+  'Offset rows creating a checkerboard pattern for visual density on the field',
+  'drill',
+  Array.from({ length: 12 }, (_, i) => {
+    const row = Math.floor(i / 4);
+    const col = i % 4;
+    const offset = row % 2 === 1 ? 10 : 0;
+    return {
+      index: i,
+      label: String(i + 1),
+      relativePosition: { x: 20 + col * 20 + offset, y: 30 + row * 15, rotation: 0 },
+    };
+  }),
+  [
+    createInitialKeyframe(
+      new Map(Array.from({ length: 12 }, (_, i) => {
+        const row = Math.floor(i / 4);
+        const col = i % 4;
+        const offset = row % 2 === 1 ? 10 : 0;
+        return [i, { x: 20 + col * 20 + offset, y: 30 + row * 15, rotation: 0 }];
+      }))
+    ),
+  ],
+  {
+    tags: ['drill', 'stagger', 'offset', 'checkerboard', 'marching'],
+    parameters: { minPerformers: 4, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+  }
+);
+
+// Fan Spread - performers spread out from a central point in a fan/arc
+const fanSpreadTemplate: DrillTemplate = (() => {
+  const count = 9;
+  const performers: TemplatePerformer[] = [];
+  const positions = new Map<number, TemplatePosition>();
+
+  for (let i = 0; i < count; i++) {
+    const angle = -Math.PI / 2 + ((i / (count - 1)) * Math.PI); // 180-degree fan
+    const radius = 30;
+    const x = 50 + Math.cos(angle) * radius;
+    const y = 70 + Math.sin(angle) * radius;
+    performers.push({ index: i, label: String(i + 1), relativePosition: { x, y, rotation: 0 } });
+    positions.set(i, { x, y, rotation: 0 });
+  }
+
+  return createTemplate(
+    'drill-fan-spread',
+    'Fan Spread',
+    'Performers arranged in a semicircular fan shape, spreading from a pivot point',
+    'drill',
+    performers,
+    [createInitialKeyframe(positions)],
+    {
+      tags: ['drill', 'fan', 'spread', 'arc', 'marching'],
+      parameters: { minPerformers: 5, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// Follow-the-Leader - curved serpentine path
+const followTheLeaderTemplate: DrillTemplate = (() => {
+  const count = 10;
+  const performers: TemplatePerformer[] = [];
+  const positions = new Map<number, TemplatePosition>();
+
+  for (let i = 0; i < count; i++) {
+    const t = i / (count - 1);
+    const x = 20 + t * 60;
+    const y = 50 + Math.sin(t * 2 * Math.PI) * 15;
+    performers.push({ index: i, label: String(i + 1), relativePosition: { x, y, rotation: 0 } });
+    positions.set(i, { x, y, rotation: 0 });
+  }
+
+  return createTemplate(
+    'drill-follow-the-leader',
+    'Follow the Leader',
+    'Performers along a serpentine curve, classic follow-the-leader drill move',
+    'drill',
+    performers,
+    [createInitialKeyframe(positions)],
+    {
+      tags: ['drill', 'follow-the-leader', 'serpentine', 'curve', 'marching'],
+      parameters: { minPerformers: 5, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// Gate Turn - two lines that pivot open like a gate
+const gateTurnTemplate: DrillTemplate = createTemplate(
+  'drill-gate-turn',
+  'Gate Turn',
+  'Two mirrored lines that pivot from a center point, opening like a gate',
+  'drill',
+  [
+    // Left gate
+    { index: 0, label: '1', relativePosition: { x: 50, y: 35, rotation: 0 } },
+    { index: 1, label: '2', relativePosition: { x: 42, y: 35, rotation: 0 } },
+    { index: 2, label: '3', relativePosition: { x: 34, y: 35, rotation: 0 } },
+    { index: 3, label: '4', relativePosition: { x: 26, y: 35, rotation: 0 } },
+    // Right gate
+    { index: 4, label: '5', relativePosition: { x: 50, y: 65, rotation: 0 } },
+    { index: 5, label: '6', relativePosition: { x: 58, y: 65, rotation: 0 } },
+    { index: 6, label: '7', relativePosition: { x: 66, y: 65, rotation: 0 } },
+    { index: 7, label: '8', relativePosition: { x: 74, y: 65, rotation: 0 } },
+  ],
+  [
+    createInitialKeyframe(
+      new Map([
+        [0, { x: 50, y: 35, rotation: 0 }],
+        [1, { x: 42, y: 35, rotation: 0 }],
+        [2, { x: 34, y: 35, rotation: 0 }],
+        [3, { x: 26, y: 35, rotation: 0 }],
+        [4, { x: 50, y: 65, rotation: 0 }],
+        [5, { x: 58, y: 65, rotation: 0 }],
+        [6, { x: 66, y: 65, rotation: 0 }],
+        [7, { x: 74, y: 65, rotation: 0 }],
+      ])
+    ),
+  ],
+  {
+    tags: ['drill', 'gate', 'turn', 'pivot', 'marching'],
+    parameters: { minPerformers: 4, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+  }
+);
+
+// Pinwheel - performers arranged in radial arms from center
+const pinwheelTemplate: DrillTemplate = (() => {
+  const arms = 4;
+  const perArm = 3;
+  const performers: TemplatePerformer[] = [];
+  const positions = new Map<number, TemplatePosition>();
+
+  for (let arm = 0; arm < arms; arm++) {
+    const baseAngle = (arm / arms) * 2 * Math.PI - Math.PI / 2;
+    for (let j = 0; j < perArm; j++) {
+      const idx = arm * perArm + j;
+      const radius = 10 + j * 12;
+      const x = 50 + Math.cos(baseAngle) * radius;
+      const y = 50 + Math.sin(baseAngle) * radius;
+      performers.push({ index: idx, label: String(idx + 1), relativePosition: { x, y, rotation: 0 } });
+      positions.set(idx, { x, y, rotation: 0 });
+    }
+  }
+
+  return createTemplate(
+    'drill-pinwheel',
+    'Pinwheel',
+    'Performers arranged in radial arms from a center point, spinning pinwheel formation',
+    'drill',
+    performers,
+    [createInitialKeyframe(positions)],
+    {
+      tags: ['drill', 'pinwheel', 'radial', 'spin', 'marching'],
+      parameters: { minPerformers: 4, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// ============================================================================
 // TEMPLATE REGISTRY CLASS
 // ============================================================================
 
@@ -435,6 +659,13 @@ class FormationTemplateRegistry {
       arrowTemplate,
       twoLinesTemplate,
       diagonalTemplate,
+      companyFrontTemplate,
+      wedgeTemplate,
+      staggerTemplate,
+      fanSpreadTemplate,
+      followTheLeaderTemplate,
+      gateTurnTemplate,
+      pinwheelTemplate,
     ];
 
     for (const template of builtIn) {

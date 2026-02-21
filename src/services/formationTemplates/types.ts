@@ -9,7 +9,7 @@ import { Position } from '../formationService';
 /**
  * Template category for organization
  */
-export type TemplateCategory = 'basic' | 'intermediate' | 'advanced' | 'custom';
+export type TemplateCategory = 'basic' | 'intermediate' | 'advanced' | 'custom' | 'drill';
 
 /**
  * Relative position for template performers

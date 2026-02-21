@@ -21,6 +21,7 @@ import {
   LayoutGrid,
   Loader2,
   Check,
+  Music,
 } from 'lucide-react';
 import { templateRegistry } from '@/services/formationTemplates/registry';
 import {
@@ -117,6 +118,7 @@ export function TemplatePicker({
     intermediate: <LayoutGrid className="w-4 h-4" />,
     advanced: <Users className="w-4 h-4" />,
     custom: <Users className="w-4 h-4" />,
+    drill: <Music className="w-4 h-4" />,
   };
 
   const categoryLabels: Record<TemplateCategory, string> = {
@@ -124,6 +126,7 @@ export function TemplatePicker({
     intermediate: 'Intermediate',
     advanced: 'Advanced',
     custom: 'Custom',
+    drill: 'Drill',
   };
 
   return (
