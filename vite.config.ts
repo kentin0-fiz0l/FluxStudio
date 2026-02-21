@@ -143,10 +143,9 @@
                 return 'vendor-socket';
               }
 
-              // Recharts (heavy — ~300KB) — only loaded on analytics/dashboard pages
-              if (id.includes('recharts') || id.includes('victory')) {
-                return 'vendor-recharts';
-              }
+              // Recharts — let Rollup handle naturally.
+              // Recharts depends on React, so manual chunking creates
+              // circular dependencies with page-project-detail and feature-analytics.
 
               // Three.js + React Three Fiber — let Vite's natural code splitting handle this.
               // Manual chunking creates circular dependency chains with page-project-detail
@@ -203,20 +202,18 @@
                 return 'vendor-http';
               }
 
-              // i18n (loaded asynchronously, not needed for first paint)
-              if (id.includes('i18next') || id.includes('intl-')) {
-                return 'vendor-i18n';
-              }
+              // i18n — let Rollup handle naturally.
+              // react-i18next depends on React, so manual chunking creates
+              // circular dependencies with feature-admin and page-project-detail.
 
               // Framer Motion (animation library, can defer)
               if (id.includes('framer-motion') || id.includes('popmotion')) {
                 return 'vendor-motion';
               }
 
-              // TipTap editor (only on collaboration pages)
-              if (id.includes('@tiptap') || id.includes('tiptap')) {
-                return 'vendor-tiptap';
-              }
+              // TipTap — let Rollup handle naturally.
+              // @tiptap/react depends on React, so manual chunking creates
+              // circular dependencies with page-project-detail.
 
               // === All other node_modules (including React-dependent ones) ===
               // Let Rollup handle placement to avoid circular dependencies.
