@@ -5,7 +5,7 @@
  */
 
 import { StateCreator } from 'zustand';
-import { FluxStore } from '../store';
+import type { FluxStore } from '../store';
 
 // ============================================================================
 // Types
@@ -512,19 +512,29 @@ export const createAuthSlice: StateCreator<
 // Convenience Hooks
 // ============================================================================
 
-import { useStore } from '../store';
+// Lazy-resolve useStore to break circular dependency: authSlice ↔ store
+// These hooks only run during React render, well after all modules initialize.
+let _useStore: typeof import('../store').useStore;
+function getUseStore() {
+  if (!_useStore) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    _useStore = (require('../store') as typeof import('../store')).useStore;
+  }
+  return _useStore;
+}
 
 export const useAuth = () => {
-  return useStore((state) => state.auth);
+  return getUseStore()((state) => state.auth);
 };
 
 export const useSession = () => {
-  const session = useStore((state) => state.auth.session);
-  const updateSession = useStore((state) => state.auth.updateSession);
-  const markAsSeen = useStore((state) => state.auth.markAsSeen);
-  const getTimeSinceLastSeen = useStore((state) => state.auth.getTimeSinceLastSeen);
-  const recordActivity = useStore((state) => state.auth.recordActivity);
-  const isReturningSession = useStore((state) => state.auth.isReturningSession);
-  const clearSession = useStore((state) => state.auth.clearSession);
+  const store = getUseStore();
+  const session = store((state) => state.auth.session);
+  const updateSession = store((state) => state.auth.updateSession);
+  const markAsSeen = store((state) => state.auth.markAsSeen);
+  const getTimeSinceLastSeen = store((state) => state.auth.getTimeSinceLastSeen);
+  const recordActivity = store((state) => state.auth.recordActivity);
+  const isReturningSession = store((state) => state.auth.isReturningSession);
+  const clearSession = store((state) => state.auth.clearSession);
   return { session, updateSession, markAsSeen, getTimeSinceLastSeen, recordActivity, isReturningSession, clearSession };
 };
