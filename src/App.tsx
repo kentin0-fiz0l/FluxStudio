@@ -162,6 +162,13 @@ function GlobalQuickActions({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Guard component - only renders children when authenticated
+function AuthOnly({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return null;
+  return <>{children}</>;
+}
+
 // Authenticated app wrapper - contains all providers for authenticated routes
 function AuthenticatedRoutes() {
   return (
@@ -170,10 +177,12 @@ function AuthenticatedRoutes() {
       <ProjectContextBar />
       {/* Work Momentum - passive context capture */}
       <MomentumCapture />
-      {/* AI Agent Panel - accessible from anywhere */}
-      <Suspense fallback={null}>
-        <AgentPanel />
-      </Suspense>
+      {/* AI Agent Panel - only load when authenticated to avoid spurious API calls */}
+      <AuthOnly>
+        <Suspense fallback={null}>
+          <AgentPanel />
+        </Suspense>
+      </AuthOnly>
       {/* Global Quick Actions - Cmd/Ctrl+K to open */}
       <GlobalQuickActions>
         <Suspense fallback={<DefaultLoadingFallback />}>
