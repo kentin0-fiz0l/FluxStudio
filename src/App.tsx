@@ -113,6 +113,10 @@ const Referrals = React.lazy(() => import('./pages/Referrals'));
 // AI Agent Panel
 const { Component: AgentPanel } = lazyLoadWithRetry(() => import('./components/agent/AgentPanel'));
 
+// Public pages (no auth required)
+const TryEditor = React.lazy(() => import('./pages/TryEditor'));
+const SharedFormation = React.lazy(() => import('./pages/SharedFormation'));
+
 // 404 Not Found page
 const { Component: NotFound } = lazyLoadWithRetry(() => import('./pages/NotFound'));
 
@@ -212,6 +216,10 @@ function AuthenticatedRoutes() {
                   {/* Legal pages - public */}
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
+
+                  {/* Public formation pages - no auth required */}
+                  <Route path="/try" element={<TryEditor />} />
+                  <Route path="/share/:formationId" element={<SharedFormation />} />
 
                   {/* Help & Support pages - public but with optional auth */}
                   <Route path="/help" element={<HelpCenter />} />

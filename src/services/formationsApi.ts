@@ -477,6 +477,28 @@ export async function deleteSceneObject(formationId: string, objectId: string): 
 }
 
 // ============================================================================
+// PUBLIC / SHARED ENDPOINTS (no auth required)
+// ============================================================================
+
+export async function fetchSharedFormation(formationId: string): Promise<Formation & { createdBy?: string }> {
+  // Public endpoint — use fetch directly without auth
+  const url = getApiUrl(`/api/formations/${formationId}/share`);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch shared formation: ${res.status}`);
+  const data = await res.json();
+  const raw = data.data || data;
+  return { ...transformApiFormation(raw), createdBy: raw.createdBy };
+}
+
+export async function generateShareLink(formationId: string): Promise<string> {
+  const result = await apiRequest<{ success: boolean; shareUrl: string }>(
+    `/api/formations/${formationId}/share`,
+    { method: 'POST' }
+  );
+  return result.shareUrl || `${window.location.origin}/share/${formationId}`;
+}
+
+// ============================================================================
 // TRANSFORM HELPERS
 // ============================================================================
 

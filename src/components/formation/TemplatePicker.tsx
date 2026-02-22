@@ -37,6 +37,8 @@ interface TemplatePickerProps {
   onCancel: () => void;
   performerCount: number;
   initialCategory?: TemplateCategory;
+  /** When true, shown as the empty-state welcome — "Start from scratch" dismisses */
+  emptyState?: boolean;
 }
 
 type ViewState = 'browse' | 'preview';
@@ -46,6 +48,7 @@ export function TemplatePicker({
   onCancel,
   performerCount,
   initialCategory,
+  emptyState = false,
 }: TemplatePickerProps) {
   const [viewState, setViewState] = React.useState<ViewState>('browse');
   const [selectedCategory, setSelectedCategory] = React.useState<TemplateCategory | null>(
@@ -79,11 +82,13 @@ export function TemplatePicker({
         result = templateRegistry.getAllTemplates();
       }
 
-      // Filter by performer count compatibility
-      result = result.filter(t =>
-        performerCount >= t.parameters.minPerformers &&
-        (!t.parameters.maxPerformers || performerCount <= t.parameters.maxPerformers)
-      );
+      // Filter by performer count compatibility (skip filter in empty state — show all templates)
+      if (!emptyState && performerCount > 0) {
+        result = result.filter(t =>
+          performerCount >= t.parameters.minPerformers &&
+          (!t.parameters.maxPerformers || performerCount <= t.parameters.maxPerformers)
+        );
+      }
 
       setTemplates(result);
     } catch (error) {
@@ -149,17 +154,37 @@ export function TemplatePicker({
               </button>
             )}
             <LayoutGrid className="w-6 h-6 text-indigo-600" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              {viewState === 'browse' && 'Formation Templates'}
-              {viewState === 'preview' && selectedTemplate?.name}
-            </h2>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                {emptyState && viewState === 'browse' && 'Choose a Starting Formation'}
+                {!emptyState && viewState === 'browse' && 'Formation Templates'}
+                {viewState === 'preview' && selectedTemplate?.name}
+              </h2>
+              {emptyState && viewState === 'browse' && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  Pick a template to get started, or start with a blank canvas
+                </p>
+              )}
+            </div>
           </div>
-          <button
-            onClick={onCancel}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {emptyState && viewState === 'browse' && (
+              <button
+                onClick={onCancel}
+                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                Start from scratch
+              </button>
+            )}
+            {!emptyState && (
+              <button
+                onClick={onCancel}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Content */}

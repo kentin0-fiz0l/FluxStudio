@@ -510,4 +510,65 @@ router.put('/formations/:formationId/scene-objects', authenticateToken, async (r
   }
 });
 
+// ============================================================================
+// PUBLIC / SHARE ENDPOINTS (no auth required for GET)
+// ============================================================================
+
+/**
+ * GET /api/formations/:formationId/share
+ * Fetch a formation for public sharing (no auth required)
+ * Returns stripped-down formation data (no sensitive fields)
+ */
+router.get('/formations/:formationId/share', async (req, res) => {
+  try {
+    const { formationId } = req.params;
+    const formation = await formationsAdapter.getFormationById(formationId);
+
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found' });
+    }
+
+    // Return only public-safe fields
+    res.json({
+      success: true,
+      data: {
+        id: formation.id,
+        name: formation.name,
+        description: formation.description,
+        stageWidth: formation.stageWidth || 100,
+        stageHeight: formation.stageHeight || 100,
+        gridSize: formation.gridSize || 5,
+        performers: formation.performers || [],
+        keyframes: formation.keyframes || [],
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching shared formation:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch formation' });
+  }
+});
+
+/**
+ * POST /api/formations/:formationId/share
+ * Generate a share link for a formation (auth required)
+ */
+router.post('/formations/:formationId/share', authenticateToken, async (req, res) => {
+  try {
+    const { formationId } = req.params;
+    const formation = await formationsAdapter.getFormationById(formationId);
+
+    if (!formation) {
+      return res.status(404).json({ success: false, error: 'Formation not found' });
+    }
+
+    // Share URL is deterministic based on formation ID
+    const shareUrl = `${req.protocol}://${req.get('host')}/share/${formationId}`;
+
+    res.json({ success: true, shareUrl });
+  } catch (error) {
+    console.error('Error generating share link:', error);
+    res.status(500).json({ success: false, error: 'Failed to generate share link' });
+  }
+});
+
 module.exports = router;

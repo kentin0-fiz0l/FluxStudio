@@ -531,13 +531,13 @@ export function Hero() {
                   Start Free Trial
                   <ArrowRight className="w-5 h-5" aria-hidden="true" />
                 </Link>
-                <a
-                  href="#features"
-                  className="inline-flex items-center justify-center gap-2 font-sans font-semibold border border-neutral-700 px-8 py-4 rounded-full text-lg text-neutral-300 hover:bg-neutral-800/60 transition-all duration-normal focus-visible-ring"
+                <Link
+                  to="/try"
+                  className="inline-flex items-center justify-center gap-2 font-sans font-semibold border border-neutral-700 px-8 py-4 rounded-full text-lg text-neutral-300 hover:bg-neutral-800/60 hover:border-neutral-500 transition-all duration-normal focus-visible-ring"
                 >
-                  Watch Demo
+                  Try the Editor
                   <Play className="w-4 h-4" aria-hidden="true" />
-                </a>
+                </Link>
               </motion.div>
 
               {/* Stats row */}
@@ -1138,10 +1138,11 @@ export function CTAFooter() {
                 <ArrowRight className="w-5 h-5" aria-hidden="true" />
               </Link>
               <Link
-                to="/login"
-                className="inline-flex items-center justify-center font-sans font-semibold border border-neutral-700 px-8 py-4 rounded-full text-lg text-neutral-300 hover:bg-neutral-800/60 transition-all duration-normal focus-visible-ring"
+                to="/try"
+                className="inline-flex items-center justify-center gap-2 font-sans font-semibold border border-neutral-700 px-8 py-4 rounded-full text-lg text-neutral-300 hover:bg-neutral-800/60 hover:border-neutral-500 transition-all duration-normal focus-visible-ring"
               >
-                Sign In
+                Try the Editor
+                <Play className="w-4 h-4" aria-hidden="true" />
               </Link>
             </motion.div>
             <motion.p

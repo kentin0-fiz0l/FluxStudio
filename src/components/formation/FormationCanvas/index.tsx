@@ -24,6 +24,8 @@ import {
 } from '../../../services/formationService';
 import { useFormation } from '../../../hooks/useFormations';
 import { useFormationYjs } from '../../../hooks/useFormationYjs';
+import { useFormationHistory } from '../../../hooks/useFormationHistory';
+import { useKeyboardShortcuts } from '../../../hooks/useKeyboardShortcuts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from '../../../lib/toast';
 import { getUserColor } from '../../../services/formation/yjs/formationYjsTypes';
@@ -47,6 +49,8 @@ interface FormationCanvasProps {
   onSave?: (formation: Formation) => void;
   onClose?: () => void;
   collaborativeMode?: boolean;
+  /** Sandbox mode — disables save/export, shows signup CTA */
+  sandboxMode?: boolean;
 }
 
 type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block';
@@ -80,7 +84,7 @@ function getInitialFormationData(formationId: string | undefined, projectId: str
 // ============================================================================
 
 export function FormationCanvas({
-  formationId, projectId, onSave, onClose: _onClose, collaborativeMode,
+  formationId, projectId, onSave, onClose: _onClose, collaborativeMode, sandboxMode = false,
 }: FormationCanvasProps) {
   const { t } = useTranslation('common');
   const { user } = useAuth();
@@ -153,6 +157,183 @@ export function FormationCanvas({
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [playbackState, setPlaybackState] = useState<PlaybackState>({ isPlaying: false, currentTime: 0, duration: 5000, loop: false, speed: 1 });
   const [_historyIndex, _setHistoryIndex] = useState(0);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // ============================================================================
+  // UNDO/REDO HISTORY
+  // ============================================================================
+
+  const history = useFormationHistory({ maxHistory: 100 });
+
+  // Push initial state into history when formation loads
+  useEffect(() => {
+    if (formation && formation.performers.length >= 0) {
+      history.reset({
+        positions: new Map(currentPositions),
+        performerIds: formation.performers.map(p => p.id),
+        label: 'Initial state',
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formation?.id]);
+
+  /** Snapshot the current state for undo history */
+  const pushHistory = useCallback((label: string) => {
+    if (!formation) return;
+    history.pushState({
+      positions: new Map(currentPositions),
+      performerIds: formation.performers.map(p => p.id),
+      label,
+    });
+    setHasUnsavedChanges(true);
+  }, [formation, currentPositions, history]);
+
+  const handleUndo = useCallback(() => {
+    const snapshot = history.undo();
+    if (snapshot && formation) {
+      setCurrentPositions(new Map(snapshot.positions));
+      // Sync positions back to formationService
+      snapshot.positions.forEach((pos, id) => {
+        formationService.updatePosition(formation.id, selectedKeyframeId, id, pos);
+      });
+      setHasUnsavedChanges(true);
+    }
+  }, [history, formation, selectedKeyframeId]);
+
+  const handleRedo = useCallback(() => {
+    const snapshot = history.redo();
+    if (snapshot && formation) {
+      setCurrentPositions(new Map(snapshot.positions));
+      snapshot.positions.forEach((pos, id) => {
+        formationService.updatePosition(formation.id, selectedKeyframeId, id, pos);
+      });
+      setHasUnsavedChanges(true);
+    }
+  }, [history, formation, selectedKeyframeId]);
+
+  // ============================================================================
+  // AUTO-SAVE (debounced 3s after last change)
+  // ============================================================================
+
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges || sandboxMode || !formationId) return;
+
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      handleSave();
+    }, 3000);
+
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasUnsavedChanges, sandboxMode, formationId]);
+
+  // ============================================================================
+  // KEYBOARD SHORTCUTS
+  // ============================================================================
+
+  const handleDeleteSelected = useCallback(() => {
+    if (!formation || selectedPerformerIds.size === 0) return;
+    const ids = Array.from(selectedPerformerIds);
+    ids.forEach(id => {
+      if (isCollaborativeEnabled && collab.isConnected) collab.removePerformer(id);
+      else formationService.removePerformer(formation.id, id);
+    });
+    setFormation(prev => prev ? {
+      ...prev,
+      performers: prev.performers.filter(p => !selectedPerformerIds.has(p.id)),
+    } : prev);
+    setCurrentPositions(prev => {
+      const next = new Map(prev);
+      ids.forEach(id => next.delete(id));
+      return next;
+    });
+    setSelectedPerformerIds(new Set());
+    pushHistory('Delete performers');
+  }, [formation, selectedPerformerIds, isCollaborativeEnabled, collab, pushHistory]);
+
+  const handleDuplicateSelected = useCallback(() => {
+    if (!formation || selectedPerformerIds.size === 0) return;
+    const newPerformers: typeof formation.performers = [];
+    const newPositions = new Map(currentPositions);
+
+    selectedPerformerIds.forEach(id => {
+      const performer = formation.performers.find(p => p.id === id);
+      const pos = currentPositions.get(id);
+      if (!performer || !pos) return;
+      const newId = `performer-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      newPerformers.push({ ...performer, id: newId, label: `${performer.label}*` });
+      newPositions.set(newId, { x: pos.x + 3, y: pos.y + 3, rotation: pos.rotation });
+    });
+
+    setFormation(prev => prev ? {
+      ...prev,
+      performers: [...prev.performers, ...newPerformers],
+      keyframes: prev.keyframes.map(kf => ({
+        ...kf,
+        positions: kf.id === selectedKeyframeId ? newPositions : kf.positions,
+      })),
+    } : prev);
+    setCurrentPositions(newPositions);
+    pushHistory('Duplicate performers');
+  }, [formation, selectedPerformerIds, currentPositions, selectedKeyframeId, pushHistory]);
+
+  const handleSelectAll = useCallback(() => {
+    if (!formation) return;
+    setSelectedPerformerIds(new Set(formation.performers.map(p => p.id)));
+  }, [formation]);
+
+  const handleDeselectAll = useCallback(() => {
+    setSelectedPerformerIds(new Set());
+  }, []);
+
+  const handleNudge = useCallback((dx: number, dy: number) => {
+    if (!formation || selectedPerformerIds.size === 0) return;
+    setCurrentPositions(prev => {
+      const next = new Map(prev);
+      selectedPerformerIds.forEach(id => {
+        const pos = prev.get(id);
+        if (pos) {
+          const newPos = {
+            x: Math.max(0, Math.min(100, pos.x + dx)),
+            y: Math.max(0, Math.min(100, pos.y + dy)),
+            rotation: pos.rotation,
+          };
+          next.set(id, newPos);
+          formationService.updatePosition(formation.id, selectedKeyframeId, id, newPos);
+        }
+      });
+      return next;
+    });
+    setHasUnsavedChanges(true);
+  }, [formation, selectedPerformerIds, selectedKeyframeId]);
+
+  const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+
+  useKeyboardShortcuts({
+    shortcuts: [
+      { key: 'z', ctrlKey: !isMac, metaKey: isMac, action: handleUndo, description: 'Undo' },
+      { key: 'z', ctrlKey: !isMac, metaKey: isMac, shiftKey: true, action: handleRedo, description: 'Redo' },
+      { key: 'y', ctrlKey: !isMac, metaKey: isMac, action: handleRedo, description: 'Redo' },
+      { key: 'Delete', action: handleDeleteSelected, description: 'Delete selected' },
+      { key: 'Backspace', action: handleDeleteSelected, description: 'Delete selected' },
+      { key: 'd', ctrlKey: !isMac, metaKey: isMac, action: handleDuplicateSelected, description: 'Duplicate selected' },
+      { key: 'a', ctrlKey: !isMac, metaKey: isMac, action: handleSelectAll, description: 'Select all' },
+      { key: 'Escape', action: handleDeselectAll, description: 'Deselect all' },
+      { key: 'ArrowUp', action: () => handleNudge(0, -1), description: 'Nudge up' },
+      { key: 'ArrowDown', action: () => handleNudge(0, 1), description: 'Nudge down' },
+      { key: 'ArrowLeft', action: () => handleNudge(-1, 0), description: 'Nudge left' },
+      { key: 'ArrowRight', action: () => handleNudge(1, 0), description: 'Nudge right' },
+      { key: 'ArrowUp', shiftKey: true, action: () => handleNudge(0, -5), description: 'Nudge up (large)' },
+      { key: 'ArrowDown', shiftKey: true, action: () => handleNudge(0, 5), description: 'Nudge down (large)' },
+      { key: 'ArrowLeft', shiftKey: true, action: () => handleNudge(-5, 0), description: 'Nudge left (large)' },
+      { key: 'ArrowRight', shiftKey: true, action: () => handleNudge(5, 0), description: 'Nudge right (large)' },
+    ],
+    enabled: !playbackState.isPlaying,
+  });
 
   // Playback handlers
   const handlePlay = useCallback(() => {
@@ -308,7 +489,8 @@ export function FormationCanvas({
   const handleDragEnd = useCallback(() => {
     if (isCollaborativeEnabled && collab.isConnected) collab.setDraggingPerformer(null);
     setDraggingPerformerId(null);
-  }, [isCollaborativeEnabled, collab]);
+    pushHistory('Move performer');
+  }, [isCollaborativeEnabled, collab, pushHistory]);
 
   const handleRotatePerformer = useCallback((performerId: string, rotation: number) => {
     if (!formation || playbackState.isPlaying) return;
@@ -453,7 +635,7 @@ export function FormationCanvas({
       let actualFormationId = formationId;
       if (formationId) { await apiSave({ name: formation.name, performers: formation.performers, keyframes: keyframesData }); }
       else { const created = await formationsApi.createFormation(projectId, { name: formation.name, description: formation.description, stageWidth: formation.stageWidth, stageHeight: formation.stageHeight, gridSize: formation.gridSize }); actualFormationId = created.id; await formationsApi.saveFormation(created.id, { name: formation.name, performers: formation.performers, keyframes: keyframesData }); }
-      setSaveStatus('saved'); setTimeout(() => setSaveStatus('idle'), 2000);
+      setSaveStatus('saved'); setHasUnsavedChanges(false); setTimeout(() => setSaveStatus('idle'), 2000);
       if (onSave) onSave({ ...formation, id: actualFormationId || formation.id });
     } catch (error) { console.error('Error saving formation:', error); setSaveStatus('error'); setTimeout(() => setSaveStatus('idle'), 3000); }
   }, [formation, formationId, projectId, selectedKeyframeId, currentPositions, apiSave, onSave]);
@@ -488,7 +670,8 @@ export function FormationCanvas({
       if (uf) { setFormation({ ...uf, performers: [...uf.performers], keyframes: uf.keyframes.map(kf => ({ ...kf, positions: new Map(kf.positions) })) }); if (result.keyframesCreated > 0 && uf.keyframes.length > 0) { const nk = uf.keyframes[uf.keyframes.length - 1]; setSelectedKeyframeId(nk.id); setCurrentPositions(new Map(nk.positions)); } }
     } else { console.error('Failed to apply template:', result.error); }
     setShowTemplatePicker(false);
-  }, [formation, playbackState.currentTime]);
+    pushHistory('Apply template');
+  }, [formation, playbackState.currentTime, pushHistory]);
 
   const performerPaths = React.useMemo(() => { if (!formation || !showPaths) return new Map(); return formationService.getAllPerformerPaths(formation.id, 15); }, [formation?.id, formation?.keyframes, showPaths]);
 
@@ -528,6 +711,11 @@ export function FormationCanvas({
         hasAudioTrack={!!formation?.audioTrack}
         setShowTemplatePicker={setShowTemplatePicker} setIsExportDialogOpen={setIsExportDialogOpen}
         onSave={handleSave} saveStatus={saveStatus} apiSaving={apiSaving}
+        onUndo={handleUndo} onRedo={handleRedo}
+        canUndo={history.canUndo} canRedo={history.canRedo}
+        hasUnsavedChanges={hasUnsavedChanges}
+        sandboxMode={sandboxMode}
+        formationId={formationId}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -595,7 +783,14 @@ export function FormationCanvas({
 
       <Timeline keyframes={formation.keyframes} duration={playbackState.duration} currentTime={playbackState.currentTime} playbackState={playbackState} selectedKeyframeId={selectedKeyframeId} audioTrack={formation.audioTrack} drillSettings={drillSettings} timeDisplayMode={timeDisplayMode} onDrillSettingsChange={setDrillSettings} onPlay={handlePlay} onPause={handlePause} onStop={handleStop} onSeek={handleSeek} onSpeedChange={handleSpeedChange} onToggleLoop={handleToggleLoop} onKeyframeSelect={handleKeyframeSelect} onKeyframeAdd={handleKeyframeAdd} onKeyframeRemove={handleKeyframeRemove} onKeyframeMove={handleKeyframeMove} />
       <ExportDialog isOpen={isExportDialogOpen} formationName={formation.name} onClose={() => setIsExportDialogOpen(false)} onExport={handleExport} />
-      {showTemplatePicker && <TemplatePicker performerCount={formation.performers.length} onApply={handleApplyTemplate} onCancel={() => setShowTemplatePicker(false)} />}
+      {(showTemplatePicker || formation.performers.length === 0) && (
+        <TemplatePicker
+          performerCount={formation.performers.length}
+          onApply={handleApplyTemplate}
+          onCancel={() => setShowTemplatePicker(false)}
+          emptyState={formation.performers.length === 0}
+        />
+      )}
     </div>
   );
 }

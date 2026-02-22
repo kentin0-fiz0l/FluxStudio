@@ -20,8 +20,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Briefcase,
-  Building2,
-  Package,
   LogOut,
   User,
 } from 'lucide-react';
@@ -100,18 +98,8 @@ const createPrimaryNavItems = (unreadCount: number): NavigationItem[] => [
   },
 ];
 
-// Secondary navigation items - Organization, Plugins & Settings
+// Secondary navigation items - Settings only (Organization & Plugins accessible from Settings)
 const createSecondaryNavItems = (): NavigationItem[] => [
-  {
-    label: 'Organization',
-    icon: <Building2 className="h-5 w-5" aria-hidden="true" />,
-    path: '/organization'
-  },
-  {
-    label: 'Plugins',
-    icon: <Package className="h-5 w-5" aria-hidden="true" />,
-    path: '/plugins'
-  },
   {
     label: 'Settings',
     icon: <Settings className="h-5 w-5" aria-hidden="true" />,
