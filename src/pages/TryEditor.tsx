@@ -7,11 +7,12 @@
  * This is the primary conversion funnel entry point.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FormationCanvas } from '@/components/formation';
 import { SEOHead } from '@/components/SEOHead';
 import { ArrowRight, X } from 'lucide-react';
+import { eventTracker } from '@/services/analytics/eventTracking';
 import type { Position } from '@/services/formationService';
 
 // 8 performers in a V-formation (wedge pointing forward)
@@ -46,6 +47,10 @@ export default function TryEditor() {
   const [showBanner, setShowBanner] = React.useState(true);
   const sandboxPositions = useMemo(() => buildSandboxPositions(), []);
 
+  useEffect(() => {
+    eventTracker.trackEvent('sandbox_page_view', { page: '/try' });
+  }, []);
+
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <SEOHead
@@ -55,15 +60,18 @@ export default function TryEditor() {
       />
       {/* Top banner — sign up CTA */}
       {showBanner && (
-        <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm">
-          <div className="flex items-center gap-2">
-            <span className="font-medium">You're trying FluxStudio</span>
-            <span className="text-indigo-200">—</span>
-            <span className="text-indigo-100">Sign up free to save your work and collaborate with your team</span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-medium whitespace-nowrap">You're trying FluxStudio</span>
+            <span className="text-indigo-200 hidden sm:inline">—</span>
+            <span className="text-indigo-100 hidden sm:inline truncate">Sign up free to save your work and collaborate</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <button
-              onClick={() => navigate('/signup')}
+              onClick={() => {
+                eventTracker.trackEvent('sandbox_signup_click', { source: 'try_banner' });
+                navigate('/signup');
+              }}
               className="flex items-center gap-1 px-4 py-1.5 bg-white text-indigo-600 rounded-lg font-medium text-sm hover:bg-indigo-50 transition-colors"
             >
               Sign up free

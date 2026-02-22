@@ -10,6 +10,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowRight, RotateCcw, Eye } from 'lucide-react';
 import * as formationsApi from '../services/formationsApi';
 import { SEOHead } from '../components/SEOHead';
+import { eventTracker } from '../services/analytics/eventTracking';
 
 const Formation3DViewLazy = React.lazy(
   () => import('../components/formation/Formation3DView').then((m) => ({ default: m.Formation3DView }))
@@ -53,6 +54,10 @@ export default function SharedFormation() {
           performers: data.performers || [],
           positions,
           createdBy: data.createdBy,
+        });
+        eventTracker.trackEvent('shared_formation_view', {
+          formationId,
+          performerCount: (data.performers || []).length,
         });
       } catch (err) {
         console.error('Failed to load shared formation:', err);
@@ -109,13 +114,13 @@ export default function SharedFormation() {
         ogType="article"
       />
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700">
-        <div className="flex items-center gap-3">
-          <span className="text-lg font-semibold text-white">{formation.name}</span>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 py-3 bg-gray-800 border-b border-gray-700">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-base sm:text-lg font-semibold text-white truncate">{formation.name}</span>
           {formation.description && (
-            <span className="text-sm text-gray-400">{formation.description}</span>
+            <span className="text-sm text-gray-400 hidden sm:inline truncate">{formation.description}</span>
           )}
-          <span className="text-xs text-gray-500 bg-gray-700 px-2 py-0.5 rounded">
+          <span className="text-xs text-gray-500 bg-gray-700 px-2 py-0.5 rounded flex-shrink-0">
             {formation.performers.length} performers
           </span>
         </div>
@@ -139,7 +144,10 @@ export default function SharedFormation() {
 
           {/* CTA */}
           <button
-            onClick={() => navigate('/signup')}
+            onClick={() => {
+              eventTracker.trackEvent('shared_signup_click', { source: 'share_header', formationId });
+              navigate('/signup');
+            }}
             className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
           >
             Try FluxStudio

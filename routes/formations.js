@@ -605,14 +605,18 @@ async function handleShareOG(req, res) {
         || `${performerCount}-performer formation — view and explore in 3D`;
       const url = `https://fluxstudio.art/share/${formationId}`;
 
+      const ogImage = `https://fluxstudio.art/api/og/${formationId}.png`;
+
       // Replace default OG tags with formation-specific ones
       html = html
         .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(title)}</title>`)
         .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escapeAttr(title)}" />`)
         .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${escapeAttr(description)}" />`)
         .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${url}" />`)
+        .replace(/<meta property="og:image"[^>]*>/, `<meta property="og:image" content="${ogImage}" />`)
         .replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${escapeAttr(title)}" />`)
         .replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${escapeAttr(description)}" />`)
+        .replace(/<meta name="twitter:image"[^>]*>/, `<meta name="twitter:image" content="${ogImage}" />`)
         .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${escapeAttr(description)}" />`)
         .replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${url}" />`);
     }
@@ -624,6 +628,134 @@ async function handleShareOG(req, res) {
   res.setHeader('Content-Type', 'text/html');
   res.send(html);
 }
+
+/**
+ * GET /api/og/:formationId.png
+ * Generate a dynamic OG image (1200x630) for a shared formation.
+ * Uses Sharp to render an SVG overlay onto a branded background.
+ */
+router.get('/og/:formationId.png', async (req, res) => {
+  try {
+    const sharp = require('sharp');
+    const { formationId } = req.params;
+
+    let title = 'Flux Studio Formation';
+    let subtitle = 'Design marching band formations in your browser';
+    let performerCount = 0;
+
+    try {
+      const formation = await formationsAdapter.getFormationById(formationId);
+      if (formation) {
+        title = formation.name || title;
+        performerCount = (formation.performers || []).length;
+        subtitle = formation.description || `${performerCount} performers`;
+      }
+    } catch {
+      // Use defaults
+    }
+
+    // Truncate long titles
+    if (title.length > 40) title = title.slice(0, 37) + '...';
+    if (subtitle.length > 60) subtitle = subtitle.slice(0, 57) + '...';
+
+    const svg = `
+      <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#0a0a0a"/>
+            <stop offset="100%" style="stop-color:#1a1a2e"/>
+          </linearGradient>
+          <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#8b5cf6"/>
+            <stop offset="50%" style="stop-color:#6366f1"/>
+            <stop offset="100%" style="stop-color:#ec4899"/>
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="630" fill="url(#bg)"/>
+        <!-- Accent bar -->
+        <rect x="0" y="0" width="1200" height="4" fill="url(#accent)"/>
+        <!-- Logo text -->
+        <text x="80" y="100" font-family="system-ui,sans-serif" font-size="28" font-weight="700" fill="url(#accent)">
+          FLUX STUDIO
+        </text>
+        <!-- Formation title -->
+        <text x="80" y="320" font-family="system-ui,sans-serif" font-size="56" font-weight="700" fill="#ffffff">
+          ${escapeHtml(title)}
+        </text>
+        <!-- Subtitle -->
+        <text x="80" y="380" font-family="system-ui,sans-serif" font-size="24" fill="#9ca3af">
+          ${escapeHtml(subtitle)}
+        </text>
+        ${performerCount > 0 ? `
+        <!-- Performer count badge -->
+        <rect x="80" y="420" width="${String(performerCount).length * 16 + 180}" height="40" rx="20" fill="rgba(139,92,246,0.2)"/>
+        <text x="100" y="446" font-family="system-ui,sans-serif" font-size="18" fill="#a78bfa">
+          ${performerCount} performer${performerCount === 1 ? '' : 's'}
+        </text>
+        ` : ''}
+        <!-- Bottom tagline -->
+        <text x="80" y="580" font-family="system-ui,sans-serif" font-size="18" fill="#6b7280">
+          fluxstudio.art — Design marching band formations
+        </text>
+      </svg>
+    `;
+
+    const png = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // 24h cache
+    res.send(png);
+  } catch (err) {
+    console.error('Error generating OG image:', err.message);
+    res.status(500).send('Error generating image');
+  }
+});
+
+/**
+ * GET /api/og-image.png
+ * Default static OG image for the site (non-formation pages).
+ */
+router.get('/og-image.png', async (req, res) => {
+  try {
+    const sharp = require('sharp');
+
+    const svg = `
+      <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#0a0a0a"/>
+            <stop offset="100%" style="stop-color:#1a1a2e"/>
+          </linearGradient>
+          <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#8b5cf6"/>
+            <stop offset="50%" style="stop-color:#6366f1"/>
+            <stop offset="100%" style="stop-color:#ec4899"/>
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="630" fill="url(#bg)"/>
+        <rect x="0" y="0" width="1200" height="4" fill="url(#accent)"/>
+        <text x="600" y="260" font-family="system-ui,sans-serif" font-size="72" font-weight="700" fill="url(#accent)" text-anchor="middle">
+          FLUX STUDIO
+        </text>
+        <text x="600" y="340" font-family="system-ui,sans-serif" font-size="28" fill="#9ca3af" text-anchor="middle">
+          Creative collaboration platform for design teams
+        </text>
+        <text x="600" y="400" font-family="system-ui,sans-serif" font-size="22" fill="#6b7280" text-anchor="middle">
+          Design formations, collaborate in real time, ship together
+        </text>
+      </svg>
+    `;
+
+    const png = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=604800'); // 7-day cache
+    res.send(png);
+  } catch (err) {
+    console.error('Error generating default OG image:', err.message);
+    res.status(500).send('Error generating image');
+  }
+});
 
 // Full path (local dev / direct access)
 router.get('/share/:formationId', handleShareOG);

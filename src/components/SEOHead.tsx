@@ -25,7 +25,7 @@ const DEFAULTS = {
   description:
     'The creative collaboration platform where teams design, prototype, and ship together in real time. AI-assisted workflows, offline-first, and built for speed.',
   url: 'https://fluxstudio.art',
-  ogImage: 'https://fluxstudio.art/og-image.png',
+  ogImage: 'https://fluxstudio.art/api/og-image.png',
 };
 
 export function SEOHead({
