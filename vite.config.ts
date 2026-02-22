@@ -252,7 +252,11 @@
               return 'feature-printing';
             }
 
-            // Onboarding flow — split into sub-chunks to avoid mega-chunk
+            // Onboarding flow — split into sub-chunks
+            // Note: No catch-all for /onboarding/ — shared files (OnboardingStep,
+            // OnboardingProgress, onboardingTypes) are inlined into the client chunk
+            // by Rollup. A catch-all created a circular chunk dependency with
+            // feature-admin (Radix UI primitives vs React/ReactDOM) causing TDZ errors.
             if (id.includes('/src/components/onboarding/ClientOnboarding')) {
               return 'feature-onboarding-client';
             }
@@ -261,9 +265,6 @@
             }
             if (id.includes('/src/components/onboarding/ProductTour')) {
               return 'feature-onboarding-tour';
-            }
-            if (id.includes('/src/components/onboarding/')) {
-              return 'feature-onboarding';
             }
 
             // Admin pages (rarely accessed)
