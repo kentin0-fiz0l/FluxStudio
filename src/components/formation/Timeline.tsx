@@ -435,6 +435,19 @@ export function Timeline({
             ))}
           </select>
 
+          {/* Detected BPM from audio */}
+          {audioTrack?.bpm && audioTrack.bpm > 0 && (
+            <div className="flex items-center gap-1 ml-1">
+              <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mr-1" />
+              <span
+                className="px-2 py-0.5 text-[10px] font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded"
+                title={`Detected BPM: ${audioTrack.bpm} (confidence: ${Math.round((audioTrack.bpmConfidence ?? 0) * 100)}%)`}
+              >
+                {audioTrack.bpm} BPM
+              </span>
+            </div>
+          )}
+
           {/* BPM Input (visible in count mode) */}
           {isCountMode && drillSettings && (
             <div className="relative flex items-center gap-1 ml-1">
@@ -554,6 +567,26 @@ export function Timeline({
             className="absolute top-0 bottom-0 bg-blue-100 dark:bg-blue-900/50"
             style={{ width: `${playheadPosition}%` }}
           />
+
+          {/* Audio beat markers (from BPM detection) */}
+          {audioTrack?.bpm && audioTrack.bpm > 0 && (() => {
+            const beatInterval = 60000 / audioTrack.bpm;
+            const markers: React.ReactNode[] = [];
+            let beat = 0;
+            for (let t = 0; t < duration; t += beatInterval) {
+              beat++;
+              const pos = duration > 0 ? (t / duration) * 100 : 0;
+              const isDownbeat = beat % 4 === 1;
+              markers.push(
+                <div
+                  key={`beat-${beat}`}
+                  className={`absolute top-0 ${isDownbeat ? 'h-full bg-indigo-400/20' : 'h-1/3 bg-indigo-400/10'}`}
+                  style={{ left: `${pos}%`, width: '1px' }}
+                />
+              );
+            }
+            return markers;
+          })()}
 
           {/* Keyframe Markers */}
           {keyframes.map((keyframe, index) => (

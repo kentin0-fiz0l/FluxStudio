@@ -36,7 +36,11 @@
       <!-- Font Optimization -->
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Swanky+and+Moo+Moo&family=Outfit:wght@400;700;900&family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+      <!-- Critical font (primary UI) — render-blocking intentionally -->
+      <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+      <!-- Non-critical fonts — loaded async to avoid blocking FCP -->
+      <link rel="preload" href="https://fonts.googleapis.com/css2?family=Swanky+and+Moo+Moo&family=Outfit:wght@400;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+      <noscript><link href="https://fonts.googleapis.com/css2?family=Swanky+and+Moo+Moo&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet"></noscript>
 
       <!-- PWA Manifest -->
       <link rel="manifest" href="/manifest.json">
@@ -64,7 +68,7 @@
 
     <body>
       <div id="root"></div>
-      <script type="module" src="/src/main.tsx"></script>
+      <script type="module" src="/src/main.tsx" fetchpriority="high"></script>
 
       <!-- PWA Service Worker Registration -->
       <!-- TEMPORARILY DISABLED: Causes caching issues in development -->

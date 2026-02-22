@@ -18,6 +18,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { AudioTrack } from '../../services/formationService';
+import { analyzeAudio } from '../../services/audioAnalysis';
 
 interface AudioUploadProps {
   audioTrack?: AudioTrack | null;
@@ -82,6 +83,19 @@ export function AudioUpload({
       // Get duration
       const duration = await getAudioDuration(file);
 
+      // Analyze audio for BPM detection
+      let bpm: number | undefined;
+      let bpmConfidence: number | undefined;
+      let waveformData: number[] | undefined;
+      try {
+        const analysis = await analyzeAudio(file);
+        bpm = analysis.bpm;
+        bpmConfidence = analysis.confidence;
+        waveformData = Array.from(analysis.waveform.slice(0, 500)); // Keep first 500 samples
+      } catch (analysisErr) {
+        console.warn('Audio analysis failed (BPM detection skipped):', analysisErr);
+      }
+
       // Create a temporary URL for the file
       // In production, this would upload to S3/storage
       const url = URL.createObjectURL(file);
@@ -92,6 +106,9 @@ export function AudioUpload({
         url,
         filename: file.name,
         duration,
+        bpm,
+        bpmConfidence,
+        waveformData,
       };
 
       await onUpload(newAudioTrack);

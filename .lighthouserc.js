@@ -18,6 +18,7 @@ module.exports = {
         'http://localhost:3000/',
         'http://localhost:3000/login',
         'http://localhost:3000/pricing',
+        'http://localhost:3000/try',
       ],
     },
     assert: {

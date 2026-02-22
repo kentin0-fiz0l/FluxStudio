@@ -35,6 +35,8 @@ export interface AudioTrack {
   filename: string;
   duration: number;
   waveformData?: number[];
+  bpm?: number;
+  bpmConfidence?: number;
 }
 
 export interface DrillSettings {
