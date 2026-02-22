@@ -14,12 +14,12 @@ region: nyc
 # OAuth callbacks now handled by Express CORS middleware (accepts origin: null)
 ingress:
   rules:
-    # Socket.IO WebSocket route (must be before /api to catch /api/socket.io)
+    # API + Socket.IO routes → unified-backend
     - component:
         name: unified-backend
       match:
         path:
-          prefix: /socket.io
+          prefix: /api
       cors:
         allow_origins:
           - exact: https://fluxstudio.art
@@ -27,6 +27,9 @@ ingress:
         allow_methods:
           - GET
           - POST
+          - PUT
+          - DELETE
+          - PATCH
           - OPTIONS
         allow_headers:
           - Content-Type
@@ -34,18 +37,25 @@ ingress:
           - Upgrade
           - Connection
         allow_credentials: true
-    # Main API routes (includes Socket.IO at /api/socket.io)
-    # CORS handled by Express middleware (supports OAuth origin: null)
-    - component:
-        name: unified-backend
-      match:
-        path:
-          prefix: /api
+    # Yjs Collaboration WebSocket → collaboration service
     - component:
         name: collaboration
       match:
         path:
           prefix: /collab
+      cors:
+        allow_origins:
+          - exact: https://fluxstudio.art
+          - exact: https://www.fluxstudio.art
+        allow_methods:
+          - GET
+          - OPTIONS
+        allow_headers:
+          - Content-Type
+          - Authorization
+          - Upgrade
+          - Connection
+        allow_credentials: true
     # MCP Server (Model Context Protocol)
     - component:
         name: flux-mcp
@@ -66,13 +76,6 @@ ingress:
           - Upgrade
           - Connection
         allow_credentials: true
-    # FFmpeg Worker disabled - Dockerfile detection issues on App Platform
-    # TODO: Re-enable when Dockerfile path resolution is fixed
-    # - component:
-    #     name: ffmpeg-worker
-    #   match:
-    #     path:
-    #       prefix: /ffmpeg
     # Frontend (catch-all, must be last)
     - component:
         name: frontend
