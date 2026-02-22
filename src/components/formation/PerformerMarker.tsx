@@ -68,12 +68,15 @@ export function PerformerMarker({
     rotation: 0,
   });
 
-  // Handle mouse down for dragging
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+  // Handle pointer down for dragging (unified mouse + touch)
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
       if (isLocked) return;
       e.preventDefault();
       e.stopPropagation();
+
+      // Capture pointer for reliable tracking (especially touch)
+      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
 
       // Select on click
       onSelect?.(performer.id, e.shiftKey || e.metaKey || e.ctrlKey);
@@ -96,11 +99,11 @@ export function PerformerMarker({
     [isLocked, onSelect, onDragStart, performer.id, position.x, position.y]
   );
 
-  // Handle mouse move during drag
+  // Handle pointer move during drag (unified mouse + touch)
   useEffect(() => {
     if (!isDragging) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (!markerRef.current?.parentElement) return;
 
       const parent = markerRef.current.parentElement;
@@ -115,27 +118,28 @@ export function PerformerMarker({
       onMove?.(performer.id, { x: newX, y: newY, rotation: position.rotation });
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
       setIsDragging(false);
       onDragEnd?.();
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
     };
   }, [isDragging, performer.id, position.rotation, onMove, onDragEnd]);
 
-  // Handle rotation drag
-  const handleRotateMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+  // Handle rotation drag (unified pointer events)
+  const handleRotatePointerDown = useCallback(
+    (e: React.PointerEvent) => {
       if (isLocked) return;
       e.preventDefault();
       e.stopPropagation();
 
+      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
       setIsRotating(true);
       const rect = markerRef.current?.getBoundingClientRect();
       if (!rect) return;
@@ -152,11 +156,11 @@ export function PerformerMarker({
     [isLocked, position.rotation]
   );
 
-  // Handle rotation mouse move
+  // Handle rotation pointer move
   useEffect(() => {
     if (!isRotating) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       const rect = markerRef.current?.getBoundingClientRect();
       if (!rect) return;
 
@@ -169,16 +173,16 @@ export function PerformerMarker({
       onRotate?.(performer.id, newRotation);
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
       setIsRotating(false);
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
     };
   }, [isRotating, performer.id, onRotate]);
 
@@ -206,9 +210,10 @@ export function PerformerMarker({
         left: `${position.x}%`,
         top: `${position.y}%`,
         transform: `translate(-50%, -50%)`,
+        touchAction: 'none',
       }}
       data-performer={performer.id}
-      onMouseDown={handleMouseDown}
+      onPointerDown={handlePointerDown}
       onContextMenu={handleContextMenu}
     >
       {/* Selection Ring */}
@@ -236,7 +241,7 @@ export function PerformerMarker({
             transform: `translateX(-50%) rotate(${rotation}deg)`,
             transformOrigin: `50% ${markerSize / 2 + 20}px`,
           }}
-          onMouseDown={handleRotateMouseDown}
+          onPointerDown={handleRotatePointerDown}
           title={t('formation.rotatePerformer', 'Drag to rotate')}
         >
           <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">

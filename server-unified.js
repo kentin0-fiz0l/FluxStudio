@@ -283,6 +283,7 @@ const metmapCollabNamespace = io.of('/metmap-collab'); // Phase 2.2: MetMap real
 const notificationsNamespace = io.of('/notifications'); // Sprint 44: Real-time notifications
 
 // Store namespaces in app for access in routes
+app.set('io', io);
 app.set('printingNamespace', printingNamespace);
 app.set('designBoardsNamespace', designBoardsNamespace);
 app.set('metmapCollabNamespace', metmapCollabNamespace);

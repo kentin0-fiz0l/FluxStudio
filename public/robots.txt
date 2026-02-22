@@ -9,6 +9,8 @@ Allow: /pricing
 Allow: /terms
 Allow: /privacy
 Allow: /help
+Allow: /try
+Allow: /formations/
 
 Disallow: /api/
 Disallow: /auth/

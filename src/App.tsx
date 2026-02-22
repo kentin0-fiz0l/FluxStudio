@@ -117,6 +117,7 @@ const { Component: AgentPanel } = lazyLoadWithRetry(() => import('./components/a
 const TryEditor = React.lazy(() => import('./pages/TryEditor'));
 const SharedFormation = React.lazy(() => import('./pages/SharedFormation'));
 const EmbedFormation = React.lazy(() => import('./pages/EmbedFormation'));
+const FormationCategory = React.lazy(() => import('./pages/FormationCategory'));
 
 // 404 Not Found page
 const { Component: NotFound } = lazyLoadWithRetry(() => import('./pages/NotFound'));
@@ -222,6 +223,7 @@ function AuthenticatedRoutes() {
                   <Route path="/try" element={<TryEditor />} />
                   <Route path="/share/:formationId" element={<SharedFormation />} />
                   <Route path="/embed/:formationId" element={<EmbedFormation />} />
+                  <Route path="/formations/:category" element={<FormationCategory />} />
 
                   {/* Help & Support pages - public but with optional auth */}
                   <Route path="/help" element={<HelpCenter />} />

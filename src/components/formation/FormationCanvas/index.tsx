@@ -26,6 +26,7 @@ import { useFormation } from '../../../hooks/useFormations';
 import { useFormationYjs } from '../../../hooks/useFormationYjs';
 import { useFormationHistory } from '../../../hooks/useFormationHistory';
 import { useKeyboardShortcuts } from '../../../hooks/useKeyboardShortcuts';
+import { useTouchGestures } from '../../../hooks/useTouchGestures';
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from '../../../lib/toast';
 import { getUserColor } from '../../../services/formation/yjs/formationYjsTypes';
@@ -177,6 +178,9 @@ export function FormationCanvas({
   const [showFieldOverlay, setShowFieldOverlay] = useState(false);
   const [shapeToolStart, setShapeToolStart] = useState<Position | null>(null);
   const [shapeToolCurrent, setShapeToolCurrent] = useState<Position | null>(null);
+  // Touch: finger mode — 'select' uses single-finger to select/drag performers, 'pan' uses single-finger to pan canvas
+  const [fingerMode, setFingerMode] = useState<'select' | 'pan'>('select');
+  const [canvasPan, setCanvasPan] = useState({ x: 0, y: 0 });
   // Rubber-band marquee selection
   const [marquee, setMarquee] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
   const marqueeRef = useRef(false); // true while marquee drag is active
@@ -411,6 +415,36 @@ export function FormationCanvas({
     enabled: !playbackState.isPlaying,
   });
 
+  // Touch gesture handling: pinch-to-zoom and two-finger pan
+  const handleTouchZoom = useCallback((delta: number, _cx: number, _cy: number) => {
+    setZoom(z => Math.max(0.5, Math.min(3, z + delta)));
+  }, []);
+
+  const handleTouchPan = useCallback((dx: number, dy: number) => {
+    setCanvasPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+  }, []);
+
+  const handleLongPress = useCallback((x: number, y: number) => {
+    // Long-press on a performer → select it; on empty space → deselect
+    if (!formation) return;
+    const performer = formation.performers.find(p => {
+      const pos = currentPositions.get(p.id);
+      if (!pos) return false;
+      return Math.abs(pos.x - x) < 5 && Math.abs(pos.y - y) < 5;
+    });
+    if (performer) {
+      setSelectedPerformerIds(new Set([performer.id]));
+    }
+  }, [formation, currentPositions]);
+
+  useTouchGestures({
+    targetRef: canvasRef,
+    onZoom: handleTouchZoom,
+    onPan: handleTouchPan,
+    onLongPress: handleLongPress,
+    enabled: true,
+  });
+
   // Playback handlers
   const handlePlay = useCallback(() => {
     if (!formation) return;
@@ -627,8 +661,10 @@ export function FormationCanvas({
     setShapeToolCurrent(null);
   }, [isCollaborativeEnabled, collab]);
 
-  // Rubber-band marquee selection handlers
-  const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
+  // Rubber-band marquee selection handlers (pointer events for mouse + touch)
+  const handleCanvasPointerDown = useCallback((e: React.PointerEvent) => {
+    // In finger-pan mode on touch, don't start marquee — let pan happen
+    if (e.pointerType === 'touch' && fingerMode === 'pan') return;
     if (activeTool !== 'select' || !canvasRef.current) return;
     // Only start marquee on primary button click on empty area (not on a performer)
     if (e.button !== 0) return;
@@ -640,9 +676,9 @@ export function FormationCanvas({
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     marqueeRef.current = true;
     setMarquee({ startX: x, startY: y, currentX: x, currentY: y });
-  }, [activeTool]);
+  }, [activeTool, fingerMode]);
 
-  const handleCanvasMouseMoveMarquee = useCallback((e: React.MouseEvent) => {
+  const handleCanvasPointerMoveMarquee = useCallback((e: React.PointerEvent) => {
     if (!marqueeRef.current || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -650,7 +686,7 @@ export function FormationCanvas({
     setMarquee(prev => prev ? { ...prev, currentX: x, currentY: y } : null);
   }, []);
 
-  const handleCanvasMouseUp = useCallback((_e: React.MouseEvent) => {
+  const handleCanvasPointerUp = useCallback((_e: React.PointerEvent) => {
     if (!marqueeRef.current || !marquee || !formation) {
       marqueeRef.current = false;
       setMarquee(null);
@@ -851,6 +887,8 @@ export function FormationCanvas({
         hasUnsavedChanges={hasUnsavedChanges}
         sandboxMode={sandboxMode}
         formationId={formationId}
+        fingerMode={fingerMode}
+        setFingerMode={setFingerMode}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -864,8 +902,18 @@ export function FormationCanvas({
           <div
             ref={canvasRef}
             className="relative bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto"
-            style={{ width: `${formation.stageWidth * 20 * zoom}px`, height: `${formation.stageHeight * 20 * zoom}px`, cursor: activeTool === 'add' || isShapeTool ? 'crosshair' : activeTool === 'pan' ? 'grab' : 'default' }}
-            onClick={handleCanvasClick} onMouseDown={handleCanvasMouseDown} onMouseMove={(e) => { handleCanvasMouseMove(e); handleCanvasMouseMoveMarquee(e); }} onMouseUp={handleCanvasMouseUp} onMouseLeave={handleCanvasMouseLeave}
+            style={{
+              width: `${formation.stageWidth * 20 * zoom}px`,
+              height: `${formation.stageHeight * 20 * zoom}px`,
+              cursor: activeTool === 'add' || isShapeTool ? 'crosshair' : activeTool === 'pan' || fingerMode === 'pan' ? 'grab' : 'default',
+              transform: `translate(${canvasPan.x}px, ${canvasPan.y}px)`,
+              touchAction: 'none',
+            }}
+            onClick={handleCanvasClick}
+            onPointerDown={handleCanvasPointerDown}
+            onPointerMove={(e) => { handleCanvasMouseMove(e as unknown as React.MouseEvent); handleCanvasPointerMoveMarquee(e); }}
+            onPointerUp={handleCanvasPointerUp}
+            onMouseLeave={handleCanvasMouseLeave}
           >
             {showGrid && (
               <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>

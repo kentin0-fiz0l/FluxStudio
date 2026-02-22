@@ -11,7 +11,7 @@ import {
   Plus, Grid, Download, Save, ZoomIn, ZoomOut,
   Move, MousePointer, Layers, Eye, EyeOff,
   Loader2, Check, Music, Route, LayoutGrid, Users, Magnet, Hash,
-  Minus, CircleDot, Grid3x3, Map, Bot,
+  Minus, CircleDot, Grid3x3, Map, Bot, Hand,
   Undo2, Redo2, Settings2, Circle, Share2, Code2,
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
@@ -64,6 +64,8 @@ interface CanvasToolbarProps {
   hasUnsavedChanges?: boolean;
   sandboxMode?: boolean;
   formationId?: string;
+  fingerMode?: 'select' | 'pan';
+  setFingerMode?: (mode: 'select' | 'pan') => void;
 }
 
 export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
@@ -83,6 +85,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   showDraftPanel, setShowDraftPanel, draftStatus,
   onUndo, onRedo, canUndo = false, canRedo = false,
   hasUnsavedChanges = false, sandboxMode = false, formationId,
+  fingerMode = 'select', setFingerMode,
 }) => {
   const { t } = useTranslation('common');
   const [showViewOptions, setShowViewOptions] = useState(false);
@@ -105,9 +108,9 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   const activeViewCount = [showGrid, showLabels, showRotation, showPaths, snapEnabled, timeDisplayMode === 'counts', showFieldOverlay].filter(Boolean).length;
 
   return (
-    <div className="flex items-center justify-between px-3 py-1.5 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-      {/* Left: Drawing tools + Undo/Redo + Zoom */}
-      <div className="flex items-center gap-1.5">
+    <div className="flex items-center justify-between px-3 py-1.5 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+      {/* Left: Drawing tools + Finger Mode + Undo/Redo + Zoom */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         {/* Drawing Tools */}
         <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
           <button onClick={() => setActiveTool('select')} className={`p-1.5 rounded ${activeTool === 'select' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Select (V)">
@@ -119,17 +122,28 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
           <button onClick={() => setActiveTool('add')} className={`p-1.5 rounded ${activeTool === 'add' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Add Performer">
             <Plus className="w-4 h-4" />
           </button>
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5" />
-          <button onClick={() => setActiveTool('line')} className={`p-1.5 rounded ${activeTool === 'line' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Line Tool">
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5 hidden sm:block" />
+          <button onClick={() => setActiveTool('line')} className={`p-1.5 rounded hidden sm:block ${activeTool === 'line' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Line Tool">
             <Minus className="w-4 h-4" />
           </button>
-          <button onClick={() => setActiveTool('arc')} className={`p-1.5 rounded ${activeTool === 'arc' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Arc Tool">
+          <button onClick={() => setActiveTool('arc')} className={`p-1.5 rounded hidden sm:block ${activeTool === 'arc' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Arc Tool">
             <CircleDot className="w-4 h-4" />
           </button>
-          <button onClick={() => setActiveTool('block')} className={`p-1.5 rounded ${activeTool === 'block' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Block Tool">
+          <button onClick={() => setActiveTool('block')} className={`p-1.5 rounded hidden sm:block ${activeTool === 'block' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Block Tool">
             <Grid3x3 className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Finger mode toggle (visible on touch devices via media query) */}
+        {setFingerMode && (
+          <button
+            onClick={() => setFingerMode(fingerMode === 'select' ? 'pan' : 'select')}
+            className={`p-1.5 rounded md:hidden ${fingerMode === 'pan' ? 'bg-blue-100 dark:bg-blue-900 text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
+            title={fingerMode === 'select' ? 'Switch to pan mode' : 'Switch to select mode'}
+          >
+            {fingerMode === 'pan' ? <Hand className="w-4 h-4" /> : <MousePointer className="w-4 h-4" />}
+          </button>
+        )}
 
         <div className="w-px h-5 bg-gray-300 dark:bg-gray-600" />
 
@@ -160,7 +174,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
           <button onClick={onZoomOut} className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
             <ZoomOut className="w-4 h-4" />
           </button>
-          <span className="text-xs text-gray-500 dark:text-gray-400 min-w-[40px] text-center tabular-nums">{Math.round(zoom * 100)}%</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 min-w-[40px] text-center tabular-nums hidden sm:inline">{Math.round(zoom * 100)}%</span>
           <button onClick={onZoomIn} className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
             <ZoomIn className="w-4 h-4" />
           </button>
@@ -168,12 +182,12 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       </div>
 
       {/* Center: Formation name + Collaboration status */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-shrink min-w-0">
         <input
           type="text"
           value={formationName}
           onChange={(e) => onNameChange(e.target.value)}
-          className="px-2 py-0.5 text-center text-sm font-medium bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-blue-500 outline-none"
+          className="px-2 py-0.5 text-center text-sm font-medium bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-blue-500 outline-none min-w-0 max-w-[120px] sm:max-w-none"
           readOnly={sandboxMode}
         />
         {isCollaborativeEnabled && (
@@ -187,7 +201,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       </div>
 
       {/* Right: View Options dropdown + Panels + Export + Save */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         {/* View Options Dropdown */}
         <div className="relative" ref={viewOptionsRef}>
           <button
@@ -262,7 +276,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                 title="Copy share link"
               >
                 <Share2 className="w-4 h-4" />
-                <span className="text-xs">Share</span>
+                <span className="text-xs hidden sm:inline">Share</span>
               </button>
             )}
             {formationId && (
@@ -284,12 +298,12 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                 title="Copy embed code"
               >
                 <Code2 className="w-4 h-4" />
-                <span className="text-xs">Embed</span>
+                <span className="text-xs hidden sm:inline">Embed</span>
               </button>
             )}
             <button onClick={() => setIsExportDialogOpen(true)} className="flex items-center gap-1 px-2 py-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded hover:bg-gray-100 dark:hover:bg-gray-700">
               <Download className="w-4 h-4" />
-              <span className="text-xs">{t('formation.export', 'Export')}</span>
+              <span className="text-xs hidden sm:inline">{t('formation.export', 'Export')}</span>
             </button>
 
             {/* Save status indicator */}

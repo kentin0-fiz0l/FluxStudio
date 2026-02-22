@@ -12,6 +12,7 @@ const express = require('express');
 const { query } = require('../database/config');
 const { authenticateToken } = require('../lib/auth/middleware');
 const performanceMetrics = require('../lib/monitoring/performanceMetrics');
+const { queryFunnel, FUNNEL_STAGES } = require('../lib/analytics/funnelTracker');
 
 const router = express.Router();
 
@@ -237,6 +238,49 @@ router.get('/metrics', authenticateToken, async (req, res) => {
        LIMIT 20`
     );
 
+    // WebSocket connections per namespace
+    const io = req.app.get('io');
+    let wsConnections = null;
+    if (io) {
+      const namespaces = ['/', '/auth', '/messaging', '/printing', '/design-boards', '/metmap-collab', '/notifications'];
+      wsConnections = {};
+      for (const ns of namespaces) {
+        try {
+          const nsp = io.of(ns);
+          wsConnections[ns] = nsp.sockets?.size ?? 0;
+        } catch { wsConnections[ns] = 0; }
+      }
+      wsConnections.total = Object.values(wsConnections).reduce((a, b) => a + b, 0);
+    }
+
+    // Signup funnel (last 30 days)
+    let funnelData = null;
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const now = new Date().toISOString();
+      funnelData = await queryFunnel(FUNNEL_STAGES, thirtyDaysAgo, now);
+    } catch { /* funnel query optional */ }
+
+    // Per-page Web Vitals (top 10 slowest by LCP p75)
+    let perPageVitals = [];
+    try {
+      const perPage = await query(
+        `SELECT
+          url,
+          COUNT(*) as sessions,
+          PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY lcp) as lcp_p75,
+          PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY cls) as cls_p75,
+          PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY fcp) as fcp_p75
+         FROM web_vitals
+         WHERE created_at >= NOW() - INTERVAL '24 hours'
+         AND lcp IS NOT NULL
+         GROUP BY url
+         ORDER BY lcp_p75 DESC
+         LIMIT 10`
+      );
+      perPageVitals = perPage.rows;
+    } catch { /* optional */ }
+
     res.json({
       server: {
         current,
@@ -244,7 +288,10 @@ router.get('/metrics', authenticateToken, async (req, res) => {
         history,
       },
       webVitals: vitalsResult.rows[0] || null,
+      perPageVitals,
       topEvents: eventsResult.rows,
+      wsConnections,
+      funnel: funnelData,
     });
   } catch (error) {
     console.error('[Observability] Metrics error:', error);

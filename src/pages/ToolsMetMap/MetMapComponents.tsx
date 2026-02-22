@@ -36,7 +36,7 @@ export function SectionRow({
 
   return (
     <div
-      className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+      className={`flex flex-wrap items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border transition-all ${
         isCurrentSection && isPlaying
           ? 'bg-indigo-50 border-indigo-300 shadow-sm'
           : 'bg-white border-gray-200 hover:border-gray-300'
@@ -79,7 +79,7 @@ export function SectionRow({
             onUpdate({ name: trimmed });
           }
         }}
-        className="w-32 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className="w-20 sm:w-32 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
         aria-label="Section name"
         maxLength={50}
       />

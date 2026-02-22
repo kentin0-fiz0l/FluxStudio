@@ -1265,8 +1265,31 @@ export default function ToolsMetMap() {
                 </div>
               )}
 
-              {/* Section timeline */}
-              <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-gray-50">
+              {/* Section timeline — swipe left/right to navigate sections on mobile */}
+              <div
+                className="flex-1 overflow-y-auto p-3 sm:p-4 bg-gray-50"
+                onTouchStart={(e) => {
+                  const touch = e.touches[0];
+                  (e.currentTarget as HTMLElement).dataset.swipeX = String(touch.clientX);
+                }}
+                onTouchEnd={(e) => {
+                  const startX = Number((e.currentTarget as HTMLElement).dataset.swipeX || 0);
+                  const endX = e.changedTouches[0].clientX;
+                  const dx = endX - startX;
+                  if (Math.abs(dx) > 80) {
+                    // Swipe left → next section, swipe right → previous section
+                    if (dx < 0) {
+                      const nextIndex = Math.min(playback.currentSectionIndex + 1, editedSections.length - 1);
+                      const startBar = editedSections.slice(0, nextIndex).reduce((sum, s) => sum + s.bars, 0) + 1;
+                      seekToBar(startBar);
+                    } else {
+                      const prevIndex = Math.max(playback.currentSectionIndex - 1, 0);
+                      const startBar = editedSections.slice(0, prevIndex).reduce((sum, s) => sum + s.bars, 0) + 1;
+                      seekToBar(startBar);
+                    }
+                  }
+                }}
+              >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                   <h3 className="text-sm font-medium text-gray-700">Sections</h3>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1371,8 +1394,8 @@ export default function ToolsMetMap() {
                 )}
               </div>
 
-              {/* Playback controls - responsive */}
-              <div className="p-4 border-t border-gray-200 bg-white">
+              {/* Playback controls - sticky on mobile for field-side use */}
+              <div className={`p-3 sm:p-4 border-t border-gray-200 bg-white ${isMobile ? 'sticky bottom-0 z-20 shadow-[0_-2px_8px_rgba(0,0,0,0.08)]' : ''}`}>
                 {isMobile ? (
                   <MobilePlaybackControls
                     isPlaying={playback.isPlaying}
