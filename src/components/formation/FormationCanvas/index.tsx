@@ -51,6 +51,10 @@ interface FormationCanvasProps {
   collaborativeMode?: boolean;
   /** Sandbox mode — disables save/export, shows signup CTA */
   sandboxMode?: boolean;
+  /** Pre-populated performers for sandbox (skips empty state) */
+  sandboxPerformers?: Array<{ id: string; name: string; label: string; color: string }>;
+  /** Initial positions keyed by performer ID */
+  sandboxPositions?: Map<string, Position>;
 }
 
 type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block';
@@ -60,7 +64,13 @@ const defaultColors = [
   '#3b82f6', '#8b5cf6', '#ec4899', '#6366f1', '#06b6d4',
 ];
 
-function getInitialFormationData(formationId: string | undefined, projectId: string, defaultTitle: string) {
+function getInitialFormationData(
+  formationId: string | undefined,
+  projectId: string,
+  defaultTitle: string,
+  sandboxPerformers?: FormationCanvasProps['sandboxPerformers'],
+  sandboxPositions?: Map<string, Position>,
+) {
   if (formationId) {
     const existing = formationService.getFormation(formationId);
     if (existing) {
@@ -71,7 +81,18 @@ function getInitialFormationData(formationId: string | undefined, projectId: str
       };
     }
   }
-  const newFormation = formationService.createFormation(defaultTitle, projectId, { createdBy: 'current-user' });
+  const newFormation = formationService.createFormation(defaultTitle, projectId, {
+    createdBy: 'current-user',
+    performers: sandboxPerformers,
+  });
+
+  // Pre-populate positions for sandbox
+  if (sandboxPositions && newFormation.keyframes[0]) {
+    for (const [id, pos] of sandboxPositions) {
+      newFormation.keyframes[0].positions.set(id, pos);
+    }
+  }
+
   return {
     formation: newFormation,
     keyframeId: newFormation.keyframes[0]?.id || '',
@@ -85,6 +106,7 @@ function getInitialFormationData(formationId: string | undefined, projectId: str
 
 export function FormationCanvas({
   formationId, projectId, onSave, onClose: _onClose, collaborativeMode, sandboxMode = false,
+  sandboxPerformers, sandboxPositions,
 }: FormationCanvasProps) {
   const { t } = useTranslation('common');
   const { user } = useAuth();
@@ -113,7 +135,7 @@ export function FormationCanvas({
   const [_draggingPerformerId, setDraggingPerformerId] = useState<string | null>(null);
 
   const initialData = useMemo(() => {
-    if (!formationId) return getInitialFormationData(undefined, projectId, t('formation.untitled', 'Untitled Formation'));
+    if (!formationId) return getInitialFormationData(undefined, projectId, t('formation.untitled', 'Untitled Formation'), sandboxPerformers, sandboxPositions);
     return null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

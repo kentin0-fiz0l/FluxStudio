@@ -2,18 +2,48 @@
  * TryEditor - Sandbox mode for the Formation Editor
  *
  * Allows unauthenticated users to try the formation editor with a sample formation.
- * Save/export are disabled — shows a "Sign up to save" CTA.
+ * Pre-populated with 8 performers in a V-formation so users see something
+ * meaningful immediately. Save/export are disabled — shows a "Sign up to save" CTA.
  * This is the primary conversion funnel entry point.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FormationCanvas } from '@/components/formation';
 import { ArrowRight, X } from 'lucide-react';
+import type { Position } from '@/services/formationService';
+
+// 8 performers in a V-formation (wedge pointing forward)
+// Stage default: 40 wide x 30 tall, grid size 2
+const SANDBOX_PERFORMERS = [
+  { id: 'sb-1', name: 'Drum Major',  label: 'DM', color: '#ef4444' },
+  { id: 'sb-2', name: 'Performer 2', label: 'P2', color: '#f97316' },
+  { id: 'sb-3', name: 'Performer 3', label: 'P3', color: '#eab308' },
+  { id: 'sb-4', name: 'Performer 4', label: 'P4', color: '#22c55e' },
+  { id: 'sb-5', name: 'Performer 5', label: 'P5', color: '#14b8a6' },
+  { id: 'sb-6', name: 'Performer 6', label: 'P6', color: '#3b82f6' },
+  { id: 'sb-7', name: 'Performer 7', label: 'P7', color: '#8b5cf6' },
+  { id: 'sb-8', name: 'Performer 8', label: 'P8', color: '#ec4899' },
+];
+
+function buildSandboxPositions(): Map<string, Position> {
+  const pos = new Map<string, Position>();
+  // V-formation: leader at front-center, spreading back
+  pos.set('sb-1', { x: 20, y: 6,  rotation: 0 }); // Point
+  pos.set('sb-2', { x: 17, y: 10, rotation: 0 }); // Row 2 left
+  pos.set('sb-3', { x: 23, y: 10, rotation: 0 }); // Row 2 right
+  pos.set('sb-4', { x: 14, y: 14, rotation: 0 }); // Row 3 left
+  pos.set('sb-5', { x: 26, y: 14, rotation: 0 }); // Row 3 right
+  pos.set('sb-6', { x: 11, y: 18, rotation: 0 }); // Row 4 left
+  pos.set('sb-7', { x: 29, y: 18, rotation: 0 }); // Row 4 right
+  pos.set('sb-8', { x: 20, y: 22, rotation: 0 }); // Anchor (back center)
+  return pos;
+}
 
 export default function TryEditor() {
   const navigate = useNavigate();
   const [showBanner, setShowBanner] = React.useState(true);
+  const sandboxPositions = useMemo(() => buildSandboxPositions(), []);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
@@ -49,12 +79,14 @@ export default function TryEditor() {
         </div>
       )}
 
-      {/* Editor in sandbox mode */}
+      {/* Editor in sandbox mode — pre-populated with V-formation */}
       <div className="flex-1 overflow-hidden">
         <FormationCanvas
           projectId="sandbox"
           sandboxMode={true}
           collaborativeMode={false}
+          sandboxPerformers={SANDBOX_PERFORMERS}
+          sandboxPositions={sandboxPositions}
         />
       </div>
     </div>
