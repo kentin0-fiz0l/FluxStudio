@@ -576,11 +576,10 @@ router.post('/formations/:formationId/share', authenticateToken, async (req, res
 // ============================================================================
 
 /**
- * GET /share/:formationId
- * Serves index.html with dynamic OG meta tags for social media crawlers.
+ * Serve index.html with dynamic OG meta tags for social media crawlers.
  * Regular browsers get the SPA which hydrates normally.
  */
-router.get('/share/:formationId', async (req, res) => {
+async function handleShareOG(req, res) {
   const { formationId } = req.params;
   const fs = require('fs');
   const path = require('path');
@@ -624,7 +623,14 @@ router.get('/share/:formationId', async (req, res) => {
 
   res.setHeader('Content-Type', 'text/html');
   res.send(html);
-});
+}
+
+// Full path (local dev / direct access)
+router.get('/share/:formationId', handleShareOG);
+
+// UUID-only path (DO ingress strips /share/ prefix, backend receives /:formationId)
+// Regex matches UUIDs (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+router.get('/:formationId([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', handleShareOG);
 
 function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
