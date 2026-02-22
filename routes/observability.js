@@ -105,6 +105,8 @@ router.post('/vitals', async (req, res) => {
       return res.status(400).json({ error: 'sessionId and vitals are required' });
     }
 
+    await ensureVitalsTable();
+
     await query(
       `INSERT INTO web_vitals
        (session_id, url, lcp, fcp, fid, cls, ttfb, tti, connection_type, user_agent, viewport_width, viewport_height, performance_score)
@@ -144,6 +146,7 @@ router.get('/vitals/summary', authenticateToken, async (req, res) => {
     }
 
     const hours = Math.min(parseInt(req.query.hours) || 24, 168); // max 7 days
+    await ensureVitalsTable();
 
     const result = await query(
       `SELECT
@@ -207,6 +210,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     const current = performanceMetrics.getCurrentMetrics();
 
     // Recent Web Vitals aggregation (last 24h)
+    await ensureVitalsTable();
     const vitalsResult = await query(
       `SELECT
         COUNT(*) as total_sessions,
@@ -247,5 +251,39 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch metrics' });
   }
 });
+
+// ========================================
+// Auto-create web_vitals table if missing
+// ========================================
+let vitalsTableReady = false;
+
+async function ensureVitalsTable() {
+  if (vitalsTableReady) return;
+  try {
+    await query(`
+      CREATE TABLE IF NOT EXISTS web_vitals (
+        id SERIAL PRIMARY KEY,
+        session_id VARCHAR(255) NOT NULL,
+        url VARCHAR(2048) DEFAULT '/',
+        lcp DOUBLE PRECISION,
+        fcp DOUBLE PRECISION,
+        fid DOUBLE PRECISION,
+        cls DOUBLE PRECISION,
+        ttfb DOUBLE PRECISION,
+        tti DOUBLE PRECISION,
+        connection_type VARCHAR(50) DEFAULT 'unknown',
+        user_agent VARCHAR(512),
+        viewport_width INTEGER,
+        viewport_height INTEGER,
+        performance_score INTEGER,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await query('CREATE INDEX IF NOT EXISTS idx_web_vitals_created_at ON web_vitals (created_at)');
+    vitalsTableReady = true;
+  } catch (err) {
+    console.debug('[Observability] ensureVitalsTable:', err.message);
+  }
+}
 
 module.exports = router;
