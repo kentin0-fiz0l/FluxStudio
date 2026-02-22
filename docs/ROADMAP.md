@@ -138,6 +138,32 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 - Referral and invite system ✅
 - Real-time notification delivery via Socket.IO ✅
 
+### 6.4 Production Polish (Sprint 45)
+- Web Vitals RUM pipeline (browser → backend → admin dashboard)
+- Admin metrics API (real endpoints replacing stubs)
+- Responsive dialogs and mobile shell fixes (<375px, iOS notch)
+- MetMap mobile layout (drawer sidebar, horizontal timeline)
+- Trial eligibility tracking and touch drag polish
+
+### 6.5 Formation Editor Polish & Collaboration (Sprint 46)
+- Rubber-band multi-select and snap-to-grid
+- Yjs live collaboration wiring (real-time formation co-editing)
+- Keyframe interpolation and 3D animation playback
+- Share & embed improvements (iframe embed, duplicate to account)
+
+### 6.6 Audio Sync & Performance (Sprint 47)
+- Audio-to-formation timeline binding with BPM detection
+- Synchronized playback (audio + formation animation)
+- Bundle size reduction (<300KB main chunk)
+- Lighthouse CI enforcement and Web Vitals pipeline
+
+### 6.7 Mobile Creative Experience & User Acquisition (Sprint 48)
+- Touch-optimized formation canvas (pinch-to-zoom, pointer events)
+- MetMap mobile layout completion
+- /try sandbox conversion optimization
+- SEO programmatic landing pages and structured data
+- Admin metrics dashboard (real data)
+
 ---
 
 ## Technical Principles
