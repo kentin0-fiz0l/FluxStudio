@@ -37,6 +37,7 @@ import { CanvasToolbar } from './CanvasToolbar';
 import { PerformerPanel } from './PerformerPanel';
 import { AlignmentToolbar } from './AlignmentToolbar';
 import { ShapeToolOverlay } from './ShapeToolOverlay';
+import { OnboardingHints } from './OnboardingHints';
 import { FieldOverlay } from '../FieldOverlay';
 
 // ============================================================================
@@ -742,6 +743,7 @@ export function FormationCanvas({
 
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 relative overflow-auto p-8 bg-gray-100 dark:bg-gray-900">
+          {sandboxMode && <OnboardingHints />}
           <AlignmentToolbar
             selectedCount={selectedPerformerIds.size}
             onAlign={handleAlign}

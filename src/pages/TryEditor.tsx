@@ -10,6 +10,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FormationCanvas } from '@/components/formation';
+import { SEOHead } from '@/components/SEOHead';
 import { ArrowRight, X } from 'lucide-react';
 import type { Position } from '@/services/formationService';
 
@@ -47,6 +48,11 @@ export default function TryEditor() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <SEOHead
+        title="Try the Formation Editor"
+        description="Design marching band and drill team formations right in your browser. No signup required."
+        canonicalUrl="https://fluxstudio.art/try"
+      />
       {/* Top banner — sign up CTA */}
       {showBanner && (
         <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm">

@@ -9,6 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowRight, RotateCcw, Eye } from 'lucide-react';
 import * as formationsApi from '../services/formationsApi';
+import { SEOHead } from '../components/SEOHead';
 
 const Formation3DViewLazy = React.lazy(
   () => import('../components/formation/Formation3DView').then((m) => ({ default: m.Formation3DView }))
@@ -101,6 +102,12 @@ export default function SharedFormation() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-900">
+      <SEOHead
+        title={formation.name}
+        description={`${formation.performers.length}-performer formation${formation.description ? ` — ${formation.description}` : ''}`}
+        canonicalUrl={`https://fluxstudio.art/share/${formationId}`}
+        ogType="article"
+      />
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700">
         <div className="flex items-center gap-3">

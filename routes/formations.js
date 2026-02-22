@@ -571,4 +571,67 @@ router.post('/formations/:formationId/share', authenticateToken, async (req, res
   }
 });
 
+// ============================================================================
+// SERVER-SIDE OG TAGS FOR SHARE LINKS
+// ============================================================================
+
+/**
+ * GET /share/:formationId
+ * Serves index.html with dynamic OG meta tags for social media crawlers.
+ * Regular browsers get the SPA which hydrates normally.
+ */
+router.get('/share/:formationId', async (req, res) => {
+  const { formationId } = req.params;
+  const fs = require('fs');
+  const path = require('path');
+
+  // Read the built index.html
+  const indexPath = path.join(__dirname, '..', 'build', 'index.html');
+  let html;
+  try {
+    html = fs.readFileSync(indexPath, 'utf8');
+  } catch {
+    // Build not available — redirect to frontend
+    return res.redirect(`https://fluxstudio.art/share/${formationId}`);
+  }
+
+  // Fetch formation data for OG tags
+  try {
+    const formation = await formationsAdapter.getFormationById(formationId);
+
+    if (formation) {
+      const title = `${formation.name} | Flux Studio`;
+      const performerCount = (formation.performers || []).length;
+      const description = formation.description
+        || `${performerCount}-performer formation — view and explore in 3D`;
+      const url = `https://fluxstudio.art/share/${formationId}`;
+
+      // Replace default OG tags with formation-specific ones
+      html = html
+        .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(title)}</title>`)
+        .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escapeAttr(title)}" />`)
+        .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${escapeAttr(description)}" />`)
+        .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${url}" />`)
+        .replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${escapeAttr(title)}" />`)
+        .replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${escapeAttr(description)}" />`)
+        .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${escapeAttr(description)}" />`)
+        .replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${url}" />`);
+    }
+  } catch (err) {
+    console.error('Error fetching formation for OG tags:', err.message);
+    // Serve default index.html on error — still works as SPA
+  }
+
+  res.setHeader('Content-Type', 'text/html');
+  res.send(html);
+});
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function escapeAttr(str) {
+  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 module.exports = router;
