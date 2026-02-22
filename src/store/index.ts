@@ -10,7 +10,7 @@
  *   const setProject = useStore(state => state.projects.setActive);
  */
 
-export { useStore, useAuthStore, useProjectStore, useUIStore, useCurrentContext, useUnreadCounts } from './store';
+export { useStore, useAuthStore, useProjectStore, useUIStore, useCurrentContext, useUnreadCounts, useFormationDraftStore } from './store';
 export type { FluxStore } from './store';
 
 // Domain-specific hooks for convenience
@@ -48,6 +48,7 @@ export {
 } from './hooks/aiHooks';
 export { useAssetStore, useFileStore } from './slices/assetSlice';
 export { useConnectors, useConnectorList } from './slices/connectorSlice';
+export { useFormationDraftStore as useFormationDraft } from './store';
 
 // Type exports
 export type {
@@ -149,3 +150,12 @@ export type {
   ImportedFile,
   ConnectorState,
 } from './slices/connectorSlice';
+export type {
+  DraftStatus,
+  ShowPlan,
+  ShowPlanSection,
+  MusicAnalysis,
+  RefinementEntry,
+  FormationDraftState,
+  FormationDraftSlice,
+} from './slices/formationDraftSlice';

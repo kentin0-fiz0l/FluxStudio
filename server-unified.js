@@ -517,6 +517,7 @@ const metmapRoutes = require('./routes/metmap');
 const pushRoutes = require('./routes/push');
 const printingRoutes = require('./routes/printing');
 const agentRoutes = require('./routes/agent-api');
+const formationDraftAgentRoutes = require('./routes/formation-draft-agent');
 const paymentsRoutes = require('./routes/payments');
 const supportRoutes = require('./routes/support');
 const formationsRoutes = require('./routes/formations');
@@ -583,6 +584,10 @@ app.use('/api/printing', printingRoutes);
 
 app.use('/agent', agentRoutes);
 app.use('/api/agent', agentRoutes)
+
+// Formation Draft Agent routes - AI formation generation
+app.use('/formation-agent', formationDraftAgentRoutes);
+app.use('/api/formation-agent', formationDraftAgentRoutes);
 
 // Payments routes - Phase 2 User Adoption
 paymentsRoutes.setAuthHelper({ authenticateToken });

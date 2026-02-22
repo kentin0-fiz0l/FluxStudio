@@ -24,6 +24,7 @@ import { createNotificationSlice, NotificationSlice } from './slices/notificatio
 import { createAssetSlice, AssetSlice } from './slices/assetSlice';
 import { createConnectorSlice, ConnectorSlice } from './slices/connectorSlice';
 import { createScene3DSlice, Scene3DSlice } from './slices/scene3dSlice';
+import { createFormationDraftSlice, FormationDraftSlice } from './slices/formationDraftSlice';
 
 // ============================================================================
 // Combined Store Type
@@ -42,7 +43,8 @@ export type FluxStore = AuthSlice &
   NotificationSlice &
   AssetSlice &
   ConnectorSlice &
-  Scene3DSlice;
+  Scene3DSlice &
+  FormationDraftSlice;
 
 // ============================================================================
 // Store Creation
@@ -67,6 +69,7 @@ export const useStore = create<FluxStore>()(
           ...createAssetSlice(...(args as Parameters<typeof createAssetSlice>)),
           ...createConnectorSlice(...(args as Parameters<typeof createConnectorSlice>)),
           ...createScene3DSlice(...(args as Parameters<typeof createScene3DSlice>)),
+          ...createFormationDraftSlice(...(args as Parameters<typeof createFormationDraftSlice>)),
         })),
         {
           name: 'fluxstudio-store',
@@ -144,6 +147,9 @@ export const useNotificationStore = () => useStore((state) => state.notification
 
 // Scene 3D
 export const useScene3DStore = () => useStore((state) => state.scene3d);
+
+// Formation Draft
+export const useFormationDraftStore = () => useStore((state) => state.formationDraft);
 
 // ============================================================================
 // Cross-Slice Selectors

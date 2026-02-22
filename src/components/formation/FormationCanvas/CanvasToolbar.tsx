@@ -8,7 +8,7 @@ import {
   Plus, Grid, Download, Save, ZoomIn, ZoomOut,
   Move, MousePointer, Layers, Eye, EyeOff,
   Loader2, Check, Music, Route, LayoutGrid, Users, Magnet, Hash,
-  Minus, CircleDot, Grid3x3, Map,
+  Minus, CircleDot, Grid3x3, Map, Bot,
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
 
@@ -49,6 +49,9 @@ interface CanvasToolbarProps {
   onSave: () => void;
   saveStatus: 'idle' | 'saving' | 'saved' | 'error';
   apiSaving: boolean;
+  showDraftPanel?: boolean;
+  setShowDraftPanel?: (show: boolean) => void;
+  draftStatus?: string;
 }
 
 export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
@@ -65,6 +68,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   showAudioPanel, setShowAudioPanel, hasAudioTrack,
   setShowTemplatePicker, setIsExportDialogOpen,
   onSave, saveStatus, apiSaving,
+  showDraftPanel, setShowDraftPanel, draftStatus,
 }) => {
   const { t } = useTranslation('common');
 
@@ -158,6 +162,15 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         <button onClick={() => setShowTemplatePicker(true)} className="p-2 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" title={t('formation.templates', 'Formation Templates')}>
           <LayoutGrid className="w-4 h-4" />
         </button>
+        {setShowDraftPanel && (
+          <button
+            onClick={() => setShowDraftPanel(!showDraftPanel)}
+            className={`p-2 rounded ${showDraftPanel ? 'text-amber-500' : draftStatus && draftStatus !== 'idle' ? 'text-amber-400 animate-pulse' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title={t('formation.draftAgent', 'AI Draft Agent')}
+          >
+            <Bot className="w-4 h-4" />
+          </button>
+        )}
 
         <div className="w-px h-6 bg-gray-300 dark:bg-gray-600" />
 
