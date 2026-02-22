@@ -450,10 +450,11 @@ export function FormationCanvas({
     setSaveStatus('saving');
     try {
       const keyframesData = formation.keyframes.map(kf => ({ id: kf.id, timestamp: kf.timestamp, transition: kf.transition, duration: kf.duration, positions: kf.id === selectedKeyframeId ? Object.fromEntries(currentPositions) : Object.fromEntries(kf.positions) }));
+      let actualFormationId = formationId;
       if (formationId) { await apiSave({ name: formation.name, performers: formation.performers, keyframes: keyframesData }); }
-      else { const created = await formationsApi.createFormation(projectId, { name: formation.name, description: formation.description, stageWidth: formation.stageWidth, stageHeight: formation.stageHeight, gridSize: formation.gridSize }); await formationsApi.saveFormation(created.id, { name: formation.name, performers: formation.performers, keyframes: keyframesData }); }
+      else { const created = await formationsApi.createFormation(projectId, { name: formation.name, description: formation.description, stageWidth: formation.stageWidth, stageHeight: formation.stageHeight, gridSize: formation.gridSize }); actualFormationId = created.id; await formationsApi.saveFormation(created.id, { name: formation.name, performers: formation.performers, keyframes: keyframesData }); }
       setSaveStatus('saved'); setTimeout(() => setSaveStatus('idle'), 2000);
-      if (onSave) onSave(formation);
+      if (onSave) onSave({ ...formation, id: actualFormationId || formation.id });
     } catch (error) { console.error('Error saving formation:', error); setSaveStatus('error'); setTimeout(() => setSaveStatus('idle'), 3000); }
   }, [formation, formationId, projectId, selectedKeyframeId, currentPositions, apiSave, onSave]);
 

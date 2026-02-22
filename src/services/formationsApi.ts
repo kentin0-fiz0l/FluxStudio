@@ -7,8 +7,23 @@
 
 import { getApiUrl, getAuthToken } from '../utils/apiHelpers';
 import { Formation, Performer, Keyframe, Position, AudioTrack } from './formationService';
+import type { SceneObject } from './scene3d/types';
 
 // Raw API response shapes (before transform)
+interface ApiSceneObjectRaw {
+  id: string;
+  name: string;
+  type: string;
+  position: SceneObject['position'];
+  source: SceneObject['source'];
+  attachedToPerformerId?: string;
+  visible: boolean;
+  locked: boolean;
+  layer: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 interface ApiFormationRaw {
   id: string;
   name: string;
@@ -19,6 +34,7 @@ interface ApiFormationRaw {
   gridSize: number;
   performers?: ApiPerformerRaw[];
   keyframes?: ApiKeyframeRaw[];
+  sceneObjects?: ApiSceneObjectRaw[];
   audioTrack?: AudioTrack;
   musicTrackUrl?: string;
   musicDuration?: number;
@@ -392,6 +408,75 @@ export async function removeAudio(formationId: string): Promise<void> {
 }
 
 // ============================================================================
+// SCENE OBJECT OPERATIONS
+// ============================================================================
+
+/**
+ * Fetch all scene objects for a formation
+ */
+export async function fetchSceneObjects(formationId: string): Promise<SceneObject[]> {
+  const result = await apiRequest<{ success: boolean; sceneObjects: ApiSceneObjectRaw[] }>(
+    `/api/formations/${formationId}/scene-objects`
+  );
+  return (result.sceneObjects || []).map(transformApiSceneObject);
+}
+
+/**
+ * Bulk save all scene objects for a formation (primary save path)
+ */
+export async function saveSceneObjects(formationId: string, objects: SceneObject[]): Promise<SceneObject[]> {
+  const result = await apiRequest<{ success: boolean; sceneObjects: ApiSceneObjectRaw[] }>(
+    `/api/formations/${formationId}/scene-objects`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ objects })
+    }
+  );
+  return (result.sceneObjects || []).map(transformApiSceneObject);
+}
+
+/**
+ * Create a single scene object
+ */
+export async function createSceneObject(formationId: string, object: SceneObject): Promise<SceneObject> {
+  const result = await apiRequest<{ success: boolean; sceneObject: ApiSceneObjectRaw }>(
+    `/api/formations/${formationId}/scene-objects`,
+    {
+      method: 'POST',
+      body: JSON.stringify(object)
+    }
+  );
+  return transformApiSceneObject(result.sceneObject);
+}
+
+/**
+ * Update a scene object
+ */
+export async function updateSceneObject(
+  formationId: string,
+  objectId: string,
+  updates: Partial<SceneObject>
+): Promise<SceneObject> {
+  const result = await apiRequest<{ success: boolean; sceneObject: ApiSceneObjectRaw }>(
+    `/api/formations/${formationId}/scene-objects/${objectId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(updates)
+    }
+  );
+  return transformApiSceneObject(result.sceneObject);
+}
+
+/**
+ * Delete a scene object
+ */
+export async function deleteSceneObject(formationId: string, objectId: string): Promise<void> {
+  await apiRequest(`/api/formations/${formationId}/scene-objects/${objectId}`, {
+    method: 'DELETE'
+  });
+}
+
+// ============================================================================
 // TRANSFORM HELPERS
 // ============================================================================
 
@@ -406,6 +491,7 @@ function transformApiFormation(api: ApiFormationRaw): Formation {
     gridSize: api.gridSize,
     performers: (api.performers || []).map(transformApiPerformer),
     keyframes: (api.keyframes || []).map(transformApiKeyframe),
+    sceneObjects: (api.sceneObjects || []).map(transformApiSceneObject),
     audioTrack: api.audioTrack,
     musicTrackUrl: api.musicTrackUrl || api.audioTrack?.url,
     musicDuration: api.musicDuration || api.audioTrack?.duration,
@@ -422,6 +508,22 @@ function transformApiPerformer(api: ApiPerformerRaw): Performer {
     label: api.label,
     color: api.color ?? '#000000',
     group: api.group
+  };
+}
+
+function transformApiSceneObject(api: ApiSceneObjectRaw): SceneObject {
+  return {
+    id: api.id,
+    name: api.name,
+    type: api.type as SceneObject['type'],
+    position: api.position,
+    source: api.source,
+    attachedToPerformerId: api.attachedToPerformerId,
+    visible: api.visible,
+    locked: api.locked,
+    layer: api.layer,
+    createdAt: api.createdAt ?? new Date().toISOString(),
+    updatedAt: api.updatedAt ?? new Date().toISOString(),
   };
 }
 
@@ -463,5 +565,10 @@ export default {
   deleteKeyframe,
   setPosition,
   uploadAudio,
-  removeAudio
+  removeAudio,
+  fetchSceneObjects,
+  saveSceneObjects,
+  createSceneObject,
+  updateSceneObject,
+  deleteSceneObject
 };

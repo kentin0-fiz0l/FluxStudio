@@ -123,6 +123,25 @@ class FormationsAdapter {
       formation.keyframes.push(keyframe);
     }
 
+    // Get scene objects
+    const sceneObjectsResult = await query(
+      'SELECT * FROM formation_scene_objects WHERE formation_id = $1 ORDER BY layer ASC',
+      [formationId]
+    );
+    formation.sceneObjects = sceneObjectsResult.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      type: row.type,
+      position: row.position_data,
+      source: row.source_data,
+      attachedToPerformerId: row.attached_to_performer_id || undefined,
+      visible: row.visible,
+      locked: row.locked,
+      layer: row.layer,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+
     return formation;
   }
 

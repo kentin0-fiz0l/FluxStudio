@@ -21,6 +21,7 @@ import { ObjectEditorModal } from '../components/object-editor/ObjectEditorModal
 import { PropLibraryPanel } from '../components/object-editor/PropLibraryPanel';
 import { ModelImporter } from '../components/object-editor/ModelImporter';
 import { PrimitiveBuilder } from '../components/object-editor/PrimitiveBuilder';
+import * as formationsApi from '../services/formationsApi';
 import type { ComposedPrimitive } from '../services/scene3d/types';
 const Formation3DViewLazy = React.lazy(
   () => import('../components/formation/Formation3DView').then((m) => ({ default: m.Formation3DView }))
@@ -40,6 +41,7 @@ export default function FormationEditor() {
   const {
     viewMode,
     setViewMode,
+    objects: scene3dObjects,
     objectList,
     selectedObject,
     selectedObjectId,
@@ -52,6 +54,7 @@ export default function FormationEditor() {
     addPrimitive,
     addProp,
     addObject,
+    clearScene,
     setActiveTool,
     updateSettings,
     duplicateSelected,
@@ -69,9 +72,19 @@ export default function FormationEditor() {
   const [currentPositions, setCurrentPositions] = React.useState<Map<string, import('../services/formationTypes').Position>>(new Map());
   const [currentPerformers, setCurrentPerformers] = React.useState<import('../services/formationTypes').Performer[]>([]);
 
-  // Handle save
+  // Handle save — also persist scene objects alongside formation
   const handleSave = React.useCallback(
-    (formation: Formation) => {
+    async (formation: Formation) => {
+      // Save scene objects to the DB
+      const sceneObjects = Object.values(scene3dRef.current.objects || {});
+      if (sceneObjects.length > 0 && formation.id) {
+        try {
+          await formationsApi.saveSceneObjects(formation.id, sceneObjects);
+        } catch (err) {
+          console.error('Failed to save scene objects:', err);
+        }
+      }
+
       addNotification({
         type: 'success',
         title: 'Formation Saved',
@@ -157,6 +170,23 @@ export default function FormationEditor() {
     });
     setPrimitiveBuilderOpen(false);
   }, [addObject, objectList.length, setPrimitiveBuilderOpen]);
+
+  // Keep a stable ref to scene3d state/actions for load and save
+  const scene3dRef = React.useRef({ clearScene, addObject, objects: scene3dObjects });
+  scene3dRef.current = { clearScene, addObject, objects: scene3dObjects };
+
+  // Load scene objects from DB when editing an existing formation
+  React.useEffect(() => {
+    if (formationId) {
+      formationsApi.fetchSceneObjects(formationId).then(objects => {
+        scene3dRef.current.clearScene();
+        objects.forEach(obj => scene3dRef.current.addObject(obj));
+      }).catch(err => {
+        console.error('Failed to load scene objects:', err);
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formationId]);
 
   // Auto-open object editor when selecting an object
   React.useEffect(() => {

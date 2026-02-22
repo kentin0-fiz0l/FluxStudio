@@ -13,6 +13,7 @@
 const express = require('express');
 const { authenticateToken } = require('../lib/auth/middleware');
 const formationsAdapter = require('../database/formations-adapter');
+const sceneObjectsAdapter = require('../database/scene-objects-adapter');
 
 const router = express.Router();
 
@@ -404,6 +405,108 @@ router.put('/formations/:formationId/keyframes/:keyframeId/positions/:performerI
   } catch (error) {
     console.error('Error setting position:', error);
     res.status(500).json({ success: false, error: 'Failed to set position' });
+  }
+});
+
+// ==================== Scene Object Endpoints ====================
+
+/**
+ * GET /api/formations/:formationId/scene-objects
+ * List all scene objects for a formation
+ */
+router.get('/formations/:formationId/scene-objects', authenticateToken, async (req, res) => {
+  try {
+    const { formationId } = req.params;
+    const objects = await sceneObjectsAdapter.listByFormation(formationId);
+    res.json({ success: true, sceneObjects: objects });
+  } catch (error) {
+    console.error('Error listing scene objects:', error);
+    res.status(500).json({ success: false, error: 'Failed to list scene objects' });
+  }
+});
+
+/**
+ * POST /api/formations/:formationId/scene-objects
+ * Create a single scene object
+ */
+router.post('/formations/:formationId/scene-objects', authenticateToken, async (req, res) => {
+  try {
+    const { formationId } = req.params;
+    const { id, name, type, position, source, attachedToPerformerId, visible, locked, layer } = req.body;
+
+    if (!name || !type || !position || !source) {
+      return res.status(400).json({ success: false, error: 'name, type, position, and source are required' });
+    }
+
+    const object = await sceneObjectsAdapter.create({
+      formationId, id, name, type, position, source,
+      attachedToPerformerId, visible, locked, layer
+    });
+
+    res.status(201).json({ success: true, sceneObject: object });
+  } catch (error) {
+    console.error('Error creating scene object:', error);
+    res.status(500).json({ success: false, error: 'Failed to create scene object' });
+  }
+});
+
+/**
+ * PATCH /api/formations/:formationId/scene-objects/:objectId
+ * Update a scene object
+ */
+router.patch('/formations/:formationId/scene-objects/:objectId', authenticateToken, async (req, res) => {
+  try {
+    const { objectId } = req.params;
+    const { name, type, position, source, attachedToPerformerId, visible, locked, layer } = req.body;
+
+    const object = await sceneObjectsAdapter.update(objectId, {
+      name, type, position, source, attachedToPerformerId, visible, locked, layer
+    });
+
+    if (!object) {
+      return res.status(404).json({ success: false, error: 'Scene object not found' });
+    }
+
+    res.json({ success: true, sceneObject: object });
+  } catch (error) {
+    console.error('Error updating scene object:', error);
+    res.status(500).json({ success: false, error: 'Failed to update scene object' });
+  }
+});
+
+/**
+ * DELETE /api/formations/:formationId/scene-objects/:objectId
+ * Delete a scene object
+ */
+router.delete('/formations/:formationId/scene-objects/:objectId', authenticateToken, async (req, res) => {
+  try {
+    const { objectId } = req.params;
+    await sceneObjectsAdapter.remove(objectId);
+    res.json({ success: true, message: 'Scene object deleted' });
+  } catch (error) {
+    console.error('Error deleting scene object:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete scene object' });
+  }
+});
+
+/**
+ * PUT /api/formations/:formationId/scene-objects
+ * Bulk sync all scene objects (primary save path)
+ */
+router.put('/formations/:formationId/scene-objects', authenticateToken, async (req, res) => {
+  try {
+    const { formationId } = req.params;
+    const { objects } = req.body;
+
+    if (!Array.isArray(objects)) {
+      return res.status(400).json({ success: false, error: 'objects array is required' });
+    }
+
+    const result = await sceneObjectsAdapter.bulkSync(formationId, objects);
+    res.json({ success: true, sceneObjects: result });
+  } catch (error) {
+    console.error('Error bulk syncing scene objects:', error);
+    res.status(500).json({ success: false, error: 'Failed to sync scene objects' });
   }
 });
 

@@ -3,6 +3,8 @@
  * Extracted from formationService.ts
  */
 
+import type { SceneObject as SceneObject3D } from './scene3d/types';
+
 export interface Position {
   x: number;
   y: number;
@@ -53,6 +55,7 @@ export interface Formation {
   gridSize: number;
   performers: Performer[];
   keyframes: Keyframe[];
+  sceneObjects?: SceneObject3D[];
   audioTrack?: AudioTrack;
   musicTrackUrl?: string;
   musicDuration?: number;
