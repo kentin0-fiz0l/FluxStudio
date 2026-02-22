@@ -104,6 +104,16 @@ export interface UseFormationYjsResult {
   setDraggingPerformer: (performerId: string | null) => void;
   /** Check if another user is dragging a performer */
   isPerformerBeingDragged: (performerId: string) => { dragging: boolean; by?: FormationAwarenessState };
+
+  // Y.UndoManager (per-user undo/redo in collaborative mode)
+  /** Undo last local change */
+  yUndo: () => void;
+  /** Redo last undone local change */
+  yRedo: () => void;
+  /** Whether collaborative undo is available */
+  canYUndo: boolean;
+  /** Whether collaborative redo is available */
+  canYRedo: boolean;
 }
 
 // ============================================================================
@@ -135,6 +145,9 @@ export function useFormationYjs({
   const persistenceRef = useRef<IndexeddbPersistence | null>(null);
   // Ref to track syncing state (avoids stale closure in persistence callback)
   const isSyncingRef = useRef(true);
+  const undoManagerRef = useRef<Y.UndoManager | null>(null);
+  const [canYUndo, setCanYUndo] = useState(false);
+  const [canYRedo, setCanYRedo] = useState(false);
 
   // User awareness state
   const userColor = useMemo(() => getUserColor(user?.id || 'anonymous'), [user?.id]);
@@ -311,10 +324,25 @@ export function useFormationYjs({
     performers.observeDeep(observer);
     keyframes.observeDeep(observer);
 
+    // Setup Y.UndoManager for per-user undo/redo
+    const undoManager = new Y.UndoManager([performers, keyframes], {
+      trackedOrigins: new Set([null, undefined]),
+    });
+    undoManagerRef.current = undoManager;
+    const updateUndoState = () => {
+      setCanYUndo(undoManager.undoStack.length > 0);
+      setCanYRedo(undoManager.redoStack.length > 0);
+    };
+    undoManager.on('stack-item-added', updateUndoState);
+    undoManager.on('stack-item-popped', updateUndoState);
+
     // Cleanup
     return () => {
       clearInterval(heartbeatInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+      undoManager.destroy();
+      undoManagerRef.current = null;
 
       ydoc.off('update', updateTracker);
       meta.unobserveDeep(observer);
@@ -795,6 +823,18 @@ export function useFormationYjs({
   }, [collaborators]);
 
   // ============================================================================
+  // Y.UndoManager Functions
+  // ============================================================================
+
+  const yUndo = useCallback(() => {
+    undoManagerRef.current?.undo();
+  }, []);
+
+  const yRedo = useCallback(() => {
+    undoManagerRef.current?.redo();
+  }, []);
+
+  // ============================================================================
   // Return Hook Result
   // ============================================================================
 
@@ -827,6 +867,12 @@ export function useFormationYjs({
     setSelectedPerformers,
     setDraggingPerformer,
     isPerformerBeingDragged,
+
+    // Y.UndoManager
+    yUndo,
+    yRedo,
+    canYUndo,
+    canYRedo,
   };
 }
 

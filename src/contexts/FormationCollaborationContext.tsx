@@ -170,6 +170,12 @@ export function FormationCollaborationProvider({
     setDraggingPerformer: yjsResult.setDraggingPerformer,
     isPerformerBeingDragged: yjsResult.isPerformerBeingDragged,
 
+    // Y.UndoManager
+    yUndo: yjsResult.yUndo,
+    yRedo: yjsResult.yRedo,
+    canYUndo: yjsResult.canYUndo,
+    canYRedo: yjsResult.canYRedo,
+
     // Additional collaboration features
     isCollaborative: enabled && yjsResult.isConnected,
     currentUser,

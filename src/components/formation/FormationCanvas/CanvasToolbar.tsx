@@ -12,7 +12,7 @@ import {
   Move, MousePointer, Layers, Eye, EyeOff,
   Loader2, Check, Music, Route, LayoutGrid, Users, Magnet, Hash,
   Minus, CircleDot, Grid3x3, Map, Bot,
-  Undo2, Redo2, Settings2, Circle, Share2,
+  Undo2, Redo2, Settings2, Circle, Share2, Code2,
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
 
@@ -263,6 +263,28 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               >
                 <Share2 className="w-4 h-4" />
                 <span className="text-xs">Share</span>
+              </button>
+            )}
+            {formationId && (
+              <button
+                onClick={async () => {
+                  const embedCode = `<iframe src="${window.location.origin}/embed/${formationId}" width="800" height="500" frameBorder="0" allow="autoplay" style="border-radius:8px;border:1px solid #374151"></iframe>`;
+                  try {
+                    await navigator.clipboard.writeText(embedCode);
+                  } catch {
+                    const input = document.createElement('textarea');
+                    input.value = embedCode;
+                    document.body.appendChild(input);
+                    input.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(input);
+                  }
+                }}
+                className="flex items-center gap-1 px-2 py-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                title="Copy embed code"
+              >
+                <Code2 className="w-4 h-4" />
+                <span className="text-xs">Embed</span>
               </button>
             )}
             <button onClick={() => setIsExportDialogOpen(true)} className="flex items-center gap-1 px-2 py-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded hover:bg-gray-100 dark:hover:bg-gray-700">

@@ -207,6 +207,7 @@ export function PerformerMarker({
         top: `${position.y}%`,
         transform: `translate(-50%, -50%)`,
       }}
+      data-performer={performer.id}
       onMouseDown={handleMouseDown}
       onContextMenu={handleContextMenu}
     >

@@ -177,6 +177,10 @@ export function FormationCanvas({
   const [showFieldOverlay, setShowFieldOverlay] = useState(false);
   const [shapeToolStart, setShapeToolStart] = useState<Position | null>(null);
   const [shapeToolCurrent, setShapeToolCurrent] = useState<Position | null>(null);
+  // Rubber-band marquee selection
+  const [marquee, setMarquee] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
+  const marqueeRef = useRef(false); // true while marquee drag is active
+  const clipboardRef = useRef<{ performers: Formation['performers']; positions: Map<string, Position> } | null>(null);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [playbackState, setPlaybackState] = useState<PlaybackState>({ isPlaying: false, currentTime: 0, duration: 5000, loop: false, speed: 1 });
   const [_historyIndex, _setHistoryIndex] = useState(0);
@@ -212,18 +216,26 @@ export function FormationCanvas({
   }, [formation, currentPositions, history]);
 
   const handleUndo = useCallback(() => {
+    // In collaborative mode, use Y.UndoManager (per-user undo)
+    if (isCollaborativeEnabled && collab.isConnected) {
+      collab.yUndo();
+      return;
+    }
     const snapshot = history.undo();
     if (snapshot && formation) {
       setCurrentPositions(new Map(snapshot.positions));
-      // Sync positions back to formationService
       snapshot.positions.forEach((pos, id) => {
         formationService.updatePosition(formation.id, selectedKeyframeId, id, pos);
       });
       setHasUnsavedChanges(true);
     }
-  }, [history, formation, selectedKeyframeId]);
+  }, [history, formation, selectedKeyframeId, isCollaborativeEnabled, collab]);
 
   const handleRedo = useCallback(() => {
+    if (isCollaborativeEnabled && collab.isConnected) {
+      collab.yRedo();
+      return;
+    }
     const snapshot = history.redo();
     if (snapshot && formation) {
       setCurrentPositions(new Map(snapshot.positions));
@@ -232,7 +244,7 @@ export function FormationCanvas({
       });
       setHasUnsavedChanges(true);
     }
-  }, [history, formation, selectedKeyframeId]);
+  }, [history, formation, selectedKeyframeId, isCollaborativeEnabled, collab]);
 
   // ============================================================================
   // AUTO-SAVE (debounced 3s after last change)
@@ -304,6 +316,45 @@ export function FormationCanvas({
     pushHistory('Duplicate performers');
   }, [formation, selectedPerformerIds, currentPositions, selectedKeyframeId, pushHistory]);
 
+  const handleCopy = useCallback(() => {
+    if (!formation || selectedPerformerIds.size === 0) return;
+    const copiedPerformers = formation.performers.filter(p => selectedPerformerIds.has(p.id));
+    const copiedPositions = new Map<string, Position>();
+    selectedPerformerIds.forEach(id => {
+      const pos = currentPositions.get(id);
+      if (pos) copiedPositions.set(id, { ...pos });
+    });
+    clipboardRef.current = { performers: copiedPerformers, positions: copiedPositions };
+  }, [formation, selectedPerformerIds, currentPositions]);
+
+  const handlePaste = useCallback(() => {
+    if (!formation || !clipboardRef.current || clipboardRef.current.performers.length === 0) return;
+    const newPerformers: typeof formation.performers = [];
+    const newPositions = new Map(currentPositions);
+    const newIds = new Set<string>();
+
+    clipboardRef.current.performers.forEach(performer => {
+      const pos = clipboardRef.current!.positions.get(performer.id);
+      if (!pos) return;
+      const newId = `performer-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      newPerformers.push({ ...performer, id: newId, label: `${performer.label}*` });
+      newPositions.set(newId, { x: Math.min(97, pos.x + 3), y: Math.min(97, pos.y + 3), rotation: pos.rotation });
+      newIds.add(newId);
+    });
+
+    setFormation(prev => prev ? {
+      ...prev,
+      performers: [...prev.performers, ...newPerformers],
+      keyframes: prev.keyframes.map(kf => ({
+        ...kf,
+        positions: kf.id === selectedKeyframeId ? newPositions : kf.positions,
+      })),
+    } : prev);
+    setCurrentPositions(newPositions);
+    setSelectedPerformerIds(newIds);
+    pushHistory('Paste performers');
+  }, [formation, currentPositions, selectedKeyframeId, pushHistory]);
+
   const handleSelectAll = useCallback(() => {
     if (!formation) return;
     setSelectedPerformerIds(new Set(formation.performers.map(p => p.id)));
@@ -343,6 +394,8 @@ export function FormationCanvas({
       { key: 'y', ctrlKey: !isMac, metaKey: isMac, action: handleRedo, description: 'Redo' },
       { key: 'Delete', action: handleDeleteSelected, description: 'Delete selected' },
       { key: 'Backspace', action: handleDeleteSelected, description: 'Delete selected' },
+      { key: 'c', ctrlKey: !isMac, metaKey: isMac, action: handleCopy, description: 'Copy selected' },
+      { key: 'v', ctrlKey: !isMac, metaKey: isMac, action: handlePaste, description: 'Paste performers' },
       { key: 'd', ctrlKey: !isMac, metaKey: isMac, action: handleDuplicateSelected, description: 'Duplicate selected' },
       { key: 'a', ctrlKey: !isMac, metaKey: isMac, action: handleSelectAll, description: 'Select all' },
       { key: 'Escape', action: handleDeselectAll, description: 'Deselect all' },
@@ -574,6 +627,65 @@ export function FormationCanvas({
     setShapeToolCurrent(null);
   }, [isCollaborativeEnabled, collab]);
 
+  // Rubber-band marquee selection handlers
+  const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
+    if (activeTool !== 'select' || !canvasRef.current) return;
+    // Only start marquee on primary button click on empty area (not on a performer)
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-performer]')) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    marqueeRef.current = true;
+    setMarquee({ startX: x, startY: y, currentX: x, currentY: y });
+  }, [activeTool]);
+
+  const handleCanvasMouseMoveMarquee = useCallback((e: React.MouseEvent) => {
+    if (!marqueeRef.current || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setMarquee(prev => prev ? { ...prev, currentX: x, currentY: y } : null);
+  }, []);
+
+  const handleCanvasMouseUp = useCallback((_e: React.MouseEvent) => {
+    if (!marqueeRef.current || !marquee || !formation) {
+      marqueeRef.current = false;
+      setMarquee(null);
+      return;
+    }
+    marqueeRef.current = false;
+
+    // Calculate marquee bounds
+    const minX = Math.min(marquee.startX, marquee.currentX);
+    const maxX = Math.max(marquee.startX, marquee.currentX);
+    const minY = Math.min(marquee.startY, marquee.currentY);
+    const maxY = Math.max(marquee.startY, marquee.currentY);
+
+    // Only count as marquee if dragged at least 2% in any direction
+    if (maxX - minX < 2 && maxY - minY < 2) {
+      setMarquee(null);
+      return;
+    }
+
+    // Select all performers within the marquee bounds
+    const selected = new Set<string>();
+    formation.performers.forEach(p => {
+      const pos = currentPositions.get(p.id);
+      if (pos && pos.x >= minX && pos.x <= maxX && pos.y >= minY && pos.y <= maxY) {
+        selected.add(p.id);
+      }
+    });
+
+    setSelectedPerformerIds(selected);
+    if (isCollaborativeEnabled && collab.isConnected) {
+      collab.setSelectedPerformers(Array.from(selected));
+    }
+    setMarquee(null);
+  }, [marquee, formation, currentPositions, isCollaborativeEnabled, collab]);
+
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
     if (!canvasRef.current || !formation) return;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -753,7 +865,7 @@ export function FormationCanvas({
             ref={canvasRef}
             className="relative bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto"
             style={{ width: `${formation.stageWidth * 20 * zoom}px`, height: `${formation.stageHeight * 20 * zoom}px`, cursor: activeTool === 'add' || isShapeTool ? 'crosshair' : activeTool === 'pan' ? 'grab' : 'default' }}
-            onClick={handleCanvasClick} onMouseMove={handleCanvasMouseMove} onMouseLeave={handleCanvasMouseLeave}
+            onClick={handleCanvasClick} onMouseDown={handleCanvasMouseDown} onMouseMove={(e) => { handleCanvasMouseMove(e); handleCanvasMouseMoveMarquee(e); }} onMouseUp={handleCanvasMouseUp} onMouseLeave={handleCanvasMouseLeave}
           >
             {showGrid && (
               <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
@@ -780,6 +892,19 @@ export function FormationCanvas({
               />
             )}
             {isCollaborativeEnabled && collab.collaborators.length > 0 && <SelectionRingsOverlay collaborators={collab.collaborators} performerPositions={currentPositions} canvasWidth={formation.stageWidth * 20 * zoom} canvasHeight={formation.stageHeight * 20 * zoom} />}
+            {/* Rubber-band marquee selection rectangle */}
+            {marquee && (
+              <div
+                className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-none"
+                style={{
+                  left: `${Math.min(marquee.startX, marquee.currentX)}%`,
+                  top: `${Math.min(marquee.startY, marquee.currentY)}%`,
+                  width: `${Math.abs(marquee.currentX - marquee.startX)}%`,
+                  height: `${Math.abs(marquee.currentY - marquee.startY)}%`,
+                  zIndex: 40,
+                }}
+              />
+            )}
             {formation.performers.map((performer) => {
               const position = currentPositions.get(performer.id);
               if (!position) return null;
