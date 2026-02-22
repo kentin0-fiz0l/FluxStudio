@@ -38,11 +38,11 @@ describe('authSlice', () => {
   });
 
   describe('initial state', () => {
-    it('should start with null user and isLoading true', () => {
+    it('should start with null user and isLoading false when no token', () => {
       const { auth } = store.getState();
       expect(auth.user).toBeNull();
       expect(auth.isAuthenticated).toBe(false);
-      expect(auth.isLoading).toBe(true); // starts true for checkAuth
+      expect(auth.isLoading).toBe(false); // false when no auth_token in localStorage
       expect(auth.error).toBeNull();
       expect(auth.token).toBeNull();
     });
