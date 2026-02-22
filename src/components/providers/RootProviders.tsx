@@ -31,6 +31,7 @@ import { RealtimeNotifications } from '../notifications/RealtimeNotifications';
 import { MessagingSocketBridge } from '../../contexts/MessagingContext';
 import { SessionProvider } from '../../contexts/SessionContext';
 import { OrganizationProvider } from '../../contexts/OrganizationContext';
+import { useAuth } from '../../store/slices/authSlice';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -49,8 +50,15 @@ function CoreProviders({ children }: ProvidersProps) {
 
 /**
  * Realtime providers - socket connections and live updates
+ * Skips initialization for unauthenticated users to avoid unnecessary overhead.
  */
 function RealtimeProviders({ children }: ProvidersProps) {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <>{children}</>;
+  }
+
   return (
     <SocketProvider>
       <NotificationProvider>
@@ -64,8 +72,15 @@ function RealtimeProviders({ children }: ProvidersProps) {
 
 /**
  * Session/Org providers - still need side effects from these
+ * Skips initialization for unauthenticated users.
  */
 function SessionProviders({ children }: ProvidersProps) {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <>{children}</>;
+  }
+
   return (
     <SessionProvider>
       <OrganizationProvider>

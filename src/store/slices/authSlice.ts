@@ -214,7 +214,7 @@ function clearTokens() {
 const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
-  isLoading: true,
+  isLoading: !!localStorage.getItem('auth_token'),
   error: null,
   token: null,
   session: loadSessionFromStorage(),
