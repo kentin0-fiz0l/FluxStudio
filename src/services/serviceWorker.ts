@@ -22,13 +22,20 @@ export function setOnUpdateAvailable(cb: SWUpdateCallback) {
 export function registerSW() {
   if (!('serviceWorker' in navigator)) return;
 
-  wb = new Workbox('/sw.js');
+  try {
+    wb = new Workbox('/sw.js');
 
-  wb.addEventListener('waiting', () => {
-    onUpdateAvailable?.();
-  });
+    wb.addEventListener('waiting', () => {
+      onUpdateAvailable?.();
+    });
 
-  wb.register();
+    wb.register().catch((err) => {
+      // SW registration can fail silently (e.g. stale SW, IndexedDB issues)
+      console.debug('[FluxStudio] Service worker registration skipped:', err.message);
+    });
+  } catch {
+    // Workbox constructor or event binding failed — non-critical
+  }
 }
 
 export function applyUpdate() {

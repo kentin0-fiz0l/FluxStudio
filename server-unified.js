@@ -258,8 +258,13 @@ const PORT = config.AUTH_PORT; // Port 3001 - single unified endpoint
 const JWT_SECRET = config.JWT_SECRET;
 
 // Socket.IO configuration with namespaces
+// Production: DO App Platform strips /api prefix from ingress, so the request
+// arrives as /socket.io even though the client sends /api/socket.io.
+// Local dev: client connects directly to :3001 with path /api/socket.io.
+const isProduction = process.env.NODE_ENV === 'production';
+const socketPath = isProduction ? '/socket.io' : '/api/socket.io';
 const io = new Server(httpServer, {
-  path: '/api/socket.io', // Match frontend path on DigitalOcean App Platform
+  path: socketPath,
   cors: {
     origin: config.CORS_ORIGINS,
     credentials: true

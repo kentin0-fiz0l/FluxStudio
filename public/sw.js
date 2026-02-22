@@ -432,8 +432,15 @@ async function syncContactForm() {
 
 // Sync pending actions from IndexedDB
 async function syncPendingActions() {
+  let db;
   try {
-    const db = await openFluxDatabase();
+    db = await openFluxDatabase();
+  } catch (err) {
+    // IndexedDB unavailable or blocked — nothing to sync
+    console.debug('[SW] IndexedDB unavailable for sync:', err.message);
+    return;
+  }
+  try {
     const tx = db.transaction('pendingMutations', 'readonly');
     const store = tx.objectStore('pendingMutations');
     const actions = await getAllFromStore(store);
@@ -480,10 +487,15 @@ async function syncPendingActions() {
 // IndexedDB helpers — uses Dexie-managed 'fluxstudio-db'
 function openFluxDatabase() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('fluxstudio-db');
+    try {
+      const request = indexedDB.open('fluxstudio-db');
 
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+      request.onblocked = () => reject(new Error('IndexedDB blocked'));
+      request.onsuccess = () => resolve(request.result);
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
