@@ -761,8 +761,12 @@ router.get('/og-image.png', async (req, res) => {
 router.get('/share/:formationId', handleShareOG);
 
 // UUID-only path (DO ingress strips /share/ prefix, backend receives /:formationId)
-// Regex matches UUIDs (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
-router.get('/:formationId([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', handleShareOG);
+// Use Express 5 middleware to validate UUID format (path-to-regexp v8 dropped inline regex)
+router.get('/:formationId', (req, res, next) => {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (UUID_RE.test(req.params.formationId)) return handleShareOG(req, res, next);
+  next(); // Not a UUID — skip to next route
+});
 
 function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
