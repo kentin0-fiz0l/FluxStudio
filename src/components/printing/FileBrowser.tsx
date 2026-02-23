@@ -94,7 +94,7 @@ interface FileItemProps {
   isLinked?: boolean;
 }
 
-const FileItem: React.FC<FileItemProps> = ({
+const FileItem: React.FC<FileItemProps> = React.memo(({
   file,
   onAddToQueue,
   onDelete,
@@ -108,10 +108,10 @@ const FileItem: React.FC<FileItemProps> = ({
   const estimatedTime = file.gcodeAnalysis?.estimatedPrintTime;
 
   return (
-    <div className="group p-3 bg-white border border-neutral-200 rounded-lg hover:shadow-md transition-shadow">
+    <div className="group p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:shadow-md transition-shadow">
       <div className="flex items-start gap-3">
         {/* Icon */}
-        <div className="flex-shrink-0 w-10 h-10 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center">
+        <div className="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg flex items-center justify-center">
           <FileText className="h-5 w-5" />
         </div>
 
@@ -120,7 +120,7 @@ const FileItem: React.FC<FileItemProps> = ({
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h4 className="text-sm font-medium text-neutral-900 truncate">
+                <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
                   {file.display || file.name}
                 </h4>
                 {isLinked && projectName && (
@@ -130,7 +130,7 @@ const FileItem: React.FC<FileItemProps> = ({
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-3 mt-1 text-xs text-neutral-500">
+              <div className="flex items-center gap-3 mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                 <span>{formatFileSize(file.size)}</span>
                 <span>•</span>
                 <span>{formatDate(file.date)}</span>
@@ -205,7 +205,9 @@ const FileItem: React.FC<FileItemProps> = ({
       </div>
     </div>
   );
-};
+});
+
+FileItem.displayName = 'FileItem';
 
 export const FileBrowser: React.FC<FileBrowserProps> = ({
   files,
@@ -489,7 +491,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-3 text-error-600">
+          <div className="flex items-center gap-3 text-error-600 dark:text-error-400">
             <AlertCircle className="h-5 w-5 flex-shrink-0" />
             <p className="text-sm">{error}</p>
           </div>
@@ -527,10 +529,10 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
         <CardContent className="flex-1 overflow-hidden space-y-4">
           {/* Upload Progress */}
           {uploadProgress !== null && (
-            <div className="space-y-2 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+            <div className="space-y-2 p-3 bg-primary-50 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800 rounded-lg">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-primary-900">Uploading...</span>
-                <span className="text-primary-700">{uploadProgress}%</span>
+                <span className="font-medium text-primary-900 dark:text-primary-200">Uploading...</span>
+                <span className="text-primary-700 dark:text-primary-300">{uploadProgress}%</span>
               </div>
               <Progress value={uploadProgress} className="h-2" />
             </div>
@@ -539,7 +541,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
           {/* Project Selector */}
           {projects.length > 0 && (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral-700">Filter by Project</label>
+              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Filter by Project</label>
               <Select
                 value={selectedProject || 'all'}
                 onValueChange={(value) => setSelectedProject(value === 'all' ? null : value)}
@@ -585,10 +587,10 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
           {!hasFiles ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-center space-y-3">
-                <FileText className="h-12 w-12 text-neutral-300 mx-auto" />
+                <FileText className="h-12 w-12 text-neutral-300 dark:text-neutral-600 mx-auto" />
                 <div>
-                  <p className="text-sm font-medium text-neutral-900">No Files</p>
-                  <p className="text-xs text-neutral-500 mt-1">
+                  <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">No Files</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                     Upload G-code files to get started
                   </p>
                 </div>
@@ -606,8 +608,8 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
           ) : filteredFiles.length === 0 ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-center space-y-2">
-                <Search className="h-10 w-10 text-neutral-300 mx-auto" />
-                <p className="text-sm text-neutral-500">No files match your search</p>
+                <Search className="h-10 w-10 text-neutral-300 dark:text-neutral-600 mx-auto" />
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">No files match your search</p>
               </div>
             </div>
           ) : (
@@ -641,15 +643,15 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
 
         {/* Storage Info Footer */}
         {files && hasFiles && (
-          <div className="border-t border-neutral-200 px-6 py-3 bg-neutral-50">
-            <div className="flex items-center justify-between text-xs text-neutral-600">
+          <div className="border-t border-neutral-200 dark:border-neutral-800 px-6 py-3 bg-neutral-50 dark:bg-neutral-900">
+            <div className="flex items-center justify-between text-xs text-neutral-600 dark:text-neutral-400">
               <div className="flex items-center gap-2">
                 <HardDrive className="h-3.5 w-3.5" />
                 <span>
                   {formatFileSize(files.total - files.free)} / {formatFileSize(files.total)} used
                 </span>
               </div>
-              <span className="text-neutral-500">
+              <span className="text-neutral-500 dark:text-neutral-500">
                 {fileList.length} {fileList.length === 1 ? 'file' : 'files'}
               </span>
             </div>
@@ -706,7 +708,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Project</label>
+              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Project</label>
               <Select
                 onValueChange={(projectId) => {
                   if (fileToLink) {

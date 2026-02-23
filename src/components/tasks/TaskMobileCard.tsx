@@ -57,8 +57,9 @@ export const TaskMobileCard: React.FC<TaskMobileCardProps> = ({
 
   return (
     <div
-      className="bg-white rounded-lg border border-neutral-200 p-4 space-y-3"
+      className="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 space-y-3"
       role="listitem"
+      aria-label={`Task: ${task.title}`}
     >
       {/* Header Row */}
       <div className="flex items-start justify-between gap-3">
@@ -70,15 +71,16 @@ export const TaskMobileCard: React.FC<TaskMobileCardProps> = ({
               className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
                 task.status === 'completed'
                   ? 'bg-success-600 border-success-600'
-                  : 'border-neutral-300'
+                  : 'border-neutral-300 dark:border-neutral-600'
               }`}
               aria-label={task.status === 'completed' ? 'Mark as incomplete' : 'Mark as complete'}
+              aria-pressed={task.status === 'completed'}
             >
               {task.status === 'completed' && (
                 <Check className="w-3 h-3 text-white" />
               )}
             </button>
-            <h3 className="font-semibold text-neutral-900">{task.title}</h3>
+            <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">{task.title}</h3>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -117,14 +119,14 @@ export const TaskMobileCard: React.FC<TaskMobileCardProps> = ({
       <div className="space-y-1 text-sm">
         {task.assignedTo && (
           <div className="flex items-center gap-2">
-            <span className="text-neutral-500 w-20">Assignee:</span>
-            <span className="text-neutral-900">{task.assignedTo}</span>
+            <span className="text-neutral-500 dark:text-neutral-400 w-20">Assignee:</span>
+            <span className="text-neutral-900 dark:text-neutral-100">{task.assignedTo}</span>
           </div>
         )}
         {task.dueDate && (
           <div className="flex items-center gap-2">
-            <span className="text-neutral-500 w-20">Due Date:</span>
-            <span className={overdue ? 'text-error-600 font-medium' : 'text-neutral-900'}>
+            <span className="text-neutral-500 dark:text-neutral-400 w-20">Due Date:</span>
+            <span className={overdue ? 'text-error-600 dark:text-error-400 font-medium' : 'text-neutral-900 dark:text-neutral-100'}>
               {formatDate(task.dueDate)}
               {overdue && <AlertCircle className="w-4 h-4 inline-block ml-1" />}
             </span>

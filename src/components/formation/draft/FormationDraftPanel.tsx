@@ -336,7 +336,7 @@ export function FormationDraftPanel({
             <StatusBadge status={draft.draftStatus} />
           </div>
         </div>
-        <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+        <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close draft panel">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -377,9 +377,19 @@ export function FormationDraftPanel({
             </button>
 
             {draft.draftStatus === 'error' && draft.error && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
-                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <p className="text-xs">{draft.error}</p>
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400" role="alert" aria-live="polite">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs">{draft.error}</p>
+                  <button
+                    onClick={handleGenerate}
+                    disabled={!showDescription.trim()}
+                    className="flex items-center gap-1 mt-1.5 text-xs font-medium text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 disabled:opacity-50"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    Retry
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -403,6 +413,7 @@ export function FormationDraftPanel({
                 <button
                   onClick={() => handleInterrupt('pause')}
                   className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-amber-500 hover:bg-amber-600 text-white"
+                  aria-label="Resume generation"
                 >
                   <Play className="w-3.5 h-3.5" />
                   Resume
@@ -411,6 +422,7 @@ export function FormationDraftPanel({
                 <button
                   onClick={() => handleInterrupt('pause')}
                   className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  aria-label="Pause generation"
                 >
                   <Pause className="w-3.5 h-3.5" />
                   Pause
@@ -419,6 +431,7 @@ export function FormationDraftPanel({
               <button
                 onClick={() => handleInterrupt('cancel')}
                 className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-red-500"
+                aria-label="Cancel generation"
               >
                 <Square className="w-3.5 h-3.5" />
                 Cancel
@@ -433,6 +446,8 @@ export function FormationDraftPanel({
             <button
               onClick={() => setPlanExpanded(!planExpanded)}
               className="flex items-center justify-between w-full text-sm font-medium"
+              aria-expanded={planExpanded}
+              aria-label="Toggle show plan details"
             >
               <span>Show Plan</span>
               {planExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -586,7 +601,7 @@ function ProgressBar({
         </span>
         <span className="font-medium text-gray-700 dark:text-gray-300">{percent}%</span>
       </div>
-      <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="Generation progress">
         <div
           className="h-full bg-amber-500 rounded-full transition-all duration-300 ease-out"
           style={{ width: `${percent}%` }}
