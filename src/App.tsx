@@ -12,6 +12,7 @@ import ErrorBoundary, {
   ToolsErrorBoundary,
   ProjectsErrorBoundary,
   MessagingErrorBoundary,
+  ConnectorsErrorBoundary,
 } from './components/error/ErrorBoundary';
 import { performanceMonitoring } from './services/performanceMonitoring';
 import { apiService } from './services/apiService';
@@ -299,7 +300,7 @@ function AuthenticatedRoutes() {
                   <Route path="/settings" element={<ProtectedRoute><Suspense fallback={<SettingsSkeleton />}><Settings /></Suspense></ProtectedRoute>} />
                   <Route path="/settings/privacy" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
                   <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
-                  <Route path="/connectors" element={<ProtectedRoute><Connectors /></ProtectedRoute>} />
+                  <Route path="/connectors" element={<ProtectedRoute><ConnectorsErrorBoundary><Connectors /></ConnectorsErrorBoundary></ProtectedRoute>} />
                   <Route path="/plugins" element={<ProtectedRoute><PluginManagerPage /></ProtectedRoute>} />
                   <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
 

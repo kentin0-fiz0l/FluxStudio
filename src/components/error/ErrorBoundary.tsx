@@ -747,4 +747,41 @@ export function RouteErrorBoundary() {
   );
 }
 
+export function ConnectorsErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      onError={(error) => {
+        boundaryLogger.error('Connectors page error', error);
+      }}
+      fallback={
+        <div className="min-h-screen bg-gray-50 dark:bg-neutral-950 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mx-auto mb-4 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-white">Integrations Unavailable</h3>
+              <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+                We're having trouble loading your integrations. Your connected services are not affected.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={() => window.location.reload()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reload
+                </Button>
+                <Button variant="outline" onClick={() => { window.location.href = '/projects'; }}>
+                  <Home className="h-4 w-4 mr-2" />
+                  Projects
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
 export default ErrorBoundary;

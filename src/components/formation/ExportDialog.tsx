@@ -206,7 +206,13 @@ export function ExportDialog({
       />
 
       {/* Dialog */}
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('formation.export', 'Export Formation')}
+        onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+        className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div>
@@ -232,12 +238,33 @@ export function ExportDialog({
             <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
               {t('formation.exportFormat', 'Export Format')}
             </h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div
+              className="grid grid-cols-3 gap-3"
+              role="radiogroup"
+              aria-label={t('formation.exportFormat', 'Export Format')}
+              onKeyDown={(e) => {
+                const keys: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+                const delta = keys[e.key];
+                if (delta !== undefined) {
+                  e.preventDefault();
+                  const idx = formatOptions.findIndex((f) => f.value === selectedFormat);
+                  const next = (idx + delta + formatOptions.length) % formatOptions.length;
+                  setSelectedFormat(formatOptions[next].value);
+                  // Move focus to the newly selected button
+                  const container = e.currentTarget;
+                  const buttons = container.querySelectorAll<HTMLElement>('[role="radio"]');
+                  buttons[next]?.focus();
+                }
+              }}
+            >
               {formatOptions.map((format) => (
                 <button
                   key={format.value}
+                  role="radio"
+                  aria-checked={selectedFormat === format.value}
+                  tabIndex={selectedFormat === format.value ? 0 : -1}
                   onClick={() => setSelectedFormat(format.value)}
-                  className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all ${
+                  className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800 ${
                     selectedFormat === format.value
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'

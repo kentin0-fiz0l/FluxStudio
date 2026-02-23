@@ -14,7 +14,7 @@ import { useRegisterShortcuts } from '@/contexts/KeyboardShortcutsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { Formation } from '../services/formationService';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { ViewToggle } from '../components/formation/ViewToggle';
 import { Scene3DToolbar } from '../components/formation/Scene3DToolbar';
@@ -231,22 +231,44 @@ export default function FormationEditor() {
   return (
     <DashboardLayout>
       <div className="h-full flex flex-col">
-        {/* Header with back button and view toggle */}
+        {/* Header with breadcrumb and view toggle */}
         <div className="flex items-center gap-4 p-4 border-b border-gray-200 dark:border-gray-700">
           <Button
             variant="ghost"
             size="sm"
             onClick={handleClose}
-            className="flex items-center gap-2"
+            className="flex items-center gap-1 mr-1"
+            aria-label="Back to Project"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Project
           </Button>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {formationId ? 'Edit Formation' : 'New Formation'}
-            </h1>
-          </div>
+          <nav aria-label="breadcrumb" className="flex-1 min-w-0">
+            <ol className="flex items-center gap-1.5 text-sm">
+              <li>
+                <button onClick={() => navigate('/projects')} className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors">
+                  Projects
+                </button>
+              </li>
+              <li><ChevronRight className="w-3.5 h-3.5 text-neutral-400" /></li>
+              <li>
+                <button onClick={handleClose} className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors truncate max-w-[160px]">
+                  Project
+                </button>
+              </li>
+              <li><ChevronRight className="w-3.5 h-3.5 text-neutral-400" /></li>
+              <li>
+                <button onClick={handleClose} className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors">
+                  Formations
+                </button>
+              </li>
+              <li><ChevronRight className="w-3.5 h-3.5 text-neutral-400" /></li>
+              <li>
+                <span className="font-medium text-neutral-900 dark:text-white truncate max-w-[200px] block" aria-current="page">
+                  {formationId ? 'Edit Formation' : 'New Formation'}
+                </span>
+              </li>
+            </ol>
+          </nav>
           <ViewToggle mode={viewMode} onChange={setViewMode} />
         </div>
 

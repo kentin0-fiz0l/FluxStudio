@@ -49,6 +49,7 @@ import { useConnectors } from '@/store';
 import type { Connector, ConnectorFile, ConnectorProvider, ImportedFile } from '@/store';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
+import { UniversalEmptyState } from '@/components/ui/UniversalEmptyState';
 
 // Provider icons
 const providerIcons: Record<ConnectorProvider, React.ReactNode> = {
@@ -367,17 +368,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             <p className="text-sm text-neutral-500">Loading files...</p>
           </div>
         ) : filteredFiles.length === 0 ? (
-          <div className="p-12 text-center">
-            <FolderOpen className="h-12 w-12 text-neutral-200 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-neutral-900 mb-1">
-              {searchQuery ? 'No matching files' : 'No files found'}
-            </h3>
-            <p className="text-sm text-neutral-500">
-              {searchQuery
-                ? 'Try a different search term'
-                : 'This folder is empty or you don\'t have access to any files.'}
-            </p>
-          </div>
+          <UniversalEmptyState
+            icon={FolderOpen}
+            title={searchQuery ? 'No matching files' : 'No files found'}
+            description={searchQuery ? 'Try a different search term or clear the filter.' : 'This folder is empty or you don\'t have access to any files.'}
+            illustration="file"
+            size="sm"
+            primaryAction={searchQuery ? { label: 'Clear search', onClick: () => setSearchQuery('') } : undefined}
+          />
         ) : viewMode === 'list' ? (
           <table className="w-full" role="grid">
             <thead>

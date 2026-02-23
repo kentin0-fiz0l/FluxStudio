@@ -17,13 +17,13 @@ import {
   AlertTriangle,
   RefreshCw,
   BarChart3,
-  Loader,
   Wifi,
   TrendingDown,
   Globe,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardLayout } from '../components/templates';
+import { Skeleton } from '../components/ui/skeleton';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -151,8 +151,57 @@ export function AdminMetrics() {
         breadcrumbs={[{ label: 'Admin' }, { label: 'Metrics' }]}
         onLogout={() => {}}
       >
-        <div className="flex items-center justify-center py-24">
-          <Loader className="w-8 h-8 text-primary-500 animate-spin" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+          {/* Header skeleton */}
+          <div className="flex items-center justify-between">
+            <div>
+              <Skeleton className="h-7 w-48 mb-2" />
+              <Skeleton className="h-4 w-72" />
+            </div>
+            <Skeleton className="h-10 w-10 rounded-lg" />
+          </div>
+          {/* Metric cards row 1 */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4">
+                <Skeleton className="h-3 w-20 mb-3" />
+                <Skeleton className="h-7 w-16" />
+              </div>
+            ))}
+          </div>
+          {/* Metric cards row 2 */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4">
+                <Skeleton className="h-3 w-20 mb-3" />
+                <Skeleton className="h-7 w-16" />
+              </div>
+            ))}
+          </div>
+          {/* Web Vitals skeleton */}
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5">
+            <Skeleton className="h-5 w-40 mb-4" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i}>
+                  <Skeleton className="h-3 w-8 mb-2" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Events skeleton */}
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5">
+            <Skeleton className="h-5 w-36 mb-4" />
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-4 w-12" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </DashboardLayout>
     );

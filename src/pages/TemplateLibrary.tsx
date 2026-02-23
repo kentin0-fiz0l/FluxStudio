@@ -18,6 +18,7 @@ import {
   Filter,
   X,
 } from 'lucide-react';
+import { UniversalEmptyState } from '@/components/ui/UniversalEmptyState';
 import { templateRegistry } from '@/services/formationTemplates/registry';
 import {
   DrillTemplate,
@@ -247,16 +248,17 @@ export default function TemplateLibrary() {
 
         {/* Template Grid */}
         {filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <LayoutGrid className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-            <p className="text-gray-500 dark:text-gray-400 mb-2">No templates found</p>
-            <button
-              onClick={() => { setSearch(''); setActiveCategory(null); }}
-              className="text-sm text-indigo-600 hover:text-indigo-700"
-            >
-              Clear filters
-            </button>
-          </div>
+          <UniversalEmptyState
+            icon={LayoutGrid}
+            title="No templates found"
+            description={search || activeCategory ? 'Try adjusting your search or category filters.' : 'No formation templates are available yet.'}
+            illustration="search"
+            primaryAction={
+              (search || activeCategory)
+                ? { label: 'Clear filters', onClick: () => { setSearch(''); setActiveCategory(null); } }
+                : undefined
+            }
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filtered.map((template) => (
