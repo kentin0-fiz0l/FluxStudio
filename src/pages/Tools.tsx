@@ -10,6 +10,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Card, Button, Badge } from '@/components/ui';
 import { useAuth } from '../contexts/AuthContext';
+import { SEOHead } from '../components/SEOHead';
 import { useMetMap } from '../contexts/MetMapContext';
 import { useActiveProject } from '@/store';
 import {
@@ -137,6 +138,7 @@ function Tools() {
       breadcrumbs={[{ label: 'Tools' }]}
       onLogout={logout}
     >
+      <SEOHead title="Tools" description="Explore Flux Studio's creative tools: formation editor, MetMap planner, analytics, and more." noindex />
       <div className="p-4 md:p-6 space-y-6">
         {/* Header with project-first framing */}
         <div>

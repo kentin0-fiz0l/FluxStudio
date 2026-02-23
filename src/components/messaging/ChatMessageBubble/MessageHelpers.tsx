@@ -25,6 +25,8 @@ import { getInitials } from '../utils';
 
 export const MessageStatusIcon: React.FC<{ status: string }> = ({ status }) => {
   switch (status) {
+    case 'sending':
+      return <Clock className="w-3.5 h-3.5 text-white/50 animate-pulse" />;
     case 'sent':
       return <Check className="w-3.5 h-3.5 text-white/70" />;
     case 'delivered':

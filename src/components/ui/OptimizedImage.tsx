@@ -22,6 +22,8 @@ interface OptimizedImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElem
   height?: number;
   quality?: number;
   blurPlaceholder?: boolean;
+  /** Custom LQIP data URL or tiny thumbnail URL */
+  lqip?: string;
   lazy?: boolean;
   priority?: boolean;
   responsive?: boolean;
@@ -37,6 +39,7 @@ export function OptimizedImage({
   height,
   quality = 80,
   blurPlaceholder = true,
+  lqip,
   lazy = true,
   priority = false,
   responsive = true,
@@ -132,10 +135,21 @@ export function OptimizedImage({
           <motion.div
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 flex items-center justify-center bg-muted"
+            transition={{ duration: 0.4 }}
+            className="absolute inset-0 bg-muted"
           >
-            <ImageIcon className="h-8 w-8 text-muted-foreground animate-pulse" />
+            {lqip || (initialImageSrc && initialImageSrc !== imageSrc) ? (
+              <img
+                src={lqip || initialImageSrc}
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full object-cover blur-lg scale-110"
+              />
+            ) : (
+              <div className="flex items-center justify-center w-full h-full">
+                <ImageIcon className="h-8 w-8 text-muted-foreground animate-pulse" />
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGoogleOAuth } from '../hooks/useGoogleOAuth';
+import { SEOHead } from '../components/SEOHead';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '65518208813-f4rgudom5b57qad0jlhjtsocsrb26mfc.apps.googleusercontent.com';
 
@@ -119,6 +120,11 @@ export function Signup() {
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] flex flex-col items-center justify-center px-4 py-12">
+      <SEOHead
+        title="Sign Up"
+        description="Create your free Flux Studio account. Start designing, collaborating, and managing creative projects with your team."
+        canonicalUrl="https://fluxstudio.art/signup"
+      />
       {/* Logo */}
       <Link to="/" className="flex items-center gap-3 mb-8">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-lg">

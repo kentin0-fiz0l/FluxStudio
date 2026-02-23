@@ -40,6 +40,7 @@ import { AlignmentToolbar } from './AlignmentToolbar';
 import { ShapeToolOverlay } from './ShapeToolOverlay';
 import { OnboardingHints } from './OnboardingHints';
 import { FieldOverlay } from '../FieldOverlay';
+import { TransitionGhostTrail } from '../TransitionGhostTrail';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -188,6 +189,7 @@ export function FormationCanvas({
   const clipboardRef = useRef<{ performers: Formation['performers']; positions: Map<string, Position> } | null>(null);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [playbackState, setPlaybackState] = useState<PlaybackState>({ isPlaying: false, currentTime: 0, duration: 5000, loop: false, speed: 1 });
+  const [ghostTrail, setGhostTrail] = useState<Array<{ time: number; positions: Map<string, Position> }>>([]);
   const [_historyIndex, _setHistoryIndex] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -449,16 +451,19 @@ export function FormationCanvas({
   // Playback handlers
   const handlePlay = useCallback(() => {
     if (!formation) return;
+    setGhostTrail([]);
     formationService.play(formation.id, (time) => {
       setPlaybackState((prev) => ({ ...prev, currentTime: time, isPlaying: true }));
       const positions = formationService.getPositionsAtTime(formation.id, time);
       setCurrentPositions(positions);
+      // Record ghost trail snapshots (keep last 6 for 5 visible ghosts)
+      setGhostTrail((prev) => [...prev.slice(-5), { time, positions: new Map(positions) }]);
     });
     setPlaybackState((prev) => ({ ...prev, isPlaying: true }));
   }, [formation]);
 
   const handlePause = useCallback(() => { formationService.pause(); setPlaybackState((prev) => ({ ...prev, isPlaying: false })); }, []);
-  const handleStop = useCallback(() => { formationService.stop(); setPlaybackState((prev) => ({ ...prev, isPlaying: false, currentTime: 0 })); if (formation && formation.keyframes.length > 0) setCurrentPositions(new Map(formation.keyframes[0].positions)); }, [formation]);
+  const handleStop = useCallback(() => { formationService.stop(); setPlaybackState((prev) => ({ ...prev, isPlaying: false, currentTime: 0 })); setGhostTrail([]); if (formation && formation.keyframes.length > 0) setCurrentPositions(new Map(formation.keyframes[0].positions)); }, [formation]);
   const handleSeek = useCallback((time: number) => { formationService.seek(time); setPlaybackState((prev) => ({ ...prev, currentTime: time })); if (formation) setCurrentPositions(formationService.getPositionsAtTime(formation.id, time)); }, [formation]);
   const handleSpeedChange = useCallback((speed: number) => { formationService.setSpeed(speed); setPlaybackState((prev) => ({ ...prev, speed })); }, []);
   const handleToggleLoop = useCallback(() => { const loop = formationService.toggleLoop(); setPlaybackState((prev) => ({ ...prev, loop })); }, []);
@@ -1035,6 +1040,7 @@ export function FormationCanvas({
               />
             )}
             {showPaths && !playbackState.isPlaying && <PathOverlay performers={formation.performers} paths={performerPaths} currentTime={playbackState.currentTime} canvasWidth={formation.stageWidth * 20 * zoom} canvasHeight={formation.stageHeight * 20 * zoom} showPaths={showPaths} selectedPerformerIds={selectedPerformerIds} />}
+            {playbackState.isPlaying && ghostTrail.length > 1 && <TransitionGhostTrail performers={formation.performers} trail={ghostTrail} maxGhosts={5} canvasWidth={formation.stageWidth * 20 * zoom} canvasHeight={formation.stageHeight * 20 * zoom} />}
             {isShapeTool && shapeToolStart && shapeToolCurrent && (
               <ShapeToolOverlay
                 tool={activeTool as 'line' | 'arc' | 'block'}
@@ -1063,7 +1069,7 @@ export function FormationCanvas({
               const position = currentPositions.get(performer.id);
               if (!position) return null;
               const { dragging: isBeingDragged, by: draggedBy } = isCollaborativeEnabled ? collab.isPerformerBeingDragged(performer.id) : { dragging: false, by: undefined };
-              return <PerformerMarker key={performer.id} performer={performer} position={position} isSelected={selectedPerformerIds.has(performer.id)} isLocked={playbackState.isPlaying || isBeingDragged} showLabel={showLabels} showRotation={showRotation && selectedPerformerIds.has(performer.id)} scale={zoom} onSelect={handleSelectPerformer} onMove={handleMovePerformer} onRotate={handleRotatePerformer} onDragStart={() => handleDragStart(performer.id)} onDragEnd={handleDragEnd} lockedByUser={draggedBy?.user.name} />;
+              return <PerformerMarker key={performer.id} performer={performer} position={position} isSelected={selectedPerformerIds.has(performer.id)} isLocked={playbackState.isPlaying || isBeingDragged} showLabel={showLabels} showRotation={showRotation && selectedPerformerIds.has(performer.id)} scale={zoom} isAnimating={playbackState.isPlaying} onSelect={handleSelectPerformer} onMove={handleMovePerformer} onRotate={handleRotatePerformer} onDragStart={() => handleDragStart(performer.id)} onDragEnd={handleDragEnd} lockedByUser={draggedBy?.user.name} />;
             })}
             {isCollaborativeEnabled && collab.collaborators.length > 0 && <FormationCursorOverlay collaborators={collab.collaborators} canvasWidth={formation.stageWidth * 20 * zoom} canvasHeight={formation.stageHeight * 20 * zoom} performerPositions={currentPositions} zoom={zoom} />}
           </div>

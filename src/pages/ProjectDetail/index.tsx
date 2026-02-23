@@ -282,6 +282,33 @@ export const ProjectDetail = () => {
           </div>
         </header>
 
+        {/* Quick Stats Bar */}
+        <div className="px-6 py-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700">
+          <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <CheckSquare className="h-4 w-4 text-green-500" aria-hidden="true" />
+              <span className="text-neutral-600 dark:text-neutral-400">Tasks:</span>
+              <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                {tasks.filter((t: Task) => t.status === 'completed').length}/{tasks.length}
+              </span>
+              <span className="text-neutral-400 dark:text-neutral-500 text-xs">completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-blue-500" aria-hidden="true" />
+              <span className="text-neutral-600 dark:text-neutral-400">Progress:</span>
+              <div className="w-24 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${project.progress || 0}%` }} />
+              </div>
+              <span className="font-semibold text-neutral-900 dark:text-neutral-100">{project.progress || 0}%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-purple-500" aria-hidden="true" />
+              <span className="text-neutral-600 dark:text-neutral-400">Files:</span>
+              <span className="font-semibold text-neutral-900 dark:text-neutral-100">{project.files?.length || 0}</span>
+            </div>
+          </div>
+        </div>
+
         {/* Tab Navigation */}
         <nav className="sticky top-0 z-10 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700" aria-label="Project sections">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6">

@@ -64,7 +64,7 @@ export function lazyLoadImage(
       });
     },
     {
-      rootMargin: '50px', // Start loading 50px before entering viewport
+      rootMargin: '200px', // Start loading 200px before entering viewport
       threshold: 0.01,
     }
   );

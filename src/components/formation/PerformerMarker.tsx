@@ -21,6 +21,8 @@ interface PerformerMarkerProps {
   showLabel?: boolean;
   showRotation?: boolean;
   scale?: number; // Canvas scale factor
+  /** When true, adds CSS transition for smooth playback animation */
+  isAnimating?: boolean;
   onSelect?: (performerId: string, multiSelect: boolean) => void;
   onMove?: (performerId: string, position: Position) => void;
   onRotate?: (performerId: string, rotation: number) => void;
@@ -45,6 +47,7 @@ export function PerformerMarker({
   showLabel = true,
   showRotation = false,
   scale = 1,
+  isAnimating = false,
   onSelect,
   onMove,
   onRotate,
@@ -211,6 +214,7 @@ export function PerformerMarker({
         top: `${position.y}%`,
         transform: `translate(-50%, -50%)`,
         touchAction: 'none',
+        ...(isAnimating && !isDragging ? { transition: 'left 80ms linear, top 80ms linear' } : {}),
       }}
       data-performer={performer.id}
       onPointerDown={handlePointerDown}

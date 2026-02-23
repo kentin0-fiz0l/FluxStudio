@@ -40,6 +40,10 @@ export interface Message {
   attachments?: Array<{ id: string; url: string; type: string; name: string }>;
   isRead?: boolean;
   isPinned?: boolean;
+  /** Optimistic send status */
+  status?: 'sending' | 'sent' | 'failed';
+  /** Temp ID used for optimistic messages before server confirmation */
+  _tempId?: string;
 }
 
 export interface Conversation {
@@ -112,6 +116,11 @@ export interface MessagingActions {
 
   // Read state
   markAsRead: (conversationId: string) => void;
+
+  // Optimistic helpers
+  replaceOptimisticMessage: (tempId: string, message: Message) => void;
+  markMessageFailed: (conversationId: string, tempId: string) => void;
+  retryMessage: (conversationId: string, tempId: string) => Promise<void>;
 
   // Async actions
   fetchConversations: () => Promise<void>;
@@ -324,6 +333,59 @@ export const createMessagingSlice: StateCreator<
       });
     },
 
+    // ── Optimistic helpers ──────────────────────────────────────────
+
+    replaceOptimisticMessage: (tempId, message) => {
+      set((state) => {
+        for (const conversationId of Object.keys(state.messaging.messages)) {
+          const messages = state.messaging.messages[conversationId];
+          const index = messages.findIndex((m) => m._tempId === tempId);
+          if (index !== -1) {
+            messages[index] = { ...message, status: 'sent' };
+            break;
+          }
+        }
+      });
+    },
+
+    markMessageFailed: (conversationId, tempId) => {
+      set((state) => {
+        const messages = state.messaging.messages[conversationId] || [];
+        const msg = messages.find((m) => m._tempId === tempId);
+        if (msg) {
+          msg.status = 'failed';
+        }
+      });
+    },
+
+    retryMessage: async (conversationId, tempId) => {
+      const messages = get().messaging.messages[conversationId] || [];
+      const failedMsg = messages.find((m) => m._tempId === tempId && m.status === 'failed');
+      if (!failedMsg) return;
+
+      // Mark as sending again
+      set((state) => {
+        const msgs = state.messaging.messages[conversationId] || [];
+        const msg = msgs.find((m) => m._tempId === tempId);
+        if (msg) msg.status = 'sending';
+      });
+
+      try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`/api/conversations/${conversationId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ content: failedMsg.content, replyToId: failedMsg.replyToId }),
+        });
+        if (!response.ok) throw new Error('Failed to send message');
+        const serverMessage = await response.json();
+        get().messaging.replaceOptimisticMessage(tempId, serverMessage);
+      } catch (error) {
+        storeLogger.error('Retry failed', error);
+        get().messaging.markMessageFailed(conversationId, tempId);
+      }
+    },
+
     // ── Async actions ────────────────────────────────────────────────
 
     fetchConversations: async () => {
@@ -384,6 +446,22 @@ export const createMessagingSlice: StateCreator<
     },
 
     sendMessage: async (conversationId, content, replyToId) => {
+      const currentUser = get().messaging.currentUser;
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+      // Optimistic: insert message immediately with "sending" status
+      const optimisticMessage: Message = {
+        id: tempId,
+        conversationId,
+        authorId: currentUser?.id || 'unknown',
+        content,
+        createdAt: new Date().toISOString(),
+        replyToId,
+        status: 'sending',
+        _tempId: tempId,
+      };
+      get().messaging.addMessage(optimisticMessage);
+
       try {
         const token = localStorage.getItem('auth_token');
         const response = await fetch(`/api/conversations/${conversationId}/messages`, {
@@ -397,10 +475,13 @@ export const createMessagingSlice: StateCreator<
 
         if (!response.ok) throw new Error('Failed to send message');
 
-        const message = await response.json();
-        get().messaging.addMessage(message);
+        const serverMessage = await response.json();
+        // Replace the optimistic placeholder with the real server message
+        get().messaging.replaceOptimisticMessage(tempId, serverMessage);
       } catch (error) {
         storeLogger.error('Failed to send message', error);
+        // Mark as failed so the UI can show retry
+        get().messaging.markMessageFailed(conversationId, tempId);
         throw error;
       }
     },

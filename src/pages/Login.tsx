@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { SEOHead } from '../components/SEOHead';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '65518208813-f4rgudom5b57qad0jlhjtsocsrb26mfc.apps.googleusercontent.com';
 const API_URL = import.meta.env.VITE_API_URL || 'https://fluxstudio.art';
@@ -96,6 +97,11 @@ export function Login() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <SEOHead
+        title="Log In"
+        description="Sign in to Flux Studio to access your creative projects, collaborate with your team, and bring your designs to life."
+        canonicalUrl="https://fluxstudio.art/login"
+      />
       <div className="min-h-screen bg-[#1a1a1a] flex flex-col items-center justify-center px-4 py-12">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 mb-8">

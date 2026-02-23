@@ -11,6 +11,7 @@ import { DashboardLayout } from '@/components/templates';
 import { Button, Card } from '@/components/ui';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '../contexts/AuthContext';
+import { SEOHead } from '../components/SEOHead';
 import {
   Bell,
   Lock,
@@ -65,7 +66,7 @@ function Settings() {
       return;
     }
 
-    document.title = 'Settings - FluxStudio V3.6';
+    document.title = 'Settings | Flux Studio';
     (window as Window & { __SETTINGS_V36_LOADED?: boolean }).__SETTINGS_V36_LOADED = true;
   }, [user, navigate]);
 
@@ -162,6 +163,7 @@ function Settings() {
       breadcrumbs={[{ label: 'Settings' }]}
       onLogout={logout}
     >
+      <SEOHead title="Settings" description="Manage your Flux Studio account settings, preferences, and notifications." noindex />
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Header */}
         <div>

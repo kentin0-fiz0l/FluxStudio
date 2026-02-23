@@ -71,6 +71,7 @@ interface ChatMessageBubbleProps {
   onSubmitEdit?: () => void;
   onCancelEdit?: () => void;
   readBy?: Array<{ id: string; name: string; avatar?: string }>;
+  onRetry?: () => void;
 }
 
 // ============================================================================
@@ -99,7 +100,8 @@ function ChatMessageBubbleComponent({
   onChangeEditingDraft,
   onSubmitEdit,
   onCancelEdit,
-  readBy = []
+  readBy = [],
+  onRetry,
 }: ChatMessageBubbleProps) {
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -169,7 +171,7 @@ function ChatMessageBubbleComponent({
             isOwn
               ? 'bg-primary-600 text-white rounded-br-md'
               : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-bl-md'
-          }`}
+          } ${message.status === 'sending' ? 'opacity-70' : ''} ${message.status === 'failed' ? 'ring-2 ring-red-400/50' : ''}`}
         >
           {/* Text content / Inline edit */}
           {isEditing ? (
@@ -328,6 +330,19 @@ function ChatMessageBubbleComponent({
             </span>
             {isOwn && message.status && <MessageStatusIcon status={message.status} />}
           </div>
+
+          {/* Failed message retry */}
+          {message.status === 'failed' && onRetry && (
+            <div className="flex items-center gap-1 mt-1 justify-end">
+              <span className="text-[10px] text-red-400">Failed to send</span>
+              <button
+                onClick={onRetry}
+                className="text-[10px] font-medium text-red-300 hover:text-white underline"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           {/* Pinned badge */}
           {isPinned && (
