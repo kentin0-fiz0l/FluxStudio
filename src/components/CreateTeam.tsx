@@ -39,38 +39,43 @@ export function CreateTeam({ onClose, onCreate }: CreateTeamProps) {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-500/20 rounded-lg">
-              <Users className="w-5 h-5 text-blue-400" />
+              <Users className="w-5 h-5 text-blue-400" aria-hidden="true" />
             </div>
             <h2 className="text-xl font-semibold text-white">Create New Team</h2>
           </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            aria-label="Close create team dialog"
           >
-            <X className="w-5 h-5 text-white/60" />
+            <X className="w-5 h-5 text-white/60" aria-hidden="true" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">
+            <label htmlFor="team-name" className="block text-sm font-medium text-white/80 mb-2">
               Team Name *
             </label>
             <input
+              id="team-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter team name"
+              required
+              aria-required="true"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">
+            <label htmlFor="team-description" className="block text-sm font-medium text-white/80 mb-2">
               Description
             </label>
             <textarea
+              id="team-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -80,7 +85,7 @@ export function CreateTeam({ onClose, onCreate }: CreateTeamProps) {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg" role="alert">
               <p className="text-red-400 text-sm">{error}</p>
             </div>
           )}
@@ -100,10 +105,10 @@ export function CreateTeam({ onClose, onCreate }: CreateTeamProps) {
               disabled={loading}
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
               ) : (
                 <>
-                  <Plus className="w-5 h-5" />
+                  <Plus className="w-5 h-5" aria-hidden="true" />
                   <span>Create Team</span>
                 </>
               )}

@@ -124,7 +124,7 @@ export function InviteMembers({
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-purple-500/20 rounded-lg">
-              <UserPlus className="w-5 h-5 text-purple-400" />
+              <UserPlus className="w-5 h-5 text-purple-400" aria-hidden="true" />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-white">Invite Members</h2>
@@ -134,8 +134,9 @@ export function InviteMembers({
           <button
             onClick={onClose}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            aria-label="Close invite dialog"
           >
-            <X className="w-5 h-5 text-white/60" />
+            <X className="w-5 h-5 text-white/60" aria-hidden="true" />
           </button>
         </div>
 
@@ -150,8 +151,9 @@ export function InviteMembers({
                   ? 'bg-purple-500 text-white shadow-lg'
                   : 'text-white/60 hover:text-white'
               }`}
+              aria-pressed={inviteMode === 'search'}
             >
-              <Users className="w-4 h-4" />
+              <Users className="w-4 h-4" aria-hidden="true" />
               Search Users
             </button>
             <button
@@ -162,8 +164,9 @@ export function InviteMembers({
                   ? 'bg-purple-500 text-white shadow-lg'
                   : 'text-white/60 hover:text-white'
               }`}
+              aria-pressed={inviteMode === 'email'}
             >
-              <Mail className="w-4 h-4" />
+              <Mail className="w-4 h-4" aria-hidden="true" />
               Invite by Email
             </button>
           </div>
@@ -198,7 +201,7 @@ export function InviteMembers({
                 Email Address *
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" aria-hidden="true" />
                 <input
                   type="email"
                   value={email}
@@ -224,6 +227,7 @@ export function InviteMembers({
                     ? 'bg-purple-500/20 border-purple-500 text-purple-400'
                     : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                 }`}
+                aria-pressed={role === 'member'}
               >
                 <div className="font-medium">Member</div>
                 <div className="text-xs mt-1 opacity-80">Can view and edit</div>
@@ -236,6 +240,7 @@ export function InviteMembers({
                     ? 'bg-purple-500/20 border-purple-500 text-purple-400'
                     : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                 }`}
+                aria-pressed={role === 'admin'}
               >
                 <div className="font-medium">Admin</div>
                 <div className="text-xs mt-1 opacity-80">Can manage team</div>
@@ -244,13 +249,13 @@ export function InviteMembers({
           </div>
 
           {error && (
-            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg" role="alert">
               <p className="text-red-400 text-sm">{error}</p>
             </div>
           )}
 
           {successMessage && (
-            <div className="p-3 bg-green-500/20 border border-green-500/50 rounded-lg">
+            <div className="p-3 bg-green-500/20 border border-green-500/50 rounded-lg" role="status">
               <p className="text-green-400 text-sm">{successMessage}</p>
             </div>
           )}
@@ -270,10 +275,10 @@ export function InviteMembers({
               disabled={loading}
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
               ) : (
                 <>
-                  <Send className="w-5 h-5" />
+                  <Send className="w-5 h-5" aria-hidden="true" />
                   <span>Send Invitation</span>
                 </>
               )}

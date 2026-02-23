@@ -18,7 +18,7 @@ export function Hero() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <div className="inline-flex items-center px-6 py-3 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 text-sm mb-12">
-            <span className="w-2 h-2 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full mr-3 animate-pulse"></span>
+            <span className="w-2 h-2 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full mr-3 animate-pulse" aria-hidden="true"></span>
             Design in Motion
           </div>
           
@@ -57,13 +57,13 @@ export function Hero() {
             <Button size="lg" className="btn-glass-gradient text-white font-semibold px-8 py-4 text-lg" asChild>
               <ForwardedAnchor href="#contact" className="inline-flex items-center relative z-10">
                 Book a Consult
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
               </ForwardedAnchor>
             </Button>
 
             <Button variant="outline" size="lg" className="btn-glass-outline text-white hover:text-white transition-all duration-300 px-8 py-4 text-lg" asChild>
               <ForwardedAnchor href="#concepts" className="inline-flex items-center relative z-10">
-                <Play className="mr-2 h-5 w-5" />
+                <Play className="mr-2 h-5 w-5" aria-hidden="true" />
                 View Concepts
               </ForwardedAnchor>
             </Button>

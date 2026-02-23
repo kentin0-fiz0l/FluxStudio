@@ -98,7 +98,7 @@ export function Services() {
                       <ul className="space-y-2">
                         {service.features.map((feature, featureIndex) => (
                           <li key={featureIndex} className="text-sm text-white/80 flex items-center">
-                            <div className="w-2 h-2 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full mr-3"></div>
+                            <div className="w-2 h-2 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full mr-3" aria-hidden="true"></div>
                             {feature}
                           </li>
                         ))}
@@ -127,7 +127,7 @@ export function Services() {
             <Button className="btn-glass-gradient text-white font-semibold px-8 py-4 text-lg" asChild>
               <ForwardedAnchor href="#contact" className="inline-flex items-center relative z-10">
                 Book a Consult
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
               </ForwardedAnchor>
             </Button>
             <Button variant="outline" className="btn-glass-outline text-off-white px-8 py-4 text-lg" asChild>

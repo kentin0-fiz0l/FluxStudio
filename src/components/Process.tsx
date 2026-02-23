@@ -99,7 +99,7 @@ export function Process() {
                       {index + 1}
                     </div>
                     <div className={`w-16 h-16 rounded-2xl bg-${step.accent}-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                      <span className="text-3xl">{step.emoji}</span>
+                      <span className="text-3xl" aria-hidden="true">{step.emoji}</span>
                     </div>
                   </div>
 
@@ -117,7 +117,7 @@ export function Process() {
                     <div className="space-y-2">
                       {step.details.map((detail, detailIndex) => (
                         <div key={detailIndex} className="flex items-center text-xs text-white/60">
-                          <div className={`w-2 h-2 rounded-full bg-${step.accent}-500 mr-3 flex-shrink-0`}></div>
+                          <div className={`w-2 h-2 rounded-full bg-${step.accent}-500 mr-3 flex-shrink-0`} aria-hidden="true"></div>
                           {detail}
                         </div>
                       ))}
@@ -143,7 +143,7 @@ export function Process() {
           <p className="text-white/60 mb-8 max-w-2xl mx-auto">
             Our process is designed to be collaborative and iterative, ensuring that your vision comes to life exactly as you imagined—or even better.
           </p>
-          <div className="flex items-center justify-center space-x-2 text-white/40">
+          <div className="flex items-center justify-center space-x-2 text-white/40" aria-hidden="true">
             <div className="w-8 h-1 bg-blue-500 rounded-full"></div>
             <div className="w-8 h-1 bg-yellow-500 rounded-full"></div>
             <div className="w-8 h-1 bg-purple-500 rounded-full"></div>
