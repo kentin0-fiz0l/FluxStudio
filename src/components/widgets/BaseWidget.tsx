@@ -173,7 +173,7 @@ export function BaseWidget({
         ) : isLoading ? (
           <div className="flex items-center justify-center p-8">
             <div className="flex items-center gap-2 text-white/70">
-              <RefreshCw className="h-4 w-4 animate-spin" />
+              <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
               <span>Loading...</span>
             </div>
           </div>

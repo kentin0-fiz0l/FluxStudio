@@ -335,7 +335,7 @@ export function AIWorkflowAssistant() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center">
-                <Brain className="text-white" size={20} />
+                <Brain className="text-white" size={20} aria-hidden="true" />
               </div>
               <div>
                 <CardTitle className="text-lg">AI Workflow Assistant</CardTitle>
@@ -365,7 +365,7 @@ export function AIWorkflowAssistant() {
                     "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
                     impactColor
                   )}>
-                    <Icon size={16} />
+                    <Icon size={16} aria-hidden="true" />
                   </div>
                   <div className="flex-1">
                     <AlertTitle className="text-base mb-1">
@@ -389,19 +389,19 @@ export function AIWorkflowAssistant() {
                         <div className="flex gap-4 mb-3">
                           {suggestion.metrics.timeSaved && (
                             <div className="flex items-center gap-1 text-xs text-gray-600">
-                              <Clock size={12} />
+                              <Clock size={12} aria-hidden="true" />
                               Save {suggestion.metrics.timeSaved}
                             </div>
                           )}
                           {suggestion.metrics.stepsReduced && (
                             <div className="flex items-center gap-1 text-xs text-gray-600">
-                              <Target size={12} />
+                              <Target size={12} aria-hidden="true" />
                               {suggestion.metrics.stepsReduced} fewer steps
                             </div>
                           )}
                           {suggestion.metrics.automationLevel && (
                             <div className="flex items-center gap-1 text-xs text-gray-600">
-                              <Zap size={12} />
+                              <Zap size={12} aria-hidden="true" />
                               {suggestion.metrics.automationLevel}% automated
                             </div>
                           )}
@@ -479,7 +479,7 @@ export function AIWorkflowAssistant() {
       ) : (
         <Card>
           <CardContent className="py-8 text-center">
-            <Sparkles className="mx-auto text-gray-400 mb-3" size={32} />
+            <Sparkles className="mx-auto text-gray-400 mb-3" size={32} aria-hidden="true" />
             <p className="text-gray-600">No suggestions at the moment</p>
             <p className="text-sm text-gray-500 mt-1">
               Keep working and I'll learn your patterns
@@ -494,7 +494,7 @@ export function AIWorkflowAssistant() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm">Learning Progress</CardTitle>
-              <Info size={14} className="text-gray-400" />
+              <Info size={14} className="text-gray-400" aria-hidden="true" />
             </div>
           </CardHeader>
           <CardContent>
