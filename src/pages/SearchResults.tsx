@@ -127,10 +127,10 @@ export function SearchResults() {
   }, [saveSearchName, saveCurrentSearch]);
 
   const typeIcons: Record<SearchResultType, React.ReactNode> = {
-    project: <FolderKanban className="w-4 h-4" />,
-    file: <File className="w-4 h-4" />,
-    task: <CheckSquare className="w-4 h-4" />,
-    message: <MessageSquare className="w-4 h-4" />,
+    project: <FolderKanban className="w-4 h-4" aria-hidden="true" />,
+    file: <File className="w-4 h-4" aria-hidden="true" />,
+    task: <CheckSquare className="w-4 h-4" aria-hidden="true" />,
+    message: <MessageSquare className="w-4 h-4" aria-hidden="true" />,
   };
 
   // Build breadcrumbs - show query if present
@@ -151,7 +151,7 @@ export function SearchResults() {
           {/* Search Input */}
           <div className="relative max-w-3xl mx-auto">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -166,7 +166,7 @@ export function SearchResults() {
                     onClick={clearSearch}
                     className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4" aria-hidden="true" />
                   </button>
                 )}
                 <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -184,7 +184,7 @@ export function SearchResults() {
                     aria-haspopup="listbox"
                     aria-label={t('search.history', 'Search History')}
                   >
-                    <History className="w-4 h-4" />
+                    <History className="w-4 h-4" aria-hidden="true" />
                   </button>
 
                   {/* History Dropdown */}
@@ -211,7 +211,7 @@ export function SearchResults() {
                       {savedSearches.length > 0 && (
                         <div className="border-b border-gray-200 dark:border-gray-700">
                           <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase flex items-center gap-1">
-                            <Star className="w-3 h-3" />
+                            <Star className="w-3 h-3" aria-hidden="true" />
                             {t('search.savedSearches', 'Saved Searches')}
                           </div>
                           {savedSearches.slice(0, 5).map((saved) => (
@@ -243,7 +243,7 @@ export function SearchResults() {
                                 onClick={() => deleteSavedSearch(saved.id)}
                                 className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100"
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-3 h-3" aria-hidden="true" />
                               </button>
                             </div>
                           ))}
@@ -255,7 +255,7 @@ export function SearchResults() {
                         <>
                           <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase flex items-center justify-between">
                             <span className="flex items-center gap-1">
-                              <History className="w-3 h-3" />
+                              <History className="w-3 h-3" aria-hidden="true" />
                               {t('search.recentSearches', 'Recent Searches')}
                             </span>
                             <button
@@ -294,7 +294,7 @@ export function SearchResults() {
                                 onClick={() => removeFromHistory(historyQuery)}
                                 className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100"
                               >
-                                <X className="w-3 h-3" />
+                                <X className="w-3 h-3" aria-hidden="true" />
                               </button>
                             </div>
                           ))}
@@ -315,7 +315,7 @@ export function SearchResults() {
                     className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md"
                     title={t('search.saveSearch', 'Save Search')}
                   >
-                    <Bookmark className="w-4 h-4" />
+                    <Bookmark className="w-4 h-4" aria-hidden="true" />
                   </button>
                 )}
 
@@ -380,7 +380,7 @@ export function SearchResults() {
                   onClick={() => setShowFilters(!showFilters)}
                   className="lg:hidden flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
                 >
-                  <Filter className="w-4 h-4" />
+                  <Filter className="w-4 h-4" aria-hidden="true" />
                   {t('search.filters.title', 'Filters')}
                   {activeFilterCount > 0 && (
                     <span className="px-1.5 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
@@ -413,9 +413,9 @@ export function SearchResults() {
                   aria-haspopup="listbox"
                   aria-label={t('search.sort.label', 'Sort results')}
                 >
-                  {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
+                  {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" aria-hidden="true" /> : <SortDesc className="w-4 h-4" aria-hidden="true" />}
                   <span className="capitalize">{sortBy}</span>
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-4 h-4" aria-hidden="true" />
                 </button>
 
                 {showSortDropdown && (
@@ -478,7 +478,7 @@ export function SearchResults() {
                       }}
                       className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 focus:outline-none text-gray-700 dark:text-gray-300 flex items-center gap-2"
                     >
-                      {sortOrder === 'asc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
+                      {sortOrder === 'asc' ? <SortDesc className="w-4 h-4" aria-hidden="true" /> : <SortAsc className="w-4 h-4" aria-hidden="true" />}
                       {sortOrder === 'asc' ? t('search.sort.descending', 'Descending') : t('search.sort.ascending', 'Ascending')}
                     </button>
                   </div>
@@ -489,12 +489,12 @@ export function SearchResults() {
             {/* Results List */}
             {error ? (
               <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-red-500" />
+                <AlertCircle className="w-5 h-5 text-red-500" aria-hidden="true" />
                 <span className="text-red-700 dark:text-red-300">{error}</span>
               </div>
             ) : !isSearchActive ? (
               <div className="text-center py-16">
-                <Search className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <Search className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" aria-hidden="true" />
                 <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   {t('search.emptyState.title', 'Search your workspace')}
                 </h2>
@@ -511,11 +511,11 @@ export function SearchResults() {
               </div>
             ) : isLoading && results.length === 0 ? (
               <div className="flex items-center justify-center py-16">
-                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" aria-hidden="true" />
               </div>
             ) : results.length === 0 ? (
               <div className="text-center py-16">
-                <Search className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <Search className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" aria-hidden="true" />
                 <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   {t('search.noResults.title', 'No results found')}
                 </h2>
@@ -543,7 +543,7 @@ export function SearchResults() {
                     >
                       {isLoading ? (
                         <span className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                           {t('search.loading', 'Loading...')}
                         </span>
                       ) : (
@@ -589,7 +589,7 @@ export function SearchResults() {
                 disabled={!saveSearchName.trim()}
                 className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4" aria-hidden="true" />
                 {t('common.save', 'Save')}
               </button>
             </div>

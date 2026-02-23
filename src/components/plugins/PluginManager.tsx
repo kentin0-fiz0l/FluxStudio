@@ -141,7 +141,7 @@ export function PluginManager() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
         <div className="flex items-center gap-3">
-          <Package className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          <Package className="w-6 h-6 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
           <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
             Plugins
           </h1>
@@ -150,7 +150,7 @@ export function PluginManager() {
         <div className="flex items-center gap-3">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
             <input
               type="text"
               value={searchQuery}
@@ -171,7 +171,7 @@ export function PluginManager() {
                   : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
               )}
             >
-              <Grid className="w-4 h-4" />
+              <Grid className="w-4 h-4" aria-hidden="true" />
             </button>
             <button
               onClick={() => setViewMode('list')}
@@ -182,7 +182,7 @@ export function PluginManager() {
                   : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
               )}
             >
-              <List className="w-4 h-4" />
+              <List className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -212,7 +212,7 @@ export function PluginManager() {
       <div className="flex-1 overflow-y-auto p-6">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-500" aria-hidden="true" />
           </div>
         ) : activeTab === 'installed' ? (
           <div
@@ -224,7 +224,7 @@ export function PluginManager() {
           >
             {filteredInstalled.length === 0 ? (
               <EmptyState
-                icon={<Package className="w-12 h-12" />}
+                icon={<Package className="w-12 h-12" aria-hidden="true" />}
                 title="No plugins installed"
                 description="Browse the marketplace to discover plugins"
                 action={
@@ -270,7 +270,7 @@ export function PluginManager() {
           </div>
         ) : (
           <EmptyState
-            icon={<RefreshCw className="w-12 h-12" />}
+            icon={<RefreshCw className="w-12 h-12" aria-hidden="true" />}
             title="All plugins up to date"
             description="Your installed plugins are using the latest versions"
           />
@@ -343,7 +343,7 @@ function InstalledPluginCard({
               className="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg"
               title="Disable"
             >
-              <PowerOff className="w-4 h-4" />
+              <PowerOff className="w-4 h-4" aria-hidden="true" />
             </button>
           ) : (
             <button
@@ -351,7 +351,7 @@ function InstalledPluginCard({
               className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg"
               title="Enable"
             >
-              <Power className="w-4 h-4" />
+              <Power className="w-4 h-4" aria-hidden="true" />
             </button>
           )}
           <button
@@ -359,14 +359,14 @@ function InstalledPluginCard({
             className="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg"
             title="Settings"
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-4 h-4" aria-hidden="true" />
           </button>
           <button
             onClick={() => onUninstall(plugin.manifest.id)}
             className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
             title="Uninstall"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -385,8 +385,8 @@ function InstalledPluginCard({
           </h3>
           <p className="text-xs text-neutral-500">v{plugin.manifest.version}</p>
         </div>
-        {isActive && <CheckCircle className="w-5 h-5 text-green-500" />}
-        {hasError && <AlertTriangle className="w-5 h-5 text-red-500" />}
+        {isActive && <CheckCircle className="w-5 h-5 text-green-500" aria-hidden="true" />}
+        {hasError && <AlertTriangle className="w-5 h-5 text-red-500" aria-hidden="true" />}
       </div>
 
       <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4 line-clamp-2">
@@ -410,7 +410,7 @@ function InstalledPluginCard({
               className="p-1.5 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded"
               title="Disable"
             >
-              <PowerOff className="w-4 h-4" />
+              <PowerOff className="w-4 h-4" aria-hidden="true" />
             </button>
           ) : (
             <button
@@ -418,7 +418,7 @@ function InstalledPluginCard({
               className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
               title="Enable"
             >
-              <Power className="w-4 h-4" />
+              <Power className="w-4 h-4" aria-hidden="true" />
             </button>
           )}
           <button
@@ -426,14 +426,14 @@ function InstalledPluginCard({
             className="p-1.5 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded"
             title="Settings"
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-4 h-4" aria-hidden="true" />
           </button>
           <button
             onClick={() => onUninstall(plugin.manifest.id)}
             className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
             title="Uninstall"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -473,11 +473,11 @@ function MarketplacePluginCard({
           </p>
           <div className="flex items-center gap-4 mt-1 text-xs text-neutral-500">
             <span className="flex items-center gap-1">
-              <Download className="w-3 h-3" />
+              <Download className="w-3 h-3" aria-hidden="true" />
               {formatNumber(plugin.downloads)}
             </span>
             <span className="flex items-center gap-1">
-              <Star className="w-3 h-3" />
+              <Star className="w-3 h-3" aria-hidden="true" />
               {plugin.rating.toFixed(1)}
             </span>
           </div>
@@ -509,11 +509,11 @@ function MarketplacePluginCard({
             <h3 className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
               {plugin.manifest.name}
             </h3>
-            {plugin.verified && <Shield className="w-4 h-4 text-blue-500" />}
+            {plugin.verified && <Shield className="w-4 h-4 text-blue-500" aria-hidden="true" />}
           </div>
           <div className="flex items-center gap-2 text-xs text-neutral-500">
             <span className="flex items-center gap-0.5">
-              <Star className="w-3 h-3 text-amber-500" />
+              <Star className="w-3 h-3 text-amber-500" aria-hidden="true" />
               {plugin.rating.toFixed(1)}
             </span>
             <span>{formatNumber(plugin.downloads)} downloads</span>
