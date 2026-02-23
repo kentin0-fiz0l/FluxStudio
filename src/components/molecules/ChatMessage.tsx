@@ -215,7 +215,7 @@ export const ChatMessage = React.memo(React.forwardRef<HTMLDivElement, ChatMessa
                         : 'bg-neutral-50 border-neutral-200 hover:bg-neutral-100'
                     )}
                   >
-                    <Paperclip className="w-4 h-4 flex-shrink-0" />
+                    <Paperclip className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">
                         {attachment.name}
@@ -236,9 +236,9 @@ export const ChatMessage = React.memo(React.forwardRef<HTMLDivElement, ChatMessa
             {message.isCurrentUser && showReadReceipt && (
               <div className="absolute -bottom-1 -right-1 flex items-center justify-center w-5 h-5 bg-white rounded-full shadow-sm">
                 {message.read ? (
-                  <CheckCheck className="w-3 h-3 text-primary-600" />
+                  <CheckCheck className="w-3 h-3 text-primary-600" aria-hidden="true" />
                 ) : (
-                  <Check className="w-3 h-3 text-neutral-400" />
+                  <Check className="w-3 h-3 text-neutral-400" aria-hidden="true" />
                 )}
               </div>
             )}
@@ -254,7 +254,7 @@ export const ChatMessage = React.memo(React.forwardRef<HTMLDivElement, ChatMessa
               className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-neutral-200"
               aria-label="More options"
             >
-              <MoreVertical className="w-4 h-4 text-neutral-600" />
+              <MoreVertical className="w-4 h-4 text-neutral-600" aria-hidden="true" />
             </button>
           )}
         </div>

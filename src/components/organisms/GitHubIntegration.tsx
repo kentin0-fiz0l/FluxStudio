@@ -125,7 +125,7 @@ export function GitHubIntegration() {
             variant="ghost"
             onClick={loadRepos}
             disabled={isLoadingRepos}
-            icon={<Github className={`h-4 w-4 ${isLoadingRepos ? 'animate-spin' : ''}`} />}
+            icon={<Github className={`h-4 w-4 ${isLoadingRepos ? 'animate-spin' : ''}`} aria-hidden="true" />}
             aria-label="Refresh repositories"
           >
             Refresh
@@ -134,7 +134,7 @@ export function GitHubIntegration() {
 
         {isLoadingRepos && (
           <div className="flex items-center justify-center py-8">
-            <Github className="h-6 w-6 animate-spin text-primary-600" />
+            <Github className="h-6 w-6 animate-spin text-primary-600" aria-hidden="true" />
           </div>
         )}
 
@@ -146,7 +146,7 @@ export function GitHubIntegration() {
 
         {!isLoadingRepos && !reposError && repos.length === 0 && (
           <div className="text-center py-8 text-sm text-neutral-500">
-            <GitBranch className="h-12 w-12 mx-auto mb-2 text-neutral-400" />
+            <GitBranch className="h-12 w-12 mx-auto mb-2 text-neutral-400" aria-hidden="true" />
             <p>No repositories found</p>
             <p className="text-xs mt-1">Create a repository on GitHub to see it here</p>
           </div>
@@ -186,15 +186,15 @@ export function GitHubIntegration() {
                     </p>
                     <div className="flex items-center gap-3 mt-2 text-xs text-neutral-500 dark:text-neutral-400">
                       <span className="flex items-center gap-1">
-                        <Star className="h-3 w-3" />
+                        <Star className="h-3 w-3" aria-hidden="true" />
                         {repo.stargazers_count}
                       </span>
                       <span className="flex items-center gap-1">
-                        <GitFork className="h-3 w-3" />
+                        <GitFork className="h-3 w-3" aria-hidden="true" />
                         {repo.forks_count}
                       </span>
                       <span className="flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
+                        <AlertCircle className="h-3 w-3" aria-hidden="true" />
                         {repo.open_issues_count} issues
                       </span>
                     </div>
@@ -208,7 +208,7 @@ export function GitHubIntegration() {
                     }}
                     aria-label="Open repository in GitHub"
                   >
-                    <Github className="h-4 w-4" />
+                    <Github className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
@@ -232,7 +232,7 @@ export function GitHubIntegration() {
 
             {isLoadingIssues && (
               <div className="flex items-center justify-center py-4">
-                <Github className="h-5 w-5 animate-spin text-primary-600" />
+                <Github className="h-5 w-5 animate-spin text-primary-600" aria-hidden="true" />
               </div>
             )}
 
@@ -244,7 +244,7 @@ export function GitHubIntegration() {
 
             {!isLoadingIssues && !issuesError && issues.length === 0 && (
               <div className="text-center py-4 text-sm text-neutral-500">
-                <AlertCircle className="h-8 w-8 mx-auto mb-2 text-neutral-400" />
+                <AlertCircle className="h-8 w-8 mx-auto mb-2 text-neutral-400" aria-hidden="true" />
                 <p>No open issues</p>
               </div>
             )}
@@ -263,6 +263,7 @@ export function GitHubIntegration() {
                           ? 'text-success-600'
                           : 'text-neutral-400'
                       }`}
+                      aria-hidden="true"
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">

@@ -74,7 +74,7 @@ export function GettingStartedCard({
     >
       {/* Decorative sparkle */}
       <div className="absolute top-4 right-4 text-primary-400 dark:text-primary-600">
-        <Sparkles className="h-6 w-6" />
+        <Sparkles className="h-6 w-6" aria-hidden="true" />
       </div>
 
       <CardHeader className="pb-2">
@@ -140,9 +140,9 @@ export function GettingStartedCard({
                   )}
                 >
                   {step.isComplete ? (
-                    <Check className="h-4 w-4" />
+                    <Check className="h-4 w-4" aria-hidden="true" />
                   ) : (
-                    <Icon className="h-3.5 w-3.5" />
+                    <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                   )}
                 </div>
 

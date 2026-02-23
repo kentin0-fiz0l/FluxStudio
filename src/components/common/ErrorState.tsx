@@ -181,7 +181,7 @@ export function ErrorState({
     >
       {/* Icon */}
       <div className={cn('mb-4 rounded-full', config.bgColor, classes.iconWrapper)}>
-        <Icon className={cn(config.iconColor, classes.icon)} />
+        <Icon className={cn(config.iconColor, classes.icon)} aria-hidden="true" />
       </div>
 
       {/* Title */}
@@ -214,6 +214,7 @@ export function ErrorState({
           >
             <RefreshCw
               className={cn('h-4 w-4 mr-2', isRetrying && 'animate-spin')}
+              aria-hidden="true"
             />
             {isRetrying ? 'Retrying...' : 'Try Again'}
           </Button>
@@ -221,14 +222,14 @@ export function ErrorState({
 
         {shouldShowLogin && (
           <Button onClick={handleLogin} variant="primary">
-            <LogIn className="h-4 w-4 mr-2" />
+            <LogIn className="h-4 w-4 mr-2" aria-hidden="true" />
             Sign In
           </Button>
         )}
 
         {showGoHome && !shouldShowLogin && (
           <Button onClick={handleGoHome} variant="outline">
-            <Home className="h-4 w-4 mr-2" />
+            <Home className="h-4 w-4 mr-2" aria-hidden="true" />
             Go to Projects
           </Button>
         )}

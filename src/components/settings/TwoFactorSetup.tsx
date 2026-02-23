@@ -114,7 +114,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
                 : 'text-white bg-purple-600 hover:bg-purple-700'
             }`}
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : is2FAEnabled ? 'Disable' : 'Enable 2FA'}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : is2FAEnabled ? 'Disable' : 'Enable 2FA'}
           </button>
         )}
       </div>
@@ -153,7 +153,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
               aria-label="Verify authentication code"
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : 'Verify'}
             </button>
           </div>
           <button onClick={() => { setStep('idle'); setCode(''); }} aria-label="Cancel setup" className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300">
@@ -188,7 +188,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
               aria-label="Confirm disable two-factor authentication"
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm'}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : 'Confirm'}
             </button>
           </div>
           <button onClick={() => { setStep('idle'); setCode(''); }} aria-label="Cancel disabling 2FA" className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300">
