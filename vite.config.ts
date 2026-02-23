@@ -192,8 +192,13 @@
                 return 'vendor-ui-utils';
               }
 
-              // Zod/Yup - pure validation (no React dependency)
-              if (id.includes('zod') || id.includes('yup')) {
+              // Zod - pure validation schema (no React dependency)
+              if (id.includes('zod')) {
+                return 'vendor-validation';
+              }
+
+              // Yup / react-hook-form related (no React dependency for yup)
+              if (id.includes('yup')) {
                 return 'vendor-forms';
               }
 
@@ -227,6 +232,9 @@
             // Pages that are frequently accessed together should NOT be in separate chunks
 
             // Heavy pages that should be their own chunks (lazy loaded)
+            if (id.includes('/src/pages/MessagesNew')) {
+              return 'page-messages';
+            }
             if (id.includes('/src/pages/ToolsMetMap')) {
               return 'page-metmap';
             }

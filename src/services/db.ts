@@ -66,6 +66,15 @@ export interface CachedMessage {
   updatedAt: number;
 }
 
+export interface CachedFormation {
+  id: string;
+  projectId: string;
+  data: unknown;
+  positions: unknown;
+  updatedAt: number;
+  dirty: number; // 1 = needs sync, 0 = synced
+}
+
 // ============================================================================
 // Database
 // ============================================================================
@@ -77,6 +86,7 @@ export class FluxDB extends Dexie {
   projects!: Table<CachedProject, string>;
   conversations!: Table<CachedConversation, string>;
   messages!: Table<CachedMessage, string>;
+  formations!: Table<CachedFormation, string>;
 
   constructor() {
     super('fluxstudio-db');
@@ -88,6 +98,16 @@ export class FluxDB extends Dexie {
       projects: 'id, updatedAt',
       conversations: 'id, updatedAt',
       messages: 'id, conversationId, updatedAt',
+    });
+
+    this.version(2).stores({
+      cache: 'key, timestamp, expiresAt',
+      pendingMutations: 'id, timestamp, type, priority',
+      conflicts: 'id, entityType, entityId, timestamp',
+      projects: 'id, updatedAt',
+      conversations: 'id, updatedAt',
+      messages: 'id, conversationId, updatedAt',
+      formations: 'id, projectId, updatedAt, dirty',
     });
   }
 }

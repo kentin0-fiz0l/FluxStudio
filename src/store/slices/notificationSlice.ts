@@ -17,6 +17,7 @@ export type NotificationType =
   | 'decision' | 'blocker' | 'assignment' | 'file_change'
   | 'message_mention' | 'message_reply'
   | 'project_member_added' | 'project_status_changed' | 'project_file_uploaded'
+  | 'collaboration_invite' | 'team_invite'
   | 'organization_alert' | 'system'
   | 'success' | 'info' | 'warning' | 'error';
 

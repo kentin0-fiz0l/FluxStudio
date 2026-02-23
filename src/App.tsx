@@ -46,7 +46,7 @@ const { Component: OAuthCallback } = lazyLoadWithRetry(
 // Large pages - lazy loaded for better initial bundle
 const { Component: Settings } = lazyLoadWithRetry(() => import('./pages/Settings'));
 const { Component: PrivacySettings } = lazyLoadWithRetry(() => import('./pages/settings/PrivacySettings'));
-const { Component: MessagesNew } = lazyLoadWithRetry(() => import('./pages/MessagesNew'));
+const { Component: MessagesNew, preload: preloadMessagesNew } = lazyLoadWithRetry(() => import('./pages/MessagesNew'));
 
 // Tools page - uses DashboardLayout like other authenticated pages
 const { Component: Tools } = lazyLoadWithRetry(() => import('./pages/Tools'));
@@ -73,8 +73,8 @@ const { Component: PluginManagerPage } = lazyLoadWithRetry(() => import('./pages
 
 // Redesigned pages (Flux Design Language)
 const { Component: FormationEditor } = lazyLoadWithRetry(() => import('./pages/FormationEditor'));
-const { Component: ProjectsHub } = lazyLoadWithRetry(() => import('./pages/ProjectsHub'));
-const { Component: ProjectDetail } = lazyLoadWithRetry(() => import('./pages/ProjectDetail'));
+const { Component: ProjectsHub, preload: preloadProjectsHub } = lazyLoadWithRetry(() => import('./pages/ProjectsHub'));
+const { Component: ProjectDetail, preload: preloadProjectDetail } = lazyLoadWithRetry(() => import('./pages/ProjectDetail'));
 const { Component: ProjectOverview } = lazyLoadWithRetry(() => import('./pages/ProjectOverview'));
 const { Component: NewProject } = lazyLoadWithRetry(() => import('./pages/NewProject'));
 const { Component: OrganizationNew } = lazyLoadWithRetry(() => import('./pages/OrganizationNew'));
@@ -118,6 +118,7 @@ const TryEditor = React.lazy(() => import('./pages/TryEditor'));
 const SharedFormation = React.lazy(() => import('./pages/SharedFormation'));
 const EmbedFormation = React.lazy(() => import('./pages/EmbedFormation'));
 const FormationCategory = React.lazy(() => import('./pages/FormationCategory'));
+const TemplateLibrary = React.lazy(() => import('./pages/TemplateLibrary'));
 
 // 404 Not Found page
 const { Component: NotFound } = lazyLoadWithRetry(() => import('./pages/NotFound'));
@@ -175,10 +176,48 @@ function AuthOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Idle-time route prefetcher
+ *
+ * Sprint 49 T5: After login, preload the most likely next routes during
+ * browser idle time so navigation feels instant.
+ */
+function IdlePrefetcher() {
+  const { isAuthenticated } = useAuth();
+
+  React.useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const schedule = typeof requestIdleCallback === 'function'
+      ? requestIdleCallback
+      : (cb: () => void) => setTimeout(cb, 2000);
+
+    const id = schedule(() => {
+      // Preload the two most common post-login destinations
+      preloadProjectsHub().catch(() => {});
+      preloadMessagesNew().catch(() => {});
+      // Slightly delay heavier page
+      setTimeout(() => {
+        preloadProjectDetail().catch(() => {});
+      }, 3000);
+    });
+
+    return () => {
+      if (typeof cancelIdleCallback === 'function') {
+        cancelIdleCallback(id as number);
+      }
+    };
+  }, [isAuthenticated]);
+
+  return null;
+}
+
 // Authenticated app wrapper - contains all providers for authenticated routes
 function AuthenticatedRoutes() {
   return (
     <RootProviders>
+      {/* Idle-time prefetcher for common routes */}
+      <IdlePrefetcher />
       {/* Project Context Bar - shows when a project is focused */}
       <ProjectContextBar />
       {/* Work Momentum - passive context capture */}
@@ -224,6 +263,7 @@ function AuthenticatedRoutes() {
                   <Route path="/share/:formationId" element={<SharedFormation />} />
                   <Route path="/embed/:formationId" element={<EmbedFormation />} />
                   <Route path="/formations/:category" element={<FormationCategory />} />
+                  <Route path="/templates" element={<TemplateLibrary />} />
 
                   {/* Help & Support pages - public but with optional auth */}
                   <Route path="/help" element={<HelpCenter />} />

@@ -30,7 +30,9 @@ import {
   FileText,
   AlertCircle,
   Info,
-  Folder
+  Folder,
+  Users,
+  Trash2,
 } from 'lucide-react';
 import { useNotifications, Notification, NotificationType } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
@@ -53,6 +55,9 @@ const getNotificationIcon = (type: NotificationType) => {
     case 'project_status_changed':
     case 'project_file_uploaded':
       return Folder;
+    case 'collaboration_invite':
+    case 'team_invite':
+      return Users;
     case 'warning':
     case 'error':
       return AlertCircle;
@@ -72,6 +77,9 @@ const getTypeColor = (type: NotificationType) => {
       return 'text-indigo-600 bg-indigo-100';
     case 'file_shared':
       return 'text-green-600 bg-green-100';
+    case 'collaboration_invite':
+    case 'team_invite':
+      return 'text-teal-600 bg-teal-100';
     case 'warning':
       return 'text-orange-600 bg-orange-100';
     case 'error':
@@ -108,6 +116,7 @@ export function UnifiedNotificationCenter() {
   let loading = false;
   let markAsRead: ((id: string) => Promise<void>) | undefined;
   let markAllAsRead: (() => Promise<void>) | undefined;
+  let deleteNotification: ((id: string) => Promise<void>) | undefined;
 
   try {
     const context = useNotifications();
@@ -116,13 +125,17 @@ export function UnifiedNotificationCenter() {
     loading = context.state.loading;
     markAsRead = context.markAsRead;
     markAllAsRead = context.markAllAsRead;
+    deleteNotification = context.deleteNotification;
   } catch {
     // Context not available - show empty state
   }
 
   // Group notifications by intent
-  const getNotificationGroup = (type: NotificationType): 'replies' | 'mentions' | 'files' | 'other' => {
+  const getNotificationGroup = (type: NotificationType): 'invites' | 'replies' | 'mentions' | 'files' | 'other' => {
     switch (type) {
+      case 'collaboration_invite':
+      case 'team_invite':
+        return 'invites';
       case 'reply':
       case 'thread_reply':
       case 'message_reply':
@@ -156,7 +169,8 @@ export function UnifiedNotificationCenter() {
 
   // Group filtered notifications by intent
   const groupedNotifications = useMemo(() => {
-    const groups: Record<'replies' | 'mentions' | 'files' | 'other', Notification[]> = {
+    const groups: Record<'invites' | 'replies' | 'mentions' | 'files' | 'other', Notification[]> = {
+      invites: [],
       replies: [],
       mentions: [],
       files: [],
@@ -177,11 +191,15 @@ export function UnifiedNotificationCenter() {
 
   // Group labels for display
   const groupLabels: Record<string, string> = {
+    invites: 'Invitations',
     mentions: 'Mentions',
     replies: 'Replies',
     files: 'Files',
     other: 'Other',
   };
+
+  // Count read notifications for bulk dismiss
+  const readCount = notifications.filter(n => n.isRead).length;
 
   // Handle notification click with deep linking + highlight
   const handleNotificationClick = async (notification: Notification) => {
@@ -221,6 +239,14 @@ export function UnifiedNotificationCenter() {
   const handleMarkAllRead = async () => {
     if (markAllAsRead) {
       await markAllAsRead();
+    }
+  };
+
+  const handleClearRead = async () => {
+    if (!deleteNotification) return;
+    const readNotifs = notifications.filter(n => n.isRead);
+    for (const n of readNotifs) {
+      await deleteNotification(n.id);
     }
   };
 
@@ -357,7 +383,7 @@ export function UnifiedNotificationCenter() {
                   ) : (
                     <div className="p-2">
                       {/* Render grouped notifications */}
-                      {(['mentions', 'replies', 'files', 'other'] as const).map(groupKey => {
+                      {(['invites', 'mentions', 'replies', 'files', 'other'] as const).map(groupKey => {
                         const groupNotifications = groupedNotifications[groupKey];
                         if (groupNotifications.length === 0) return null;
 
@@ -448,6 +474,36 @@ export function UnifiedNotificationCenter() {
                                           </span>
                                         )}
                                       </div>
+
+                                      {/* Inline invite actions */}
+                                      {(notification.type === 'collaboration_invite' || notification.type === 'team_invite') && !notification.isRead && (
+                                        <div className="flex items-center gap-2 mt-2">
+                                          <Button
+                                            variant="primary"
+                                            size="sm"
+                                            className="h-7 text-xs px-3"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const url = notification.actionUrl || `/invitations/${notification.entityId || notification.id}`;
+                                              setIsOpen(false);
+                                              navigate(url);
+                                            }}
+                                          >
+                                            Accept
+                                          </Button>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 text-xs px-3"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (markAsRead) markAsRead(notification.id);
+                                            }}
+                                          >
+                                            Decline
+                                          </Button>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -460,13 +516,13 @@ export function UnifiedNotificationCenter() {
                   )}
                 </ScrollArea>
 
-                {/* Footer - View All link */}
+                {/* Footer */}
                 {notifications.length > 0 && (
-                  <div className="p-3 border-t bg-gray-50 dark:bg-gray-800/50">
+                  <div className="p-3 border-t bg-gray-50 dark:bg-gray-800/50 flex items-center gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-full text-sm"
+                      className="flex-1 text-sm"
                       onClick={() => {
                         setIsOpen(false);
                         navigate('/notifications');
@@ -474,6 +530,18 @@ export function UnifiedNotificationCenter() {
                     >
                       View all notifications
                     </Button>
+                    {readCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-gray-500 hover:text-red-600 gap-1"
+                        onClick={handleClearRead}
+                        title={`Clear ${readCount} read notification${readCount > 1 ? 's' : ''}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Clear read
+                      </Button>
+                    )}
                   </div>
                 )}
               </Card>

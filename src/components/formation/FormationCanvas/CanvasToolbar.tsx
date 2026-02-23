@@ -11,10 +11,11 @@ import {
   Plus, Grid, Download, Save, ZoomIn, ZoomOut,
   Move, MousePointer, Layers, Eye, EyeOff,
   Loader2, Check, Music, Route, LayoutGrid, Users, Magnet, Hash,
-  Minus, CircleDot, Grid3x3, Map, Bot, Hand,
+  Minus, CircleDot, Grid3x3, Map, Bot, Hand, WifiOff, Cloud,
   Undo2, Redo2, Settings2, Circle, Share2, Code2,
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
+import { useSyncStatus } from '@/store/slices/offlineSlice';
 
 type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block';
 
@@ -306,6 +307,8 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               <span className="text-xs hidden sm:inline">{t('formation.export', 'Export')}</span>
             </button>
 
+            {/* Offline/Sync indicator */}
+            <OfflineBadge />
             {/* Save status indicator */}
             <div className="flex items-center gap-1.5">
               {hasUnsavedChanges && saveStatus === 'idle' && (
@@ -337,6 +340,43 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     </div>
   );
 };
+
+/** Compact offline/sync badge shown next to save button */
+function OfflineBadge() {
+  const { isOnline, pendingCount, syncStatus } = useSyncStatus();
+
+  if (isOnline && pendingCount === 0) return null;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+        !isOnline
+          ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+          : syncStatus === 'syncing'
+            ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+            : 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
+      }`}
+      title={!isOnline ? 'You are offline. Changes are saved locally.' : `${pendingCount} pending changes to sync`}
+    >
+      {!isOnline ? (
+        <>
+          <WifiOff className="w-3 h-3" />
+          <span className="hidden sm:inline">Offline</span>
+        </>
+      ) : syncStatus === 'syncing' ? (
+        <>
+          <Cloud className="w-3 h-3 animate-pulse" />
+          <span className="hidden sm:inline">Syncing</span>
+        </>
+      ) : (
+        <>
+          <Cloud className="w-3 h-3" />
+          <span className="hidden sm:inline">{pendingCount}</span>
+        </>
+      )}
+    </span>
+  );
+}
 
 /** Individual toggle item for the View Options dropdown */
 function ViewToggleItem({ label, icon, active, onClick }: {

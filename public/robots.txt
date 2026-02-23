@@ -11,6 +11,7 @@ Allow: /privacy
 Allow: /help
 Allow: /try
 Allow: /formations/
+Allow: /templates
 
 Disallow: /api/
 Disallow: /auth/

@@ -14,7 +14,7 @@
 
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Bell, MessageSquare, Briefcase, Building2, AlertCircle, Info, AlertTriangle, XCircle } from 'lucide-react';
+import { X, Bell, MessageSquare, Briefcase, Building2, AlertCircle, Info, AlertTriangle, XCircle, Users } from 'lucide-react';
 import { useNotifications, Notification, NotificationType } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +35,8 @@ const typeIcons: Record<NotificationType, React.ReactNode> = {
   project_member_added: <Briefcase className="h-5 w-5" />,
   project_status_changed: <Briefcase className="h-5 w-5" />,
   project_file_uploaded: <Briefcase className="h-5 w-5" />,
+  collaboration_invite: <Users className="h-5 w-5" />,
+  team_invite: <Users className="h-5 w-5" />,
   organization_alert: <Building2 className="h-5 w-5" />,
   system: <AlertCircle className="h-5 w-5" />,
   // Toast types
@@ -61,6 +63,8 @@ const typeColors: Record<NotificationType, { bg: string; icon: string; border: s
   project_member_added: { bg: 'bg-green-50', icon: 'text-green-600', border: 'border-green-200' },
   project_status_changed: { bg: 'bg-purple-50', icon: 'text-purple-600', border: 'border-purple-200' },
   project_file_uploaded: { bg: 'bg-indigo-50', icon: 'text-indigo-600', border: 'border-indigo-200' },
+  collaboration_invite: { bg: 'bg-teal-50', icon: 'text-teal-600', border: 'border-teal-200' },
+  team_invite: { bg: 'bg-teal-50', icon: 'text-teal-600', border: 'border-teal-200' },
   organization_alert: { bg: 'bg-orange-50', icon: 'text-orange-600', border: 'border-orange-200' },
   system: { bg: 'bg-neutral-50', icon: 'text-neutral-600', border: 'border-neutral-200' },
   // Toast types

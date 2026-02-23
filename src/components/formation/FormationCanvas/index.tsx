@@ -169,6 +169,7 @@ export function FormationCanvas({
   const [showLabels, setShowLabels] = useState(true);
   const [showRotation, setShowRotation] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [showShortcutsDialog, setShowShortcutsDialog] = useState(false);
   const [showPerformerPanel, setShowPerformerPanel] = useState(true);
   const [showAudioPanel, setShowAudioPanel] = useState(false);
   const [showPaths, setShowPaths] = useState(false);
@@ -817,6 +818,48 @@ export function FormationCanvas({
     if (blob) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${formation.name}.${options.format}`; a.click(); URL.revokeObjectURL(url); }
   }, [formation]);
 
+  // Cmd/Ctrl+S save, Space play/pause, ? shortcut help
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true';
+
+      // Cmd/Ctrl+S — save (always active, even in inputs)
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+        return;
+      }
+
+      if (isInput) return;
+
+      // Space — toggle play/pause
+      if (e.key === ' ' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        if (playbackState.isPlaying) handlePause();
+        else handlePlay();
+      }
+
+      // ? — show keyboard shortcuts reference
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        setShowShortcutsDialog(prev => !prev);
+      }
+
+      // +/= — zoom in, -/_ — zoom out
+      if ((e.key === '=' || e.key === '+') && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setZoom(z => Math.min(3, z + 0.25));
+      }
+      if (e.key === '-' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setZoom(z => Math.max(0.5, z - 0.25));
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleSave, playbackState.isPlaying, handlePause, handlePlay]);
+
   const handleZoomIn = () => setZoom((z) => Math.min(3, z + 0.25));
   const handleZoomOut = () => setZoom((z) => Math.max(0.5, z - 0.25));
 
@@ -980,6 +1023,7 @@ export function FormationCanvas({
 
       <Timeline keyframes={formation.keyframes} duration={playbackState.duration} currentTime={playbackState.currentTime} playbackState={playbackState} selectedKeyframeId={selectedKeyframeId} audioTrack={formation.audioTrack} drillSettings={drillSettings} timeDisplayMode={timeDisplayMode} onDrillSettingsChange={setDrillSettings} onPlay={handlePlay} onPause={handlePause} onStop={handleStop} onSeek={handleSeek} onSpeedChange={handleSpeedChange} onToggleLoop={handleToggleLoop} onKeyframeSelect={handleKeyframeSelect} onKeyframeAdd={handleKeyframeAdd} onKeyframeRemove={handleKeyframeRemove} onKeyframeMove={handleKeyframeMove} />
       <ExportDialog isOpen={isExportDialogOpen} formationName={formation.name} onClose={() => setIsExportDialogOpen(false)} onExport={handleExport} />
+      {showShortcutsDialog && <KeyboardShortcutsDialog onClose={() => setShowShortcutsDialog(false)} />}
       {(showTemplatePicker || formation.performers.length === 0) && (
         <TemplatePicker
           performerCount={formation.performers.length}
@@ -988,6 +1032,76 @@ export function FormationCanvas({
           emptyState={formation.performers.length === 0}
         />
       )}
+    </div>
+  );
+}
+
+/** Keyboard shortcuts reference overlay */
+function KeyboardShortcutsDialog({ onClose }: { onClose: () => void }) {
+  const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  const mod = isMac ? '\u2318' : 'Ctrl';
+
+  const groups = [
+    {
+      title: 'General',
+      shortcuts: [
+        { keys: `${mod}+S`, desc: 'Save formation' },
+        { keys: 'Space', desc: 'Play / Pause' },
+        { keys: '?', desc: 'Toggle this dialog' },
+      ],
+    },
+    {
+      title: 'Editing',
+      shortcuts: [
+        { keys: `${mod}+Z`, desc: 'Undo' },
+        { keys: `${mod}+Shift+Z`, desc: 'Redo' },
+        { keys: `${mod}+A`, desc: 'Select all' },
+        { keys: `${mod}+C`, desc: 'Copy selected' },
+        { keys: `${mod}+V`, desc: 'Paste' },
+        { keys: `${mod}+D`, desc: 'Duplicate selected' },
+        { keys: 'Delete', desc: 'Delete selected' },
+        { keys: 'Escape', desc: 'Deselect all' },
+      ],
+    },
+    {
+      title: 'Navigation',
+      shortcuts: [
+        { keys: '\u2191 \u2193 \u2190 \u2192', desc: 'Nudge performer (1 unit)' },
+        { keys: 'Shift+Arrow', desc: 'Nudge performer (5 units)' },
+        { keys: '+ / -', desc: 'Zoom in / out' },
+      ],
+    },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Keyboard Shortcuts</h2>
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <span className="sr-only">Close</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="space-y-5 max-h-[60vh] overflow-y-auto">
+          {groups.map((group) => (
+            <div key={group.title}>
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{group.title}</h3>
+              <div className="space-y-1">
+                {group.shortcuts.map((s) => (
+                  <div key={s.desc} className="flex items-center justify-between py-1">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{s.desc}</span>
+                    <kbd className="px-2 py-0.5 text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded border border-gray-200 dark:border-gray-600">{s.keys}</kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-xs text-gray-400 text-center">Press <kbd className="px-1 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 rounded">?</kbd> to toggle</p>
+      </div>
     </div>
   );
 }
