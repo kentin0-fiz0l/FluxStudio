@@ -139,7 +139,7 @@ const consultationTypes = [
   { value: 'review', label: 'Review Session', icon: Star, description: 'Design review and feedback' }
 ];
 
-function ConsultationCard({
+const ConsultationCard = React.memo(function ConsultationCard({
   consultation,
   onJoin,
   onCancel,
@@ -198,25 +198,25 @@ function ConsultationCard({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white rounded-lg border transition-all hover:shadow-md ${
-        isToday ? 'border-blue-200 bg-blue-50' : 'border-gray-200'
+      className={`bg-white dark:bg-neutral-900 rounded-lg border transition-all hover:shadow-md ${
+        isToday ? 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20' : 'border-gray-200 dark:border-neutral-700'
       }`}
     >
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <TypeIcon size={16} className="text-gray-600" />
-              <h3 className="font-semibold text-gray-900">{consultation.title}</h3>
+              <TypeIcon size={16} className="text-gray-600 dark:text-gray-400" />
+              <h3 className="font-semibold text-gray-900 dark:text-white">{consultation.title}</h3>
               {isToday && (
                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                   Today
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-600 mb-2">{consultation.description}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{consultation.description}</p>
 
-            <div className="flex items-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
               <div className="flex items-center gap-1">
                 <Calendar size={14} />
                 <span>{dateTime.date}</span>
@@ -326,7 +326,7 @@ function ConsultationCard({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="border-t border-gray-200 bg-gray-50"
+            className="border-t border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800"
           >
             <div className="p-4 space-y-4">
               {/* Agenda */}
@@ -387,7 +387,7 @@ function ConsultationCard({
       </AnimatePresence>
     </motion.div>
   );
-}
+});
 
 function ScheduleConsultationForm({
   onSubmit,
@@ -631,17 +631,17 @@ export function ConsultationWidget({
   };
 
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 ${className}`}>
+    <div className={`bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-700 ${className}`}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-gray-200 dark:border-neutral-700">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
               <Video size={20} className="text-green-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">Consultations</h3>
-              <p className="text-sm text-gray-500">Manage design sessions and meetings</p>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Consultations</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Manage design sessions and meetings</p>
             </div>
           </div>
 
@@ -666,16 +666,16 @@ export function ConsultationWidget({
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-neutral-800'
               }`}
             >
               <span>{tab.label}</span>
               {tab.count > 0 && (
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                   activeTab === tab.id
-                    ? 'bg-blue-200 text-blue-800'
-                    : 'bg-gray-200 text-gray-600'
+                    ? 'bg-blue-200 dark:bg-blue-800/40 text-blue-800 dark:text-blue-300'
+                    : 'bg-gray-200 dark:bg-neutral-700 text-gray-600 dark:text-gray-400'
                 }`}>
                   {tab.count}
                 </span>

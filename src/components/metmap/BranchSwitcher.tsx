@@ -88,15 +88,18 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-2 py-1 text-xs rounded border border-neutral-200 hover:bg-neutral-50 transition-colors"
+        className="flex items-center gap-1.5 px-2 py-1 text-xs rounded border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={`Branch: ${displayName}`}
       >
-        <GitBranch className="w-3 h-3 text-green-600" />
-        <span className="text-neutral-700 font-medium max-w-[120px] truncate">{displayName}</span>
-        <ChevronDown className="w-3 h-3 text-neutral-400" />
+        <GitBranch className="w-3 h-3 text-green-600" aria-hidden="true" />
+        <span className="text-neutral-700 dark:text-neutral-300 font-medium max-w-[120px] truncate">{displayName}</span>
+        <ChevronDown className="w-3 h-3 text-neutral-400" aria-hidden="true" />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 z-50 w-64 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 text-xs">
+        <div className="absolute top-full left-0 mt-1 z-50 w-64 bg-white dark:bg-neutral-900 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 py-1 text-xs" role="listbox" aria-label="Branch switcher">
           <div className="px-2 py-1 text-[10px] font-medium text-neutral-400 uppercase">Branches</div>
 
           {/* Main branch (always first) */}
@@ -105,13 +108,15 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
               onSwitchBranch(null);
               setIsOpen(false);
             }}
-            className={`w-full flex items-center gap-2 px-2 py-1.5 hover:bg-neutral-50 transition-colors ${
-              !activeBranchId ? 'bg-green-50' : ''
+            role="option"
+            aria-selected={!activeBranchId}
+            className={`w-full flex items-center gap-2 px-2 py-1.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors ${
+              !activeBranchId ? 'bg-green-50 dark:bg-green-900/20' : ''
             }`}
           >
-            <div className={`w-2 h-2 rounded-full ${!activeBranchId ? 'bg-green-500' : 'bg-neutral-300'}`} />
-            <span className="text-neutral-800 font-medium">main</span>
-            {!activeBranchId && <span className="text-[10px] text-green-600 ml-auto">(current)</span>}
+            <div className={`w-2 h-2 rounded-full ${!activeBranchId ? 'bg-green-500' : 'bg-neutral-300 dark:bg-neutral-600'}`} />
+            <span className="text-neutral-800 dark:text-neutral-200 font-medium">main</span>
+            {!activeBranchId && <span className="text-[10px] text-green-600 dark:text-green-400 ml-auto">(current)</span>}
           </button>
 
           {/* Feature branches */}
@@ -122,7 +127,7 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
               const isMerged = !!branch.mergedAt;
 
               return (
-                <div key={branch.id} className={`px-2 py-1.5 hover:bg-neutral-50 ${isActive ? 'bg-green-50' : ''}`}>
+                <div key={branch.id} role="option" aria-selected={isActive} className={`px-2 py-1.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 ${isActive ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => {
@@ -130,15 +135,16 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
                         setIsOpen(false);
                       }}
                       className="flex items-center gap-2 flex-1 min-w-0"
+                      aria-label={`Switch to branch ${branch.name}`}
                     >
                       <div className={`w-2 h-2 rounded-full shrink-0 ${
-                        isActive ? 'bg-green-500' : isMerged ? 'bg-purple-400' : 'bg-neutral-300'
+                        isActive ? 'bg-green-500' : isMerged ? 'bg-purple-400' : 'bg-neutral-300 dark:bg-neutral-600'
                       }`} />
-                      <span className={`truncate ${isMerged ? 'text-neutral-400 line-through' : 'text-neutral-800'}`}>
+                      <span className={`truncate ${isMerged ? 'text-neutral-400 line-through' : 'text-neutral-800 dark:text-neutral-200'}`}>
                         {branch.name}
                       </span>
                     </button>
-                    {isActive && <span className="text-[10px] text-green-600 shrink-0">(current)</span>}
+                    {isActive && <span className="text-[10px] text-green-600 dark:text-green-400 shrink-0">(current)</span>}
                   </div>
 
                   {/* Branch actions */}
@@ -166,7 +172,8 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
                         <>
                           <button
                             onClick={() => setConfirmMergeId(branch.id)}
-                            className="flex items-center gap-0.5 px-1 py-0.5 text-[10px] text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                            className="flex items-center gap-0.5 px-1 py-0.5 text-[10px] text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-colors"
+                            aria-label={`Merge branch ${branch.name}`}
                           >
                             <Merge className="w-2.5 h-2.5" />
                             Merge
@@ -174,7 +181,8 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
                           {branch.userId === currentUserId && (
                             <button
                               onClick={() => onDeleteBranch(branch.id)}
-                              className="flex items-center gap-0.5 px-1 py-0.5 text-[10px] text-red-600 hover:bg-red-50 rounded transition-colors"
+                              className="flex items-center gap-0.5 px-1 py-0.5 text-[10px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
+                              aria-label={`Delete branch ${branch.name}`}
                             >
                               <Trash2 className="w-2.5 h-2.5" />
                             </button>
@@ -188,13 +196,13 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
             })}
 
           {/* Separator */}
-          <div className="border-t border-neutral-100 my-1" />
+          <div className="border-t border-neutral-100 dark:border-neutral-700 my-1" />
 
           {/* New branch */}
           {!showCreateForm ? (
             <button
               onClick={() => setShowCreateForm(true)}
-              className="w-full flex items-center gap-2 px-2 py-1.5 text-indigo-600 hover:bg-indigo-50 transition-colors"
+              className="w-full flex items-center gap-2 px-2 py-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
             >
               <Plus className="w-3 h-3" />
               New Branch
@@ -207,7 +215,7 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="Branch name..."
                 maxLength={60}
-                className="w-full px-2 py-1 text-xs border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                className="w-full px-2 py-1 text-xs border border-neutral-200 dark:border-neutral-700 rounded bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-indigo-400"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && newName.trim()) handleCreate();
@@ -218,7 +226,7 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
                 <select
                   value={sourceSnapshotId}
                   onChange={(e) => setSourceSnapshotId(e.target.value)}
-                  className="w-full px-2 py-1 text-xs border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white"
+                  className="w-full px-2 py-1 text-xs border border-neutral-200 dark:border-neutral-700 rounded focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
                 >
                   <option value="">From current state</option>
                   {snapshots.map((snap) => (

@@ -79,6 +79,7 @@ export function StatsWidget(props: WidgetProps) {
             size="sm"
             onClick={refresh}
             disabled={isLoading}
+            aria-label="Refresh stats"
             className="h-7 px-2 text-xs text-white/70 hover:text-white hover:bg-white/10"
           >
             <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
@@ -88,18 +89,34 @@ export function StatsWidget(props: WidgetProps) {
         </div>
       }
     >
-      {/* Loading State */}
+      {/* Loading State — skeleton cards */}
       {isLoading && !stats && (
-        <div className="flex items-center justify-center py-8">
-          <RefreshCw className="h-6 w-6 animate-spin text-white/50" />
-          <span className="ml-2 text-white/70">Loading stats...</span>
+        <div className="grid grid-cols-1 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="p-4 rounded-lg bg-white/5 border border-white/10 animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-white/10 w-9 h-9" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-6 w-16 bg-white/10 rounded" />
+                  <div className="h-3 w-24 bg-white/10 rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+          <div className="p-4 rounded-lg bg-white/5 border border-white/10 animate-pulse">
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-4 w-28 bg-white/10 rounded" />
+              <div className="h-4 w-10 bg-white/10 rounded" />
+            </div>
+            <div className="h-2 w-full bg-white/10 rounded-full" />
+          </div>
         </div>
       )}
 
       {/* Error State */}
       {error && !stats && (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <WifiOff className="h-8 w-8 text-red-400 mb-2" />
+        <div className="flex flex-col items-center justify-center py-8 text-center" role="alert">
+          <WifiOff className="h-8 w-8 text-red-400 mb-2" aria-hidden="true" />
           <p className="text-red-400 text-sm font-medium">Connection Error</p>
           <p className="text-gray-400 text-xs mb-3">{error}</p>
           <Button

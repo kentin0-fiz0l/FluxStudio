@@ -77,10 +77,10 @@ export function QuickActionsWidget(props: WidgetProps) {
         description: 'Fast access to your most-used features',
       }}
       headerAction={
-        <Zap className="h-4 w-4 text-yellow-400" />
+        <Zap className="h-4 w-4 text-yellow-400" aria-hidden="true" />
       }
     >
-      <div className="space-y-2">
+      <div className="space-y-2" role="menu" aria-label="Quick actions">
         {quickActions.map((action, index) => {
           const IconComponent = action.icon;
           return (
@@ -88,11 +88,13 @@ export function QuickActionsWidget(props: WidgetProps) {
               key={index}
               variant="ghost"
               onClick={action.action}
+              role="menuitem"
+              aria-label={action.label}
               className="w-full justify-start text-white hover:bg-white/10 p-3 h-auto group"
             >
-              <IconComponent className="h-4 w-4 mr-3 text-white/70 group-hover:text-white transition-colors" />
+              <IconComponent className="h-4 w-4 mr-3 text-white/70 group-hover:text-white transition-colors" aria-hidden="true" />
               <span className="flex-1 text-left">{action.label}</span>
-              <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
             </Button>
           );
         })}
