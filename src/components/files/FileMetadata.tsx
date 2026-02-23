@@ -1,3 +1,4 @@
+import React from 'react';
 import { FileType, FileSource } from '../../contexts/FilesContext';
 import {
   Search,
@@ -43,7 +44,7 @@ export interface FileFiltersProps {
   onViewModeChange: (mode: ViewMode) => void;
 }
 
-export function FileFilters({
+export const FileFilters = React.memo(function FileFilters({
   localSearch,
   onSearchChange,
   typeFilter,
@@ -57,13 +58,13 @@ export function FileFilters({
     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
       {/* Search */}
       <div className="relative flex-1 max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 dark:text-neutral-500" aria-hidden="true" />
         <input
           type="text"
           placeholder="Search files..."
           value={localSearch}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-full pl-10 pr-4 py-2 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           aria-label="Search files"
         />
       </div>
@@ -72,7 +73,7 @@ export function FileFilters({
       <select
         value={typeFilter}
         onChange={(e) => onTypeFilterChange(e.target.value as FileType | 'all')}
-        className="px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+        className="px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
         aria-label="Filter by type"
       >
         {typeFilterOptions.map((opt) => (
@@ -84,7 +85,7 @@ export function FileFilters({
       <select
         value={sourceFilter}
         onChange={(e) => onSourceFilterChange(e.target.value as FileSource)}
-        className="px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+        className="px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
         aria-label="Filter by source"
       >
         {sourceFilterOptions.map((opt) => (
@@ -93,33 +94,33 @@ export function FileFilters({
       </select>
 
       {/* View toggle */}
-      <div className="flex rounded-lg border border-neutral-200 overflow-hidden">
+      <div className="flex rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden">
         <button
           onClick={() => onViewModeChange('grid')}
           className={cn(
             'p-2',
-            viewMode === 'grid' ? 'bg-neutral-100' : 'bg-white hover:bg-neutral-50'
+            viewMode === 'grid' ? 'bg-neutral-100 dark:bg-neutral-700' : 'bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700'
           )}
           aria-label="Grid view"
           aria-pressed={viewMode === 'grid'}
         >
-          <LayoutGrid className="h-4 w-4" />
+          <LayoutGrid className="h-4 w-4 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
         <button
           onClick={() => onViewModeChange('list')}
           className={cn(
             'p-2',
-            viewMode === 'list' ? 'bg-neutral-100' : 'bg-white hover:bg-neutral-50'
+            viewMode === 'list' ? 'bg-neutral-100 dark:bg-neutral-700' : 'bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700'
           )}
           aria-label="List view"
           aria-pressed={viewMode === 'list'}
         >
-          <ListIcon className="h-4 w-4" />
+          <ListIcon className="h-4 w-4 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
       </div>
     </div>
   );
-}
+});
 
 export interface FileStatsBarProps {
   total: number;
@@ -128,16 +129,16 @@ export interface FileStatsBarProps {
   sourceFilter: string;
 }
 
-export function FileStatsBar({ total, search, typeFilter, sourceFilter }: FileStatsBarProps) {
+export const FileStatsBar = React.memo(function FileStatsBar({ total, search, typeFilter, sourceFilter }: FileStatsBarProps) {
   return (
-    <div className="flex items-center gap-4 mb-4 text-sm text-neutral-600">
+    <div className="flex items-center gap-4 mb-4 text-sm text-neutral-600 dark:text-neutral-400">
       <span>{total} file(s)</span>
       {search && <span>matching "{search}"</span>}
       {typeFilter !== 'all' && <span>• Type: {typeFilter}</span>}
       {sourceFilter !== 'all' && <span>• Source: {sourceFilter}</span>}
     </div>
   );
-}
+});
 
 export interface FileErrorBarProps {
   error: string;
@@ -146,9 +147,9 @@ export interface FileErrorBarProps {
 
 export function FileErrorBar({ error, onRetry }: FileErrorBarProps) {
   return (
-    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-      <AlertCircle className="h-5 w-5 text-red-500" />
-      <p className="text-sm text-red-700">{error}</p>
+    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3" role="alert">
+      <AlertCircle className="h-5 w-5 text-red-500" aria-hidden="true" />
+      <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
       <Button variant="ghost" size="sm" onClick={onRetry}>
         Retry
       </Button>
@@ -165,20 +166,20 @@ export function FileUploadProgress({ uploadProgress }: FileUploadProgressProps) 
   if (entries.length === 0) return null;
 
   return (
-    <div className="mb-4 p-4 bg-primary-50 border border-primary-200 rounded-lg">
+    <div className="mb-4 p-4 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg">
       <div className="flex items-center gap-3">
-        <Loader2 className="h-5 w-5 text-primary-600 animate-spin" />
+        <Loader2 className="h-5 w-5 text-primary-600 dark:text-primary-400 animate-spin" aria-hidden="true" />
         <div className="flex-1">
-          <p className="text-sm font-medium text-primary-900">
+          <p className="text-sm font-medium text-primary-900 dark:text-primary-300">
             Uploading {entries.length} file(s)...
           </p>
           {entries.map(([filename, progress]) => (
             <div key={filename} className="mt-2">
-              <div className="flex items-center justify-between text-xs text-primary-700 mb-1">
+              <div className="flex items-center justify-between text-xs text-primary-700 dark:text-primary-400 mb-1">
                 <span className="truncate">{filename}</span>
                 <span>{progress}%</span>
               </div>
-              <div className="h-1.5 bg-primary-200 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-primary-200 dark:bg-primary-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary-600 transition-all"
                   style={{ width: `${progress}%` }}

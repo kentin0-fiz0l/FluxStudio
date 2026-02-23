@@ -260,7 +260,7 @@ export function UnifiedNotificationCenter() {
         onClick={() => setIsOpen(!isOpen)}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
       >
-        <Bell className="h-4 w-4" />
+        <Bell className="h-4 w-4" aria-hidden="true" />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -293,7 +293,7 @@ export function UnifiedNotificationCenter() {
                 <CardHeader className="pb-3 border-b">
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <Bell className="h-4 w-4" />
+                      <Bell className="h-4 w-4" aria-hidden="true" />
                       Notifications
                       {unreadCount > 0 && (
                         <Badge variant="error" className="h-5 px-1.5">
@@ -310,7 +310,7 @@ export function UnifiedNotificationCenter() {
                         aria-label="Mark all as read"
                         className="h-8 w-8 p-0"
                       >
-                        <CheckCheck className="h-4 w-4" />
+                        <CheckCheck className="h-4 w-4" aria-hidden="true" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -319,7 +319,7 @@ export function UnifiedNotificationCenter() {
                         aria-label="Close notifications"
                         className="h-8 w-8 p-0"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </div>
                   </div>
@@ -369,6 +369,7 @@ export function UnifiedNotificationCenter() {
                 <ScrollArea className="flex-1 max-h-[400px]">
                   {loading ? (
                     <div className="p-2" role="status" aria-label="Loading notifications">
+                      <p className="sr-only">Loading notifications...</p>
                       {[1, 2, 3, 4].map((i) => (
                         <div key={i} className="p-3 rounded-lg mb-2 animate-pulse">
                           <div className="flex gap-3">
@@ -451,7 +452,7 @@ export function UnifiedNotificationCenter() {
                                         "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
                                         colorClass
                                       )}>
-                                        <Icon className="h-4 w-4" />
+                                        <Icon className="h-4 w-4" aria-hidden="true" />
                                       </div>
                                     )}
 
@@ -549,7 +550,7 @@ export function UnifiedNotificationCenter() {
                         onClick={handleClearRead}
                         aria-label={`Clear ${readCount} read notification${readCount > 1 ? 's' : ''}`}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                         Clear read
                       </Button>
                     )}

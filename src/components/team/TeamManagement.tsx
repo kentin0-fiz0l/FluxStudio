@@ -64,40 +64,40 @@ interface TeamManagementProps {
 const roleConfig = {
   admin: {
     label: 'Administrator',
-    color: 'bg-red-100 text-red-800 border-red-200',
+    color: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800',
     icon: Crown,
     description: 'Full platform access and team management'
   },
   lead_designer: {
     label: 'Lead Designer',
-    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 border-purple-200 dark:border-purple-800',
     icon: Star,
     description: 'Project leadership and design oversight'
   },
   designer: {
     label: 'Designer',
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border-blue-200 dark:border-blue-800',
     icon: Award,
     description: 'Design creation and project collaboration'
   },
   intern: {
     label: 'Intern',
-    color: 'bg-green-100 text-green-800 border-green-200',
+    color: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800',
     icon: Users,
     description: 'Limited access for learning and assistance'
   },
   client_viewer: {
     label: 'Client Viewer',
-    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    color: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600',
     icon: Eye,
     description: 'View-only access for client collaboration'
   }
 };
 
 const statusConfig = {
-  active: { color: 'text-green-600', icon: CheckCircle, label: 'Active' },
-  pending: { color: 'text-yellow-600', icon: Clock, label: 'Pending' },
-  inactive: { color: 'text-gray-600', icon: XCircle, label: 'Inactive' }
+  active: { color: 'text-green-600 dark:text-green-400', icon: CheckCircle, label: 'Active' },
+  pending: { color: 'text-yellow-600 dark:text-yellow-400', icon: Clock, label: 'Pending' },
+  inactive: { color: 'text-gray-600 dark:text-gray-400', icon: XCircle, label: 'Inactive' }
 };
 
 export const TeamManagement: React.FC<TeamManagementProps> = ({
@@ -190,7 +190,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             onClick={() => setShowInviteModal(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
           >
-            <UserPlus className="w-4 h-4" />
+            <UserPlus className="w-4 h-4" aria-hidden="true" />
             <span>Invite Member</span>
           </button>
         )}
@@ -201,7 +201,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
             <input
               type="text"
               placeholder="Search team members..."
@@ -245,7 +245,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Members</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{team.length}</p>
             </div>
-            <Users className="w-8 h-8 text-blue-500" />
+            <Users className="w-8 h-8 text-blue-500" aria-hidden="true" />
           </div>
         </div>
 
@@ -257,7 +257,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 {team.filter(m => m.status === 'active').length}
               </p>
             </div>
-            <CheckCircle className="w-8 h-8 text-green-500" />
+            <CheckCircle className="w-8 h-8 text-green-500" aria-hidden="true" />
           </div>
         </div>
 
@@ -269,7 +269,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 {team.filter(m => m.status === 'pending').length}
               </p>
             </div>
-            <Clock className="w-8 h-8 text-yellow-500" />
+            <Clock className="w-8 h-8 text-yellow-500" aria-hidden="true" />
           </div>
         </div>
 
@@ -281,7 +281,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 {Math.round(team.reduce((acc, m) => acc + m.workload.utilization, 0) / team.length)}%
               </p>
             </div>
-            <Activity className="w-8 h-8 text-purple-500" />
+            <Activity className="w-8 h-8 text-purple-500" aria-hidden="true" />
           </div>
         </div>
       </div>
@@ -348,14 +348,14 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         'inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium border',
                         roleInfo.color
                       )}>
-                        <RoleIcon className="w-3 h-3" />
+                        <RoleIcon className="w-3 h-3" aria-hidden="true" />
                         <span>{roleInfo.label}</span>
                       </div>
                     </td>
 
                     <td className="px-6 py-4">
                       <div className={cn('flex items-center space-x-2', statusInfo.color)}>
-                        <StatusIcon className="w-4 h-4" />
+                        <StatusIcon className="w-4 h-4" aria-hidden="true" />
                         <span className="text-sm font-medium">{statusInfo.label}</span>
                       </div>
                     </td>
@@ -393,7 +393,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                           className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                           aria-label={`View details for ${member.name}`}
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-4 h-4" aria-hidden="true" />
                         </button>
 
                         {canManageTeam && member.id !== currentUser.id && (
@@ -404,7 +404,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                                 className="p-1 text-blue-400 hover:text-blue-600 transition-colors"
                                 aria-label="Resend invite"
                               >
-                                <Mail className="w-4 h-4" />
+                                <Mail className="w-4 h-4" aria-hidden="true" />
                               </button>
                             )}
 
@@ -413,7 +413,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                               className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                               aria-label={`Edit ${member.name}`}
                             >
-                              <Edit className="w-4 h-4" />
+                              <Edit className="w-4 h-4" aria-hidden="true" />
                             </button>
 
                             <button
@@ -421,7 +421,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                               className="p-1 text-red-400 hover:text-red-600 transition-colors"
                               aria-label={`Remove ${member.name}`}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4" aria-hidden="true" />
                             </button>
                           </>
                         )}
@@ -448,7 +448,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-blue-500/20 rounded-lg">
-                    <UserPlus className="w-5 h-5 text-blue-600" />
+                    <UserPlus className="w-5 h-5 text-blue-600" aria-hidden="true" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Invite Team Member</h3>
@@ -461,9 +461,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     setSelectedUsersToInvite([]);
                     setInviteEmail('');
                   }}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  aria-label="Close invite modal"
                 >
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
                 </button>
               </div>
 
@@ -476,10 +477,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all ${
                       inviteMode === 'search'
                         ? 'bg-blue-600 text-white shadow-lg'
-                        : 'text-gray-600 hover:text-gray-800'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100'
                     }`}
                   >
-                    <Users className="w-4 h-4" />
+                    <Users className="w-4 h-4" aria-hidden="true" />
                     Search Users
                   </button>
                   <button
@@ -488,10 +489,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all ${
                       inviteMode === 'email'
                         ? 'bg-blue-600 text-white shadow-lg'
-                        : 'text-gray-600 hover:text-gray-800'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100'
                     }`}
                   >
-                    <Mail className="w-4 h-4" />
+                    <Mail className="w-4 h-4" aria-hidden="true" />
                     Invite by Email
                   </button>
                 </div>
@@ -500,7 +501,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               <div className="space-y-4">
                 {inviteMode === 'search' ? (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Search and select users to invite
                     </label>
                     <UserSearch
@@ -528,17 +529,17 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Email Address
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
                       <input
                         type="email"
                         value={inviteEmail}
                         onChange={(e) => setInviteEmail(e.target.value)}
                         placeholder="colleague@company.com"
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         autoFocus={inviteMode === 'email'}
                       />
                     </div>
@@ -546,7 +547,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Role
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -559,12 +560,12 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                           onClick={() => setInviteRole(role as TeamMember['role'])}
                           className={`px-3 py-3 rounded-lg border text-sm transition-all text-left ${
                             inviteRole === role
-                              ? 'bg-blue-50 border-blue-200 text-blue-800'
-                              : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-400'
+                              : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                           }`}
                         >
                           <div className="flex items-center space-x-2">
-                            <RoleIcon className="w-4 h-4" />
+                            <RoleIcon className="w-4 h-4" aria-hidden="true" />
                             <div>
                               <div className="font-medium">{config.label}</div>
                               <div className="text-xs opacity-75">{config.description.split(' ').slice(0, 3).join(' ')}...</div>
@@ -584,7 +585,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     setSelectedUsersToInvite([]);
                     setInviteEmail('');
                   }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                 >
                   Cancel
                 </button>
@@ -593,7 +594,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   disabled={inviteMode === 'email' ? !inviteEmail : selectedUsersToInvite.length === 0}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
                 >
-                  <UserPlus className="w-4 h-4" />
+                  <UserPlus className="w-4 h-4" aria-hidden="true" />
                   <span>Send Invite</span>
                 </button>
               </div>
@@ -616,9 +617,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Member Details</h3>
                 <button
                   onClick={() => setShowMemberDetails(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  aria-label="Close member details"
                 >
-                  <XCircle className="w-6 h-6" />
+                  <XCircle className="w-6 h-6" aria-hidden="true" />
                 </button>
               </div>
 
