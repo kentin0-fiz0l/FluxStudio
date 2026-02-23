@@ -437,7 +437,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity, compact = false }
 
         {/* Timestamp */}
         <div className="flex items-center gap-1 mt-1 ml-8">
-          <Clock className="h-3 w-3 text-neutral-400" />
+          <Clock className="h-3 w-3 text-neutral-400" aria-hidden="true" />
           <span
             className="text-xs text-neutral-500 cursor-help"
             onMouseEnter={() => setShowFullTimestamp(true)}
@@ -684,7 +684,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
               )}
               {isRealtimeConnected && (
                 <span className="flex items-center gap-1 text-xs text-green-600" title="Live updates active">
-                  <Wifi className="h-3 w-3" />
+                  <Wifi className="h-3 w-3" aria-hidden="true" />
                   Live
                 </span>
               )}
@@ -693,7 +693,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
             {/* Filter Popover */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" icon={<Filter className="h-4 w-4" />}>
+              <Button variant="ghost" size="sm" icon={<Filter className="h-4 w-4" aria-hidden="true" />}>
                 Filter
                 {hasActiveFilters && (
                   <Badge variant="primary" className="ml-2 h-4 w-4 p-0 text-xs">
@@ -841,7 +841,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         {/* Load More Button */}
         {hasMore && !isLoading && (
           <div className="flex justify-center py-4 px-4 border-t border-neutral-200">
-            <Button variant="ghost" onClick={handleLoadMore} icon={<ChevronDown className="h-4 w-4" />}>
+            <Button variant="ghost" onClick={handleLoadMore} icon={<ChevronDown className="h-4 w-4" aria-hidden="true" />}>
               Load More Activity
             </Button>
           </div>
@@ -850,7 +850,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         {/* Loading More Indicator */}
         {isLoading && page > 1 && (
           <div className="flex justify-center py-4">
-            <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
+            <Loader2 className="h-5 w-5 animate-spin text-neutral-400" aria-hidden="true" />
           </div>
         )}
       </div>

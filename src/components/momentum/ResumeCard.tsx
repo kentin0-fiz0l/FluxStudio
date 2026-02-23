@@ -34,17 +34,17 @@ function getEntityDescription(entity: LastEntity): { text: string; icon: React.R
   if (entity.conversationId) {
     return {
       text: entity.messageId ? 'message in conversation' : 'conversation',
-      icon: <MessageSquare className="h-3.5 w-3.5" />,
+      icon: <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />,
     };
   }
   if (entity.fileId) {
-    return { text: 'file', icon: <FileText className="h-3.5 w-3.5" /> };
+    return { text: 'file', icon: <FileText className="h-3.5 w-3.5" aria-hidden="true" /> };
   }
   if (entity.assetId) {
-    return { text: 'asset', icon: <Image className="h-3.5 w-3.5" /> };
+    return { text: 'asset', icon: <Image className="h-3.5 w-3.5" aria-hidden="true" /> };
   }
   if (entity.boardId) {
-    return { text: 'design board', icon: <Layout className="h-3.5 w-3.5" /> };
+    return { text: 'design board', icon: <Layout className="h-3.5 w-3.5" aria-hidden="true" /> };
   }
   return null;
 }

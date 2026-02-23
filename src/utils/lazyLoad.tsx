@@ -76,7 +76,7 @@ export function lazyLoadWithRetry<P extends Record<string, unknown> = Record<str
 export const DefaultLoadingFallback: React.FC<{ message?: string }> = ({ message = 'Loading...' }) => (
   <div className="flex items-center justify-center min-h-[400px]">
     <div className="flex flex-col items-center gap-3">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
       <p className="text-sm text-muted-foreground">{message}</p>
     </div>
   </div>

@@ -92,14 +92,14 @@ export function IntentNoteInline({
           className="p-1 text-green-600 hover:text-green-700 dark:text-green-400"
           aria-label="Save note"
         >
-          <Check className="h-3.5 w-3.5" />
+          <Check className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
         <button
           onClick={handleCancel}
           className="p-1 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
           aria-label="Cancel"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
     );
