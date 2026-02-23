@@ -79,13 +79,13 @@ export function ChatSidebar({
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={onNewConversation}>
-            <UserPlus className="w-4 h-4" />
+            <UserPlus className="w-4 h-4" aria-hidden="true" />
           </Button>
         </div>
 
         {/* Search */}
         <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
           <input
             type="text"
             placeholder="Search conversations..."
@@ -107,8 +107,8 @@ export function ChatSidebar({
                   : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
               }`}
             >
-              {f === 'starred' && <Star className="w-3 h-3 inline mr-1" />}
-              {f === 'muted' && <BellOff className="w-3 h-3 inline mr-1" />}
+              {f === 'starred' && <Star className="w-3 h-3 inline mr-1" aria-hidden="true" />}
+              {f === 'muted' && <BellOff className="w-3 h-3 inline mr-1" aria-hidden="true" />}
               {f.charAt(0).toUpperCase() + f.slice(1)}
               {f === 'unread' && unreadCount > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-white/20 rounded-full">{unreadCount}</span>
@@ -138,7 +138,7 @@ export function ChatSidebar({
         ) : filteredConversations.length === 0 ? (
           searchTerm ? (
             <div className="p-8 text-center">
-              <MessageCircle className="w-12 h-12 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" />
+              <MessageCircle className="w-12 h-12 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" aria-hidden="true" />
               <p className="text-sm text-neutral-600 dark:text-neutral-400">
                 No conversations match your search
               </p>
