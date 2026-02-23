@@ -97,7 +97,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
           <div className="max-w-7xl mx-auto">
             <Card className="bg-white/10 border border-white/10 p-8">
               <div className="text-center">
-                <Building2 className="h-12 w-12 text-white/40 mx-auto mb-4" />
+                <Building2 className="h-12 w-12 text-white/40 mx-auto mb-4" aria-hidden="true" />
                 <h2 className="text-2xl font-bold text-white mb-2">Select an Organization</h2>
                 <p className="text-gray-400 mb-6">Choose an organization to view its dashboard</p>
 
@@ -110,7 +110,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
                     >
                       <CardHeader>
                         <CardTitle className="text-white flex items-center gap-2">
-                          <Building2 className="h-5 w-5" />
+                          <Building2 className="h-5 w-5" aria-hidden="true" />
                           {org.name}
                         </CardTitle>
                         {org.description && (
@@ -145,7 +145,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
             <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <Building2 className="h-8 w-8 text-blue-400" />
+                  <Building2 className="h-8 w-8 text-blue-400" aria-hidden="true" />
                   <h1 className="text-4xl font-bold text-white">
                     {currentOrganization.name}
                   </h1>
@@ -183,21 +183,21 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
                   onClick={() => setShowCreateTeam(true)}
                   className="bg-blue-500 hover:bg-blue-600 text-white"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
                   New Team
                 </Button>
                 <Button
                   onClick={() => setShowCreateProject(true)}
                   className="bg-purple-500 hover:bg-purple-600 text-white"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
                   New Project
                 </Button>
                 <Button
                   variant="ghost"
                   className="text-white hover:bg-white/10"
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -207,7 +207,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
           <div className="flex flex-col lg:flex-row gap-4 mb-8">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
                 <Input
                   placeholder="Search teams and projects..."
                   value={searchQuery}
@@ -251,7 +251,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
                 onClick={() => setViewMode('grid')}
                 className="p-2"
               >
-                <Grid3X3 className="h-4 w-4" />
+                <Grid3X3 className="h-4 w-4" aria-hidden="true" />
               </Button>
               <Button
                 variant={viewMode === 'list' ? 'primary' : 'ghost'}
@@ -259,7 +259,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
                 onClick={() => setViewMode('list')}
                 className="p-2"
               >
-                <List className="h-4 w-4" />
+                <List className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
           </div>
@@ -269,7 +269,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <Users className="h-6 w-6 text-blue-400" />
+                  <Users className="h-6 w-6 text-blue-400" aria-hidden="true" />
                   Teams
                 </h2>
                 <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
@@ -299,10 +299,10 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
                       <CardHeader>
                         <CardTitle className="text-white flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Users className="h-5 w-5 text-blue-400" />
+                            <Users className="h-5 w-5 text-blue-400" aria-hidden="true" />
                             {team.name}
                           </div>
-                          <ChevronRight className="h-4 w-4 text-gray-400" />
+                          <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />
                         </CardTitle>
                         {team.description && (
                           <CardDescription className="text-gray-400">
@@ -334,7 +334,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <FolderOpen className="h-6 w-6 text-purple-400" />
+                  <FolderOpen className="h-6 w-6 text-purple-400" aria-hidden="true" />
                   Projects
                 </h2>
                 <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
@@ -364,10 +364,10 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
                       <CardHeader>
                         <CardTitle className="text-white flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <FolderOpen className="h-5 w-5 text-purple-400" />
+                            <FolderOpen className="h-5 w-5 text-purple-400" aria-hidden="true" />
                             {project.name}
                           </div>
-                          <ChevronRight className="h-4 w-4 text-gray-400" />
+                          <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />
                         </CardTitle>
                         {project.description && (
                           <CardDescription className="text-gray-400">

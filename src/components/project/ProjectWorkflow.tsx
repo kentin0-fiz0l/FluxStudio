@@ -221,7 +221,7 @@ export function ProjectWorkflow({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={cn('p-2 rounded-lg', statusInfo.bgColor)}>
-                <StatusIcon className={cn('h-5 w-5', statusInfo.textColor)} />
+                <StatusIcon className={cn('h-5 w-5', statusInfo.textColor)} aria-hidden="true" />
               </div>
               <div>
                 <CardTitle className="text-xl">{project.name}</CardTitle>
@@ -239,7 +239,7 @@ export function ProjectWorkflow({
                 <Dialog open={isEditingProject} onOpenChange={setIsEditingProject}>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
-                      <Edit3 className="h-4 w-4 mr-2" />
+                      <Edit3 className="h-4 w-4 mr-2" aria-hidden="true" />
                       Edit
                     </Button>
                   </DialogTrigger>
@@ -278,7 +278,7 @@ export function ProjectWorkflow({
               )}>
                 {formatDate(project.due_date)}
                 {isOverdue(project.due_date) && (
-                  <AlertCircle className="h-4 w-4 inline ml-1 text-red-500" />
+                  <AlertCircle className="h-4 w-4 inline ml-1 text-red-500" aria-hidden="true" />
                 )}
               </div>
             </div>
@@ -327,7 +327,7 @@ export function ProjectWorkflow({
               <Dialog open={isCreatingMilestone} onOpenChange={setIsCreatingMilestone}>
                 <DialogTrigger asChild>
                   <Button>
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
                     Add Milestone
                   </Button>
                 </DialogTrigger>
@@ -378,7 +378,7 @@ export function ProjectWorkflow({
                         !isEditable && 'cursor-default'
                       )}
                     >
-                      {milestone.completed_at && <CheckCircle className="h-4 w-4" />}
+                      {milestone.completed_at && <CheckCircle className="h-4 w-4" aria-hidden="true" />}
                     </button>
                     {index < milestones.length - 1 && (
                       <div className="w-0.5 h-8 bg-gray-200 mt-2" />
@@ -401,7 +401,7 @@ export function ProjectWorkflow({
                         <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                           {milestone.due_date && (
                             <div className="flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
+                              <Calendar className="h-4 w-4" aria-hidden="true" />
                               <span className={cn(
                                 isOverdue(milestone.due_date) && !milestone.completed_at
                                   ? 'text-red-600 font-medium'
@@ -413,7 +413,7 @@ export function ProjectWorkflow({
                           )}
                           {milestone.assigned_to && (
                             <div className="flex items-center gap-1">
-                              <User className="h-4 w-4" />
+                              <User className="h-4 w-4" aria-hidden="true" />
                               <span>Assigned to {milestone.assigned_to}</span>
                             </div>
                           )}
@@ -434,7 +434,7 @@ export function ProjectWorkflow({
                           }}>
                             <DialogTrigger asChild>
                               <Button variant="ghost" size="sm">
-                                <Edit3 className="h-4 w-4" />
+                                <Edit3 className="h-4 w-4" aria-hidden="true" />
                               </Button>
                             </DialogTrigger>
                             <DialogContent>
@@ -460,7 +460,7 @@ export function ProjectWorkflow({
                             </DialogContent>
                           </Dialog>
                           <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
                           </Button>
                         </div>
                       )}
@@ -472,7 +472,7 @@ export function ProjectWorkflow({
 
             {milestones.length === 0 && (
               <div className="text-center py-8 text-gray-500">
-                <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" aria-hidden="true" />
                 <h3 className="font-medium text-gray-900 mb-1">No milestones yet</h3>
                 <p className="text-sm">Add milestones to track project progress</p>
               </div>
@@ -495,7 +495,7 @@ export function ProjectWorkflow({
                 onClick={() => updateProjectStatus('active')}
                 disabled={project.status === 'active'}
               >
-                <PlayCircle className="h-4 w-4 mr-2" />
+                <PlayCircle className="h-4 w-4 mr-2" aria-hidden="true" />
                 Start Project
               </Button>
               <Button
@@ -503,7 +503,7 @@ export function ProjectWorkflow({
                 onClick={() => updateProjectStatus('on-hold')}
                 disabled={project.status === 'on-hold'}
               >
-                <PauseCircle className="h-4 w-4 mr-2" />
+                <PauseCircle className="h-4 w-4 mr-2" aria-hidden="true" />
                 Put on Hold
               </Button>
               <Button
@@ -511,15 +511,15 @@ export function ProjectWorkflow({
                 onClick={() => updateProjectStatus('completed')}
                 disabled={project.status === 'completed'}
               >
-                <CheckCircle className="h-4 w-4 mr-2" />
+                <CheckCircle className="h-4 w-4 mr-2" aria-hidden="true" />
                 Mark Complete
               </Button>
               <Button variant="outline">
-                <MessageSquare className="h-4 w-4 mr-2" />
+                <MessageSquare className="h-4 w-4 mr-2" aria-hidden="true" />
                 Send Update
               </Button>
               <Button variant="outline">
-                <FileText className="h-4 w-4 mr-2" />
+                <FileText className="h-4 w-4 mr-2" aria-hidden="true" />
                 Generate Report
               </Button>
             </div>
