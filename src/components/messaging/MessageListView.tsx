@@ -141,7 +141,7 @@ export const MessageListView = forwardRef<MessageListViewRef, MessageListViewPro
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-100 to-indigo-100 dark:from-primary-900/30 dark:to-indigo-900/30 flex items-center justify-center mx-auto mb-4">
-                <MessageCircle className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                <MessageCircle className="w-8 h-8 text-primary-600 dark:text-primary-400" aria-hidden="true" />
               </div>
               <p className="text-sm text-neutral-600 dark:text-neutral-400">
                 Start the conversation!

@@ -130,7 +130,7 @@ export function ClipComponent({
         )}
 
         {/* Icon */}
-        {!clip.thumbnail && width > 30 && <Icon className="w-4 h-4 opacity-70 flex-shrink-0" />}
+        {!clip.thumbnail && width > 30 && <Icon className="w-4 h-4 opacity-70 flex-shrink-0" aria-hidden="true" />}
 
         {/* Name */}
         {width > 80 && (

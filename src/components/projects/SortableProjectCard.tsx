@@ -42,7 +42,7 @@ export function SortableProjectCard({ id, children }: SortableProjectCardProps) 
         aria-label="Drag to reorder"
         aria-roledescription="sortable"
       >
-        <GripVertical className="w-4 h-4" />
+        <GripVertical className="w-4 h-4" aria-hidden="true" />
       </button>
       <div className="group/card">
         {children}

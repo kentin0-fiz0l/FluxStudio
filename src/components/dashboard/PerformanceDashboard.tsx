@@ -113,7 +113,7 @@ export const PerformanceDashboard: React.FC = () => {
       {connectionError && !isConnected && (
         <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
           <div className="flex items-center gap-3 text-red-700 dark:text-red-400">
-            <WifiOff className="w-5 h-5 flex-shrink-0" />
+            <WifiOff className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
             <div>
               <p className="font-medium text-sm">Connection lost</p>
               <p className="text-xs text-red-600 dark:text-red-500">Real-time metrics are unavailable. Showing last known data.</p>
@@ -124,7 +124,7 @@ export const PerformanceDashboard: React.FC = () => {
             disabled={retrying}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50 transition-colors"
           >
-            <RefreshCw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} aria-hidden="true" />
             {retrying ? 'Reconnecting...' : 'Retry'}
           </button>
         </div>

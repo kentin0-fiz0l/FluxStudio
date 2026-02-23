@@ -150,7 +150,7 @@ export const TrackWaveform = memo(function TrackWaveform({
   if (loading) {
     return (
       <div className={`flex items-center justify-center ${className}`} style={{ height }}>
-        <Loader2 className="h-3 w-3 animate-spin text-neutral-400" />
+        <Loader2 className="h-3 w-3 animate-spin text-neutral-400" aria-hidden="true" />
       </div>
     );
   }
