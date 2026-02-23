@@ -12,6 +12,20 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  rectSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import {
   Plus,
   Search,
   ChevronDown,
@@ -31,6 +45,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ProjectCard } from '@/components/molecules';
+import { SortableProjectCard } from '@/components/projects/SortableProjectCard';
 import { ProjectCardSkeleton } from '@/components/loading/LoadingStates';
 import { UniversalEmptyState, emptyStateConfigs } from '@/components/ui/UniversalEmptyState';
 import { useProjects } from '@/hooks/useProjects';
@@ -75,17 +90,66 @@ export function ProjectsHub() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [activityExpanded, setActivityExpanded] = useState(false);
 
+  // Custom project order (persisted to localStorage)
+  const [customOrder, setCustomOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('fx_project_order');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
 
-  // Filter projects based on search
+  // DnD sensors (pointer with activation distance + keyboard)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setCustomOrder((prev) => {
+      // Build the current ID list from filteredProjects or prev
+      const currentIds = filteredProjects.map((p) => p.id);
+      const ordered = prev.length > 0
+        ? prev.filter((id) => currentIds.includes(id)).concat(currentIds.filter((id) => !prev.includes(id)))
+        : currentIds;
+
+      const oldIndex = ordered.indexOf(active.id as string);
+      const newIndex = ordered.indexOf(over.id as string);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+
+      const reordered = arrayMove(ordered, oldIndex, newIndex);
+      localStorage.setItem('fx_project_order', JSON.stringify(reordered));
+      return reordered;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Filter projects based on search, then apply custom sort order
   const filteredProjects = useMemo(() => {
-    if (!searchTerm) return projects;
-    const term = searchTerm.toLowerCase();
-    return projects.filter(
-      (p) =>
-        p.name.toLowerCase().includes(term) ||
-        p.description?.toLowerCase().includes(term)
-    );
-  }, [projects, searchTerm]);
+    let result = projects;
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = projects.filter(
+        (p) =>
+          p.name.toLowerCase().includes(term) ||
+          p.description?.toLowerCase().includes(term)
+      );
+    }
+
+    // Apply custom order if available
+    if (customOrder.length > 0) {
+      const orderMap = new Map(customOrder.map((id, idx) => [id, idx]));
+      result = [...result].sort((a, b) => {
+        const ai = orderMap.get(a.id) ?? Infinity;
+        const bi = orderMap.get(b.id) ?? Infinity;
+        return ai - bi;
+      });
+    }
+
+    return result;
+  }, [projects, searchTerm, customOrder]);
 
   // Current timestamp for deadline calculations (captured once on mount)
   const [now] = useState(() => Date.now());
@@ -214,45 +278,57 @@ export function ProjectsHub() {
                   ))}
                 </motion.div>
               ) : filteredProjects.length > 0 ? (
-                <motion.div
-                  key="projects"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className={cn(
-                    viewMode === 'grid'
-                      ? 'grid grid-cols-1 md:grid-cols-2 gap-4'
-                      : 'space-y-3'
-                  )}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
                 >
-                  {filteredProjects.map((project, index) => (
+                  <SortableContext
+                    items={filteredProjects.map((p) => p.id)}
+                    strategy={rectSortingStrategy}
+                  >
                     <motion.div
-                      key={project.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
+                      key="projects"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className={cn(
+                        viewMode === 'grid'
+                          ? 'grid grid-cols-1 md:grid-cols-2 gap-4'
+                          : 'space-y-3'
+                      )}
                     >
-                      <ProjectCard
-                        project={{
-                          id: project.id,
-                          name: project.name,
-                          description: project.description || '',
-                          status: 'active',
-                          progress: project.progress || 0,
-                          dueDate: project.dueDate ? new Date(project.dueDate) : undefined,
-                          teamSize: project.members?.length || 1,
-                          teamAvatars: [],
-                          tags: (project as unknown as Record<string, unknown>).tags as string[] || [],
-                        }}
-                        variant={viewMode === 'list' ? 'compact' : 'default'}
-                        showProgress
-                        showTeam
-                        showTags
-                        onView={() => navigate(`/projects/${project.id}`)}
-                      />
+                      {filteredProjects.map((project, index) => (
+                        <SortableProjectCard key={project.id} id={project.id}>
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                          >
+                            <ProjectCard
+                              project={{
+                                id: project.id,
+                                name: project.name,
+                                description: project.description || '',
+                                status: 'active',
+                                progress: project.progress || 0,
+                                dueDate: project.dueDate ? new Date(project.dueDate) : undefined,
+                                teamSize: project.members?.length || 1,
+                                teamAvatars: [],
+                                tags: (project as unknown as Record<string, unknown>).tags as string[] || [],
+                              }}
+                              variant={viewMode === 'list' ? 'compact' : 'default'}
+                              showProgress
+                              showTeam
+                              showTags
+                              onView={() => navigate(`/projects/${project.id}`)}
+                            />
+                          </motion.div>
+                        </SortableProjectCard>
+                      ))}
                     </motion.div>
-                  ))}
-                </motion.div>
+                  </SortableContext>
+                </DndContext>
               ) : searchTerm ? (
                 <Card>
                   <CardContent className="p-0">

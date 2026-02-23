@@ -2,11 +2,14 @@
  * New Project Page - Dedicated page for creating a new project
  *
  * A focused, single-purpose page for project creation.
+ * Uses react-hook-form + Zod for validated form handling.
  * WCAG 2.1 Level A Compliant.
  */
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { DashboardLayout } from '../components/templates';
 import { Button, Input } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,6 +23,7 @@ import { AIProjectCreator } from '../components/projects/AIProjectCreator';
 import { templateService } from '../services/templates/TemplateService';
 import { UpgradePrompt } from '../components/payments/UpgradePrompt';
 import { fetchUsage, isAtLimit } from '../services/usageService';
+import { projectFormSchema, type ProjectFormData } from '../types/schemas';
 import type { CreateFromTemplateOptions } from '../services/templates/types';
 import type { UsageData } from '../services/usageService';
 
@@ -59,59 +63,43 @@ export function NewProject() {
   }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string>('');
-  const [nameError, setNameError] = useState<string>('');
-  const [dateError, setDateError] = useState<string>('');
-  const [nameTouched, setNameTouched] = useState(false);
 
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    priority: 'medium' as Project['priority'],
-    startDate: new Date().toISOString().split('T')[0],
-    dueDate: '',
-    teamId: ''
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<ProjectFormData>({
+    resolver: zodResolver(projectFormSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      priority: 'medium',
+      startDate: new Date().toISOString().split('T')[0],
+      dueDate: '',
+      teamId: '',
+    },
+    mode: 'onBlur',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError('');
+  const nameValue = watch('name');
 
-    // Validation
-    if (!form.name.trim()) {
-      setFormError('Project name is required');
-      toast.error('Project name is required');
-      return;
-    }
-
-    if (form.name.trim().length < 3) {
-      setFormError('Project name must be at least 3 characters');
-      toast.error('Project name must be at least 3 characters');
-      return;
-    }
-
-    if (form.dueDate && form.startDate > form.dueDate) {
-      setFormError('Due date must be after start date');
-      toast.error('Due date must be after start date');
-      return;
-    }
-
+  const onSubmit = async (data: ProjectFormData) => {
     setIsSubmitting(true);
     try {
       const newProject = await createProject({
-        name: form.name,
-        description: form.description,
-        priority: form.priority,
-        startDate: form.startDate,
-        dueDate: form.dueDate || undefined,
-        teamId: form.teamId || undefined,
+        name: data.name,
+        description: data.description,
+        priority: data.priority as Project['priority'],
+        startDate: data.startDate,
+        dueDate: data.dueDate || undefined,
+        teamId: data.teamId || undefined,
         organizationId: currentOrganization?.id,
         members: []
       });
 
-      toast.success(`Project "${form.name}" created successfully!`);
+      toast.success(`Project "${data.name}" created successfully!`);
 
-      // Navigate to the new project
       if (newProject?.id) {
         navigate(`/projects/${newProject.id}`);
       } else {
@@ -119,7 +107,6 @@ export function NewProject() {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create project. Please try again.';
-      setFormError(errorMessage);
       toast.error(errorMessage);
       console.error('Failed to create project:', error);
     } finally {
@@ -237,60 +224,26 @@ export function NewProject() {
         {/* Blank Project Form */}
         {!atProjectLimit && mode === 'blank' && (
         <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6">
-          {formError && (
-            <div
-              role="alert"
-              aria-live="assertive"
-              className="mb-6 p-3 bg-error-50 border border-error-200 rounded-lg text-sm text-error-700"
-            >
-              {formError}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
             {/* Project Name */}
             <div>
               <Input
                 label="Project Name"
-                value={form.name}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setForm(prev => ({ ...prev, name: value }));
-                  setFormError('');
-                  if (nameTouched) {
-                    if (!value.trim()) {
-                      setNameError('Project name is required');
-                    } else if (value.trim().length < 3) {
-                      setNameError('Name must be at least 3 characters');
-                    } else {
-                      setNameError('');
-                    }
-                  }
-                }}
-                onBlur={() => {
-                  setNameTouched(true);
-                  if (!form.name.trim()) {
-                    setNameError('Project name is required');
-                  } else if (form.name.trim().length < 3) {
-                    setNameError('Name must be at least 3 characters');
-                  } else {
-                    setNameError('');
-                  }
-                }}
+                {...register('name')}
                 placeholder="Enter project name"
                 required
                 aria-required="true"
-                aria-invalid={!!nameError}
-                aria-describedby={nameError ? "name-error" : "name-hint"}
+                aria-invalid={!!errors.name}
+                aria-describedby={errors.name ? "name-error" : "name-hint"}
                 autoFocus
               />
-              {nameError ? (
-                <p id="name-error" className="text-sm text-error-600 mt-1">
-                  {nameError}
+              {errors.name ? (
+                <p id="name-error" className="text-sm text-error-600 mt-1" role="alert">
+                  {errors.name.message}
                 </p>
               ) : (
                 <p id="name-hint" className="text-xs text-neutral-500 mt-1">
-                  {form.name.length}/3 minimum characters
+                  {nameValue.length}/3 minimum characters
                 </p>
               )}
             </div>
@@ -302,12 +255,16 @@ export function NewProject() {
               </label>
               <textarea
                 id="project-description"
-                value={form.description}
-                onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
+                {...register('description')}
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                 placeholder="Describe your project (optional)"
                 rows={4}
               />
+              {errors.description && (
+                <p className="text-sm text-error-600 mt-1" role="alert">
+                  {errors.description.message}
+                </p>
+              )}
             </div>
 
             {/* Priority & Team */}
@@ -318,8 +275,7 @@ export function NewProject() {
                 </label>
                 <select
                   id="project-priority"
-                  value={form.priority}
-                  onChange={(e) => setForm(prev => ({ ...prev, priority: e.target.value as Project['priority'] }))}
+                  {...register('priority')}
                   className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="low">Low</option>
@@ -335,8 +291,7 @@ export function NewProject() {
                 </label>
                 <select
                   id="project-team"
-                  value={form.teamId}
-                  onChange={(e) => setForm(prev => ({ ...prev, teamId: e.target.value }))}
+                  {...register('teamId')}
                   className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">No Team (Personal)</option>
@@ -349,41 +304,30 @@ export function NewProject() {
 
             {/* Dates */}
             <div className="grid grid-cols-2 gap-4">
-              <Input
-                type="date"
-                label="Start Date"
-                value={form.startDate}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setForm(prev => ({ ...prev, startDate: value }));
-                  setFormError('');
-                  if (form.dueDate && value && new Date(form.dueDate) < new Date(value)) {
-                    setDateError('Due date must be after start date');
-                  } else {
-                    setDateError('');
-                  }
-                }}
-              />
+              <div>
+                <Input
+                  type="date"
+                  label="Start Date"
+                  {...register('startDate')}
+                />
+                {errors.startDate && (
+                  <p className="text-sm text-error-600 mt-1" role="alert">
+                    {errors.startDate.message}
+                  </p>
+                )}
+              </div>
 
               <div>
                 <Input
                   type="date"
                   label="Due Date (Optional)"
-                  value={form.dueDate}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setForm(prev => ({ ...prev, dueDate: value }));
-                    setFormError('');
-                    if (value && form.startDate && new Date(value) < new Date(form.startDate)) {
-                      setDateError('Due date must be after start date');
-                    } else {
-                      setDateError('');
-                    }
-                  }}
-                  aria-invalid={!!dateError}
+                  {...register('dueDate')}
+                  aria-invalid={!!errors.dueDate}
                 />
-                {dateError && (
-                  <p className="text-sm text-error-600 mt-1">{dateError}</p>
+                {errors.dueDate && (
+                  <p className="text-sm text-error-600 mt-1" role="alert">
+                    {errors.dueDate.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -400,7 +344,7 @@ export function NewProject() {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !form.name.trim() || form.name.trim().length < 3 || !!dateError}
+                disabled={isSubmitting}
                 loading={isSubmitting}
                 className="gap-2"
               >

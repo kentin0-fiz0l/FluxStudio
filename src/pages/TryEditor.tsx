@@ -10,6 +10,7 @@
 import React, { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FormationCanvas } from '@/components/formation';
+import { FormationEditorErrorBoundary } from '@/components/error/ErrorBoundary';
 import { SEOHead } from '@/components/SEOHead';
 import { ArrowRight, X, Users, Shield } from 'lucide-react';
 import { eventTracker } from '@/services/analytics/eventTracking';
@@ -146,13 +147,15 @@ export default function TryEditor() {
 
       {/* Editor in sandbox mode — pre-populated with V-formation */}
       <div id="sandbox-canvas" className="flex-1 overflow-hidden">
-        <FormationCanvas
-          projectId="sandbox"
-          sandboxMode={true}
-          collaborativeMode={false}
-          sandboxPerformers={SANDBOX_PERFORMERS}
-          sandboxPositions={sandboxPositions}
-        />
+        <FormationEditorErrorBoundary>
+          <FormationCanvas
+            projectId="sandbox"
+            sandboxMode={true}
+            collaborativeMode={false}
+            sandboxPerformers={SANDBOX_PERFORMERS}
+            sandboxPositions={sandboxPositions}
+          />
+        </FormationEditorErrorBoundary>
       </div>
 
       {/* Exit-intent modal (desktop only) */}

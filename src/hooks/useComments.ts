@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstac
 import { getApiUrl } from '../utils/apiHelpers';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '../lib/toast';
+import { CACHE_STANDARD } from '@/lib/queryConfig';
 
 // ============================================================================
 // Type Definitions
@@ -119,7 +120,7 @@ export const useCommentsQuery = (
       return [];
     },
     enabled: !!projectId && !!taskId && !!user,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: CACHE_STANDARD.staleTime,
     refetchOnWindowFocus: true,
     ...options,
   });

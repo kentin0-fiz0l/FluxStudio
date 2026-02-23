@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useStore } from '@/store/store';
 import { apiService } from '@/services/apiService';
+import { CACHE_STABLE, CACHE_STANDARD } from '@/lib/queryConfig';
 
 // ============================================================================
 // Types
@@ -337,7 +338,7 @@ export function useDailyBrief() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['agent', 'daily-brief'],
     queryFn: fetchDailyBrief,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: CACHE_STABLE.staleTime,
     refetchOnWindowFocus: false,
   });
 
@@ -367,7 +368,7 @@ export function useWhatChanged(since?: string) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['agent', 'what-changed', since],
     queryFn: () => fetchWhatChanged(since),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: CACHE_STANDARD.staleTime,
   });
 
   // Sync with store

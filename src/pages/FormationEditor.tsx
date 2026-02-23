@@ -9,6 +9,8 @@ import * as React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { FormationCanvas } from '@/components/formation';
+import { FormationEditorErrorBoundary } from '@/components/error/ErrorBoundary';
+import { useRegisterShortcuts } from '@/contexts/KeyboardShortcutsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { Formation } from '../services/formationService';
@@ -37,6 +39,14 @@ export default function FormationEditor() {
   const navigate = useNavigate();
   const { user: _user } = useAuth();
   const { addNotification } = useNotification();
+
+  // Register formation-specific shortcuts when editor is active
+  useRegisterShortcuts([
+    { id: 'formation-play', keys: ['Space'], action: 'Play/Pause playback', section: 'Formation Editor', priority: 10 },
+    { id: 'formation-snap', keys: ['G'], action: 'Toggle grid snap', section: 'Formation Editor', priority: 20 },
+    { id: 'formation-select-all', keys: ['⌘', 'A'], action: 'Select all performers', section: 'Formation Editor', priority: 30 },
+    { id: 'formation-delete', keys: ['Delete'], action: 'Remove selected performers', section: 'Formation Editor', priority: 40 },
+  ]);
 
   const {
     viewMode,
@@ -262,13 +272,15 @@ export default function FormationEditor() {
           {/* 2D Canvas */}
           {show2D && (
             <div className={viewMode === 'split' ? 'w-1/2 border-r border-gray-200 dark:border-gray-700' : 'h-full'}>
-              <FormationCanvas
-                projectId={projectId}
-                formationId={formationId}
-                collaborativeMode={true}
-                onSave={handleSave}
-                onClose={handleClose}
-              />
+              <FormationEditorErrorBoundary>
+                <FormationCanvas
+                  projectId={projectId}
+                  formationId={formationId}
+                  collaborativeMode={true}
+                  onSave={handleSave}
+                  onClose={handleClose}
+                />
+              </FormationEditorErrorBoundary>
             </div>
           )}
 

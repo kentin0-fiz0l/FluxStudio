@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { usePrintWebSocket } from './usePrintWebSocket';
 import { apiService } from '@/services/apiService';
+import { CACHE_STABLE } from '@/lib/queryConfig';
 
 /**
  * Project file type
@@ -179,7 +180,7 @@ export function useProjectFiles(
     queryKey: ['project-files', projectId],
     queryFn: () => fetchProjectFiles(projectId),
     enabled,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: CACHE_STABLE.staleTime,
     refetchInterval: 30 * 1000, // Refetch every 30 seconds
   });
 

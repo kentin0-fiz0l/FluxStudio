@@ -599,6 +599,83 @@ export function ProjectsErrorBoundary({ children }: { children: ReactNode }) {
   );
 }
 
+export function FormationEditorErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      isolateComponent
+      retryable
+      onError={(error) => {
+        boundaryLogger.error('Formation editor error', error);
+      }}
+      fallback={
+        <div className="flex flex-col items-center justify-center h-full min-h-[200px] bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 p-6 text-center">
+          <AlertTriangle className="h-8 w-8 text-orange-500 mb-3" />
+          <h4 className="font-semibold text-neutral-900 dark:text-white mb-1">Formation Editor Error</h4>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+            The canvas encountered an error. Your work has been preserved.
+          </p>
+          <Button size="sm" onClick={() => window.location.reload()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reload Editor
+          </Button>
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+export function AIErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      isolateComponent
+      retryable
+      onError={(error) => {
+        boundaryLogger.error('AI panel error', error);
+      }}
+      fallback={
+        <div className="flex flex-col items-center justify-center p-6 text-center">
+          <AlertTriangle className="h-6 w-6 text-yellow-500 mb-2" />
+          <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">AI Assistant Unavailable</p>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
+            The AI features encountered an error. Please try again.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            Retry
+          </Button>
+        </div>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
+export function FileUploadErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary
+      isolateComponent
+      retryable
+      onError={(error) => {
+        boundaryLogger.error('File upload error', error);
+      }}
+      fallback={
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Upload Error</AlertTitle>
+          <AlertDescription>
+            File upload failed. Please try uploading again.
+          </AlertDescription>
+        </Alert>
+      }
+    >
+      {children}
+    </ErrorBoundary>
+  );
+}
+
 /**
  * RouteErrorBoundary - for use with React Router's errorElement
  * Catches errors during route rendering/loading and shows a recovery UI.

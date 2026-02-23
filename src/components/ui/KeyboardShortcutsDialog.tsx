@@ -2,6 +2,8 @@
  * KeyboardShortcutsDialog - Discoverable keyboard shortcuts overlay
  *
  * Shows all available keyboard shortcuts in a modal.
+ * Reads dynamically registered shortcuts from KeyboardShortcutsContext
+ * and merges them with built-in defaults.
  * Triggered by pressing "?" anywhere in the app.
  */
 
@@ -44,6 +46,7 @@ interface ShortcutSectionProps {
 }
 
 function ShortcutSection({ title, shortcuts }: ShortcutSectionProps) {
+  if (shortcuts.length === 0) return null;
   return (
     <div>
       <h3 className="font-semibold text-neutral-900 dark:text-white mb-2">
@@ -61,49 +64,83 @@ function ShortcutSection({ title, shortcuts }: ShortcutSectionProps) {
 interface KeyboardShortcutsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Additional dynamic sections from context (section name → shortcuts) */
+  dynamicSections?: Map<string, Array<{ keys: string[]; action: string }>>;
 }
 
 export function KeyboardShortcutsDialog({
   open,
   onOpenChange,
+  dynamicSections,
 }: KeyboardShortcutsDialogProps) {
   const isMac = typeof navigator !== 'undefined' && navigator.platform.includes('Mac');
   const cmdKey = isMac ? '⌘' : 'Ctrl';
 
-  const navigationShortcuts = [
-    { keys: [cmdKey, 'K'], action: 'Open command palette' },
-    { keys: ['G', 'P'], action: 'Go to Projects' },
-    { keys: ['G', 'M'], action: 'Go to Messages' },
-    { keys: ['G', 'O'], action: 'Go to Organization' },
-    { keys: ['G', 'S'], action: 'Go to Settings' },
+  // Built-in default sections
+  const builtInSections: Array<{ title: string; shortcuts: Array<{ keys: string[]; action: string }> }> = [
+    {
+      title: 'Navigation',
+      shortcuts: [
+        { keys: [cmdKey, 'K'], action: 'Open command palette' },
+        { keys: ['G', 'P'], action: 'Go to Projects' },
+        { keys: ['G', 'M'], action: 'Go to Messages' },
+        { keys: ['G', 'O'], action: 'Go to Organization' },
+        { keys: ['G', 'S'], action: 'Go to Settings' },
+      ],
+    },
+    {
+      title: 'Actions',
+      shortcuts: [
+        { keys: [cmdKey, 'N'], action: 'Create new project' },
+        { keys: [cmdKey, 'U'], action: 'Upload file' },
+        { keys: [cmdKey, 'M'], action: 'New message' },
+        { keys: [cmdKey, 'F'], action: 'Search everything' },
+        { keys: ['?'], action: 'Show keyboard shortcuts' },
+      ],
+    },
+    {
+      title: 'Editor',
+      shortcuts: [
+        { keys: [cmdKey, 'S'], action: 'Save changes' },
+        { keys: [cmdKey, 'Z'], action: 'Undo' },
+        { keys: [cmdKey, 'Shift', 'Z'], action: 'Redo' },
+        { keys: ['Escape'], action: 'Close modal / Cancel' },
+      ],
+    },
   ];
 
-  const actionShortcuts = [
-    { keys: [cmdKey, 'N'], action: 'Create new project' },
-    { keys: [cmdKey, 'U'], action: 'Upload file' },
-    { keys: [cmdKey, 'M'], action: 'New message' },
-    { keys: [cmdKey, 'F'], action: 'Search everything' },
-    { keys: ['?'], action: 'Show keyboard shortcuts' },
-  ];
+  // Merge dynamic sections — append to built-in or create new sections
+  const allSections = React.useMemo(() => {
+    if (!dynamicSections || dynamicSections.size === 0) return builtInSections;
 
-  const editorShortcuts = [
-    { keys: [cmdKey, 'S'], action: 'Save changes' },
-    { keys: [cmdKey, 'Z'], action: 'Undo' },
-    { keys: [cmdKey, 'Shift', 'Z'], action: 'Redo' },
-    { keys: ['Escape'], action: 'Close modal / Cancel' },
-  ];
+    const merged = [...builtInSections];
+    for (const [section, shortcuts] of dynamicSections) {
+      const existing = merged.find((s) => s.title === section);
+      if (existing) {
+        existing.shortcuts = [...existing.shortcuts, ...shortcuts];
+      } else {
+        merged.push({ title: section, shortcuts });
+      }
+    }
+    return merged;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dynamicSections, cmdKey]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 gap-6 mt-4">
-          <ShortcutSection title="Navigation" shortcuts={navigationShortcuts} />
-          <ShortcutSection title="Actions" shortcuts={actionShortcuts} />
-          <ShortcutSection title="Editor" shortcuts={editorShortcuts} />
+          {allSections.map((section) => (
+            <ShortcutSection
+              key={section.title}
+              title={section.title}
+              shortcuts={section.shortcuts}
+            />
+          ))}
         </div>
 
         <div className="mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-700">

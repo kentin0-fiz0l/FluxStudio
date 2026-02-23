@@ -19,8 +19,10 @@ import { NavigationSidebar, NavigationItem } from '@/components/organisms/Naviga
 import { TopBar, Breadcrumb, Notification } from '@/components/organisms/TopBar';
 import { SkipLink, Button } from '@/components/ui';
 import { AIChatPanel } from '@/components/ai/AIChatPanel';
+import { AIErrorBoundary } from '@/components/error/ErrorBoundary';
 import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
 import { KeyboardShortcutsDialog, useKeyboardShortcuts } from '@/components/ui/KeyboardShortcutsDialog';
+import { useShortcutRegistry } from '@/contexts/KeyboardShortcutsContext';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { useSwipeBack } from '@/hooks/useSwipeBack';
 import { useSwipeSidebar } from '@/hooks/useSwipeSidebar';
@@ -129,6 +131,15 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
 
     // Keyboard shortcuts dialog
     const { open: shortcutsOpen, setOpen: setShortcutsOpen } = useKeyboardShortcuts();
+
+    // Dynamic shortcut registry (may not have provider yet — safe try/catch)
+    let dynamicShortcutSections: Map<string, Array<{ keys: string[]; action: string }>> | undefined;
+    try {
+      const registry = useShortcutRegistry();
+      dynamicShortcutSections = registry.grouped;
+    } catch {
+      // Provider not mounted yet — use defaults only
+    }
 
     // Swipe-from-edge to go back (mobile)
     useSwipeBack();
@@ -278,11 +289,13 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
         </div>
 
         {/* AI Co-Pilot Panel (Cmd+K) */}
-        <AIChatPanel
-          isOpen={aiPanelOpen}
-          onClose={() => setAiPanelOpen(false)}
-          position="right"
-        />
+        <AIErrorBoundary>
+          <AIChatPanel
+            isOpen={aiPanelOpen}
+            onClose={() => setAiPanelOpen(false)}
+            position="right"
+          />
+        </AIErrorBoundary>
 
         {/* Mobile Bottom Navigation */}
         <MobileBottomNav
@@ -296,6 +309,7 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
         <KeyboardShortcutsDialog
           open={shortcutsOpen}
           onOpenChange={setShortcutsOpen}
+          dynamicSections={dynamicShortcutSections}
         />
       </div>
     );

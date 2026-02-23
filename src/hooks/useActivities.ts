@@ -13,6 +13,7 @@
 
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { getApiUrl } from '../utils/apiHelpers';
+import { CACHE_STANDARD, CACHE_FREQUENT } from '@/lib/queryConfig';
 
 // Re-export useAuth for convenience
 export { useAuth } from '../contexts/AuthContext';
@@ -172,8 +173,8 @@ export const useActivitiesQuery = (
       };
     },
     enabled: !!projectId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    staleTime: CACHE_STANDARD.staleTime,
+    gcTime: CACHE_STANDARD.gcTime,
     refetchInterval: 30 * 1000, // Poll every 30 seconds for real-time updates
     refetchOnWindowFocus: true,
     retry: 3,
@@ -208,7 +209,7 @@ export const useRecentActivitiesQuery = (
       dateFrom: oneDayAgo.toISOString(),
     },
     {
-      staleTime: 1 * 60 * 1000, // 1 minute for recent activities
+      staleTime: CACHE_FREQUENT.staleTime,
       refetchInterval: 15 * 1000, // Poll every 15 seconds
     }
   );
@@ -386,8 +387,8 @@ export const useDashboardActivities = (params?: { limit?: number; offset?: numbe
         hasMore: result.hasMore || false,
       };
     },
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: CACHE_FREQUENT.staleTime,
+    gcTime: CACHE_STANDARD.gcTime,
     refetchInterval: 30 * 1000, // Poll every 30 seconds
     refetchOnWindowFocus: true,
     retry: 3,
