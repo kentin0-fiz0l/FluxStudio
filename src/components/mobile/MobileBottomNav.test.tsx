@@ -431,7 +431,7 @@ describe('MobileBottomNav', () => {
   });
 
   describe('Responsive Behavior', () => {
-    test('nav has lg:hidden class for desktop hiding', () => {
+    test('nav has md:hidden class for desktop hiding', () => {
       render(
         <BrowserRouter>
           <MobileBottomNav />
@@ -439,7 +439,7 @@ describe('MobileBottomNav', () => {
       );
 
       const nav = screen.getByRole('navigation');
-      expect(nav).toHaveClass('lg:hidden');
+      expect(nav).toHaveClass('md:hidden');
     });
 
     test('has safe area inset class for notched devices', () => {

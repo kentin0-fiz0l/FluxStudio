@@ -57,6 +57,15 @@ const mockDoc = {
 // Mock Yjs modules
 vi.mock('yjs', () => ({
   Doc: vi.fn(() => mockDoc),
+  UndoManager: vi.fn(() => ({
+    on: vi.fn(),
+    off: vi.fn(),
+    undo: vi.fn(),
+    redo: vi.fn(),
+    destroy: vi.fn(),
+    canUndo: vi.fn(() => false),
+    canRedo: vi.fn(() => false),
+  })),
 }));
 
 vi.mock('y-websocket', () => ({

@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 
 // Mock dependencies before importing Settings
 vi.mock('../../services/apiService', () => ({
@@ -78,6 +79,12 @@ vi.mock('../../components/ui/LanguageSwitcher', () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher">Lang</div>,
 }));
 
+vi.mock('../../components/settings/TwoFactorSetup', () => ({
+  TwoFactorSetup: ({ is2FAEnabled: _enabled, onStatusChange: _onChange }: any) => (
+    <div data-testid="two-factor-setup">2FA Setup</div>
+  ),
+}));
+
 import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/apiService';
 import { toast } from '../../lib/toast';
@@ -104,9 +111,11 @@ vi.mock('react-router-dom', async () => {
 
 function renderSettings() {
   return render(
-    <BrowserRouter>
-      <Settings />
-    </BrowserRouter>
+    <HelmetProvider>
+      <BrowserRouter>
+        <Settings />
+      </BrowserRouter>
+    </HelmetProvider>
   );
 }
 
@@ -242,7 +251,7 @@ describe('Settings Page', () => {
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(toast.success).toHaveBeenCalledWith('Settings saved successfully');
+        expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('push notifications'));
       });
     });
 

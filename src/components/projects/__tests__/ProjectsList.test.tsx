@@ -31,17 +31,17 @@ const baseProps = {
 describe('ProjectsList', () => {
   test('renders loading state', () => {
     render(<ProjectsList {...baseProps} loading={true} />);
-    expect(screen.getByText('Loading projects...')).toBeDefined();
+    expect(screen.getByRole('status', { name: /loading projects/i })).toBeInTheDocument();
   });
 
   test('renders error state', () => {
     render(<ProjectsList {...baseProps} error="Network error" />);
-    expect(screen.getByText(/Network error/)).toBeDefined();
+    expect(screen.getByText(/Network error/)).toBeInTheDocument();
   });
 
   test('renders empty state with filters', () => {
     render(<ProjectsList {...baseProps} searchTerm="foo" />);
-    expect(screen.getByText('No Projects Found')).toBeDefined();
+    expect(screen.getByText('No Projects Found')).toBeInTheDocument();
   });
 
   test('renders project cards when projects exist', () => {
@@ -51,6 +51,6 @@ describe('ProjectsList', () => {
     ];
     render(<ProjectsList {...baseProps} projects={projects as any} />);
     expect(screen.getAllByTestId('project-card')).toHaveLength(2);
-    expect(screen.getByText('Project A')).toBeDefined();
+    expect(screen.getByText('Project A')).toBeInTheDocument();
   });
 });

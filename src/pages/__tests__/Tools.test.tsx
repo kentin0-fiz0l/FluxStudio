@@ -5,6 +5,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 
 // Mock dependencies
 const mockNavigate = vi.fn();
@@ -55,9 +56,11 @@ describe('Tools', () => {
 
   const renderTools = () => {
     return render(
-      <MemoryRouter>
-        <Tools />
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter>
+          <Tools />
+        </MemoryRouter>
+      </HelmetProvider>
     );
   };
 

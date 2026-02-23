@@ -7,6 +7,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { SearchResult, SearchResultType } from '../../services/searchService';
+import { sanitizeRichText } from '@/lib/sanitize';
 import {
   FolderKanban,
   File,
@@ -149,7 +150,7 @@ export const SearchResultCard = React.memo(function SearchResultCard({ result, o
         <div className="flex-1 min-w-0">
           <div
             className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate"
-            dangerouslySetInnerHTML={{ __html: result.highlightedTitle || result.title }}
+            dangerouslySetInnerHTML={{ __html: sanitizeRichText(result.highlightedTitle || result.title) }}
           />
           {result.metadata.projectName && (
             <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
@@ -187,7 +188,7 @@ export const SearchResultCard = React.memo(function SearchResultCard({ result, o
           {/* Title with highlighting */}
           <h3
             className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors [&>mark]:bg-yellow-200 [&>mark]:dark:bg-yellow-800 [&>mark]:px-0.5 [&>mark]:rounded"
-            dangerouslySetInnerHTML={{ __html: result.highlightedTitle || result.title }}
+            dangerouslySetInnerHTML={{ __html: sanitizeRichText(result.highlightedTitle || result.title) }}
           />
 
           {/* Description or snippet with highlighting */}
@@ -195,7 +196,7 @@ export const SearchResultCard = React.memo(function SearchResultCard({ result, o
             <p
               className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2 [&>mark]:bg-yellow-200 [&>mark]:dark:bg-yellow-800 [&>mark]:px-0.5 [&>mark]:rounded"
               dangerouslySetInnerHTML={{
-                __html: result.snippet || result.highlightedDescription || result.description || '',
+                __html: sanitizeRichText(result.snippet || result.highlightedDescription || result.description || ''),
               }}
             />
           )}

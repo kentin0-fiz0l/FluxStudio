@@ -7,7 +7,7 @@
  * This is the primary conversion funnel entry point.
  */
 
-import React, { useMemo, useEffect, useState, useCallback, useRef } from 'react';
+import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FormationCanvas } from '@/components/formation';
 import { FormationEditorErrorBoundary } from '@/components/error/ErrorBoundary';

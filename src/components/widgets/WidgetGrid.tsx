@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { WidgetLayout, WIDGET_DIMENSIONS } from './types';
+import { WidgetConfig, WidgetLayout, WIDGET_DIMENSIONS } from './types';
 import { getWidgetById, getDefaultWidgets } from './registry';
 import { cn } from '../ui/utils';
 
@@ -129,7 +129,7 @@ export function WidgetGrid({ className, maxColumns = 3 }: WidgetGridProps) {
               onRefresh={() => {
                 // Handle widget refresh
               }}
-              onConfigChange={(_config) => {
+              onConfigChange={(_config: Partial<WidgetConfig>) => {
                 // Handle widget configuration change
               }}
               onRemove={() => removeWidget(widgetId)}

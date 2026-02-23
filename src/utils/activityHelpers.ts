@@ -135,8 +135,15 @@ export function getActivityColor(type: ActivityType): string {
     'comment.created': 'text-accent-600 bg-accent-100',
     'comment.deleted': 'text-red-600 bg-red-100',
     'member.added': 'text-primary-600 bg-primary-100',
+    'member.removed': 'text-orange-600 bg-orange-100',
     'milestone.created': 'text-secondary-600 bg-secondary-100',
     'milestone.completed': 'text-success-600 bg-success-100',
+    'file.uploaded': 'text-blue-600 bg-blue-100',
+    'file.deleted': 'text-red-600 bg-red-100',
+    'formation.created': 'text-indigo-600 bg-indigo-100',
+    'formation.updated': 'text-indigo-600 bg-indigo-100',
+    'project.updated': 'text-purple-600 bg-purple-100',
+    'project.archived': 'text-neutral-600 bg-neutral-100',
   };
   return colorMap[type] || 'text-neutral-600 bg-neutral-100';
 }

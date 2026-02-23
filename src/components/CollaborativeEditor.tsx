@@ -15,6 +15,7 @@ import {
   Redo
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { sanitizeRichText, sanitizePlainText } from '../lib/sanitize';
 
 interface CollaborativeEditorProps {
   fileId: string;
@@ -327,7 +328,7 @@ export function CollaborativeEditor({
             ) : (
               <div
                 className="flex-1 p-6 text-white overflow-y-auto"
-                dangerouslySetInnerHTML={{ __html: formatContent() }}
+                dangerouslySetInnerHTML={{ __html: mimeType.includes('markdown') ? sanitizeRichText(formatContent()) : sanitizePlainText(formatContent()) }}
               />
             )}
 

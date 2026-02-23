@@ -5,6 +5,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 
 // Mock dependencies
 const mockNavigate = vi.fn();
@@ -55,9 +56,11 @@ describe('Signup', () => {
 
   const renderSignup = (initialEntries: string[] = ['/signup']) => {
     return render(
-      <MemoryRouter initialEntries={initialEntries}>
-        <Signup />
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={initialEntries}>
+          <Signup />
+        </MemoryRouter>
+      </HelmetProvider>
     );
   };
 

@@ -171,40 +171,43 @@ export function AdminDashboard() {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {stats.map((stat, index) => (
-              <div
-                key={index}
-                onClick={() => stat.href && navigate(stat.href)}
-                className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 ${
-                  stat.href ? 'cursor-pointer hover:border-blue-300 dark:hover:border-blue-600 transition-colors' : ''
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400">
-                    {stat.icon}
+            {stats.map((stat, index) => {
+              const CardWrapper = stat.href ? 'button' : 'div';
+              return (
+                <CardWrapper
+                  key={index}
+                  {...(stat.href ? { onClick: () => navigate(stat.href!), 'aria-label': `${stat.label}: ${stat.value}` } : {})}
+                  className={`w-full text-left bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 ${
+                    stat.href ? 'cursor-pointer hover:border-blue-300 dark:hover:border-blue-600 transition-colors' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400">
+                      {stat.icon}
+                    </div>
+                    {stat.change !== undefined && (
+                      <span
+                        className={`text-sm font-medium ${
+                          stat.change >= 0
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-red-600 dark:text-red-400'
+                        }`}
+                      >
+                        {stat.change >= 0 ? '+' : ''}
+                        {stat.change}%
+                      </span>
+                    )}
                   </div>
-                  {stat.change !== undefined && (
-                    <span
-                      className={`text-sm font-medium ${
-                        stat.change >= 0
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-red-600 dark:text-red-400'
-                      }`}
-                    >
-                      {stat.change >= 0 ? '+' : ''}
-                      {stat.change}%
-                    </span>
-                  )}
-                </div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                  {stat.value}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</span>
-                  {stat.href && <ArrowUpRight className="w-4 h-4 text-gray-400" aria-hidden="true" />}
-                </div>
-              </div>
-            ))}
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                    {stat.value}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</span>
+                    {stat.href && <ArrowUpRight className="w-4 h-4 text-gray-400" aria-hidden="true" />}
+                  </div>
+                </CardWrapper>
+              );
+            })}
           </div>
 
           {/* System Health */}

@@ -77,8 +77,8 @@ describe('EmptyMessagesState', () => {
   test('renders heading and new message button', () => {
     render(<EmptyMessagesState onStartConversation={noop} />);
 
-    expect(screen.getByText('Start a conversation')).toBeTruthy();
-    expect(screen.getByText('New Message')).toBeTruthy();
+    expect(screen.getByText('Start a conversation')).toBeInTheDocument();
+    expect(screen.getByText('New Message')).toBeInTheDocument();
   });
 
   test('calls onStartConversation when button is clicked', async () => {
@@ -104,7 +104,7 @@ describe('ConversationItem', () => {
       />
     );
 
-    expect(screen.getByText('Design Chat')).toBeTruthy();
+    expect(screen.getByText('Design Chat')).toBeInTheDocument();
   });
 
   test('renders unread badge when unreadCount > 0', () => {
@@ -116,7 +116,7 @@ describe('ConversationItem', () => {
       />
     );
 
-    expect(screen.getByText('5')).toBeTruthy();
+    expect(screen.getByText('5')).toBeInTheDocument();
   });
 
   test('shows 99+ for large unread counts', () => {
@@ -128,7 +128,7 @@ describe('ConversationItem', () => {
       />
     );
 
-    expect(screen.getByText('99+')).toBeTruthy();
+    expect(screen.getByText('99+')).toBeInTheDocument();
   });
 
   test('shows typing indicator when isTyping is true', () => {
@@ -140,7 +140,7 @@ describe('ConversationItem', () => {
       />
     );
 
-    expect(screen.getByText('typing...')).toBeTruthy();
+    expect(screen.getByText('typing...')).toBeInTheDocument();
   });
 
   test('shows last message preview', () => {
@@ -155,7 +155,7 @@ describe('ConversationItem', () => {
     });
     render(<ConversationItem conversation={conv} isSelected={false} onClick={noop} />);
 
-    expect(screen.getByText('Hey there!')).toBeTruthy();
+    expect(screen.getByText('Hey there!')).toBeInTheDocument();
   });
 
   test('shows "No messages yet" when no last message', () => {
@@ -167,7 +167,7 @@ describe('ConversationItem', () => {
       />
     );
 
-    expect(screen.getByText('No messages yet')).toBeTruthy();
+    expect(screen.getByText('No messages yet')).toBeInTheDocument();
   });
 
   test('calls onClick when clicked', async () => {
@@ -199,7 +199,7 @@ describe('ConversationItem', () => {
       />
     );
 
-    expect(screen.getByText('Design Sprint')).toBeTruthy();
+    expect(screen.getByText('Design Sprint')).toBeInTheDocument();
   });
 });
 
@@ -211,14 +211,14 @@ describe('ConversationSidebar', () => {
   test('renders header with title and counts', () => {
     render(<ConversationSidebar {...defaultProps()} />);
 
-    expect(screen.getByText('Messages')).toBeTruthy();
-    expect(screen.getByText('3 online · 1 unread')).toBeTruthy();
+    expect(screen.getByText('Messages')).toBeInTheDocument();
+    expect(screen.getByText('3 online · 1 unread')).toBeInTheDocument();
   });
 
   test('renders search input', () => {
     render(<ConversationSidebar {...defaultProps()} />);
 
-    expect(screen.getByPlaceholderText('Search conversations...')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Search conversations...')).toBeInTheDocument();
   });
 
   test('calls onSearchChange when typing in search', async () => {
@@ -235,10 +235,10 @@ describe('ConversationSidebar', () => {
   test('renders filter buttons', () => {
     render(<ConversationSidebar {...defaultProps()} />);
 
-    expect(screen.getByText('All')).toBeTruthy();
-    expect(screen.getByText('Unread')).toBeTruthy();
-    expect(screen.getByText('Starred')).toBeTruthy();
-    expect(screen.getByText('Muted')).toBeTruthy();
+    expect(screen.getByText('All')).toBeInTheDocument();
+    expect(screen.getByText('Unread')).toBeInTheDocument();
+    expect(screen.getByText('Starred')).toBeInTheDocument();
+    expect(screen.getByText('Muted')).toBeInTheDocument();
   });
 
   test('calls onFilterChange when filter button is clicked', async () => {
@@ -258,8 +258,8 @@ describe('ConversationSidebar', () => {
     ];
     render(<ConversationSidebar {...defaultProps({ conversations: convs })} />);
 
-    expect(screen.getByText('Alice')).toBeTruthy();
-    expect(screen.getByText('Charlie')).toBeTruthy();
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getByText('Charlie')).toBeInTheDocument();
   });
 
   test('calls onConversationClick when a conversation is clicked', async () => {
@@ -278,16 +278,16 @@ describe('ConversationSidebar', () => {
     expect(onClick).toHaveBeenCalledWith(conv);
   });
 
-  test('shows loading spinner when isLoading and no conversations', () => {
+  test('shows loading skeleton when isLoading and no conversations', () => {
     render(
       <ConversationSidebar
         {...defaultProps({ isLoading: true, conversations: [] })}
       />
     );
 
-    // Loader2 renders an SVG with animate-spin class
-    const spinner = document.querySelector('.animate-spin');
-    expect(spinner).toBeTruthy();
+    // Loading state renders skeleton placeholders with animate-pulse
+    const skeleton = document.querySelector('.animate-pulse');
+    expect(skeleton).toBeInTheDocument();
   });
 
   test('shows empty state when no conversations and no search', () => {
@@ -295,7 +295,7 @@ describe('ConversationSidebar', () => {
       <ConversationSidebar {...defaultProps({ conversations: [] })} />
     );
 
-    expect(screen.getByText('Start a conversation')).toBeTruthy();
+    expect(screen.getByText('Start a conversation')).toBeInTheDocument();
   });
 
   test('shows search empty state when no conversations match search', () => {
@@ -305,7 +305,7 @@ describe('ConversationSidebar', () => {
       />
     );
 
-    expect(screen.getByText('No conversations match your search')).toBeTruthy();
+    expect(screen.getByText('No conversations match your search')).toBeInTheDocument();
   });
 
   test('calls onNewConversation when new button is clicked', async () => {

@@ -5,6 +5,7 @@
 import * as React from 'react';
 import { Edit2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sanitizeComment } from '@/lib/sanitize';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   AlertDialog,
@@ -62,7 +63,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           {/* Comment Body with Markdown */}
           <div
             className="text-sm text-neutral-700 break-words prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(comment.content) }}
+            dangerouslySetInnerHTML={{ __html: sanitizeComment(renderMarkdown(comment.content)) }}
           />
 
           {/* Actions (visible on hover for own comments) */}

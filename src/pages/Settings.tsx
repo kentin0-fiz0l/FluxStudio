@@ -63,7 +63,6 @@ function Settings() {
 
   // Profile avatar
   const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
 
   const [isSaving, setIsSaving] = React.useState(false);
@@ -208,7 +207,6 @@ function Settings() {
       return;
     }
 
-    setAvatarFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       setAvatarPreview(ev.target?.result as string);

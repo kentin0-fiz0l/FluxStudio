@@ -5,6 +5,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 
 // Mock dependencies
 const mockNavigate = vi.fn();
@@ -52,13 +53,16 @@ import { Login } from '../Login';
 describe('Login', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   const renderLogin = (initialEntries: string[] = ['/login']) => {
     return render(
-      <MemoryRouter initialEntries={initialEntries}>
-        <Login />
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={initialEntries}>
+          <Login />
+        </MemoryRouter>
+      </HelmetProvider>
     );
   };
 
@@ -139,7 +143,21 @@ describe('Login', () => {
       });
     });
 
-    test('navigates to dashboard on successful login', async () => {
+    test('navigates to welcome on first login (no onboarding completed)', async () => {
+      mockLogin.mockResolvedValue(undefined);
+      renderLogin();
+
+      fireEvent.change(screen.getByPlaceholderText('you@example.com'), { target: { value: 'test@example.com' } });
+      fireEvent.change(screen.getByPlaceholderText('Enter your password'), { target: { value: 'password123' } });
+      fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }));
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/welcome');
+      });
+    });
+
+    test('navigates to projects on login when onboarding is completed', async () => {
+      localStorage.setItem('welcome_flow_completed', 'true');
       mockLogin.mockResolvedValue(undefined);
       renderLogin();
 
@@ -154,14 +172,14 @@ describe('Login', () => {
 
     test('navigates to callbackUrl on successful login', async () => {
       mockLogin.mockResolvedValue(undefined);
-      renderLogin(['/login?callbackUrl=/projects']);
+      renderLogin(['/login?callbackUrl=/settings']);
 
       fireEvent.change(screen.getByPlaceholderText('you@example.com'), { target: { value: 'test@example.com' } });
       fireEvent.change(screen.getByPlaceholderText('Enter your password'), { target: { value: 'password123' } });
       fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }));
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/projects');
+        expect(mockNavigate).toHaveBeenCalledWith('/settings');
       });
     });
 
