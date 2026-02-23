@@ -53,12 +53,12 @@ import { UniversalEmptyState } from '@/components/ui/UniversalEmptyState';
 
 // Provider icons
 const providerIcons: Record<ConnectorProvider, React.ReactNode> = {
-  github: <Github className="h-6 w-6" />,
-  google_drive: <Cloud className="h-6 w-6" />,
-  dropbox: <Droplet className="h-6 w-6" />,
-  onedrive: <HardDrive className="h-6 w-6" />,
-  figma: <Figma className="h-6 w-6" />,
-  slack: <MessageSquare className="h-6 w-6" />,
+  github: <Github className="h-6 w-6" aria-hidden="true" />,
+  google_drive: <Cloud className="h-6 w-6" aria-hidden="true" />,
+  dropbox: <Droplet className="h-6 w-6" aria-hidden="true" />,
+  onedrive: <HardDrive className="h-6 w-6" aria-hidden="true" />,
+  figma: <Figma className="h-6 w-6" aria-hidden="true" />,
+  slack: <MessageSquare className="h-6 w-6" aria-hidden="true" />,
 };
 
 // Provider colors
@@ -73,23 +73,23 @@ const providerColors: Record<ConnectorProvider, { bg: string; icon: string; bord
 
 // File type icons
 const getFileIcon = (file: ConnectorFile) => {
-  if (file.type === 'folder') return <FolderOpen className="h-5 w-5 text-amber-500" />;
-  if (file.type === 'repo') return <Github className="h-5 w-5 text-neutral-700" />;
+  if (file.type === 'folder') return <FolderOpen className="h-5 w-5 text-amber-500" aria-hidden="true" />;
+  if (file.type === 'repo') return <Github className="h-5 w-5 text-neutral-700" aria-hidden="true" />;
 
   const ext = file.name.split('.').pop()?.toLowerCase();
   const mime = file.mimeType?.toLowerCase() || '';
 
   if (mime.includes('image') || ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext || '')) {
-    return <FileImage className="h-5 w-5 text-pink-500" />;
+    return <FileImage className="h-5 w-5 text-pink-500" aria-hidden="true" />;
   }
   if (mime.includes('text') || ['txt', 'md', 'doc', 'docx', 'pdf'].includes(ext || '')) {
-    return <FileText className="h-5 w-5 text-blue-500" />;
+    return <FileText className="h-5 w-5 text-blue-500" aria-hidden="true" />;
   }
   if (['js', 'ts', 'jsx', 'tsx', 'py', 'rb', 'go', 'rs', 'java', 'cpp', 'c', 'h'].includes(ext || '')) {
-    return <FileCode className="h-5 w-5 text-green-500" />;
+    return <FileCode className="h-5 w-5 text-green-500" aria-hidden="true" />;
   }
 
-  return <File className="h-5 w-5 text-neutral-400" />;
+  return <File className="h-5 w-5 text-neutral-400" aria-hidden="true" />;
 };
 
 // Format file size
@@ -291,7 +291,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               onClick={onClose}
               aria-label="Close file explorer"
             >
-              <XCircle className="h-5 w-5" />
+              <XCircle className="h-5 w-5" aria-hidden="true" />
             </Button>
             <div className="flex items-center gap-2 text-sm text-neutral-600">
               {currentPath.length > 0 && (
@@ -308,7 +308,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               <div className="flex items-center gap-1">
                 {getBreadcrumbs().map((part, i) => (
                   <React.Fragment key={i}>
-                    {i > 0 && <ChevronRight className="h-4 w-4 text-neutral-300" />}
+                    {i > 0 && <ChevronRight className="h-4 w-4 text-neutral-300" aria-hidden="true" />}
                     <span className={i === getBreadcrumbs().length - 1 ? 'font-medium text-neutral-900' : ''}>
                       {part}
                     </span>
@@ -321,7 +321,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           <div className="flex items-center gap-2">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" aria-hidden="true" />
               <input
                 type="text"
                 placeholder="Search files..."
@@ -343,7 +343,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 aria-label="List view"
                 aria-pressed={viewMode === 'list'}
               >
-                <List className="h-4 w-4" />
+                <List className="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
@@ -354,7 +354,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 aria-label="Grid view"
                 aria-pressed={viewMode === 'grid'}
               >
-                <Grid3X3 className="h-4 w-4" />
+                <Grid3X3 className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -364,7 +364,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       <CardContent className="p-0">
         {loading ? (
           <div className="p-12 text-center">
-            <Loader2 className="h-8 w-8 text-neutral-300 mx-auto mb-2 animate-spin" />
+            <Loader2 className="h-8 w-8 text-neutral-300 mx-auto mb-2 animate-spin" aria-hidden="true" />
             <p className="text-sm text-neutral-500">Loading files...</p>
           </div>
         ) : filteredFiles.length === 0 ? (
@@ -424,7 +424,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                           onClick={() => window.open(file.webUrl, '_blank')}
                           aria-label={`Open ${file.name} in browser`}
                         >
-                          <ExternalLink className="h-4 w-4" />
+                          <ExternalLink className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       )}
                       {file.type === 'file' && (
@@ -435,9 +435,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                           disabled={importing === file.id}
                           icon={
                             importing === file.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                             ) : (
-                              <Download className="h-4 w-4" />
+                              <Download className="h-4 w-4" aria-hidden="true" />
                             )
                           }
                         >
@@ -449,7 +449,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                           variant="ghost"
                           size="sm"
                           onClick={() => onNavigate(file)}
-                          icon={<ChevronRight className="h-4 w-4" />}
+                          icon={<ChevronRight className="h-4 w-4" aria-hidden="true" />}
                           aria-label={`Open ${file.name}`}
                         />
                       )}
@@ -502,7 +502,7 @@ const ImportedFilesSection: React.FC<ImportedFilesSectionProps> = ({ files, onLi
     <Card className="mt-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-neutral-400" />
+          <Clock className="h-5 w-5 text-neutral-400" aria-hidden="true" />
           Recently Imported
         </CardTitle>
       </CardHeader>
@@ -528,7 +528,7 @@ const ImportedFilesSection: React.FC<ImportedFilesSectionProps> = ({ files, onLi
                   variant="ghost"
                   size="sm"
                   onClick={() => onLink(file.id)}
-                  icon={<Link2 className="h-4 w-4" />}
+                  icon={<Link2 className="h-4 w-4" aria-hidden="true" />}
                 >
                   Link to Project
                 </Button>
@@ -658,7 +658,7 @@ export default function Connectors() {
         {/* Error message */}
         {state.error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" aria-hidden="true" />
             <div className="flex-1">
               <p className="text-sm font-medium text-red-800">{state.error}</p>
             </div>
@@ -675,7 +675,7 @@ export default function Connectors() {
         {/* Loading state */}
         {state.loading && state.connectors.length === 0 ? (
           <div className="p-12 text-center">
-            <Loader2 className="h-8 w-8 text-neutral-300 mx-auto mb-2 animate-spin" />
+            <Loader2 className="h-8 w-8 text-neutral-300 mx-auto mb-2 animate-spin" aria-hidden="true" />
             <p className="text-sm text-neutral-500">Loading connectors...</p>
           </div>
         ) : (
@@ -726,7 +726,7 @@ export default function Connectors() {
               <CardContent className="p-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-primary-600 text-white flex items-center justify-center flex-shrink-0">
-                    <AlertCircle className="h-6 w-6" />
+                    <AlertCircle className="h-6 w-6" aria-hidden="true" />
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-primary-900 mb-1">
