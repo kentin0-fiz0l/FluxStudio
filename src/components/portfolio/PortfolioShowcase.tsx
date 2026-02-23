@@ -138,18 +138,18 @@ export function PortfolioShowcase({
 
                   <div className="flex items-center gap-6 text-white/80">
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
+                      <User className="h-4 w-4" aria-hidden="true" />
                       <span>{portfolio.owner.name}</span>
                       <Badge variant="outline" className="text-white border-white/50">
                         {portfolio.owner.role}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-4 w-4" aria-hidden="true" />
                       <span>{portfolio.stats.total_views.toLocaleString()} views</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Award className="h-4 w-4" />
+                      <Award className="h-4 w-4" aria-hidden="true" />
                       <span>{portfolio.stats.featured_items} featured</span>
                     </div>
                   </div>
@@ -160,7 +160,7 @@ export function PortfolioShowcase({
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="outline" className="text-white border-white/50 hover:bg-white/10">
-                          <Settings className="h-4 w-4 mr-2" />
+                          <Settings className="h-4 w-4 mr-2" aria-hidden="true" />
                           Edit Portfolio
                         </Button>
                       </DialogTrigger>
@@ -191,7 +191,7 @@ export function PortfolioShowcase({
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
               <Input
                 placeholder="Search portfolio items..."
                 value={searchQuery}
@@ -219,14 +219,14 @@ export function PortfolioShowcase({
                 size="sm"
                 onClick={() => setViewMode('grid')}
               >
-                <Grid3X3 className="h-4 w-4" />
+                <Grid3X3 className="h-4 w-4" aria-hidden="true" />
               </Button>
               <Button
                 variant={viewMode === 'list' ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('list')}
               >
-                <List className="h-4 w-4" />
+                <List className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
 
@@ -234,7 +234,7 @@ export function PortfolioShowcase({
               <Dialog open={isAddingItem} onOpenChange={setIsAddingItem}>
                 <DialogTrigger asChild>
                   <Button>
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
                     Add Item
                   </Button>
                 </DialogTrigger>
@@ -292,7 +292,7 @@ export function PortfolioShowcase({
 
         {filteredItems.length === 0 && (
           <div className="text-center py-12">
-            <Camera className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <Camera className="h-12 w-12 text-gray-300 mx-auto mb-4" aria-hidden="true" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No items found</h3>
             <p className="text-gray-600">
               {selectedCategory !== 'All' || searchQuery

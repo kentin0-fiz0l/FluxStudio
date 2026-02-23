@@ -79,25 +79,25 @@ function getStatusInfo(status: PrintJobStatus): {
     case 'completed':
       return {
         variant: 'success',
-        icon: <CheckCircle2 className="w-4 h-4" />,
+        icon: <CheckCircle2 className="w-4 h-4" aria-hidden="true" />,
         label: 'Completed',
       };
     case 'failed':
       return {
         variant: 'error',
-        icon: <XCircle className="w-4 h-4" />,
+        icon: <XCircle className="w-4 h-4" aria-hidden="true" />,
         label: 'Failed',
       };
     case 'canceled':
       return {
         variant: 'secondary',
-        icon: <AlertCircle className="w-4 h-4" />,
+        icon: <AlertCircle className="w-4 h-4" aria-hidden="true" />,
         label: 'Canceled',
       };
     default:
       return {
         variant: 'default',
-        icon: <AlertCircle className="w-4 h-4" />,
+        icon: <AlertCircle className="w-4 h-4" aria-hidden="true" />,
         label: status,
       };
   }
@@ -229,7 +229,7 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
                 onValueChange={setSelectedProjectId}
               >
                 <SelectTrigger className="w-48">
-                  <Filter className="w-3 h-3 mr-2" />
+                  <Filter className="w-3 h-3 mr-2" aria-hidden="true" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -237,7 +237,7 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       <div className="flex items-center gap-2">
-                        <Folder className="w-3 h-3" />
+                        <Folder className="w-3 h-3" aria-hidden="true" />
                         {project.title}
                       </div>
                     </SelectItem>
@@ -251,7 +251,7 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
               size="sm"
               disabled={isLoading}
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -279,7 +279,7 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
                       <div className="font-medium truncate">{job.fileName}</div>
                       {job.project_name && (
                         <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          <Folder className="w-3 h-3" />
+                          <Folder className="w-3 h-3" aria-hidden="true" />
                           <span className="truncate">{job.project_name}</span>
                         </div>
                       )}
@@ -295,7 +295,7 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
                     <div>
                       <div className="text-gray-600 dark:text-gray-400 text-xs">Duration</div>
                       <div className="flex items-center gap-1 mt-0.5">
-                        <Clock className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                        <Clock className="w-3 h-3 text-gray-500 dark:text-gray-400" aria-hidden="true" />
                         {formatDuration(job.duration_seconds)}
                       </div>
                     </div>
@@ -303,7 +303,7 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
                     <div>
                       <div className="text-gray-600 dark:text-gray-400 text-xs">Completed</div>
                       <div className="flex items-center gap-1 mt-0.5">
-                        <Calendar className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                        <Calendar className="w-3 h-3 text-gray-500 dark:text-gray-400" aria-hidden="true" />
                         {job.completedAt ? formatDate(job.completedAt) : 'N/A'}
                       </div>
                     </div>

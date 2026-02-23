@@ -58,7 +58,7 @@ export function PortfolioItemDetail({
               className="absolute top-4 right-4 text-white hover:bg-white/20"
               onClick={onClose}
             >
-              <X className="h-6 w-6" />
+              <X className="h-6 w-6" aria-hidden="true" />
             </Button>
           </div>
 
@@ -70,7 +70,7 @@ export function PortfolioItemDetail({
                   <h2 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h2>
                   {item.is_featured && (
                     <Badge className="bg-yellow-500 mb-2">
-                      <Star className="h-3 w-3 mr-1" />
+                      <Star className="h-3 w-3 mr-1" aria-hidden="true" />
                       Featured
                     </Badge>
                   )}
@@ -102,7 +102,7 @@ export function PortfolioItemDetail({
                 <div className="mt-4">
                   <span className="text-gray-500 text-sm">Location:</span>
                   <div className="font-medium flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
+                    <MapPin className="h-4 w-4" aria-hidden="true" />
                     {item.project_details.location}
                   </div>
                 </div>
@@ -114,7 +114,7 @@ export function PortfolioItemDetail({
                   <div className="mt-1 space-y-1">
                     {item.project_details.awards.map((award, index) => (
                       <div key={index} className="flex items-center gap-2">
-                        <Award className="h-4 w-4 text-yellow-500" />
+                        <Award className="h-4 w-4 text-yellow-500" aria-hidden="true" />
                         <span className="text-sm">{award}</span>
                       </div>
                     ))}
@@ -137,15 +137,15 @@ export function PortfolioItemDetail({
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-4 text-sm text-gray-500">
                   <span className="flex items-center gap-1">
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4" aria-hidden="true" />
                     {item.metrics.views}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Heart className="h-4 w-4" />
+                    <Heart className="h-4 w-4" aria-hidden="true" />
                     {item.metrics.likes}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Share2 className="h-4 w-4" />
+                    <Share2 className="h-4 w-4" aria-hidden="true" />
                     {item.metrics.shares}
                   </span>
                 </div>
@@ -153,11 +153,11 @@ export function PortfolioItemDetail({
 
               <div className="flex gap-2">
                 <Button onClick={onLike} className="flex-1">
-                  <Heart className="h-4 w-4 mr-2" />
+                  <Heart className="h-4 w-4 mr-2" aria-hidden="true" />
                   Like
                 </Button>
                 <Button variant="outline" onClick={onShare} className="flex-1">
-                  <Share2 className="h-4 w-4 mr-2" />
+                  <Share2 className="h-4 w-4 mr-2" aria-hidden="true" />
                   Share
                 </Button>
               </div>
