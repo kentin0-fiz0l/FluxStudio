@@ -45,6 +45,12 @@ function Settings() {
   const [darkMode, setDarkMode] = React.useState(false);
   const [autoSave, setAutoSave] = React.useState(true);
 
+  // Notification category preferences
+  const [notifyMessages, setNotifyMessages] = React.useState(true);
+  const [notifyProjectUpdates, setNotifyProjectUpdates] = React.useState(true);
+  const [notifyCollabInvites, setNotifyCollabInvites] = React.useState(true);
+  const [notifySystemAlerts, setNotifySystemAlerts] = React.useState(true);
+
   const [isSaving, setIsSaving] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
   const [hasChanges, setHasChanges] = React.useState(false);
@@ -233,6 +239,41 @@ function Settings() {
                   onCheckedChange={setEmailDigest}
                   aria-label="Toggle email digest"
                 />
+              </div>
+
+              {/* Notification Categories */}
+              <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                <h3 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-3 uppercase tracking-wide">Categories</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between px-4 py-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                    <div>
+                      <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Messages</h4>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">New messages and replies</p>
+                    </div>
+                    <Switch checked={notifyMessages} onCheckedChange={setNotifyMessages} aria-label="Toggle message notifications" />
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                    <div>
+                      <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Project Updates</h4>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">Task changes, file uploads, milestones</p>
+                    </div>
+                    <Switch checked={notifyProjectUpdates} onCheckedChange={setNotifyProjectUpdates} aria-label="Toggle project update notifications" />
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                    <div>
+                      <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Collaboration Invites</h4>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">Team and project invitations</p>
+                    </div>
+                    <Switch checked={notifyCollabInvites} onCheckedChange={setNotifyCollabInvites} aria-label="Toggle collaboration invite notifications" />
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                    <div>
+                      <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">System Alerts</h4>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">Security, maintenance, and account</p>
+                    </div>
+                    <Switch checked={notifySystemAlerts} onCheckedChange={setNotifySystemAlerts} aria-label="Toggle system alert notifications" />
+                  </div>
+                </div>
               </div>
             </div>
           </Card>

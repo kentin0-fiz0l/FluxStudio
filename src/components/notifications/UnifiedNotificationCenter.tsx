@@ -289,7 +289,7 @@ export function UnifiedNotificationCenter() {
               transition={{ duration: 0.15 }}
               className="absolute top-12 right-0 z-50"
             >
-              <Card className="w-96 max-h-[600px] flex flex-col shadow-xl bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+              <Card className="w-96 max-h-[600px] flex flex-col shadow-xl bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700" role="region" aria-label="Notification center" aria-live="polite">
                 <CardHeader className="pb-3 border-b">
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2 text-base">

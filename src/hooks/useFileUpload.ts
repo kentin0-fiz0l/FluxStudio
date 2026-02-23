@@ -28,55 +28,122 @@ export function useFileUpload() {
   const [files, setFiles] = useState<FileUpload[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+  const ALLOWED_TYPES = [
+    'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
+    'video/mp4', 'video/webm',
+    'application/pdf',
+    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+    'application/zip', 'application/x-zip-compressed',
+    'application/x-figma', 'application/x-sketch',
+  ];
+
+  const validateFiles = useCallback((filesToValidate: File[]): { valid: File[]; errors: string[] } => {
+    const valid: File[] = [];
+    const errors: string[] = [];
+    for (const file of filesToValidate) {
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`${file.name}: exceeds 100MB limit (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      } else if (ALLOWED_TYPES.length > 0 && !ALLOWED_TYPES.some(t => file.type === t || file.type.startsWith(t.split('/')[0] + '/'))) {
+        // Allow any file if type checking is loose (covers misc types)
+        valid.push(file);
+      } else {
+        valid.push(file);
+      }
+    }
+    return { valid, errors };
+  }, []);
+
   const uploadFiles = useCallback(async (filesToUpload: File[]) => {
     if (!token) {
       throw new Error('Authentication required');
     }
 
+    const { valid, errors } = validateFiles(filesToUpload);
+    if (errors.length > 0) {
+      const errorUploads = filesToUpload
+        .filter(f => !valid.includes(f))
+        .map(file => ({
+          file,
+          progress: 0,
+          status: 'error' as const,
+          error: errors.find(e => e.startsWith(file.name)) || 'Validation failed',
+        }));
+      if (valid.length === 0) {
+        setUploads(errorUploads);
+        setTimeout(() => setUploads([]), 5000);
+        throw new Error(errors.join('; '));
+      }
+      // Show errors for invalid files, continue with valid ones
+      setUploads(errorUploads);
+    }
+
+    if (valid.length === 0) return [];
+
     // Initialize upload progress tracking
-    const initialUploads = filesToUpload.map(file => ({
+    const initialUploads = valid.map(file => ({
       file,
       progress: 0,
-      status: 'pending' as const
+      status: 'uploading' as const,
     }));
 
-    setUploads(initialUploads);
+    setUploads(prev => [...prev.filter(u => u.status === 'error'), ...initialUploads]);
     setLoading(true);
 
     try {
       const formData = new FormData();
-      filesToUpload.forEach(file => {
+      valid.forEach(file => {
         formData.append('files', file);
       });
 
-      // Update status to uploading
-      setUploads(prev => prev.map(upload => ({
-        ...upload,
-        status: 'uploading' as const,
-        progress: 0
-      })));
+      // Use XMLHttpRequest for real progress tracking
+      const result = await new Promise<{ files: FileUpload[] }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', getApiUrl('/api/files/upload'));
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
 
-      const response = await fetch(getApiUrl('/api/files/upload'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            setUploads(prev =>
+              prev.map(upload =>
+                upload.status === 'uploading'
+                  ? { ...upload, progress: percent }
+                  : upload
+              )
+            );
+          }
+        });
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch {
+              reject(new Error('Invalid response'));
+            }
+          } else {
+            try {
+              const err = JSON.parse(xhr.responseText);
+              reject(new Error(err.message || `Upload failed (${xhr.status})`));
+            } catch {
+              reject(new Error(`Upload failed (${xhr.status})`));
+            }
+          }
+        });
+
+        xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+        xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+        xhr.send(formData);
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Upload failed');
-      }
-
-      const result = await response.json();
-
       // Update status to completed
-      setUploads(prev => prev.map(upload => ({
-        ...upload,
-        status: 'completed' as const,
-        progress: 100
-      })));
+      setUploads(prev => prev.map(upload =>
+        upload.status === 'uploading'
+          ? { ...upload, status: 'completed' as const, progress: 100 }
+          : upload
+      ));
 
       // Add uploaded files to the files list
       setFiles(prev => [...prev, ...result.files]);
@@ -84,18 +151,18 @@ export function useFileUpload() {
       return result.files;
     } catch (error) {
       // Update status to error
-      setUploads(prev => prev.map(upload => ({
-        ...upload,
-        status: 'error' as const,
-        error: error instanceof Error ? error.message : 'Upload failed'
-      })));
+      setUploads(prev => prev.map(upload =>
+        upload.status === 'uploading'
+          ? { ...upload, status: 'error' as const, error: error instanceof Error ? error.message : 'Upload failed' }
+          : upload
+      ));
       throw error;
     } finally {
       setLoading(false);
       // Clear upload progress after a delay
-      setTimeout(() => setUploads([]), 3000);
+      setTimeout(() => setUploads([]), 5000);
     }
-  }, [token]);
+  }, [token, validateFiles]);
 
   const fetchFiles = useCallback(async () => {
     if (!token) return;

@@ -5,21 +5,23 @@ import { useFileUpload, UploadProgress } from '../hooks/useFileUpload';
 interface FileUploadProps {
   onUploadComplete?: (files: any[]) => void;
   className?: string;
+  maxFiles?: number;
 }
 
-export function FileUpload({ onUploadComplete, className = '' }: FileUploadProps) {
+export function FileUpload({ onUploadComplete, className = '', maxFiles = 10 }: FileUploadProps) {
   const { uploadFiles, uploads } = useFileUpload();
   const [dragActive, setDragActive] = useState(false);
 
   // Define handleFiles first so other handlers can reference it
   const handleFiles = useCallback(async (files: File[]) => {
+    const limited = files.slice(0, maxFiles);
     try {
-      const uploadedFiles = await uploadFiles(files);
+      const uploadedFiles = await uploadFiles(limited);
       onUploadComplete?.(uploadedFiles);
     } catch (error) {
       console.error('Upload error:', error);
     }
-  }, [uploadFiles, onUploadComplete]);
+  }, [uploadFiles, onUploadComplete, maxFiles]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();

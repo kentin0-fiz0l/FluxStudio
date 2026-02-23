@@ -855,10 +855,66 @@ export function FormationCanvas({
         e.preventDefault();
         setZoom(z => Math.max(0.5, z - 0.25));
       }
+
+      // Cmd/Ctrl+Z — undo, Cmd/Ctrl+Shift+Z — redo
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        handleRedo();
+      }
+
+      // Arrow keys — nudge selected performers by 1 unit (or 5 with Shift)
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && selectedPerformerIds.size > 0) {
+        e.preventDefault();
+        const step = e.shiftKey ? 5 : 1;
+        const delta = { x: 0, y: 0 };
+        if (e.key === 'ArrowUp') delta.y = -step;
+        if (e.key === 'ArrowDown') delta.y = step;
+        if (e.key === 'ArrowLeft') delta.x = -step;
+        if (e.key === 'ArrowRight') delta.x = step;
+
+        setCurrentPositions(prev => {
+          const next = new Map(prev);
+          selectedPerformerIds.forEach(id => {
+            const pos = next.get(id);
+            if (pos) {
+              next.set(id, {
+                ...pos,
+                x: Math.max(0, Math.min(100, pos.x + delta.x)),
+                y: Math.max(0, Math.min(100, pos.y + delta.y)),
+              });
+            }
+          });
+          return next;
+        });
+        setHasUnsavedChanges(true);
+      }
+
+      // Tab — cycle selection through performers
+      if (e.key === 'Tab' && formation) {
+        e.preventDefault();
+        const ids = formation.performers.map(p => p.id);
+        if (ids.length === 0) return;
+        const currentId = selectedPerformerIds.size === 1 ? Array.from(selectedPerformerIds)[0] : null;
+        const currentIdx = currentId ? ids.indexOf(currentId) : -1;
+        const nextIdx = e.shiftKey
+          ? (currentIdx <= 0 ? ids.length - 1 : currentIdx - 1)
+          : (currentIdx + 1) % ids.length;
+        setSelectedPerformerIds(new Set([ids[nextIdx]]));
+      }
+
+      // Delete/Backspace — remove selected performers
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedPerformerIds.size > 0) {
+        e.preventDefault();
+        handleDeleteSelected();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleSave, playbackState.isPlaying, handlePause, handlePlay]);
+  }, [handleSave, playbackState.isPlaying, handlePause, handlePlay, handleUndo, handleRedo, selectedPerformerIds, formation, setCurrentPositions, setHasUnsavedChanges, setSelectedPerformerIds, handleDeleteSelected]);
 
   const handleZoomIn = () => setZoom((z) => Math.min(3, z + 0.25));
   const handleZoomOut = () => setZoom((z) => Math.max(0.5, z - 0.25));
@@ -907,7 +963,14 @@ export function FormationCanvas({
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900" role="application" aria-label={`Formation editor${formation ? `: ${formation.name}` : ''}`} aria-roledescription="formation editor">
+      {/* Screen reader announcements */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {saveStatus === 'saving' && 'Saving formation...'}
+        {saveStatus === 'saved' && 'Formation saved successfully'}
+        {saveStatus === 'error' && 'Error saving formation'}
+        {selectedPerformerIds.size > 0 && `${selectedPerformerIds.size} performer${selectedPerformerIds.size > 1 ? 's' : ''} selected`}
+      </div>
       <CanvasToolbar
         activeTool={activeTool} setActiveTool={setActiveTool}
         showGrid={showGrid} setShowGrid={setShowGrid}

@@ -73,8 +73,9 @@ export const QuickStats: React.FC<{ tasks: Task[] }> = ({ tasks }) => {
 // ============================================================================
 
 export const PresenceIndicators: React.FC<{
-  users: Array<{ id: string; name: string; email?: string }>;
-}> = ({ users }) => {
+  users: Array<{ id: string; name: string; email?: string; status?: 'online' | 'away' | 'offline' }>;
+  showLabel?: boolean;
+}> = ({ users, showLabel = false }) => {
   if (users.length === 0) return null;
 
   const getInitials = (name: string) => {
@@ -86,28 +87,44 @@ export const PresenceIndicators: React.FC<{
       .slice(0, 2);
   };
 
+  const statusColor = (status?: string) => {
+    switch (status) {
+      case 'online': return 'bg-green-500';
+      case 'away': return 'bg-yellow-500';
+      default: return 'bg-gray-400';
+    }
+  };
+
   return (
-    <div className="flex -space-x-2" role="list" aria-label="Users currently viewing">
-      {users.slice(0, 5).map((user) => (
-        <div
-          key={user.id}
-          className="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-xs font-medium border-2 border-white shadow-sm"
-          title={user.name}
-          role="listitem"
-          aria-label={`${user.name} is viewing`}
-        >
-          {getInitials(user.name)}
-        </div>
-      ))}
-      {users.length > 5 && (
-        <div
-          className="w-8 h-8 rounded-full bg-neutral-600 text-white flex items-center justify-center text-xs font-medium border-2 border-white shadow-sm"
-          title={`${users.length - 5} more user${users.length - 5 > 1 ? 's' : ''}`}
-          role="listitem"
-        >
-          +{users.length - 5}
-        </div>
+    <div className="flex items-center gap-2" role="list" aria-label="Users currently viewing">
+      {showLabel && (
+        <span className="text-xs text-gray-500 dark:text-gray-400">
+          {users.length} online
+        </span>
       )}
+      <div className="flex -space-x-2">
+        {users.slice(0, 5).map((user) => (
+          <div
+            key={user.id}
+            className="relative w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-xs font-medium border-2 border-white dark:border-gray-800 shadow-sm hover:z-10 hover:scale-110 transition-transform cursor-default"
+            title={`${user.name}${user.status ? ` (${user.status})` : ''}`}
+            role="listitem"
+            aria-label={`${user.name} is ${user.status || 'viewing'}`}
+          >
+            {getInitials(user.name)}
+            <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-gray-800 ${statusColor(user.status)}`} />
+          </div>
+        ))}
+        {users.length > 5 && (
+          <div
+            className="w-8 h-8 rounded-full bg-neutral-600 text-white flex items-center justify-center text-xs font-medium border-2 border-white dark:border-gray-800 shadow-sm"
+            title={`${users.length - 5} more user${users.length - 5 > 1 ? 's' : ''}`}
+            role="listitem"
+          >
+            +{users.length - 5}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

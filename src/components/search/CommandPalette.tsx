@@ -418,6 +418,9 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
         onClick={close}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: -50 }}
@@ -452,7 +455,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
             </div>
 
             {/* Results */}
-            <div ref={listRef} className="max-h-96 overflow-y-auto">
+            <div ref={listRef} className="max-h-96 overflow-y-auto" role="listbox" aria-label="Search results">
               {groupedResults.length > 0 ? (
                 <div className="p-2">
                   {groupedResults.map(([category, items], categoryIndex) => {

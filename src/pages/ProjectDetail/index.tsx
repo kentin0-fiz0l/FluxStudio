@@ -265,7 +265,7 @@ export const ProjectDetail = () => {
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0" role="group" aria-label="Project actions">
-              {activeTab === 'tasks' && <PresenceIndicators users={onlineUsers} />}
+              <PresenceIndicators users={onlineUsers} showLabel />
               <Button
                 variant={isProjectFocused(id || '') ? 'primary' : 'outline'}
                 size="sm"
