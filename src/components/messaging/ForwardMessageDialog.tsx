@@ -93,7 +93,7 @@ export function ForwardMessageDialog({
             >
               <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-300 font-medium">
                 {conv.type === 'group' || conv.type === 'channel' ? (
-                  <Users className="w-5 h-5" />
+                  <Users className="w-5 h-5" aria-hidden="true" />
                 ) : (
                   conv.participant?.initials || '?'
                 )}
@@ -109,7 +109,7 @@ export function ForwardMessageDialog({
                 )}
               </div>
               {targetConversationId === conv.id && (
-                <Check className="w-5 h-5 text-primary-600" />
+                <Check className="w-5 h-5 text-primary-600" aria-hidden="true" />
               )}
             </button>
           ))}

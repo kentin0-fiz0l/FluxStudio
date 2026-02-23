@@ -32,7 +32,7 @@ export const PerformerPanel: React.FC<PerformerPanelProps> = ({
           className="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
           title={t('formation.addPerformer', 'Add Performer')}
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-5 h-5" aria-hidden="true" />
         </button>
       </div>
 
@@ -73,7 +73,7 @@ export const PerformerPanel: React.FC<PerformerPanelProps> = ({
                   onClick={(e) => { e.stopPropagation(); onRemovePerformer(performer.id); }}
                   className="p-1 text-gray-400 hover:text-red-500 rounded"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             ))}
