@@ -78,7 +78,7 @@ export function ProjectSidebar({ projectId }: { projectId: string }) {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Activity className="h-5 w-5" />
+            <Activity className="h-5 w-5" aria-hidden="true" />
             Recent Activity
           </h3>
           <Badge variant="secondary">Live</Badge>
@@ -117,17 +117,17 @@ export function DashboardActivitySummary({ projectId }: { projectId: string }) {
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard
-          icon={<Activity className="h-5 w-5 text-blue-600" />}
+          icon={<Activity className="h-5 w-5 text-blue-600" aria-hidden="true" />}
           label="Total"
           value={stats.total}
         />
         <StatCard
-          icon={<Clock className="h-5 w-5 text-purple-600" />}
+          icon={<Clock className="h-5 w-5 text-purple-600" aria-hidden="true" />}
           label="Last 24h"
           value={stats.last24h}
         />
         <StatCard
-          icon={<TrendingUp className="h-5 w-5 text-success-600" />}
+          icon={<TrendingUp className="h-5 w-5 text-success-600" aria-hidden="true" />}
           label="Last 7d"
           value={stats.last7d}
         />
@@ -141,7 +141,7 @@ export function DashboardActivitySummary({ projectId }: { projectId: string }) {
             className="flex items-start gap-3 p-3 rounded-lg hover:bg-neutral-50 transition-colors"
           >
             <div className="rounded-full bg-primary-100 p-2">
-              <Activity className="h-4 w-4 text-primary-600" />
+              <Activity className="h-4 w-4 text-primary-600" aria-hidden="true" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-neutral-700">{activity.action}</p>
@@ -187,7 +187,7 @@ function TasksOnlyFeed({ projectId }: { projectId: string }) {
         <div key={activity.id} className="p-4 hover:bg-neutral-50">
           <div className="flex items-start gap-3">
             <div className="rounded-full bg-blue-100 p-2">
-              <CheckCircle2 className="h-4 w-4 text-blue-600" />
+              <CheckCircle2 className="h-4 w-4 text-blue-600" aria-hidden="true" />
             </div>
             <div className="flex-1">
               <p className="text-sm text-neutral-700">{activity.action}</p>
@@ -234,7 +234,7 @@ function MilestonesOnlyFeed({ projectId }: { projectId: string }) {
         <div key={activity.id} className="p-4 hover:bg-neutral-50">
           <div className="flex items-start gap-3">
             <div className="rounded-full bg-secondary-100 p-2">
-              <CheckCircle2 className="h-4 w-4 text-secondary-600" />
+              <CheckCircle2 className="h-4 w-4 text-secondary-600" aria-hidden="true" />
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-neutral-900">
@@ -271,7 +271,7 @@ function ActivityStatistics({ projectId }: { projectId: string }) {
         <Card className="p-6">
           <div className="flex items-center gap-4">
             <div className="rounded-full bg-blue-100 p-3">
-              <Activity className="h-6 w-6 text-blue-600" />
+              <Activity className="h-6 w-6 text-blue-600" aria-hidden="true" />
             </div>
             <div>
               <p className="text-sm text-neutral-600">Total Activities</p>
@@ -283,7 +283,7 @@ function ActivityStatistics({ projectId }: { projectId: string }) {
         <Card className="p-6">
           <div className="flex items-center gap-4">
             <div className="rounded-full bg-purple-100 p-3">
-              <Clock className="h-6 w-6 text-purple-600" />
+              <Clock className="h-6 w-6 text-purple-600" aria-hidden="true" />
             </div>
             <div>
               <p className="text-sm text-neutral-600">Last 24 Hours</p>
@@ -295,7 +295,7 @@ function ActivityStatistics({ projectId }: { projectId: string }) {
         <Card className="p-6">
           <div className="flex items-center gap-4">
             <div className="rounded-full bg-success-100 p-3">
-              <TrendingUp className="h-6 w-6 text-success-600" />
+              <TrendingUp className="h-6 w-6 text-success-600" aria-hidden="true" />
             </div>
             <div>
               <p className="text-sm text-neutral-600">Last 7 Days</p>
@@ -307,7 +307,7 @@ function ActivityStatistics({ projectId }: { projectId: string }) {
         <Card className="p-6">
           <div className="flex items-center gap-4">
             <div className="rounded-full bg-accent-100 p-3">
-              <Users className="h-6 w-6 text-accent-600" />
+              <Users className="h-6 w-6 text-accent-600" aria-hidden="true" />
             </div>
             <div>
               <p className="text-sm text-neutral-600">Active Users</p>

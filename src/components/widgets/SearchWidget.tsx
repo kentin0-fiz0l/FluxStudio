@@ -181,17 +181,17 @@ export function SearchWidget(props: WidgetProps) {
             onClick={openCommandPalette}
             className="h-7 px-2 text-xs text-white/70 hover:text-white hover:bg-white/10"
           >
-            <Command className="h-3 w-3 mr-1" />
+            <Command className="h-3 w-3 mr-1" aria-hidden="true" />
             ⌘K
           </Button>
-          <Search className="h-4 w-4 text-blue-400" />
+          <Search className="h-4 w-4 text-blue-400" aria-hidden="true" />
         </div>
       }
     >
       <div className="space-y-4">
         {/* Search Input */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -206,7 +206,7 @@ export function SearchWidget(props: WidgetProps) {
               onClick={handleClearSearch}
               className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-gray-400 hover:text-white"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3 w-3" aria-hidden="true" />
             </Button>
           )}
         </div>
@@ -219,7 +219,7 @@ export function SearchWidget(props: WidgetProps) {
               onClick={() => navigate('/dashboard/projects')}
               className="justify-start text-white hover:bg-white/10 p-3 h-auto"
             >
-              <FolderOpen className="h-4 w-4 mr-2 text-purple-400" />
+              <FolderOpen className="h-4 w-4 mr-2 text-purple-400" aria-hidden="true" />
               <span className="text-sm">Projects</span>
             </Button>
             <Button
@@ -227,7 +227,7 @@ export function SearchWidget(props: WidgetProps) {
               onClick={openCommandPalette}
               className="justify-start text-white hover:bg-white/10 p-3 h-auto"
             >
-              <Command className="h-4 w-4 mr-2 text-blue-400" />
+              <Command className="h-4 w-4 mr-2 text-blue-400" aria-hidden="true" />
               <span className="text-sm">Commands</span>
             </Button>
           </div>
@@ -260,7 +260,7 @@ export function SearchWidget(props: WidgetProps) {
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-1.5 rounded-lg bg-white/10 text-white/70 group-hover:bg-white/20 group-hover:text-white transition-colors">
-                          <ItemIcon className="h-4 w-4" />
+                          <ItemIcon className="h-4 w-4" aria-hidden="true" />
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -279,14 +279,14 @@ export function SearchWidget(props: WidgetProps) {
                           </p>
                         </div>
 
-                        <ChevronRight className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ChevronRight className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
                       </div>
                     </motion.div>
                   );
                 })
               ) : (
                 <div className="text-center py-6">
-                  <Search className="h-8 w-8 text-gray-500 mx-auto mb-2" />
+                  <Search className="h-8 w-8 text-gray-500 mx-auto mb-2" aria-hidden="true" />
                   <p className="text-gray-400 text-sm">No results found</p>
                   <p className="text-gray-500 text-xs">Try different keywords</p>
                 </div>
@@ -300,10 +300,10 @@ export function SearchWidget(props: WidgetProps) {
                   className="w-full justify-between text-white/70 hover:text-white hover:bg-white/10"
                 >
                   <span className="flex items-center gap-2">
-                    <Command className="h-4 w-4" />
+                    <Command className="h-4 w-4" aria-hidden="true" />
                     Advanced Search
                   </span>
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             </motion.div>
