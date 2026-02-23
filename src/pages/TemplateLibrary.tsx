@@ -169,7 +169,7 @@ export default function TemplateLibrary() {
 
           {/* Search bar */}
           <div className="relative max-w-md mx-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
             <input
               type="text"
               value={search}
@@ -182,7 +182,7 @@ export default function TemplateLibrary() {
                 onClick={() => setSearch('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             )}
           </div>
@@ -193,7 +193,7 @@ export default function TemplateLibrary() {
         {/* Filters row */}
         <div className="flex flex-wrap items-center gap-3 mb-8">
           <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
-            <Filter className="w-4 h-4" />
+            <Filter className="w-4 h-4" aria-hidden="true" />
             <span>Category:</span>
           </div>
           <button
@@ -221,7 +221,7 @@ export default function TemplateLibrary() {
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
                 )}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-3.5 h-3.5" aria-hidden="true" />
                 {meta.label} ({count})
               </button>
             );
@@ -280,7 +280,7 @@ export default function TemplateLibrary() {
             className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-xl font-semibold hover:bg-indigo-50 transition-colors"
           >
             Open the editor
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-5 h-5" aria-hidden="true" />
           </Link>
         </div>
       </section>
@@ -319,7 +319,7 @@ function TemplateLibraryCard({ template }: { template: DrillTemplate }) {
             {meta.label}
           </span>
           <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-            <Users className="w-3 h-3" />
+            <Users className="w-3 h-3" aria-hidden="true" />
             {template.parameters.minPerformers}
             {template.parameters.maxPerformers ? `-${template.parameters.maxPerformers}` : '+'}
           </span>

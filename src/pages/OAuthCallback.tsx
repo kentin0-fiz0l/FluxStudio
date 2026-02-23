@@ -237,7 +237,7 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
           <div className="flex flex-col items-center justify-center py-8">
             {state === 'loading' && (
               <>
-                <Loader2 className="w-16 h-16 text-primary-600 animate-spin mb-4" />
+                <Loader2 className="w-16 h-16 text-primary-600 animate-spin mb-4" aria-hidden="true" />
                 <p className="text-neutral-700 font-medium">
                   Processing authorization...
                 </p>
@@ -250,7 +250,7 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
             {state === 'success' && (
               <>
                 <div className="w-16 h-16 rounded-full bg-success-100 flex items-center justify-center mb-4">
-                  <CheckCircle2 className="w-10 h-10 text-success-600" />
+                  <CheckCircle2 className="w-10 h-10 text-success-600" aria-hidden="true" />
                 </div>
                 <p className="text-neutral-900 font-semibold text-lg mb-2">
                   Connection Successful!
@@ -266,7 +266,7 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
                     <ul className="space-y-1">
                       {result.data.permissions.slice(0, 3).map((permission, index) => (
                         <li key={index} className="flex items-center gap-2">
-                          <CheckCircle2 className="w-3 h-3 text-success-600" />
+                          <CheckCircle2 className="w-3 h-3 text-success-600" aria-hidden="true" />
                           {permission}
                         </li>
                       ))}
@@ -284,7 +284,7 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
                       className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       Continue to {redirectUrl === '/projects' ? 'Dashboard' : 'Settings'}
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-4 h-4" aria-hidden="true" />
                     </button>
                     <p className="text-sm text-neutral-500 text-center">
                       Auto-redirecting in {countdown}s...
@@ -297,7 +297,7 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
             {state === 'error' && (
               <>
                 <div className="w-16 h-16 rounded-full bg-danger-100 flex items-center justify-center mb-4">
-                  <XCircle className="w-10 h-10 text-danger-600" />
+                  <XCircle className="w-10 h-10 text-danger-600" aria-hidden="true" />
                 </div>
                 <p className="text-neutral-900 font-semibold text-lg mb-2">
                   Connection Failed
@@ -309,7 +309,7 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
                 {/* Error recovery guidance */}
                 <div className="w-full bg-warning-50 border border-warning-200 rounded-lg p-4 mt-4">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-warning-600 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-warning-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
                     <div className="text-sm">
                       <p className="font-medium text-warning-900 mb-2">Try again:</p>
                       <ul className="space-y-1 text-warning-800">
