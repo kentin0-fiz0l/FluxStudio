@@ -78,8 +78,8 @@ export const SnapshotPanel = React.memo(function SnapshotPanel({
         aria-label="Toggle snapshots panel"
       >
         <div className="flex items-center gap-1.5">
-          {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-          <Camera className="w-3.5 h-3.5" />
+          {isExpanded ? <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" /> : <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />}
+          <Camera className="w-3.5 h-3.5" aria-hidden="true" />
           <span>Snapshots</span>
           {snapshots.length > 0 && (
             <span className="px-1.5 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 text-[10px]">
@@ -97,7 +97,7 @@ export const SnapshotPanel = React.memo(function SnapshotPanel({
               onClick={() => setShowCreateForm(true)}
               className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
             >
-              <Camera className="w-3 h-3" />
+              <Camera className="w-3 h-3" aria-hidden="true" />
               Save Checkpoint
             </button>
           ) : (
@@ -135,7 +135,7 @@ export const SnapshotPanel = React.memo(function SnapshotPanel({
                   disabled={!newName.trim() || isCreating}
                   className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center gap-1"
                 >
-                  {isCreating && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {isCreating && <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />}
                   Save
                 </button>
               </div>
@@ -172,7 +172,7 @@ export const SnapshotPanel = React.memo(function SnapshotPanel({
                           disabled={isRestoring}
                           className="px-1.5 py-0.5 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50 transition-colors flex items-center gap-0.5"
                         >
-                          {isRestoring && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+                          {isRestoring && <Loader2 className="w-2.5 h-2.5 animate-spin" aria-hidden="true" />}
                           Yes
                         </button>
                         <button
@@ -189,7 +189,7 @@ export const SnapshotPanel = React.memo(function SnapshotPanel({
                           className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
                           aria-label={`Restore snapshot ${snap.name}`}
                         >
-                          <RotateCcw className="w-2.5 h-2.5" />
+                          <RotateCcw className="w-2.5 h-2.5" aria-hidden="true" />
                           Restore
                         </button>
                         {snap.userId === currentUserId && (
@@ -198,7 +198,7 @@ export const SnapshotPanel = React.memo(function SnapshotPanel({
                             className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
                             aria-label={`Delete snapshot ${snap.name}`}
                           >
-                            <Trash2 className="w-2.5 h-2.5" />
+                            <Trash2 className="w-2.5 h-2.5" aria-hidden="true" />
                             Delete
                           </button>
                         )}
