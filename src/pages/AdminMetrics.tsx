@@ -89,7 +89,7 @@ function MetricCard({ label, value, unit, icon: Icon, color = 'text-primary-600'
   return (
     <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4">
       <div className="flex items-center gap-2 mb-2">
-        <Icon className={`w-4 h-4 ${color}`} />
+        <Icon className={`w-4 h-4 ${color}`} aria-hidden="true" />
         <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">{label}</span>
       </div>
       <div className="text-2xl font-bold text-neutral-900 dark:text-white">
@@ -227,13 +227,13 @@ export function AdminMetrics() {
             onClick={fetchMetrics}
             className="p-2 text-neutral-400 hover:text-neutral-700 dark:hover:text-white transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-white/5"
           >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
           </button>
         </div>
 
         {error && (
           <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-500" />
+            <AlertTriangle className="w-4 h-4 text-red-500" aria-hidden="true" />
             <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
           </div>
         )}
@@ -298,7 +298,7 @@ export function AdminMetrics() {
         {data?.topEvents && data.topEvents.length > 0 && (
           <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="w-4 h-4 text-primary-600" />
+              <BarChart3 className="w-4 h-4 text-primary-600" aria-hidden="true" />
               <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">Top Events (24h)</h2>
             </div>
             <div className="space-y-2">
@@ -316,7 +316,7 @@ export function AdminMetrics() {
         {data?.wsConnections && (
           <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Wifi className="w-4 h-4 text-green-600" />
+              <Wifi className="w-4 h-4 text-green-600" aria-hidden="true" />
               <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">WebSocket Connections</h2>
               <span className="ml-auto text-2xl font-bold text-neutral-900 dark:text-white">{data.wsConnections.total}</span>
             </div>
@@ -337,7 +337,7 @@ export function AdminMetrics() {
         {data?.funnel && data.funnel.length > 0 && (
           <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingDown className="w-4 h-4 text-indigo-600" />
+              <TrendingDown className="w-4 h-4 text-indigo-600" aria-hidden="true" />
               <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">Signup Funnel (30 days)</h2>
             </div>
             <div className="space-y-2">
@@ -371,7 +371,7 @@ export function AdminMetrics() {
         {data?.perPageVitals && data.perPageVitals.length > 0 && (
           <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Globe className="w-4 h-4 text-amber-600" />
+              <Globe className="w-4 h-4 text-amber-600" aria-hidden="true" />
               <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">Per-Page Web Vitals (24h, p75)</h2>
             </div>
             <div className="overflow-x-auto">
