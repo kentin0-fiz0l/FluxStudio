@@ -118,7 +118,7 @@ export function ResumeCard({
           className
         )}
       >
-        <Play className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+        <Play className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
         <button
           onClick={handleResume}
           className="flex-1 text-left text-sm text-amber-700 dark:text-amber-300 hover:underline"
@@ -130,7 +130,7 @@ export function ResumeCard({
           className="text-amber-500 hover:text-amber-700 dark:hover:text-amber-300"
           aria-label="Dismiss resume suggestion"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
     );
@@ -149,7 +149,7 @@ export function ResumeCard({
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-          <Play className="h-4 w-4" />
+          <Play className="h-4 w-4" aria-hidden="true" />
           <span className="text-sm font-medium">Pick up where you left off</span>
         </div>
         <button
@@ -157,7 +157,7 @@ export function ResumeCard({
           className="text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 p-0.5"
           aria-label="Dismiss resume suggestion"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
 
@@ -176,7 +176,7 @@ export function ResumeCard({
           )}
         </div>
         <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-          <Clock className="h-3 w-3" />
+          <Clock className="h-3 w-3" aria-hidden="true" />
           <span>{timeSince}</span>
         </div>
       </div>
@@ -195,7 +195,7 @@ export function ResumeCard({
         onClick={handleResume}
         className="w-full bg-amber-600 hover:bg-amber-700 text-white"
       >
-        <Play className="h-3.5 w-3.5 mr-1.5" />
+        <Play className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
         Resume
       </Button>
 
