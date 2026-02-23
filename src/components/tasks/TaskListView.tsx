@@ -361,7 +361,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
         <div className="text-center py-12 bg-white rounded-lg border border-neutral-200">
           {hasActiveFilters ? (
             <>
-              <AlertCircle className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
+              <AlertCircle className="w-16 h-16 text-neutral-300 mx-auto mb-4" aria-hidden="true" />
               <h3 className="text-xl font-semibold text-neutral-900 mb-2">
                 No Matching Tasks
               </h3>
@@ -371,14 +371,14 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
               <Button
                 variant="outline"
                 onClick={clearFilters}
-                icon={<X className="w-4 h-4" />}
+                icon={<X className="w-4 h-4" aria-hidden="true" />}
               >
                 Clear Filters
               </Button>
             </>
           ) : (
             <>
-              <CheckCircle2 className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
+              <CheckCircle2 className="w-16 h-16 text-neutral-300 mx-auto mb-4" aria-hidden="true" />
               <h3 className="text-xl font-semibold text-neutral-900 mb-2">
                 No Tasks Yet
               </h3>
@@ -387,7 +387,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
               </p>
               <Button
                 onClick={onTaskCreate}
-                icon={<Plus className="w-4 h-4" />}
+                icon={<Plus className="w-4 h-4" aria-hidden="true" />}
               >
                 Create Task
               </Button>

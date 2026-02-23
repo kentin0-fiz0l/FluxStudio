@@ -241,7 +241,7 @@ export const TaskSearch: React.FC<TaskSearchProps> = ({
         className="ml-1 rounded-full hover:bg-primary-700 p-0.5 transition-colors focus:outline-none focus:ring-1 focus:ring-white"
         aria-label={`Remove ${label} filter`}
       >
-        <X className="w-3 h-3" />
+        <X className="w-3 h-3" aria-hidden="true" />
       </button>
     </Badge>
   );
@@ -270,7 +270,7 @@ export const TaskSearch: React.FC<TaskSearchProps> = ({
             onClick={() => applyPreset(key)}
             className="h-8 gap-1.5"
           >
-            <Icon className="w-3.5 h-3.5" />
+            <Icon className="w-3.5 h-3.5" aria-hidden="true" />
             {label}
           </Button>
         ))}
@@ -288,7 +288,7 @@ export const TaskSearch: React.FC<TaskSearchProps> = ({
       <div className={cn('flex items-center gap-2', compact ? 'flex-col sm:flex-row' : 'flex-wrap')}>
         {/* Search Input */}
         <div className={cn('relative', compact ? 'w-full sm:flex-1' : 'flex-1 min-w-[280px]')}>
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none" aria-hidden="true" />
           <input
             ref={searchInputRef}
             type="text"
@@ -304,7 +304,7 @@ export const TaskSearch: React.FC<TaskSearchProps> = ({
               className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 rounded"
               aria-label="Clear search"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -314,8 +314,8 @@ export const TaskSearch: React.FC<TaskSearchProps> = ({
           variant="outline"
           size={compact ? 'sm' : 'md'}
           onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-          icon={<Filter className={compact ? 'w-4 h-4' : 'w-5 h-5'} />}
-          iconRight={isFilterPanelOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          icon={<Filter className={compact ? 'w-4 h-4' : 'w-5 h-5'} aria-hidden="true" />}
+          iconRight={isFilterPanelOpen ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
           aria-expanded={isFilterPanelOpen}
           aria-controls="filter-panel"
           className={cn(compact && 'w-full sm:w-auto')}
@@ -458,7 +458,7 @@ export const TaskSearch: React.FC<TaskSearchProps> = ({
                     aria-pressed={isActive}
                     aria-label={`Filter by ${label} status`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-4 h-4" aria-hidden="true" />
                     {label}
                   </button>
                 );
@@ -543,7 +543,7 @@ export const TaskSearch: React.FC<TaskSearchProps> = ({
                       aria-pressed={isActive}
                       aria-label={`Filter by assignee ${member.name}`}
                     >
-                      <User className="w-4 h-4" />
+                      <User className="w-4 h-4" aria-hidden="true" />
                       {member.name}
                     </button>
                   );
@@ -590,7 +590,7 @@ export const TaskSearch: React.FC<TaskSearchProps> = ({
                     aria-pressed={isActive}
                     aria-label={`Filter by ${display.label}`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-4 h-4" aria-hidden="true" />
                     {display.label}
                   </button>
                 );
@@ -633,7 +633,7 @@ export const TaskSearch: React.FC<TaskSearchProps> = ({
                       aria-pressed={isActive}
                       aria-label={`Filter by creator ${member.name}`}
                     >
-                      <User className="w-4 h-4" />
+                      <User className="w-4 h-4" aria-hidden="true" />
                       {member.name}
                     </button>
                   );
