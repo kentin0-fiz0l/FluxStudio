@@ -192,10 +192,9 @@
                 return 'vendor-ui-utils';
               }
 
-              // Zod + hookform resolvers (resolver bridges zod ↔ react-hook-form)
-              if (id.includes('zod') || id.includes('@hookform/resolvers')) {
-                return 'vendor-validation';
-              }
+              // Zod — let Rollup handle naturally.
+              // @hookform/resolvers bridges zod ↔ react-hook-form (React-dependent),
+              // so manual chunking creates circular dependencies with feature-admin.
 
               // Yup / react-hook-form related (no React dependency for yup)
               if (id.includes('yup')) {
