@@ -163,6 +163,17 @@ export class ApiService {
           }
         }
 
+        // Handle rate limiting (429 Too Many Requests)
+        if (response.status === 429 && retries > 0) {
+          const retryAfter = response.headers.get('Retry-After');
+          const waitMs = retryAfter
+            ? (Number(retryAfter) || 1) * 1000
+            : Math.min(2000 * Math.pow(2, this.maxRetries - retries), 30000);
+          apiLogger.warn('Rate limited, retrying after', { waitMs, retriesLeft: retries - 1 });
+          await this.delay(waitMs);
+          return this.makeRequest(url, { ...options, retries: retries - 1 });
+        }
+
         throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 

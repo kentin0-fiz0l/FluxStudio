@@ -149,12 +149,22 @@ export interface UISlice {
 // ============================================================================
 
 const THEME_SETTINGS_KEY = 'flux-studio-theme';
+const THEME_PREFERENCE_KEY = 'flux-studio-theme-preference';
 
 const defaultThemeSettings: ThemeSettings = {
   variant: 'default',
   layoutDensity: 'comfortable',
   showAnimations: true,
 };
+
+/** Load persisted theme preference from localStorage */
+function loadThemePreference(): Theme {
+  try {
+    const stored = localStorage.getItem(THEME_PREFERENCE_KEY);
+    if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+  } catch { /* ignore */ }
+  return 'system';
+}
 
 function loadThemeSettings(): ThemeSettings {
   try {
@@ -185,7 +195,7 @@ function saveWorkingContext(context: WorkingContextData): void {
 }
 
 const initialState: UIState = {
-  theme: 'system',
+  theme: loadThemePreference(),
   themeSettings: loadThemeSettings(),
   sidebarCollapsed: false,
   sidebarWidth: 280,
@@ -224,6 +234,8 @@ export const createUISlice: StateCreator<
       set((state) => {
         state.ui.theme = theme;
       });
+      // Persist to localStorage
+      try { localStorage.setItem(THEME_PREFERENCE_KEY, theme); } catch { /* ignore */ }
       // Apply theme to document
       applyTheme(theme);
     },
@@ -440,14 +452,35 @@ export const createUISlice: StateCreator<
 // Theme Helper
 // ============================================================================
 
+let systemThemeCleanup: (() => void) | null = null;
+
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
-  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const systemPrefersDark = mq.matches;
 
   if (theme === 'dark' || (theme === 'system' && systemPrefersDark)) {
     root.classList.add('dark');
   } else {
     root.classList.remove('dark');
+  }
+
+  // Listen for system theme changes when in 'system' mode
+  if (systemThemeCleanup) {
+    systemThemeCleanup();
+    systemThemeCleanup = null;
+  }
+
+  if (theme === 'system') {
+    const handler = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    };
+    mq.addEventListener('change', handler);
+    systemThemeCleanup = () => mq.removeEventListener('change', handler);
   }
 }
 

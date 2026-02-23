@@ -110,6 +110,12 @@ export const useStore = create<FluxStore>()(
             }
             return merged as unknown as FluxStore;
           },
+          // Apply theme on hydration so dark mode works on initial page load
+          onRehydrateStorage: () => (state) => {
+            if (state?.ui?.theme) {
+              state.ui.setTheme(state.ui.theme);
+            }
+          },
         }
       )
     ),

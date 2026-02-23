@@ -77,6 +77,7 @@ export interface FormationExportOptions {
   quality?: number;
   fps?: number;
   resolution?: { width: number; height: number };
+  includeFieldOverlay?: boolean;
 }
 
 export interface PlaybackState {

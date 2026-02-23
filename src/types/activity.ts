@@ -17,10 +17,17 @@ export type ActivityType =
   | 'comment.created'
   | 'comment.deleted'
   | 'member.added'
+  | 'member.removed'
   | 'milestone.created'
-  | 'milestone.completed';
+  | 'milestone.completed'
+  | 'file.uploaded'
+  | 'file.deleted'
+  | 'formation.created'
+  | 'formation.updated'
+  | 'project.updated'
+  | 'project.archived';
 
-export type EntityType = 'task' | 'comment' | 'project' | 'milestone' | 'member';
+export type EntityType = 'task' | 'comment' | 'project' | 'milestone' | 'member' | 'file' | 'formation';
 
 // ============================================================================
 // Activity Interface
@@ -148,8 +155,15 @@ export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
   'comment.created': 'Comment Added',
   'comment.deleted': 'Comment Deleted',
   'member.added': 'Member Added',
+  'member.removed': 'Member Removed',
   'milestone.created': 'Milestone Created',
   'milestone.completed': 'Milestone Completed',
+  'file.uploaded': 'File Uploaded',
+  'file.deleted': 'File Deleted',
+  'formation.created': 'Formation Created',
+  'formation.updated': 'Formation Updated',
+  'project.updated': 'Project Updated',
+  'project.archived': 'Project Archived',
 };
 
 // ============================================================================

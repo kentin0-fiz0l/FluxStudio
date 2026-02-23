@@ -29,12 +29,19 @@ import {
   CheckCircle2,
   MessageSquare,
   UserPlus,
+  UserMinus,
   Flag,
   Check as FlagCheck,
   Filter,
   ChevronDown,
   Loader2,
   Clock,
+  Upload,
+  FileText,
+  LayoutGrid,
+  Archive,
+  Settings,
+  Wifi,
 } from 'lucide-react';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -54,6 +61,7 @@ import {
 } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useActivitiesQuery } from '@/hooks/useActivities';
+import { useRealtimeActivities } from '@/hooks/useRealtimeActivities';
 
 // ============================================================================
 // Type Definitions
@@ -67,8 +75,15 @@ export type ActivityType =
   | 'comment.created'
   | 'comment.deleted'
   | 'member.added'
+  | 'member.removed'
   | 'milestone.created'
-  | 'milestone.completed';
+  | 'milestone.completed'
+  | 'file.uploaded'
+  | 'file.deleted'
+  | 'formation.created'
+  | 'formation.updated'
+  | 'project.updated'
+  | 'project.archived';
 
 export interface Activity {
   id: string;
@@ -78,7 +93,7 @@ export interface Activity {
   userName: string;
   userEmail: string;
   userAvatar?: string;
-  entityType: 'task' | 'comment' | 'project' | 'milestone' | 'member';
+  entityType: 'task' | 'comment' | 'project' | 'milestone' | 'member' | 'file' | 'formation';
   entityId: string;
   entityTitle?: string;
   action: string;
@@ -89,12 +104,15 @@ export interface Activity {
     preview?: string;
   };
   timestamp: string;
+  createdAt?: string;
 }
 
 export interface ActivityFeedProps {
   projectId: string;
   maxItems?: number;
   compact?: boolean;
+  /** Enable real-time Socket.IO updates (default: true) */
+  realtime?: boolean;
   className?: string;
 }
 
@@ -111,8 +129,15 @@ const ACTIVITY_ICON_MAP: Record<ActivityType, React.ElementType> = {
   'comment.created': MessageSquare,
   'comment.deleted': Trash2,
   'member.added': UserPlus,
+  'member.removed': UserMinus,
   'milestone.created': Flag,
   'milestone.completed': FlagCheck,
+  'file.uploaded': Upload,
+  'file.deleted': FileText,
+  'formation.created': LayoutGrid,
+  'formation.updated': LayoutGrid,
+  'project.updated': Settings,
+  'project.archived': Archive,
 };
 
 // Color map defined at module level to avoid recreation during render
@@ -124,8 +149,15 @@ const ACTIVITY_COLOR_MAP: Record<ActivityType, string> = {
   'comment.created': 'text-accent-600 bg-accent-100',
   'comment.deleted': 'text-red-600 bg-red-100',
   'member.added': 'text-primary-600 bg-primary-100',
+  'member.removed': 'text-orange-600 bg-orange-100',
   'milestone.created': 'text-secondary-600 bg-secondary-100',
   'milestone.completed': 'text-success-600 bg-success-100',
+  'file.uploaded': 'text-green-600 bg-green-100',
+  'file.deleted': 'text-red-600 bg-red-100',
+  'formation.created': 'text-indigo-600 bg-indigo-100',
+  'formation.updated': 'text-indigo-600 bg-indigo-100',
+  'project.updated': 'text-gray-600 bg-gray-100',
+  'project.archived': 'text-amber-600 bg-amber-100',
 };
 
 const getActivityColor = (type: ActivityType): string => {
@@ -445,6 +477,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
   projectId,
   maxItems = 50,
   compact = false,
+  realtime = true,
   className,
 }) => {
   // ============================================================================
@@ -462,6 +495,14 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
   const [quickFilter, setQuickFilter] = React.useState<QuickFilterType>('all');
 
   // ============================================================================
+  // Real-time Socket.IO updates (Sprint 50)
+  // ============================================================================
+
+  const { isConnected: isRealtimeConnected } = useRealtimeActivities({
+    projectId: realtime ? projectId : undefined,
+  });
+
+  // ============================================================================
   // Data Fetching
   // ============================================================================
 
@@ -472,7 +513,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     error,
     refetch,
   } = useActivitiesQuery(projectId, {
-    type: filterType !== 'all' ? filterType : undefined,
+    type: filterType !== 'all' ? filterType as import('@/hooks/useActivities').ActivityType : undefined,
     userId: filterUserId !== 'all' ? filterUserId : undefined,
     limit: itemsPerPage,
     offset: (page - 1) * itemsPerPage,
@@ -622,6 +663,12 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                 <Badge variant="secondary" className="ml-2">
                   {totalActivities}
                 </Badge>
+              )}
+              {isRealtimeConnected && (
+                <span className="flex items-center gap-1 text-xs text-green-600" title="Live updates active">
+                  <Wifi className="h-3 w-3" />
+                  Live
+                </span>
               )}
             </div>
 

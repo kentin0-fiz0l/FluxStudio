@@ -27,7 +27,10 @@ import {
   Target,
   ChevronRight,
   X,
+  Clock,
+  Trash2,
 } from 'lucide-react';
+import { searchService } from '../../services/searchService';
 
 interface SearchableItem {
   id: string;
@@ -55,8 +58,16 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
 
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Load recent searches when palette opens
+  useEffect(() => {
+    if (isOpen) {
+      setRecentSearches(searchService.getSearchHistory().slice(0, 5));
+    }
+  }, [isOpen]);
 
   // Build searchable items
   const searchableItems = useMemo((): SearchableItem[] => {
@@ -323,7 +334,21 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
           break;
         case 'Enter':
           e.preventDefault();
+          if (!query.trim() && recentSearches[selectedIndex]) {
+            // Select a recent search to fill in the query
+            setQuery(recentSearches[selectedIndex]);
+            break;
+          }
           if (results[selectedIndex]) {
+            if (query.trim()) {
+              searchService.getSearchHistory(); // ensure loaded
+              // The search service addToHistory is called during search()
+              // but since we're using Fuse locally, manually record
+              const history = searchService.getSearchHistory();
+              if (!history.includes(query.trim())) {
+                searchService.search({ query: query.trim(), limit: 0 }).catch(() => {});
+              }
+            }
             results[selectedIndex].action();
             close();
             setQuery('');
@@ -465,6 +490,9 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
                                     : 'text-white/70 hover:bg-white/10 hover:text-white'
                                 )}
                                 onClick={() => {
+                                  if (query.trim()) {
+                                    searchService.search({ query: query.trim(), limit: 0 }).catch(() => {});
+                                  }
                                   item.action();
                                   close();
                                   setQuery('');
@@ -515,6 +543,54 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
                   <p className="text-gray-400 text-sm">
                     Try searching for projects, files, or actions
                   </p>
+                </div>
+              ) : recentSearches.length > 0 ? (
+                <div className="p-2">
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs font-medium text-gray-400 uppercase tracking-wide">
+                      <Clock className="h-3 w-3" />
+                      Recent Searches
+                    </div>
+                    <button
+                      onClick={() => {
+                        searchService.clearSearchHistory();
+                        setRecentSearches([]);
+                      }}
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Clear
+                    </button>
+                  </div>
+                  <div className="space-y-1">
+                    {recentSearches.map((term, index) => (
+                      <div
+                        key={term}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors group',
+                          index === selectedIndex
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/70 hover:bg-white/10 hover:text-white'
+                        )}
+                        onClick={() => {
+                          setQuery(term);
+                        }}
+                      >
+                        <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                        <span className="flex-1 text-sm truncate">{term}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            searchService.removeFromHistory(term);
+                            setRecentSearches(prev => prev.filter(t => t !== term));
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded transition-all"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">

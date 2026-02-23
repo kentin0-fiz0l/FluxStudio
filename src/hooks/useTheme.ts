@@ -1,74 +1,35 @@
 /**
- * useTheme Hook - Theme Management
+ * useTheme Hook - Unified Theme Management
  *
- * Manages application theme (light/dark/auto) with system preference detection
- * and localStorage persistence.
+ * Sprint 50 T2: Single source of truth via Zustand uiSlice.
+ * Supports light/dark/system with OS preference sync and localStorage persistence.
  */
 
-import { useState, useEffect } from 'react';
+import { useStore } from '@/store/store';
+import type { Theme } from '@/store/slices/uiSlice';
 
-export type Theme = 'light' | 'dark' | 'auto';
+export type { Theme };
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Load from localStorage or default to auto
-    const stored = localStorage.getItem('flux-theme') as Theme;
-    return stored || 'auto';
-  });
+  const theme = useStore((s) => s.ui.theme);
+  const setTheme = useStore((s) => s.ui.setTheme);
+  const toggleTheme = useStore((s) => s.ui.toggleTheme);
 
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
-
-  useEffect(() => {
-    const root = document.documentElement;
-
-    // Function to apply theme
-    const applyTheme = (newTheme: 'light' | 'dark') => {
-      setResolvedTheme(newTheme);
-
-      if (newTheme === 'dark') {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    };
-
-    // Handle theme changes
-    if (theme === 'auto') {
-      // Use system preference
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-      const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
-        applyTheme(e.matches ? 'dark' : 'light');
-      };
-
-      // Initial setup
-      handleChange(mediaQuery);
-
-      // Listen for changes
-      mediaQuery.addEventListener('change', handleChange);
-
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    } else {
-      // Use explicit theme
-      applyTheme(theme);
+  // Compute the resolved (actual) theme for consumers
+  const resolvedTheme = (() => {
+    if (theme === 'light' || theme === 'dark') return theme;
+    // 'system' — check media query
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-  }, [theme]);
-
-  // Save to localStorage
-  useEffect(() => {
-    localStorage.setItem('flux-theme', theme);
-  }, [theme]);
+    return 'light';
+  })();
 
   return {
     theme,
     setTheme,
     resolvedTheme,
-    toggleTheme: () => {
-      setTheme(current => {
-        if (current === 'light') return 'dark';
-        if (current === 'dark') return 'auto';
-        return 'light';
-      });
-    }
+    toggleTheme,
+    isDark: resolvedTheme === 'dark',
   };
 }

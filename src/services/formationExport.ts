@@ -65,9 +65,56 @@ export async function exportToPdf(
       doc.text(timeStr, pageWidth - margin - 15, margin + 5);
     }
 
+    // Page number
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Page ${i + 1} of ${keyframes.length}`, pageWidth - margin, pageHeight - margin + 5, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+
+    // Count annotation (for drill charts)
+    if (i > 0) {
+      const prevTimestamp = keyframes[i - 1].timestamp;
+      const countDuration = keyframe.timestamp - prevTimestamp;
+      const counts = Math.round(countDuration / 500); // ~120 BPM → 1 count per 500ms
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(100, 100, 100);
+      doc.text(`${counts} counts from prev`, pageWidth - margin - 15, margin + 12);
+      doc.setTextColor(0, 0, 0);
+    }
+
     doc.setFillColor(248, 250, 252);
     doc.setDrawColor(200, 200, 200);
     doc.rect(offsetX, offsetY, stageDrawWidth, stageDrawHeight, 'FD');
+
+    // Field overlay (yard lines)
+    if (options.includeFieldOverlay) {
+      doc.setDrawColor(180, 200, 180);
+      doc.setLineWidth(0.3);
+      // Draw 11 yard lines (0 to 100 yards, every 10)
+      for (let yard = 0; yard <= 10; yard++) {
+        const yardX = offsetX + (yard / 10) * stageDrawWidth;
+        doc.line(yardX, offsetY, yardX, offsetY + stageDrawHeight);
+        // Yard number labels
+        const yardNum = yard <= 5 ? yard * 10 : (10 - yard) * 10;
+        if (yardNum > 0) {
+          doc.setFontSize(6);
+          doc.setTextColor(150, 180, 150);
+          doc.text(String(yardNum), yardX + 1, offsetY + stageDrawHeight - 1);
+          doc.setTextColor(0, 0, 0);
+        }
+      }
+      // Hash marks (two horizontal lines at ~1/3 and 2/3 height)
+      doc.setLineWidth(0.15);
+      const hashY1 = offsetY + stageDrawHeight * 0.35;
+      const hashY2 = offsetY + stageDrawHeight * 0.65;
+      for (let yard = 0; yard <= 100; yard += 5) {
+        const hx = offsetX + (yard / 100) * stageDrawWidth;
+        doc.line(hx - 1, hashY1, hx + 1, hashY1);
+        doc.line(hx - 1, hashY2, hx + 1, hashY2);
+      }
+    }
 
     if (options.includeGrid) {
       doc.setDrawColor(226, 232, 240);
