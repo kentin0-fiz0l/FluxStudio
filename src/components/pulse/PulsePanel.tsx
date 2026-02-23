@@ -84,19 +84,19 @@ export function PulsePanel({
     {
       id: 'attention',
       label: 'Needs Attention',
-      icon: <Inbox className="h-4 w-4" />,
+      icon: <Inbox className="h-4 w-4" aria-hidden="true" />,
       badge: attentionItems.length,
     },
     {
       id: 'activity',
       label: 'Activity',
-      icon: <Activity className="h-4 w-4" />,
+      icon: <Activity className="h-4 w-4" aria-hidden="true" />,
       badge: unseenCount > 0 ? unseenCount : undefined,
     },
     {
       id: 'team',
       label: 'Team',
-      icon: <Users className="h-4 w-4" />,
+      icon: <Users className="h-4 w-4" aria-hidden="true" />,
       badge: teamMembers.filter((m) => m.isOnline).length || undefined,
     },
   ];
@@ -118,7 +118,7 @@ export function PulsePanel({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-800">
         <div className="flex items-center gap-2">
-          <Activity className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+          <Activity className="h-5 w-5 text-primary-600 dark:text-primary-400" aria-hidden="true" />
           <h2 className="font-semibold text-neutral-900 dark:text-neutral-100">
             Project Pulse
           </h2>
@@ -137,6 +137,7 @@ export function PulsePanel({
             aria-label="Refresh pulse"
           >
             <RefreshCw
+              aria-hidden="true"
               className={cn('h-4 w-4', isLoading && 'animate-spin')}
             />
           </Button>
@@ -146,7 +147,7 @@ export function PulsePanel({
             onClick={onClose}
             aria-label="Close pulse panel"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       </div>
@@ -166,7 +167,7 @@ export function PulsePanel({
           )}
         >
           <span className="font-medium truncate">{activeProject.name}</span>
-          <ChevronRight className="h-4 w-4 flex-shrink-0" />
+          <ChevronRight className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
         </button>
       )}
 
@@ -222,7 +223,7 @@ export function PulsePanel({
       {attentionItems.length === 0 && activeTab === 'attention' && (
         <div className="px-4 py-3 border-t border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-            <Check className="h-4 w-4" />
+            <Check className="h-4 w-4" aria-hidden="true" />
             <span>All caught up!</span>
           </div>
         </div>

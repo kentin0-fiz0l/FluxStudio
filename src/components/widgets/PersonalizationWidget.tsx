@@ -56,7 +56,7 @@ export function PersonalizationWidget({ config, onRefresh, onRemove }: WidgetPro
         {/* Theme Variants */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Palette className="h-4 w-4 text-blue-400" />
+            <Palette className="h-4 w-4 text-blue-400" aria-hidden="true" />
             <Label className="text-sm font-medium text-white">Theme</Label>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -90,7 +90,7 @@ export function PersonalizationWidget({ config, onRefresh, onRemove }: WidgetPro
         {/* Layout Density */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Layout className="h-4 w-4 text-purple-400" />
+            <Layout className="h-4 w-4 text-purple-400" aria-hidden="true" />
             <Label className="text-sm font-medium text-white">Layout Density</Label>
           </div>
           <div className="flex gap-2">
@@ -115,7 +115,7 @@ export function PersonalizationWidget({ config, onRefresh, onRemove }: WidgetPro
         {/* Custom Accent Color */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Palette className="h-4 w-4 text-green-400" />
+            <Palette className="h-4 w-4 text-green-400" aria-hidden="true" />
             <Label className="text-sm font-medium text-white">Accent Color</Label>
           </div>
           <div className="flex gap-2">
@@ -174,13 +174,13 @@ export function PersonalizationWidget({ config, onRefresh, onRemove }: WidgetPro
         {/* Quick Settings */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Zap className="h-4 w-4 text-yellow-400" />
+            <Zap className="h-4 w-4 text-yellow-400" aria-hidden="true" />
             <Label className="text-sm font-medium text-white">Quick Settings</Label>
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
               <div className="flex items-center gap-2">
-                <Monitor className="h-4 w-4 text-gray-400" />
+                <Monitor className="h-4 w-4 text-gray-400" aria-hidden="true" />
                 <span className="text-sm text-gray-300">Collapse Sidebar</span>
               </div>
               <Button
@@ -199,7 +199,7 @@ export function PersonalizationWidget({ config, onRefresh, onRemove }: WidgetPro
 
             <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
               <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-gray-400" />
+                <Zap className="h-4 w-4 text-gray-400" aria-hidden="true" />
                 <span className="text-sm text-gray-300">Animations</span>
               </div>
               <Button
@@ -226,7 +226,7 @@ export function PersonalizationWidget({ config, onRefresh, onRemove }: WidgetPro
             onClick={resetToDefaults}
             className="w-full bg-white/5 hover:bg-red-500/20 text-gray-300 hover:text-red-400 border-white/20"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
             Reset to Defaults
           </Button>
         </div>

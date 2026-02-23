@@ -169,7 +169,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
             className
           )}
         >
-          <Briefcase className="h-5 w-5 text-neutral-500" />
+          <Briefcase className="h-5 w-5 text-neutral-500" aria-hidden="true" />
         </div>
       );
     }
@@ -207,7 +207,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <Briefcase className="h-5 w-5 text-neutral-300" />
+        <Briefcase className="h-5 w-5 text-neutral-300" aria-hidden="true" />
       </button>
     );
   }
@@ -236,7 +236,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
               {currentProject.name.charAt(0).toUpperCase()}
             </span>
           ) : (
-            <FolderOpen className="h-4 w-4 text-neutral-400" />
+            <FolderOpen className="h-4 w-4 text-neutral-400" aria-hidden="true" />
           )}
         </div>
 
@@ -262,11 +262,12 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
             className="p-1 rounded hover:bg-neutral-600 transition-colors"
             aria-label="Clear project selection"
           >
-            <X className="h-4 w-4 text-neutral-400" />
+            <X className="h-4 w-4 text-neutral-400" aria-hidden="true" />
           </button>
         )}
 
         <ChevronDown
+          aria-hidden="true"
           className={cn(
             'h-4 w-4 text-neutral-400 transition-transform flex-shrink-0',
             isOpen && 'rotate-180'
@@ -288,7 +289,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
           {/* Search */}
           <div className="p-2 border-b border-neutral-700">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" aria-hidden="true" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -346,7 +347,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
                       )}
                     </div>
                     {isSelected && (
-                      <Check className="h-4 w-4 text-primary-400 flex-shrink-0" />
+                      <Check className="h-4 w-4 text-primary-400 flex-shrink-0" aria-hidden="true" />
                     )}
                   </button>
                 );
@@ -364,7 +365,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
               )}
             >
               <div className="w-6 h-6 rounded-md bg-primary-600 flex items-center justify-center">
-                <Plus className="h-4 w-4 text-white" />
+                <Plus className="h-4 w-4 text-white" aria-hidden="true" />
               </div>
               <span className="text-sm font-medium text-primary-400">
                 Create New Project
