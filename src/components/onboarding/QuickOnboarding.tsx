@@ -41,7 +41,7 @@ const templates: ProjectTemplate[] = [
     id: 'marching-band',
     name: 'Marching Band Show',
     description: 'Complete show production with formations, music, and props',
-    icon: <Sparkles className="w-5 h-5" />,
+    icon: <Sparkles className="w-5 h-5" aria-hidden="true" />,
     folders: ['Music & Audio', 'Formations', 'Costumes', 'Props & Equipment'],
     color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
   },
@@ -49,7 +49,7 @@ const templates: ProjectTemplate[] = [
     id: 'indoor-winds',
     name: 'Indoor Winds',
     description: 'Indoor percussion and winds ensemble production',
-    icon: <Lightbulb className="w-5 h-5" />,
+    icon: <Lightbulb className="w-5 h-5" aria-hidden="true" />,
     folders: ['Music', 'Choreography', 'Floor Design', 'Equipment'],
     color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
   },
@@ -57,7 +57,7 @@ const templates: ProjectTemplate[] = [
     id: 'design-project',
     name: 'Design Project',
     description: 'General creative design and collaboration',
-    icon: <Folder className="w-5 h-5" />,
+    icon: <Folder className="w-5 h-5" aria-hidden="true" />,
     folders: ['Designs', 'Assets', 'References', 'Deliverables'],
     color: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
   },
@@ -65,7 +65,7 @@ const templates: ProjectTemplate[] = [
     id: 'blank',
     name: 'Blank Project',
     description: 'Start from scratch with an empty project',
-    icon: <Briefcase className="w-5 h-5" />,
+    icon: <Briefcase className="w-5 h-5" aria-hidden="true" />,
     folders: [],
     color: 'bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300',
   },
@@ -195,7 +195,7 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
                       className="gap-2"
                     >
                       Continue
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-4 h-4" aria-hidden="true" />
                     </Button>
                   </div>
                 </CardContent>
@@ -266,7 +266,7 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
                       className="gap-2"
                     >
                       Create "{projectName}"
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-4 h-4" aria-hidden="true" />
                     </Button>
                   </div>
                 </CardContent>
