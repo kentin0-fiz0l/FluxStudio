@@ -160,14 +160,14 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  design: <PieChart className="w-5 h-5" />,
-  image: <Image className="w-5 h-5" />,
-  video: <Video className="w-5 h-5" />,
-  audio: <Music className="w-5 h-5" />,
-  document: <FileText className="w-5 h-5" />,
-  code: <Code className="w-5 h-5" />,
-  archive: <Archive className="w-5 h-5" />,
-  data: <BarChart3 className="w-5 h-5" />,
+  design: <PieChart className="w-5 h-5" aria-hidden="true" />,
+  image: <Image className="w-5 h-5" aria-hidden="true" />,
+  video: <Video className="w-5 h-5" aria-hidden="true" />,
+  audio: <Music className="w-5 h-5" aria-hidden="true" />,
+  document: <FileText className="w-5 h-5" aria-hidden="true" />,
+  code: <Code className="w-5 h-5" aria-hidden="true" />,
+  archive: <Archive className="w-5 h-5" aria-hidden="true" />,
+  data: <BarChart3 className="w-5 h-5" aria-hidden="true" />,
 };
 
 export const ContentInsights: React.FC<ContentInsightsProps> = ({
@@ -188,7 +188,7 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
       size: (stats.totalSize / stats.totalFiles) * count,
       percentage: (count / stats.totalFiles) * 100,
       color: CATEGORY_COLORS[category] || '#6B7280',
-      icon: CATEGORY_ICONS[category] || <FileText className="w-5 h-5" />,
+      icon: CATEGORY_ICONS[category] || <FileText className="w-5 h-5" aria-hidden="true" />,
     }));
   }, [stats]);
 
@@ -217,15 +217,15 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
   const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {
       case 'upload':
-        return <Download className="w-4 h-4 text-blue-500" />;
+        return <Download className="w-4 h-4 text-blue-500" aria-hidden="true" />;
       case 'analysis':
-        return <Sparkles className="w-4 h-4 text-purple-500" />;
+        return <Sparkles className="w-4 h-4 text-purple-500" aria-hidden="true" />;
       case 'tag':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
+        return <CheckCircle className="w-4 h-4 text-green-500" aria-hidden="true" />;
       case 'share':
-        return <Share2 className="w-4 h-4 text-orange-500" />;
+        return <Share2 className="w-4 h-4 text-orange-500" aria-hidden="true" />;
       default:
-        return <Activity className="w-4 h-4 text-gray-500" />;
+        return <Activity className="w-4 h-4 text-gray-500" aria-hidden="true" />;
     }
   };
 

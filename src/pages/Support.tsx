@@ -161,7 +161,7 @@ export function Support() {
             className="text-center py-16"
           >
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <CheckCircle className="w-10 h-10 text-green-600" />
+              <CheckCircle className="w-10 h-10 text-green-600" aria-hidden="true" />
             </div>
             <h1 className="text-2xl font-bold text-neutral-900 dark:text-white mb-3">
               Request Submitted
@@ -208,7 +208,7 @@ export function Support() {
         {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/help')}>
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" aria-hidden="true" />
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">
@@ -224,7 +224,7 @@ export function Support() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-primary-600" />
+              <MessageSquare className="w-5 h-5 text-primary-600" aria-hidden="true" />
               Submit a Support Request
             </CardTitle>
           </CardHeader>
@@ -233,7 +233,7 @@ export function Support() {
               {/* Error Alert */}
               {error && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                   {error}
                 </div>
               )}
@@ -242,7 +242,7 @@ export function Support() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
-                    <User className="w-4 h-4" />
+                    <User className="w-4 h-4" aria-hidden="true" />
                     Your Name
                   </label>
                   <Input
@@ -258,14 +258,14 @@ export function Support() {
                   />
                   {fieldErrors.name && (
                     <p id="name-error" className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
+                      <AlertCircle className="w-3 h-3" aria-hidden="true" />
                       {fieldErrors.name}
                     </p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
+                    <Mail className="w-4 h-4" aria-hidden="true" />
                     Email Address
                   </label>
                   <Input
@@ -282,7 +282,7 @@ export function Support() {
                   />
                   {fieldErrors.email && (
                     <p id="email-error" className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
+                      <AlertCircle className="w-3 h-3" aria-hidden="true" />
                       {fieldErrors.email}
                     </p>
                   )}
@@ -314,7 +314,7 @@ export function Support() {
               {/* Subject */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
+                  <FileText className="w-4 h-4" aria-hidden="true" />
                   Subject
                 </label>
                 <Input
@@ -330,7 +330,7 @@ export function Support() {
                 />
                 {fieldErrors.subject && (
                   <p id="subject-error" className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
+                    <AlertCircle className="w-3 h-3" aria-hidden="true" />
                     {fieldErrors.subject}
                   </p>
                 )}
@@ -356,7 +356,7 @@ export function Support() {
                 <div id="message-hint" className="flex items-center justify-between">
                   {fieldErrors.message ? (
                     <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
+                      <AlertCircle className="w-3 h-3" aria-hidden="true" />
                       {fieldErrors.message}
                     </p>
                   ) : (
@@ -380,12 +380,12 @@ export function Support() {
                 <Button type="submit" disabled={loading} className="gap-2">
                   {loading ? (
                     <>
-                      <Loader className="w-4 h-4 animate-spin" />
+                      <Loader className="w-4 h-4 animate-spin" aria-hidden="true" />
                       Submitting...
                     </>
                   ) : (
                     <>
-                      <Send className="w-4 h-4" />
+                      <Send className="w-4 h-4" aria-hidden="true" />
                       Submit Request
                     </>
                   )}
