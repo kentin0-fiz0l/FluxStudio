@@ -75,7 +75,7 @@ export function AISuggestionsBar({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-            <Lightbulb className="w-4 h-4" />
+            <Lightbulb className="w-4 h-4" aria-hidden="true" />
             <span className="text-sm font-medium">AI Suggestions</span>
             <span className="text-xs text-gray-500 dark:text-gray-400">
               ({suggestions.length} available)
@@ -95,7 +95,7 @@ export function AISuggestionsBar({
                 onClick={onOpenChat}
                 className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 transition-colors"
               >
-                <Sparkles className="w-3 h-3" />
+                <Sparkles className="w-3 h-3" aria-hidden="true" />
                 Ask AI
               </button>
             )}
@@ -134,15 +134,15 @@ function SuggestionItem({ suggestion, index, onDismiss, onApply }: SuggestionIte
   const getIcon = () => {
     switch (suggestion.type) {
       case 'action':
-        return <Zap className="w-4 h-4" />;
+        return <Zap className="w-4 h-4" aria-hidden="true" />;
       case 'content':
-        return <Type className="w-4 h-4" />;
+        return <Type className="w-4 h-4" aria-hidden="true" />;
       case 'optimization':
-        return <Layout className="w-4 h-4" />;
+        return <Layout className="w-4 h-4" aria-hidden="true" />;
       case 'warning':
-        return <AlertTriangle className="w-4 h-4" />;
+        return <AlertTriangle className="w-4 h-4" aria-hidden="true" />;
       default:
-        return <Lightbulb className="w-4 h-4" />;
+        return <Lightbulb className="w-4 h-4" aria-hidden="true" />;
     }
   };
 
@@ -201,7 +201,7 @@ function SuggestionItem({ suggestion, index, onDismiss, onApply }: SuggestionIte
               className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 rounded-lg transition-colors"
             >
               {suggestion.actions[0].label}
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRight className="w-3 h-3" aria-hidden="true" />
             </button>
           )}
 
@@ -215,7 +215,7 @@ function SuggestionItem({ suggestion, index, onDismiss, onApply }: SuggestionIte
                 className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 title="Dismiss"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </motion.button>
             )}
           </AnimatePresence>
