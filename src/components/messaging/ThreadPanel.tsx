@@ -193,9 +193,9 @@ function ThreadComposer({
           className="p-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isSending ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
           ) : (
-            <Send className="w-5 h-5" />
+            <Send className="w-5 h-5" aria-hidden="true" />
           )}
         </button>
       </div>
@@ -257,10 +257,10 @@ export function ThreadPanel({
             onClick={onClose}
             className="md:hidden p-2 -ml-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
           >
-            <ArrowLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+            <ArrowLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
           </button>
           <div className="flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-primary-600" />
+            <MessageCircle className="w-5 h-5 text-primary-600" aria-hidden="true" />
             <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">Thread</h3>
           </div>
         </div>
@@ -268,7 +268,7 @@ export function ThreadPanel({
           onClick={onClose}
           className="hidden md:block p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
         >
-          <X className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+          <X className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
       </div>
 
@@ -289,7 +289,7 @@ export function ThreadPanel({
               className="p-1 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 rounded transition-colors"
               aria-label="Dismiss hint"
             >
-              <X className="w-4 h-4 text-indigo-500" />
+              <X className="w-4 h-4 text-indigo-500" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -311,11 +311,11 @@ export function ThreadPanel({
       <div className="flex-1 overflow-y-auto p-3 space-y-1">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
+            <Loader2 className="w-6 h-6 text-primary-600 animate-spin" aria-hidden="true" />
           </div>
         ) : messages.length === 0 ? (
           <div className="text-center py-8">
-            <MessageCircle className="w-10 h-10 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" />
+            <MessageCircle className="w-10 h-10 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" aria-hidden="true" />
             <p className="text-sm text-neutral-500">No replies yet</p>
             <p className="text-xs text-neutral-400 mt-1">Be the first to reply</p>
           </div>

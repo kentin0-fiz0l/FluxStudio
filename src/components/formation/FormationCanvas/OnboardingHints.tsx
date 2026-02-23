@@ -20,22 +20,22 @@ interface Hint {
 
 const DESKTOP_HINTS: Hint[] = [
   {
-    icon: <MousePointer2 className="w-5 h-5" />,
+    icon: <MousePointer2 className="w-5 h-5" aria-hidden="true" />,
     title: 'Drag to rearrange',
     body: 'Click and drag any performer to move them. Hold Shift to select multiple.',
   },
   {
-    icon: <LayoutTemplate className="w-5 h-5" />,
+    icon: <LayoutTemplate className="w-5 h-5" aria-hidden="true" />,
     title: 'Apply templates',
     body: 'Use the Templates button in the toolbar to quickly apply wedge, line, block, and other formations.',
   },
   {
-    icon: <Undo2 className="w-5 h-5" />,
+    icon: <Undo2 className="w-5 h-5" aria-hidden="true" />,
     title: 'Undo & redo',
     body: 'Made a mistake? Press Ctrl+Z to undo or Ctrl+Y to redo. (Cmd on Mac)',
   },
   {
-    icon: <Keyboard className="w-5 h-5" />,
+    icon: <Keyboard className="w-5 h-5" aria-hidden="true" />,
     title: 'Keyboard shortcuts',
     body: 'Arrow keys nudge performers. Delete removes them. Ctrl+A selects all.',
   },
@@ -43,17 +43,17 @@ const DESKTOP_HINTS: Hint[] = [
 
 const MOBILE_HINTS: Hint[] = [
   {
-    icon: <Hand className="w-5 h-5" />,
+    icon: <Hand className="w-5 h-5" aria-hidden="true" />,
     title: 'Tap & drag',
     body: 'Tap any performer to select, then drag to move them around the field.',
   },
   {
-    icon: <LayoutTemplate className="w-5 h-5" />,
+    icon: <LayoutTemplate className="w-5 h-5" aria-hidden="true" />,
     title: 'Apply templates',
     body: 'Use the Templates button to quickly apply wedge, line, block, and other formations.',
   },
   {
-    icon: <Undo2 className="w-5 h-5" />,
+    icon: <Undo2 className="w-5 h-5" aria-hidden="true" />,
     title: 'Undo mistakes',
     body: 'Use the undo button in the toolbar to reverse your last action.',
   },
@@ -118,7 +118,7 @@ export function OnboardingHints() {
             className="absolute top-2 right-2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             aria-label="Close hints"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
 
           {/* Icon + content */}

@@ -76,7 +76,7 @@ export function NewConversationDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-primary-600" />
+            <MessageCircle className="w-5 h-5 text-primary-600" aria-hidden="true" />
             New Conversation
           </DialogTitle>
           <DialogDescription>
@@ -98,7 +98,7 @@ export function NewConversationDialog({
                     onClick={() => onToggleUser(u)}
                     className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-primary-200 dark:hover:bg-primary-800"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3 h-3" aria-hidden="true" />
                   </button>
                 </div>
               ))}
@@ -123,7 +123,7 @@ export function NewConversationDialog({
 
           {/* Search input */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
             <input
               type="text"
               value={searchTerm}
@@ -141,11 +141,11 @@ export function NewConversationDialog({
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
+                  <Loader2 className="w-6 h-6 text-primary-600 animate-spin" aria-hidden="true" />
                 </div>
               ) : availableUsers.length === 0 ? (
                 <div className="text-center py-8">
-                  <Users className="w-10 h-10 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" />
+                  <Users className="w-10 h-10 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" aria-hidden="true" />
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">
                     {searchTerm ? 'No users found' : 'No team members available'}
                   </p>
@@ -176,7 +176,7 @@ export function NewConversationDialog({
                       </div>
                       {isSelected && (
                         <div className="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center">
-                          <Check className="w-4 h-4 text-white" />
+                          <Check className="w-4 h-4 text-white" aria-hidden="true" />
                         </div>
                       )}
                     </button>
@@ -196,12 +196,12 @@ export function NewConversationDialog({
             >
               {selectedUsers.length > 1 ? (
                 <>
-                  <Users className="w-4 h-4 mr-2" />
+                  <Users className="w-4 h-4 mr-2" aria-hidden="true" />
                   Create Group
                 </>
               ) : (
                 <>
-                  <MessageCircle className="w-4 h-4 mr-2" />
+                  <MessageCircle className="w-4 h-4 mr-2" aria-hidden="true" />
                   Start Chat
                 </>
               )}
