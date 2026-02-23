@@ -165,14 +165,14 @@ export const ProjectMessagesTab = React.forwardRef<HTMLDivElement, ProjectMessag
       return (
         <div ref={ref} className={cn('h-full flex items-center justify-center p-6', className)}>
           <Card className="max-w-md w-full p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-error-500 mx-auto mb-4" />
+            <AlertCircle className="h-12 w-12 text-error-500 mx-auto mb-4" aria-hidden="true" />
             <h3 className="text-lg font-semibold text-neutral-900 mb-2">
               Failed to Load Chat
             </h3>
             <p className="text-sm text-neutral-600 mb-4">{error}</p>
             <Button
               onClick={() => refresh()}
-              icon={<RefreshCw className="h-4 w-4" />}
+              icon={<RefreshCw className="h-4 w-4" aria-hidden="true" />}
               variant="primary"
             >
               Try Again
@@ -192,7 +192,7 @@ export const ProjectMessagesTab = React.forwardRef<HTMLDivElement, ProjectMessag
             {messaging.conversationMessages.length === 0 ? (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center max-w-md">
-                  <Users className="h-16 w-16 text-neutral-300 mx-auto mb-4" />
+                  <Users className="h-16 w-16 text-neutral-300 mx-auto mb-4" aria-hidden="true" />
                   <h3 className="text-lg font-semibold text-neutral-900 mb-2">
                     Start the Conversation
                   </h3>
@@ -235,7 +235,7 @@ export const ProjectMessagesTab = React.forwardRef<HTMLDivElement, ProjectMessag
                 variant="primary"
                 size="md"
                 disabled={!messageInput.trim() || sending}
-                icon={<Send className="h-4 w-4" />}
+                icon={<Send className="h-4 w-4" aria-hidden="true" />}
               >
                 {sending ? 'Sending...' : 'Send'}
               </Button>

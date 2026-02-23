@@ -52,18 +52,18 @@ export function PortfolioHeader({
 
                 <div className="flex items-center gap-6 text-white/80">
                   <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
+                    <User className="h-4 w-4" aria-hidden="true" />
                     <span>{portfolio.owner.name}</span>
                     <Badge variant="outline" className="text-white border-white/50">
                       {portfolio.owner.role}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4" aria-hidden="true" />
                     <span>{portfolio.stats.total_views.toLocaleString()} views</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Award className="h-4 w-4" />
+                    <Award className="h-4 w-4" aria-hidden="true" />
                     <span>{portfolio.stats.featured_items} featured</span>
                   </div>
                 </div>
@@ -74,7 +74,7 @@ export function PortfolioHeader({
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="outline" className="text-white border-white/50 hover:bg-white/10">
-                        <Settings className="h-4 w-4 mr-2" />
+                        <Settings className="h-4 w-4 mr-2" aria-hidden="true" />
                         Edit Portfolio
                       </Button>
                     </DialogTrigger>
