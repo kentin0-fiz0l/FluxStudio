@@ -68,16 +68,27 @@ const NotificationIcon = ({ type }: { type: NotificationType }) => {
   return <Icon size={16} />;
 };
 
+const priorityLabels: Record<Priority, string> = {
+  critical: 'Critical priority',
+  high: 'High priority',
+  medium: 'Medium priority',
+  low: 'Low priority',
+};
+
 const PriorityIndicator = ({ priority }: { priority: Priority }) => {
   const colors = {
-    critical: 'bg-red-500',
-    high: 'bg-orange-500',
-    medium: 'bg-yellow-500',
-    low: 'bg-blue-500',
+    critical: 'bg-red-500 dark:bg-red-400',
+    high: 'bg-orange-500 dark:bg-orange-400',
+    medium: 'bg-yellow-500 dark:bg-yellow-400',
+    low: 'bg-blue-500 dark:bg-blue-400',
   };
 
   return (
-    <div className={`w-2 h-2 rounded-full ${colors[priority]} flex-shrink-0`} />
+    <div
+      className={`w-2 h-2 rounded-full ${colors[priority]} flex-shrink-0`}
+      role="img"
+      aria-label={priorityLabels[priority]}
+    />
   );
 };
 
@@ -127,11 +138,13 @@ function NotificationItem({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.2 }}
-      className={`relative group border-b border-gray-100 last:border-b-0 ${
-        !notification.isRead ? 'bg-blue-50' : 'bg-white'
-      } hover:bg-gray-50 transition-colors`}
+      className={`relative group border-b border-gray-100 dark:border-neutral-800 last:border-b-0 ${
+        !notification.isRead ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-neutral-900'
+      } hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
+      onFocus={() => setShowActions(true)}
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setShowActions(false); }}
     >
       <div className="p-4">
         <div className="flex items-start gap-3">
@@ -139,7 +152,7 @@ function NotificationItem({
           <PriorityIndicator priority={notification.priority} />
 
           {/* Avatar/Icon */}
-          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 bg-gray-100 dark:bg-neutral-700 rounded-full flex items-center justify-center flex-shrink-0">
             {notification.avatar ? (
               <img
                 src={notification.avatar}
@@ -156,7 +169,7 @@ function NotificationItem({
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <h4 className={`text-sm font-medium text-gray-900 ${
+                  <h4 className={`text-sm font-medium text-gray-900 dark:text-neutral-100 ${
                     !notification.isRead ? 'font-semibold' : ''
                   }`}>
                     {notification.title}
@@ -166,17 +179,17 @@ function NotificationItem({
                   )}
                 </div>
 
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                <p className="text-sm text-gray-600 dark:text-neutral-400 mt-1 line-clamp-2">
                   {notification.message}
                 </p>
 
                 {notification.summary && notification.summary !== notification.title && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-neutral-500 mt-1">
                     {notification.summary}
                   </p>
                 )}
 
-                <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-neutral-500">
                   <span>{formatTimeAgo(notification.createdAt)}</span>
                   {notification.metadata?.category && (
                     <>
@@ -194,7 +207,7 @@ function NotificationItem({
               </div>
 
               <div className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400 dark:text-neutral-500">
                   {formatTimeAgo(notification.createdAt)}
                 </span>
 
@@ -209,8 +222,9 @@ function NotificationItem({
                       {!notification.isRead && (
                         <button
                           onClick={() => onMarkAsRead(notification.id)}
-                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          className="p-2 sm:p-1 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-gray-400 dark:text-neutral-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded"
                           title="Mark as read"
+                          aria-label="Mark as read"
                         >
                           <Eye size={14} />
                         </button>
@@ -218,24 +232,27 @@ function NotificationItem({
 
                       <button
                         onClick={handleSnooze}
-                        className="p-1 text-gray-400 hover:text-yellow-600 transition-colors"
+                        className="p-2 sm:p-1 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-gray-400 dark:text-neutral-500 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors rounded"
                         title="Snooze for 1 hour"
+                        aria-label="Snooze for 1 hour"
                       >
                         <Clock size={14} />
                       </button>
 
                       <button
                         onClick={() => onArchive(notification.id)}
-                        className="p-1 text-gray-400 hover:text-green-600 transition-colors"
+                        className="p-2 sm:p-1 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-gray-400 dark:text-neutral-500 hover:text-green-600 dark:hover:text-green-400 transition-colors rounded"
                         title="Archive"
+                        aria-label="Archive"
                       >
                         <Archive size={14} />
                       </button>
 
                       <button
                         onClick={() => onDismiss(notification.id)}
-                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                        className="p-2 sm:p-1 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-gray-400 dark:text-neutral-500 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded"
                         title="Dismiss"
+                        aria-label="Dismiss"
                       >
                         <X size={14} />
                       </button>
@@ -525,13 +542,13 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
   if (!isOpen) return null;
 
   return (
-    <div className={`bg-white border border-gray-200 rounded-lg shadow-lg relative z-40 ${className}`}>
+    <div className={`bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg relative z-40 ${className}`}>
       {/* Header */}
-      <div className="relative border-b border-gray-200 p-4">
+      <div className="relative border-b border-gray-200 dark:border-neutral-700 p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Bell size={20} className="text-gray-700" />
-            <h2 className="text-lg font-semibold text-gray-900">Notifications</h2>
+            <Bell size={20} className="text-gray-700 dark:text-neutral-300" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h2>
             {unreadCount > 0 && (
               <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
                 {unreadCount}
@@ -583,7 +600,7 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
               placeholder="Search notifications..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-9 pr-3 py-2 border border-gray-200 dark:border-neutral-600 rounded-md text-sm bg-white dark:bg-neutral-800 text-gray-900 dark:text-neutral-100 placeholder-gray-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -674,8 +691,8 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
 
       {/* Footer */}
       {filteredNotifications.length > 0 && (
-        <div className="border-t border-gray-200 p-3">
-          <div className="flex items-center justify-between text-sm text-gray-500">
+        <div className="border-t border-gray-200 dark:border-neutral-700 p-3">
+          <div className="flex items-center justify-between text-sm text-gray-500 dark:text-neutral-400">
             <span>{filteredNotifications.length} of {notifications.length} notifications</span>
             <button
               onClick={clearAll}

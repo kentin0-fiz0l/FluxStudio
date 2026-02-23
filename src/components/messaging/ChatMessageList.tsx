@@ -89,7 +89,7 @@ interface MessageBubbleWrapperProps {
   onCancelEdit: () => void;
 }
 
-function MessageBubbleWrapper({
+const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
   message,
   onReply,
   onEdit,
@@ -262,7 +262,7 @@ function MessageBubbleWrapper({
       </div>
     </div>
   );
-}
+});
 
 // ============================================================================
 // ChatMessageList

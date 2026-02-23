@@ -69,7 +69,7 @@ interface CanvasToolbarProps {
   setFingerMode?: (mode: 'select' | 'pan') => void;
 }
 
-export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
+export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
   activeTool, setActiveTool,
   showGrid, setShowGrid, showLabels, setShowLabels,
   showRotation, setShowRotation, showPaths, setShowPaths,
@@ -109,28 +109,28 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   const activeViewCount = [showGrid, showLabels, showRotation, showPaths, snapEnabled, timeDisplayMode === 'counts', showFieldOverlay].filter(Boolean).length;
 
   return (
-    <div className="flex items-center justify-between px-3 py-1.5 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+    <div className="flex items-center justify-between px-3 py-1.5 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-x-auto" role="toolbar" aria-label="Formation canvas toolbar">
       {/* Left: Drawing tools + Finger Mode + Undo/Redo + Zoom */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {/* Drawing Tools */}
         <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
-          <button onClick={() => setActiveTool('select')} className={`p-1.5 rounded ${activeTool === 'select' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Select (V)">
+          <button onClick={() => setActiveTool('select')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'select' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Select (V)" aria-label="Select tool" aria-pressed={activeTool === 'select'}>
             <MousePointer className="w-4 h-4" />
           </button>
-          <button onClick={() => setActiveTool('pan')} className={`p-1.5 rounded ${activeTool === 'pan' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Pan (H)">
+          <button onClick={() => setActiveTool('pan')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'pan' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Pan (H)" aria-label="Pan tool" aria-pressed={activeTool === 'pan'}>
             <Move className="w-4 h-4" />
           </button>
-          <button onClick={() => setActiveTool('add')} className={`p-1.5 rounded ${activeTool === 'add' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Add Performer">
+          <button onClick={() => setActiveTool('add')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'add' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Add Performer" aria-label="Add performer tool" aria-pressed={activeTool === 'add'}>
             <Plus className="w-4 h-4" />
           </button>
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5 hidden sm:block" />
-          <button onClick={() => setActiveTool('line')} className={`p-1.5 rounded hidden sm:block ${activeTool === 'line' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Line Tool">
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5 hidden sm:block" aria-hidden="true" />
+          <button onClick={() => setActiveTool('line')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'line' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Line Tool" aria-label="Line tool" aria-pressed={activeTool === 'line'}>
             <Minus className="w-4 h-4" />
           </button>
-          <button onClick={() => setActiveTool('arc')} className={`p-1.5 rounded hidden sm:block ${activeTool === 'arc' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Arc Tool">
+          <button onClick={() => setActiveTool('arc')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'arc' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Arc Tool" aria-label="Arc tool" aria-pressed={activeTool === 'arc'}>
             <CircleDot className="w-4 h-4" />
           </button>
-          <button onClick={() => setActiveTool('block')} className={`p-1.5 rounded hidden sm:block ${activeTool === 'block' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Block Tool">
+          <button onClick={() => setActiveTool('block')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'block' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Block Tool" aria-label="Block tool" aria-pressed={activeTool === 'block'}>
             <Grid3x3 className="w-4 h-4" />
           </button>
         </div>
@@ -139,8 +139,9 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         {setFingerMode && (
           <button
             onClick={() => setFingerMode(fingerMode === 'select' ? 'pan' : 'select')}
-            className={`p-1.5 rounded md:hidden ${fingerMode === 'pan' ? 'bg-blue-100 dark:bg-blue-900 text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`p-1.5 min-w-[32px] min-h-[32px] rounded md:hidden focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${fingerMode === 'pan' ? 'bg-blue-100 dark:bg-blue-900 text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
             title={fingerMode === 'select' ? 'Switch to pan mode' : 'Switch to select mode'}
+            aria-label={fingerMode === 'select' ? 'Switch to pan mode' : 'Switch to select mode'}
           >
             {fingerMode === 'pan' ? <Hand className="w-4 h-4" /> : <MousePointer className="w-4 h-4" />}
           </button>
@@ -153,16 +154,18 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
           <button
             onClick={onUndo}
             disabled={!canUndo}
-            className={`p-1.5 rounded ${canUndo ? 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${canUndo ? 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
             title="Undo (Ctrl+Z)"
+            aria-label="Undo"
           >
             <Undo2 className="w-4 h-4" />
           </button>
           <button
             onClick={onRedo}
             disabled={!canRedo}
-            className={`p-1.5 rounded ${canRedo ? 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${canRedo ? 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
             title="Redo (Ctrl+Y)"
+            aria-label="Redo"
           >
             <Redo2 className="w-4 h-4" />
           </button>
@@ -172,11 +175,11 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
 
         {/* Zoom */}
         <div className="flex items-center gap-0.5">
-          <button onClick={onZoomOut} className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+          <button onClick={onZoomOut} className="p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" aria-label="Zoom out">
             <ZoomOut className="w-4 h-4" />
           </button>
-          <span className="text-xs text-gray-500 dark:text-gray-400 min-w-[40px] text-center tabular-nums hidden sm:inline">{Math.round(zoom * 100)}%</span>
-          <button onClick={onZoomIn} className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+          <span className="text-xs text-gray-500 dark:text-gray-400 min-w-[40px] text-center tabular-nums hidden sm:inline" aria-live="polite">{Math.round(zoom * 100)}%</span>
+          <button onClick={onZoomIn} className="p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" aria-label="Zoom in">
             <ZoomIn className="w-4 h-4" />
           </button>
         </div>
@@ -207,8 +210,11 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         <div className="relative" ref={viewOptionsRef}>
           <button
             onClick={() => setShowViewOptions(!showViewOptions)}
-            className={`flex items-center gap-1 p-1.5 rounded text-sm ${showViewOptions ? 'bg-gray-100 dark:bg-gray-700 text-blue-500' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+            className={`flex items-center gap-1 p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded text-sm focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showViewOptions ? 'bg-gray-100 dark:bg-gray-700 text-blue-500' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
             title="View Options"
+            aria-expanded={showViewOptions}
+            aria-haspopup="true"
+            aria-label="View options"
           >
             <Settings2 className="w-4 h-4" />
             {activeViewCount > 0 && (
@@ -232,20 +238,22 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         <div className="w-px h-5 bg-gray-300 dark:bg-gray-600" />
 
         {/* Panel toggles */}
-        <button onClick={() => setShowPerformerPanel(!showPerformerPanel)} className={`p-1.5 rounded ${showPerformerPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title="Performers Panel">
+        <button onClick={() => setShowPerformerPanel(!showPerformerPanel)} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showPerformerPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title="Performers Panel" aria-label="Performers panel" aria-pressed={showPerformerPanel}>
           <Users className="w-4 h-4" />
         </button>
-        <button onClick={() => setShowAudioPanel(!showAudioPanel)} className={`p-1.5 rounded ${hasAudioTrack ? 'text-green-500' : showAudioPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title={hasAudioTrack ? 'Audio attached' : 'Add Audio'}>
+        <button onClick={() => setShowAudioPanel(!showAudioPanel)} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${hasAudioTrack ? 'text-green-500' : showAudioPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title={hasAudioTrack ? 'Audio attached' : 'Add Audio'} aria-label={hasAudioTrack ? 'Audio attached' : 'Audio panel'} aria-pressed={showAudioPanel}>
           <Music className="w-4 h-4" />
         </button>
-        <button onClick={() => setShowTemplatePicker(true)} className="p-1.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" title="Formation Templates">
+        <button onClick={() => setShowTemplatePicker(true)} className="p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" title="Formation Templates" aria-label="Formation templates">
           <LayoutGrid className="w-4 h-4" />
         </button>
         {setShowDraftPanel && (
           <button
             onClick={() => setShowDraftPanel(!showDraftPanel)}
-            className={`p-1.5 rounded ${showDraftPanel ? 'text-amber-500' : draftStatus && draftStatus !== 'idle' ? 'text-amber-400 animate-pulse' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showDraftPanel ? 'text-amber-500' : draftStatus && draftStatus !== 'idle' ? 'text-amber-400 animate-pulse' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             title="AI Draft Agent"
+            aria-label="AI draft agent"
+            aria-pressed={showDraftPanel}
           >
             <Bot className="w-4 h-4" />
           </button>
@@ -339,7 +347,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       </div>
     </div>
   );
-};
+});
 
 /** Compact offline/sync badge shown next to save button */
 function OfflineBadge() {
@@ -388,7 +396,9 @@ function ViewToggleItem({ label, icon, active, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="flex items-center justify-between w-full px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50"
+      className="flex items-center justify-between w-full px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 outline-none"
+      role="menuitemcheckbox"
+      aria-checked={active}
     >
       <span className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
         {icon}

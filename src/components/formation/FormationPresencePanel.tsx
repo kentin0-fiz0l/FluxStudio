@@ -5,7 +5,7 @@
  * Shows user avatars, names, and activity status.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { Users, Wifi, WifiOff, Eye, Edit3 } from 'lucide-react';
 import { FormationAwarenessState } from '@/services/formation/yjs/formationYjsTypes';
 import { Badge } from '@/components/ui/badge';
@@ -73,12 +73,57 @@ export function FormationPresencePanel({
     return { activeCount: active, idleCount: idle };
   }, [collaborators]);
 
+  // Aria-live announcements for presence changes
+  const [announcement, setAnnouncement] = useState('');
+  const prevConnected = useRef(isConnected);
+  const prevCollabIds = useRef<string[]>([]);
+
+  useEffect(() => {
+    if (prevConnected.current && !isConnected) {
+      setAnnouncement('Collaboration connection lost. Working offline.');
+    } else if (!prevConnected.current && isConnected) {
+      setAnnouncement('Collaboration connection restored.');
+    }
+    prevConnected.current = isConnected;
+  }, [isConnected]);
+
+  useEffect(() => {
+    const currentIds = collaborators.map(c => c.user.id);
+    const prevIds = prevCollabIds.current;
+
+    const joined = currentIds.filter(id => !prevIds.includes(id));
+    const left = prevIds.filter(id => !currentIds.includes(id));
+
+    const parts: string[] = [];
+    if (joined.length > 0) {
+      const names = joined.map(id => collaborators.find(c => c.user.id === id)?.user.name).filter(Boolean);
+      if (names.length === 1) parts.push(`${names[0]} joined the session`);
+      else if (names.length > 1) parts.push(`${names.length} collaborators joined`);
+    }
+    if (left.length > 0) {
+      if (left.length === 1) parts.push('A collaborator left the session');
+      else parts.push(`${left.length} collaborators left`);
+    }
+
+    if (parts.length > 0 && prevIds.length > 0) {
+      setAnnouncement(parts.join('. ') + '.');
+    }
+
+    prevCollabIds.current = currentIds;
+  }, [collaborators]);
+
   return (
     <div className={`flex items-center gap-2 ${className}`}>
+      {/* Screen reader announcements for presence changes */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {announcement}
+      </div>
+
       {/* Connection status badge */}
       <Badge
         variant={isConnected ? 'default' : 'secondary'}
         className="gap-1 px-2 py-1"
+        aria-label={isSyncing ? 'Syncing collaboration data' : isConnected ? 'Live collaboration active' : 'Offline mode'}
       >
         {isSyncing ? (
           <>
@@ -103,8 +148,8 @@ export function FormationPresencePanel({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge variant="outline" className="gap-1 px-2 py-1 cursor-default">
-                <Users className="w-3 h-3" />
+              <Badge variant="outline" className="gap-1 px-2 py-1 cursor-default" aria-label={`${collaborators.length + 1} collaborators in session`}>
+                <Users className="w-3 h-3" aria-hidden="true" />
                 <span className="text-xs">{collaborators.length + 1}</span>
               </Badge>
             </TooltipTrigger>

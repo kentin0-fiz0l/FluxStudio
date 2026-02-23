@@ -16,7 +16,6 @@ import {
   useProjectVelocity,
   type ProjectHealth,
 } from '../../hooks/useProjectAnalytics';
-import { Loader2 } from 'lucide-react';
 import { MetricCard, MetricValue, MetricLabel, MetricGroup } from '@/components/ui/MetricCard';
 
 interface ProjectHealthDashboardProps {
@@ -191,8 +190,17 @@ const VelocityChart = React.memo(function VelocityChart({ projectId }: { project
 
 function LoadingPlaceholder({ height }: { height: number }) {
   return (
-    <div className="flex items-center justify-center" style={{ height }}>
-      <Loader2 className="w-5 h-5 text-neutral-300 animate-spin" />
+    <div className="animate-pulse" style={{ height }}>
+      <div className="h-3 w-24 bg-neutral-200 dark:bg-neutral-700 rounded mb-3" />
+      <div className="flex items-end gap-1 h-[calc(100%-24px)]">
+        {[40, 60, 35, 75, 55, 80, 45, 65, 50, 70].map((h, i) => (
+          <div
+            key={i}
+            className="flex-1 bg-neutral-100 dark:bg-neutral-800 rounded-t"
+            style={{ height: `${h}%` }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -215,9 +223,17 @@ export const ProjectHealthDashboard = React.memo(function ProjectHealthDashboard
   if (isLoading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-28 bg-neutral-100 rounded-lg" />
+        {/* Gauge skeleton */}
+        <div className="flex items-center gap-4">
+          <div className="w-28 h-28 rounded-full border-8 border-neutral-200 dark:border-neutral-700" />
+          <div className="space-y-2">
+            <div className="h-3 w-32 bg-neutral-200 dark:bg-neutral-700 rounded" />
+            <div className="h-3 w-20 bg-neutral-200 dark:bg-neutral-700 rounded" />
+          </div>
+        </div>
+        {/* Breakdown skeleton */}
         <div className="grid grid-cols-2 gap-2">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-16 bg-neutral-100 rounded" />)}
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-16 bg-neutral-100 dark:bg-neutral-800 rounded" />)}
         </div>
       </div>
     );
