@@ -273,13 +273,13 @@ function FileCard({ file }: { file: ProjectFile }) {
 
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
-                <Eye size={14} />
+                <Eye size={14} aria-hidden="true" />
               </button>
               <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
-                <Download size={14} />
+                <Download size={14} aria-hidden="true" />
               </button>
               <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
-                <Share2 size={14} />
+                <Share2 size={14} aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -287,7 +287,7 @@ function FileCard({ file }: { file: ProjectFile }) {
           {file.hasComments && (
             <div className="flex items-center gap-2 mt-2">
               <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                <MessageSquare size={12} />
+                <MessageSquare size={12} aria-hidden="true" />
                 <span>{file.commentCount} comments</span>
               </div>
               {file.isLatestVersion && (
@@ -472,7 +472,7 @@ export function ProjectCommunicationWidget({
 
           <div className="flex items-center gap-2">
             <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-              <Search size={16} />
+              <Search size={16} aria-hidden="true" />
             </button>
 
             {allowExpand && (
@@ -480,7 +480,7 @@ export function ProjectCommunicationWidget({
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <MoreVertical size={16} />
+                <MoreVertical size={16} aria-hidden="true" />
               </button>
             )}
           </div>
@@ -498,7 +498,7 @@ export function ProjectCommunicationWidget({
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
-              <tab.icon size={16} />
+              <tab.icon size={16} aria-hidden="true" />
               <span>{tab.label}</span>
               {tab.count !== undefined && tab.count > 0 && (
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${
@@ -536,12 +536,12 @@ export function ProjectCommunicationWidget({
       <div className="p-4 border-t border-gray-200 bg-gray-50">
         <div className="flex gap-2">
           <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <MessageSquare size={16} />
+            <MessageSquare size={16} aria-hidden="true" />
             <span className="text-sm font-medium">New Message</span>
           </button>
 
           <button className="flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-            <Plus size={16} />
+            <Plus size={16} aria-hidden="true" />
             <span className="text-sm font-medium">Add File</span>
           </button>
         </div>

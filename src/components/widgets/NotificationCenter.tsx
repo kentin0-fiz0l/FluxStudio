@@ -65,7 +65,7 @@ const NotificationIcon = ({ type }: { type: NotificationType }) => {
   };
 
   const Icon = iconMap[type] || Bell;
-  return <Icon size={16} />;
+  return <Icon size={16} aria-hidden="true" />;
 };
 
 const priorityLabels: Record<Priority, string> = {
@@ -226,7 +226,7 @@ function NotificationItem({
                           title="Mark as read"
                           aria-label="Mark as read"
                         >
-                          <Eye size={14} />
+                          <Eye size={14} aria-hidden="true" />
                         </button>
                       )}
 
@@ -236,7 +236,7 @@ function NotificationItem({
                         title="Snooze for 1 hour"
                         aria-label="Snooze for 1 hour"
                       >
-                        <Clock size={14} />
+                        <Clock size={14} aria-hidden="true" />
                       </button>
 
                       <button
@@ -245,7 +245,7 @@ function NotificationItem({
                         title="Archive"
                         aria-label="Archive"
                       >
-                        <Archive size={14} />
+                        <Archive size={14} aria-hidden="true" />
                       </button>
 
                       <button
@@ -254,7 +254,7 @@ function NotificationItem({
                         title="Dismiss"
                         aria-label="Dismiss"
                       >
-                        <X size={14} />
+                        <X size={14} aria-hidden="true" />
                       </button>
                     </motion.div>
                   )}
@@ -347,7 +347,7 @@ function FilterPanel({
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600"
         >
-          <X size={16} />
+          <X size={16} aria-hidden="true" />
         </button>
       </div>
 
@@ -576,7 +576,7 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
               title="Notification preferences"
             >
-              <Settings size={16} />
+              <Settings size={16} aria-hidden="true" />
             </button>
 
             {onClose && (
@@ -585,7 +585,7 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
                 className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                 title="Close"
               >
-                <X size={16} />
+                <X size={16} aria-hidden="true" />
               </button>
             )}
           </div>
@@ -612,7 +612,7 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
               }`}
               title="Filter notifications"
             >
-              <Filter size={16} />
+              <Filter size={16} aria-hidden="true" />
             </button>
 
             <FilterPanel
