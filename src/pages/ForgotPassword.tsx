@@ -70,7 +70,7 @@ export function ForgotPassword() {
               className="text-center"
             >
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-r from-green-400 to-blue-500 flex items-center justify-center">
-                <CheckCircle className="h-12 w-12 text-white" />
+                <CheckCircle className="h-12 w-12 text-white" aria-hidden="true" />
               </div>
               <h2 className="text-2xl font-bold mb-4">Check your email</h2>
               <p className="text-gray-400 mb-6">
@@ -93,7 +93,7 @@ export function ForgotPassword() {
             <>
               <div className="text-center mb-6">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-                  <Mail className="h-8 w-8 text-blue-400" />
+                  <Mail className="h-8 w-8 text-blue-400" aria-hidden="true" />
                 </div>
                 <h2 className="text-2xl font-bold mb-2">Forgot password?</h2>
                 <p className="text-gray-400">
@@ -126,7 +126,7 @@ export function ForgotPassword() {
                     className="bg-red-500/10 border border-red-500/20 rounded-lg p-4"
                   >
                     <div className="flex items-start">
-                      <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 mr-2 flex-shrink-0" />
+                      <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 mr-2 flex-shrink-0" aria-hidden="true" />
                       <p className="text-sm text-red-400">{message}</p>
                     </div>
                     {useGoogle && (
@@ -149,7 +149,7 @@ export function ForgotPassword() {
                 >
                   {status === 'loading' ? (
                     <>
-                      <Loader className="h-5 w-5 mr-2 animate-spin" />
+                      <Loader className="h-5 w-5 mr-2 animate-spin" aria-hidden="true" />
                       Sending...
                     </>
                   ) : (
@@ -161,7 +161,7 @@ export function ForgotPassword() {
                   to="/login"
                   className="flex items-center justify-center text-gray-400 hover:text-white transition-colors text-sm"
                 >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
                   Back to login
                 </Link>
               </form>
