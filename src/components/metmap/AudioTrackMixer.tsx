@@ -102,7 +102,7 @@ export function AudioTrackMixer({
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Music className="h-4 w-4 text-indigo-500" />
+          <Music className="h-4 w-4 text-indigo-500" aria-hidden="true" />
           <span className="text-sm font-medium text-neutral-700">Audio Tracks</span>
           {tracks.length > 0 && (
             <span className="text-xs text-neutral-400">({tracks.length})</span>
@@ -114,9 +114,9 @@ export function AudioTrackMixer({
           className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded transition-colors disabled:opacity-50"
         >
           {isCreating ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
           ) : (
-            <Plus className="h-3 w-3" />
+            <Plus className="h-3 w-3" aria-hidden="true" />
           )}
           Add Track
         </button>
@@ -133,7 +133,7 @@ export function AudioTrackMixer({
       {/* Track list */}
       {isLoading ? (
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-5 w-5 animate-spin text-indigo-400" />
+          <Loader2 className="h-5 w-5 animate-spin text-indigo-400" aria-hidden="true" />
         </div>
       ) : tracks.length === 0 ? (
         <div className="text-center py-4 text-xs text-neutral-400">
@@ -192,7 +192,7 @@ export function AudioTrackMixer({
       {/* Error */}
       {error && (
         <div className="flex items-center gap-1.5 mt-2 text-xs text-red-600">
-          <AlertCircle className="h-3 w-3" />
+          <AlertCircle className="h-3 w-3" aria-hidden="true" />
           {error instanceof Error ? error.message : 'Failed to load tracks'}
         </div>
       )}
