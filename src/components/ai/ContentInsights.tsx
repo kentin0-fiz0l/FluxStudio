@@ -254,15 +254,16 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Content Insights</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Content Insights</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             AI-powered analytics for your content library
           </p>
         </div>
         <div className="flex items-center gap-2">
           <select
             value={timeRange}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Select time range"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="7d">Last 7 days</option>
             <option value="30d">Last 30 days</option>
@@ -281,8 +282,8 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
           className="p-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg text-white"
         >
           <div className="flex items-center justify-between mb-2">
-            <FileText className="w-8 h-8 opacity-80" />
-            <TrendingUp className="w-5 h-5 opacity-60" />
+            <FileText className="w-8 h-8 opacity-80" aria-hidden="true" />
+            <TrendingUp className="w-5 h-5 opacity-60" aria-hidden="true" />
           </div>
           <div className="text-3xl font-bold mb-1">{stats.totalFiles}</div>
           <div className="text-sm opacity-80">Total Files</div>
@@ -295,8 +296,8 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
           className="p-6 bg-gradient-to-br from-green-500 to-green-600 rounded-lg text-white"
         >
           <div className="flex items-center justify-between mb-2">
-            <HardDrive className="w-8 h-8 opacity-80" />
-            <Activity className="w-5 h-5 opacity-60" />
+            <HardDrive className="w-8 h-8 opacity-80" aria-hidden="true" />
+            <Activity className="w-5 h-5 opacity-60" aria-hidden="true" />
           </div>
           <div className="text-3xl font-bold mb-1">{formatBytes(stats.totalSize)}</div>
           <div className="text-sm opacity-80">Total Size</div>
@@ -309,8 +310,8 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
           className="p-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg text-white"
         >
           <div className="flex items-center justify-between mb-2">
-            <Sparkles className="w-8 h-8 opacity-80" />
-            <Zap className="w-5 h-5 opacity-60" />
+            <Sparkles className="w-8 h-8 opacity-80" aria-hidden="true" />
+            <Zap className="w-5 h-5 opacity-60" aria-hidden="true" />
           </div>
           <div className="text-3xl font-bold mb-1">{stats.aiAnalyzed}</div>
           <div className="text-sm opacity-80">AI Analyzed</div>
@@ -323,8 +324,8 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
           className="p-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg text-white"
         >
           <div className="flex items-center justify-between mb-2">
-            <CheckCircle className="w-8 h-8 opacity-80" />
-            <TrendingUp className="w-5 h-5 opacity-60" />
+            <CheckCircle className="w-8 h-8 opacity-80" aria-hidden="true" />
+            <TrendingUp className="w-5 h-5 opacity-60" aria-hidden="true" />
           </div>
           <div className="text-3xl font-bold mb-1">
             {Math.round(stats.avgConfidence * 100)}%
@@ -334,17 +335,19 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
       </div>
 
       {/* View Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700" role="tablist" aria-label="Content insights views">
         {(['overview', 'trends', 'quality'] as const).map((view) => (
           <button
             key={view}
             onClick={() => setSelectedView(view)}
+            role="tab"
+            aria-selected={selectedView === view}
             className={`
               px-4 py-2 text-sm font-medium capitalize transition-colors
               ${
                 selectedView === view
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
           >
@@ -357,8 +360,8 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
       {selectedView === 'overview' && (
         <div className="grid grid-cols-2 gap-6">
           {/* Category Distribution */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               Files by Category
             </h3>
             <div className="space-y-3">
@@ -379,12 +382,12 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-900 capitalize">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
                           {cat.category}
                         </span>
-                        <span className="text-sm text-gray-600">{cat.count} files</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">{cat.count} files</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${cat.percentage}%` }}
@@ -394,7 +397,7 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
                         />
                       </div>
                     </div>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       {cat.percentage.toFixed(1)}%
                     </span>
                   </motion.div>
@@ -403,8 +406,8 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
           </div>
 
           {/* File Size Distribution */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               Size Distribution
             </h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -429,22 +432,22 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
           </div>
 
           {/* Top Tags */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Tags</h3>
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Top Tags</h3>
             <div className="space-y-3">
               {stats.topTags.map((tag, index) => (
                 <div key={tag.name} className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-blue-600">
+                  <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
                       {index + 1}
                     </span>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {tag.name}
                       </span>
-                      <span className="text-sm text-gray-600">{tag.count} files</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{tag.count} files</span>
                     </div>
                   </div>
                 </div>
@@ -453,8 +456,8 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               Recent Activity
             </h3>
             <div className="space-y-3">
@@ -463,18 +466,18 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
                   key={activity.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+                  className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                 >
                   <div className="mt-0.5">{getActivityIcon(activity.type)}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900">{activity.description}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{activity.description}</p>
                     {activity.fileName && (
-                      <p className="text-xs text-gray-500 truncate mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
                         {activity.fileName}
                       </p>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                     {formatTimeAgo(activity.timestamp)}
                   </span>
                 </motion.div>
@@ -486,8 +489,8 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
 
       {/* Trends View */}
       {selectedView === 'trends' && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload Trends</h3>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Upload Trends</h3>
           <ResponsiveContainer width="100%" height={400}>
             <LineChart data={stats.uploadTrend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
@@ -520,8 +523,8 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
       {/* Quality View */}
       {selectedView === 'quality' && (
         <div className="grid grid-cols-2 gap-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               Quality Distribution
             </h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -547,20 +550,20 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               Quality Breakdown
             </h3>
             <div className="space-y-4">
               {Object.entries(stats.byQualityScore).map(([quality, count]) => (
                 <div key={quality} className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-900 capitalize">
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
                       {quality}
                     </span>
-                    <span className="text-sm text-gray-600">{count} files</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{count} files</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${(count / stats.totalFiles) * 100}%` }}
@@ -582,14 +585,14 @@ export const ContentInsights: React.FC<ContentInsightsProps> = ({
               ))}
             </div>
 
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900 mb-1">
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
                     Quality Insights
                   </h4>
-                  <ul className="text-xs text-gray-600 space-y-1">
+                  <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                     <li>
                       • {Math.round((stats.byQualityScore.excellent / stats.totalFiles) * 100)}% of files are excellent quality
                     </li>

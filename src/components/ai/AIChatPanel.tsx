@@ -144,36 +144,36 @@ export function AIChatPanel({
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-500 to-purple-600">
             <div className="flex items-center gap-2 text-white">
-              <Sparkles className="w-5 h-5" />
+              <Sparkles className="w-5 h-5" aria-hidden="true" />
               <span className="font-semibold">AI Co-Pilot</span>
             </div>
             <div className="flex items-center gap-1">
               <button
                 onClick={handleNewChat}
                 className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
-                title="New chat"
+                aria-label="New chat"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
-                title="Settings"
+                aria-label="Settings"
               >
-                <Settings className="w-4 h-4" />
+                <Settings className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 onClick={onClose}
                 className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded transition-colors"
-                title="Close"
+                aria-label="Close AI panel"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
 
           {/* Usage bar */}
-          <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500">
+          <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400" aria-label="AI usage">
             <span>{usage.requestsRemaining} requests remaining</span>
             <div className="flex items-center gap-2">
               <div className="w-20 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -187,10 +187,10 @@ export function AIChatPanel({
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-label="AI conversation">
             {!conversation?.messages.length ? (
               <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400">
-                <Sparkles className="w-12 h-12 mb-4 text-indigo-400" />
+                <Sparkles className="w-12 h-12 mb-4 text-indigo-400" aria-hidden="true" />
                 <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Hi! I'm your AI Co-Pilot
                 </h3>
@@ -236,20 +236,22 @@ export function AIChatPanel({
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask anything..."
+                  aria-label="Type your message to AI"
                   rows={1}
-                  className="w-full px-4 py-2.5 pr-10 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 pr-10 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   style={{ minHeight: '44px', maxHeight: '120px' }}
                 />
                 <button
                   className="absolute right-2 bottom-2 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  title="Attach file"
+                  aria-label="Attach file"
                 >
-                  <Paperclip className="w-4 h-4" />
+                  <Paperclip className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || ai.isProcessing}
+                aria-label={ai.isProcessing ? 'Processing' : 'Send message'}
                 className={cn(
                   'p-2.5 rounded-lg transition-colors',
                   input.trim() && !ai.isProcessing
@@ -258,9 +260,9 @@ export function AIChatPanel({
                 )}
               >
                 {ai.isProcessing ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                 ) : (
-                  <Send className="w-5 h-5" />
+                  <Send className="w-5 h-5" aria-hidden="true" />
                 )}
               </button>
             </div>
@@ -279,7 +281,7 @@ interface MessageBubbleProps {
   onCopy: (content: string) => void;
 }
 
-function MessageBubble({ message, onCopy }: MessageBubbleProps) {
+const MessageBubble = React.memo(function MessageBubble({ message, onCopy }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const [showActions, setShowActions] = React.useState(false);
 
@@ -299,9 +301,9 @@ function MessageBubble({ message, onCopy }: MessageBubbleProps) {
         )}
       >
         {isUser ? (
-          <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
         ) : (
-          <Bot className="w-4 h-4 text-white" />
+          <Bot className="w-4 h-4 text-white" aria-hidden="true" />
         )}
       </div>
 
@@ -339,9 +341,9 @@ function MessageBubble({ message, onCopy }: MessageBubbleProps) {
               <button
                 onClick={() => onCopy(message.content)}
                 className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                title="Copy"
+                aria-label="Copy message"
               >
-                <Copy className="w-3.5 h-3.5" />
+                <Copy className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             </motion.div>
           )}
@@ -349,7 +351,7 @@ function MessageBubble({ message, onCopy }: MessageBubbleProps) {
       </div>
     </div>
   );
-}
+});
 
 function MessageContent({ content }: { content: string }) {
   // Simple markdown-like rendering

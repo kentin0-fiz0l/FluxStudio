@@ -53,7 +53,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
       id: 'generate-text',
       title: 'Generate Text',
       description: 'Write content, copy, or documentation',
-      icon: <FileText className="w-4 h-4" />,
+      icon: <FileText className="w-4 h-4" aria-hidden="true" />,
       category: 'Generate',
       placeholder: 'Describe what you want to write...',
       action: async (input) => {
@@ -64,7 +64,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
       id: 'generate-code',
       title: 'Generate Code',
       description: 'Create components, functions, or utilities',
-      icon: <Code className="w-4 h-4" />,
+      icon: <Code className="w-4 h-4" aria-hidden="true" />,
       category: 'Generate',
       placeholder: 'Describe the code you need...',
       action: async (input) => {
@@ -75,7 +75,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
       id: 'color-palette',
       title: 'Generate Color Palette',
       description: 'Create harmonious color schemes',
-      icon: <Palette className="w-4 h-4" />,
+      icon: <Palette className="w-4 h-4" aria-hidden="true" />,
       category: 'Design',
       placeholder: 'Describe the mood or style (e.g., "modern tech startup")...',
       action: async (input) => {
@@ -86,7 +86,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
       id: 'layout-ideas',
       title: 'Layout Suggestions',
       description: 'Get layout and composition ideas',
-      icon: <Layout className="w-4 h-4" />,
+      icon: <Layout className="w-4 h-4" aria-hidden="true" />,
       category: 'Design',
       placeholder: 'Describe the page or section...',
       action: async (input) => {
@@ -97,7 +97,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
       id: 'improve-design',
       title: 'Improve Design',
       description: 'Get suggestions to enhance current design',
-      icon: <Wand2 className="w-4 h-4" />,
+      icon: <Wand2 className="w-4 h-4" aria-hidden="true" />,
       category: 'Analyze',
       placeholder: 'Paste or describe the design to improve...',
       action: async (input) => {
@@ -108,7 +108,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
       id: 'summarize',
       title: 'Summarize Content',
       description: 'Create concise summaries of text',
-      icon: <Zap className="w-4 h-4" />,
+      icon: <Zap className="w-4 h-4" aria-hidden="true" />,
       category: 'Analyze',
       placeholder: 'Paste the text to summarize...',
       action: async (input) => {
@@ -119,7 +119,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
       id: 'ask-ai',
       title: 'Ask AI Anything',
       description: 'Open chat for detailed conversation',
-      icon: <Sparkles className="w-4 h-4" />,
+      icon: <Sparkles className="w-4 h-4" aria-hidden="true" />,
       category: 'Chat',
       action: async () => {
         onClose();
@@ -242,7 +242,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-lg z-50"
           >
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden" role="dialog" aria-label="AI command palette">
               {/* Header */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                 {selectedCommand ? (
@@ -253,8 +253,9 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
                         setCommandInput('');
                       }}
                       className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      aria-label="Back to commands"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-4 h-4" aria-hidden="true" />
                     </button>
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                       {selectedCommand.icon}
@@ -263,7 +264,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-5 h-5 text-indigo-500" />
+                    <Sparkles className="w-5 h-5 text-indigo-500" aria-hidden="true" />
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                       AI Commands
                     </span>
@@ -273,7 +274,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
 
               {/* Input */}
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
                 <input
                   ref={inputRef}
                   type="text"
@@ -284,16 +285,17 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
                       : setQuery(e.target.value)
                   }
                   placeholder={selectedCommand?.placeholder || 'Search AI commands...'}
+                  aria-label={selectedCommand ? selectedCommand.title : 'Search AI commands'}
                   className="w-full px-11 py-3 bg-transparent border-b border-gray-200 dark:border-gray-700 focus:outline-none text-gray-900 dark:text-gray-100 placeholder-gray-400"
                 />
                 {isExecuting && (
-                  <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-500 animate-spin" />
+                  <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-500 animate-spin" aria-hidden="true" />
                 )}
               </div>
 
               {/* Command list */}
               {!selectedCommand && (
-                <div className="max-h-80 overflow-y-auto py-2">
+                <div className="max-h-80 overflow-y-auto py-2" role="listbox" aria-label="AI commands">
                   {Object.entries(groupedCommands).map(([category, cmds]) => (
                     <div key={category}>
                       <div className="px-4 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -306,6 +308,8 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
                         return (
                           <button
                             key={command.id}
+                            role="option"
+                            aria-selected={isSelected}
                             onClick={() => handleSelectCommand(command)}
                             className={cn(
                               'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors',
@@ -337,6 +341,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
                                 'w-4 h-4 transition-opacity',
                                 isSelected ? 'opacity-100 text-indigo-500' : 'opacity-0'
                               )}
+                              aria-hidden="true"
                             />
                           </button>
                         );
@@ -346,7 +351,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
 
                   {filteredCommands.length === 0 && (
                     <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                      <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <Search className="w-8 h-8 mx-auto mb-2 opacity-50" aria-hidden="true" />
                       <p className="text-sm">No commands found</p>
                     </div>
                   )}
@@ -368,12 +373,12 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
                   >
                     {isExecuting ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                         Processing...
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4" />
+                        <Sparkles className="w-4 h-4" aria-hidden="true" />
                         Generate
                       </>
                     )}
