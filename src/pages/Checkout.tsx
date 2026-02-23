@@ -84,12 +84,12 @@ export function Checkout() {
             onClick={() => navigate(-1)}
             className="flex items-center text-gray-400 hover:text-white transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
+            <ArrowLeft className="w-5 h-5 mr-2" aria-hidden="true" />
             Back
           </button>
 
           <div className="flex items-center gap-2 text-sm text-gray-400">
-            <Shield className="w-4 h-4 text-green-400" />
+            <Shield className="w-4 h-4 text-green-400" aria-hidden="true" />
             <span>Secure checkout powered by Stripe</span>
           </div>
         </div>
@@ -99,7 +99,7 @@ export function Checkout() {
       {error && (
         <div className="bg-red-500/10 border-b border-red-500/20">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center">
-            <AlertCircle className="w-5 h-5 text-red-400 mr-2" />
+            <AlertCircle className="w-5 h-5 text-red-400 mr-2" aria-hidden="true" />
             <p className="text-red-400 text-sm">{error}</p>
             <button
               onClick={() => setError('')}
@@ -124,7 +124,7 @@ export function Checkout() {
               transition={{ delay: 0.1 }}
             >
               <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
-                <Shield className="w-6 h-6 text-green-400" />
+                <Shield className="w-6 h-6 text-green-400" aria-hidden="true" />
               </div>
               <h3 className="font-semibold text-white mb-2">Secure Payment</h3>
               <p className="text-gray-400 text-sm">
@@ -138,7 +138,7 @@ export function Checkout() {
               transition={{ delay: 0.2 }}
             >
               <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <CreditCard className="w-6 h-6 text-blue-400" />
+                <CreditCard className="w-6 h-6 text-blue-400" aria-hidden="true" />
               </div>
               <h3 className="font-semibold text-white mb-2">Flexible Payment</h3>
               <p className="text-gray-400 text-sm">
@@ -152,7 +152,7 @@ export function Checkout() {
               transition={{ delay: 0.3 }}
             >
               <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-purple-500/20 flex items-center justify-center">
-                <Check className="w-6 h-6 text-purple-400" />
+                <Check className="w-6 h-6 text-purple-400" aria-hidden="true" />
               </div>
               <h3 className="font-semibold text-white mb-2">Satisfaction Guaranteed</h3>
               <p className="text-gray-400 text-sm">
@@ -167,7 +167,7 @@ export function Checkout() {
       {loading && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white/10 rounded-2xl p-8 text-center">
-            <Loader className="w-12 h-12 text-blue-400 animate-spin mx-auto mb-4" />
+            <Loader className="w-12 h-12 text-blue-400 animate-spin mx-auto mb-4" aria-hidden="true" />
             <p className="text-white font-medium">Preparing secure checkout...</p>
             <p className="text-gray-400 text-sm mt-2">You'll be redirected to Stripe</p>
           </div>

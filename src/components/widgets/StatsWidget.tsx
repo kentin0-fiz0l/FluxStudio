@@ -34,7 +34,7 @@ function StatItem({ icon: Icon, label, value, color, delay }: StatItemProps) {
     >
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-lg ${color}`}>
-          <Icon className="h-5 w-5" />
+          <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
         <div className="flex-1">
           <p className="text-2xl font-bold text-white group-hover:scale-105 transition-transform">
@@ -64,11 +64,11 @@ export function StatsWidget(props: WidgetProps) {
           <div className="flex items-center gap-1">
             {error ? (
               <span title={`Error: ${error}`}>
-                <WifiOff className="h-3 w-3 text-red-400" />
+                <WifiOff className="h-3 w-3 text-red-400" aria-hidden="true" />
               </span>
             ) : (
               <span title={`Last updated: ${lastUpdated?.toLocaleTimeString()}`}>
-                <Wifi className="h-3 w-3 text-green-400" />
+                <Wifi className="h-3 w-3 text-green-400" aria-hidden="true" />
               </span>
             )}
           </div>
@@ -82,10 +82,10 @@ export function StatsWidget(props: WidgetProps) {
             aria-label="Refresh stats"
             className="h-7 px-2 text-xs text-white/70 hover:text-white hover:bg-white/10"
           >
-            <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
           </Button>
 
-          <BarChart3 className="h-4 w-4 text-green-400" />
+          <BarChart3 className="h-4 w-4 text-green-400" aria-hidden="true" />
         </div>
       }
     >
@@ -124,7 +124,7 @@ export function StatsWidget(props: WidgetProps) {
             onClick={refresh}
             className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
           >
-            <RefreshCw className="h-3 w-3 mr-1" />
+            <RefreshCw className="h-3 w-3 mr-1" aria-hidden="true" />
             Retry
           </Button>
         </div>
@@ -197,7 +197,7 @@ export function StatsWidget(props: WidgetProps) {
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-yellow-500/20 text-yellow-400">
-                    <Clock className="h-4 w-4" />
+                    <Clock className="h-4 w-4" aria-hidden="true" />
                   </div>
                   <div>
                     <p className="text-white font-medium">{stats.recentActivity}</p>
@@ -208,7 +208,7 @@ export function StatsWidget(props: WidgetProps) {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <BarChart3 className="h-8 w-8 text-gray-500 mb-3" />
+              <BarChart3 className="h-8 w-8 text-gray-500 mb-3" aria-hidden="true" />
               <h3 className="text-lg font-semibold text-white mb-2">No data available</h3>
               <p className="text-gray-400 text-sm">
                 Stats will appear here once you start working on projects
