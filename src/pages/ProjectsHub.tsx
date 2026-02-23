@@ -352,7 +352,7 @@ export function ProjectsHub() {
                       {...emptyStateConfigs.projects}
                       primaryAction={{
                         label: 'Create Project',
-                        icon: <Plus className="w-4 h-4" />,
+                        icon: <Plus className="w-4 h-4" aria-hidden="true" />,
                         onClick: handleCreateProject,
                       }}
                       secondaryAction={{
@@ -383,9 +383,9 @@ export function ProjectsHub() {
                   </CardTitle>
                   <div className="lg:hidden" aria-hidden="true">
                     {activityExpanded ? (
-                      <ChevronUp className="w-4 h-4 text-neutral-400" />
+                      <ChevronUp className="w-4 h-4 text-neutral-400" aria-hidden="true" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-neutral-400" />
+                      <ChevronDown className="w-4 h-4 text-neutral-400" aria-hidden="true" />
                     )}
                   </div>
                 </button>
