@@ -176,20 +176,20 @@ export function NotificationCenter() {
   };
 
   const getColor = (type: string, priority: string) => {
-    if (priority === 'high') return 'text-red-500 bg-red-50';
+    if (priority === 'high') return 'text-red-500 bg-red-50 dark:bg-red-900/30';
     switch (type) {
       case 'message':
-        return 'text-blue-500 bg-blue-50';
+        return 'text-blue-500 bg-blue-50 dark:bg-blue-900/30';
       case 'mention':
-        return 'text-purple-500 bg-purple-50';
+        return 'text-purple-500 bg-purple-50 dark:bg-purple-900/30';
       case 'update':
-        return 'text-green-500 bg-green-50';
+        return 'text-green-500 bg-green-50 dark:bg-green-900/30';
       case 'alert':
-        return 'text-orange-500 bg-orange-50';
+        return 'text-orange-500 bg-orange-50 dark:bg-orange-900/30';
       case 'success':
-        return 'text-green-500 bg-green-50';
+        return 'text-green-500 bg-green-50 dark:bg-green-900/30';
       default:
-        return 'text-gray-500 bg-gray-50';
+        return 'text-gray-500 bg-gray-50 dark:bg-gray-800';
     }
   };
 
@@ -220,8 +220,10 @@ export function NotificationCenter() {
           size="sm"
           className="relative"
           onClick={() => setIsOpen(!isOpen)}
+          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+          aria-expanded={isOpen}
         >
-          <Bell className="h-5 w-5" />
+          <Bell className="h-5 w-5" aria-hidden="true" />
           {unreadCount > 0 && (
             <Badge
               className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center"
@@ -252,7 +254,7 @@ export function NotificationCenter() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 300 }}
               transition={{ type: 'spring', damping: 25 }}
-              className="fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50"
+              className="fixed right-0 top-0 h-full w-full sm:w-96 bg-white dark:bg-gray-900 shadow-2xl z-50"
             >
               <div className="flex flex-col h-full">
                 {/* Header */}
@@ -267,8 +269,9 @@ export function NotificationCenter() {
                       size="sm"
                       className="text-white hover:bg-white/20"
                       onClick={() => setIsOpen(false)}
+                      aria-label="Close notifications"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
 
@@ -286,7 +289,7 @@ export function NotificationCenter() {
                 </div>
 
                 {/* Filters and Actions */}
-                <div className="p-4 border-b bg-gray-50">
+                <div className="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                   <div className="flex items-center justify-between mb-3">
                     <Tabs value={filter} onValueChange={(v: string) => setFilter(v as typeof filter)} className="w-full">
                       <TabsList className="grid w-full grid-cols-3">
@@ -333,8 +336,8 @@ export function NotificationCenter() {
                   <div className="p-2">
                     {filteredNotifications.length === 0 ? (
                       <div className="text-center py-12">
-                        <Bell className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                        <p className="text-gray-500">No notifications</p>
+                        <Bell className="h-12 w-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" aria-hidden="true" />
+                        <p className="text-gray-500 dark:text-gray-400">No notifications</p>
                       </div>
                     ) : (
                       <AnimatePresence>
@@ -350,7 +353,7 @@ export function NotificationCenter() {
                               exit={{ opacity: 0, x: -100 }}
                               className={cn(
                                 'mb-2 p-3 rounded-lg border transition-all cursor-pointer hover:shadow-md',
-                                !notification.read ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'
+                                !notification.read ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                               )}
                               onClick={() => !notification.read && markAsRead(notification.id)}
                             >
@@ -363,7 +366,7 @@ export function NotificationCenter() {
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-start justify-between gap-2 mb-1">
-                                    <h4 className="text-sm font-semibold text-gray-900 leading-tight">
+                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                                       {notification.title}
                                     </h4>
                                     {notification.priority === 'high' && (
@@ -371,12 +374,12 @@ export function NotificationCenter() {
                                     )}
                                   </div>
 
-                                  <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
                                     {notification.message}
                                   </p>
 
                                   <div className="flex items-center justify-between">
-                                    <span className="text-xs text-gray-400">
+                                    <span className="text-xs text-gray-400 dark:text-gray-500">
                                       {formatTime(notification.timestamp)}
                                     </span>
 
@@ -404,8 +407,9 @@ export function NotificationCenter() {
                                           e.stopPropagation();
                                           deleteNotification(notification.id);
                                         }}
+                                        aria-label="Delete notification"
                                       >
-                                        <X className="h-3 w-3" />
+                                        <X className="h-3 w-3" aria-hidden="true" />
                                       </Button>
                                     </div>
                                   </div>
@@ -420,7 +424,7 @@ export function NotificationCenter() {
                 </ScrollArea>
 
                 {/* Footer */}
-                <div className="p-4 border-t bg-gray-50">
+                <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                   <Button variant="outline" size="sm" className="w-full">
                     <Settings className="h-4 w-4 mr-2" />
                     Notification Settings

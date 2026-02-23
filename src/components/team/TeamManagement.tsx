@@ -170,10 +170,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   };
 
   const getUtilizationColor = (utilization: number) => {
-    if (utilization >= 90) return 'text-red-600 bg-red-50';
-    if (utilization >= 70) return 'text-yellow-600 bg-yellow-50';
-    if (utilization >= 40) return 'text-green-600 bg-green-50';
-    return 'text-gray-600 bg-gray-50';
+    if (utilization >= 90) return 'text-red-600 bg-red-50 dark:bg-red-900/30';
+    if (utilization >= 70) return 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/30';
+    if (utilization >= 40) return 'text-green-600 bg-green-50 dark:bg-green-900/30';
+    return 'text-gray-600 bg-gray-50 dark:bg-gray-800';
   };
 
   return (
@@ -181,8 +181,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Team Management</h2>
-          <p className="text-gray-600">Manage your team members, roles, and permissions</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Team Management</h2>
+          <p className="text-gray-600 dark:text-gray-400">Manage your team members, roles, and permissions</p>
         </div>
 
         {canManageTeam && (
@@ -197,7 +197,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Search */}
           <div className="relative">
@@ -207,7 +207,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               placeholder="Search team members..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -215,7 +215,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">All Roles</option>
             {Object.entries(roleConfig).map(([role, config]) => (
@@ -227,7 +227,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">All Status</option>
             {Object.entries(statusConfig).map(([status, config]) => (
@@ -239,21 +239,21 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* Team Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Members</p>
-              <p className="text-2xl font-bold text-gray-900">{team.length}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Members</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{team.length}</p>
             </div>
             <Users className="w-8 h-8 text-blue-500" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Active Members</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Active Members</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {team.filter(m => m.status === 'active').length}
               </p>
             </div>
@@ -261,11 +261,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Pending Invites</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Pending Invites</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {team.filter(m => m.status === 'pending').length}
               </p>
             </div>
@@ -273,11 +273,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Avg Utilization</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Avg Utilization</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {Math.round(team.reduce((acc, m) => acc + m.workload.utilization, 0) / team.length)}%
               </p>
             </div>
@@ -287,32 +287,32 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       </div>
 
       {/* Team Members List */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Member
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Role
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Workload
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Last Active
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {filteredTeam.map((member) => {
                 const roleInfo = roleConfig[member.role];
                 const statusInfo = statusConfig[member.status];
@@ -320,7 +320,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 const StatusIcon = statusInfo.icon;
 
                 return (
-                  <tr key={member.id} className="hover:bg-gray-50">
+                  <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -337,8 +337,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-gray-900 truncate">{member.name}</p>
-                          <p className="text-sm text-gray-500 truncate">{member.email}</p>
+                          <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{member.name}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{member.email}</p>
                         </div>
                       </div>
                     </td>
@@ -363,7 +363,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">Utilization:</span>
+                          <span className="text-gray-600 dark:text-gray-400">Utilization:</span>
                           <span className={cn(
                             'font-medium px-2 py-1 rounded-full text-xs',
                             getUtilizationColor(member.workload.utilization)
@@ -371,14 +371,14 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                             {member.workload.utilization}%
                           </span>
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
                           {member.workload.activeProjects} active projects
                         </div>
                       </div>
                     </td>
 
                     <td className="px-6 py-4">
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
                         {formatLastActive(member.lastActive)}
                       </span>
                     </td>
@@ -390,7 +390,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                             setSelectedMember(member);
                             setShowMemberDetails(true);
                           }}
-                          className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                          className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                          aria-label={`View details for ${member.name}`}
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -401,7 +402,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                               <button
                                 onClick={() => onResendInvite(member.id)}
                                 className="p-1 text-blue-400 hover:text-blue-600 transition-colors"
-                                title="Resend invite"
+                                aria-label="Resend invite"
                               >
                                 <Mail className="w-4 h-4" />
                               </button>
@@ -409,7 +410,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
                             <button
                               onClick={() => {/* Handle edit */}}
-                              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                              aria-label={`Edit ${member.name}`}
                             >
                               <Edit className="w-4 h-4" />
                             </button>
@@ -417,6 +419,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                             <button
                               onClick={() => onRemoveMember(member.id)}
                               className="p-1 text-red-400 hover:text-red-600 transition-colors"
+                              aria-label={`Remove ${member.name}`}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -440,7 +443,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4"
             >
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
@@ -448,8 +451,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     <UserPlus className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Invite Team Member</h3>
-                    <p className="text-sm text-gray-600">Add new members to your team</p>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Invite Team Member</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Add new members to your team</p>
                   </div>
                 </div>
                 <button
@@ -466,7 +469,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
               {/* Mode Toggle */}
               <div className="mb-6">
-                <div className="flex bg-gray-100 rounded-lg p-1">
+                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                   <button
                     type="button"
                     onClick={() => setInviteMode('search')}
@@ -607,10 +610,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Member Details</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Member Details</h3>
                 <button
                   onClick={() => setShowMemberDetails(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -637,8 +640,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     )}
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold text-gray-900">{selectedMember.name}</h4>
-                    <p className="text-gray-600">{selectedMember.email}</p>
+                    <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100">{selectedMember.name}</h4>
+                    <p className="text-gray-600 dark:text-gray-400">{selectedMember.email}</p>
                     <div className="flex items-center space-x-2 mt-1">
                       <span className={cn(
                         'inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border',

@@ -71,11 +71,12 @@ function SortableWidget({ widget, onToggleVisibility }: { widget: Widget; onTogg
               <div
                 {...attributes}
                 {...listeners}
-                className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-100 rounded"
+                className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                aria-label="Drag to reorder"
               >
                 <GripVertical className="h-4 w-4 text-gray-400" />
               </div>
-              <Icon className="h-4 w-4 text-gray-600" />
+              <Icon className="h-4 w-4 text-gray-600 dark:text-gray-400" aria-hidden="true" />
               <CardTitle className="text-sm font-medium">{widget.title}</CardTitle>
             </div>
             <Button
@@ -83,6 +84,7 @@ function SortableWidget({ widget, onToggleVisibility }: { widget: Widget; onTogg
               size="sm"
               className="h-8 w-8 p-0"
               onClick={() => onToggleVisibility(widget.id)}
+              aria-label={`Hide ${widget.title}`}
             >
               <EyeOff className="h-4 w-4" />
             </Button>
@@ -91,10 +93,10 @@ function SortableWidget({ widget, onToggleVisibility }: { widget: Widget; onTogg
         <CardContent>
           {widget.type === 'stat' && (
             <div>
-              <div className="text-2xl font-bold text-gray-900 mb-1">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                 {widget.content.value}
               </div>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 {widget.content.label}
               </p>
               {widget.content.trend && (
@@ -109,7 +111,7 @@ function SortableWidget({ widget, onToggleVisibility }: { widget: Widget; onTogg
             <div className="space-y-2">
               {widget.content.items!.slice(0, 3).map((item, index: number) => (
                 <div key={index} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-700">{item.label}</span>
+                  <span className="text-gray-700 dark:text-gray-300">{item.label}</span>
                   <Badge variant="outline">{item.value}</Badge>
                 </div>
               ))}
@@ -122,8 +124,8 @@ function SortableWidget({ widget, onToggleVisibility }: { widget: Widget; onTogg
                 <div key={index} className="flex items-start gap-2 text-sm">
                   <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5" />
                   <div>
-                    <p className="text-gray-700">{activity.action}</p>
-                    <p className="text-xs text-gray-500">{activity.time}</p>
+                    <p className="text-gray-700 dark:text-gray-300">{activity.action}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{activity.time}</p>
                   </div>
                 </div>
               ))}
@@ -267,8 +269,8 @@ export function CustomizableWidgets() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Workspace</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Workspace</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Drag to reorder • Click eye icon to hide
           </p>
         </div>
@@ -284,7 +286,7 @@ export function CustomizableWidgets() {
 
       {/* Hidden Widgets Panel */}
       {showHidden && hiddenWidgets.length > 0 && (
-        <Card className="bg-gray-50">
+        <Card className="bg-gray-50 dark:bg-gray-800">
           <CardHeader>
             <CardTitle className="text-sm">Hidden Widgets</CardTitle>
           </CardHeader>
@@ -337,11 +339,11 @@ export function CustomizableWidgets() {
       {visibleWidgets.length === 0 && (
         <Card className="text-center py-12">
           <CardContent>
-            <Zap className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <Zap className="h-12 w-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" aria-hidden="true" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
               No widgets visible
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               Show some widgets to customize your workspace
             </p>
             <Button onClick={() => setShowHidden(true)}>

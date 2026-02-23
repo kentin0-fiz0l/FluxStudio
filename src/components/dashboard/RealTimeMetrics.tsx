@@ -234,13 +234,13 @@ export function RealTimeMetrics() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold text-gray-900">Real-Time Metrics</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Real-Time Metrics</h2>
           <Badge variant={isConnected ? "default" : "secondary"}>
             {isConnected ? 'Live' : 'Offline'}
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
             Updated {timeSinceUpdate}s ago
           </span>
           <Button
@@ -248,6 +248,8 @@ export function RealTimeMetrics() {
             size="sm"
             onClick={refreshMetrics}
             disabled={isRefreshing}
+            aria-label="Refresh metrics"
+            aria-busy={isRefreshing}
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
@@ -260,17 +262,17 @@ export function RealTimeMetrics() {
           <Card key={index}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">{metric.label}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{metric.label}</span>
                 {metric.trend === 'up' ? (
-                  <TrendingUp className="h-4 w-4 text-green-500" />
+                  <TrendingUp className="h-4 w-4 text-green-500" aria-hidden="true" />
                 ) : metric.trend === 'down' ? (
-                  <TrendingDown className="h-4 w-4 text-red-500" />
+                  <TrendingDown className="h-4 w-4 text-red-500" aria-hidden="true" />
                 ) : (
-                  <Activity className="h-4 w-4 text-gray-400" />
+                  <Activity className="h-4 w-4 text-gray-400" aria-hidden="true" />
                 )}
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-gray-900">
+                <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {metric.value.toFixed(metric.label.includes('Time') ? 1 : 0)}
                 </span>
                 <Badge
@@ -297,7 +299,7 @@ export function RealTimeMetrics() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
+                <Activity className="h-5 w-5" aria-hidden="true" />
                 Weekly Activity
               </CardTitle>
             </CardHeader>
@@ -314,7 +316,7 @@ export function RealTimeMetrics() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
+                  <Target className="h-5 w-5" aria-hidden="true" />
                   Project Distribution
                 </CardTitle>
               </CardHeader>
@@ -335,11 +337,11 @@ export function RealTimeMetrics() {
                     <div key={index} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">{label}</span>
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
                           {projectStatusData.datasets[0].data[index]} projects
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div
                           className="h-2 rounded-full transition-all duration-500"
                           style={{
@@ -360,7 +362,7 @@ export function RealTimeMetrics() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
+                <Users className="h-5 w-5" aria-hidden="true" />
                 Team Performance
               </CardTitle>
             </CardHeader>

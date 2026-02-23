@@ -93,7 +93,7 @@ function AudioPreview({ url, mimeType, fileName }: { url: string; mimeType?: str
   );
 }
 
-function CodePreview({ url }: { url: string }) {
+const CodePreview = React.memo(function CodePreview({ url }: { url: string }) {
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
@@ -118,8 +118,13 @@ function CodePreview({ url }: { url: string }) {
 
   if (content === null) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-full h-full p-4 space-y-2 animate-pulse">
+        <div className="h-3 w-3/4 bg-neutral-200 dark:bg-neutral-700 rounded" />
+        <div className="h-3 w-full bg-neutral-200 dark:bg-neutral-700 rounded" />
+        <div className="h-3 w-5/6 bg-neutral-200 dark:bg-neutral-700 rounded" />
+        <div className="h-3 w-2/3 bg-neutral-200 dark:bg-neutral-700 rounded" />
+        <div className="h-3 w-full bg-neutral-200 dark:bg-neutral-700 rounded" />
+        <div className="h-3 w-4/5 bg-neutral-200 dark:bg-neutral-700 rounded" />
       </div>
     );
   }
@@ -129,7 +134,7 @@ function CodePreview({ url }: { url: string }) {
       {content}
     </pre>
   );
-}
+});
 
 // ============================================================================
 // FileViewer
@@ -221,12 +226,14 @@ export function FileViewer({
                 variant="outline"
                 icon={<Download className="h-4 w-4" />}
                 onClick={() => onDownload(file)}
+                aria-label={`Download ${file.name}`}
               >
                 Download
               </Button>
               <Button
                 variant="outline"
                 icon={<Link2 className="h-4 w-4" />}
+                aria-label={`Link ${file.name} to project`}
                 onClick={() => {
                   onOpenChange(false);
                   onLinkProject(file);
