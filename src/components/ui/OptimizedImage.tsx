@@ -147,7 +147,7 @@ export function OptimizedImage({
               />
             ) : (
               <div className="flex items-center justify-center w-full h-full">
-                <ImageIcon className="h-8 w-8 text-muted-foreground animate-pulse" />
+                <ImageIcon className="h-8 w-8 text-muted-foreground animate-pulse" aria-hidden="true" />
               </div>
             )}
           </motion.div>
