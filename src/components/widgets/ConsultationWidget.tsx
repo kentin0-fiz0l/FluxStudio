@@ -206,7 +206,7 @@ const ConsultationCard = React.memo(function ConsultationCard({
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <TypeIcon size={16} className="text-gray-600 dark:text-gray-400" />
+              <TypeIcon size={16} className="text-gray-600 dark:text-gray-400" aria-hidden="true" />
               <h3 className="font-semibold text-gray-900 dark:text-white">{consultation.title}</h3>
               {isToday && (
                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
@@ -351,7 +351,7 @@ const ConsultationCard = React.memo(function ConsultationCard({
                   <ul className="space-y-1">
                     {consultation.outcomes.map((outcome, index) => (
                       <li key={index} className="text-sm text-green-700 flex items-start gap-2">
-                        <CheckCircle size={14} className="text-green-600 mt-0.5 flex-shrink-0" />
+                        <CheckCircle size={14} className="text-green-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
                         <span>{outcome}</span>
                       </li>
                     ))}
@@ -366,7 +366,7 @@ const ConsultationCard = React.memo(function ConsultationCard({
                   <ul className="space-y-1">
                     {consultation.followUpTasks.map((task, index) => (
                       <li key={index} className="text-sm text-orange-700 flex items-start gap-2">
-                        <AlertCircle size={14} className="text-orange-600 mt-0.5 flex-shrink-0" />
+                        <AlertCircle size={14} className="text-orange-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
                         <span>{task}</span>
                       </li>
                     ))}
@@ -637,7 +637,7 @@ export function ConsultationWidget({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Video size={20} className="text-green-600" />
+              <Video size={20} className="text-green-600" aria-hidden="true" />
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white">Consultations</h3>
@@ -703,7 +703,7 @@ export function ConsultationWidget({
             >
               {filteredConsultations.length === 0 ? (
                 <div className="text-center py-8">
-                  <Calendar size={32} className="mx-auto text-gray-300 mb-3" />
+                  <Calendar size={32} className="mx-auto text-gray-300 mb-3" aria-hidden="true" />
                   <p className="text-gray-500 text-sm">
                     {activeTab === 'upcoming' ? 'No upcoming consultations' :
                      activeTab === 'completed' ? 'No completed consultations' :

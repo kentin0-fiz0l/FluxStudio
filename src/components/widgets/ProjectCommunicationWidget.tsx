@@ -256,7 +256,7 @@ function FileCard({ file }: { file: ProjectFile }) {
     >
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-          <FileIcon size={16} className="text-gray-600" />
+          <FileIcon size={16} className="text-gray-600" aria-hidden="true" />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -326,7 +326,7 @@ function ActivityFeed({ projectId }: { projectId: string }) {
   if (recentMessages.length === 0) {
     return (
       <div className="p-6 text-center">
-        <MessageSquare size={32} className="mx-auto text-gray-300 mb-3" />
+        <MessageSquare size={32} className="mx-auto text-gray-300 mb-3" aria-hidden="true" />
         <p className="text-gray-500 text-sm">No recent project activity</p>
       </div>
     );
@@ -369,7 +369,7 @@ function ActivityFeed({ projectId }: { projectId: string }) {
 
             {message.attachments && message.attachments.length > 0 && (
               <div className="flex items-center gap-1 mt-2">
-                <Paperclip size={12} className="text-gray-400" />
+                <Paperclip size={12} className="text-gray-400" aria-hidden="true" />
                 <span className="text-xs text-gray-500">
                   {message.attachments.length} attachment{message.attachments.length > 1 ? 's' : ''}
                 </span>
@@ -445,7 +445,7 @@ export function ProjectCommunicationWidget({
       case 'team':
         return (
           <div className="p-6 text-center">
-            <Users size={32} className="mx-auto text-gray-300 mb-3" />
+            <Users size={32} className="mx-auto text-gray-300 mb-3" aria-hidden="true" />
             <p className="text-gray-500 text-sm">Team management coming soon</p>
           </div>
         );
@@ -462,7 +462,7 @@ export function ProjectCommunicationWidget({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Star size={16} className="text-blue-600" />
+              <Star size={16} className="text-blue-600" aria-hidden="true" />
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">{projectName}</h3>

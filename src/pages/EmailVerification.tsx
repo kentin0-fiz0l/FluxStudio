@@ -102,25 +102,25 @@ export function EmailVerification() {
           >
             {status === 'verifying' && (
               <div className="w-20 h-20 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center">
-                <Loader className="h-10 w-10 text-blue-400 animate-spin" />
+                <Loader className="h-10 w-10 text-blue-400 animate-spin" aria-hidden="true" />
               </div>
             )}
 
             {status === 'success' && (
               <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-green-400 to-blue-500 flex items-center justify-center">
-                <CheckCircle className="h-12 w-12 text-white" />
+                <CheckCircle className="h-12 w-12 text-white" aria-hidden="true" />
               </div>
             )}
 
             {status === 'error' && (
               <div className="w-20 h-20 mx-auto rounded-full bg-red-500/20 flex items-center justify-center">
-                <XCircle className="h-10 w-10 text-red-400" />
+                <XCircle className="h-10 w-10 text-red-400" aria-hidden="true" />
               </div>
             )}
 
             {status === 'resend' && (
               <div className="w-20 h-20 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center">
-                <Mail className="h-10 w-10 text-blue-400" />
+                <Mail className="h-10 w-10 text-blue-400" aria-hidden="true" />
               </div>
             )}
           </motion.div>
@@ -155,7 +155,7 @@ export function EmailVerification() {
                          hover:from-blue-700 hover:to-purple-700 transition-all font-semibold
                          flex items-center justify-center"
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
                 Resend Verification Email
               </button>
             )}
