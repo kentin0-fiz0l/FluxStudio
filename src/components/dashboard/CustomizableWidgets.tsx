@@ -74,7 +74,7 @@ function SortableWidget({ widget, onToggleVisibility }: { widget: Widget; onTogg
                 className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                 aria-label="Drag to reorder"
               >
-                <GripVertical className="h-4 w-4 text-gray-400" />
+                <GripVertical className="h-4 w-4 text-gray-400" aria-hidden="true" />
               </div>
               <Icon className="h-4 w-4 text-gray-600 dark:text-gray-400" aria-hidden="true" />
               <CardTitle className="text-sm font-medium">{widget.title}</CardTitle>
@@ -86,7 +86,7 @@ function SortableWidget({ widget, onToggleVisibility }: { widget: Widget; onTogg
               onClick={() => onToggleVisibility(widget.id)}
               aria-label={`Hide ${widget.title}`}
             >
-              <EyeOff className="h-4 w-4" />
+              <EyeOff className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </CardHeader>
@@ -279,7 +279,7 @@ export function CustomizableWidgets() {
           size="sm"
           onClick={() => setShowHidden(!showHidden)}
         >
-          <Settings className="h-4 w-4 mr-2" />
+          <Settings className="h-4 w-4 mr-2" aria-hidden="true" />
           {showHidden ? 'Done' : 'Customize'}
         </Button>
       </div>
@@ -302,9 +302,9 @@ export function CustomizableWidgets() {
                     onClick={() => toggleVisibility(widget.id)}
                     className="flex items-center gap-2"
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-4 w-4" aria-hidden="true" />
                     {widget.title}
-                    <Eye className="h-3 w-3 ml-1" />
+                    <Eye className="h-3 w-3 ml-1" aria-hidden="true" />
                   </Button>
                 );
               })}
@@ -347,7 +347,7 @@ export function CustomizableWidgets() {
               Show some widgets to customize your workspace
             </p>
             <Button onClick={() => setShowHidden(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
               Add Widgets
             </Button>
           </CardContent>
