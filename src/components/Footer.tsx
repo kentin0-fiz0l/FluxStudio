@@ -43,7 +43,7 @@ export function Footer() {
             
             <div className="space-y-3">
               <div className="flex items-center space-x-3 text-sm">
-                <Mail className="w-4 h-4 text-gray-500" />
+                <Mail className="w-4 h-4 text-gray-500" aria-hidden="true" />
                 <a href="mailto:hello@fluxstudio.art" className="text-gray-400 hover:text-white transition-colors">
                   hello@fluxstudio.art
                 </a>
@@ -51,14 +51,14 @@ export function Footer() {
             </div>
 
             <div className="flex space-x-4 mt-6">
-              <span className="text-gray-500 opacity-50 cursor-not-allowed">
-                <Instagram className="w-5 h-5" />
+              <span className="text-gray-500 opacity-50 cursor-not-allowed" aria-label="Instagram (coming soon)">
+                <Instagram className="w-5 h-5" aria-hidden="true" />
               </span>
-              <span className="text-gray-500 opacity-50 cursor-not-allowed">
-                <Twitter className="w-5 h-5" />
+              <span className="text-gray-500 opacity-50 cursor-not-allowed" aria-label="Twitter (coming soon)">
+                <Twitter className="w-5 h-5" aria-hidden="true" />
               </span>
-              <span className="text-gray-500 opacity-50 cursor-not-allowed">
-                <Youtube className="w-5 h-5" />
+              <span className="text-gray-500 opacity-50 cursor-not-allowed" aria-label="YouTube (coming soon)">
+                <Youtube className="w-5 h-5" aria-hidden="true" />
               </span>
             </div>
           </div>

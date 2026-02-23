@@ -86,7 +86,7 @@ export function CreativeShowcase() {
                       <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">
                         <div className="flex items-center space-x-4 mb-4">
                           <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center">
-                            <IconComponent className="w-6 h-6 text-white" />
+                            <IconComponent className="w-6 h-6 text-white" aria-hidden="true" />
                           </div>
                           <Badge className="bg-white/10 backdrop-blur-sm text-off-white border-white/20">
                             {item.type}
@@ -119,8 +119,9 @@ export function CreativeShowcase() {
               size="sm"
               onClick={prevSlide}
               className="btn-glass-outline text-off-white w-12 h-12 rounded-full p-0"
+              aria-label="Previous slide"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-5 h-5" aria-hidden="true" />
             </Button>
             
             <div className="flex space-x-2">
@@ -133,6 +134,8 @@ export function CreativeShowcase() {
                       ? 'bg-primary-500'
                       : 'bg-white/20 hover:bg-white/40'
                   }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                  aria-current={index === currentSlide ? 'true' : undefined}
                 />
               ))}
             </div>
@@ -142,8 +145,9 @@ export function CreativeShowcase() {
               size="sm"
               onClick={nextSlide}
               className="btn-glass-outline text-off-white w-12 h-12 rounded-full p-0"
+              aria-label="Next slide"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-5 h-5" aria-hidden="true" />
             </Button>
           </div>
         </div>

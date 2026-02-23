@@ -38,9 +38,9 @@ export function About() {
                 alt="Jason Ino - Kentino, Creative Director of Flux Studio"
                 className="w-full h-[500px] object-cover rounded-2xl shadow-2xl"
               />
-              <div className="absolute -bottom-6 -right-6 bg-white p-6 rounded-2xl shadow-lg">
+              <div className="absolute -bottom-6 -right-6 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
                 <div className="text-2xl mb-1 gradient-text">Kentino</div>
-                <div className="text-sm text-gray-600">Creative Director</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Creative Director</div>
               </div>
             </div>
           </div>
@@ -51,7 +51,7 @@ export function About() {
               About Flux Studio
             </h2>
             
-            <div className="space-y-6 text-gray-600">
+            <div className="space-y-6 text-gray-600 dark:text-gray-400">
               <p>
                 Flux Studio was founded on the belief that every marching ensemble, 
                 regardless of size or budget, deserves access to professional-quality 
@@ -74,7 +74,7 @@ export function About() {
 
             <div className="mt-8 p-6 border border-gray-200 dark:border-gray-700 rounded-2xl">
               <h3 className="text-xl mb-4">Meet Kentino</h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Jason Ino, known artistically as Kentino, brings over a decade of experience 
                 in marching arts design and performance. A former DCI performer and visual 
                 instructor, Jason combines technical expertise with an eye for contemporary 
@@ -95,10 +95,10 @@ export function About() {
                 <Card key={index} className="text-center p-6 border border-gray-200 dark:border-gray-700">
                   <CardContent className="p-0">
                     <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <IconComponent className="w-6 h-6 text-primary" />
+                      <IconComponent className="w-6 h-6 text-primary" aria-hidden="true" />
                     </div>
                     <h4 className="text-lg mb-2">{value.title}</h4>
-                    <p className="text-sm text-gray-600">{value.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{value.description}</p>
                   </CardContent>
                 </Card>
               );
@@ -109,11 +109,11 @@ export function About() {
         {/* Mission statement */}
         <div className="mt-20 text-center">
           <div className="max-w-4xl mx-auto">
-            <blockquote className="text-2xl md:text-3xl text-gray-700 italic leading-relaxed">
+            <blockquote className="text-2xl md:text-3xl text-gray-700 dark:text-gray-300 italic leading-relaxed">
               "Our mission is to bring form, flow, and impact to ensembles through 
               modern, accessible, and visually striking design."
             </blockquote>
-            <div className="mt-6 text-sm text-gray-500">
+            <div className="mt-6 text-sm text-gray-500 dark:text-gray-400">
               <span className="gradient-text">— Flux Studio Mission Statement</span>
             </div>
           </div>

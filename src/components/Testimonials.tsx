@@ -60,40 +60,40 @@ export function Testimonials() {
           <h2 className="text-4xl md:text-5xl lg:text-6xl mb-4 tracking-tight font-semibold" style={{ fontFamily: 'var(--font-title)' }}>
             What Directors Say
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
             Trusted by programs across the country to deliver exceptional results
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {testimonials.map((testimonial, index) => (
-            <Card key={index} className="relative bg-white border-0 shadow-sm hover:shadow-md transition-shadow duration-300">
+            <Card key={index} className="relative bg-white dark:bg-gray-800 border-0 shadow-sm hover:shadow-md transition-shadow duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center mb-4">
-                  <Quote className="w-8 h-8 text-primary/20 mr-2" />
+                  <Quote className="w-8 h-8 text-primary/20 mr-2" aria-hidden="true" />
                   <div className="flex">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" aria-hidden="true" />
                     ))}
                   </div>
                 </div>
                 
-                <blockquote className="text-gray-700 mb-6 leading-relaxed">
+                <blockquote className="text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
                   "{testimonial.quote}"
                 </blockquote>
                 
                 <div className="pt-4">
                   <div className="text-sm">
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-gray-900 dark:text-gray-100">
                       {testimonial.author}
                     </div>
-                    <div className="text-gray-600">
+                    <div className="text-gray-600 dark:text-gray-400">
                       {testimonial.title}
                     </div>
-                    <div className="text-gray-500">
+                    <div className="text-gray-500 dark:text-gray-400">
                       {testimonial.school}
                     </div>
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                       {testimonial.year} Season
                     </div>
                   </div>
@@ -104,24 +104,24 @@ export function Testimonials() {
         </div>
 
         <div className="mt-16 text-center">
-          <div className="bg-white rounded-2xl p-8 max-w-3xl mx-auto shadow-sm border border-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-3xl mx-auto shadow-sm border border-gray-100 dark:border-gray-700">
             <h3 className="text-2xl mb-4">Join Our Growing Family</h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
               From first-time competitors to championship contenders, our programs consistently 
               achieve their goals and exceed expectations.
             </p>
             <div className="grid md:grid-cols-3 gap-8">
               <div>
                 <div className="text-3xl mb-2 gradient-text">15+</div>
-                <div className="text-sm text-gray-600">Programs Designed</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Programs Designed</div>
               </div>
               <div>
                 <div className="text-3xl mb-2 gradient-text">100%</div>
-                <div className="text-sm text-gray-600">Satisfied Clients</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Satisfied Clients</div>
               </div>
               <div>
                 <div className="text-3xl mb-2 gradient-text">3</div>
-                <div className="text-sm text-gray-600">Years in Business</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Years in Business</div>
               </div>
             </div>
           </div>

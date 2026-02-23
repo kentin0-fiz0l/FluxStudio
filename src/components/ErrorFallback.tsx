@@ -131,13 +131,13 @@ Timestamp: ${new Date().toISOString()}
   if (variant === 'inline') {
     return (
       <Alert variant="destructive" className={cn('my-2', className)}>
-        <AlertTriangle className="h-4 w-4" />
+        <AlertTriangle className="h-4 w-4" aria-hidden="true" />
         <AlertTitle>{title}</AlertTitle>
         <AlertDescription className="flex items-center justify-between">
           <span>{message}</span>
           {onRetry && (
             <Button variant="outline" size="sm" onClick={handleRetry} className="ml-2">
-              <RefreshCw className="h-3 w-3 mr-1" />
+              <RefreshCw className="h-3 w-3 mr-1" aria-hidden="true" />
               Retry
             </Button>
           )}
@@ -152,18 +152,18 @@ Timestamp: ${new Date().toISOString()}
       <Card className={cn('w-full max-w-md mx-auto', colors.border, className)}>
         <CardContent className="p-6 text-center">
           <div className={cn('w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center', colors.icon)}>
-            <AlertTriangle className="h-6 w-6" />
+            <AlertTriangle className="h-6 w-6" aria-hidden="true" />
           </div>
           <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">{title}</h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">{message}</p>
 
           <div className="flex gap-3 justify-center">
             <Button onClick={handleRetry}>
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
               Try Again
             </Button>
             <Button variant="outline" onClick={handleGoHome}>
-              <Home className="h-4 w-4 mr-2" />
+              <Home className="h-4 w-4 mr-2" aria-hidden="true" />
               Go Home
             </Button>
           </div>
@@ -175,15 +175,16 @@ Timestamp: ${new Date().toISOString()}
                 size="sm"
                 onClick={() => setDetailsExpanded(!detailsExpanded)}
                 className="text-gray-500"
+                aria-expanded={detailsExpanded}
               >
                 {detailsExpanded ? (
                   <>
-                    <ChevronUp className="h-4 w-4 mr-1" />
+                    <ChevronUp className="h-4 w-4 mr-1" aria-hidden="true" />
                     Hide Details
                   </>
                 ) : (
                   <>
-                    <ChevronDown className="h-4 w-4 mr-1" />
+                    <ChevronDown className="h-4 w-4 mr-1" aria-hidden="true" />
                     Show Details
                   </>
                 )}
@@ -200,7 +201,7 @@ Timestamp: ${new Date().toISOString()}
                     onClick={copyErrorDetails}
                     className="w-full mt-2"
                   >
-                    <Copy className="h-3 w-3 mr-1" />
+                    <Copy className="h-3 w-3 mr-1" aria-hidden="true" />
                     Copy Error Details
                   </Button>
                 </div>
@@ -219,7 +220,7 @@ Timestamp: ${new Date().toISOString()}
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className={cn('w-12 h-12 rounded-lg flex items-center justify-center', colors.icon)}>
-              <AlertTriangle size={24} />
+              <AlertTriangle size={24} aria-hidden="true" />
             </div>
             <div>
               <CardTitle className="text-xl">{title}</CardTitle>
@@ -232,7 +233,7 @@ Timestamp: ${new Date().toISOString()}
           {/* Error Summary */}
           {error && (
             <Alert>
-              <Bug className="h-4 w-4" />
+              <Bug className="h-4 w-4" aria-hidden="true" />
               <AlertTitle>Error Details</AlertTitle>
               <AlertDescription className="font-mono text-sm">
                 {error.message || 'An unknown error occurred'}
@@ -243,18 +244,18 @@ Timestamp: ${new Date().toISOString()}
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3">
             <Button onClick={handleRetry} className="flex-1 sm:flex-none">
-              <RefreshCw size={16} className="mr-2" />
+              <RefreshCw size={16} className="mr-2" aria-hidden="true" />
               Try Again
             </Button>
 
             <Button variant="outline" onClick={handleGoHome} className="flex-1 sm:flex-none">
-              <Home size={16} className="mr-2" />
+              <Home size={16} className="mr-2" aria-hidden="true" />
               Go Home
             </Button>
 
             {error && showDetails && (
               <Button variant="ghost" onClick={copyErrorDetails} className="flex-1 sm:flex-none">
-                <Copy size={16} className="mr-2" />
+                <Copy size={16} className="mr-2" aria-hidden="true" />
                 Copy Error
               </Button>
             )}
@@ -267,9 +268,10 @@ Timestamp: ${new Date().toISOString()}
                 variant="ghost"
                 onClick={() => setDetailsExpanded(!detailsExpanded)}
                 className="w-full justify-between"
+                aria-expanded={detailsExpanded}
               >
                 <span>Technical Details</span>
-                {detailsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                {detailsExpanded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
               </Button>
 
               {detailsExpanded && (
