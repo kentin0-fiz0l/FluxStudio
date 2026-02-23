@@ -29,6 +29,9 @@ export interface SearchResult {
     status?: string;
     priority?: string;
     fileType?: string;
+    fileSize?: number;
+    thumbnailUrl?: string;
+    conversationExcerpt?: string;
     createdAt: string;
     updatedAt?: string;
     author?: {

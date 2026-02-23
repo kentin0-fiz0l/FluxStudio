@@ -11,7 +11,7 @@
  * - Mobile responsive (hidden on mobile when chat is open)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search,
   UserPlus,
@@ -62,66 +62,149 @@ export interface ConversationItemProps {
   conversation: Conversation;
   isSelected: boolean;
   onClick: () => void;
+  onPin?: () => void;
+  onMute?: () => void;
+  onDelete?: () => void;
 }
 
-export function ConversationItem({ conversation, isSelected, onClick }: ConversationItemProps) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full p-4 border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-left transition-all ${
-        isSelected ? 'bg-primary-50 dark:bg-primary-900/20 border-l-4 border-l-primary-600' : ''
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <ChatAvatar user={conversation.participant} size="md" showStatus />
+const SWIPE_THRESHOLD = 60;
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-0.5">
-            <div className="flex items-center gap-2 min-w-0">
-              <h3 className="font-medium text-neutral-900 dark:text-neutral-100 text-sm truncate">
-                {conversation.title}
-              </h3>
-              {conversation.isPinned && (
-                <Pin className="w-3 h-3 text-accent-500 flex-shrink-0" />
+export function ConversationItem({ conversation, isSelected, onClick, onPin, onMute, onDelete }: ConversationItemProps) {
+  const touchStartX = useRef(0);
+  const touchCurrentX = useRef(0);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [swiped, setSwiped] = useState(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchCurrentX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    touchCurrentX.current = e.touches[0].clientX;
+    const diff = touchStartX.current - touchCurrentX.current;
+    if (contentRef.current && diff > 0) {
+      const offset = Math.min(diff, 140);
+      contentRef.current.style.transform = `translateX(-${offset}px)`;
+      contentRef.current.style.transition = 'none';
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    const diff = touchStartX.current - touchCurrentX.current;
+    if (contentRef.current) {
+      contentRef.current.style.transition = 'transform 200ms ease-out';
+      if (diff > SWIPE_THRESHOLD) {
+        contentRef.current.style.transform = 'translateX(-140px)';
+        setSwiped(true);
+      } else {
+        contentRef.current.style.transform = 'translateX(0)';
+        setSwiped(false);
+      }
+    }
+  }, []);
+
+  const closeSwipe = useCallback(() => {
+    if (contentRef.current) {
+      contentRef.current.style.transition = 'transform 200ms ease-out';
+      contentRef.current.style.transform = 'translateX(0)';
+    }
+    setSwiped(false);
+  }, []);
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* Swipe-revealed actions */}
+      <div className="absolute right-0 top-0 bottom-0 flex items-stretch">
+        <button
+          onClick={() => { onPin?.(); closeSwipe(); }}
+          className="w-[46px] flex items-center justify-center bg-accent-500 text-white active:bg-accent-600"
+          aria-label={conversation.isPinned ? 'Unpin' : 'Pin'}
+        >
+          <Pin className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => { onMute?.(); closeSwipe(); }}
+          className="w-[46px] flex items-center justify-center bg-neutral-500 text-white active:bg-neutral-600"
+          aria-label={conversation.isMuted ? 'Unmute' : 'Mute'}
+        >
+          <BellOff className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => { onDelete?.(); closeSwipe(); }}
+          className="w-[48px] flex items-center justify-center bg-red-500 text-white active:bg-red-600"
+          aria-label="Delete"
+        >
+          <span className="text-sm font-medium">×</span>
+        </button>
+      </div>
+
+      {/* Main content — slides left on swipe */}
+      <div
+        ref={contentRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="relative bg-white dark:bg-neutral-900"
+      >
+        <button
+          onClick={() => { if (swiped) { closeSwipe(); } else { onClick(); } }}
+          className={`w-full p-4 min-h-[64px] border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-left transition-colors touch-manipulation ${
+            isSelected ? 'bg-primary-50 dark:bg-primary-900/20 border-l-4 border-l-primary-600' : ''
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <ChatAvatar user={conversation.participant} size="md" showStatus />
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-0.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <h3 className="font-medium text-neutral-900 dark:text-neutral-100 text-sm truncate">
+                    {conversation.title}
+                  </h3>
+                  {conversation.isPinned && (
+                    <Pin className="w-3 h-3 text-accent-500 flex-shrink-0" />
+                  )}
+                  {conversation.isMuted && (
+                    <BellOff className="w-3 h-3 text-neutral-400 flex-shrink-0" />
+                  )}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {conversation.lastMessage && formatTime(conversation.lastMessage.timestamp)}
+                  </span>
+                  {conversation.unreadCount > 0 && (
+                    <Badge variant="solidPrimary" size="sm" className="animate-pulse min-w-[20px] justify-center">
+                      {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Project badge row - only shown if conversation has project context */}
+              {conversation.projectId && conversation.projectName && (
+                <div className="mb-1">
+                  <ProjectBadge projectId={conversation.projectId} projectName={conversation.projectName} />
+                </div>
               )}
-              {conversation.isMuted && (
-                <BellOff className="w-3 h-3 text-neutral-400 flex-shrink-0" />
-              )}
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                {conversation.lastMessage && formatTime(conversation.lastMessage.timestamp)}
-              </span>
-              {conversation.unreadCount > 0 && (
-                <Badge variant="solidPrimary" size="sm" className="animate-pulse min-w-[20px] justify-center">
-                  {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
-                </Badge>
+
+              {conversation.isTyping ? (
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span className="text-xs text-primary-600 dark:text-primary-400 ml-1">typing...</span>
+                </div>
+              ) : (
+                <p className="text-xs text-neutral-600 dark:text-neutral-400 truncate">
+                  {conversation.lastMessage?.content || 'No messages yet'}
+                </p>
               )}
             </div>
           </div>
-
-          {/* Project badge row - only shown if conversation has project context */}
-          {conversation.projectId && conversation.projectName && (
-            <div className="mb-1">
-              <ProjectBadge projectId={conversation.projectId} projectName={conversation.projectName} />
-            </div>
-          )}
-
-          {conversation.isTyping ? (
-            <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              <span className="text-xs text-primary-600 dark:text-primary-400 ml-1">typing...</span>
-            </div>
-          ) : (
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 truncate">
-              {conversation.lastMessage?.content || 'No messages yet'}
-            </p>
-          )}
-        </div>
+        </button>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -266,7 +349,7 @@ export function ConversationSidebar({
             <button
               key={f}
               onClick={() => onFilterChange(f)}
-              className={`px-3 py-1 text-xs rounded-full whitespace-nowrap transition-all ${
+              className={`px-3 py-2 sm:py-1 text-xs rounded-full whitespace-nowrap transition-all touch-manipulation ${
                 filter === f
                   ? 'bg-primary-600 text-white shadow-md'
                   : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'

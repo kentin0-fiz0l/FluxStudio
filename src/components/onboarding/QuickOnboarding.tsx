@@ -44,7 +44,7 @@ const templates: ProjectTemplate[] = [
     description: 'Complete show production with formations, music, and props',
     icon: <Sparkles className="w-5 h-5" />,
     folders: ['Music & Audio', 'Formations', 'Costumes', 'Props & Equipment'],
-    color: 'bg-purple-100 text-purple-600',
+    color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
   },
   {
     id: 'indoor-winds',
@@ -52,7 +52,7 @@ const templates: ProjectTemplate[] = [
     description: 'Indoor percussion and winds ensemble production',
     icon: <Lightbulb className="w-5 h-5" />,
     folders: ['Music', 'Choreography', 'Floor Design', 'Equipment'],
-    color: 'bg-blue-100 text-blue-600',
+    color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
   },
   {
     id: 'design-project',
@@ -60,7 +60,7 @@ const templates: ProjectTemplate[] = [
     description: 'General creative design and collaboration',
     icon: <Folder className="w-5 h-5" />,
     folders: ['Designs', 'Assets', 'References', 'Deliverables'],
-    color: 'bg-green-100 text-green-600',
+    color: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
   },
   {
     id: 'blank',
@@ -68,7 +68,7 @@ const templates: ProjectTemplate[] = [
     description: 'Start from scratch with an empty project',
     icon: <Briefcase className="w-5 h-5" />,
     folders: [],
-    color: 'bg-neutral-100 text-neutral-600',
+    color: 'bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300',
   },
 ];
 

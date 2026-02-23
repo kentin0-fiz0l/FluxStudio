@@ -200,6 +200,31 @@ export function SearchResultCard({ result, onClick, isCompact = false }: SearchR
             />
           )}
 
+          {/* Inline Content Preview */}
+          {result.type === 'file' && result.metadata.fileType?.startsWith('image/') && result.metadata.thumbnailUrl && (
+            <div className="mt-2 mb-2">
+              <img
+                src={result.metadata.thumbnailUrl}
+                alt=""
+                className="h-20 max-w-[200px] rounded-md object-cover border border-neutral-200 dark:border-neutral-700"
+              />
+            </div>
+          )}
+          {result.type === 'message' && result.metadata.conversationExcerpt && (
+            <div className="mt-2 mb-2 pl-3 border-l-2 border-primary-300 dark:border-primary-600">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 italic line-clamp-2">
+                {result.metadata.conversationExcerpt}
+              </p>
+            </div>
+          )}
+          {result.type === 'file' && result.metadata.fileSize && (
+            <div className="mt-1 mb-2">
+              <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 rounded">
+                {(result.metadata.fileSize / 1024).toFixed(1)} KB
+              </span>
+            </div>
+          )}
+
           {/* Metadata */}
           <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
             {/* Project context */}

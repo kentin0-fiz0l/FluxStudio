@@ -97,8 +97,8 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
         <div className="flex items-center gap-3">
           <ShieldCheck className="w-5 h-5 text-purple-500" />
           <div>
-            <p className="font-medium text-gray-900">Two-Factor Authentication</p>
-            <p className="text-sm text-gray-500">
+            <p className="font-medium text-neutral-900 dark:text-neutral-100">Two-Factor Authentication</p>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
               {is2FAEnabled ? 'Enabled — your account is protected with TOTP' : 'Add an extra layer of security to your account'}
             </p>
           </div>
@@ -109,7 +109,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
             disabled={loading}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               is2FAEnabled
-                ? 'text-red-600 hover:bg-red-50 border border-red-200'
+                ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800'
                 : 'text-white bg-purple-600 hover:bg-purple-700'
             }`}
           >
@@ -119,19 +119,19 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
           {error}
         </div>
       )}
 
       {/* Setup: Show QR code */}
       {step === 'verify' && qrCode && (
-        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
-          <p className="text-sm text-gray-700">Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)</p>
+        <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 space-y-4">
+          <p className="text-sm text-neutral-700 dark:text-neutral-300">Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)</p>
           <div className="flex justify-center">
             <img src={qrCode} alt="2FA QR Code" className="w-48 h-48" />
           </div>
-          <p className="text-xs text-gray-500 text-center font-mono break-all">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center font-mono break-all">
             Manual entry: {secret}
           </p>
           <div className="flex gap-2">
@@ -140,7 +140,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\s/g, ''))}
               placeholder="Enter 6-digit code"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-center font-mono text-lg tracking-widest"
+              className="flex-1 px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 rounded-lg text-center font-mono text-lg tracking-widest"
               maxLength={6}
               inputMode="numeric"
               autoComplete="one-time-code"
@@ -153,7 +153,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
             </button>
           </div>
-          <button onClick={() => { setStep('idle'); setCode(''); }} className="text-sm text-gray-500 hover:text-gray-700">
+          <button onClick={() => { setStep('idle'); setCode(''); }} className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300">
             Cancel
           </button>
         </div>
@@ -161,19 +161,19 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
 
       {/* Disable: Require current code */}
       {step === 'disable' && (
-        <div className="p-4 bg-red-50 rounded-lg border border-red-200 space-y-3">
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 space-y-3">
           <div className="flex items-center gap-2">
             <ShieldOff className="w-4 h-4 text-red-500" />
-            <p className="text-sm font-medium text-red-700">Disable Two-Factor Authentication</p>
+            <p className="text-sm font-medium text-red-700 dark:text-red-400">Disable Two-Factor Authentication</p>
           </div>
-          <p className="text-sm text-red-600">Enter your current 2FA code to confirm.</p>
+          <p className="text-sm text-red-600 dark:text-red-400">Enter your current 2FA code to confirm.</p>
           <div className="flex gap-2">
             <input
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\s/g, ''))}
               placeholder="Enter 6-digit code"
-              className="flex-1 px-3 py-2 border border-red-300 rounded-lg text-center font-mono text-lg tracking-widest"
+              className="flex-1 px-3 py-2 border border-red-300 dark:border-red-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg text-center font-mono text-lg tracking-widest"
               maxLength={6}
               inputMode="numeric"
               autoComplete="one-time-code"
@@ -186,7 +186,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm'}
             </button>
           </div>
-          <button onClick={() => { setStep('idle'); setCode(''); }} className="text-sm text-gray-500 hover:text-gray-700">
+          <button onClick={() => { setStep('idle'); setCode(''); }} className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300">
             Cancel
           </button>
         </div>
@@ -194,17 +194,17 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
 
       {/* Show backup codes after enabling */}
       {backupCodes.length > 0 && (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg space-y-2">
-          <p className="text-sm font-medium text-yellow-800">Save your backup codes</p>
-          <p className="text-xs text-yellow-700">These are single-use codes for when you can't use your authenticator. Store them securely.</p>
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg space-y-2">
+          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">Save your backup codes</p>
+          <p className="text-xs text-yellow-700 dark:text-yellow-400">These are single-use codes for when you can't use your authenticator. Store them securely.</p>
           <div className="grid grid-cols-2 gap-1 font-mono text-sm">
             {backupCodes.map((c, i) => (
-              <div key={i} className="px-2 py-1 bg-white rounded border border-yellow-300 text-center">{c}</div>
+              <div key={i} className="px-2 py-1 bg-white dark:bg-neutral-800 rounded border border-yellow-300 dark:border-yellow-700 text-neutral-900 dark:text-neutral-100 text-center">{c}</div>
             ))}
           </div>
           <button
             onClick={() => setBackupCodes([])}
-            className="text-xs text-yellow-700 hover:text-yellow-800 underline"
+            className="text-xs text-yellow-700 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 underline"
           >
             I've saved my codes
           </button>

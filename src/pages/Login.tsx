@@ -9,6 +9,18 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '65518208813-f
 const API_URL = import.meta.env.VITE_API_URL || 'https://fluxstudio.art';
 const GOOGLE_LOGIN_URI = `${API_URL}/api/auth/google/callback`;
 
+const ONBOARDING_KEY = 'welcome_flow_completed';
+
+/** Returns the post-login destination — `/welcome` for first-timers. */
+function getPostLoginUrl(callbackUrl: string): string {
+  if (callbackUrl !== '/projects') return callbackUrl; // explicit callback takes priority
+  const completed = localStorage.getItem(ONBOARDING_KEY);
+  if (completed !== 'true') {
+    return '/welcome';
+  }
+  return '/projects';
+}
+
 export function Login() {
   const [searchParams] = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/projects';
@@ -39,7 +51,7 @@ export function Login() {
         setTimeout(() => totpInputRef.current?.focus(), 100);
         return;
       }
-      navigate(callbackUrl);
+      navigate(getPostLoginUrl(callbackUrl));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid email or password');
     } finally {
@@ -67,10 +79,10 @@ export function Login() {
         // Fallback: store manually
         localStorage.setItem('accessToken', data.accessToken || data.token);
         if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
-        window.location.href = callbackUrl;
+        window.location.href = getPostLoginUrl(callbackUrl);
         return;
       }
-      navigate(callbackUrl);
+      navigate(getPostLoginUrl(callbackUrl));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid verification code');
     } finally {
@@ -85,7 +97,7 @@ export function Login() {
     }
     try {
       await loginWithGoogle(credentialResponse.credential);
-      navigate(callbackUrl);
+      navigate(getPostLoginUrl(callbackUrl));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Google authentication failed');
     }

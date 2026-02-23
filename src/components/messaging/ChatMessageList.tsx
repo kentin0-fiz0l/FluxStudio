@@ -210,26 +210,26 @@ function MessageBubbleWrapper({
             </div>
           )}
 
-          {/* Quick actions */}
+          {/* Quick actions — larger touch targets on mobile */}
           {!isEditing && (
-            <div className="flex gap-1 mt-1 opacity-0 hover:opacity-100 transition-opacity">
-              <button onClick={onReply} className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded" title="Reply">
+            <div className="flex gap-0.5 sm:gap-1 mt-1 opacity-0 hover:opacity-100 focus-within:opacity-100 active:opacity-100 transition-opacity touch-manipulation">
+              <button onClick={onReply} className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 active:bg-neutral-300 dark:active:bg-neutral-600 rounded-lg sm:rounded" title="Reply">
                 <MessageCircle className="w-4 h-4 text-neutral-500" />
               </button>
               {isOwn && (
                 <>
-                  <button onClick={onEdit} className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded" title="Edit">
+                  <button onClick={onEdit} className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 active:bg-neutral-300 dark:active:bg-neutral-600 rounded-lg sm:rounded" title="Edit">
                     <span className="text-xs">✏️</span>
                   </button>
-                  <button onClick={onDelete} className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded" title="Delete">
+                  <button onClick={onDelete} className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 active:bg-neutral-300 dark:active:bg-neutral-600 rounded-lg sm:rounded" title="Delete">
                     <span className="text-xs">🗑️</span>
                   </button>
                 </>
               )}
-              <button onClick={onPin} className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded" title={isPinned ? 'Unpin' : 'Pin'}>
+              <button onClick={onPin} className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 active:bg-neutral-300 dark:active:bg-neutral-600 rounded-lg sm:rounded" title={isPinned ? 'Unpin' : 'Pin'}>
                 <Pin className="w-4 h-4 text-neutral-500" />
               </button>
-              <button onClick={() => onReact('👍')} className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded" title="React">
+              <button onClick={() => onReact('👍')} className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 active:bg-neutral-300 dark:active:bg-neutral-600 rounded-lg sm:rounded" title="React">
                 <span className="text-xs">👍</span>
               </button>
             </div>
