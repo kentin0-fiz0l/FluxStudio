@@ -196,31 +196,31 @@ export function Profile() {
 
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-neutral-100 dark:border-neutral-800">
-                  <div className="flex items-center gap-2 text-neutral-600">
+                  <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
                     <FileText className="w-4 h-4" />
                     <span className="text-sm">Projects Created</span>
                   </div>
                   {projectsLoading ? (
-                    <Loader2 className="w-5 h-5 text-primary-600 animate-spin" />
+                    <Loader2 className="w-5 h-5 text-primary-600 dark:text-primary-400 animate-spin" />
                   ) : (
-                    <span className="text-xl font-bold text-primary-600">{projects.length}</span>
+                    <span className="text-xl font-bold text-primary-600 dark:text-primary-400">{projects.length}</span>
                   )}
                 </div>
 
                 <div className="flex justify-between items-center py-3 border-b border-neutral-100 dark:border-neutral-800">
-                  <div className="flex items-center gap-2 text-neutral-600">
+                  <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
                     <FileText className="w-4 h-4" />
                     <span className="text-sm">Files Uploaded</span>
                   </div>
-                  <span className="text-xl font-bold text-success-600 opacity-50" title="Coming soon">—</span>
+                  <span className="text-sm font-medium text-neutral-400 dark:text-neutral-500 italic" title="Coming soon">Coming soon</span>
                 </div>
 
                 <div className="flex justify-between items-center py-3">
-                  <div className="flex items-center gap-2 text-neutral-600">
+                  <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
                     <MessageSquare className="w-4 h-4" />
                     <span className="text-sm">Messages Sent</span>
                   </div>
-                  <span className="text-xl font-bold text-secondary-600 opacity-50" title="Coming soon">—</span>
+                  <span className="text-sm font-medium text-neutral-400 dark:text-neutral-500 italic" title="Coming soon">Coming soon</span>
                 </div>
               </div>
             </Card>

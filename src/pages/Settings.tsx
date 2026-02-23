@@ -165,7 +165,20 @@ function Settings() {
       const response = await apiService.saveSettings(settings);
 
       if (response.success) {
-        toast.success('Settings saved successfully');
+        // Build descriptive toast
+        const changes: string[] = [];
+        if (originalSettings?.notifications?.push !== notifications) changes.push('push notifications');
+        if (originalSettings?.notifications?.emailDigest !== emailDigest) changes.push('email digest');
+        if (originalSettings?.notifications?.frequency !== notifFrequency) changes.push('notification frequency');
+        if (originalSettings?.notifications?.quietHours?.enabled !== quietHoursEnabled ||
+            originalSettings?.notifications?.quietHours?.startTime !== quietHoursStart ||
+            originalSettings?.notifications?.quietHours?.endTime !== quietHoursEnd) {
+          changes.push(quietHoursEnabled ? `quiet hours (${quietHoursStart}–${quietHoursEnd})` : 'quiet hours');
+        }
+        if (originalSettings?.appearance?.darkMode !== darkMode) changes.push('dark mode');
+        if (originalSettings?.performance?.autoSave !== autoSave) changes.push('auto-save');
+        const desc = changes.length > 0 ? `Updated: ${changes.join(', ')}` : 'Settings saved';
+        toast.success(desc);
         // Update original settings to current
         setOriginalSettings(settings);
         setHasChanges(false);
@@ -447,23 +460,28 @@ function Settings() {
 
                     {/* Time pickers — only shown when enabled */}
                     {quietHoursEnabled && (
-                      <div className="flex items-center gap-3 pl-6">
-                        <label className="text-xs text-neutral-600 dark:text-neutral-300">From</label>
-                        <input
-                          type="time"
-                          value={quietHoursStart}
-                          onChange={(e) => setQuietHoursStart(e.target.value)}
-                          className="text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 px-2 py-1 focus:ring-2 focus:ring-primary-500"
-                          aria-label="Quiet hours start time"
-                        />
-                        <label className="text-xs text-neutral-600 dark:text-neutral-300">To</label>
-                        <input
-                          type="time"
-                          value={quietHoursEnd}
-                          onChange={(e) => setQuietHoursEnd(e.target.value)}
-                          className="text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 px-2 py-1 focus:ring-2 focus:ring-primary-500"
-                          aria-label="Quiet hours end time"
-                        />
+                      <div className="pl-6 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <label className="text-xs text-neutral-600 dark:text-neutral-300">From</label>
+                          <input
+                            type="time"
+                            value={quietHoursStart}
+                            onChange={(e) => setQuietHoursStart(e.target.value)}
+                            className="text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 px-2 py-1 focus:ring-2 focus:ring-primary-500"
+                            aria-label="Quiet hours start time"
+                          />
+                          <label className="text-xs text-neutral-600 dark:text-neutral-300">To</label>
+                          <input
+                            type="time"
+                            value={quietHoursEnd}
+                            onChange={(e) => setQuietHoursEnd(e.target.value)}
+                            className="text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 px-2 py-1 focus:ring-2 focus:ring-primary-500"
+                            aria-label="Quiet hours end time"
+                          />
+                        </div>
+                        {quietHoursStart === quietHoursEnd && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400">Start and end times are the same — quiet hours will have no effect.</p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -630,7 +648,13 @@ function Settings() {
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-700">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+          {hasChanges && (
+            <span className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              Unsaved changes
+            </span>
+          )}
           <Button
             onClick={handleSave}
             disabled={isSaving || isLoading || !hasChanges}

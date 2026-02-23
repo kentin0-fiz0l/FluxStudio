@@ -83,26 +83,50 @@ export function Pricing() {
           <h2 className="text-xl font-bold text-neutral-900 dark:text-white text-center mb-8">
             Frequently Asked Questions
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-3" role="region" aria-label="Frequently asked questions">
             {FAQ_ITEMS.map((item, i) => (
               <div
                 key={i}
                 className="border border-neutral-200 dark:border-neutral-700 rounded-lg overflow-hidden"
               >
                 <button
+                  id={`faq-trigger-${i}`}
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium text-neutral-900 dark:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      const next = (i + 1) % FAQ_ITEMS.length;
+                      document.getElementById(`faq-trigger-${next}`)?.focus();
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      const prev = (i - 1 + FAQ_ITEMS.length) % FAQ_ITEMS.length;
+                      document.getElementById(`faq-trigger-${prev}`)?.focus();
+                    } else if (e.key === 'Home') {
+                      e.preventDefault();
+                      document.getElementById('faq-trigger-0')?.focus();
+                    } else if (e.key === 'End') {
+                      e.preventDefault();
+                      document.getElementById(`faq-trigger-${FAQ_ITEMS.length - 1}`)?.focus();
+                    }
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium text-neutral-900 dark:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset"
                   aria-expanded={openFaq === i}
+                  aria-controls={`faq-panel-${i}`}
                 >
                   {item.q}
                   {openFaq === i ? (
-                    <ChevronUp className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+                    <ChevronUp className="w-4 h-4 text-neutral-400 flex-shrink-0" aria-hidden="true" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+                    <ChevronDown className="w-4 h-4 text-neutral-400 flex-shrink-0" aria-hidden="true" />
                   )}
                 </button>
                 {openFaq === i && (
-                  <div className="px-4 pb-3 text-sm text-neutral-600 dark:text-neutral-400">
+                  <div
+                    id={`faq-panel-${i}`}
+                    role="region"
+                    aria-labelledby={`faq-trigger-${i}`}
+                    className="px-4 pb-3 text-sm text-neutral-600 dark:text-neutral-400"
+                  >
                     {item.a}
                   </div>
                 )}

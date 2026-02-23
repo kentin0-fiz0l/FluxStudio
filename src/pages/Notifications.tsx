@@ -624,15 +624,23 @@ export default function Notifications() {
               <div className="p-12 text-center">
                 <Bell className="h-12 w-12 text-neutral-200 dark:text-neutral-700 mx-auto mb-4" aria-hidden="true" />
                 <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-1">No notifications</h3>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-3">
                   {filter === 'unread'
                     ? "You've read all your notifications!"
                     : filter === 'read'
                       ? 'No read notifications yet.'
                       : selectedCategory !== 'all'
-                        ? `No ${CATEGORY_CONFIG[selectedCategory].label.toLowerCase()} notifications.`
+                        ? `No ${CATEGORY_CONFIG[selectedCategory].label.toLowerCase()} notifications${filter !== 'all' ? ` in "${filter}" filter` : ''}.`
                         : "When you get notifications, they'll show up here."}
                 </p>
+                {(selectedCategory !== 'all' || filter !== 'all') && (
+                  <button
+                    onClick={() => { setSelectedCategory('all'); setFilter('all'); }}
+                    className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+                  >
+                    Clear all filters
+                  </button>
+                )}
               </div>
             )}
           </CardContent>

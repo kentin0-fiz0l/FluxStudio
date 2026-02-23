@@ -345,14 +345,14 @@ export const ProjectDetail = () => {
         {/* Tab Navigation */}
         <nav className="sticky top-0 z-10 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700" aria-label="Project sections">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6">
-            <TabsList ref={tabListRef} className="w-full justify-start h-12 bg-transparent p-0 gap-1" role="tablist" aria-label="Project navigation tabs">
-              <TabsTrigger value="overview" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'overview'} aria-controls="overview-panel" id="overview-tab">
+            <TabsList ref={tabListRef} className="w-full justify-start h-12 bg-transparent p-0 gap-1 overflow-x-auto scrollbar-hide touch-pan-x" role="tablist" aria-label="Project navigation tabs">
+              <TabsTrigger value="overview" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'overview'} aria-controls="overview-panel" id="overview-tab" aria-label="Overview — project summary and activity">
                 <LayoutDashboard className="h-4 w-4 mr-2" aria-hidden="true" />Overview<TabPresenceIndicator users={tabUsers} tabName="overview" />
               </TabsTrigger>
               <TabsTrigger value="tasks" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'tasks'} aria-controls="tasks-panel" id="tasks-tab" aria-label={`Tasks, ${tasks.length} items`}>
                 <CheckSquare className="h-4 w-4 mr-2" aria-hidden="true" />Tasks<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{tasks.length}</Badge><TabPresenceIndicator users={tabUsers} tabName="tasks" />
               </TabsTrigger>
-              <TabsTrigger value="documents" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'documents'} aria-controls="documents-panel" id="documents-tab">
+              <TabsTrigger value="documents" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'documents'} aria-controls="documents-panel" id="documents-tab" aria-label="Documents — collaborative text documents">
                 <FileText className="h-4 w-4 mr-2" aria-hidden="true" />Documents<TabPresenceIndicator users={tabUsers} tabName="documents" />
               </TabsTrigger>
               <TabsTrigger value="files" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'files'} aria-controls="files-panel" id="files-tab" aria-label={`Files, ${project.files?.length || 0} items`}>
@@ -367,7 +367,7 @@ export const ProjectDetail = () => {
               <TabsTrigger value="formations" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'formations'} aria-controls="formations-panel" id="formations-tab" aria-label={`Formations, ${formations.length} items`}>
                 <Play className="h-4 w-4 mr-2" aria-hidden="true" />Formations<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{formations.length}</Badge><TabPresenceIndicator users={tabUsers} tabName="formations" />
               </TabsTrigger>
-              <TabsTrigger value="analytics" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'analytics'} aria-controls="analytics-panel" id="analytics-tab">
+              <TabsTrigger value="analytics" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'analytics'} aria-controls="analytics-panel" id="analytics-tab" aria-label="Analytics — project health and metrics">
                 <BarChart3 className="h-4 w-4 mr-2" aria-hidden="true" />Analytics<TabPresenceIndicator users={tabUsers} tabName="analytics" />
               </TabsTrigger>
               <TabsTrigger value="messages" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'messages'} aria-controls="messages-panel" id="messages-tab" aria-label={`Messages, ${messagesCount} conversations`}>
