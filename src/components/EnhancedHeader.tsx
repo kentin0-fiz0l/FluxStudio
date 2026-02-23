@@ -100,7 +100,7 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
           {/* Logo and Brand */}
           <Link to="/dashboard" className="flex items-center gap-3 group">
             <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-              <Command className="size-6 text-white" />
+              <Command className="size-6 text-white" aria-hidden="true" />
             </div>
             <div className="hidden md:block">
               <h1 className="text-lg font-bold text-white tracking-tight">Flux Studio</h1>
@@ -128,7 +128,7 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
                     : "text-neutral-300 hover:text-white hover:bg-neutral-700/30"
                 )}
               >
-                <item.icon className="h-4 w-4" />
+                <item.icon className="h-4 w-4" aria-hidden="true" />
                 <span>{item.label}</span>
                 {item.badge > 0 && (
                   <Badge className="ml-1 h-5 px-1.5 bg-neutral-600 text-white border-neutral-500">
@@ -155,7 +155,7 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
             aria-label="Search (⌘K)"
             className="h-9 px-3 text-neutral-300 hover:text-white hover:bg-neutral-700/50"
           >
-            <Search className="h-4 w-4" />
+            <Search className="h-4 w-4" aria-hidden="true" />
             <span className="hidden lg:inline-block ml-2">Search</span>
             <kbd className="hidden lg:inline-flex ml-2 h-5 items-center gap-0.5 rounded border border-neutral-600 bg-neutral-700/50 px-1.5 font-mono text-[10px] font-medium text-neutral-400">
               ⌘K
@@ -170,7 +170,7 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
             aria-label={unreadCount > 0 ? `Messages (${unreadCount} unread)` : 'Messages'}
             className="relative h-9 px-3 text-neutral-300 hover:text-white hover:bg-neutral-700/50"
           >
-            <MessageSquare className="h-4 w-4" />
+            <MessageSquare className="h-4 w-4" aria-hidden="true" />
             <span className="hidden lg:inline-block ml-2">Messages</span>
             {unreadCount > 0 && (
               <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-red-500 border-2 border-neutral-800">
@@ -201,21 +201,21 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
                 onClick={() => navigate('/profile')}
                 className="text-neutral-300 hover:text-white hover:bg-neutral-800 focus:bg-neutral-800 cursor-pointer"
               >
-                <User className="mr-2 h-4 w-4" />
+                <User className="mr-2 h-4 w-4" aria-hidden="true" />
                 Profile
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => navigate('/tools')}
                 className="text-neutral-300 hover:text-white hover:bg-neutral-800 focus:bg-neutral-800 cursor-pointer"
               >
-                <Wrench className="mr-2 h-4 w-4" />
+                <Wrench className="mr-2 h-4 w-4" aria-hidden="true" />
                 Tools
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => navigate('/settings')}
                 className="text-neutral-300 hover:text-white hover:bg-neutral-800 focus:bg-neutral-800 cursor-pointer"
               >
-                <Settings className="mr-2 h-4 w-4" />
+                <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-neutral-700" />
@@ -223,7 +223,7 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
                 onClick={logout}
                 className="text-neutral-300 hover:text-white hover:bg-neutral-800 focus:bg-neutral-800 cursor-pointer"
               >
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -238,7 +238,7 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
             aria-expanded={mobileMenuOpen}
             className="lg:hidden h-9 w-9 p-0 text-neutral-300 hover:text-white hover:bg-neutral-700/50"
           >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileMenuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
           </Button>
         </div>
       </div>
@@ -266,7 +266,7 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
                     : "text-neutral-300 hover:text-white hover:bg-neutral-700/30"
                 )}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className="h-5 w-5" aria-hidden="true" />
                 <span>{item.label}</span>
                 {item.badge > 0 && (
                   <Badge className="ml-auto h-5 px-1.5 bg-neutral-600 text-white border-neutral-500">

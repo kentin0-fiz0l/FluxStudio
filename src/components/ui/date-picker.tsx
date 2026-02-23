@@ -80,7 +80,7 @@ export function DatePicker({
           )}
           disabled={disabled}
         >
-          <Calendar className="mr-2 h-4 w-4" />
+          <Calendar className="mr-2 h-4 w-4" aria-hidden="true" />
           {selected ? formatDate(selected) : placeholder}
         </Button>
       </PopoverTrigger>
@@ -94,7 +94,7 @@ export function DatePicker({
               onClick={handlePreviousMonth}
               className="h-7 w-7 p-0"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </Button>
 
             <div className="font-semibold">
@@ -107,7 +107,7 @@ export function DatePicker({
               onClick={handleNextMonth}
               className="h-7 w-7 p-0"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
 

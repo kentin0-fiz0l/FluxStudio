@@ -52,7 +52,7 @@ export function LanguageSwitcher({
           aria-label={t('language.select')}
         >
           {variant === 'icon' ? (
-            <Globe className="h-4 w-4" />
+            <Globe className="h-4 w-4" aria-hidden="true" />
           ) : variant === 'compact' ? (
             <>
               <span className="text-lg">{currentLanguage.flag}</span>
@@ -84,7 +84,7 @@ export function LanguageSwitcher({
               </span>
             </div>
             {currentLang === language.code && (
-              <Check className="h-4 w-4 text-primary" />
+              <Check className="h-4 w-4 text-primary" aria-hidden="true" />
             )}
           </DropdownMenuItem>
         ))}

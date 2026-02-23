@@ -122,7 +122,7 @@ export function OptimizedImage({
         )}
         style={{ width, height }}
       >
-        <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
+        <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" aria-hidden="true" />
         <p className="text-xs text-muted-foreground">Failed to load image</p>
       </div>
     );

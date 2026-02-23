@@ -18,14 +18,14 @@ export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   const themeOptions: { value: Theme; label: string; icon: React.ReactNode }[] = [
-    { value: 'light', label: 'Light', icon: <Sun className="w-4 h-4" /> },
-    { value: 'dark', label: 'Dark', icon: <Moon className="w-4 h-4" /> },
-    { value: 'auto', label: 'System', icon: <Monitor className="w-4 h-4" /> },
+    { value: 'light', label: 'Light', icon: <Sun className="w-4 h-4" aria-hidden="true" /> },
+    { value: 'dark', label: 'Dark', icon: <Moon className="w-4 h-4" aria-hidden="true" /> },
+    { value: 'auto', label: 'System', icon: <Monitor className="w-4 h-4" aria-hidden="true" /> },
   ];
 
   const currentIcon = resolvedTheme === 'dark' ?
-    <Moon className="w-4 h-4" /> :
-    <Sun className="w-4 h-4" />;
+    <Moon className="w-4 h-4" aria-hidden="true" /> :
+    <Sun className="w-4 h-4" aria-hidden="true" />;
 
   return (
     <DropdownMenu>
