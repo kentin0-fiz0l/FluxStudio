@@ -173,7 +173,7 @@ export const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
             ) : (
               <div
                 className={cn(
-                  'rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-semibold',
+                  'rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 flex items-center justify-center font-semibold',
                   variant === 'compact' ? 'h-10 w-10 text-sm' : 'h-12 w-12 text-base'
                 )}
               >
@@ -185,7 +185,7 @@ export const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
             {showStatus && user.status && (
               <span
                 className={cn(
-                  'absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white',
+                  'absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white dark:border-neutral-900',
                   statusColors[user.status]
                 )}
                 aria-label={`Status: ${user.status}`}
@@ -199,7 +199,7 @@ export const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
               <div className="flex-1 min-w-0">
                 <h3
                   className={cn(
-                    'font-semibold text-neutral-900 truncate',
+                    'font-semibold text-neutral-900 dark:text-neutral-100 truncate',
                     variant === 'compact' ? 'text-sm' : 'text-base'
                   )}
                 >
@@ -209,7 +209,7 @@ export const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
                 {showEmail && user.email && (
                   <p
                     className={cn(
-                      'text-neutral-500 truncate',
+                      'text-neutral-500 dark:text-neutral-400 truncate',
                       variant === 'compact' ? 'text-xs' : 'text-sm'
                     )}
                   >
@@ -232,8 +232,9 @@ export const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
                         }
                       }}
                       className="flex-shrink-0"
+                      aria-label={`More options for ${user.name}`}
                     >
-                      <MoreVertical className="h-4 w-4" />
+                      <MoreVertical className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </DropdownMenuTrigger>
                   {actions && actions.length > 0 && (
@@ -273,7 +274,7 @@ export const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
                 <Button
                   variant="primary"
                   size="sm"
-                  icon={<Mail className="h-4 w-4" />}
+                  icon={<Mail className="h-4 w-4" aria-hidden="true" />}
                   onClick={(e) => {
                     e.stopPropagation();
                     onMessage(user);
@@ -284,7 +285,7 @@ export const UserCard = React.forwardRef<HTMLDivElement, UserCardProps>(
                 <Button
                   variant="outline"
                   size="sm"
-                  icon={<User className="h-4 w-4" />}
+                  icon={<User className="h-4 w-4" aria-hidden="true" />}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onView) {

@@ -168,7 +168,7 @@ export function ScreenShare({
       >
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-white">
-            <Monitor className="w-5 h-5 text-blue-400" />
+            <Monitor className="w-5 h-5 text-blue-400" aria-hidden="true" />
             <span className="font-medium">
               {isPresenter
                 ? t('screenShare.youAreSharing', 'You are sharing your screen')
@@ -176,7 +176,7 @@ export function ScreenShare({
             </span>
           </div>
           <div className="flex items-center gap-2 text-gray-400">
-            <Users className="w-4 h-4" />
+            <Users className="w-4 h-4" aria-hidden="true" />
             <span className="text-sm">
               {participantCount} {t('screenShare.watching', 'watching')}
             </span>
@@ -188,28 +188,28 @@ export function ScreenShare({
             <button
               onClick={onOpenChat}
               className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title={t('screenShare.openChat', 'Open chat')}
+              aria-label={t('screenShare.openChat', 'Open chat')}
             >
-              <MessageSquare className="w-5 h-5" />
+              <MessageSquare className="w-5 h-5" aria-hidden="true" />
             </button>
           )}
           <button
             onClick={toggleFullscreen}
             className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            title={isFullscreen ? t('screenShare.exitFullscreen', 'Exit fullscreen') : t('screenShare.fullscreen', 'Fullscreen')}
+            aria-label={isFullscreen ? t('screenShare.exitFullscreen', 'Exit fullscreen') : t('screenShare.fullscreen', 'Fullscreen')}
           >
             {isFullscreen ? (
-              <Minimize2 className="w-5 h-5" />
+              <Minimize2 className="w-5 h-5" aria-hidden="true" />
             ) : (
-              <Maximize2 className="w-5 h-5" />
+              <Maximize2 className="w-5 h-5" aria-hidden="true" />
             )}
           </button>
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            title={t('common.close', 'Close')}
+            aria-label={t('common.close', 'Close')}
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -224,6 +224,7 @@ export function ScreenShare({
           autoPlay
           playsInline
           className="max-w-full max-h-full object-contain"
+          aria-label={`Screen shared by ${presenterName}`}
         />
 
         {/* Annotation Overlay */}
@@ -248,7 +249,7 @@ export function ScreenShare({
                     className="w-8 h-8 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: annotation.color }}
                   >
-                    <MousePointer className="w-4 h-4 text-white" />
+                    <MousePointer className="w-4 h-4 text-white" aria-hidden="true" />
                   </div>
                 </div>
               )}
@@ -264,7 +265,7 @@ export function ScreenShare({
         }`}
       >
         {/* Annotation Tools */}
-        <div className="flex items-center gap-2 bg-gray-800/80 rounded-lg p-2">
+        <div className="flex items-center gap-2 bg-gray-800/80 rounded-lg p-2" role="toolbar" aria-label="Annotation tools">
           <button
             onClick={() => setAnnotationMode(annotationMode === 'pointer' ? 'none' : 'pointer')}
             className={`p-3 rounded-lg transition-colors ${
@@ -272,9 +273,10 @@ export function ScreenShare({
                 ? 'bg-blue-500 text-white'
                 : 'text-gray-400 hover:text-white hover:bg-gray-700'
             }`}
-            title={t('screenShare.pointer', 'Pointer')}
+            aria-label={t('screenShare.pointer', 'Pointer')}
+            aria-pressed={annotationMode === 'pointer'}
           >
-            <MousePointer className="w-5 h-5" />
+            <MousePointer className="w-5 h-5" aria-hidden="true" />
           </button>
           <button
             onClick={() => setAnnotationMode(annotationMode === 'draw' ? 'none' : 'draw')}
@@ -283,17 +285,18 @@ export function ScreenShare({
                 ? 'bg-blue-500 text-white'
                 : 'text-gray-400 hover:text-white hover:bg-gray-700'
             }`}
-            title={t('screenShare.draw', 'Draw')}
+            aria-label={t('screenShare.draw', 'Draw')}
+            aria-pressed={annotationMode === 'draw'}
           >
-            <PenTool className="w-5 h-5" />
+            <PenTool className="w-5 h-5" aria-hidden="true" />
           </button>
           {annotations.length > 0 && (
             <button
               onClick={clearAnnotations}
               className="p-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-              title={t('screenShare.clearAnnotations', 'Clear annotations')}
+              aria-label={t('screenShare.clearAnnotations', 'Clear annotations')}
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -304,7 +307,7 @@ export function ScreenShare({
             onClick={onRequestControl}
             className="flex items-center gap-2 px-4 py-3 bg-gray-800/80 hover:bg-gray-700 text-white rounded-lg transition-colors"
           >
-            <Hand className="w-5 h-5" />
+            <Hand className="w-5 h-5" aria-hidden="true" />
             <span>{t('screenShare.requestControl', 'Request Control')}</span>
           </button>
         )}
@@ -315,7 +318,7 @@ export function ScreenShare({
             onClick={onStopSharing}
             className="flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
           >
-            <MonitorOff className="w-5 h-5" />
+            <MonitorOff className="w-5 h-5" aria-hidden="true" />
             <span>{t('screenShare.stopSharing', 'Stop Sharing')}</span>
           </button>
         )}

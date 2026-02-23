@@ -170,17 +170,19 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800">
           {!collapsed && (
-            <Link to="/home" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center font-bold text-sm">
+            <Link to="/home" className="flex items-center gap-2" aria-label="FluxStudio home">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center font-bold text-sm text-white" aria-hidden="true">
                 FS
               </div>
               <span className="font-semibold text-lg">FluxStudio</span>
             </Link>
           )}
           {collapsed && (
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center font-bold text-sm mx-auto">
-              FS
-            </div>
+            <Link to="/home" aria-label="FluxStudio home" className="block mx-auto w-8 h-8">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center font-bold text-sm text-white" aria-hidden="true">
+                FS
+              </div>
+            </Link>
           )}
         </div>
 
@@ -346,19 +348,20 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
         {user && (
           <div className="border-t border-neutral-200 dark:border-neutral-800 p-3">
             {collapsed ? (
-              <div className="relative">
+              <Link to="/profile" className="relative block" aria-label={`Profile for ${user.name}`}>
                 {user.avatar ? (
                   <img
                     src={user.avatar}
-                    alt={user.name}
+                    alt=""
                     className="w-10 h-10 rounded-full mx-auto"
+                    aria-hidden="true"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center font-semibold text-sm mx-auto">
+                  <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center font-semibold text-sm text-white mx-auto" aria-hidden="true">
                     {getUserInitials(user.name || '')}
                   </div>
                 )}
-              </div>
+              </Link>
             ) : (
               <div className="space-y-2">
                 <Link
@@ -372,7 +375,7 @@ export const NavigationSidebar = React.forwardRef<HTMLDivElement, NavigationSide
                       className="w-9 h-9 rounded-full flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center font-semibold text-sm text-white flex-shrink-0">
                       {getUserInitials(user.name || '')}
                     </div>
                   )}

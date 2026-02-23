@@ -212,7 +212,7 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
       <div
         ref={ref}
         className={cn(
-          'sticky top-0 z-40 bg-white border-b border-neutral-200 shadow-sm',
+          'sticky top-0 z-40 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700 shadow-sm',
           className
         )}
       >
@@ -229,9 +229,9 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                 aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               >
                 {mobileMenuOpen ? (
-                  <X className="h-5 w-5" />
+                  <X className="h-5 w-5" aria-hidden="true" />
                 ) : (
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-5 w-5" aria-hidden="true" />
                 )}
               </Button>
             )}
@@ -248,12 +248,12 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                       {crumb.path ? (
                         <Link
                           to={crumb.path}
-                          className="text-neutral-600 hover:text-neutral-900 transition-colors font-medium"
+                          className="text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors font-medium"
                         >
                           {crumb.label}
                         </Link>
                       ) : (
-                        <span className="text-neutral-900 font-semibold" aria-current="page">
+                        <span className="text-neutral-900 dark:text-neutral-100 font-semibold" aria-current="page">
                           {crumb.label}
                         </span>
                       )}
@@ -297,7 +297,7 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                   className="relative"
                   aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
                 >
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-5 w-5" aria-hidden="true" />
                   {unreadCount > 0 && (
                     <Badge
                       variant="solidError"
@@ -312,13 +312,13 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                 {/* Notifications Dropdown */}
                 {notificationsOpen && (
                   <div
-                    className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-96 sm:w-96 bg-white border border-neutral-200 rounded-lg shadow-dropdown overflow-hidden"
+                    className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-96 sm:w-96 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-dropdown overflow-hidden"
                     role="dialog"
                     aria-label="Notifications"
                     aria-labelledby="notifications-heading"
                   >
-                    <div className="px-4 py-3 border-b border-neutral-200 flex items-center justify-between">
-                      <h3 className="font-semibold text-neutral-900" id="notifications-heading">Notifications</h3>
+                    <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+                      <h3 className="font-semibold text-neutral-900 dark:text-neutral-100" id="notifications-heading">Notifications</h3>
                       <div className="flex items-center gap-2">
                         {unreadCount > 0 && (
                           <>
@@ -333,7 +333,7 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                                 className="text-xs text-neutral-500 hover:text-primary-600"
                                 aria-label="Mark all notifications as read"
                               >
-                                <CheckCheck className="h-4 w-4" />
+                                <CheckCheck className="h-4 w-4" aria-hidden="true" />
                               </Button>
                             )}
                           </>
@@ -353,8 +353,8 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                               <li key={notification.id} role="listitem">
                                 <div
                                   className={cn(
-                                    'w-full px-4 py-3 text-left hover:bg-neutral-50 transition-colors border-b border-neutral-100 last:border-0 flex items-start gap-3',
-                                    !isRead && 'bg-primary-50/50'
+                                    'w-full px-4 py-3 text-left hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors border-b border-neutral-100 dark:border-neutral-700 last:border-0 flex items-start gap-3',
+                                    !isRead && 'bg-primary-50/50 dark:bg-primary-900/20'
                                   )}
                                 >
                                   <button
@@ -367,13 +367,13 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                                         <div className="w-2 h-2 rounded-full bg-primary-600 mt-1.5 flex-shrink-0" aria-hidden="true" />
                                       )}
                                       <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-sm text-neutral-900 truncate">
+                                        <p className="font-medium text-sm text-neutral-900 dark:text-neutral-100 truncate">
                                           {notification.title}
                                         </p>
-                                        <p className="text-sm text-neutral-600 line-clamp-2 mt-0.5">
+                                        <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2 mt-0.5">
                                           {notification.message}
                                         </p>
-                                        <p className="text-xs text-neutral-500 mt-1">
+                                        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                                           {time}
                                         </p>
                                       </div>
@@ -390,7 +390,7 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                                       className="text-neutral-400 hover:text-error-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                                       aria-label={`Delete notification: ${notification.title}`}
                                     >
-                                      <Trash2 className="h-4 w-4" />
+                                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                                     </Button>
                                   )}
                                 </div>
@@ -400,14 +400,14 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                         </ul>
                       ) : (
                         <div className="px-4 py-8 text-center">
-                          <Bell className="h-8 w-8 text-neutral-300 mx-auto mb-2" aria-hidden="true" />
-                          <p className="text-sm text-neutral-500">No notifications</p>
-                          <p className="text-xs text-neutral-400 mt-1">You're all caught up!</p>
+                          <Bell className="h-8 w-8 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" aria-hidden="true" />
+                          <p className="text-sm text-neutral-500 dark:text-neutral-400">No notifications</p>
+                          <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-1">You're all caught up!</p>
                         </div>
                       )}
                     </div>
 
-                    <div className="px-4 py-2 border-t border-neutral-200 bg-neutral-50">
+                    <div className="px-4 py-2 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50">
                       <Link to="/notifications" onClick={() => setNotificationsOpen(false)}>
                         <Button
                           variant="ghost"

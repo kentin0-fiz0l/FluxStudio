@@ -4,7 +4,7 @@
  * Full-featured video call UI with controls, participant grid, and screen sharing.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { CallParticipant } from '../../services/webrtcService';
@@ -45,7 +45,7 @@ interface VideoCallProps {
 // PARTICIPANT VIDEO COMPONENT
 // ============================================================================
 
-function ParticipantVideo({
+const ParticipantVideo = React.memo(function ParticipantVideo({
   participant,
   stream,
   isLarge = false,
@@ -107,7 +107,7 @@ function ParticipantVideo({
       </div>
     </div>
   );
-}
+});
 
 // ============================================================================
 // MAIN COMPONENT
@@ -234,7 +234,7 @@ export function VideoCall({
       <div className="flex items-center justify-between px-6 py-4 bg-gray-800/80 backdrop-blur">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-white">
-            <Users className="w-5 h-5" />
+            <Users className="w-5 h-5" aria-hidden="true" />
             <span className="font-medium">
               {participants.length + 1} {t('call.participants', 'participants')}
             </span>
@@ -249,7 +249,7 @@ export function VideoCall({
               className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
               aria-label="Open chat"
             >
-              <MessageSquare className="w-5 h-5" />
+              <MessageSquare className="w-5 h-5" aria-hidden="true" />
             </button>
           )}
           <button
@@ -258,9 +258,9 @@ export function VideoCall({
             aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           >
             {isFullscreen ? (
-              <Minimize2 className="w-5 h-5" />
+              <Minimize2 className="w-5 h-5" aria-hidden="true" />
             ) : (
-              <Maximize2 className="w-5 h-5" />
+              <Maximize2 className="w-5 h-5" aria-hidden="true" />
             )}
           </button>
           <button
@@ -269,14 +269,14 @@ export function VideoCall({
             aria-label="Call settings"
             aria-expanded={showSettings}
           >
-            <Settings className="w-5 h-5" />
+            <Settings className="w-5 h-5" aria-hidden="true" />
           </button>
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
             aria-label="Close call window"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -318,23 +318,35 @@ export function VideoCall({
                 <span className="text-white text-sm font-medium">
                   {userName} ({t('call.you', 'You')})
                 </span>
-                <div className="flex items-center gap-2">
-                  {isMuted && <MicOff className="w-4 h-4 text-red-400" />}
-                  {isVideoOff && <VideoOff className="w-4 h-4 text-red-400" />}
-                  {isScreenSharing && <Monitor className="w-4 h-4 text-blue-400" />}
+                <div className="flex items-center gap-2" aria-label="Your status">
+                  {isMuted && <MicOff className="w-4 h-4 text-red-400" aria-label="Muted" role="img" />}
+                  {isVideoOff && <VideoOff className="w-4 h-4 text-red-400" aria-label="Camera off" role="img" />}
+                  {isScreenSharing && <Monitor className="w-4 h-4 text-blue-400" aria-label="Sharing screen" role="img" />}
                 </div>
               </div>
             </div>
           </div>
 
           {/* Remote participants */}
-          {participants.map((participant) => (
-            <ParticipantVideo
-              key={participant.id}
-              participant={participant}
-              stream={getParticipantStream(participant.id)}
-            />
-          ))}
+          {participants.length === 0 && (callState === 'connecting' || callState === 'ringing') ? (
+            <div className="relative bg-gray-800 rounded-lg overflow-hidden animate-pulse" role="status" aria-label="Connecting to participants">
+              <div className="w-full h-full flex items-center justify-center bg-gray-700">
+                <div className="w-20 h-20 rounded-full bg-gray-600" />
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+                <div className="h-4 w-24 bg-gray-600 rounded" />
+              </div>
+              <p className="sr-only">Connecting to participants...</p>
+            </div>
+          ) : (
+            participants.map((participant) => (
+              <ParticipantVideo
+                key={participant.id}
+                participant={participant}
+                stream={getParticipantStream(participant.id)}
+              />
+            ))
+          )}
         </div>
       </div>
 
@@ -351,7 +363,7 @@ export function VideoCall({
           aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
           aria-pressed={isMuted}
         >
-          {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+          {isMuted ? <MicOff className="w-6 h-6" aria-hidden="true" /> : <Mic className="w-6 h-6" aria-hidden="true" />}
         </button>
 
         {/* Video */}
@@ -365,7 +377,7 @@ export function VideoCall({
           aria-label={isVideoOff ? 'Turn camera on' : 'Turn camera off'}
           aria-pressed={isVideoOff}
         >
-          {isVideoOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
+          {isVideoOff ? <VideoOff className="w-6 h-6" aria-hidden="true" /> : <Video className="w-6 h-6" aria-hidden="true" />}
         </button>
 
         {/* Screen Share */}
@@ -380,9 +392,9 @@ export function VideoCall({
           aria-pressed={isScreenSharing}
         >
           {isScreenSharing ? (
-            <MonitorOff className="w-6 h-6" />
+            <MonitorOff className="w-6 h-6" aria-hidden="true" />
           ) : (
-            <Monitor className="w-6 h-6" />
+            <Monitor className="w-6 h-6" aria-hidden="true" />
           )}
         </button>
 
@@ -392,18 +404,18 @@ export function VideoCall({
           className="p-4 rounded-full bg-red-500 hover:bg-red-600 text-white"
           aria-label="End call"
         >
-          <PhoneOff className="w-6 h-6" />
+          <PhoneOff className="w-6 h-6" aria-hidden="true" />
         </button>
 
         {/* More Options */}
         <button className="p-4 rounded-full bg-gray-700 hover:bg-gray-600 text-white" aria-label="More options">
-          <MoreVertical className="w-6 h-6" />
+          <MoreVertical className="w-6 h-6" aria-hidden="true" />
         </button>
       </div>
 
       {/* Error Toast */}
       {error && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-red-500 text-white rounded-lg shadow-lg">
+        <div role="alert" className="absolute top-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-red-500 text-white rounded-lg shadow-lg">
           {error}
         </div>
       )}
