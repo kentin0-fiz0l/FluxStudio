@@ -254,7 +254,7 @@ export function SignupWizard() {
                       : 'bg-white/5 text-gray-400'
                   }`}
                 >
-                  <StepIcon className="h-4 w-4 mr-2" />
+                  <StepIcon className="h-4 w-4 mr-2" aria-hidden="true" />
                   <span className="hidden sm:inline">{step.title}</span>
                 </div>
               );
@@ -372,7 +372,7 @@ export function SignupWizard() {
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
                           aria-label={showPassword ? 'Hide password' : 'Show password'}
                         >
-                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                          {showPassword ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
                         </button>
                       </div>
                       {/* Password strength indicator */}
@@ -391,19 +391,19 @@ export function SignupWizard() {
                           </div>
                           <div className="grid grid-cols-2 gap-1 text-xs">
                             <div className={`flex items-center gap-1 ${passwordStrength.checks.length ? 'text-green-400' : 'text-gray-500'}`}>
-                              {passwordStrength.checks.length ? <Check size={12} /> : <X size={12} />}
+                              {passwordStrength.checks.length ? <Check size={12} aria-hidden="true" /> : <X size={12} aria-hidden="true" />}
                               8+ characters
                             </div>
                             <div className={`flex items-center gap-1 ${passwordStrength.checks.uppercase ? 'text-green-400' : 'text-gray-500'}`}>
-                              {passwordStrength.checks.uppercase ? <Check size={12} /> : <X size={12} />}
+                              {passwordStrength.checks.uppercase ? <Check size={12} aria-hidden="true" /> : <X size={12} aria-hidden="true" />}
                               Uppercase
                             </div>
                             <div className={`flex items-center gap-1 ${passwordStrength.checks.lowercase ? 'text-green-400' : 'text-gray-500'}`}>
-                              {passwordStrength.checks.lowercase ? <Check size={12} /> : <X size={12} />}
+                              {passwordStrength.checks.lowercase ? <Check size={12} aria-hidden="true" /> : <X size={12} aria-hidden="true" />}
                               Lowercase
                             </div>
                             <div className={`flex items-center gap-1 ${passwordStrength.checks.number ? 'text-green-400' : 'text-gray-500'}`}>
-                              {passwordStrength.checks.number ? <Check size={12} /> : <X size={12} />}
+                              {passwordStrength.checks.number ? <Check size={12} aria-hidden="true" /> : <X size={12} aria-hidden="true" />}
                               Number
                             </div>
                           </div>
@@ -437,18 +437,18 @@ export function SignupWizard() {
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
                           aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                         >
-                          {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                          {showConfirmPassword ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
                         </button>
                       </div>
                       {formData.confirmPassword && formData.password !== formData.confirmPassword && (
                         <p className="mt-1 text-xs text-red-400 flex items-center gap-1">
-                          <X size={12} />
+                          <X size={12} aria-hidden="true" />
                           Passwords do not match
                         </p>
                       )}
                       {formData.confirmPassword && formData.password === formData.confirmPassword && formData.password && (
                         <p className="mt-1 text-xs text-green-400 flex items-center gap-1">
-                          <Check size={12} />
+                          <Check size={12} aria-hidden="true" />
                           Passwords match
                         </p>
                       )}
@@ -486,7 +486,7 @@ export function SignupWizard() {
                               : 'border-white/10 bg-white/5 hover:border-white/20'
                           }`}
                         >
-                          <User className="h-6 w-6 mb-2 text-blue-400" />
+                          <User className="h-6 w-6 mb-2 text-blue-400" aria-hidden="true" />
                           <h3 className="font-semibold mb-1">Client</h3>
                           <p className="text-sm text-gray-400">Looking for design services</p>
                         </button>
@@ -500,7 +500,7 @@ export function SignupWizard() {
                               : 'border-white/10 bg-white/5 hover:border-white/20'
                           }`}
                         >
-                          <Briefcase className="h-6 w-6 mb-2 text-purple-400" />
+                          <Briefcase className="h-6 w-6 mb-2 text-purple-400" aria-hidden="true" />
                           <h3 className="font-semibold mb-1">Designer</h3>
                           <p className="text-sm text-gray-400">Offering design services</p>
                         </button>
@@ -549,7 +549,7 @@ export function SignupWizard() {
                     transition={{ type: "spring", duration: 0.5 }}
                   >
                     <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-r from-green-400 to-blue-500 flex items-center justify-center">
-                      <CheckCircle className="h-12 w-12 text-white" />
+                      <CheckCircle className="h-12 w-12 text-white" aria-hidden="true" />
                     </div>
                   </motion.div>
 
@@ -558,15 +558,15 @@ export function SignupWizard() {
 
                   <div className="bg-white/5 rounded-lg p-6 text-left space-y-3">
                     <p className="text-sm text-gray-300">
-                      <CheckCircle className="inline h-4 w-4 text-green-400 mr-2" />
+                      <CheckCircle className="inline h-4 w-4 text-green-400 mr-2" aria-hidden="true" />
                       Account created
                     </p>
                     <p className="text-sm text-gray-300">
-                      <CheckCircle className="inline h-4 w-4 text-green-400 mr-2" />
+                      <CheckCircle className="inline h-4 w-4 text-green-400 mr-2" aria-hidden="true" />
                       Email verification sent
                     </p>
                     <p className="text-sm text-gray-300">
-                      <Sparkles className="inline h-4 w-4 text-blue-400 mr-2" />
+                      <Sparkles className="inline h-4 w-4 text-blue-400 mr-2" aria-hidden="true" />
                       Redirecting to onboarding...
                     </p>
                   </div>
@@ -584,7 +584,7 @@ export function SignupWizard() {
                 className="px-6 py-2 rounded-lg border border-white/10 hover:bg-white/5 transition-all
                          disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                <ChevronLeft className="h-4 w-4 mr-2" />
+                <ChevronLeft className="h-4 w-4 mr-2" aria-hidden="true" />
                 Back
               </button>
 
@@ -600,12 +600,12 @@ export function SignupWizard() {
                 ) : currentStep === 2 ? (
                   <>
                     Create Account
-                    <CheckCircle className="h-4 w-4 ml-2" />
+                    <CheckCircle className="h-4 w-4 ml-2" aria-hidden="true" />
                   </>
                 ) : (
                   <>
                     Continue
-                    <ChevronRight className="h-4 w-4 ml-2" />
+                    <ChevronRight className="h-4 w-4 ml-2" aria-hidden="true" />
                   </>
                 )}
               </button>

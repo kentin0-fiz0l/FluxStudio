@@ -102,12 +102,12 @@ export function SyncStatusBar({ className = '', collapsible = true }: SyncStatus
   };
 
   const getStatusIcon = () => {
-    if (!isOnline) return <WifiOff className="w-5 h-5 text-red-500" />;
-    if (syncStatus === 'error') return <AlertTriangle className="w-5 h-5 text-orange-500" />;
+    if (!isOnline) return <WifiOff className="w-5 h-5 text-red-500" aria-hidden="true" />;
+    if (syncStatus === 'error') return <AlertTriangle className="w-5 h-5 text-orange-500" aria-hidden="true" />;
     if (syncStatus === 'syncing' || isSyncing)
-      return <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />;
-    if (syncStatus === 'pending') return <Cloud className="w-5 h-5 text-yellow-500" />;
-    return <CheckCircle className="w-5 h-5 text-green-500" />;
+      return <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" aria-hidden="true" />;
+    if (syncStatus === 'pending') return <Cloud className="w-5 h-5 text-yellow-500" aria-hidden="true" />;
+    return <CheckCircle className="w-5 h-5 text-green-500" aria-hidden="true" />;
   };
 
   const getStatusText = () => {
@@ -148,13 +148,13 @@ export function SyncStatusBar({ className = '', collapsible = true }: SyncStatus
               }}
               className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center gap-1"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
               Sync Now
             </button>
           )}
           {collapsible && (
             <button className="p-1 text-gray-400 hover:text-gray-600">
-              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+              {isExpanded ? <ChevronUp className="w-5 h-5" aria-hidden="true" /> : <ChevronDown className="w-5 h-5" aria-hidden="true" />}
             </button>
           )}
         </div>
@@ -173,7 +173,7 @@ export function SyncStatusBar({ className = '', collapsible = true }: SyncStatus
                   onClick={handleClearPending}
                   className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3 h-3" aria-hidden="true" />
                   Clear All
                 </button>
               </div>
@@ -185,7 +185,7 @@ export function SyncStatusBar({ className = '', collapsible = true }: SyncStatus
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
-                        <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -206,7 +206,7 @@ export function SyncStatusBar({ className = '', collapsible = true }: SyncStatus
                       className="p-1 text-gray-400 hover:text-red-500 transition-colors"
                       title="Remove"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </li>
                 ))}
@@ -214,7 +214,7 @@ export function SyncStatusBar({ className = '', collapsible = true }: SyncStatus
             </>
           ) : (
             <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-              <CloudOff className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <CloudOff className="w-8 h-8 mx-auto mb-2 opacity-50" aria-hidden="true" />
               <p className="text-sm">No pending changes</p>
             </div>
           )}
