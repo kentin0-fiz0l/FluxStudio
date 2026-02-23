@@ -90,9 +90,9 @@ export function AudioTrackPanel({
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
         >
           {audioLoading ? (
-            <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+            <Loader2 className="h-6 w-6 animate-spin text-indigo-500" aria-hidden="true" />
           ) : (
-            <Upload className="h-6 w-6 text-neutral-400 dark:text-neutral-500" />
+            <Upload className="h-6 w-6 text-neutral-400 dark:text-neutral-500" aria-hidden="true" />
           )}
           <span className="text-sm text-neutral-500 dark:text-neutral-400">
             {audioLoading ? 'Uploading...' : 'Drop audio file or click to browse'}
@@ -129,7 +129,7 @@ export function AudioTrackPanel({
               className="p-1 text-neutral-400 dark:text-neutral-500 hover:text-red-500 transition-colors"
               aria-label="Remove audio"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
 
@@ -137,7 +137,7 @@ export function AudioTrackPanel({
           <div className="flex items-center gap-2">
             {hasBeatMap ? (
               <div className="flex items-center gap-2 text-sm">
-                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                <Zap className="h-3.5 w-3.5 text-amber-500" aria-hidden="true" />
                 <span className="text-neutral-600 dark:text-neutral-300">
                   Detected: <strong>{song.detectedBpm} BPM</strong>
                   {song.beatMap && (
@@ -162,9 +162,9 @@ export function AudioTrackPanel({
                 className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 rounded transition-colors disabled:opacity-50"
               >
                 {beatDetectionLoading ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
                 ) : (
-                  <Zap className="h-3 w-3" />
+                  <Zap className="h-3 w-3" aria-hidden="true" />
                 )}
                 Detect Beats
               </button>

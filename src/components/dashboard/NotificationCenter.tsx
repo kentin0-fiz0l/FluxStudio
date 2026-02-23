@@ -261,8 +261,8 @@ export function NotificationCenter() {
                 <div className="p-4 border-b bg-gradient-to-r from-blue-500 to-purple-600 text-white">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <Bell className="h-5 w-5" />
-                      <h2 className="text-lg font-semibold">Notifications</h2>
+                      <Bell className="h-5 w-5" aria-hidden="true" />
+                   <h2 className="text-lg font-semibold">Notifications</h2>
                     </div>
                     <Button
                       variant="ghost"
@@ -315,7 +315,7 @@ export function NotificationCenter() {
                       disabled={unreadCount === 0}
                       className="flex-1"
                     >
-                      <CheckCheck className="h-3 w-3 mr-1" />
+                      <CheckCheck className="h-3 w-3 mr-1" aria-hidden="true" />
                       Mark all read
                     </Button>
                     <Button
@@ -325,7 +325,7 @@ export function NotificationCenter() {
                       disabled={notifications.length === 0}
                       className="flex-1"
                     >
-                      <Trash2 className="h-3 w-3 mr-1" />
+                      <Trash2 className="h-3 w-3 mr-1" aria-hidden="true" />
                       Clear all
                     </Button>
                   </div>
@@ -360,7 +360,7 @@ export function NotificationCenter() {
                               <div className="flex items-start gap-3">
                                 {/* Icon */}
                                 <div className={cn('p-2 rounded-full', colorClass)}>
-                                  <Icon className="h-4 w-4" />
+                                  <Icon className="h-4 w-4" aria-hidden="true" />
                                 </div>
 
                                 {/* Content */}
@@ -370,7 +370,7 @@ export function NotificationCenter() {
                                       {notification.title}
                                     </h4>
                                     {notification.priority === 'high' && (
-                                      <Star className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                                      <Star className="h-3 w-3 text-orange-500 flex-shrink-0" aria-hidden="true" />
                                     )}
                                   </div>
 
@@ -426,7 +426,7 @@ export function NotificationCenter() {
                 {/* Footer */}
                 <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                   <Button variant="outline" size="sm" className="w-full">
-                    <Settings className="h-4 w-4 mr-2" />
+                    <Settings className="h-4 w-4 mr-2" aria-hidden="true" />
                     Notification Settings
                   </Button>
                 </div>

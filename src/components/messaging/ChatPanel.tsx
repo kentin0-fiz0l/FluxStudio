@@ -93,7 +93,7 @@ export function EmptyChatState({ onStartConversation }: { onStartConversation: (
   return (
     <div className="h-full flex flex-col items-center justify-center p-8 text-center">
       <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-100 to-indigo-100 dark:from-primary-900/30 dark:to-indigo-900/30 flex items-center justify-center mb-4">
-        <MessageCircle className="w-10 h-10 text-primary-600 dark:text-primary-400" />
+        <MessageCircle className="w-10 h-10 text-primary-600 dark:text-primary-400" aria-hidden="true" />
       </div>
       <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
         Select a conversation
@@ -126,7 +126,7 @@ function ThreadMicroHint({ onDismiss }: { onDismiss: () => void }) {
           className="p-1 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 rounded transition-colors flex-shrink-0"
           aria-label="Dismiss hint"
         >
-          <X className="w-4 h-4 text-indigo-500" />
+          <X className="w-4 h-4 text-indigo-500" aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -254,7 +254,7 @@ export const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(function ChatP
             onClick={onMobileBack}
             className="md:hidden p-2 -ml-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
           >
-            <ArrowLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+            <ArrowLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
           </button>
           <ChatAvatar user={conversation.participant} size="md" showStatus />
           <div>
@@ -282,16 +282,17 @@ export const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(function ChatP
             title="Search messages (Ctrl+F)"
           >
             <Search
+              aria-hidden="true"
               className={`w-5 h-5 ${
                 showMessageSearch ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'
               }`}
             />
           </button>
           <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="Voice call">
-            <Phone className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+            <Phone className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
           </button>
           <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="Video call">
-            <Video className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+            <Video className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
           </button>
           <button
             onClick={onTogglePinnedMessages}
@@ -303,6 +304,7 @@ export const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(function ChatP
             title="Pinned messages"
           >
             <Pin
+              aria-hidden="true"
               className={`w-5 h-5 ${
                 showPinnedMessages ? 'text-accent-600' : 'text-neutral-600 dark:text-neutral-400'
               }`}
@@ -318,6 +320,7 @@ export const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(function ChatP
             title="Conversation summary"
           >
             <Sparkles
+              aria-hidden="true"
               className={`w-5 h-5 ${
                 showSummaryPanel ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'
               }`}
@@ -327,7 +330,7 @@ export const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(function ChatP
             className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
             title="More options"
           >
-            <MoreVertical className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+            <MoreVertical className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
           </button>
         </div>
       </div>
