@@ -171,7 +171,7 @@ export function MomentumRecoveryPanel({
             className="p-1 text-gray-400 hover:text-gray-600 transition-colors rounded"
             aria-label="Dismiss recovery panel"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -241,7 +241,7 @@ export function MomentumRecoveryPanel({
                     key={idx}
                     className="flex items-center gap-3 p-2 rounded-lg border border-gray-200 bg-white"
                   >
-                    <HelpCircle className="w-4 h-4 flex-shrink-0 text-amber-500" />
+                    <HelpCircle className="w-4 h-4 flex-shrink-0 text-amber-500" aria-hidden="true" />
                     <span className="flex-1 text-sm text-gray-600 truncate">
                       {q.text}
                     </span>
@@ -254,7 +254,7 @@ export function MomentumRecoveryPanel({
                 onClick={handleDiscuss}
                 className="w-full text-xs h-8 gap-2"
               >
-                <MessageSquare className="w-3.5 h-3.5" />
+                <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" />
                 Discuss in Messages
               </Button>
             </div>
@@ -267,7 +267,7 @@ export function MomentumRecoveryPanel({
                 onClick={handleReset}
                 className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
+                <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
                 Clear {acceptedCount} accepted step{acceptedCount > 1 ? 's' : ''} and start fresh
               </button>
             </div>
@@ -285,7 +285,7 @@ export function MomentumRecoveryPanel({
                 onClick={handleDiscuss}
                 className="mt-2 text-xs h-8 gap-2"
               >
-                <MessageSquare className="w-3.5 h-3.5" />
+                <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" />
                 Start a conversation
               </Button>
             </div>

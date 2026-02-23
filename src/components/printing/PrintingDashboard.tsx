@@ -136,7 +136,7 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="bg-blue-100 p-2 rounded-lg">
-              <Printer className="h-6 w-6 text-blue-600" />
+              <Printer className="h-6 w-6 text-blue-600" aria-hidden="true" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">3D Printing</h1>
@@ -167,7 +167,7 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
               size="sm"
               onClick={handleOpenExternal}
             >
-              <ExternalLink className="h-4 w-4 mr-2" />
+              <ExternalLink className="h-4 w-4 mr-2" aria-hidden="true" />
               Open External
             </Button>
           </div>
@@ -178,7 +178,7 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
       {!isServiceAvailable && (
         <div className="px-6 pt-6 flex-shrink-0">
           <Alert variant="destructive">
-            <AlertCircle className="h-5 w-5" />
+            <AlertCircle className="h-5 w-5" aria-hidden="true" />
             <AlertTitle>FluxPrint Service Unavailable</AlertTitle>
             <AlertDescription className="mt-2 space-y-2">
               <p>Unable to connect to the FluxPrint service. Please check the following:</p>
@@ -189,7 +189,7 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
               </ul>
               <div className="flex space-x-2 mt-3">
                 <Button onClick={refetch} variant="outline" size="sm">
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
                   Retry Connection
                 </Button>
                 <Button
@@ -197,7 +197,7 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
                   variant="outline"
                   size="sm"
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
+                  <ExternalLink className="h-4 w-4 mr-2" aria-hidden="true" />
                   Test Direct Connection
                 </Button>
               </div>

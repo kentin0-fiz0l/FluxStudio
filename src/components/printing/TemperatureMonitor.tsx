@@ -106,7 +106,7 @@ export const TemperatureMonitor: React.FC<TemperatureMonitorProps> = ({
       <Card className={cn('h-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Thermometer className="h-5 w-5" />
+            <Thermometer className="h-5 w-5" aria-hidden="true" />
             Temperature
           </CardTitle>
         </CardHeader>
@@ -127,13 +127,13 @@ export const TemperatureMonitor: React.FC<TemperatureMonitorProps> = ({
       <Card className={cn('h-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Thermometer className="h-5 w-5" />
+            <Thermometer className="h-5 w-5" aria-hidden="true" />
             Temperature
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-3 text-error-600">
-            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <AlertCircle className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
             <p className="text-sm">{error}</p>
           </div>
         </CardContent>
@@ -147,7 +147,7 @@ export const TemperatureMonitor: React.FC<TemperatureMonitorProps> = ({
       <Card className={cn('h-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Thermometer className="h-5 w-5" />
+            <Thermometer className="h-5 w-5" aria-hidden="true" />
             Temperature
           </CardTitle>
         </CardHeader>
@@ -164,7 +164,7 @@ export const TemperatureMonitor: React.FC<TemperatureMonitorProps> = ({
     <Card className={cn('h-full', className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Thermometer className="h-5 w-5" />
+          <Thermometer className="h-5 w-5" aria-hidden="true" />
           Temperature
         </CardTitle>
       </CardHeader>
