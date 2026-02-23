@@ -140,7 +140,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             variant="solidError"
             className="absolute top-3 left-3 flex items-center gap-1.5"
           >
-            <Circle className="h-2 w-2 fill-current animate-pulse" />
+            <Circle className="h-2 w-2 fill-current animate-pulse" aria-hidden="true" />
             LIVE
           </Badge>
         )}
@@ -149,7 +149,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
         {(streamError || error) && (
           <div className="absolute inset-0 flex items-center justify-center bg-neutral-900/90">
             <div className="text-center space-y-3 p-6">
-              <Camera className="h-12 w-12 text-neutral-600 mx-auto" />
+              <Camera className="h-12 w-12 text-neutral-600 mx-auto" aria-hidden="true" />
               <p className="text-sm text-neutral-400">
                 {streamError || error}
               </p>
@@ -159,7 +159,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
                 onClick={handleRefresh}
                 className="mt-2"
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
                 Retry
               </Button>
             </div>
@@ -177,7 +177,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
               loading={isCapturing}
               className="bg-neutral-900/70 hover:bg-neutral-900/90 backdrop-blur-sm"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="h-4 w-4 mr-2" aria-hidden="true" />
               Snapshot
             </Button>
             <Button
@@ -188,7 +188,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
               className="bg-neutral-900/70 hover:bg-neutral-900/90 backdrop-blur-sm h-9 w-9"
               aria-label="Fullscreen"
             >
-              <Maximize2 className="h-4 w-4" />
+              <Maximize2 className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         )}
@@ -202,7 +202,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
       <Card className={cn('h-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Camera className="h-5 w-5" />
+            <Camera className="h-5 w-5" aria-hidden="true" />
             Camera Feed
           </CardTitle>
         </CardHeader>
@@ -219,7 +219,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Camera className="h-5 w-5" />
+              <Camera className="h-5 w-5" aria-hidden="true" />
               Camera Feed
             </div>
             <Button
@@ -229,7 +229,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
               className="h-8 w-8"
               aria-label="Refresh camera"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
             </Button>
           </CardTitle>
         </CardHeader>
@@ -253,7 +253,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Camera className="h-5 w-5" />
+                <Camera className="h-5 w-5" aria-hidden="true" />
                 Camera Feed
               </div>
               <Button
@@ -263,7 +263,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
                 disabled={isCapturing || !isLive}
                 loading={isCapturing}
               >
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-4 w-4 mr-2" aria-hidden="true" />
                 Snapshot
               </Button>
             </DialogTitle>

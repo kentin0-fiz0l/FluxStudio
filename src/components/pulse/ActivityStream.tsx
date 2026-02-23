@@ -39,14 +39,14 @@ export interface ActivityStreamProps {
 
 // Icon mapping for activity types
 const activityIcons: Record<ActivityType, React.ReactNode> = {
-  message: <MessageSquare className="h-4 w-4" />,
-  task_created: <CheckSquare className="h-4 w-4" />,
-  task_completed: <CheckSquare className="h-4 w-4" />,
-  task_assigned: <CheckSquare className="h-4 w-4" />,
-  file_uploaded: <FileUp className="h-4 w-4" />,
-  member_joined: <UserPlus className="h-4 w-4" />,
-  comment: <MessageCircle className="h-4 w-4" />,
-  mention: <AtSign className="h-4 w-4" />,
+  message: <MessageSquare className="h-4 w-4" aria-hidden="true" />,
+  task_created: <CheckSquare className="h-4 w-4" aria-hidden="true" />,
+  task_completed: <CheckSquare className="h-4 w-4" aria-hidden="true" />,
+  task_assigned: <CheckSquare className="h-4 w-4" aria-hidden="true" />,
+  file_uploaded: <FileUp className="h-4 w-4" aria-hidden="true" />,
+  member_joined: <UserPlus className="h-4 w-4" aria-hidden="true" />,
+  comment: <MessageCircle className="h-4 w-4" aria-hidden="true" />,
+  mention: <AtSign className="h-4 w-4" aria-hidden="true" />,
 };
 
 // Color mapping for activity types
@@ -115,7 +115,7 @@ function ActivityItemRow({
             </span>
           </div>
           <span className="text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap flex items-center gap-1">
-            <Clock className="h-3 w-3" />
+            <Clock className="h-3 w-3" aria-hidden="true" />
             {formatRelativeTime(item.timestamp)}
           </span>
         </div>
@@ -168,7 +168,7 @@ export function ActivityStream({
   if (displayItems.length === 0 && showEmpty) {
     return (
       <div className={cn('p-6 text-center', className)}>
-        <Clock className="h-8 w-8 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" />
+        <Clock className="h-8 w-8 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" aria-hidden="true" />
         <p className="text-sm text-neutral-500 dark:text-neutral-400">
           No recent activity
         </p>
