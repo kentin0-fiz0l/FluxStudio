@@ -25,14 +25,14 @@ export function FileToolbar({ loading, onRefresh, onUpload }: FileToolbarProps) 
         <Button
           variant="outline"
           size="sm"
-          icon={<RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />}
+          icon={<RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} aria-hidden="true" />}
           onClick={onRefresh}
           disabled={loading}
         >
           Refresh
         </Button>
         <Button
-          icon={<Upload className="h-4 w-4" />}
+          icon={<Upload className="h-4 w-4" aria-hidden="true" />}
           onClick={onUpload}
         >
           Upload Files

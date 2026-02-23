@@ -269,7 +269,7 @@ export function AdaptiveDashboard() {
                           <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <Icon size={20} className="text-gray-600" />
+                                <Icon size={20} className="text-gray-600" aria-hidden="true" />
                                 <CardTitle className="text-sm font-medium">
                                   {card.title}
                                 </CardTitle>
@@ -308,7 +308,7 @@ export function AdaptiveDashboard() {
                             <Card>
                               <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                  <TrendingUp size={20} />
+                                  <TrendingUp size={20} aria-hidden="true" />
                                   Quick Stats
                                 </CardTitle>
                               </CardHeader>
@@ -374,7 +374,7 @@ export function AdaptiveDashboard() {
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Icon size={20} className="text-gray-600" />
+                            <Icon size={20} className="text-gray-600" aria-hidden="true" />
                             <CardTitle className="text-sm font-medium">
                               {card.title}
                             </CardTitle>
@@ -418,7 +418,7 @@ export function AdaptiveDashboard() {
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                          <TrendingUp size={20} />
+                          <TrendingUp size={20} aria-hidden="true" />
                           Quick Stats
                         </CardTitle>
                       </CardHeader>
@@ -453,7 +453,7 @@ export function AdaptiveDashboard() {
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Zap size={20} />
+                        <Zap size={20} aria-hidden="true" />
                         Automation Insights
                       </CardTitle>
                     </CardHeader>
@@ -547,7 +547,7 @@ export function AdaptiveDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp size={20} />
+              <TrendingUp size={20} aria-hidden="true" />
               Workspace
             </CardTitle>
           </CardHeader>

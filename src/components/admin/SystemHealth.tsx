@@ -112,11 +112,11 @@ export function SystemHealth({ onRefresh }: SystemHealthProps) {
   const getStatusIcon = (status: HealthStatus) => {
     switch (status) {
       case 'healthy':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return <CheckCircle className="w-5 h-5 text-green-500" aria-hidden="true" />;
       case 'degraded':
-        return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
+        return <AlertTriangle className="w-5 h-5 text-yellow-500" aria-hidden="true" />;
       case 'down':
-        return <XCircle className="w-5 h-5 text-red-500" />;
+        return <XCircle className="w-5 h-5 text-red-500" aria-hidden="true" />;
     }
   };
 
@@ -134,17 +134,17 @@ export function SystemHealth({ onRefresh }: SystemHealthProps) {
   const getServiceIcon = (name: string) => {
     switch (name) {
       case 'api':
-        return <Server className="w-5 h-5" />;
+        return <Server className="w-5 h-5" aria-hidden="true" />;
       case 'database':
-        return <Database className="w-5 h-5" />;
+        return <Database className="w-5 h-5" aria-hidden="true" />;
       case 'cache':
-        return <Cloud className="w-5 h-5" />;
+        return <Cloud className="w-5 h-5" aria-hidden="true" />;
       case 'storage':
-        return <HardDrive className="w-5 h-5" />;
+        return <HardDrive className="w-5 h-5" aria-hidden="true" />;
       case 'websocket':
-        return <Wifi className="w-5 h-5" />;
+        return <Wifi className="w-5 h-5" aria-hidden="true" />;
       default:
-        return <Server className="w-5 h-5" />;
+        return <Server className="w-5 h-5" aria-hidden="true" />;
     }
   };
 
@@ -185,7 +185,7 @@ export function SystemHealth({ onRefresh }: SystemHealthProps) {
             aria-busy={isRefreshing}
             className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
           </button>
         </div>
       </div>

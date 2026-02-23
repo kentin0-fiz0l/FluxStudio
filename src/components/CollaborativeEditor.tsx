@@ -180,12 +180,12 @@ export function CollaborativeEditor({
 
   const getFileIcon = () => {
     if (mimeType.includes('text') || mimeType.includes('markdown')) {
-      return <Type className="w-5 h-5 text-blue-400" />;
+      return <Type className="w-5 h-5 text-blue-400" aria-hidden="true" />;
     }
     if (mimeType.includes('javascript') || mimeType.includes('typescript')) {
-      return <Code className="w-5 h-5 text-yellow-400" />;
+      return <Code className="w-5 h-5 text-yellow-400" aria-hidden="true" />;
     }
-    return <Edit className="w-5 h-5 text-gray-400" />;
+    return <Edit className="w-5 h-5 text-gray-400" aria-hidden="true" />;
   };
 
   const formatContent = () => {
@@ -217,7 +217,7 @@ export function CollaborativeEditor({
                 <span>Version {currentVersion}</span>
                 <span>{isModified ? 'Modified' : 'Saved'}</span>
                 <div className="flex items-center space-x-1">
-                  <Users className="w-4 h-4" />
+                  <Users className="w-4 h-4" aria-hidden="true" />
                   <span>{collaborators.length} collaborators</span>
                 </div>
               </div>
@@ -255,7 +255,7 @@ export function CollaborativeEditor({
                   editorMode === 'edit' ? 'bg-blue-500 text-white' : 'text-white/60 hover:text-white'
                 }`}
               >
-                <Edit className="w-4 h-4" />
+                <Edit className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 onClick={() => setEditorMode('preview')}
@@ -263,7 +263,7 @@ export function CollaborativeEditor({
                   editorMode === 'preview' ? 'bg-blue-500 text-white' : 'text-white/60 hover:text-white'
                 }`}
               >
-                <Eye className="w-4 h-4" />
+                <Eye className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -274,7 +274,7 @@ export function CollaborativeEditor({
                 showComments ? 'bg-blue-500 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'
               }`}
             >
-              <MessageCircle className="w-5 h-5" />
+              <MessageCircle className="w-5 h-5" aria-hidden="true" />
             </button>
 
             <button
@@ -282,7 +282,7 @@ export function CollaborativeEditor({
               disabled={undoStack.length <= 1}
               className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <Undo className="w-5 h-5" />
+              <Undo className="w-5 h-5" aria-hidden="true" />
             </button>
 
             <button
@@ -290,7 +290,7 @@ export function CollaborativeEditor({
               disabled={redoStack.length === 0}
               className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <Redo className="w-5 h-5" />
+              <Redo className="w-5 h-5" aria-hidden="true" />
             </button>
 
             <button
@@ -298,7 +298,7 @@ export function CollaborativeEditor({
               disabled={!isModified}
               className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
             >
-              <Save className="w-4 h-4" />
+              <Save className="w-4 h-4" aria-hidden="true" />
               <span>Save</span>
             </button>
 
@@ -341,7 +341,7 @@ export function CollaborativeEditor({
               <div className="flex items-center space-x-4 text-sm text-white/60">
                 {collaborators.filter(c => c.isTyping).length > 0 && (
                   <div className="flex items-center space-x-1 text-green-400">
-                    <Activity className="w-4 h-4 animate-pulse" />
+                    <Activity className="w-4 h-4 animate-pulse" aria-hidden="true" />
                     <span>{collaborators.filter(c => c.isTyping).length} typing...</span>
                   </div>
                 )}
@@ -349,7 +349,7 @@ export function CollaborativeEditor({
                   onClick={() => setIsReadOnly(!isReadOnly)}
                   className="flex items-center space-x-1 hover:text-white transition-colors"
                 >
-                  {isReadOnly ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                  {isReadOnly ? <Lock className="w-4 h-4" aria-hidden="true" /> : <Unlock className="w-4 h-4" aria-hidden="true" />}
                   <span>{isReadOnly ? 'Read-only' : 'Edit mode'}</span>
                 </button>
               </div>
@@ -403,7 +403,7 @@ export function CollaborativeEditor({
                       <div>
                         <div className="font-medium text-white text-sm">{comment.authorName}</div>
                         <div className="text-xs text-white/60 flex items-center space-x-2">
-                          <Clock className="w-3 h-3" />
+                          <Clock className="w-3 h-3" aria-hidden="true" />
                           <span>{new Date(comment.createdAt).toLocaleString()}</span>
                           {comment.line && <span>• Line {comment.line}</span>}
                         </div>
@@ -426,7 +426,7 @@ export function CollaborativeEditor({
 
                 {comments.length === 0 && (
                   <div className="text-center py-8">
-                    <MessageCircle className="w-12 h-12 text-white/20 mx-auto mb-3" />
+                    <MessageCircle className="w-12 h-12 text-white/20 mx-auto mb-3" aria-hidden="true" />
                     <p className="text-white/40">No comments yet</p>
                   </div>
                 )}
@@ -462,7 +462,7 @@ export function CollaborativeEditor({
                     onClick={handleSave}
                     className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center space-x-2"
                   >
-                    <Save className="w-4 h-4" />
+                    <Save className="w-4 h-4" aria-hidden="true" />
                     <span>Save Version {currentVersion + 1}</span>
                   </button>
                 </div>
