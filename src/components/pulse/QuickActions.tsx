@@ -78,7 +78,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
           id: 'new-task',
           label: 'New Task',
           description: `Create task in ${activeProject.name}`,
-          icon: <Plus className="h-4 w-4" />,
+          icon: <Plus className="h-4 w-4" aria-hidden="true" />,
           shortcut: 'T',
           category: 'create',
           action: () => {
@@ -90,7 +90,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
           id: 'new-message',
           label: 'New Message',
           description: `Send message in ${activeProject.name}`,
-          icon: <MessageSquare className="h-4 w-4" />,
+          icon: <MessageSquare className="h-4 w-4" aria-hidden="true" />,
           shortcut: 'M',
           category: 'create',
           action: () => {
@@ -102,7 +102,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
           id: 'upload-file',
           label: 'Upload File',
           description: `Upload to ${activeProject.name}`,
-          icon: <FileUp className="h-4 w-4" />,
+          icon: <FileUp className="h-4 w-4" aria-hidden="true" />,
           shortcut: 'U',
           category: 'create',
           action: () => {
@@ -118,7 +118,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
           id: 'nav-overview',
           label: 'Project Overview',
           description: activeProject.name,
-          icon: <FolderOpen className="h-4 w-4" />,
+          icon: <FolderOpen className="h-4 w-4" aria-hidden="true" />,
           category: 'navigate',
           action: () => {
             navigate(`/projects/${activeProject.id}`);
@@ -129,7 +129,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
           id: 'nav-tasks',
           label: 'Project Tasks',
           description: activeProject.name,
-          icon: <CheckSquare className="h-4 w-4" />,
+          icon: <CheckSquare className="h-4 w-4" aria-hidden="true" />,
           category: 'navigate',
           action: () => {
             navigate(`/projects/${activeProject.id}?tab=tasks`);
@@ -140,7 +140,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
           id: 'nav-files',
           label: 'Project Files',
           description: activeProject.name,
-          icon: <FileUp className="h-4 w-4" />,
+          icon: <FileUp className="h-4 w-4" aria-hidden="true" />,
           category: 'navigate',
           action: () => {
             navigate(`/projects/${activeProject.id}?tab=files`);
@@ -151,7 +151,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
           id: 'nav-assets',
           label: 'Project Assets',
           description: activeProject.name,
-          icon: <Layers className="h-4 w-4" />,
+          icon: <Layers className="h-4 w-4" aria-hidden="true" />,
           category: 'navigate',
           action: () => {
             navigate(`/projects/${activeProject.id}?tab=assets`);
@@ -162,7 +162,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
           id: 'nav-boards',
           label: 'Project Boards',
           description: activeProject.name,
-          icon: <PenTool className="h-4 w-4" />,
+          icon: <PenTool className="h-4 w-4" aria-hidden="true" />,
           category: 'navigate',
           action: () => {
             navigate(`/projects/${activeProject.id}?tab=boards`);
@@ -177,7 +177,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
       {
         id: 'nav-projects',
         label: 'All Projects',
-        icon: <FolderOpen className="h-4 w-4" />,
+        icon: <FolderOpen className="h-4 w-4" aria-hidden="true" />,
         category: 'navigate',
         action: () => {
           navigate('/projects');
@@ -187,7 +187,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
       {
         id: 'nav-messages',
         label: 'Messages',
-        icon: <MessageSquare className="h-4 w-4" />,
+        icon: <MessageSquare className="h-4 w-4" aria-hidden="true" />,
         category: 'navigate',
         action: () => {
           navigate('/messages');
@@ -197,7 +197,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
       {
         id: 'nav-settings',
         label: 'Settings',
-        icon: <Settings className="h-4 w-4" />,
+        icon: <Settings className="h-4 w-4" aria-hidden="true" />,
         category: 'navigate',
         action: () => {
           navigate('/settings');
@@ -297,7 +297,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-neutral-200 dark:border-neutral-800">
-          <Search className="h-5 w-5 text-neutral-400" />
+          <Search className="h-5 w-5 text-neutral-400" aria-hidden="true" />
           <input
             ref={inputRef}
             type="text"
@@ -394,7 +394,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
           </div>
           {hasFocus && (
             <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400">
-              <Target className="h-3 w-3" />
+              <Target className="h-3 w-3" aria-hidden="true" />
               {activeProject?.name}
             </span>
           )}
@@ -464,6 +464,7 @@ function ActionItem({
         </kbd>
       )}
       <ArrowRight
+        aria-hidden="true"
         className={cn(
           'h-4 w-4 flex-shrink-0',
           isSelected

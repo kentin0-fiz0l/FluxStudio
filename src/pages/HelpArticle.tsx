@@ -310,7 +310,7 @@ export function HelpArticlePage() {
         showSearch={false}
       >
         <div className="p-6 max-w-4xl mx-auto text-center py-20">
-          <Book className="w-16 h-16 mx-auto text-neutral-300 dark:text-neutral-600 mb-4" />
+          <Book className="w-16 h-16 mx-auto text-neutral-300 dark:text-neutral-600 mb-4" aria-hidden="true" />
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
             Article Not Found
           </h1>
@@ -318,7 +318,7 @@ export function HelpArticlePage() {
             The article you're looking for doesn't exist or has been moved.
           </p>
           <Button onClick={() => navigate('/help')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4 mr-2" aria-hidden="true" />
             Back to Help Center
           </Button>
         </div>
@@ -351,7 +351,7 @@ export function HelpArticlePage() {
                 to="/help"
                 className="inline-flex items-center text-sm text-neutral-600 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
               >
-                <ChevronLeft className="w-4 h-4 mr-1" />
+                <ChevronLeft className="w-4 h-4 mr-1" aria-hidden="true" />
                 Back to Help Center
               </Link>
 
@@ -361,7 +361,7 @@ export function HelpArticlePage() {
                 onClick={() => setShowSearch(!showSearch)}
                 className="gap-2"
               >
-                <Search className="w-4 h-4" />
+                <Search className="w-4 h-4" aria-hidden="true" />
                 Search
               </Button>
             </div>
@@ -374,7 +374,7 @@ export function HelpArticlePage() {
                 className="mb-6"
               >
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -412,11 +412,11 @@ export function HelpArticlePage() {
               {/* Meta */}
               <div className="flex items-center gap-4 text-sm text-neutral-500 dark:text-neutral-400 mb-6">
                 <span className="inline-flex items-center gap-1.5">
-                  <Clock className="w-4 h-4" />
+                  <Clock className="w-4 h-4" aria-hidden="true" />
                   {article.readingTime} min read
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4" />
+                  <Calendar className="w-4 h-4" aria-hidden="true" />
                   Updated {new Date(article.lastUpdated).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
@@ -442,7 +442,7 @@ export function HelpArticlePage() {
                     onClick={() => setFeedback('helpful')}
                     className="gap-2"
                   >
-                    <ThumbsUp className="w-4 h-4" />
+                    <ThumbsUp className="w-4 h-4" aria-hidden="true" />
                     Yes
                   </Button>
                   <Button
@@ -451,7 +451,7 @@ export function HelpArticlePage() {
                     onClick={() => setFeedback('not-helpful')}
                     className="gap-2"
                   >
-                    <ThumbsDown className="w-4 h-4" />
+                    <ThumbsDown className="w-4 h-4" aria-hidden="true" />
                     No
                   </Button>
                 </div>
@@ -466,12 +466,12 @@ export function HelpArticlePage() {
             {/* Navigation */}
             <div className="flex items-center justify-between mt-6">
               <Button variant="outline" onClick={() => navigate('/help')}>
-                <ChevronLeft className="w-4 h-4 mr-2" />
+                <ChevronLeft className="w-4 h-4 mr-2" aria-hidden="true" />
                 All Articles
               </Button>
               <Link to="/support">
                 <Button variant="outline" className="gap-2">
-                  <ExternalLink className="w-4 h-4" />
+                  <ExternalLink className="w-4 h-4" aria-hidden="true" />
                   Contact Support
                 </Button>
               </Link>
@@ -505,7 +505,7 @@ export function HelpArticlePage() {
                         {related.summary}
                       </p>
                       <div className="flex items-center gap-2 mt-2 text-xs text-neutral-400">
-                        <Clock className="w-3 h-3" />
+                        <Clock className="w-3 h-3" aria-hidden="true" />
                         {related.readingTime} min
                       </div>
                     </Link>

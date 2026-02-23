@@ -26,17 +26,17 @@ import { getInitials } from '../utils';
 export const MessageStatusIcon: React.FC<{ status: string }> = ({ status }) => {
   switch (status) {
     case 'sending':
-      return <Clock className="w-3.5 h-3.5 text-white/50 animate-pulse" />;
+      return <Clock className="w-3.5 h-3.5 text-white/50 animate-pulse" aria-hidden="true" />;
     case 'sent':
-      return <Check className="w-3.5 h-3.5 text-white/70" />;
+      return <Check className="w-3.5 h-3.5 text-white/70" aria-hidden="true" />;
     case 'delivered':
-      return <CheckCheck className="w-3.5 h-3.5 text-white/70" />;
+      return <CheckCheck className="w-3.5 h-3.5 text-white/70" aria-hidden="true" />;
     case 'read':
-      return <CheckCheck className="w-3.5 h-3.5 text-blue-300" />;
+      return <CheckCheck className="w-3.5 h-3.5 text-blue-300" aria-hidden="true" />;
     case 'pending':
-      return <Clock className="w-3.5 h-3.5 text-white/50" />;
+      return <Clock className="w-3.5 h-3.5 text-white/50" aria-hidden="true" />;
     case 'failed':
-      return <AlertCircle className="w-3.5 h-3.5 text-red-400" />;
+      return <AlertCircle className="w-3.5 h-3.5 text-red-400" aria-hidden="true" />;
     default:
       return null;
   }
@@ -128,13 +128,13 @@ export const AttachmentPreview: React.FC<{
             onClick={(e) => { e.stopPropagation(); onView(); }}
             className="p-1.5 rounded-full bg-black/50 hover:bg-black/70 text-white"
           >
-            <Maximize2 className="w-3.5 h-3.5" />
+            <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDownload(); }}
             className="p-1.5 rounded-full bg-black/50 hover:bg-black/70 text-white"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -144,7 +144,7 @@ export const AttachmentPreview: React.FC<{
   return (
     <div className="mt-2 flex items-center gap-3 p-3 rounded-lg bg-white/10 border border-white/20">
       <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-        <File className="w-5 h-5" />
+        <File className="w-5 h-5" aria-hidden="true" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{attachment.name}</p>
@@ -153,7 +153,7 @@ export const AttachmentPreview: React.FC<{
         </p>
       </div>
       <button onClick={onDownload} className="p-2 hover:bg-white/10 rounded-lg">
-        <Download className="w-4 h-4" />
+        <Download className="w-4 h-4" aria-hidden="true" />
       </button>
     </div>
   );
@@ -214,9 +214,9 @@ export const VoiceMessagePlayer: React.FC<{ voiceMessage: VoiceMessage }> = ({ v
         className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
       >
         {isPlaying ? (
-          <Pause className="w-5 h-5" />
+          <Pause className="w-5 h-5" aria-hidden="true" />
         ) : (
-          <Play className="w-5 h-5 ml-0.5" />
+          <Play className="w-5 h-5 ml-0.5" aria-hidden="true" />
         )}
       </button>
 
@@ -259,7 +259,7 @@ export const VoiceMessagePlayer: React.FC<{ voiceMessage: VoiceMessage }> = ({ v
         {playbackRate}x
       </button>
 
-      <Volume2 className="w-4 h-4 opacity-50 flex-shrink-0" />
+      <Volume2 className="w-4 h-4 opacity-50 flex-shrink-0" aria-hidden="true" />
     </div>
   );
 };
