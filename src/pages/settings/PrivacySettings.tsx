@@ -229,7 +229,7 @@ function PrivacySettings() {
           to="/settings"
           className="inline-flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           Back to Settings
         </Link>
 
@@ -254,12 +254,12 @@ function PrivacySettings() {
 
             {exportId ? (
               <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/10 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" aria-hidden="true" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-green-800 dark:text-green-300">Export ready</p>
                 </div>
                 <Button onClick={handleDownloadExport} variant="outline" size="sm">
-                  <Download className="w-4 h-4 mr-2" />
+                  <Download className="w-4 h-4 mr-2" aria-hidden="true" />
                   Download
                 </Button>
               </div>
@@ -267,12 +267,12 @@ function PrivacySettings() {
               <Button onClick={handleRequestExport} disabled={isExporting} variant="outline">
                 {isExporting ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
                     Preparing export...
                   </>
                 ) : (
                   <>
-                    <Download className="w-4 h-4 mr-2" />
+                    <Download className="w-4 h-4 mr-2" aria-hidden="true" />
                     Request Data Export
                   </>
                 )}
@@ -297,7 +297,7 @@ function PrivacySettings() {
 
           {isLoadingConsents ? (
             <div className="flex items-center gap-2 py-4 text-neutral-500">
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
               Loading preferences...
             </div>
           ) : (
@@ -358,7 +358,7 @@ function PrivacySettings() {
           {hasPendingDeletion ? (
             <div className="space-y-4">
               <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/10 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <div>
                   <p className="font-medium text-amber-800 dark:text-amber-300">Account deletion pending</p>
                   <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
@@ -370,7 +370,7 @@ function PrivacySettings() {
                     )}
                   </p>
                   <div className="flex items-center gap-2 mt-1 text-xs text-amber-600 dark:text-amber-500">
-                    <Clock className="w-3 h-3" />
+                    <Clock className="w-3 h-3" aria-hidden="true" />
                     Requested {deletionStatus.requestedAt
                       ? new Date(deletionStatus.requestedAt).toLocaleDateString()
                       : 'recently'}
@@ -384,12 +384,12 @@ function PrivacySettings() {
               >
                 {isCancellingDeletion ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
                     Cancelling...
                   </>
                 ) : (
                   <>
-                    <XCircle className="w-4 h-4 mr-2" />
+                    <XCircle className="w-4 h-4 mr-2" aria-hidden="true" />
                     Cancel Deletion
                   </>
                 )}
@@ -435,12 +435,12 @@ function PrivacySettings() {
                 >
                   {isRequestingDeletion ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
                       Processing...
                     </>
                   ) : (
                     <>
-                      <Trash2 className="w-4 h-4 mr-2" />
+                      <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
                       Confirm Delete Account
                     </>
                   )}
@@ -463,7 +463,7 @@ function PrivacySettings() {
                 variant="outline"
                 className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
+                <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
                 Request Account Deletion
               </Button>
             </div>
