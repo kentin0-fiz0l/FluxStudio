@@ -170,7 +170,7 @@ const getActivityColor = (type: ActivityType): string => {
 // Dedicated component to render activity type icons - avoids dynamic component creation during render
 const ActivityTypeIcon: React.FC<{ type: ActivityType; className?: string }> = ({ type, className }) => {
   const Icon = ACTIVITY_ICON_MAP[type] || ActivityIcon;
-  return <Icon className={className} />;
+  return <Icon className={className} aria-hidden="true" />;
 };
 
 // ============================================================================
@@ -477,7 +477,7 @@ const ActivityFeedSkeleton: React.FC = () => (
 const EmptyState: React.FC = () => (
   <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
     <div className="rounded-full bg-neutral-100 p-4 mb-4">
-      <ActivityIcon className="h-8 w-8 text-neutral-400" />
+      <ActivityIcon className="h-8 w-8 text-neutral-400" aria-hidden="true" />
     </div>
     <h3 className="text-lg font-semibold text-neutral-900 mb-2">No activity yet</h3>
     <p className="text-sm text-neutral-600 max-w-sm">
@@ -675,7 +675,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         <div className="flex flex-col gap-3 px-4 py-3 border-b border-neutral-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ActivityIcon className="h-5 w-5 text-neutral-700" />
+              <ActivityIcon className="h-5 w-5 text-neutral-700" aria-hidden="true" />
               <h2 className="text-lg font-semibold text-neutral-900">Activity</h2>
               {totalActivities > 0 && (
                 <Badge variant="secondary" className="ml-2">

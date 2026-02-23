@@ -85,7 +85,7 @@ export const TaskMobileCard: React.FC<TaskMobileCardProps> = ({
 
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant={statusDisplay.variant} size="sm">
-              <StatusIcon className="w-3 h-3" />
+              <StatusIcon className="w-3 h-3" aria-hidden="true" />
               {statusDisplay.label}
             </Badge>
             <Badge variant={priorityDisplay.variant} size="sm">
@@ -100,7 +100,7 @@ export const TaskMobileCard: React.FC<TaskMobileCardProps> = ({
             size="sm"
             variant="ghost"
             onClick={() => onOpenEditModal(task)}
-            icon={<Edit2 className="w-4 h-4" />}
+            icon={<Edit2 className="w-4 h-4" aria-hidden="true" />}
             aria-label={`Edit ${task.title}`}
             className="h-9 w-9 p-0"
           />
@@ -108,7 +108,7 @@ export const TaskMobileCard: React.FC<TaskMobileCardProps> = ({
             size="sm"
             variant="ghost"
             onClick={() => onDelete(task.id)}
-            icon={<Trash2 className="w-4 h-4" />}
+            icon={<Trash2 className="w-4 h-4" aria-hidden="true" />}
             aria-label={`Delete ${task.title}`}
             className="h-9 w-9 p-0"
           />
