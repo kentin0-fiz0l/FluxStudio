@@ -117,13 +117,13 @@ function MemberRow({
         </div>
         {member.currentView && (
           <p className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1 mt-0.5">
-            <Eye className="h-3 w-3" />
+            <Eye className="h-3 w-3" aria-hidden="true" />
             {member.currentView}
           </p>
         )}
         {!member.isOnline && member.lastActivity && (
           <p className="text-xs text-neutral-400 dark:text-neutral-500 flex items-center gap-1 mt-0.5">
-            <Clock className="h-3 w-3" />
+            <Clock className="h-3 w-3" aria-hidden="true" />
             {member.lastActivity}
           </p>
         )}
@@ -144,7 +144,7 @@ export function TeamHeartbeat({
   if (members.length === 0) {
     return (
       <div className={cn('p-6 text-center', className)}>
-        <Users className="h-8 w-8 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" />
+        <Users className="h-8 w-8 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" aria-hidden="true" />
         <p className="text-sm text-neutral-500 dark:text-neutral-400">
           No team members
         </p>
@@ -192,12 +192,12 @@ export function TeamHeartbeat({
       {/* Summary */}
       <div className="flex items-center justify-between px-3 py-2">
         <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-          <Users className="h-4 w-4" />
+          <Users className="h-4 w-4" aria-hidden="true" />
           <span>{members.length} team members</span>
         </div>
         {onlineMembers.length > 0 && (
           <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-            <Circle className="h-2 w-2 fill-current" />
+            <Circle className="h-2 w-2 fill-current" aria-hidden="true" />
             {onlineMembers.length} online
           </div>
         )}
