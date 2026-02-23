@@ -57,7 +57,7 @@ export function OfflineIndicator() {
     >
       {isOffline && (
         <>
-          <WifiOff className="h-4 w-4" />
+          <WifiOff className="h-4 w-4" aria-hidden="true" />
           <span>You're offline. Changes will sync when you're back online.</span>
           {pendingCount > 0 && (
             <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-xs">
@@ -69,14 +69,14 @@ export function OfflineIndicator() {
 
       {isSyncing && !isOffline && (
         <>
-          <RefreshCw className="h-4 w-4 animate-spin" />
+          <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
           <span>Syncing {pendingCount} change{pendingCount !== 1 ? 's' : ''}...</span>
         </>
       )}
 
       {isSyncError && !isOffline && (
         <>
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="h-4 w-4" aria-hidden="true" />
           <span>Some changes failed to sync.</span>
           <button
             onClick={() => sync()}
@@ -89,7 +89,7 @@ export function OfflineIndicator() {
 
       {justSynced && !isOffline && !isSyncing && !isSyncError && (
         <>
-          <Check className="h-4 w-4" />
+          <Check className="h-4 w-4" aria-hidden="true" />
           <span>All changes synced.</span>
         </>
       )}

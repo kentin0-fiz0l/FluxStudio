@@ -146,7 +146,7 @@ export function MobileOptimizedHeader() {
                 aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={isMenuOpen}
               >
-                {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                {isMenuOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
               </Button>
             </div>
           </div>
@@ -191,7 +191,7 @@ export function MobileOptimizedHeader() {
                 onClick={() => setIsMenuOpen(false)}
                 aria-label="Close menu"
               >
-                <X className="h-6 w-6" />
+                <X className="h-6 w-6" aria-hidden="true" />
               </Button>
             </div>
 
@@ -219,7 +219,7 @@ export function MobileOptimizedHeader() {
                       {item.description}
                     </div>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-white/40 group-hover:text-white/80 transition-colors duration-300" />
+                  <ChevronRight className="h-5 w-5 text-white/40 group-hover:text-white/80 transition-colors duration-300" aria-hidden="true" />
                 </button>
               ))}
             </nav>

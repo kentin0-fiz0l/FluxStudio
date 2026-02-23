@@ -60,7 +60,7 @@ export const UserDirectory: React.FC<UserDirectoryProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center space-x-3">
-                <Users className="w-8 h-8 text-blue-600" />
+                <Users className="w-8 h-8 text-blue-600" aria-hidden="true" />
                 <span>User Directory</span>
               </h1>
               <p className="text-gray-600 mt-2">
@@ -77,7 +77,7 @@ export const UserDirectory: React.FC<UserDirectoryProps> = ({
                     viewMode === 'grid' ? 'bg-blue-500 text-white' : 'text-gray-500 hover:text-gray-700'
                   )}
                 >
-                  <Grid3X3 className="w-4 h-4" />
+                  <Grid3X3 className="w-4 h-4" aria-hidden="true" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
@@ -86,7 +86,7 @@ export const UserDirectory: React.FC<UserDirectoryProps> = ({
                     viewMode === 'list' ? 'bg-blue-500 text-white' : 'text-gray-500 hover:text-gray-700'
                   )}
                 >
-                  <List className="w-4 h-4" />
+                  <List className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             </div>
