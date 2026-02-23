@@ -201,15 +201,16 @@ export const MobileChat: React.FC<MobileChatProps> = ({
   const emojis = ['😀', '😂', '😍', '🤔', '👍', '❤️', '🔥', '🎉', '😢', '😮', '👏', '🙏'];
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-950">
       {/* Chat Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <button
             onClick={onBack}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            aria-label="Go back"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
+            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
 
           <div className="flex items-center space-x-3">
@@ -228,13 +229,13 @@ export const MobileChat: React.FC<MobileChatProps> = ({
                 )}
               </div>
               {recipient.isOnline && (
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></div>
               )}
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900">{recipient.name}</h3>
-              <p className="text-xs text-gray-500">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{recipient.name}</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 {recipient.isOnline ? 'Online' :
                  recipient.lastSeen ? `Last seen ${formatLastSeen(recipient.lastSeen)}` : 'Offline'}
               </p>
@@ -246,32 +247,35 @@ export const MobileChat: React.FC<MobileChatProps> = ({
           {onSearch && (
             <button
               onClick={onSearch}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+              aria-label="Search messages"
             >
-              <Search className="w-5 h-5 text-gray-600" />
+              <Search className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </button>
           )}
 
           {onCall && (
             <button
               onClick={onCall}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+              aria-label="Voice call"
             >
-              <Phone className="w-5 h-5 text-gray-600" />
+              <Phone className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </button>
           )}
 
           {onVideoCall && (
             <button
               onClick={onVideoCall}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+              aria-label="Video call"
             >
-              <Video className="w-5 h-5 text-gray-600" />
+              <Video className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </button>
           )}
 
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <MoreVertical className="w-5 h-5 text-gray-600" />
+          <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors" aria-label="More options">
+            <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
         </div>
       </div>
@@ -279,8 +283,18 @@ export const MobileChat: React.FC<MobileChatProps> = ({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="flex flex-col items-center py-8 space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className={cn('flex w-full animate-pulse', i % 2 === 0 ? 'justify-end' : 'justify-start')}>
+                <div className="max-w-[70%] space-y-1.5">
+                  <div className={cn('rounded-2xl px-4 py-3', i % 2 === 0 ? 'bg-blue-200 dark:bg-blue-900/40' : 'bg-gray-200 dark:bg-gray-700')}>
+                    <div className="h-3 w-32 bg-gray-300 dark:bg-gray-600 rounded" />
+                    {i === 1 && <div className="h-3 w-48 bg-gray-300 dark:bg-gray-600 rounded mt-1.5" />}
+                  </div>
+                  <div className="h-2 w-12 bg-gray-200 dark:bg-gray-700 rounded" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <>
@@ -303,9 +317,9 @@ export const MobileChat: React.FC<MobileChatProps> = ({
                   )}>
                     {/* Reply Context */}
                     {message.replyTo && (
-                      <div className="bg-gray-100 rounded-lg p-2 mb-1 border-l-2 border-blue-500">
-                        <p className="text-xs text-gray-600 font-medium">{message.replyTo.sender}</p>
-                        <p className="text-xs text-gray-500 truncate">{message.replyTo.content}</p>
+                      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-2 mb-1 border-l-2 border-blue-500">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">{message.replyTo.sender}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 truncate">{message.replyTo.content}</p>
                       </div>
                     )}
 
@@ -314,7 +328,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
                       'rounded-2xl px-4 py-2 break-words',
                       isOwnMessage
                         ? 'bg-blue-500 text-white rounded-br-sm'
-                        : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200'
+                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-sm border border-gray-200 dark:border-gray-700'
                     )}>
                       {message.type === 'text' && (
                         <p className="text-sm leading-relaxed">{message.content}</p>
@@ -353,7 +367,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
 
                     {/* Message Info */}
                     <div className={cn(
-                      'flex items-center space-x-1 text-xs text-gray-500',
+                      'flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400',
                       isOwnMessage ? 'justify-end' : 'justify-start'
                     )}>
                       <span>{formatTime(message.timestamp)}</span>
@@ -373,11 +387,11 @@ export const MobileChat: React.FC<MobileChatProps> = ({
             animate={{ opacity: 1, y: 0 }}
             className="flex justify-start"
           >
-            <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 border border-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl rounded-bl-sm px-4 py-3 border border-gray-200 dark:border-gray-700">
               <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               </div>
             </div>
           </motion.div>
@@ -388,22 +402,23 @@ export const MobileChat: React.FC<MobileChatProps> = ({
 
       {/* Reply Preview */}
       {replyingTo && (
-        <div className="bg-blue-50 border-t border-blue-200 px-4 py-2 flex items-center justify-between">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border-t border-blue-200 dark:border-blue-800 px-4 py-2 flex items-center justify-between">
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-blue-600 font-medium">Replying to {replyingTo.sender.name}</p>
-            <p className="text-sm text-gray-700 truncate">{replyingTo.content}</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Replying to {replyingTo.sender.name}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{replyingTo.content}</p>
           </div>
           <button
             onClick={() => setReplyingTo(null)}
-            className="p-1 hover:bg-blue-100 rounded-full transition-colors"
+            className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-full transition-colors"
+            aria-label="Cancel reply"
           >
-            <X className="w-4 h-4 text-blue-600" />
+            <X className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </button>
         </div>
       )}
 
       {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 px-4 py-3">
+      <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
         {/* Attachment Options */}
         <AnimatePresence>
           {showAttachments && (
@@ -415,32 +430,32 @@ export const MobileChat: React.FC<MobileChatProps> = ({
             >
               <button
                 onClick={() => imageInputRef.current?.click()}
-                className="flex flex-col items-center space-y-1 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                className="flex flex-col items-center space-y-1 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <Image className="w-5 h-5 text-green-600" />
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                  <Image className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
-                <span className="text-xs text-gray-600">Photo</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Photo</span>
               </button>
 
               <button
                 onClick={() => {/* Handle camera */}}
-                className="flex flex-col items-center space-y-1 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                className="flex flex-col items-center space-y-1 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Camera className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                  <Camera className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
-                <span className="text-xs text-gray-600">Camera</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Camera</span>
               </button>
 
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex flex-col items-center space-y-1 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                className="flex flex-col items-center space-y-1 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                  <Paperclip className="w-5 h-5 text-purple-600" />
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                  <Paperclip className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
-                <span className="text-xs text-gray-600">File</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">File</span>
               </button>
             </motion.div>
           )}
@@ -453,7 +468,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="bg-white border border-gray-200 rounded-lg p-3 mb-3 shadow-lg"
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 mb-3 shadow-lg"
             >
               <div className="grid grid-cols-6 gap-2">
                 {emojis.map((emoji, index) => (
@@ -463,7 +478,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
                       setInputText(prev => prev + emoji);
                       setShowEmojiPicker(false);
                     }}
-                    className="text-xl p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="text-xl p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                   >
                     {emoji}
                   </button>
@@ -479,7 +494,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
             onClick={() => setShowAttachments(!showAttachments)}
             className={cn(
               'p-2 rounded-full transition-colors',
-              showAttachments ? 'bg-blue-500 text-white' : 'text-gray-500 hover:bg-gray-100'
+              showAttachments ? 'bg-blue-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
             )}
           >
             <Paperclip className="w-5 h-5" />
@@ -491,14 +506,14 @@ export const MobileChat: React.FC<MobileChatProps> = ({
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder="Type a message..."
-              className="w-full bg-gray-100 rounded-full px-4 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              className="w-full bg-gray-100 dark:bg-gray-800 dark:text-gray-100 rounded-full px-4 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-700 transition-colors placeholder:text-gray-500 dark:placeholder:text-gray-400"
             />
 
             <button
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 transition-colors"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
               <Smile className="w-4 h-4" />
             </button>
@@ -519,7 +534,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
               onTouchEnd={stopRecording}
               className={cn(
                 'p-2 rounded-full transition-colors',
-                isRecording ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                isRecording ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
               )}
             >
               {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}

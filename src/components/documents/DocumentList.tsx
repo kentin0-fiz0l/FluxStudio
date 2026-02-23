@@ -164,7 +164,7 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4" role="status" aria-label="Loading documents">
         {/* Header skeleton */}
         <div className="flex items-center justify-between">
           <div>
@@ -175,13 +175,21 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
         </div>
         {/* Card grid skeleton */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader>
-                <div className="h-5 w-3/4 bg-muted rounded" />
-                <div className="space-y-2 mt-2">
-                  <div className="h-3 w-28 bg-muted rounded" />
-                  <div className="h-3 w-36 bg-muted rounded" />
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="h-5 w-3/4 bg-muted rounded" />
+                    <div className="space-y-2 mt-3">
+                      <div className="flex items-center gap-1">
+                        <div className="h-3 w-3 bg-muted rounded" />
+                        <div className="h-3 w-24 bg-muted rounded" />
+                      </div>
+                      <div className="h-3 w-32 bg-muted rounded" />
+                    </div>
+                  </div>
+                  <div className="h-8 w-8 bg-muted rounded" />
                 </div>
               </CardHeader>
             </Card>
@@ -212,7 +220,7 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
         <Card className="border-dashed">
           <CardHeader className="text-center py-12">
             <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-              <FileText className="h-6 w-6 text-muted-foreground" />
+              <FileText className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
             </div>
             <CardTitle>No documents yet</CardTitle>
             <CardDescription className="max-w-sm mx-auto">
@@ -241,7 +249,7 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
                     <CardTitle className="truncate">{document.title}</CardTitle>
                     <CardDescription className="space-y-1">
                       <div className="flex items-center text-xs">
-                        <Clock className="mr-1 h-3 w-3" />
+                        <Clock className="mr-1 h-3 w-3" aria-hidden="true" />
                         {formatDate(document.lastEditedAt)}
                       </div>
                       <div className="text-xs">
@@ -256,7 +264,7 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Actions for ${document.title}`}>
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>

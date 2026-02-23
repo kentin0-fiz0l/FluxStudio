@@ -321,11 +321,16 @@ export function UserSearch({
       {/* Search Input */}
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-4 w-4 text-gray-400" />
+          <Search className="h-4 w-4 text-gray-400" aria-hidden="true" />
         </div>
         <input
           ref={searchInputRef}
           type="text"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          aria-autocomplete="list"
+          aria-activedescendant={highlightedIndex >= 0 ? `user-result-${searchResults[highlightedIndex]?.id}` : undefined}
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
           onFocus={() => setIsOpen(true)}
@@ -339,7 +344,7 @@ export function UserSearch({
           )}
         />
         {isLoading && (
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center" role="status" aria-label="Searching">
             <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
           </div>
         )}
@@ -351,7 +356,7 @@ export function UserSearch({
           {selectedUsers.map((user) => (
             <div
               key={user.id}
-              className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2"
+              className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2"
             >
               <Avatar className="h-6 w-6">
                 <AvatarImage src={user.avatar} alt={user.name} />
@@ -359,7 +364,7 @@ export function UserSearch({
                   {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium text-gray-900">{user.name}</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.name}</span>
               {user.role && (
                 <Badge variant="secondary" className="text-xs">
                   {user.role}
@@ -369,7 +374,8 @@ export function UserSearch({
                 variant="ghost"
                 size="sm"
                 onClick={() => handleUserRemove(user.id)}
-                className="h-5 w-5 p-0 hover:bg-red-100 text-gray-400 hover:text-red-600"
+                aria-label={`Remove ${user.name}`}
+                className="h-5 w-5 p-0 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600"
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -382,6 +388,8 @@ export function UserSearch({
       {isOpen && (
         <div
           ref={resultsRef}
+          role="listbox"
+          aria-label="User search results"
           className={cn(
             "absolute z-50 w-full mt-1 rounded-lg shadow-lg max-h-96 overflow-y-auto",
             theme === 'dark'
@@ -392,7 +400,7 @@ export function UserSearch({
           {/* Recent Users (when no search query) */}
           {!searchQuery && recentUsers.length > 0 && (
             <div className="p-3">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Recent</h4>
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recent</h4>
               {recentUsers.map((user) => (
                 <UserSearchItem
                   key={user.id}
@@ -409,7 +417,7 @@ export function UserSearch({
             <div className="p-3">
               {searchResults.length > 0 ? (
                 <>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Found {searchResults.length} user{searchResults.length !== 1 ? 's' : ''}
                   </h4>
                   {searchResults.map((user, index) => (
@@ -424,8 +432,8 @@ export function UserSearch({
                 </>
               ) : !isLoading ? (
                 <div className="text-center py-6">
-                  <User className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">No users found</p>
+                  <User className="h-8 w-8 text-gray-400 mx-auto mb-2" aria-hidden="true" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No users found</p>
                   {allowInviteByEmail && isValidEmail(searchQuery) && (
                     <Button
                       variant="outline"
@@ -444,15 +452,15 @@ export function UserSearch({
 
           {/* Loading State */}
           {isLoading && (
-            <div className="p-6 text-center">
+            <div className="p-6 text-center" role="status" aria-label="Searching users">
               <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2" />
-              <p className="text-sm text-gray-500">Searching users...</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Searching users...</p>
             </div>
           )}
 
           {/* Email Invitation Option */}
           {allowInviteByEmail && searchQuery && isValidEmail(searchQuery) && searchResults.length === 0 && !isLoading && (
-            <div className="border-t border-gray-200 p-3">
+            <div className="border-t border-gray-200 dark:border-gray-700 p-3">
               <Button
                 variant="outline"
                 onClick={() => handleEmailInvite(searchQuery)}
@@ -488,10 +496,13 @@ interface UserSearchItemProps {
 function UserSearchItem({ user, showDetails = true, isHighlighted, onClick }: UserSearchItemProps) {
   return (
     <div
+      id={`user-result-${user.id}`}
+      role="option"
+      aria-selected={isHighlighted || false}
       onClick={onClick}
       className={cn(
         "flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors",
-        isHighlighted ? "bg-blue-50" : "hover:bg-gray-50"
+        isHighlighted ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-gray-50 dark:hover:bg-gray-700"
       )}
     >
       <div className="relative">
@@ -502,13 +513,13 @@ function UserSearchItem({ user, showDetails = true, isHighlighted, onClick }: Us
           </AvatarFallback>
         </Avatar>
         {user.isOnline && (
-          <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-green-500 border-2 border-white rounded-full" />
+          <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full" />
         )}
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="font-medium text-gray-900 truncate">{user.name}</p>
+          <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{user.name}</p>
           {user.role && (
             <Badge variant="secondary" className="text-xs">
               {user.role}
@@ -516,7 +527,7 @@ function UserSearchItem({ user, showDetails = true, isHighlighted, onClick }: Us
           )}
         </div>
 
-        <p className="text-sm text-gray-500 truncate">{user.email}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
 
         {showDetails && (user.title || user.organization) && (
           <p className="text-xs text-gray-400 truncate">
@@ -526,7 +537,7 @@ function UserSearchItem({ user, showDetails = true, isHighlighted, onClick }: Us
 
         {showDetails && user.mutualConnections && user.mutualConnections > 0 && (
           <div className="flex items-center gap-1 mt-1">
-            <Users className="h-3 w-3 text-gray-400" />
+            <Users className="h-3 w-3 text-gray-400" aria-hidden="true" />
             <span className="text-xs text-gray-400">
               {user.mutualConnections} mutual connection{user.mutualConnections !== 1 ? 's' : ''}
             </span>
@@ -535,7 +546,7 @@ function UserSearchItem({ user, showDetails = true, isHighlighted, onClick }: Us
       </div>
 
       {user.isSelected && (
-        <Check className="h-4 w-4 text-green-600" />
+        <Check className="h-4 w-4 text-green-600" aria-hidden="true" />
       )}
     </div>
   );

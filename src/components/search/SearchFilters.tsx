@@ -80,7 +80,7 @@ export function SearchFilters({
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-500" />
+          <Filter className="w-4 h-4 text-gray-500" aria-hidden="true" />
           <span className="font-medium text-gray-900 dark:text-gray-100">
             {t('search.filters.title', 'Filters')}
           </span>
@@ -93,6 +93,7 @@ export function SearchFilters({
         {activeFilterCount > 0 && (
           <button
             onClick={onClearFilters}
+            aria-label="Clear all filters"
             className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1"
           >
             <X className="w-3 h-3" />
@@ -105,23 +106,26 @@ export function SearchFilters({
       <div className="border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => toggleSection('types')}
+          aria-expanded={expandedSections.includes('types')}
+          aria-controls="filter-section-types"
           className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 dark:hover:bg-gray-700/50"
         >
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {t('search.filters.contentType', 'Content Type')}
           </span>
           {expandedSections.includes('types') ? (
-            <ChevronUp className="w-4 h-4 text-gray-400" />
+            <ChevronUp className="w-4 h-4 text-gray-400" aria-hidden="true" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-gray-400" />
+            <ChevronDown className="w-4 h-4 text-gray-400" aria-hidden="true" />
           )}
         </button>
         {expandedSections.includes('types') && (
-          <div className="px-4 pb-3 space-y-1">
+          <div id="filter-section-types" role="group" aria-label="Content type filters" className="px-4 pb-3 space-y-1">
             {(['project', 'file', 'task', 'message'] as SearchResultType[]).map(type => (
               <button
                 key={type}
                 onClick={() => onToggleType(type)}
+                aria-pressed={isTypeSelected(type)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-colors ${
                   isTypeSelected(type)
                     ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
@@ -146,19 +150,21 @@ export function SearchFilters({
         <div className="border-b border-gray-200 dark:border-gray-700">
           <button
             onClick={() => toggleSection('projects')}
+            aria-expanded={expandedSections.includes('projects')}
+            aria-controls="filter-section-projects"
             className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 dark:hover:bg-gray-700/50"
           >
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {t('search.filters.project', 'Project')}
             </span>
             {expandedSections.includes('projects') ? (
-              <ChevronUp className="w-4 h-4 text-gray-400" />
+              <ChevronUp className="w-4 h-4 text-gray-400" aria-hidden="true" />
             ) : (
-              <ChevronDown className="w-4 h-4 text-gray-400" />
+              <ChevronDown className="w-4 h-4 text-gray-400" aria-hidden="true" />
             )}
           </button>
           {expandedSections.includes('projects') && (
-            <div className="px-4 pb-3 space-y-1 max-h-48 overflow-y-auto">
+            <div id="filter-section-projects" role="group" aria-label="Project filters" className="px-4 pb-3 space-y-1 max-h-48 overflow-y-auto">
               {facets.projects.map(project => {
                 const isSelected = filters.projectIds?.includes(project.id);
                 return (
@@ -171,6 +177,7 @@ export function SearchFilters({
                         : [...currentIds, project.id];
                       onFilterChange({ ...filters, projectIds: newIds });
                     }}
+                    aria-pressed={isSelected || false}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-colors ${
                       isSelected
                         ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
@@ -193,25 +200,27 @@ export function SearchFilters({
       <div className="border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => toggleSection('date')}
+          aria-expanded={expandedSections.includes('date')}
+          aria-controls="filter-section-date"
           className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 dark:hover:bg-gray-700/50"
         >
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {t('search.filters.dateRange', 'Date Range')}
           </span>
           {expandedSections.includes('date') ? (
-            <ChevronUp className="w-4 h-4 text-gray-400" />
+            <ChevronUp className="w-4 h-4 text-gray-400" aria-hidden="true" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-gray-400" />
+            <ChevronDown className="w-4 h-4 text-gray-400" aria-hidden="true" />
           )}
         </button>
         {expandedSections.includes('date') && (
-          <div className="px-4 pb-3 space-y-3">
+          <div id="filter-section-date" className="px-4 pb-3 space-y-3">
             <div>
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
                 {t('search.filters.from', 'From')}
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
                 <input
                   type="date"
                   value={filters.dateRange?.start || ''}
@@ -230,7 +239,7 @@ export function SearchFilters({
                 {t('search.filters.to', 'To')}
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
                 <input
                   type="date"
                   value={filters.dateRange?.end || ''}

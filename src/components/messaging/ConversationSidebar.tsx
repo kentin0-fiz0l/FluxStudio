@@ -11,7 +11,7 @@
  * - Mobile responsive (hidden on mobile when chat is open)
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search,
   UserPlus,
@@ -19,7 +19,6 @@ import {
   BellOff,
   Pin,
   MessageCircle,
-  Loader2,
   Sparkles,
   Zap,
   Coffee,
@@ -69,7 +68,7 @@ export interface ConversationItemProps {
 
 const SWIPE_THRESHOLD = 60;
 
-export function ConversationItem({ conversation, isSelected, onClick, onPin, onMute, onDelete }: ConversationItemProps) {
+export const ConversationItem = React.memo(function ConversationItem({ conversation, isSelected, onClick, onPin, onMute, onDelete }: ConversationItemProps) {
   const touchStartX = useRef(0);
   const touchCurrentX = useRef(0);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -163,10 +162,10 @@ export function ConversationItem({ conversation, isSelected, onClick, onPin, onM
                     {conversation.title}
                   </h3>
                   {conversation.isPinned && (
-                    <Pin className="w-3 h-3 text-accent-500 flex-shrink-0" />
+                    <Pin className="w-3 h-3 text-accent-500 flex-shrink-0" aria-hidden="true" />
                   )}
                   {conversation.isMuted && (
-                    <BellOff className="w-3 h-3 text-neutral-400 flex-shrink-0" />
+                    <BellOff className="w-3 h-3 text-neutral-400 flex-shrink-0" aria-hidden="true" />
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -206,7 +205,7 @@ export function ConversationItem({ conversation, isSelected, onClick, onPin, onM
       </div>
     </div>
   );
-}
+});
 
 /**
  * Empty state when no conversations exist
@@ -326,14 +325,14 @@ export function ConversationSidebar({
               {onlineCount} online · {unreadCount} unread
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={onNewConversation}>
+          <Button variant="outline" size="sm" onClick={onNewConversation} aria-label="New conversation">
             <UserPlus className="w-4 h-4" />
           </Button>
         </div>
 
         {/* Search */}
         <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
           <input
             type="text"
             placeholder="Search conversations..."
@@ -355,8 +354,8 @@ export function ConversationSidebar({
                   : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
               }`}
             >
-              {f === 'starred' && <Star className="w-3 h-3 inline mr-1" />}
-              {f === 'muted' && <BellOff className="w-3 h-3 inline mr-1" />}
+              {f === 'starred' && <Star className="w-3 h-3 inline mr-1" aria-hidden="true" />}
+              {f === 'muted' && <BellOff className="w-3 h-3 inline mr-1" aria-hidden="true" />}
               {f.charAt(0).toUpperCase() + f.slice(1)}
               {f === 'unread' && unreadCount > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-white/20 rounded-full">{unreadCount}</span>
@@ -369,13 +368,26 @@ export function ConversationSidebar({
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
         {isLoading && conversations.length === 0 ? (
-          <div className="flex items-center justify-center h-32">
-            <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
+          <div role="status" aria-label="Loading conversations">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="p-4 border-b border-neutral-100 dark:border-neutral-800 animate-pulse">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-neutral-200 dark:bg-neutral-700 flex-shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="h-4 w-28 bg-neutral-200 dark:bg-neutral-700 rounded" />
+                      <div className="h-3 w-12 bg-neutral-200 dark:bg-neutral-700 rounded" />
+                    </div>
+                    <div className="h-3 w-3/4 bg-neutral-200 dark:bg-neutral-700 rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : conversations.length === 0 ? (
           searchTerm ? (
             <div className="p-8 text-center">
-              <MessageCircle className="w-12 h-12 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" />
+              <MessageCircle className="w-12 h-12 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" aria-hidden="true" />
               <p className="text-sm text-neutral-600 dark:text-neutral-400">
                 No conversations match your search
               </p>
