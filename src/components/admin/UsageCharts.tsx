@@ -83,28 +83,28 @@ export function UsageCharts({ onExport }: UsageChartsProps) {
       value: '124,532',
       change: 12.5,
       changeLabel: t('analytics.dateRange.month', 'vs last month'),
-      icon: <Eye className="w-5 h-5" />,
+      icon: <Eye className="w-5 h-5" aria-hidden="true" />,
     },
     {
       label: t('analytics.metrics.sessions', 'Sessions'),
       value: '18,429',
       change: 8.2,
       changeLabel: t('analytics.dateRange.month', 'vs last month'),
-      icon: <Clock className="w-5 h-5" />,
+      icon: <Clock className="w-5 h-5" aria-hidden="true" />,
     },
     {
       label: t('analytics.metrics.activeUsers', 'Active Users'),
       value: '2,847',
       change: -3.1,
       changeLabel: t('analytics.dateRange.month', 'vs last month'),
-      icon: <Users className="w-5 h-5" />,
+      icon: <Users className="w-5 h-5" aria-hidden="true" />,
     },
     {
       label: t('analytics.metrics.newUsers', 'New Users'),
       value: '428',
       change: 15.8,
       changeLabel: t('analytics.dateRange.month', 'vs last month'),
-      icon: <TrendingUp className="w-5 h-5" />,
+      icon: <TrendingUp className="w-5 h-5" aria-hidden="true" />,
     },
   ], [t]);
 

@@ -15,22 +15,22 @@ interface DeadlineRiskPanelProps {
 const RISK_CONFIG: Record<string, { color: string; bg: string; icon: React.ReactNode; label: string }> = {
   'on-track': {
     color: 'text-green-700', bg: 'bg-green-50',
-    icon: <CheckCircle className="w-5 h-5 text-green-600" />,
+    icon: <CheckCircle className="w-5 h-5 text-green-600" aria-hidden="true" />,
     label: 'On Track',
   },
   'at-risk': {
     color: 'text-yellow-700', bg: 'bg-yellow-50',
-    icon: <Clock className="w-5 h-5 text-yellow-600" />,
+    icon: <Clock className="w-5 h-5 text-yellow-600" aria-hidden="true" />,
     label: 'At Risk',
   },
   'behind': {
     color: 'text-red-700', bg: 'bg-red-50',
-    icon: <AlertTriangle className="w-5 h-5 text-red-600" />,
+    icon: <AlertTriangle className="w-5 h-5 text-red-600" aria-hidden="true" />,
     label: 'Behind Schedule',
   },
   'no-data': {
     color: 'text-neutral-500', bg: 'bg-neutral-50',
-    icon: <TrendingUp className="w-5 h-5 text-neutral-400" />,
+    icon: <TrendingUp className="w-5 h-5 text-neutral-400" aria-hidden="true" />,
     label: 'Insufficient Data',
   },
 };
