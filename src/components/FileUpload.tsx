@@ -51,10 +51,10 @@ export function FileUpload({ onUploadComplete, className = '', maxFiles = 10 }: 
   }, [handleFiles]);
 
   const getFileIcon = (file: File) => {
-    if (file.type.startsWith('image/')) return <Image className="w-8 h-8" />;
-    if (file.type.startsWith('video/')) return <Video className="w-8 h-8" />;
-    if (file.type.includes('text') || file.type.includes('document')) return <FileText className="w-8 h-8" />;
-    return <File className="w-8 h-8" />;
+    if (file.type.startsWith('image/')) return <Image className="w-8 h-8" aria-hidden="true" />;
+    if (file.type.startsWith('video/')) return <Video className="w-8 h-8" aria-hidden="true" />;
+    if (file.type.includes('text') || file.type.includes('document')) return <FileText className="w-8 h-8" aria-hidden="true" />;
+    return <File className="w-8 h-8" aria-hidden="true" />;
   };
 
   const formatFileSize = (bytes: number) => {
@@ -68,12 +68,12 @@ export function FileUpload({ onUploadComplete, className = '', maxFiles = 10 }: 
   const getStatusIcon = (upload: UploadProgress) => {
     switch (upload.status) {
       case 'completed':
-        return <CheckCircle className="w-5 h-5 text-green-400" />;
+        return <CheckCircle className="w-5 h-5 text-green-400" aria-hidden="true" />;
       case 'error':
-        return <AlertCircle className="w-5 h-5 text-red-400" />;
+        return <AlertCircle className="w-5 h-5 text-red-400" aria-hidden="true" />;
       default:
         return (
-          <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
         );
     }
   };
@@ -98,11 +98,12 @@ export function FileUpload({ onUploadComplete, className = '', maxFiles = 10 }: 
           onChange={handleChange}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip"
+          aria-label="Upload files"
         />
 
         <div className="space-y-4">
           <div className="mx-auto w-16 h-16 bg-white/10 rounded-full flex items-center justify-center">
-            <Upload className="w-8 h-8 text-white/70" />
+            <Upload className="w-8 h-8 text-white/70" aria-hidden="true" />
           </div>
 
           <div>
@@ -118,7 +119,7 @@ export function FileUpload({ onUploadComplete, className = '', maxFiles = 10 }: 
             type="button"
             className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 mr-2" aria-hidden="true" />
             Choose Files
           </button>
         </div>

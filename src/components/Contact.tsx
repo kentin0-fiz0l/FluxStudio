@@ -85,7 +85,7 @@ export function Contact() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center space-x-3">
-                  <Mail className="w-5 h-5 text-pink-500" />
+                  <Mail className="w-5 h-5 text-pink-500" aria-hidden="true" />
                   <div>
                     <div className="text-sm text-off-white/60">Email</div>
                     <div className="text-off-white">hello@fluxstudio.art</div>
@@ -93,7 +93,7 @@ export function Contact() {
                 </div>
                 
                 <div className="flex items-center space-x-3">
-                  <Clock className="w-5 h-5 text-purple-500" />
+                  <Clock className="w-5 h-5 text-purple-500" aria-hidden="true" />
                   <div>
                     <div className="text-sm text-off-white/60">Response Time</div>
                     <div className="text-off-white">Within 24 hours</div>
@@ -101,7 +101,7 @@ export function Contact() {
                 </div>
                 
                 <div className="flex items-center space-x-3">
-                  <MapPin className="w-5 h-5 text-cyan-400" />
+                  <MapPin className="w-5 h-5 text-cyan-400" aria-hidden="true" />
                   <div>
                     <div className="text-sm text-off-white/60">Serving</div>
                     <div className="text-off-white">Nationwide (Remote)</div>
@@ -109,8 +109,8 @@ export function Contact() {
                 </div>
                 
                 <div className="pt-6">
-                  <h4 className="text-sm mb-3 text-gray-600">Best Times to Contact</h4>
-                  <ul className="text-sm space-y-1 text-gray-600">
+                  <h4 className="text-sm mb-3 text-gray-600 dark:text-gray-400">Best Times to Contact</h4>
+                  <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
                     <li>• Weekdays 9 AM - 6 PM PST</li>
                     <li>• Emergency: Anytime during season</li>
                     <li>• Off-season: Mon-Fri preferred</li>
@@ -250,12 +250,12 @@ export function Contact() {
                   <Button type="submit" size="lg" className="btn-glass-submit w-full text-white" disabled={isSubmitting}>
                     {isSubmitting ? (
                       <>
-                        <div className="mr-2 h-4 w-4 relative z-10 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        <div className="mr-2 h-4 w-4 relative z-10 animate-spin rounded-full border-2 border-white border-t-transparent" aria-hidden="true" />
                         <span className="relative z-10">Sending...</span>
                       </>
                     ) : (
                       <>
-                        <Send className="mr-2 h-4 w-4 relative z-10" />
+                        <Send className="mr-2 h-4 w-4 relative z-10" aria-hidden="true" />
                         <span className="relative z-10">Book a Consult</span>
                       </>
                     )}

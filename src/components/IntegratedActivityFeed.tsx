@@ -255,16 +255,16 @@ export function IntegratedActivityFeed() {
 
   const getActivityColor = (type: ActivityItem['type']) => {
     switch (type) {
-      case 'message': return 'text-blue-600 bg-blue-100';
+      case 'message': return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30';
       case 'project_created':
-      case 'project_updated': return 'text-green-600 bg-green-100';
-      case 'file_upload': return 'text-purple-600 bg-purple-100';
-      case 'conversation_created': return 'text-indigo-600 bg-indigo-100';
-      case 'review_completed': return 'text-emerald-600 bg-emerald-100';
-      case 'milestone_reached': return 'text-yellow-600 bg-yellow-100';
-      case 'user_joined': return 'text-cyan-600 bg-cyan-100';
-      case 'status_change': return 'text-orange-600 bg-orange-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'project_updated': return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30';
+      case 'file_upload': return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30';
+      case 'conversation_created': return 'text-indigo-600 bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-900/30';
+      case 'review_completed': return 'text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/30';
+      case 'milestone_reached': return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/30';
+      case 'user_joined': return 'text-cyan-600 bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-900/30';
+      case 'status_change': return 'text-orange-600 bg-orange-100 dark:text-orange-400 dark:bg-orange-900/30';
+      default: return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-700';
     }
   };
 
@@ -296,7 +296,7 @@ export function IntegratedActivityFeed() {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Activity size={20} />
+            <Activity size={20} aria-hidden="true" />
             Activity Feed
           </CardTitle>
           <div className="flex items-center gap-2">
@@ -308,7 +308,7 @@ export function IntegratedActivityFeed() {
               My Activity
             </Button>
             <Button variant="outline" size="sm">
-              <Filter size={14} className="mr-1" />
+              <Filter size={14} className="mr-1" aria-hidden="true" />
               Filter
             </Button>
           </div>
@@ -338,8 +338,8 @@ export function IntegratedActivityFeed() {
       <CardContent className="p-0">
         <ScrollArea className="h-[500px]">
           {filteredActivities.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Activity size={32} className="mx-auto mb-2 opacity-50" />
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <Activity size={32} className="mx-auto mb-2 opacity-50" aria-hidden="true" />
               <p>No activity yet</p>
               <p className="text-sm">Activity will appear here as you work</p>
             </div>
@@ -350,23 +350,23 @@ export function IntegratedActivityFeed() {
                 const colorClasses = getActivityColor(activity.type);
 
                 return (
-                  <div key={activity.id} className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0">
+                  <div key={activity.id} className="flex items-start gap-3 pb-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
                     {/* Activity Icon */}
                     <div className={cn(
                       'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
                       colorClasses
                     )}>
-                      <Icon size={16} />
+                      <Icon size={16} aria-hidden="true" />
                     </div>
 
                     {/* Activity Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium text-gray-900 truncate">
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                           {activity.title}
                         </h4>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             {formatTimeAgo(activity.timestamp)}
                           </span>
                           {activity.actionable && (
@@ -376,13 +376,13 @@ export function IntegratedActivityFeed() {
                               className="h-6 px-2 text-xs"
                               onClick={activity.actionable.action}
                             >
-                              <ExternalLink size={10} />
+                              <ExternalLink size={10} aria-hidden="true" />
                             </Button>
                           )}
                         </div>
                       </div>
 
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
                         {activity.description}
                       </p>
 
@@ -395,7 +395,7 @@ export function IntegratedActivityFeed() {
                               {activity.user.name.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-xs text-gray-600">
+                          <span className="text-xs text-gray-600 dark:text-gray-400">
                             {activity.user.name}
                           </span>
                           {activity.user.role && (

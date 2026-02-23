@@ -59,7 +59,7 @@ export function BulkActionBar({
             className="text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200"
             aria-label="Move selected items"
           >
-            <FolderInput className="w-4 h-4 mr-2" />
+            <FolderInput className="w-4 h-4 mr-2" aria-hidden="true" />
             Move
           </Button>
         )}
@@ -72,7 +72,7 @@ export function BulkActionBar({
             className="text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200"
             aria-label="Tag selected items"
           >
-            <Tag className="w-4 h-4 mr-2" />
+            <Tag className="w-4 h-4 mr-2" aria-hidden="true" />
             Tag
           </Button>
         )}
@@ -85,7 +85,7 @@ export function BulkActionBar({
             className="text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200"
             aria-label="Archive selected items"
           >
-            <Archive className="w-4 h-4 mr-2" />
+            <Archive className="w-4 h-4 mr-2" aria-hidden="true" />
             Archive
           </Button>
         )}
@@ -98,7 +98,7 @@ export function BulkActionBar({
             className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
             aria-label="Delete selected items"
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
             Delete
           </Button>
         )}
@@ -114,7 +114,7 @@ export function BulkActionBar({
         className="text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 w-8 h-8"
         aria-label="Clear selection"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" aria-hidden="true" />
       </Button>
     </div>
   );
