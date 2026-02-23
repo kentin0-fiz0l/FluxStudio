@@ -58,6 +58,17 @@ export function Support() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const fieldErrors: Record<string, string> = {};
+  if (touched.name && !formData.name.trim()) fieldErrors.name = 'Name is required';
+  if (touched.email) {
+    if (!formData.email.trim()) fieldErrors.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) fieldErrors.email = 'Enter a valid email address';
+  }
+  if (touched.subject && !formData.subject.trim()) fieldErrors.subject = 'Subject is required';
+  if (touched.message && formData.message.trim().length > 0 && formData.message.trim().length < 20)
+    fieldErrors.message = `${20 - formData.message.trim().length} more characters needed`;
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -65,6 +76,10 @@ export function Support() {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setError('');
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setTouched((prev) => ({ ...prev, [e.target.name]: true }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -234,9 +249,19 @@ export function Support() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="John Doe"
                     required
+                    className={fieldErrors.name ? 'border-red-400 dark:border-red-600 focus:ring-red-500' : ''}
+                    aria-invalid={!!fieldErrors.name}
+                    aria-describedby={fieldErrors.name ? 'name-error' : undefined}
                   />
+                  {fieldErrors.name && (
+                    <p id="name-error" className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {fieldErrors.name}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
@@ -248,9 +273,19 @@ export function Support() {
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="john@example.com"
                     required
+                    className={fieldErrors.email ? 'border-red-400 dark:border-red-600 focus:ring-red-500' : ''}
+                    aria-invalid={!!fieldErrors.email}
+                    aria-describedby={fieldErrors.email ? 'email-error' : undefined}
                   />
+                  {fieldErrors.email && (
+                    <p id="email-error" className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {fieldErrors.email}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -286,9 +321,19 @@ export function Support() {
                   name="subject"
                   value={formData.subject}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="Brief description of your issue"
                   required
+                  className={fieldErrors.subject ? 'border-red-400 dark:border-red-600 focus:ring-red-500' : ''}
+                  aria-invalid={!!fieldErrors.subject}
+                  aria-describedby={fieldErrors.subject ? 'subject-error' : undefined}
                 />
+                {fieldErrors.subject && (
+                  <p id="subject-error" className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {fieldErrors.subject}
+                  </p>
+                )}
               </div>
 
               {/* Message */}
@@ -300,14 +345,27 @@ export function Support() {
                   name="message"
                   value={formData.message}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   rows={6}
                   placeholder="Please describe your issue in detail. Include any error messages, steps to reproduce, or relevant information."
-                  className="w-full px-3 py-2 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                  className={`w-full px-3 py-2 rounded-md border ${fieldErrors.message ? 'border-red-400 dark:border-red-600' : 'border-neutral-200 dark:border-neutral-700'} bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 ${fieldErrors.message ? 'focus:ring-red-500' : 'focus:ring-primary-500'} focus:border-transparent resize-none`}
                   required
+                  aria-invalid={!!fieldErrors.message}
+                  aria-describedby="message-hint"
                 />
-                <p className="text-xs text-neutral-500">
-                  {formData.message.length}/20 characters minimum
-                </p>
+                <div id="message-hint" className="flex items-center justify-between">
+                  {fieldErrors.message ? (
+                    <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {fieldErrors.message}
+                    </p>
+                  ) : (
+                    <span />
+                  )}
+                  <p className={`text-xs ${formData.message.trim().length >= 20 ? 'text-green-600 dark:text-green-400' : 'text-neutral-500 dark:text-neutral-400'}`}>
+                    {formData.message.trim().length}/20 min
+                  </p>
+                </div>
               </div>
 
               {/* Submit */}

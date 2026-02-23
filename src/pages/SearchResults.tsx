@@ -172,15 +172,41 @@ export function SearchResults() {
                 <div className="relative" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape' && showHistoryDropdown) {
+                        e.stopPropagation();
+                        setShowHistoryDropdown(false);
+                      }
+                    }}
                     className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md"
                     title={t('search.history', 'Search History')}
+                    aria-expanded={showHistoryDropdown}
+                    aria-haspopup="listbox"
+                    aria-label={t('search.history', 'Search History')}
                   >
                     <History className="w-4 h-4" />
                   </button>
 
                   {/* History Dropdown */}
                   {showHistoryDropdown && (
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50">
+                    <div
+                      role="listbox"
+                      aria-label={t('search.history', 'Search History')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          e.stopPropagation();
+                          setShowHistoryDropdown(false);
+                        }
+                        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          const items = e.currentTarget.querySelectorAll<HTMLElement>('[role="option"]');
+                          const focused = e.currentTarget.querySelector<HTMLElement>('[role="option"]:focus');
+                          const idx = focused ? Array.from(items).indexOf(focused) : -1;
+                          const next = e.key === 'ArrowDown' ? Math.min(idx + 1, items.length - 1) : Math.max(idx - 1, 0);
+                          items[next]?.focus();
+                        }
+                      }}
+                      className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50">
                       {/* Saved Searches */}
                       {savedSearches.length > 0 && (
                         <div className="border-b border-gray-200 dark:border-gray-700">
@@ -191,13 +217,24 @@ export function SearchResults() {
                           {savedSearches.slice(0, 5).map((saved) => (
                             <div
                               key={saved.id}
-                              className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 group"
+                              role="option"
+                              tabIndex={0}
+                              aria-selected={false}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  loadSavedSearch(saved);
+                                  setShowHistoryDropdown(false);
+                                }
+                              }}
+                              className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 focus:outline-none group cursor-pointer"
                             >
                               <button
                                 onClick={() => {
                                   loadSavedSearch(saved);
                                   setShowHistoryDropdown(false);
                                 }}
+                                tabIndex={-1}
                                 className="flex-1 text-left text-sm text-gray-700 dark:text-gray-300"
                               >
                                 {saved.name}
@@ -231,13 +268,24 @@ export function SearchResults() {
                           {searchHistory.slice(0, 8).map((historyQuery, index) => (
                             <div
                               key={index}
-                              className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 group"
+                              role="option"
+                              tabIndex={0}
+                              aria-selected={false}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  setQuery(historyQuery);
+                                  setShowHistoryDropdown(false);
+                                }
+                              }}
+                              className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 focus:outline-none group cursor-pointer"
                             >
                               <button
                                 onClick={() => {
                                   setQuery(historyQuery);
                                   setShowHistoryDropdown(false);
                                 }}
+                                tabIndex={-1}
                                 className="flex-1 text-left text-sm text-gray-700 dark:text-gray-300 truncate"
                               >
                                 {historyQuery}
@@ -285,6 +333,8 @@ export function SearchResults() {
                   <button
                     key={type}
                     onClick={() => toggleTypeFilter(type)}
+                    aria-pressed={!!isSelected}
+                    aria-label={`Filter by ${type}s${facets?.types[type] !== undefined ? ` (${facets.types[type]} results)` : ''}`}
                     className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full transition-colors ${
                       isSelected
                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
@@ -352,7 +402,16 @@ export function SearchResults() {
               <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setShowSortDropdown(!showSortDropdown)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape' && showSortDropdown) {
+                      e.stopPropagation();
+                      setShowSortDropdown(false);
+                    }
+                  }}
                   className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                  aria-expanded={showSortDropdown}
+                  aria-haspopup="listbox"
+                  aria-label={t('search.sort.label', 'Sort results')}
                 >
                   {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
                   <span className="capitalize">{sortBy}</span>
@@ -360,15 +419,42 @@ export function SearchResults() {
                 </button>
 
                 {showSortDropdown && (
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50">
+                  <div
+                    role="listbox"
+                    aria-label={t('search.sort.label', 'Sort results')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        e.stopPropagation();
+                        setShowSortDropdown(false);
+                      }
+                      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        const items = e.currentTarget.querySelectorAll<HTMLElement>('[role="option"]');
+                        const focused = e.currentTarget.querySelector<HTMLElement>('[role="option"]:focus');
+                        const idx = focused ? Array.from(items).indexOf(focused) : -1;
+                        const next = e.key === 'ArrowDown' ? Math.min(idx + 1, items.length - 1) : Math.max(idx - 1, 0);
+                        items[next]?.focus();
+                      }
+                    }}
+                    className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50"
+                  >
                     {(['relevance', 'date', 'title'] as const).map((option) => (
                       <button
                         key={option}
+                        role="option"
+                        aria-selected={sortBy === option}
                         onClick={() => {
                           setSortBy(option);
                           setShowSortDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSortBy(option);
+                            setShowSortDropdown(false);
+                          }
+                        }}
+                        className={`w-full px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 focus:outline-none ${
                           sortBy === option ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'text-gray-700 dark:text-gray-300'
                         }`}
                       >
@@ -377,11 +463,20 @@ export function SearchResults() {
                     ))}
                     <div className="border-t border-gray-200 dark:border-gray-700" />
                     <button
+                      role="option"
+                      aria-selected={false}
                       onClick={() => {
                         setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
                         setShowSortDropdown(false);
                       }}
-                      className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center gap-2"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                          setShowSortDropdown(false);
+                        }
+                      }}
+                      className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-gray-50 dark:focus:bg-gray-700 focus:outline-none text-gray-700 dark:text-gray-300 flex items-center gap-2"
                     >
                       {sortOrder === 'asc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
                       {sortOrder === 'asc' ? t('search.sort.descending', 'Descending') : t('search.sort.ascending', 'Ascending')}

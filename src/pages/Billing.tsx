@@ -18,6 +18,7 @@ import { DashboardLayout } from '../components/templates';
 import { UsageBar } from '../components/payments/UsageBar';
 import { fetchUsage } from '../services/usageService';
 import { getPlan } from '../config/plans';
+import { Skeleton } from '../components/ui/skeleton';
 import type { UsageData } from '../services/usageService';
 import type { PlanId } from '../config/plans';
 
@@ -42,7 +43,18 @@ export function Billing() {
   const [error, setError] = useState('');
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [usage, setUsage] = useState<UsageData | null>(null);
+  const [usageError, setUsageError] = useState(false);
   const [planId, setPlanId] = useState<PlanId>('free');
+
+  const loadUsage = () => {
+    setUsageError(false);
+    fetchUsage()
+      .then((data) => {
+        setUsage(data.usage);
+        setPlanId(data.plan);
+      })
+      .catch(() => { setUsageError(true); });
+  };
 
   useEffect(() => {
     if (!user) {
@@ -50,12 +62,7 @@ export function Billing() {
       return;
     }
     fetchSubscriptionStatus();
-    fetchUsage()
-      .then((data) => {
-        setUsage(data.usage);
-        setPlanId(data.plan);
-      })
-      .catch(() => { /* usage fetch is best-effort */ });
+    loadUsage();
   }, [user, navigate]);
 
   const fetchSubscriptionStatus = async () => {
@@ -147,10 +154,41 @@ export function Billing() {
         breadcrumbs={[{ label: 'Billing' }]}
         onLogout={() => {}}
       >
-        <div className="flex items-center justify-center py-24">
-          <div className="text-center">
-            <Loader className="w-10 h-10 text-primary-500 animate-spin mx-auto mb-4" />
-            <p className="text-neutral-500">Loading billing information...</p>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+          {/* Header skeleton */}
+          <div className="flex items-center justify-between">
+            <div>
+              <Skeleton className="h-7 w-56 mb-2" />
+              <Skeleton className="h-4 w-72" />
+            </div>
+            <Skeleton className="w-9 h-9 rounded-lg" />
+          </div>
+          {/* Usage card skeleton */}
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-5 sm:p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-5 w-28" />
+                <Skeleton className="h-6 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-20" />
+            </div>
+            <div className="space-y-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i}>
+                  <div className="flex justify-between mb-1.5">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                  <Skeleton className="h-2 w-full rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Subscription card skeleton */}
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-5 sm:p-6">
+            <Skeleton className="h-5 w-40 mb-3" />
+            <Skeleton className="h-7 w-20 rounded-full mb-3" />
+            <Skeleton className="h-4 w-52" />
           </div>
         </div>
       </DashboardLayout>
@@ -185,6 +223,13 @@ export function Billing() {
             <AlertCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
             <p className="text-red-600 dark:text-red-400 text-sm flex-1">{error}</p>
             <button
+              onClick={fetchSubscriptionStatus}
+              className="ml-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm font-medium flex items-center gap-1"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry
+            </button>
+            <button
               onClick={() => setError('')}
               className="ml-2 text-red-500 hover:text-red-700 text-sm"
             >
@@ -192,6 +237,25 @@ export function Billing() {
             </button>
           </div>
         )}
+        {/* Usage error fallback */}
+        {usageError && !usage && (
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-5 sm:p-6 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-neutral-900 dark:text-white mb-1">Current Plan</h2>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">Usage data is temporarily unavailable.</p>
+              </div>
+              <button
+                onClick={loadUsage}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Current Plan & Usage */}
         {usage && (
           <motion.div

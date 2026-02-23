@@ -9,6 +9,7 @@ import { DashboardLayout } from '@/components/templates';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, Users, Gift, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ReferralStats {
   totalReferrals: number;
@@ -73,8 +74,51 @@ export default function Referrals() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
+        <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
+          {/* Header skeleton */}
+          <div>
+            <Skeleton className="h-7 w-40 mb-2" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+          {/* Referral link card skeleton */}
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-9 h-9 rounded-lg" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-3 w-64" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="flex-1 h-10 rounded-lg" />
+              <Skeleton className="h-9 w-20 rounded-lg" />
+            </div>
+          </div>
+          {/* Stats skeleton */}
+          <div className="grid grid-cols-2 gap-4">
+            {[0, 1].map((i) => (
+              <div key={i} className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 flex flex-col items-center gap-2">
+                <Skeleton className="w-5 h-5 rounded" />
+                <Skeleton className="h-7 w-12" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            ))}
+          </div>
+          {/* Recent referrals skeleton */}
+          <div className="space-y-3">
+            <Skeleton className="h-3 w-32" />
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl divide-y divide-neutral-800">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-3">
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-40" />
+                  </div>
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </DashboardLayout>
     );
