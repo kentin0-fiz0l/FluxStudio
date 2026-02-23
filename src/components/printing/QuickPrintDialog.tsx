@@ -234,7 +234,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({ material, selected, onClick
     >
       {selected && (
         <div className="absolute top-2 right-2">
-          <CheckCircle2 className="h-5 w-5 text-primary-600" />
+          <CheckCircle2 className="h-5 w-5 text-primary-600" aria-hidden="true" />
         </div>
       )}
 
@@ -292,14 +292,14 @@ const QualityCard: React.FC<QualityCardProps> = ({ preset, selected, onClick }) 
     >
       {selected && (
         <div className="absolute top-2 right-2">
-          <CheckCircle2 className="h-5 w-5 text-primary-600" />
+          <CheckCircle2 className="h-5 w-5 text-primary-600" aria-hidden="true" />
         </div>
       )}
 
       {preset.recommended && !selected && (
         <div className="absolute top-2 right-2">
           <Badge variant="default" size="sm" className="text-xs">
-            <Sparkles className="h-3 w-3 mr-1" />
+            <Sparkles className="h-3 w-3 mr-1" aria-hidden="true" />
             Recommended
           </Badge>
         </div>
@@ -314,11 +314,11 @@ const QualityCard: React.FC<QualityCardProps> = ({ preset, selected, onClick }) 
 
       <div className="flex items-center gap-4 text-xs text-neutral-500">
         <div className="flex items-center gap-1">
-          <Layers className="h-3 w-3" />
+          <Layers className="h-3 w-3" aria-hidden="true" />
           {preset.layerHeight}mm
         </div>
         <div className="flex items-center gap-1">
-          <Zap className="h-3 w-3" />
+          <Zap className="h-3 w-3" aria-hidden="true" />
           {preset.speedMultiplier}x
         </div>
       </div>
@@ -414,7 +414,7 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Printer className="h-5 w-5 text-primary-600" />
+            <Printer className="h-5 w-5 text-primary-600" aria-hidden="true" />
             Print This File
           </DialogTitle>
           <DialogDescription>
@@ -431,7 +431,7 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
           {/* Coming Soon Banner when FLUXPRINT is disabled */}
           {!config.ENABLE_FLUXPRINT && (
             <Alert className="bg-gradient-to-r from-primary-50 to-blue-50 border-primary-200">
-              <Rocket className="h-5 w-5 text-primary-600" />
+              <Rocket className="h-5 w-5 text-primary-600" aria-hidden="true" />
               <AlertDescription className="text-sm">
                 <strong className="block mb-1">3D Printing Coming Soon!</strong>
                 <span className="text-neutral-600">
@@ -445,7 +445,7 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
           {/* Printability Warning (if issues) */}
           {analysis && analysis.score < 70 && (
             <div className="flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
               <div className="flex-1">
                 <h4 className="font-semibold text-yellow-900 text-sm mb-1">
                   Printability Score: {analysis.score}/100
@@ -540,7 +540,7 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
           {/* Print Estimate */}
           <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
             <h3 className="font-semibold text-neutral-900 text-sm mb-3 flex items-center gap-2">
-              <Clock className="h-4 w-4" />
+              <Clock className="h-4 w-4" aria-hidden="true" />
               Estimated Print
             </h3>
             <div className="grid grid-cols-3 gap-4">
@@ -566,13 +566,13 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
             <div className="mt-2 text-xs text-neutral-500 flex items-center gap-1">
               {estimate.confidence === 'high' && (
                 <>
-                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                  <CheckCircle2 className="h-3 w-3 text-green-600" aria-hidden="true" />
                   <span>High confidence estimate</span>
                 </>
               )}
               {estimate.confidence === 'medium' && (
                 <>
-                  <AlertCircle className="h-3 w-3 text-yellow-600" />
+                  <AlertCircle className="h-3 w-3 text-yellow-600" aria-hidden="true" />
                   <span>Estimate may vary ±20%</span>
                 </>
               )}
@@ -588,9 +588,9 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
               aria-controls="advanced-options-panel"
             >
               {showAdvanced ? (
-                <ChevronUp className="h-4 w-4" />
+                <ChevronUp className="h-4 w-4" aria-hidden="true" />
               ) : (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-4 w-4" aria-hidden="true" />
               )}
               Advanced Options
             </button>
@@ -682,7 +682,7 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
             variant="primary"
             onClick={handlePrint}
             disabled={!config.ENABLE_FLUXPRINT || isPrinting || (analysis && !analysis.canPrint)}
-            icon={<Printer className="h-4 w-4" />}
+            icon={<Printer className="h-4 w-4" aria-hidden="true" />}
             title={!config.ENABLE_FLUXPRINT ? "3D printing feature coming soon" : undefined}
           >
             {!config.ENABLE_FLUXPRINT
