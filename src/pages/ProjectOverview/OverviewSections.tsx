@@ -51,14 +51,14 @@ export const AISnapshotSection: React.FC<{
 }) => (
   <Card>
     <CardHeader className="pb-3">
-      <SectionHeader title="AI Project Snapshot" icon={<Sparkles className="w-5 h-5" />} />
+      <SectionHeader title="AI Project Snapshot" icon={<Sparkles className="w-5 h-5" aria-hidden="true" />} />
     </CardHeader>
     <CardContent>
       {aiSummaryState === 'loading' && <SectionSkeleton />}
 
       {aiSummaryState === 'empty' && (
         <div className="py-6 text-center">
-          <Sparkles className="w-10 h-10 mx-auto text-gray-300 mb-3" />
+          <Sparkles className="w-10 h-10 mx-auto text-gray-300 mb-3" aria-hidden="true" />
           <p className="text-gray-500 mb-2">No summary available yet</p>
           <p className="text-sm text-gray-400">Insights will appear here as project conversations grow.</p>
         </div>
@@ -89,7 +89,7 @@ export const AISnapshotSection: React.FC<{
 const DisabledSnapshotContent: React.FC<{ snapshot: AggregatedSnapshot }> = ({ snapshot }) => (
   <div className="space-y-4">
     <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-xs text-gray-500">
-      <AlertCircle className="w-3.5 h-3.5" />
+      <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />
       <span>AI features disabled - showing basic analysis</span>
     </div>
     {snapshot.whatsHappening.length > 0 && (
@@ -105,7 +105,7 @@ const DisabledSnapshotContent: React.FC<{ snapshot: AggregatedSnapshot }> = ({ s
     {snapshot.openQuestions.length > 0 && (
       <div className="space-y-2">
         <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-          <HelpCircle className="w-4 h-4 text-amber-500" />Open Questions
+          <HelpCircle className="w-4 h-4 text-amber-500" aria-hidden="true" />Open Questions
         </h4>
         <ul className="space-y-2">
           {snapshot.openQuestions.map((q, idx) => (
@@ -118,7 +118,7 @@ const DisabledSnapshotContent: React.FC<{ snapshot: AggregatedSnapshot }> = ({ s
       </div>
     )}
     <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-      <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{snapshot.lastUpdated ? formatRelativeTime(snapshot.lastUpdated) : 'Unknown'}</span>
+      <span className="flex items-center gap-1"><Clock className="w-3 h-3" aria-hidden="true" />{snapshot.lastUpdated ? formatRelativeTime(snapshot.lastUpdated) : 'Unknown'}</span>
       <span>Basic analysis · {snapshot.summaryCount} conversation{snapshot.summaryCount !== 1 ? 's' : ''}</span>
     </div>
   </div>
@@ -156,11 +156,11 @@ const ReadySnapshotContent: React.FC<{
 
     {snapshot.decisions.length > 0 && (
       <div className="space-y-2">
-        <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-green-500" />Key Decisions</h4>
+        <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-green-500" aria-hidden="true" />Key Decisions</h4>
         <ul className="space-y-2">
           {snapshot.decisions.map((d, idx) => (
             <li key={idx} className="flex gap-2 text-sm">
-              <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
               <div>
                 <span className="text-gray-700">{d.text}</span>
                 {(d.decidedBy || d.conversationName) && <span className="text-xs text-gray-400 ml-1">({d.decidedBy || d.conversationName})</span>}
@@ -173,11 +173,11 @@ const ReadySnapshotContent: React.FC<{
 
     {snapshot.openQuestions.length > 0 && (
       <div className="space-y-2">
-        <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1.5"><HelpCircle className="w-4 h-4 text-amber-500" />Open Questions</h4>
+        <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1.5"><HelpCircle className="w-4 h-4 text-amber-500" aria-hidden="true" />Open Questions</h4>
         <ul className="space-y-2">
           {snapshot.openQuestions.map((q, idx) => (
             <li key={idx} className="flex gap-2 text-sm">
-              <HelpCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+              <HelpCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
               <div>
                 <span className="text-gray-600">{q.text}</span>
                 {q.conversationName && <span className="text-xs text-gray-400 ml-1">({q.conversationName})</span>}
@@ -204,7 +204,7 @@ const ReadySnapshotContent: React.FC<{
     )}
 
     <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-      <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{snapshot.lastUpdated ? formatRelativeTime(snapshot.lastUpdated) : 'Unknown'}</span>
+      <span className="flex items-center gap-1"><Clock className="w-3 h-3" aria-hidden="true" />{snapshot.lastUpdated ? formatRelativeTime(snapshot.lastUpdated) : 'Unknown'}</span>
       <span>AI generated · {snapshot.summaryCount} conversation{snapshot.summaryCount !== 1 ? 's' : ''}{snapshot.totalMessages > 0 && ` · ${snapshot.totalMessages} msgs`}</span>
     </div>
   </div>
@@ -217,7 +217,7 @@ const NextStepsList: React.FC<{
   handleDiscussStep: (text: string) => void;
 }> = ({ snapshot, getStepStatus, updateStepStatus, handleDiscussStep }) => (
   <div className="space-y-3">
-    <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1.5"><ArrowRight className="w-4 h-4 text-blue-500" />Next Steps</h4>
+    <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1.5"><ArrowRight className="w-4 h-4 text-blue-500" aria-hidden="true" />Next Steps</h4>
     <ul className="space-y-3">
       {[...snapshot.nextSteps]
         .sort((a, b) => {
@@ -234,7 +234,7 @@ const NextStepsList: React.FC<{
           return (
             <li key={step.id} className={cn('p-3 rounded-lg border transition-all', isCompleted ? 'bg-gray-50 border-gray-200 opacity-60' : status === 'accepted' ? 'bg-blue-50/50 border-blue-200' : 'bg-white border-gray-200 hover:border-gray-300')}>
               <div className="flex items-start gap-2">
-                {isCompleted ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /> : <ArrowRight className={cn('w-4 h-4 flex-shrink-0 mt-0.5', step.priority === 'high' ? 'text-red-500' : step.priority === 'medium' ? 'text-amber-500' : 'text-blue-500')} />}
+                {isCompleted ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" aria-hidden="true" /> : <ArrowRight className={cn('w-4 h-4 flex-shrink-0 mt-0.5', step.priority === 'high' ? 'text-red-500' : step.priority === 'medium' ? 'text-amber-500' : 'text-blue-500')} aria-hidden="true" />}
                 <div className="flex-1 min-w-0">
                   <p className={cn('text-sm', isCompleted ? 'text-gray-400 line-through' : 'text-gray-700')}>{step.text}</p>
                   <div className="flex items-center gap-2 mt-1.5">
@@ -268,11 +268,11 @@ export const RecentMessagesSection: React.FC<{
 }> = ({ projectId, messagesLoading, recentMessages }) => (
   <Card>
     <CardHeader className="pb-3">
-      <SectionHeader title="Recent Messages" icon={<MessageSquare className="w-5 h-5" />} action={{ label: 'View All', href: `/messages?projectId=${projectId}` }} />
+      <SectionHeader title="Recent Messages" icon={<MessageSquare className="w-5 h-5" aria-hidden="true" />} action={{ label: 'View All', href: `/messages?projectId=${projectId}` }} />
     </CardHeader>
     <CardContent>
       {messagesLoading ? <SectionSkeleton /> : recentMessages.length === 0 ? (
-        <EmptySection message="No messages yet. Start a conversation to collaborate with your team." icon={<MessageSquare className="w-8 h-8 mx-auto text-gray-300" />} />
+        <EmptySection message="No messages yet. Start a conversation to collaborate with your team." icon={<MessageSquare className="w-8 h-8 mx-auto text-gray-300" aria-hidden="true" />} />
       ) : (
         <div className="space-y-3">
           {recentMessages.map((message) => (
@@ -309,11 +309,11 @@ export const RecentAssetsSection: React.FC<{
 }> = ({ projectId, assetsLoading, projectAssets }) => (
   <Card>
     <CardHeader className="pb-3">
-      <SectionHeader title="Recent Assets" icon={<FileText className="w-5 h-5" />} action={{ label: 'View All', href: `/assets?projectId=${projectId}` }} />
+      <SectionHeader title="Recent Assets" icon={<FileText className="w-5 h-5" aria-hidden="true" />} action={{ label: 'View All', href: `/assets?projectId=${projectId}` }} />
     </CardHeader>
     <CardContent>
       {assetsLoading ? <SectionSkeleton /> : projectAssets.length === 0 ? (
-        <EmptySection message="No assets uploaded yet. Add files, images, or documents to your project." icon={<FileText className="w-8 h-8 mx-auto text-gray-300" />} />
+        <EmptySection message="No assets uploaded yet. Add files, images, or documents to your project." icon={<FileText className="w-8 h-8 mx-auto text-gray-300" aria-hidden="true" />} />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {projectAssets.map((asset) => (
@@ -322,7 +322,7 @@ export const RecentAssetsSection: React.FC<{
             ) : (
               <div key={asset.id} className="p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors cursor-pointer">
                 <div className="w-full aspect-square bg-gray-100 rounded-md mb-2 flex items-center justify-center">
-                  {asset.thumbnailUrl ? <img src={asset.thumbnailUrl} alt={asset.name} className="w-full h-full object-cover rounded-md" /> : <FileText className="w-8 h-8 text-gray-400" />}
+                  {asset.thumbnailUrl ? <img src={asset.thumbnailUrl} alt={asset.name} className="w-full h-full object-cover rounded-md" /> : <FileText className="w-8 h-8 text-gray-400" aria-hidden="true" />}
                 </div>
                 <p className="text-sm font-medium text-gray-900 truncate">{asset.name}</p>
                 <p className="text-xs text-gray-400">{formatRelativeTime(asset.createdAt)}</p>
@@ -349,7 +349,7 @@ export const SidebarSections: React.FC<{
   <div className="space-y-6">
     {/* Recent Activity */}
     <Card>
-      <CardHeader className="pb-3"><SectionHeader title="Recent Activity" icon={<Clock className="w-5 h-5" />} /></CardHeader>
+      <CardHeader className="pb-3"><SectionHeader title="Recent Activity" icon={<Clock className="w-5 h-5" aria-hidden="true" />} /></CardHeader>
       <CardContent>
         {recentActivity.length === 0 ? (
           <EmptySection message="Activity will appear here as your team works on the project." />
@@ -371,10 +371,10 @@ export const SidebarSections: React.FC<{
 
     {/* MetMap Sessions */}
     <Card>
-      <CardHeader className="pb-3"><SectionHeader title="MetMap Sessions" icon={<Music className="w-5 h-5" />} action={{ label: 'Open MetMap', href: `/tools/metmap?projectId=${projectId}` }} /></CardHeader>
+      <CardHeader className="pb-3"><SectionHeader title="MetMap Sessions" icon={<Music className="w-5 h-5" aria-hidden="true" />} action={{ label: 'Open MetMap', href: `/tools/metmap?projectId=${projectId}` }} /></CardHeader>
       <CardContent>
         {songsLoading ? <SectionSkeleton /> : songs.length === 0 ? (
-          <EmptySection message="No MetMap sessions yet. Create timelines for your musical projects." icon={<Music className="w-8 h-8 mx-auto text-gray-300" />} />
+          <EmptySection message="No MetMap sessions yet. Create timelines for your musical projects." icon={<Music className="w-8 h-8 mx-auto text-gray-300" aria-hidden="true" />} />
         ) : (
           <div className="space-y-2">
             {songs.slice(0, 3).map((song) => (
@@ -395,17 +395,17 @@ export const SidebarSections: React.FC<{
       <CardHeader className="pb-3"><CardTitle className="text-base">Quick Links</CardTitle></CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <Link to={`/messages?projectId=${projectId}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-gray-900"><MessageSquare className="w-4 h-4 text-gray-400" />Messages</Link>
-          <Link to={`/assets?projectId=${projectId}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-gray-900"><FileText className="w-4 h-4 text-gray-400" />Assets</Link>
-          <Link to={`/tools/metmap?projectId=${projectId}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-gray-900"><Music className="w-4 h-4 text-gray-400" />MetMap</Link>
-          <Link to={`/notifications?projectId=${projectId}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-gray-900"><Clock className="w-4 h-4 text-gray-400" />Notifications</Link>
+          <Link to={`/messages?projectId=${projectId}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-gray-900"><MessageSquare className="w-4 h-4 text-gray-400" aria-hidden="true" />Messages</Link>
+          <Link to={`/assets?projectId=${projectId}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-gray-900"><FileText className="w-4 h-4 text-gray-400" aria-hidden="true" />Assets</Link>
+          <Link to={`/tools/metmap?projectId=${projectId}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-gray-900"><Music className="w-4 h-4 text-gray-400" aria-hidden="true" />MetMap</Link>
+          <Link to={`/notifications?projectId=${projectId}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-gray-900"><Clock className="w-4 h-4 text-gray-400" aria-hidden="true" />Notifications</Link>
         </div>
       </CardContent>
     </Card>
 
     {/* Team */}
     <Card>
-      <CardHeader className="pb-3"><SectionHeader title="Team" icon={<Users className="w-5 h-5" />} /></CardHeader>
+      <CardHeader className="pb-3"><SectionHeader title="Team" icon={<Users className="w-5 h-5" aria-hidden="true" />} /></CardHeader>
       <CardContent>
         {project?.members && project.members.length > 0 ? (
           <div className="flex items-center -space-x-2">
