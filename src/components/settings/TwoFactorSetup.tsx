@@ -95,7 +95,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="w-5 h-5 text-purple-500" />
+          <ShieldCheck className="w-5 h-5 text-purple-500" aria-hidden="true" />
           <div>
             <p className="font-medium text-neutral-900 dark:text-neutral-100">Two-Factor Authentication</p>
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -107,6 +107,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
           <button
             onClick={() => is2FAEnabled ? setStep('disable') : handleSetup()}
             disabled={loading}
+            aria-label={is2FAEnabled ? 'Disable two-factor authentication' : 'Enable two-factor authentication'}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               is2FAEnabled
                 ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800'
@@ -119,7 +120,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
+        <div role="alert" className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
           {error}
         </div>
       )}
@@ -140,6 +141,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\s/g, ''))}
               placeholder="Enter 6-digit code"
+              aria-label="Enter 6-digit verification code"
               className="flex-1 px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 rounded-lg text-center font-mono text-lg tracking-widest"
               maxLength={6}
               inputMode="numeric"
@@ -148,12 +150,13 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
             <button
               onClick={handleVerify}
               disabled={loading || code.length < 6}
+              aria-label="Verify authentication code"
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
             </button>
           </div>
-          <button onClick={() => { setStep('idle'); setCode(''); }} className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300">
+          <button onClick={() => { setStep('idle'); setCode(''); }} aria-label="Cancel setup" className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300">
             Cancel
           </button>
         </div>
@@ -163,7 +166,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
       {step === 'disable' && (
         <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 space-y-3">
           <div className="flex items-center gap-2">
-            <ShieldOff className="w-4 h-4 text-red-500" />
+            <ShieldOff className="w-4 h-4 text-red-500" aria-hidden="true" />
             <p className="text-sm font-medium text-red-700 dark:text-red-400">Disable Two-Factor Authentication</p>
           </div>
           <p className="text-sm text-red-600 dark:text-red-400">Enter your current 2FA code to confirm.</p>
@@ -173,6 +176,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\s/g, ''))}
               placeholder="Enter 6-digit code"
+              aria-label="Enter current 2FA code to disable"
               className="flex-1 px-3 py-2 border border-red-300 dark:border-red-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg text-center font-mono text-lg tracking-widest"
               maxLength={6}
               inputMode="numeric"
@@ -181,12 +185,13 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
             <button
               onClick={handleDisable}
               disabled={loading || code.length < 6}
+              aria-label="Confirm disable two-factor authentication"
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm'}
             </button>
           </div>
-          <button onClick={() => { setStep('idle'); setCode(''); }} className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300">
+          <button onClick={() => { setStep('idle'); setCode(''); }} aria-label="Cancel disabling 2FA" className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300">
             Cancel
           </button>
         </div>

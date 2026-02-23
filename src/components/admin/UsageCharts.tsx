@@ -47,7 +47,7 @@ function SimpleBarChart({ data, height = 200 }: { data: ChartData; height?: numb
   const maxValue = Math.max(...data.values);
 
   return (
-    <div className="flex items-end gap-2" style={{ height }}>
+    <div className="flex items-end gap-2" style={{ height }} role="img" aria-label={`Bar chart showing ${data.labels.join(', ')}`}>
       {data.values.map((value, index) => {
         const barHeight = maxValue > 0 ? (value / maxValue) * 100 : 0;
         return (
@@ -56,6 +56,7 @@ function SimpleBarChart({ data, height = 200 }: { data: ChartData; height?: numb
               className="w-full bg-blue-500 dark:bg-blue-600 rounded-t transition-all duration-300 hover:bg-blue-600 dark:hover:bg-blue-500"
               style={{ height: `${barHeight}%`, minHeight: value > 0 ? 4 : 0 }}
               title={`${data.labels[index]}: ${value}`}
+              aria-label={`${data.labels[index]}: ${value}`}
             />
             <span className="text-xs text-gray-500 dark:text-gray-400 truncate w-full text-center">
               {data.labels[index]}
@@ -158,7 +159,7 @@ export function UsageCharts({ onExport }: UsageChartsProps) {
             className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-500 dark:text-gray-400">{metric.icon}</span>
+              <span className="text-gray-500 dark:text-gray-400" aria-hidden="true">{metric.icon}</span>
               {metric.change !== undefined && (
                 <span
                   className={`flex items-center gap-1 text-sm font-medium ${
@@ -168,9 +169,9 @@ export function UsageCharts({ onExport }: UsageChartsProps) {
                   }`}
                 >
                   {metric.change >= 0 ? (
-                    <TrendingUp className="w-4 h-4" />
+                    <TrendingUp className="w-4 h-4" aria-hidden="true" />
                   ) : (
-                    <TrendingDown className="w-4 h-4" />
+                    <TrendingDown className="w-4 h-4" aria-hidden="true" />
                   )}
                   {Math.abs(metric.change)}%
                 </span>
@@ -188,7 +189,7 @@ export function UsageCharts({ onExport }: UsageChartsProps) {
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-gray-500" />
+            <BarChart3 className="w-5 h-5 text-gray-500" aria-hidden="true" />
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">
               {t('analytics.usage', 'Usage Statistics')}
             </h3>
@@ -213,8 +214,8 @@ export function UsageCharts({ onExport }: UsageChartsProps) {
 
             {/* Export Dropdown */}
             <div className="relative group">
-              <button className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                <Download className="w-4 h-4" />
+              <button aria-label="Export data" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                <Download className="w-4 h-4" aria-hidden="true" />
                 {t('analytics.export.title', 'Export')}
               </button>
               <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
@@ -252,7 +253,7 @@ export function UsageCharts({ onExport }: UsageChartsProps) {
         {/* Average Session Duration */}
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-5 h-5 text-gray-500" />
+            <Clock className="w-5 h-5 text-gray-500" aria-hidden="true" />
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">
               {t('analytics.metrics.avgSessionDuration', 'Average Session Duration')}
             </h3>
@@ -261,7 +262,7 @@ export function UsageCharts({ onExport }: UsageChartsProps) {
             8m 42s
           </div>
           <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-            <TrendingUp className="w-4 h-4" />
+            <TrendingUp className="w-4 h-4" aria-hidden="true" />
             +12% {t('analytics.dateRange.month', 'vs last month')}
           </div>
         </div>
@@ -269,7 +270,7 @@ export function UsageCharts({ onExport }: UsageChartsProps) {
         {/* Bounce Rate */}
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <TrendingDown className="w-5 h-5 text-gray-500" />
+            <TrendingDown className="w-5 h-5 text-gray-500" aria-hidden="true" />
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">
               {t('analytics.metrics.bounceRate', 'Bounce Rate')}
             </h3>
@@ -278,7 +279,7 @@ export function UsageCharts({ onExport }: UsageChartsProps) {
             32.4%
           </div>
           <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-            <TrendingDown className="w-4 h-4" />
+            <TrendingDown className="w-4 h-4" aria-hidden="true" />
             -5.2% {t('analytics.dateRange.month', 'vs last month')}
           </div>
         </div>

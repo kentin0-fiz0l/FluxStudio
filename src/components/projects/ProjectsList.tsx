@@ -53,9 +53,26 @@ export function ProjectsList({
 }: ProjectsListProps) {
   if (loading) {
     return (
-      <div className="text-center py-12" role="status" aria-live="polite">
-        <div className="inline-block w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mb-4" aria-hidden="true"></div>
-        <p className="text-neutral-600">Loading projects...</p>
+      <div role="status" aria-label="Loading projects" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5 animate-pulse">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-neutral-200 dark:bg-neutral-700" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-3/4 bg-neutral-200 dark:bg-neutral-700 rounded" />
+                <div className="h-3 w-20 bg-neutral-200 dark:bg-neutral-700 rounded-full" />
+              </div>
+            </div>
+            <div className="h-3 w-full bg-neutral-200 dark:bg-neutral-700 rounded mb-2" />
+            <div className="h-3 w-2/3 bg-neutral-200 dark:bg-neutral-700 rounded mb-4" />
+            <div className="h-2 w-full bg-neutral-200 dark:bg-neutral-700 rounded-full mb-3" />
+            <div className="flex gap-2">
+              {[1, 2, 3].map((j) => (
+                <div key={j} className="w-7 h-7 rounded-full bg-neutral-200 dark:bg-neutral-700" />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -63,7 +80,7 @@ export function ProjectsList({
   if (error) {
     return (
       <div className="text-center py-12" role="alert" aria-live="assertive">
-        <p className="text-error-600">Error loading projects: {error}</p>
+        <p className="text-error-600 dark:text-error-400">Error loading projects: {error}</p>
       </div>
     );
   }
@@ -73,8 +90,8 @@ export function ProjectsList({
       return (
         <div className="text-center py-12">
           <Target className="w-16 h-16 text-neutral-300 mx-auto mb-4" aria-hidden="true" />
-          <h3 className="text-xl font-semibold text-neutral-900 mb-2">No Projects Found</h3>
-          <p className="text-neutral-600 mb-6">Try adjusting your search or filters</p>
+          <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">No Projects Found</h3>
+          <p className="text-neutral-600 dark:text-neutral-400 mb-6">Try adjusting your search or filters</p>
         </div>
       );
     }
@@ -113,7 +130,7 @@ export function ProjectsList({
               checked={selectedProjects.has(project.id)}
               onChange={(e) => onSelectProject(project.id, e.target.checked)}
               onClick={(e) => e.stopPropagation()}
-              className="w-5 h-5 rounded border-neutral-300 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 cursor-pointer"
+              className="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-primary-600 focus:ring-primary-500 focus:ring-offset-0 cursor-pointer"
               aria-label={`Select ${project.name}`}
             />
           </div>

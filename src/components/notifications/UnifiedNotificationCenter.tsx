@@ -70,22 +70,22 @@ const getNotificationIcon = (type: NotificationType) => {
 const getTypeColor = (type: NotificationType) => {
   switch (type) {
     case 'mention':
-      return 'text-purple-600 bg-purple-100';
+      return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30';
     case 'reply':
-      return 'text-blue-600 bg-blue-100';
+      return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30';
     case 'thread_reply':
-      return 'text-indigo-600 bg-indigo-100';
+      return 'text-indigo-600 bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-900/30';
     case 'file_shared':
-      return 'text-green-600 bg-green-100';
+      return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30';
     case 'collaboration_invite':
     case 'team_invite':
-      return 'text-teal-600 bg-teal-100';
+      return 'text-teal-600 bg-teal-100 dark:text-teal-400 dark:bg-teal-900/30';
     case 'warning':
-      return 'text-orange-600 bg-orange-100';
+      return 'text-orange-600 bg-orange-100 dark:text-orange-400 dark:bg-orange-900/30';
     case 'error':
-      return 'text-red-600 bg-red-100';
+      return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30';
     default:
-      return 'text-gray-600 bg-gray-100';
+      return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800';
   }
 };
 
@@ -307,7 +307,7 @@ export function UnifiedNotificationCenter() {
                         size="sm"
                         onClick={handleMarkAllRead}
                         disabled={unreadCount === 0}
-                        title="Mark all as read"
+                        aria-label="Mark all as read"
                         className="h-8 w-8 p-0"
                       >
                         <CheckCheck className="h-4 w-4" />
@@ -316,6 +316,7 @@ export function UnifiedNotificationCenter() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsOpen(false)}
+                        aria-label="Close notifications"
                         className="h-8 w-8 p-0"
                       >
                         <X className="h-4 w-4" />
@@ -367,14 +368,24 @@ export function UnifiedNotificationCenter() {
                 {/* Notifications List */}
                 <ScrollArea className="flex-1 max-h-[400px]">
                   {loading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto" />
-                      <p className="text-gray-500 mt-2 text-sm">Loading...</p>
+                    <div className="p-2" role="status" aria-label="Loading notifications">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="p-3 rounded-lg mb-2 animate-pulse">
+                          <div className="flex gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+                            <div className="flex-1 min-w-0 space-y-2">
+                              <div className="h-3.5 w-3/4 bg-gray-200 dark:bg-gray-700 rounded" />
+                              <div className="h-3 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                              <div className="h-2.5 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : filteredNotifications.length === 0 ? (
                     <div className="text-center py-8">
-                      <BellOff className="mx-auto text-gray-400 mb-2 h-8 w-8" />
-                      <p className="text-gray-500 text-sm">
+                      <BellOff className="mx-auto text-gray-400 dark:text-gray-600 mb-2 h-8 w-8" aria-hidden="true" />
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">
                         {filter === 'unread' ? 'No unread notifications' :
                          filter === 'mentions' ? 'No mentions' :
                          'No notifications yet'}
@@ -536,7 +547,7 @@ export function UnifiedNotificationCenter() {
                         size="sm"
                         className="text-xs text-gray-500 hover:text-red-600 gap-1"
                         onClick={handleClearRead}
-                        title={`Clear ${readCount} read notification${readCount > 1 ? 's' : ''}`}
+                        aria-label={`Clear ${readCount} read notification${readCount > 1 ? 's' : ''}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         Clear read

@@ -15,7 +15,6 @@ import {
   Lightbulb,
   Folder,
   CheckCircle2,
-  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -154,7 +153,7 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
               <Card className="shadow-2xl border-0">
                 <CardHeader className="text-center pb-2">
                   <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center mb-4">
-                    <Sparkles className="w-8 h-8 text-white" />
+                    <Sparkles className="w-8 h-8 text-white" aria-hidden="true" />
                   </div>
                   <CardTitle className="text-2xl">
                     Welcome{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
@@ -175,7 +174,7 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
                       id="project-name"
                       value={projectName}
                       onChange={(e) => setProjectName(e.target.value)}
-                      onKeyPress={handleKeyPress}
+                      onKeyDown={handleKeyPress}
                       placeholder="e.g., Summer Show 2025"
                       className="text-lg h-12"
                       autoFocus
@@ -227,6 +226,8 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
                       <button
                         key={template.id}
                         onClick={() => setSelectedTemplate(template.id)}
+                        aria-label={`Select ${template.name} template`}
+                        aria-pressed={selectedTemplate === template.id}
                         className={cn(
                           'p-4 rounded-xl border-2 text-left transition-all',
                           selectedTemplate === template.id
@@ -283,13 +284,10 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
             >
               <Card className="shadow-2xl border-0">
                 <CardContent className="py-16 text-center">
-                  <Loader2 className="w-12 h-12 text-primary-600 animate-spin mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-neutral-900 dark:text-white">
-                    Creating your project...
-                  </h3>
-                  <p className="text-neutral-500 dark:text-neutral-400 mt-2">
-                    Setting up "{projectName}"
-                  </p>
+                  <div className="w-16 h-16 rounded-2xl bg-neutral-200 dark:bg-neutral-700 animate-pulse mx-auto mb-4" />
+                  <div className="h-6 w-48 bg-neutral-200 dark:bg-neutral-700 animate-pulse rounded mx-auto mb-3" />
+                  <div className="h-4 w-36 bg-neutral-200 dark:bg-neutral-700 animate-pulse rounded mx-auto" />
+                  <p className="sr-only" role="status">Creating your project, please wait...</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -309,7 +307,7 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 200, damping: 15 }}
                   >
-                    <CheckCircle2 className="w-16 h-16 text-success-500 mx-auto mb-4" />
+                    <CheckCircle2 className="w-16 h-16 text-success-500 mx-auto mb-4" aria-hidden="true" />
                   </motion.div>
                   <h3 className="text-xl font-semibold text-neutral-900 dark:text-white">
                     Project created!
