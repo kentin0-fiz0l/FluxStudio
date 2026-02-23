@@ -166,7 +166,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {
         aria-label="Bold"
         aria-pressed={editor.isActive('bold')}
       >
-        <Bold className="h-4 w-4" />
+        <Bold className="h-4 w-4" aria-hidden="true" />
       </Button>
 
       <Button
@@ -181,7 +181,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {
         aria-label="Italic"
         aria-pressed={editor.isActive('italic')}
       >
-        <Italic className="h-4 w-4" />
+        <Italic className="h-4 w-4" aria-hidden="true" />
       </Button>
 
       <div className="w-px h-6 bg-neutral-300 mx-1" aria-hidden="true" />
@@ -198,7 +198,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {
         aria-label="Bullet list"
         aria-pressed={editor.isActive('bulletList')}
       >
-        <List className="h-4 w-4" />
+        <List className="h-4 w-4" aria-hidden="true" />
       </Button>
 
       <Button
@@ -213,7 +213,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {
         aria-label="Numbered list"
         aria-pressed={editor.isActive('orderedList')}
       >
-        <ListOrdered className="h-4 w-4" />
+        <ListOrdered className="h-4 w-4" aria-hidden="true" />
       </Button>
 
       <div className="w-px h-6 bg-neutral-300 mx-1" aria-hidden="true" />
@@ -235,7 +235,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {
         aria-label="Insert link"
         aria-pressed={editor.isActive('link')}
       >
-        <LinkIcon className="h-4 w-4" />
+        <LinkIcon className="h-4 w-4" aria-hidden="true" />
       </Button>
     </div>
   );
@@ -691,7 +691,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                   onClick={() => setShowDeleteDialog(true)}
                   disabled={isSaving || isDeleting}
                   className="sm:mr-auto"
-                  icon={<Trash2 className="h-4 w-4" />}
+                  icon={<Trash2 className="h-4 w-4" aria-hidden="true" />}
                 >
                   Delete
                 </Button>
@@ -706,7 +706,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                     variant={status === 'completed' ? 'secondary' : 'success'}
                     onClick={handleToggleComplete}
                     disabled={isSaving || isDeleting}
-                    icon={<Check className="h-4 w-4" />}
+                    icon={<Check className="h-4 w-4" aria-hidden="true" />}
                   >
                     {status === 'completed' ? 'Reopen' : 'Complete'}
                   </Button>
@@ -728,7 +728,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                   variant="primary"
                   loading={isSaving}
                   disabled={isDeleting}
-                  icon={!isSaving ? <Save className="h-4 w-4" /> : undefined}
+                  icon={!isSaving ? <Save className="h-4 w-4" aria-hidden="true" /> : undefined}
                 >
                   {task ? 'Save Changes' : 'Create Task'}
                 </Button>
@@ -759,7 +759,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             >
               {isDeleting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" aria-hidden="true" />
                   Deleting...
                 </>
               ) : (

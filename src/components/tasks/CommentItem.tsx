@@ -73,7 +73,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 className="text-xs text-neutral-600 hover:text-primary-600 flex items-center gap-1"
                 aria-label="Edit comment"
               >
-                <Edit2 className="h-3 w-3" />
+                <Edit2 className="h-3 w-3" aria-hidden="true" />
                 Edit
               </button>
               <button
@@ -81,7 +81,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 className="text-xs text-neutral-600 hover:text-error-600 flex items-center gap-1"
                 aria-label="Delete comment"
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="h-3 w-3" aria-hidden="true" />
                 Delete
               </button>
             </div>

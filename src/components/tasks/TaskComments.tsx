@@ -240,7 +240,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
                 className="text-xs text-neutral-600 hover:text-primary-600 flex items-center gap-1"
                 aria-label="Edit comment"
               >
-                <Edit2 className="h-3 w-3" />
+                <Edit2 className="h-3 w-3" aria-hidden="true" />
                 Edit
               </button>
               <button
@@ -248,7 +248,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
                 className="text-xs text-neutral-600 hover:text-error-600 flex items-center gap-1"
                 aria-label="Delete comment"
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="h-3 w-3" aria-hidden="true" />
                 Delete
               </button>
             </div>
@@ -634,7 +634,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
-          <MessageCircle className="h-5 w-5 text-neutral-600" />
+          <MessageCircle className="h-5 w-5 text-neutral-600" aria-hidden="true" />
           Comments {comments.length > 0 && `(${comments.length})`}
         </h3>
       </div>
@@ -643,7 +643,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
       <div className="space-y-4">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-neutral-400" aria-hidden="true" />
           </div>
         ) : error ? (
           <div className="text-center py-8">
@@ -651,7 +651,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
           </div>
         ) : comments.length === 0 ? (
           <div className="text-center py-8 bg-neutral-50 rounded-lg border border-neutral-200">
-            <MessageCircle className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
+            <MessageCircle className="h-12 w-12 text-neutral-300 mx-auto mb-3" aria-hidden="true" />
             <p className="text-neutral-600 font-medium mb-1">No comments yet</p>
             <p className="text-neutral-500 text-sm">Start the conversation!</p>
           </div>
@@ -784,9 +784,9 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
             size="sm"
             icon={
               createCommentMutation.isPending || updateCommentMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="h-4 w-4" aria-hidden="true" />
               )
             }
           >

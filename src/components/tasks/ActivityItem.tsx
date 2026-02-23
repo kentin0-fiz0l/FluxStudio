@@ -194,7 +194,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({ activity, compact = 
               colorClass
             )}
           >
-            <ActivityTypeIcon type={activity.type} className="h-3.5 w-3.5" />
+            <ActivityTypeIcon type={activity.type} className="h-3.5 w-3.5" aria-hidden="true" />
           </div>
 
           {/* Description */}
@@ -205,7 +205,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({ activity, compact = 
 
         {/* Timestamp */}
         <div className="flex items-center gap-1 mt-1 ml-8">
-          <Clock className="h-3 w-3 text-neutral-400" />
+          <Clock className="h-3 w-3 text-neutral-400" aria-hidden="true" />
           <span
             className="text-xs text-neutral-500 cursor-help"
             onMouseEnter={() => setShowFullTimestamp(true)}

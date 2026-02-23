@@ -95,6 +95,7 @@ export function EmptyState({
               'text-neutral-400 dark:text-neutral-500',
               classes.icon
             )}
+            aria-hidden="true"
           />
         </div>
       )}
@@ -142,12 +143,13 @@ export function EmptyState({
             type="button"
             onClick={() => setIsLearnMoreOpen(!isLearnMoreOpen)}
             className="flex items-center justify-center gap-1 w-full text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
+            aria-expanded={isLearnMoreOpen}
           >
             <span>Learn more</span>
             {isLearnMoreOpen ? (
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-4 w-4" aria-hidden="true" />
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
             )}
           </button>
 
