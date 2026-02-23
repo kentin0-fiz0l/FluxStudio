@@ -226,7 +226,7 @@ export const TaskManagementPage: React.FC = () => {
                 variant="outline"
                 size="md"
                 onClick={handleExport}
-                icon={<Download className="w-5 h-5" />}
+                icon={<Download className="w-5 h-5" aria-hidden="true" />}
                 disabled={filteredTasks.length === 0}
               >
                 Export
@@ -235,7 +235,7 @@ export const TaskManagementPage: React.FC = () => {
               <Button
                 variant="ghost"
                 size="md"
-                icon={<Settings className="w-5 h-5" />}
+                icon={<Settings className="w-5 h-5" aria-hidden="true" />}
               >
                 Settings
               </Button>
@@ -244,7 +244,7 @@ export const TaskManagementPage: React.FC = () => {
                 variant="primary"
                 size="md"
                 onClick={handleTaskCreate}
-                icon={<Plus className="w-5 h-5" />}
+                icon={<Plus className="w-5 h-5" aria-hidden="true" />}
               >
                 New Task
               </Button>
