@@ -116,7 +116,7 @@ export function MobileBottomNav({ onOpenSearch, className }: MobileBottomNavProp
       {/* Bottom Navigation Bar */}
       <nav
         className={cn(
-          'fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 z-50 lg:hidden safe-area-inset-bottom',
+          'fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 z-50 md:hidden safe-area-inset-bottom',
           className
         )}
         aria-label="Main navigation"
@@ -159,7 +159,7 @@ export function MobileBottomNav({ onOpenSearch, className }: MobileBottomNavProp
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-50 lg:hidden"
+              className="fixed inset-0 bg-black/50 z-50 md:hidden"
               onClick={() => setIsMenuOpen(false)}
               aria-hidden="true"
             />
@@ -170,7 +170,7 @@ export function MobileBottomNav({ onOpenSearch, className }: MobileBottomNavProp
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 rounded-t-2xl z-50 lg:hidden max-h-[80vh] overflow-auto"
+              className="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 rounded-t-2xl z-50 md:hidden max-h-[80vh] overflow-auto"
               role="dialog"
               aria-modal="true"
               aria-label="Navigation menu"
@@ -259,7 +259,7 @@ export function MobileBottomNav({ onOpenSearch, className }: MobileBottomNavProp
       </AnimatePresence>
 
       {/* Spacer for bottom nav */}
-      <div className="h-16 lg:hidden" />
+      <div className="h-16 md:hidden" />
     </>
   );
 }

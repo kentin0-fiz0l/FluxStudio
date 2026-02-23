@@ -94,6 +94,11 @@ export interface TopBarProps {
   onMobileMenuToggle?: () => void;
 
   /**
+   * Breakpoint at which the mobile menu toggle is hidden (default: 'lg')
+   */
+  mobileMenuBreakpoint?: 'md' | 'lg';
+
+  /**
    * Custom className
    */
   className?: string;
@@ -121,6 +126,7 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
       showMobileMenu = false,
       mobileMenuOpen = false,
       onMobileMenuToggle,
+      mobileMenuBreakpoint = 'lg',
       className,
       user,
     },
@@ -219,7 +225,7 @@ export const TopBar = React.forwardRef<HTMLDivElement, TopBarProps>(
                 variant="ghost"
                 size="icon"
                 onClick={onMobileMenuToggle}
-                className="lg:hidden"
+                className={mobileMenuBreakpoint === 'md' ? 'md:hidden' : 'lg:hidden'}
                 aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               >
                 {mobileMenuOpen ? (

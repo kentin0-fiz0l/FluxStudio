@@ -321,7 +321,14 @@ function ChatMessageBubbleComponent({
           {/* Footer: time, edited, status */}
           <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : ''}`}>
             {message.isEdited && (
-              <span className={`text-[10px] ${isOwn ? 'text-white/70' : 'text-neutral-500 dark:text-neutral-400'}`}>
+              <span
+                className={`text-[10px] cursor-help ${isOwn ? 'text-white/70' : 'text-neutral-500 dark:text-neutral-400'}`}
+                title={
+                  message.editHistory && message.editHistory.length > 0
+                    ? `Original: "${message.editHistory[0].content.slice(0, 100)}${message.editHistory[0].content.length > 100 ? '...' : ''}"${message.editHistory.length > 1 ? ` (+${message.editHistory.length - 1} more edits)` : ''}`
+                    : 'This message was edited'
+                }
+              >
                 edited
               </span>
             )}

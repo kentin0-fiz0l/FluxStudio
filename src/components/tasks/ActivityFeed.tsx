@@ -83,7 +83,8 @@ export type ActivityType =
   | 'formation.created'
   | 'formation.updated'
   | 'project.updated'
-  | 'project.archived';
+  | 'project.archived'
+  | 'message.sent';
 
 export interface Activity {
   id: string;
@@ -138,6 +139,7 @@ const ACTIVITY_ICON_MAP: Record<ActivityType, React.ElementType> = {
   'formation.updated': LayoutGrid,
   'project.updated': Settings,
   'project.archived': Archive,
+  'message.sent': MessageSquare,
 };
 
 // Color map defined at module level to avoid recreation during render
@@ -158,6 +160,7 @@ const ACTIVITY_COLOR_MAP: Record<ActivityType, string> = {
   'formation.updated': 'text-indigo-600 bg-indigo-100',
   'project.updated': 'text-gray-600 bg-gray-100',
   'project.archived': 'text-amber-600 bg-amber-100',
+  'message.sent': 'text-cyan-600 bg-cyan-100',
 };
 
 const getActivityColor = (type: ActivityType): string => {
@@ -294,6 +297,21 @@ const ActivityDescription: React.FC<ActivityDescriptionProps> = ({ activity }) =
           <strong className="font-semibold text-neutral-900">{userName}</strong> completed milestone{' '}
           <span className="font-medium text-success-600">"{entityTitle}"</span>
         </span>
+      );
+
+    case 'message.sent':
+      return (
+        <div className="text-sm">
+          <span className="text-neutral-700">
+            <strong className="font-semibold text-neutral-900">{userName}</strong> sent a message
+            {entityTitle && <> in <span className="font-medium">"{entityTitle}"</span></>}
+          </span>
+          {metadata?.preview && (
+            <p className="text-xs text-neutral-600 mt-1 italic pl-4 border-l-2 border-neutral-200">
+              "{metadata.preview}"
+            </p>
+          )}
+        </div>
       );
 
     default:
@@ -710,6 +728,8 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                       <SelectItem value="member.added">Member Added</SelectItem>
                       <SelectItem value="milestone.created">Milestone Created</SelectItem>
                       <SelectItem value="milestone.completed">Milestone Completed</SelectItem>
+                      <SelectItem value="file.uploaded">File Uploaded</SelectItem>
+                      <SelectItem value="message.sent">Message Sent</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

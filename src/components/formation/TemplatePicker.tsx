@@ -59,15 +59,28 @@ export function TemplatePicker({
   const [selectedTemplate, setSelectedTemplate] = React.useState<DrillTemplate | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
+  const [selectedTags, setSelectedTags] = React.useState<Set<string>>(new Set());
+  const [performerRange, setPerformerRange] = React.useState<{ min: number; max: number }>({
+    min: 0,
+    max: 100,
+  });
+
   // Preview options
   const [previewScale, setPreviewScale] = React.useState(1);
   const [previewRotation, setPreviewRotation] = React.useState(0);
   const [isPreviewAnimating, setIsPreviewAnimating] = React.useState(true);
 
+  // Collect all available tags from the full template list
+  const allTags = React.useMemo(() => {
+    const tags = new Set<string>();
+    templateRegistry.getAllTemplates().forEach((t) => t.tags?.forEach((tag) => tags.add(tag)));
+    return Array.from(tags).sort();
+  }, []);
+
   // Load templates
   React.useEffect(() => {
     loadTemplates();
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, selectedTags, performerRange]);
 
   const loadTemplates = () => {
     setIsLoading(true);
@@ -90,12 +103,36 @@ export function TemplatePicker({
         );
       }
 
+      // Filter by performer range
+      if (performerRange.min > 0 || performerRange.max < 100) {
+        result = result.filter(t =>
+          t.parameters.minPerformers >= performerRange.min &&
+          (!t.parameters.maxPerformers || t.parameters.maxPerformers <= performerRange.max)
+        );
+      }
+
+      // Filter by selected tags
+      if (selectedTags.size > 0) {
+        result = result.filter(t =>
+          t.tags?.some((tag) => selectedTags.has(tag))
+        );
+      }
+
       setTemplates(result);
     } catch (error) {
       console.error('Failed to load templates:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      return next;
+    });
   };
 
   const handleSelectTemplate = (template: DrillTemplate) => {
@@ -240,10 +277,49 @@ export function TemplatePicker({
                   ))}
                 </div>
 
-                {/* Performer count info */}
-                <div className="flex items-center gap-2 mb-4 text-sm text-gray-500 dark:text-gray-400">
-                  <Users className="w-4 h-4" />
-                  <span>Showing templates for {performerCount} performers</span>
+                {/* Tag filters */}
+                {allTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {allTags.map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => toggleTag(tag)}
+                        className={cn(
+                          'px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
+                          selectedTags.has(tag)
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        )}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Performer count range */}
+                <div className="flex items-center gap-3 mb-4">
+                  <Users className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Performers:</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={performerRange.max}
+                    value={performerRange.min}
+                    onChange={(e) => setPerformerRange((prev) => ({ ...prev, min: Math.max(0, parseInt(e.target.value) || 0) }))}
+                    className="w-16 px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-center"
+                    aria-label="Minimum performers"
+                  />
+                  <span className="text-gray-400">—</span>
+                  <input
+                    type="number"
+                    min={performerRange.min}
+                    max={100}
+                    value={performerRange.max}
+                    onChange={(e) => setPerformerRange((prev) => ({ ...prev, max: Math.max(prev.min, parseInt(e.target.value) || 100) }))}
+                    className="w-16 px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-center"
+                    aria-label="Maximum performers"
+                  />
                 </div>
 
                 {/* Templates Grid */}

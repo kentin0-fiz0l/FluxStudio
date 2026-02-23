@@ -90,6 +90,7 @@ export interface Message {
   status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
   isEdited?: boolean;
   editedAt?: Date;
+  editHistory?: Array<{ content: string; editedAt: string }>;
   isDeleted?: boolean;
   isSystemMessage?: boolean;
   replyTo?: ReplyContext;

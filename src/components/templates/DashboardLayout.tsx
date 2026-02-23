@@ -23,6 +23,7 @@ import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
 import { KeyboardShortcutsDialog, useKeyboardShortcuts } from '@/components/ui/KeyboardShortcutsDialog';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { useSwipeBack } from '@/hooks/useSwipeBack';
+import { useSwipeSidebar } from '@/hooks/useSwipeSidebar';
 import { cn } from '@/lib/utils';
 
 export interface DashboardLayoutProps {
@@ -124,12 +125,17 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
     const [sidebarCollapsed, setSidebarCollapsed] = React.useState(initialCollapsed);
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
     const [aiPanelOpen, setAiPanelOpen] = React.useState(false);
+    const [isLgScreen, setIsLgScreen] = React.useState(window.innerWidth >= 1024);
 
     // Keyboard shortcuts dialog
     const { open: shortcutsOpen, setOpen: setShortcutsOpen } = useKeyboardShortcuts();
 
     // Swipe-from-edge to go back (mobile)
     useSwipeBack();
+
+    // Swipe from left edge to reveal sidebar (mobile, only when sidebar is closed)
+    const openSidebar = React.useCallback(() => setMobileMenuOpen(true), []);
+    useSwipeSidebar(openSidebar, !mobileMenuOpen);
 
     // Keyboard shortcut for AI Panel (Cmd+K / Ctrl+K)
     React.useEffect(() => {
@@ -149,10 +155,12 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
       return () => window.removeEventListener('keydown', handleKeyDown);
     }, [aiPanelOpen]);
 
-    // Close mobile menu when window is resized to desktop
+    // Track breakpoint changes and close mobile menu when resized past md
     React.useEffect(() => {
       const handleResize = () => {
-        if (window.innerWidth >= 1024 && mobileMenuOpen) {
+        const lg = window.innerWidth >= 1024;
+        setIsLgScreen(lg);
+        if (window.innerWidth >= 768 && mobileMenuOpen) {
           setMobileMenuOpen(false);
         }
       };
@@ -182,33 +190,33 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
           <div
-            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
         )}
 
-        {/* Desktop Sidebar */}
+        {/* Tablet Sidebar (collapsed icon-only at md, expanded at lg) */}
         <aside
-          className="hidden lg:flex flex-col h-full"
+          className="hidden md:flex flex-col h-full"
           role="navigation"
           aria-label="Main navigation"
         >
           <NavigationSidebar
             user={user}
             items={navigationItems}
-            collapsed={sidebarCollapsed}
+            collapsed={sidebarCollapsed || !isLgScreen}
             onCollapseToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
             onLogout={onLogout}
           />
         </aside>
 
-        {/* Mobile Sidebar (Drawer) */}
+        {/* Mobile Sidebar (Drawer) — only on small screens (below md, where collapsed sidebar isn't shown) */}
         <aside
           role="navigation"
           aria-label="Mobile navigation"
           className={cn(
-            'fixed inset-y-0 left-0 z-50 flex flex-col h-full transform transition-transform duration-300 ease-out lg:hidden',
+            'fixed inset-y-0 left-0 z-50 flex flex-col h-full transform transition-transform duration-300 ease-out md:hidden',
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           )}
         >
@@ -247,20 +255,21 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
             showMobileMenu
             mobileMenuOpen={mobileMenuOpen}
             onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+            mobileMenuBreakpoint="md"
             user={user}
           />
 
           {/* Offline / Sync Status Banner */}
           <OfflineIndicator />
 
-          {/* Page Content */}
+          {/* Page Content — pb-16 accounts for MobileBottomNav on small screens */}
           <main
             id="main-content"
             role="main"
             aria-label="Main content"
             tabIndex={-1}
             className={cn(
-              'flex-1 overflow-y-auto bg-neutral-50 dark:bg-neutral-900',
+              'flex-1 overflow-y-auto bg-neutral-50 dark:bg-neutral-900 pb-16 md:pb-0',
               contentClassName
             )}
           >

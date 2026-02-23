@@ -44,6 +44,8 @@ export interface Message {
   status?: 'sending' | 'sent' | 'failed';
   /** Temp ID used for optimistic messages before server confirmation */
   _tempId?: string;
+  /** History of previous content edits */
+  editHistory?: Array<{ content: string; editedAt: string }>;
 }
 
 export interface Conversation {
@@ -98,6 +100,7 @@ export interface MessagingActions {
   setMessages: (conversationId: string, messages: Message[]) => void;
   addMessage: (message: Message) => void;
   updateMessage: (messageId: string, updates: Partial<Message>) => void;
+  editMessageWithHistory: (messageId: string, newContent: string) => void;
   deleteMessage: (conversationId: string, messageId: string) => void;
 
   // Typing
@@ -248,6 +251,24 @@ export const createMessagingSlice: StateCreator<
           const index = messages.findIndex((m) => m.id === messageId);
           if (index !== -1) {
             messages[index] = { ...messages[index], ...updates };
+            break;
+          }
+        }
+      });
+    },
+
+    editMessageWithHistory: (messageId, newContent) => {
+      set((state) => {
+        for (const conversationId of Object.keys(state.messaging.messages)) {
+          const messages = state.messaging.messages[conversationId];
+          const msg = messages.find((m) => m.id === messageId);
+          if (msg) {
+            // Save current content to edit history
+            const history = msg.editHistory || [];
+            history.push({ content: msg.content, editedAt: new Date().toISOString() });
+            msg.editHistory = history;
+            msg.content = newContent;
+            msg.updatedAt = new Date().toISOString();
             break;
           }
         }
