@@ -127,17 +127,17 @@ export function FormationPresencePanel({
       >
         {isSyncing ? (
           <>
-            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
             <span className="text-xs">Syncing...</span>
           </>
         ) : isConnected ? (
           <>
-            <Wifi className="w-3 h-3" />
+            <Wifi className="w-3 h-3" aria-hidden="true" />
             <span className="text-xs">Live</span>
           </>
         ) : (
           <>
-            <WifiOff className="w-3 h-3" />
+            <WifiOff className="w-3 h-3" aria-hidden="true" />
             <span className="text-xs">Offline</span>
           </>
         )}
@@ -340,7 +340,7 @@ function CollaboratorList({ collaborators, currentUser }: CollaboratorListProps)
               <p className="text-sm font-medium truncate">{currentUser.name}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">You</p>
             </div>
-            <Edit3 className="w-3 h-3 text-green-500" />
+            <Edit3 className="w-3 h-3 text-green-500" aria-hidden="true" />
           </div>
         )}
 
@@ -381,11 +381,11 @@ function CollaboratorList({ collaborators, currentUser }: CollaboratorListProps)
                 </p>
               </div>
               {isDragging ? (
-                <Edit3 className="w-3 h-3 text-orange-500 animate-pulse" />
+                <Edit3 className="w-3 h-3 text-orange-500 animate-pulse" aria-hidden="true" />
               ) : isIdle ? (
-                <Eye className="w-3 h-3 text-gray-400" />
+                <Eye className="w-3 h-3 text-gray-400" aria-hidden="true" />
               ) : (
-                <Edit3 className="w-3 h-3 text-green-500" />
+                <Edit3 className="w-3 h-3 text-green-500" aria-hidden="true" />
               )}
             </div>
           );

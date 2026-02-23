@@ -217,6 +217,9 @@ export function PerformerMarker({
         ...(isAnimating && !isDragging ? { transition: 'left 80ms linear, top 80ms linear' } : {}),
       }}
       data-performer={performer.id}
+      role="button"
+      aria-label={`${performer.name}${isSelected ? ' (selected)' : ''}${isLocked ? ' (locked)' : ''}`}
+      aria-pressed={isSelected}
       onPointerDown={handlePointerDown}
       onContextMenu={handleContextMenu}
     >
@@ -246,7 +249,9 @@ export function PerformerMarker({
             transformOrigin: `50% ${markerSize / 2 + 20}px`,
           }}
           onPointerDown={handleRotatePointerDown}
-          title={t('formation.rotatePerformer', 'Drag to rotate')}
+          role="slider"
+          aria-label={t('formation.rotatePerformer', 'Drag to rotate')}
+          aria-valuenow={rotation}
         >
           <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">
             ↑
@@ -265,7 +270,7 @@ export function PerformerMarker({
           backgroundColor: performer.color,
           transform: showRotation ? `rotate(${rotation}deg)` : undefined,
         }}
-        title={performer.name}
+        aria-label={performer.name}
       >
         {showLabel && (
           <span className="pointer-events-none">{performer.label}</span>

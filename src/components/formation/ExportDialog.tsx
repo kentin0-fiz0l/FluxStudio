@@ -53,42 +53,42 @@ const formatOptions: FormatOption[] = [
     value: 'pdf',
     label: 'PDF Document',
     description: 'Print-ready document with all formations',
-    icon: <FileText className="w-5 h-5" />,
+    icon: <FileText className="w-5 h-5" aria-hidden="true" />,
     category: 'static',
   },
   {
     value: 'png',
     label: 'PNG Image',
     description: 'High-quality image with transparency',
-    icon: <FileImage className="w-5 h-5" />,
+    icon: <FileImage className="w-5 h-5" aria-hidden="true" />,
     category: 'static',
   },
   {
     value: 'jpg',
     label: 'JPEG Image',
     description: 'Compressed image for web use',
-    icon: <Image className="w-5 h-5" />,
+    icon: <Image className="w-5 h-5" aria-hidden="true" />,
     category: 'static',
   },
   {
     value: 'svg',
     label: 'SVG Vector',
     description: 'Scalable vector graphics',
-    icon: <Code className="w-5 h-5" />,
+    icon: <Code className="w-5 h-5" aria-hidden="true" />,
     category: 'static',
   },
   {
     value: 'gif',
     label: 'Animated GIF',
     description: 'Looping animation of formations',
-    icon: <Film className="w-5 h-5" />,
+    icon: <Film className="w-5 h-5" aria-hidden="true" />,
     category: 'animated',
   },
   {
     value: 'video',
     label: 'MP4 Video',
     description: 'Full video export with transitions',
-    icon: <Film className="w-5 h-5" />,
+    icon: <Film className="w-5 h-5" aria-hidden="true" />,
     category: 'animated',
   },
 ];
@@ -226,8 +226,9 @@ export function ExportDialog({
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label="Close export dialog"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -309,7 +310,7 @@ export function ExportDialog({
                   onChange={(e) => setIncludeGrid(e.target.checked)}
                   className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
                 />
-                <Grid className="w-4 h-4 text-gray-400" />
+                <Grid className="w-4 h-4 text-gray-400" aria-hidden="true" />
                 <span className="text-sm text-gray-700 dark:text-gray-300">
                   {t('formation.includeGrid', 'Include grid lines')}
                 </span>
@@ -322,7 +323,7 @@ export function ExportDialog({
                   onChange={(e) => setIncludeLabels(e.target.checked)}
                   className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
                 />
-                <Tag className="w-4 h-4 text-gray-400" />
+                <Tag className="w-4 h-4 text-gray-400" aria-hidden="true" />
                 <span className="text-sm text-gray-700 dark:text-gray-300">
                   {t('formation.includeLabels', 'Include performer labels')}
                 </span>
@@ -336,7 +337,7 @@ export function ExportDialog({
                     onChange={(e) => setIncludeTimestamps(e.target.checked)}
                     className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
                   />
-                  <Clock className="w-4 h-4 text-gray-400" />
+                  <Clock className="w-4 h-4 text-gray-400" aria-hidden="true" />
                   <span className="text-sm text-gray-700 dark:text-gray-300">
                     {t('formation.includeTimestamps', 'Include timestamps')}
                   </span>
@@ -500,17 +501,17 @@ export function ExportDialog({
           >
             {isExporting ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                 {t('status.exporting', 'Exporting...')}
               </>
             ) : exportSuccess ? (
               <>
-                <Check className="w-4 h-4" />
+                <Check className="w-4 h-4" aria-hidden="true" />
                 {t('status.exported', 'Exported!')}
               </>
             ) : (
               <>
-                <Download className="w-4 h-4" />
+                <Download className="w-4 h-4" aria-hidden="true" />
                 {t('formation.export', 'Export')}
               </>
             )}

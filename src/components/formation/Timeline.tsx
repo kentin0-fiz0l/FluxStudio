@@ -191,7 +191,7 @@ function KeyframeMarker({
             e.stopPropagation();
             onRemove();
           }}
-          title={t('formation.removeKeyframe', 'Remove keyframe')}
+          aria-label={t('formation.removeKeyframe', 'Remove keyframe')}
         >
           ×
         </button>
@@ -321,21 +321,21 @@ export function Timeline({
           <button
             onClick={onStop}
             className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
-            title={t('formation.stop', 'Stop')}
+            aria-label={t('formation.stop', 'Stop')}
           >
-            <SkipBack className="w-5 h-5" />
+            <SkipBack className="w-5 h-5" aria-hidden="true" />
           </button>
 
           {/* Play/Pause */}
           <button
             onClick={playbackState.isPlaying ? onPause : onPlay}
             className="p-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white"
-            title={playbackState.isPlaying ? t('formation.pause', 'Pause') : t('formation.play', 'Play')}
+            aria-label={playbackState.isPlaying ? t('formation.pause', 'Pause') : t('formation.play', 'Play')}
           >
             {playbackState.isPlaying ? (
-              <Pause className="w-5 h-5" />
+              <Pause className="w-5 h-5" aria-hidden="true" />
             ) : (
-              <Play className="w-5 h-5" />
+              <Play className="w-5 h-5" aria-hidden="true" />
             )}
           </button>
 
@@ -343,9 +343,9 @@ export function Timeline({
           <button
             onClick={() => onSeek(duration)}
             className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
-            title={t('formation.skipToEnd', 'Skip to end')}
+            aria-label={t('formation.skipToEnd', 'Skip to end')}
           >
-            <SkipForward className="w-5 h-5" />
+            <SkipForward className="w-5 h-5" aria-hidden="true" />
           </button>
 
           {/* Loop Toggle */}
@@ -356,9 +356,10 @@ export function Timeline({
                 ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
                 : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
             }`}
-            title={t('formation.loop', 'Loop')}
+            aria-label={t('formation.loop', 'Loop')}
+            aria-pressed={playbackState.loop}
           >
-            <Repeat className="w-5 h-5" />
+            <Repeat className="w-5 h-5" aria-hidden="true" />
           </button>
 
           {/* Audio indicator and volume control */}
@@ -372,12 +373,12 @@ export function Timeline({
                     ? 'text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
                     : 'text-gray-400'
                 }`}
-                title={t('formation.audioVolume', 'Audio Volume')}
+                aria-label={t('formation.audioVolume', 'Audio Volume')}
               >
                 {audioState.volume === 0 ? (
-                  <VolumeX className="w-5 h-5" />
+                  <VolumeX className="w-5 h-5" aria-hidden="true" />
                 ) : (
-                  <Volume2 className="w-5 h-5" />
+                  <Volume2 className="w-5 h-5" aria-hidden="true" />
                 )}
               </button>
 
@@ -385,7 +386,7 @@ export function Timeline({
               {showVolumeSlider && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                   <div className="flex items-center gap-3">
-                    <Music className="w-4 h-4 text-gray-400" />
+                    <Music className="w-4 h-4 text-gray-400" aria-hidden="true" />
                     <input
                       type="range"
                       min="0"
@@ -410,7 +411,7 @@ export function Timeline({
 
         {/* Time Display */}
         <div className="flex items-center gap-2 text-sm">
-          <Clock className="w-4 h-4 text-gray-400" />
+          <Clock className="w-4 h-4 text-gray-400" aria-hidden="true" />
           <span className="font-mono text-gray-700 dark:text-gray-300">
             {isCountMode && drillSettings
               ? formatCount(currentTime, drillSettings)
@@ -490,9 +491,9 @@ export function Timeline({
           <button
             onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}
             className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
-            title={t('formation.zoomOut', 'Zoom out')}
+            aria-label={t('formation.zoomOut', 'Zoom out')}
           >
-            <Minus className="w-4 h-4" />
+            <Minus className="w-4 h-4" aria-hidden="true" />
           </button>
           <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[40px] text-center">
             {Math.round(zoom * 100)}%
@@ -500,9 +501,9 @@ export function Timeline({
           <button
             onClick={() => setZoom(Math.min(4, zoom + 0.25))}
             className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
-            title={t('formation.zoomIn', 'Zoom in')}
+            aria-label={t('formation.zoomIn', 'Zoom in')}
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -510,9 +511,9 @@ export function Timeline({
         <button
           onClick={() => onKeyframeAdd(currentTime)}
           className="flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm"
-          title={t('formation.addKeyframe', 'Add keyframe at current time')}
+          aria-label={t('formation.addKeyframe', 'Add keyframe at current time')}
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4" aria-hidden="true" />
           {t('formation.keyframe', 'Keyframe')}
         </button>
       </div>
