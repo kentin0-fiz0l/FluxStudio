@@ -104,9 +104,26 @@ export {
   type FormControlProps,
   type FormDescriptionProps,
   type FormMessageProps,
+  type FieldValidationState,
   type FormHintProps,
   type FormSectionProps,
 } from './form-field';
+
+// Metric Card
+export {
+  MetricCard,
+  MetricValue,
+  MetricLabel,
+  MetricTrend,
+  MetricBadge,
+  MetricGroup,
+  type MetricCardProps,
+  type MetricValueProps,
+  type MetricLabelProps,
+  type MetricTrendProps,
+  type MetricBadgeProps,
+  type MetricGroupProps,
+} from './MetricCard';
 
 // Error State
 export {

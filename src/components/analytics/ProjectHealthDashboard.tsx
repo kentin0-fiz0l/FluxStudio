@@ -17,6 +17,7 @@ import {
   type ProjectHealth,
 } from '../../hooks/useProjectAnalytics';
 import { Loader2 } from 'lucide-react';
+import { MetricCard, MetricValue, MetricLabel, MetricGroup } from '@/components/ui/MetricCard';
 
 interface ProjectHealthDashboardProps {
   projectId: string;
@@ -85,25 +86,23 @@ const ScoreBreakdown = React.memo(function ScoreBreakdown({ health }: { health: 
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <MetricGroup columns={2}>
       {items.map(item => (
-        <div key={item.label} className="p-2 bg-neutral-50 rounded border border-neutral-100">
+        <MetricCard key={item.label} size="sm">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-medium text-neutral-500 uppercase">{item.label}</span>
-            <span className="text-xs font-semibold" style={{ color: scoreColor(item.score) }}>
-              {item.score}
-            </span>
+            <MetricLabel>{item.label}</MetricLabel>
+            <MetricValue value={item.score} size="sm" colorClassName={`font-semibold`} />
           </div>
-          <div className="w-full bg-neutral-200 rounded-full h-1.5">
+          <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-1.5">
             <div
               className="h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${item.score}%`, backgroundColor: scoreColor(item.score) }}
             />
           </div>
-          <div className="text-[10px] text-neutral-400 mt-1">{item.detail}</div>
-        </div>
+          <div className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-1">{item.detail}</div>
+        </MetricCard>
       ))}
-    </div>
+    </MetricGroup>
   );
 });
 
@@ -231,23 +230,23 @@ export const ProjectHealthDashboard = React.memo(function ProjectHealthDashboard
   return (
     <div className="space-y-5">
       {/* Health Score + Breakdown */}
-      <div className="p-4 bg-white rounded-lg border border-neutral-200">
-        <h3 className="text-sm font-semibold text-neutral-800 mb-3">Project Health</h3>
+      <MetricCard>
+        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-3">Project Health</h3>
         <HealthScoreGauge health={health} />
         <div className="mt-4">
           <ScoreBreakdown health={health} />
         </div>
-      </div>
+      </MetricCard>
 
       {/* Burndown Chart */}
-      <div className="p-4 bg-white rounded-lg border border-neutral-200">
+      <MetricCard>
         <BurndownChart projectId={projectId} />
-      </div>
+      </MetricCard>
 
       {/* Velocity Chart */}
-      <div className="p-4 bg-white rounded-lg border border-neutral-200">
+      <MetricCard>
         <VelocityChart projectId={projectId} />
-      </div>
+      </MetricCard>
     </div>
   );
 });

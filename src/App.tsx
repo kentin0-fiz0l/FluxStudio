@@ -17,6 +17,7 @@ import { performanceMonitoring } from './services/performanceMonitoring';
 import { apiService } from './services/apiService';
 import { logger } from './lib/logger';
 import { lazyLoadWithRetry, DefaultLoadingFallback } from './utils/lazyLoad';
+import { FormationEditorSkeleton, SettingsSkeleton } from './components/loading/LoadingStates';
 import { queryClient } from './lib/queryClient';
 import { queryPersister } from './lib/queryPersister';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -34,7 +35,7 @@ import { AssetsProvider } from './contexts/AssetsContext';
 // );
 
 // Landing page - synthesized from best sections of 3 design variants
-const LandingPage = React.lazy(() => import('./pages/landing/LandingPage'));
+const { Component: LandingPage } = lazyLoadWithRetry(() => import('./pages/landing/LandingPage'));
 
 const { Component: Login } = lazyLoadWithRetry(
   () => import('./pages/Login').then(m => ({ default: m.Login })) as Promise<{ default: React.ComponentType<Record<string, unknown>> }>
@@ -105,20 +106,20 @@ const { Component: Support } = lazyLoadWithRetry(() => import('./pages/Support')
 // Future: Route components for advanced features - see docs/ROUTE_WRAPPERS.md for implementation guide
 
 // FluxPrint Integration - 3D Printing Dashboard
-const PrintingDashboard = React.lazy(() => import('./components/printing/PrintingDashboard'));
+const { Component: PrintingDashboard } = lazyLoadWithRetry(() => import('./components/printing/PrintingDashboard'));
 
 // Sprint 44: Referral dashboard
-const Referrals = React.lazy(() => import('./pages/Referrals'));
+const { Component: Referrals } = lazyLoadWithRetry(() => import('./pages/Referrals'));
 
 // AI Agent Panel
 const { Component: AgentPanel } = lazyLoadWithRetry(() => import('./components/agent/AgentPanel'));
 
 // Public pages (no auth required)
-const TryEditor = React.lazy(() => import('./pages/TryEditor'));
-const SharedFormation = React.lazy(() => import('./pages/SharedFormation'));
-const EmbedFormation = React.lazy(() => import('./pages/EmbedFormation'));
-const FormationCategory = React.lazy(() => import('./pages/FormationCategory'));
-const TemplateLibrary = React.lazy(() => import('./pages/TemplateLibrary'));
+const { Component: TryEditor } = lazyLoadWithRetry(() => import('./pages/TryEditor'));
+const { Component: SharedFormation } = lazyLoadWithRetry(() => import('./pages/SharedFormation'));
+const { Component: EmbedFormation } = lazyLoadWithRetry(() => import('./pages/EmbedFormation'));
+const { Component: FormationCategory } = lazyLoadWithRetry(() => import('./pages/FormationCategory'));
+const { Component: TemplateLibrary } = lazyLoadWithRetry(() => import('./pages/TemplateLibrary'));
 
 // 404 Not Found page
 const { Component: NotFound } = lazyLoadWithRetry(() => import('./pages/NotFound'));
@@ -289,13 +290,13 @@ function AuthenticatedRoutes() {
                   <Route path="/organization" element={<ProtectedRoute><OrganizationNew /></ProtectedRoute>} />
                   <Route path="/projects/:projectId/overview" element={<ProtectedRoute><ProjectsErrorBoundary><ProjectOverview /></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/projects/:id" element={<ProtectedRoute><ProjectsErrorBoundary><AssetsProvider><ProjectDetail /></AssetsProvider></ProjectsErrorBoundary></ProtectedRoute>} />
-                  <Route path="/projects/:projectId/formations" element={<ProtectedRoute><FormationEditor /></ProtectedRoute>} />
-                  <Route path="/projects/:projectId/formations/:formationId" element={<ProtectedRoute><FormationEditor /></ProtectedRoute>} />
+                  <Route path="/projects/:projectId/formations" element={<ProtectedRoute><Suspense fallback={<FormationEditorSkeleton />}><FormationEditor /></Suspense></ProtectedRoute>} />
+                  <Route path="/projects/:projectId/formations/:formationId" element={<ProtectedRoute><Suspense fallback={<FormationEditorSkeleton />}><FormationEditor /></Suspense></ProtectedRoute>} />
                   <Route path="/boards/:boardId" element={<ProtectedRoute><DesignBoardPage /></ProtectedRoute>} />
                   <Route path="/messages" element={<ProtectedRoute><MessagingErrorBoundary><MessagesNew /></MessagingErrorBoundary></ProtectedRoute>} />
                   <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                  <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><Suspense fallback={<SettingsSkeleton />}><Settings /></Suspense></ProtectedRoute>} />
                   <Route path="/settings/privacy" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
                   <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
                   <Route path="/connectors" element={<ProtectedRoute><Connectors /></ProtectedRoute>} />

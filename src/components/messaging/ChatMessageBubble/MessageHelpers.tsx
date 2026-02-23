@@ -272,20 +272,47 @@ export const ReactionBadge: React.FC<{
   reaction: ReactionCount;
   onClick: () => void;
   currentUserId: string;
-}> = ({ reaction, onClick, currentUserId }) => {
+  /** Map of userId → display name for tooltip */
+  userNames?: Record<string, string>;
+}> = ({ reaction, onClick, currentUserId, userNames }) => {
   const hasReacted = reaction.userIds?.includes(currentUserId);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  // Build tooltip text from user names
+  const tooltipNames = React.useMemo(() => {
+    if (!reaction.userIds || reaction.userIds.length === 0) return '';
+    const names = reaction.userIds.map((id) => {
+      if (id === currentUserId) return 'You';
+      return userNames?.[id] || 'Someone';
+    });
+    if (names.length <= 3) return names.join(', ');
+    return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+  }, [reaction.userIds, currentUserId, userNames]);
 
   return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors ${
-        hasReacted
-          ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-          : 'bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-      }`}
-    >
-      <span>{reaction.emoji}</span>
-      <span className="font-medium">{reaction.count}</span>
-    </button>
+    <div className="relative inline-block">
+      <button
+        onClick={onClick}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all ${
+          hasReacted
+            ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300 scale-105'
+            : 'bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+        }`}
+        aria-label={`${reaction.emoji} reacted by ${tooltipNames || reaction.count + ' people'}`}
+      >
+        <span>{reaction.emoji}</span>
+        <span className="font-medium">{reaction.count}</span>
+      </button>
+
+      {/* Tooltip with reactor names */}
+      {showTooltip && tooltipNames && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-neutral-900 dark:bg-neutral-700 text-white text-[10px] rounded-md shadow-lg whitespace-nowrap z-20 pointer-events-none">
+          {tooltipNames}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-neutral-900 dark:border-t-neutral-700" />
+        </div>
+      )}
+    </div>
   );
 };

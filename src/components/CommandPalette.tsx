@@ -5,7 +5,7 @@
  * Inspired by VS Code, Raycast, and Linear.
  */
 
-import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -23,6 +23,57 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// ============================================================================
+// Frecency — frequency + recency scoring for command ranking
+// ============================================================================
+
+const FRECENCY_KEY = 'flux-command-frecency';
+const HALF_LIFE_MS = 7 * 24 * 60 * 60 * 1000; // 1-week half-life
+
+interface FrecencyEntry {
+  count: number;
+  lastUsed: number; // epoch ms
+}
+
+type FrecencyStore = Record<string, FrecencyEntry>;
+
+function loadFrecency(): FrecencyStore {
+  try {
+    const raw = localStorage.getItem(FRECENCY_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveFrecency(store: FrecencyStore): void {
+  try {
+    localStorage.setItem(FRECENCY_KEY, JSON.stringify(store));
+  } catch {
+    // Quota exceeded — silently ignore
+  }
+}
+
+/** Record that a command was used. */
+export function recordCommandUsage(commandId: string): void {
+  const store = loadFrecency();
+  const existing = store[commandId];
+  store[commandId] = {
+    count: (existing?.count ?? 0) + 1,
+    lastUsed: Date.now(),
+  };
+  saveFrecency(store);
+}
+
+/** Compute a frecency score (higher = more relevant). */
+function getFrecencyScore(commandId: string, store: FrecencyStore): number {
+  const entry = store[commandId];
+  if (!entry) return 0;
+  const age = Date.now() - entry.lastUsed;
+  const recency = Math.pow(0.5, age / HALF_LIFE_MS); // exponential decay
+  return entry.count * recency;
+}
 
 interface Command {
   id: string;
@@ -243,17 +294,38 @@ export function CommandPalette({
     return [...baseCommands, ...projectCommands];
   }, [navigate, handleOpenChange, onCreateProject, onUploadFile, onCreateTask, onSendMessage, projects, currentProject]);
 
-  // Filter commands based on search
+  // Load frecency store once when palette opens
+  const frecencyRef = useRef<FrecencyStore>({});
+  useEffect(() => {
+    if (open) frecencyRef.current = loadFrecency();
+  }, [open]);
+
+  // Filter commands based on search, then sort by frecency
   const filteredCommands = useMemo(() => {
-    if (!search) return commands;
+    let result: Command[];
 
-    const searchLower = search.toLowerCase();
-    return commands.filter((cmd) => {
-      const matchesLabel = cmd.label.toLowerCase().includes(searchLower);
-      const matchesDescription = cmd.description?.toLowerCase().includes(searchLower);
-      const matchesKeywords = cmd.keywords?.some((k) => k.includes(searchLower));
+    if (!search) {
+      result = commands;
+    } else {
+      const searchLower = search.toLowerCase();
+      result = commands.filter((cmd) => {
+        const matchesLabel = cmd.label.toLowerCase().includes(searchLower);
+        const matchesDescription = cmd.description?.toLowerCase().includes(searchLower);
+        const matchesKeywords = cmd.keywords?.some((k) => k.includes(searchLower));
+        return matchesLabel || matchesDescription || matchesKeywords;
+      });
+    }
 
-      return matchesLabel || matchesDescription || matchesKeywords;
+    // Sort by frecency within each group — commands with higher scores appear first
+    const store = frecencyRef.current;
+    return [...result].sort((a, b) => {
+      // Keep category ordering stable (create > actions > navigation > recent)
+      const catOrder: Record<string, number> = { create: 0, actions: 1, navigation: 2, recent: 3 };
+      const catA = catOrder[a.category || 'navigation'] ?? 9;
+      const catB = catOrder[b.category || 'navigation'] ?? 9;
+      if (catA !== catB) return catA - catB;
+      // Within same category, sort by frecency descending
+      return getFrecencyScore(b.id, store) - getFrecencyScore(a.id, store);
     });
   }, [commands, search]);
 
@@ -282,6 +354,12 @@ export function CommandPalette({
   }, [search]);
 
 
+  // Execute command and record frecency
+  const executeCommand = useCallback((command: Command) => {
+    recordCommandUsage(command.id);
+    command.action();
+  }, []);
+
   // Keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -293,18 +371,14 @@ export function CommandPalette({
         setSelectedIndex((prev) => Math.max(prev - 1, 0));
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        filteredCommands[selectedIndex]?.action();
+        const cmd = filteredCommands[selectedIndex];
+        if (cmd) executeCommand(cmd);
       } else if (e.key === 'Escape') {
         handleOpenChange(false);
       }
     },
-    [filteredCommands, selectedIndex, handleOpenChange]
+    [filteredCommands, selectedIndex, handleOpenChange, executeCommand]
   );
-
-  // Execute command
-  const executeCommand = (command: Command) => {
-    command.action();
-  };
 
   const categoryLabels: Record<string, string> = {
     create: 'Quick Actions',

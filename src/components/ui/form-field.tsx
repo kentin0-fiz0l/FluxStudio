@@ -32,13 +32,21 @@
 
 import * as React from 'react';
 import * as LabelPrimitive from '@radix-ui/react-label';
+import { CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+/** Validation state for a form field */
+export type FieldValidationState = 'idle' | 'validating' | 'valid' | 'warning' | 'error';
 
 // Context for FormField state
 interface FormFieldContextValue {
   id: string;
   name?: string;
   error?: string;
+  /** Success message when field is valid */
+  successMessage?: string;
+  /** Current validation state */
+  validationState?: FieldValidationState;
   disabled?: boolean;
 }
 
@@ -76,18 +84,32 @@ interface FormFieldProps extends React.HTMLAttributes<HTMLDivElement> {
   error?: string;
 
   /**
+   * Success message when field is valid
+   */
+  successMessage?: string;
+
+  /**
+   * Current validation state (auto-derived from error/successMessage if not set)
+   */
+  validationState?: FieldValidationState;
+
+  /**
    * Whether field is disabled
    */
   disabled?: boolean;
 }
 
 const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
-  ({ name, error, disabled, className, children, ...props }, ref) => {
+  ({ name, error, successMessage, validationState: validationStateProp, disabled, className, children, ...props }, ref) => {
     const [id] = React.useState(generateFieldId);
 
+    // Auto-derive validation state from error/successMessage if not explicitly set
+    const validationState: FieldValidationState = validationStateProp
+      ?? (error ? 'error' : successMessage ? 'valid' : 'idle');
+
     const contextValue = React.useMemo(
-      () => ({ id, name, error, disabled }),
-      [id, name, error, disabled]
+      () => ({ id, name, error, successMessage, validationState, disabled }),
+      [id, name, error, successMessage, validationState, disabled]
     );
 
     return (
@@ -158,11 +180,23 @@ const FormLabel = React.forwardRef<HTMLLabelElement, FormLabelProps>(
 FormLabel.displayName = 'FormLabel';
 
 // FormControl - wrapper that connects input to field context
-type FormControlProps = React.HTMLAttributes<HTMLDivElement>;
+interface FormControlProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Show inline validation icon inside the input area */
+  showValidationIcon?: boolean;
+}
+
+const validationRingClasses: Record<FieldValidationState, string> = {
+  idle: '',
+  validating: '',
+  valid: '[&_input]:ring-1 [&_input]:ring-green-500 [&_textarea]:ring-1 [&_textarea]:ring-green-500 [&_select]:ring-1 [&_select]:ring-green-500',
+  warning: '[&_input]:ring-1 [&_input]:ring-yellow-500 [&_textarea]:ring-1 [&_textarea]:ring-yellow-500 [&_select]:ring-1 [&_select]:ring-yellow-500',
+  error: '[&_input]:ring-1 [&_input]:ring-red-500 [&_textarea]:ring-1 [&_textarea]:ring-red-500 [&_select]:ring-1 [&_select]:ring-red-500',
+};
 
 const FormControl = React.forwardRef<HTMLDivElement, FormControlProps>(
-  ({ className, children, ...props }, ref) => {
+  ({ showValidationIcon = true, className, children, ...props }, ref) => {
     const context = useFormFieldContextOptional();
+    const state = context?.validationState ?? 'idle';
 
     // Clone children to add proper IDs and aria attributes
     const enhancedChildren = React.Children.map(children, (child) => {
@@ -172,6 +206,8 @@ const FormControl = React.forwardRef<HTMLDivElement, FormControlProps>(
         id: context?.id,
         'aria-describedby': context?.error
           ? `${context.id}-error`
+          : context?.successMessage
+          ? `${context.id}-success`
           : context?.id
           ? `${context.id}-description`
           : undefined,
@@ -183,8 +219,19 @@ const FormControl = React.forwardRef<HTMLDivElement, FormControlProps>(
     });
 
     return (
-      <div ref={ref} className={cn(className)} {...props}>
+      <div
+        ref={ref}
+        className={cn('relative', validationRingClasses[state], className)}
+        {...props}
+      >
         {enhancedChildren}
+        {showValidationIcon && state !== 'idle' && state !== 'validating' && (
+          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+            {state === 'valid' && <CheckCircle2 className="w-4 h-4 text-green-500" aria-hidden="true" />}
+            {state === 'warning' && <AlertTriangle className="w-4 h-4 text-yellow-500" aria-hidden="true" />}
+            {state === 'error' && <AlertCircle className="w-4 h-4 text-red-500" aria-hidden="true" />}
+          </div>
+        )}
       </div>
     );
   }
@@ -217,22 +264,58 @@ const FormDescription = React.forwardRef<HTMLParagraphElement, FormDescriptionPr
 
 FormDescription.displayName = 'FormDescription';
 
-// FormMessage - error message display
+// FormMessage - error/success message display
 interface FormMessageProps extends React.HTMLAttributes<HTMLParagraphElement> {
   /**
    * Error message to display
    * Falls back to context error if not provided
    */
   error?: string;
+  /**
+   * Success message to display (shown when no error)
+   * Falls back to context successMessage if not provided
+   */
+  success?: string;
 }
 
 const FormMessage = React.forwardRef<HTMLParagraphElement, FormMessageProps>(
-  ({ error: errorProp, className, children, ...props }, ref) => {
+  ({ error: errorProp, success: successProp, className, children, ...props }, ref) => {
     const context = useFormFieldContextOptional();
     const error = errorProp ?? context?.error;
+    const success = successProp ?? context?.successMessage;
 
-    if (!error && !children) {
+    // Show error first, then success, then children
+    if (!error && !success && !children) {
       return null;
+    }
+
+    if (error) {
+      return (
+        <p
+          ref={ref}
+          id={context ? `${context.id}-error` : undefined}
+          role="alert"
+          aria-live="polite"
+          className={cn('text-sm text-error-600 dark:text-error-400', className)}
+          {...props}
+        >
+          {error}
+        </p>
+      );
+    }
+
+    if (success) {
+      return (
+        <p
+          ref={ref}
+          id={context ? `${context.id}-success` : undefined}
+          aria-live="polite"
+          className={cn('text-sm text-green-600 dark:text-green-400', className)}
+          {...props}
+        >
+          {success}
+        </p>
+      );
     }
 
     return (
@@ -241,13 +324,10 @@ const FormMessage = React.forwardRef<HTMLParagraphElement, FormMessageProps>(
         id={context ? `${context.id}-error` : undefined}
         role="alert"
         aria-live="polite"
-        className={cn(
-          'text-sm text-error-600 dark:text-error-400',
-          className
-        )}
+        className={cn('text-sm text-error-600 dark:text-error-400', className)}
         {...props}
       >
-        {error || children}
+        {children}
       </p>
     );
   }
