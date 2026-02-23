@@ -52,7 +52,7 @@ export function MediaGallery({ media, title }: MediaGalleryProps) {
         </div>
       ) : (
         <div className="w-full h-full flex items-center justify-center text-white">
-          <Camera className="h-16 w-16 text-white/50" />
+          <Camera className="h-16 w-16 text-white/50" aria-hidden="true" />
         </div>
       )}
 
@@ -65,7 +65,7 @@ export function MediaGallery({ media, title }: MediaGalleryProps) {
             className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20"
             onClick={prevMedia}
           >
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft className="h-6 w-6" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
@@ -73,7 +73,7 @@ export function MediaGallery({ media, title }: MediaGalleryProps) {
             className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20"
             onClick={nextMedia}
           >
-            <ChevronRight className="h-6 w-6" />
+            <ChevronRight className="h-6 w-6" aria-hidden="true" />
           </Button>
 
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">

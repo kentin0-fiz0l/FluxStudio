@@ -57,7 +57,7 @@ export function ClientOnboarding({ onComplete, onCancel, initialData }: ClientOn
       {/* Header */}
       <div className="text-center mb-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
-          <Sparkles className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+          <Sparkles className="h-12 w-12 text-blue-500 mx-auto mb-4" aria-hidden="true" />
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Flux Studio</h1>
           <p className="text-lg text-gray-600">Let's create something amazing together</p>
         </motion.div>
@@ -79,7 +79,7 @@ export function ClientOnboarding({ onComplete, onCancel, initialData }: ClientOn
       {/* Navigation */}
       <div className="flex justify-between items-center mt-8 pt-6 border-t">
         <Button variant="outline" onClick={currentStep === 0 ? onCancel : prevStep} className="min-w-[120px]">
-          <ChevronLeft className="h-4 w-4 mr-2" />
+          <ChevronLeft className="h-4 w-4 mr-2" aria-hidden="true" />
           {currentStep === 0 ? 'Cancel' : 'Previous'}
         </Button>
         <div className="text-center">
@@ -87,7 +87,7 @@ export function ClientOnboarding({ onComplete, onCancel, initialData }: ClientOn
         </div>
         <Button onClick={currentStep === steps.length - 1 ? handleComplete : nextStep} disabled={!isStepValid()} className="min-w-[120px]">
           {currentStep === steps.length - 1 ? 'Submit Request' : 'Next'}
-          <ChevronRight className="h-4 w-4 ml-2" />
+          <ChevronRight className="h-4 w-4 ml-2" aria-hidden="true" />
         </Button>
       </div>
     </div>

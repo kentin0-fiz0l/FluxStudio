@@ -91,7 +91,7 @@ export const NoProjectSelected: React.FC<NoProjectSelectedProps> = ({
       <Card className="max-w-lg w-full p-8 text-center">
         {/* Icon */}
         <div className="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mx-auto mb-6">
-          <FolderOpen className="h-8 w-8 text-primary-600 dark:text-primary-400" />
+          <FolderOpen className="h-8 w-8 text-primary-600 dark:text-primary-400" aria-hidden="true" />
         </div>
 
         {/* Title & Description */}
@@ -136,7 +136,7 @@ export const NoProjectSelected: React.FC<NoProjectSelectedProps> = ({
                       </p>
                     )}
                   </div>
-                  <ArrowRight className="h-4 w-4 text-neutral-400 flex-shrink-0" />
+                  <ArrowRight className="h-4 w-4 text-neutral-400 flex-shrink-0" aria-hidden="true" />
                 </button>
               ))}
             </div>
@@ -148,7 +148,7 @@ export const NoProjectSelected: React.FC<NoProjectSelectedProps> = ({
           <Button
             variant="primary"
             onClick={handleCreateProject}
-            icon={<Plus className="h-4 w-4" />}
+            icon={<Plus className="h-4 w-4" aria-hidden="true" />}
           >
             Create Project
           </Button>
