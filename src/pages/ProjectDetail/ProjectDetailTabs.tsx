@@ -56,7 +56,7 @@ export const TasksTabPanel: React.FC<{
               aria-label="List view"
               aria-pressed={viewMode === 'list'}
             >
-              <List className="h-4 w-4" />
+              <List className="h-4 w-4" aria-hidden="true" />
               List
             </button>
             <button
@@ -70,7 +70,7 @@ export const TasksTabPanel: React.FC<{
               aria-label="Kanban view"
               aria-pressed={viewMode === 'kanban'}
             >
-              <Columns className="h-4 w-4" />
+              <Columns className="h-4 w-4" aria-hidden="true" />
               Kanban
             </button>
           </div>
@@ -78,7 +78,7 @@ export const TasksTabPanel: React.FC<{
         <Button
           onClick={onCreateTask}
           variant="primary"
-          icon={<CheckSquare className="h-4 w-4" />}
+          icon={<CheckSquare className="h-4 w-4" aria-hidden="true" />}
           aria-label="Create new task"
         >
           New Task
@@ -134,7 +134,7 @@ export const AssetsTabPanel: React.FC<{
         onClick={() => window.location.href = '/assets'}
         aria-label="View all assets"
       >
-        <Layers className="h-4 w-4 mr-2" />
+        <Layers className="h-4 w-4 mr-2" aria-hidden="true" />
         Manage All Assets
       </Button>
     </div>
@@ -145,7 +145,7 @@ export const AssetsTabPanel: React.FC<{
       </div>
     ) : projectAssets.length === 0 ? (
       <Card className="p-8 text-center">
-        <Layers className="h-12 w-12 mx-auto text-neutral-400 mb-4" />
+        <Layers className="h-12 w-12 mx-auto text-neutral-400 mb-4" aria-hidden="true" />
         <h3 className="text-lg font-semibold text-neutral-900 mb-2">No assets yet</h3>
         <p className="text-neutral-600 mb-4">
           Create assets from your uploaded files to track versions and metadata.
@@ -169,7 +169,7 @@ export const AssetsTabPanel: React.FC<{
                 <img src={asset.thumbnailUrl} alt={asset.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Layers className="w-12 h-12 text-neutral-300" />
+                  <Layers className="w-12 h-12 text-neutral-300" aria-hidden="true" />
                 </div>
               )}
               <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
@@ -220,7 +220,7 @@ export const BoardsTabPanel: React.FC<{
         <h2 className="text-2xl font-bold text-neutral-900">Design Boards</h2>
         {!showNewBoardInput ? (
           <Button variant="primary" onClick={() => setShowNewBoardInput(true)} aria-label="Create new board">
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
             New Board
           </Button>
         ) : (
@@ -246,13 +246,13 @@ export const BoardsTabPanel: React.FC<{
         </div>
       ) : boards.length === 0 ? (
         <Card className="p-8 text-center">
-          <PenTool className="h-12 w-12 mx-auto text-neutral-400 mb-4" />
+          <PenTool className="h-12 w-12 mx-auto text-neutral-400 mb-4" aria-hidden="true" />
           <h3 className="text-lg font-semibold text-neutral-900 mb-2">No design boards yet</h3>
           <p className="text-neutral-600 mb-4">
             Create a board to start collaborating on 2D designs with your team.
           </p>
           <Button variant="primary" onClick={() => setShowNewBoardInput(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
             Create First Board
           </Button>
         </Card>
@@ -265,7 +265,7 @@ export const BoardsTabPanel: React.FC<{
               onClick={() => navigate(`/boards/${board.id}`)}
             >
               <div className="aspect-video bg-gradient-to-br from-primary-50 to-indigo-50 flex items-center justify-center">
-                <PenTool className="w-12 h-12 text-primary-400" />
+                <PenTool className="w-12 h-12 text-primary-400" aria-hidden="true" />
               </div>
               <div className="p-4">
                 <h4 className="font-medium text-neutral-900 truncate">{board.name}</h4>

@@ -39,19 +39,19 @@ interface SearchResultCardProps {
 
 function getTypeIcon(type: SearchResultType, fileType?: string): React.ReactNode {
   if (type === 'file' && fileType) {
-    if (fileType.startsWith('image/')) return <FileImage className="w-5 h-5" />;
-    if (fileType.startsWith('video/')) return <FileVideo className="w-5 h-5" />;
-    if (fileType.startsWith('audio/')) return <FileAudio className="w-5 h-5" />;
-    if (fileType.includes('spreadsheet') || fileType.includes('excel')) return <FileSpreadsheet className="w-5 h-5" />;
-    if (fileType.includes('code') || fileType.includes('javascript') || fileType.includes('python')) return <FileCode className="w-5 h-5" />;
-    if (fileType.includes('text') || fileType.includes('document')) return <FileText className="w-5 h-5" />;
+    if (fileType.startsWith('image/')) return <FileImage className="w-5 h-5" aria-hidden="true" />;
+    if (fileType.startsWith('video/')) return <FileVideo className="w-5 h-5" aria-hidden="true" />;
+    if (fileType.startsWith('audio/')) return <FileAudio className="w-5 h-5" aria-hidden="true" />;
+    if (fileType.includes('spreadsheet') || fileType.includes('excel')) return <FileSpreadsheet className="w-5 h-5" aria-hidden="true" />;
+    if (fileType.includes('code') || fileType.includes('javascript') || fileType.includes('python')) return <FileCode className="w-5 h-5" aria-hidden="true" />;
+    if (fileType.includes('text') || fileType.includes('document')) return <FileText className="w-5 h-5" aria-hidden="true" />;
   }
 
   const icons: Record<SearchResultType, React.ReactNode> = {
-    project: <FolderKanban className="w-5 h-5" />,
-    file: <File className="w-5 h-5" />,
-    task: <CheckSquare className="w-5 h-5" />,
-    message: <MessageSquare className="w-5 h-5" />,
+    project: <FolderKanban className="w-5 h-5" aria-hidden="true" />,
+    file: <File className="w-5 h-5" aria-hidden="true" />,
+    task: <CheckSquare className="w-5 h-5" aria-hidden="true" />,
+    message: <MessageSquare className="w-5 h-5" aria-hidden="true" />,
   };
 
   return icons[type];
