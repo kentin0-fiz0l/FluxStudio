@@ -192,8 +192,8 @@
                 return 'vendor-ui-utils';
               }
 
-              // Zod - pure validation schema (no React dependency)
-              if (id.includes('zod')) {
+              // Zod + hookform resolvers (resolver bridges zod ↔ react-hook-form)
+              if (id.includes('zod') || id.includes('@hookform/resolvers')) {
                 return 'vendor-validation';
               }
 
