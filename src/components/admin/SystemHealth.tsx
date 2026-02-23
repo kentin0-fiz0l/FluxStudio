@@ -181,6 +181,8 @@ export function SystemHealth({ onRefresh }: SystemHealthProps) {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
+            aria-label="Refresh health status"
+            aria-busy={isRefreshing}
             className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -194,6 +196,8 @@ export function SystemHealth({ onRefresh }: SystemHealthProps) {
           <div
             key={service.name}
             className={`p-4 rounded-lg border ${getStatusColor(service.status)}`}
+            role="status"
+            aria-label={`${service.name}: ${service.status}`}
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">

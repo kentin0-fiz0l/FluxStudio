@@ -128,7 +128,7 @@ function getPriorityBadge(priority?: string): React.ReactNode {
 // COMPONENT
 // ============================================================================
 
-export function SearchResultCard({ result, onClick, isCompact = false }: SearchResultCardProps) {
+export const SearchResultCard = React.memo(function SearchResultCard({ result, onClick, isCompact = false }: SearchResultCardProps) {
   const { t } = useTranslation('common');
   const typeLabels: Record<SearchResultType, string> = {
     project: t('search.types.project', 'Project'),
@@ -157,7 +157,7 @@ export function SearchResultCard({ result, onClick, isCompact = false }: SearchR
             </div>
           )}
         </div>
-        <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden="true" />
       </button>
     );
   }
@@ -230,7 +230,7 @@ export function SearchResultCard({ result, onClick, isCompact = false }: SearchR
             {/* Project context */}
             {result.metadata.projectName && (
               <span className="flex items-center gap-1">
-                <FolderKanban className="w-3 h-3" />
+                <FolderKanban className="w-3 h-3" aria-hidden="true" />
                 {result.metadata.projectName}
               </span>
             )}
@@ -238,7 +238,7 @@ export function SearchResultCard({ result, onClick, isCompact = false }: SearchR
             {/* Conversation context for messages */}
             {result.metadata.conversationName && (
               <span className="flex items-center gap-1">
-                <MessageSquare className="w-3 h-3" />
+                <MessageSquare className="w-3 h-3" aria-hidden="true" />
                 {result.metadata.conversationName}
               </span>
             )}
@@ -253,7 +253,7 @@ export function SearchResultCard({ result, onClick, isCompact = false }: SearchR
                     className="w-4 h-4 rounded-full"
                   />
                 ) : (
-                  <User className="w-3 h-3" />
+                  <User className="w-3 h-3" aria-hidden="true" />
                 )}
                 {result.metadata.author.name}
               </span>
@@ -261,17 +261,17 @@ export function SearchResultCard({ result, onClick, isCompact = false }: SearchR
 
             {/* Time */}
             <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+              <Clock className="w-3 h-3" aria-hidden="true" />
               {formatRelativeTime(result.metadata.createdAt)}
             </span>
           </div>
         </div>
 
         {/* Arrow */}
-        <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors flex-shrink-0 mt-1" />
+        <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors flex-shrink-0 mt-1" aria-hidden="true" />
       </div>
     </button>
   );
-}
+});
 
 export default SearchResultCard;

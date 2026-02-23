@@ -3,6 +3,7 @@
  * Grid/list item card for portfolio showcase
  */
 
+import React from 'react';
 import {
   Eye,
   Heart,
@@ -31,7 +32,7 @@ interface PortfolioItemCardProps {
   onDelete: () => void;
 }
 
-export function PortfolioItemCard({
+export const PortfolioItemCard = React.memo(function PortfolioItemCard({
   item,
   viewMode,
   isOwner,
@@ -49,7 +50,7 @@ export function PortfolioItemCard({
     return (
       <Card className="overflow-hidden hover:shadow-lg transition-all cursor-pointer" onClick={onClick}>
         <div className="flex">
-          <div className="w-48 h-32 bg-gray-100 flex-shrink-0">
+          <div className="w-48 h-32 bg-gray-100 dark:bg-gray-800 flex-shrink-0">
             {primaryMedia ? (
               <img
                 src={primaryMedia.thumbnail_url || primaryMedia.url}
@@ -67,7 +68,7 @@ export function PortfolioItemCard({
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{item.title}</h3>
                   {item.is_featured && (
                     <Badge className="bg-yellow-500">
                       <Star className="h-3 w-3 mr-1" />
@@ -75,9 +76,9 @@ export function PortfolioItemCard({
                     </Badge>
                   )}
                 </div>
-                <p className="text-gray-600 mb-3 line-clamp-2">{item.description}</p>
+                <p className="text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">{item.description}</p>
 
-                <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
                   <span>{item.project_details.client}</span>
                   <span>•</span>
                   <span>{item.project_details.year}</span>
@@ -101,10 +102,10 @@ export function PortfolioItemCard({
 
               {isOwner && (
                 <div className="flex items-center gap-1 ml-4">
-                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(); }} aria-label="Edit">
                     <Edit3 className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onDelete(); }} aria-label="Delete">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -112,26 +113,26 @@ export function PortfolioItemCard({
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 text-sm text-gray-500">
+              <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                 <span className="flex items-center gap-1">
-                  <Eye className="h-4 w-4" />
+                  <Eye className="h-4 w-4" aria-hidden="true" />
                   {item.metrics.views}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Heart className="h-4 w-4" />
+                  <Heart className="h-4 w-4" aria-hidden="true" />
                   {item.metrics.likes}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Share2 className="h-4 w-4" />
+                  <Share2 className="h-4 w-4" aria-hidden="true" />
                   {item.metrics.shares}
                 </span>
               </div>
 
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onLike(); }}>
+                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onLike(); }} aria-label="Like">
                   <Heart className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onShare(); }}>
+                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onShare(); }} aria-label="Share">
                   <Share2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -145,7 +146,7 @@ export function PortfolioItemCard({
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all cursor-pointer group" onClick={onClick}>
       <div className="relative">
-        <div className="aspect-video bg-gray-100">
+        <div className="aspect-video bg-gray-100 dark:bg-gray-800">
           {primaryMedia ? (
             <img
               src={primaryMedia.thumbnail_url || primaryMedia.url}
@@ -190,6 +191,7 @@ export function PortfolioItemCard({
               variant="secondary"
               size="sm"
               onClick={(e) => { e.stopPropagation(); onLike(); }}
+              aria-label="Like"
             >
               <Heart className="h-4 w-4" />
             </Button>
@@ -197,6 +199,7 @@ export function PortfolioItemCard({
               variant="secondary"
               size="sm"
               onClick={(e) => { e.stopPropagation(); onShare(); }}
+              aria-label="Share"
             >
               <Share2 className="h-4 w-4" />
             </Button>
@@ -206,19 +209,19 @@ export function PortfolioItemCard({
 
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
-          <h3 className="font-semibold text-gray-900 line-clamp-1">{item.title}</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">{item.title}</h3>
           {isOwner && (
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(); }} aria-label="Edit">
                 <Edit3 className="h-3 w-3" />
               </Button>
             </div>
           )}
         </div>
 
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{item.description}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">{item.description}</p>
 
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-3">
           <span>{item.project_details.client}</span>
           <span>{item.project_details.year}</span>
         </div>
@@ -236,14 +239,14 @@ export function PortfolioItemCard({
           )}
         </div>
 
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <Eye className="h-3 w-3" />
+              <Eye className="h-3 w-3" aria-hidden="true" />
               {item.metrics.views}
             </span>
             <span className="flex items-center gap-1">
-              <Heart className="h-3 w-3" />
+              <Heart className="h-3 w-3" aria-hidden="true" />
               {item.metrics.likes}
             </span>
           </div>
@@ -252,4 +255,4 @@ export function PortfolioItemCard({
       </CardContent>
     </Card>
   );
-}
+});

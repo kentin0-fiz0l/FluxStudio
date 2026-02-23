@@ -96,10 +96,10 @@ const QueueItemCard: React.FC<QueueItemProps> = ({
   const isQueued = item.status === 'queued';
 
   return (
-    <div className="group p-3 bg-white border border-neutral-200 rounded-lg hover:shadow-md transition-shadow">
+    <div className="group p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg hover:shadow-md transition-shadow">
       <div className="flex items-start gap-3">
         {/* Position Number */}
-        <div className="flex-shrink-0 w-8 h-8 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-sm font-semibold">
+        <div className="flex-shrink-0 w-8 h-8 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-full flex items-center justify-center text-sm font-semibold">
           {item.position}
         </div>
 
@@ -108,12 +108,12 @@ const QueueItemCard: React.FC<QueueItemProps> = ({
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-neutral-400 flex-shrink-0" />
-                <h4 className="text-sm font-medium text-neutral-900 truncate">
+                <FileText className="h-4 w-4 text-neutral-400 dark:text-neutral-500 flex-shrink-0" />
+                <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
                   {item.filename}
                 </h4>
               </div>
-              <div className="flex items-center gap-3 mt-1 text-xs text-neutral-500">
+              <div className="flex items-center gap-3 mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {formatDate(item.addedAt)}
@@ -132,13 +132,13 @@ const QueueItemCard: React.FC<QueueItemProps> = ({
           {/* Progress Bar (if printing) */}
           {item.status === 'printing' && item.progress !== undefined && (
             <div className="space-y-1">
-              <div className="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-success-600 transition-all duration-300"
                   style={{ width: `${item.progress}%` }}
                 />
               </div>
-              <p className="text-xs text-neutral-500">{item.progress}% complete</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">{item.progress}% complete</p>
             </div>
           )}
 
@@ -268,8 +268,8 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-3 text-error-600">
-            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <div className="flex items-center gap-3 text-error-600 dark:text-error-400" role="alert" aria-live="polite">
+            <AlertCircle className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
             <p className="text-sm">{error}</p>
           </div>
         </CardContent>
@@ -309,10 +309,10 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
         {!hasItems ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center space-y-3">
-              <ListOrdered className="h-12 w-12 text-neutral-300 mx-auto" />
+              <ListOrdered className="h-12 w-12 text-neutral-300 dark:text-neutral-600 mx-auto" aria-hidden="true" />
               <div>
-                <p className="text-sm font-medium text-neutral-900">Queue Empty</p>
-                <p className="text-xs text-neutral-500 mt-1">
+                <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Queue Empty</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                   Add G-code files from the file browser below
                 </p>
               </div>
@@ -338,14 +338,14 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
 
       {/* Queue Stats Footer */}
       {queue && hasItems && (
-        <div className="border-t border-neutral-200 px-6 py-3 bg-neutral-50">
-          <div className="flex items-center justify-between text-xs text-neutral-600">
+        <div className="border-t border-neutral-200 dark:border-neutral-700 px-6 py-3 bg-neutral-50 dark:bg-neutral-900">
+          <div className="flex items-center justify-between text-xs text-neutral-600 dark:text-neutral-400">
             <span>Total: {queue.totalJobs}</span>
             <div className="flex gap-4">
-              <span className="text-success-600">
+              <span className="text-success-600 dark:text-success-400">
                 Completed: {queue.completedJobs}
               </span>
-              <span className="text-error-600">
+              <span className="text-error-600 dark:text-error-400">
                 Failed: {queue.failedJobs}
               </span>
             </div>

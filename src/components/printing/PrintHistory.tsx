@@ -170,8 +170,28 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
           <CardTitle>Print History</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-500">
-            Loading print history...
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="border rounded-lg p-4 animate-pulse">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="h-4 w-40 bg-gray-200 dark:bg-gray-700 rounded" />
+                    <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
+                  </div>
+                  <div className="h-6 w-20 bg-gray-200 dark:bg-gray-700 rounded-full ml-2" />
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div className="space-y-1.5">
+                    <div className="h-3 w-14 bg-gray-200 dark:bg-gray-700 rounded" />
+                    <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="h-3 w-18 bg-gray-200 dark:bg-gray-700 rounded" />
+                    <div className="h-4 w-28 bg-gray-200 dark:bg-gray-700 rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -185,9 +205,9 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
           <CardTitle>Print History</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-3" />
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="text-center py-8" role="alert" aria-live="polite">
+            <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-3" aria-hidden="true" />
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             <Button onClick={fetchHistory} className="mt-4" size="sm">
               Retry
             </Button>
@@ -238,8 +258,8 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
       </CardHeader>
       <CardContent>
         {history.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" aria-hidden="true" />
             <p>No print history yet</p>
             <p className="text-xs mt-1">Completed prints will appear here</p>
           </div>
@@ -251,14 +271,14 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
               return (
                 <div
                   key={job.id}
-                  className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  className="border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   {/* Header Row */}
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{job.fileName}</div>
                       {job.project_name && (
-                        <div className="flex items-center gap-1 text-xs text-gray-600 mt-1">
+                        <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 mt-1">
                           <Folder className="w-3 h-3" />
                           <span className="truncate">{job.project_name}</span>
                         </div>
@@ -273,24 +293,24 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
                   {/* Metadata Row */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <div className="text-gray-600 text-xs">Duration</div>
+                      <div className="text-gray-600 dark:text-gray-400 text-xs">Duration</div>
                       <div className="flex items-center gap-1 mt-0.5">
-                        <Clock className="w-3 h-3 text-gray-500" />
+                        <Clock className="w-3 h-3 text-gray-500 dark:text-gray-400" />
                         {formatDuration(job.duration_seconds)}
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-gray-600 text-xs">Completed</div>
+                      <div className="text-gray-600 dark:text-gray-400 text-xs">Completed</div>
                       <div className="flex items-center gap-1 mt-0.5">
-                        <Calendar className="w-3 h-3 text-gray-500" />
+                        <Calendar className="w-3 h-3 text-gray-500 dark:text-gray-400" />
                         {job.completedAt ? formatDate(job.completedAt) : 'N/A'}
                       </div>
                     </div>
 
                     {job.materialType && (
                       <div className="col-span-2">
-                        <div className="text-gray-600 text-xs">Material</div>
+                        <div className="text-gray-600 dark:text-gray-400 text-xs">Material</div>
                         <div className="mt-0.5">
                           {job.materialType}
                           {job.materialColor && ` (${job.materialColor})`}
@@ -301,8 +321,8 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
 
                     {job.errorMessage && (
                       <div className="col-span-2">
-                        <div className="text-red-600 text-xs mb-1">Error</div>
-                        <div className="text-sm text-red-700 bg-red-50 p-2 rounded">
+                        <div className="text-red-600 dark:text-red-400 text-xs mb-1">Error</div>
+                        <div className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 p-2 rounded">
                           {job.errorMessage}
                         </div>
                       </div>
@@ -312,13 +332,13 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
                   {/* Progress Indicator (if not 100%) */}
                   {job.progress < 100 && job.status !== 'completed' && (
                     <div className="mt-3">
-                      <div className="w-full bg-gray-200 rounded-full h-1.5">
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                         <div
                           className="bg-blue-600 h-1.5 rounded-full transition-all"
                           style={{ width: `${job.progress}%` }}
                         />
                       </div>
-                      <div className="text-xs text-gray-600 mt-1">{job.progress.toFixed(1)}%</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{job.progress.toFixed(1)}%</div>
                     </div>
                   )}
                 </div>
