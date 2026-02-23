@@ -119,7 +119,7 @@ export function TimelineEditor({ className = '' }: TimelineEditorProps) {
     return (
       <div className={`flex items-center justify-center h-full bg-gray-900 text-gray-400 ${className}`}>
         <div className="text-center">
-          <Layers className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <Layers className="w-12 h-12 mx-auto mb-4 opacity-50" aria-hidden="true" />
           <p className="text-lg font-medium">No timeline loaded</p>
           <p className="text-sm mt-1">Create or load a project to get started</p>
         </div>
@@ -145,7 +145,7 @@ export function TimelineEditor({ className = '' }: TimelineEditorProps) {
               className="p-1 hover:bg-gray-600 rounded"
               title="Zoom Out"
             >
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut className="w-4 h-4" aria-hidden="true" />
             </button>
             <span className="text-xs w-12 text-center">{Math.round(view.zoom)}%</span>
             <button
@@ -153,14 +153,14 @@ export function TimelineEditor({ className = '' }: TimelineEditorProps) {
               className="p-1 hover:bg-gray-600 rounded"
               title="Zoom In"
             >
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn className="w-4 h-4" aria-hidden="true" />
             </button>
             <button
               onClick={timeline.zoomToFit}
               className="p-1 hover:bg-gray-600 rounded ml-1"
               title="Fit to View"
             >
-              <Maximize2 className="w-4 h-4" />
+              <Maximize2 className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
 

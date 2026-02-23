@@ -350,7 +350,7 @@ function ReviewStatusBadge({ status }: { status: DesignReview['status'] }) {
 
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-      <Icon size={12} />
+      <Icon size={12} aria-hidden="true" />
       {config.label}
     </span>
   );
@@ -412,7 +412,7 @@ export function DesignReviewWidget({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Star size={20} className="text-purple-600" />
+              <Star size={20} className="text-purple-600" aria-hidden="true" />
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">Design Review</h3>
@@ -424,7 +424,7 @@ export function DesignReviewWidget({
             <ReviewStatusBadge status={review.status} />
             {isDeadlineNear && (
               <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full">
-                <AlertTriangle size={12} />
+                <AlertTriangle size={12} aria-hidden="true" />
                 {hoursUntilDeadline}h left
               </span>
             )}
@@ -434,11 +434,11 @@ export function DesignReviewWidget({
         <div className="flex items-center justify-between text-sm text-gray-600">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
-              <User size={14} />
+              <User size={14} aria-hidden="true" />
               <span>Reviewer: {review.reviewer.name}</span>
             </div>
             <div className="flex items-center gap-1">
-              <Calendar size={14} />
+              <Calendar size={14} aria-hidden="true" />
               <span>Created: {review.createdAt.toLocaleDateString()}</span>
             </div>
           </div>
@@ -506,7 +506,7 @@ export function DesignReviewWidget({
                   : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
               }`}
             >
-              <Edit3 size={16} className="mr-2" />
+              <Edit3 size={16} className="mr-2" aria-hidden="true" />
               {isAnnotating ? 'Stop Annotating' : 'Add Annotations'}
             </button>
 
@@ -519,10 +519,10 @@ export function DesignReviewWidget({
 
           <div className="flex items-center gap-2">
             <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-              <Download size={16} />
+              <Download size={16} aria-hidden="true" />
             </button>
             <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-              <Share2 size={16} />
+              <Share2 size={16} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -545,7 +545,7 @@ export function DesignReviewWidget({
                   }`}
                   title={tool.name}
                 >
-                  <tool.icon size={16} />
+                  <tool.icon size={16} aria-hidden="true" />
                 </button>
               ))}
             </div>
@@ -599,7 +599,7 @@ export function DesignReviewWidget({
                 disabled={!feedback.trim()}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ThumbsUp size={16} />
+                <ThumbsUp size={16} aria-hidden="true" />
                 Approve
               </button>
 
@@ -608,7 +608,7 @@ export function DesignReviewWidget({
                 disabled={!feedback.trim()}
                 className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <Edit3 size={16} />
+                <Edit3 size={16} aria-hidden="true" />
                 Request Revision
               </button>
 
@@ -617,7 +617,7 @@ export function DesignReviewWidget({
                 disabled={!feedback.trim()}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ThumbsDown size={16} />
+                <ThumbsDown size={16} aria-hidden="true" />
                 Reject
               </button>
             </div>

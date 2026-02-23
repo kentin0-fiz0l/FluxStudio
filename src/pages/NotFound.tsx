@@ -24,25 +24,25 @@ const quickLinks: QuickLink[] = [
   {
     label: 'Dashboard',
     path: '/dashboard',
-    icon: <Home className="h-5 w-5" />,
+    icon: <Home className="h-5 w-5" aria-hidden="true" />,
     description: 'Go to your main dashboard',
   },
   {
     label: 'Projects',
     path: '/projects',
-    icon: <Folder className="h-5 w-5" />,
+    icon: <Folder className="h-5 w-5" aria-hidden="true" />,
     description: 'Browse your projects',
   },
   {
     label: 'Messages',
     path: '/messages',
-    icon: <MessageSquare className="h-5 w-5" />,
+    icon: <MessageSquare className="h-5 w-5" aria-hidden="true" />,
     description: 'Check your messages',
   },
   {
     label: 'Settings',
     path: '/settings',
-    icon: <Settings className="h-5 w-5" />,
+    icon: <Settings className="h-5 w-5" aria-hidden="true" />,
     description: 'Manage your account',
   },
 ];
@@ -101,7 +101,7 @@ export function NotFound() {
             <CardContent className="py-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <Search className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  <Search className="h-5 w-5 text-primary-600 dark:text-primary-400" aria-hidden="true" />
                   <div className="text-left">
                     <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                       Looking for "{suggestedSearch}"?
@@ -115,7 +115,7 @@ export function NotFound() {
                   variant="primary"
                   size="sm"
                   onClick={handleSearch}
-                  icon={<Search className="h-4 w-4" />}
+                  icon={<Search className="h-4 w-4" aria-hidden="true" />}
                 >
                   Search
                 </Button>
@@ -129,14 +129,14 @@ export function NotFound() {
           <Button
             variant="outline"
             onClick={() => navigate(-1)}
-            icon={<ArrowLeft className="h-4 w-4" />}
+            icon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}
           >
             Go Back
           </Button>
           <Button
             variant="primary"
             onClick={() => navigate('/dashboard')}
-            icon={<Home className="h-4 w-4" />}
+            icon={<Home className="h-4 w-4" aria-hidden="true" />}
           >
             Go to Dashboard
           </Button>

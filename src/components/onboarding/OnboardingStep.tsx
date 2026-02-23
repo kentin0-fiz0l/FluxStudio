@@ -61,7 +61,7 @@ export function OrganizationStep({ formData, updateFormData }: StepProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-blue-500" />
+          <Users className="h-5 w-5 text-blue-500" aria-hidden="true" />
           Organization Information
         </CardTitle>
         <CardDescription>Tell us about your organization so we can better understand your needs</CardDescription>
@@ -111,7 +111,7 @@ export function ProjectStep({ formData, updateFormData }: StepProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5 text-blue-500" />Project Details</CardTitle>
+        <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5 text-blue-500" aria-hidden="true" />Project Details</CardTitle>
         <CardDescription>Describe your creative vision and the type of services you need</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -171,7 +171,7 @@ export function ProjectStep({ formData, updateFormData }: StepProps) {
                   <CardContent className="p-4">
                     {key === 'elite' && (
                       <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                        <Badge className="bg-gradient-to-r from-purple-500 to-pink-500"><Star className="h-3 w-3 mr-1" />Recommended</Badge>
+                        <Badge className="bg-gradient-to-r from-purple-500 to-pink-500"><Star className="h-3 w-3 mr-1" aria-hidden="true" />Recommended</Badge>
                       </div>
                     )}
                     <h3 className="font-semibold text-gray-900 mb-2">{tier.name}</h3>
@@ -220,7 +220,7 @@ export function TimelineStep({ formData, updateFormData }: StepProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5 text-blue-500" />Timeline & Budget</CardTitle>
+        <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5 text-blue-500" aria-hidden="true" />Timeline & Budget</CardTitle>
         <CardDescription>Help us plan the perfect timeline and understand your investment level</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -272,7 +272,7 @@ export function RequirementsStep({ formData, updateFormData }: StepProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-blue-500" />Requirements & Preferences</CardTitle>
+        <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-blue-500" aria-hidden="true" />Requirements & Preferences</CardTitle>
         <CardDescription>Share any specific requirements, preferences, or additional details</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -331,7 +331,7 @@ export function ReviewStep({ formData, updateFormData }: StepProps) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-blue-500" />Review Your Request</CardTitle>
+          <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-blue-500" aria-hidden="true" />Review Your Request</CardTitle>
           <CardDescription>Please review all details before submitting your project request</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

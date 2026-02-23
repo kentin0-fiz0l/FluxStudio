@@ -141,7 +141,7 @@ export function AdminUsers() {
           <Link to="/admin" className="hover:text-gray-700 dark:hover:text-gray-300">
             {t('title', 'Admin')}
           </Link>
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4" aria-hidden="true" />
           <span className="text-gray-900 dark:text-gray-100">{t('users.title', 'Users')}</span>
         </div>
         <div className="flex items-center justify-between">
@@ -155,11 +155,11 @@ export function AdminUsers() {
           </div>
           <div className="flex items-center gap-3">
             <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4" aria-hidden="true" />
               Export
             </button>
             <button className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4" aria-hidden="true" />
               {t('users.add', 'Add User')}
             </button>
           </div>
@@ -171,7 +171,7 @@ export function AdminUsers() {
         <div className="p-4 flex flex-col sm:flex-row gap-4">
           {/* Search */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
             <input
               type="text"
               value={searchQuery}
@@ -183,7 +183,7 @@ export function AdminUsers() {
 
           {/* Status Filter */}
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400" />
+            <Filter className="w-4 h-4 text-gray-400" aria-hidden="true" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as FilterType)}
@@ -204,15 +204,15 @@ export function AdminUsers() {
               {selectedUsers.length} selected
             </span>
             <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
-              <UserCheck className="w-4 h-4" />
+              <UserCheck className="w-4 h-4" aria-hidden="true" />
               Enable
             </button>
             <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
-              <UserX className="w-4 h-4" />
+              <UserX className="w-4 h-4" aria-hidden="true" />
               Disable
             </button>
             <button className="text-sm text-red-600 dark:text-red-400 hover:underline flex items-center gap-1">
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-4 h-4" aria-hidden="true" />
               Delete
             </button>
           </div>
@@ -235,7 +235,7 @@ export function AdminUsers() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 <button className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
                   {t('users.columns.name', 'Name')}
-                  <ArrowUpDown className="w-3 h-3" />
+                  <ArrowUpDown className="w-3 h-3" aria-hidden="true" />
                 </button>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -298,36 +298,36 @@ export function AdminUsers() {
                       onClick={() => setOpenDropdown(openDropdown === user.id ? null : user.id)}
                       className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                     >
-                      <MoreHorizontal className="w-4 h-4" />
+                      <MoreHorizontal className="w-4 h-4" aria-hidden="true" />
                     </button>
                     {openDropdown === user.id && (
                       <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
                         <button className="w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-                          <Users className="w-4 h-4" />
+                          <Users className="w-4 h-4" aria-hidden="true" />
                           {t('users.actions.edit', 'Edit User')}
                         </button>
                         <button className="w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-                          <Key className="w-4 h-4" />
+                          <Key className="w-4 h-4" aria-hidden="true" />
                           {t('users.actions.resetPassword', 'Reset Password')}
                         </button>
                         <button className="w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-                          <Shield className="w-4 h-4" />
+                          <Shield className="w-4 h-4" aria-hidden="true" />
                           {t('users.actions.impersonate', 'Impersonate')}
                         </button>
                         <hr className="my-1 border-gray-200 dark:border-gray-700" />
                         {user.status === 'active' ? (
                           <button className="w-full px-4 py-2 text-sm text-left text-orange-600 dark:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-                            <UserX className="w-4 h-4" />
+                            <UserX className="w-4 h-4" aria-hidden="true" />
                             {t('users.actions.disable', 'Disable User')}
                           </button>
                         ) : (
                           <button className="w-full px-4 py-2 text-sm text-left text-green-600 dark:text-green-400 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-                            <UserCheck className="w-4 h-4" />
+                            <UserCheck className="w-4 h-4" aria-hidden="true" />
                             {t('users.actions.enable', 'Enable User')}
                           </button>
                         )}
                         <button className="w-full px-4 py-2 text-sm text-left text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
                           {t('users.actions.delete', 'Delete User')}
                         </button>
                       </div>
@@ -351,7 +351,7 @@ export function AdminUsers() {
               disabled={currentPage === 1}
               className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
             </button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
@@ -371,7 +371,7 @@ export function AdminUsers() {
               disabled={currentPage === totalPages}
               className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>

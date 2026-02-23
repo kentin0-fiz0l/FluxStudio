@@ -58,7 +58,7 @@ export function Profile() {
             </p>
           </div>
           <Button onClick={() => {}}>
-            <Edit className="w-4 h-4 mr-2" />
+            <Edit className="w-4 h-4 mr-2" aria-hidden="true" />
             Edit Profile
           </Button>
         </div>
@@ -70,7 +70,7 @@ export function Profile() {
             <Card className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
-                  <User className="w-5 h-5 text-primary-600" />
+                  <User className="w-5 h-5 text-primary-600" aria-hidden="true" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
@@ -137,7 +137,7 @@ export function Profile() {
             <Card className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-lg bg-success-100 flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-success-600" />
+                  <Shield className="w-5 h-5 text-success-600" aria-hidden="true" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
@@ -188,7 +188,7 @@ export function Profile() {
             {/* Account Stats */}
             <Card className="p-6">
               <div className="flex items-center gap-2 mb-6">
-                <BarChart3 className="w-5 h-5 text-primary-600" />
+                <BarChart3 className="w-5 h-5 text-primary-600" aria-hidden="true" />
                 <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
                   Account Stats
                 </h3>
@@ -197,11 +197,11 @@ export function Profile() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-neutral-100 dark:border-neutral-800">
                   <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
-                    <FileText className="w-4 h-4" />
+                    <FileText className="w-4 h-4" aria-hidden="true" />
                     <span className="text-sm">Projects Created</span>
                   </div>
                   {projectsLoading ? (
-                    <Loader2 className="w-5 h-5 text-primary-600 dark:text-primary-400 animate-spin" />
+                    <Loader2 className="w-5 h-5 text-primary-600 dark:text-primary-400 animate-spin" aria-hidden="true" />
                   ) : (
                     <span className="text-xl font-bold text-primary-600 dark:text-primary-400">{projects.length}</span>
                   )}
@@ -209,7 +209,7 @@ export function Profile() {
 
                 <div className="flex justify-between items-center py-3 border-b border-neutral-100 dark:border-neutral-800">
                   <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
-                    <FileText className="w-4 h-4" />
+                    <FileText className="w-4 h-4" aria-hidden="true" />
                     <span className="text-sm">Files Uploaded</span>
                   </div>
                   <span className="text-sm font-medium text-neutral-400 dark:text-neutral-500 italic" title="Coming soon">Coming soon</span>
@@ -217,7 +217,7 @@ export function Profile() {
 
                 <div className="flex justify-between items-center py-3">
                   <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
-                    <MessageSquare className="w-4 h-4" />
+                    <MessageSquare className="w-4 h-4" aria-hidden="true" />
                     <span className="text-sm">Messages Sent</span>
                   </div>
                   <span className="text-sm font-medium text-neutral-400 dark:text-neutral-500 italic" title="Coming soon">Coming soon</span>

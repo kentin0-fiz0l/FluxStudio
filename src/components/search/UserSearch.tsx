@@ -377,7 +377,7 @@ export function UserSearch({
                 aria-label={`Remove ${user.name}`}
                 className="h-5 w-5 p-0 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3 w-3" aria-hidden="true" />
               </Button>
             </div>
           ))}
@@ -441,7 +441,7 @@ export function UserSearch({
                       onClick={() => handleEmailInvite(searchQuery)}
                       className="mt-3"
                     >
-                      <UserPlus className="h-4 w-4 mr-2" />
+                      <UserPlus className="h-4 w-4 mr-2" aria-hidden="true" />
                       Invite {searchQuery}
                     </Button>
                   )}
@@ -466,7 +466,7 @@ export function UserSearch({
                 onClick={() => handleEmailInvite(searchQuery)}
                 className="w-full justify-start"
               >
-                <Mail className="h-4 w-4 mr-2" />
+                <Mail className="h-4 w-4 mr-2" aria-hidden="true" />
                 Invite "{searchQuery}" via email
               </Button>
             </div>

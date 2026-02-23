@@ -958,7 +958,7 @@ export function FormationCanvas({
 
   // Loading/error states
   if (apiLoading || (formationId && !formation)) {
-    return <div className="flex items-center justify-center h-full"><div className="flex flex-col items-center gap-2"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /><span className="text-sm text-gray-500">{t('formation.loading', 'Loading formation...')}</span></div></div>;
+    return <div className="flex items-center justify-center h-full"><div className="flex flex-col items-center gap-2"><Loader2 className="w-8 h-8 animate-spin text-blue-500" aria-hidden="true" /><span className="text-sm text-gray-500">{t('formation.loading', 'Loading formation...')}</span></div></div>;
   }
   if (apiError) {
     return <div className="flex items-center justify-center h-full"><div className="flex flex-col items-center gap-2 text-red-500"><span className="text-lg font-medium">{t('formation.errorLoading', 'Failed to load formation')}</span><span className="text-sm">{apiError}</span></div></div>;

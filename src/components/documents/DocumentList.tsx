@@ -210,7 +210,7 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
           </p>
         </div>
         <Button onClick={handleCreateDocument}>
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
           New Document
         </Button>
       </div>
@@ -229,7 +229,7 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
             </CardDescription>
             <div className="pt-4">
               <Button onClick={handleCreateDocument}>
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                 Create Your First Document
               </Button>
             </div>
@@ -265,7 +265,7 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                       <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Actions for ${document.title}`}>
-                        <MoreVertical className="h-4 w-4" />
+                        <MoreVertical className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -273,7 +273,7 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
                         e.stopPropagation();
                         onOpenDocument(document.id);
                       }}>
-                        <FileText className="mr-2 h-4 w-4" />
+                        <FileText className="mr-2 h-4 w-4" aria-hidden="true" />
                         Open
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
@@ -286,7 +286,7 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
                           }}
                           className="text-destructive"
                         >
-                          <Archive className="mr-2 h-4 w-4" />
+                          <Archive className="mr-2 h-4 w-4" aria-hidden="true" />
                           Archive
                         </DropdownMenuItem>
                       )}

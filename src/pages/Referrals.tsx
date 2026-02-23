@@ -139,7 +139,7 @@ export default function Referrals() {
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 space-y-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 rounded-lg">
-              <Gift className="w-5 h-5 text-blue-400" />
+              <Gift className="w-5 h-5 text-blue-400" aria-hidden="true" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-neutral-100">Your Referral Link</h2>
@@ -158,7 +158,7 @@ export default function Referrals() {
                 size="sm"
                 className="gap-1.5 shrink-0"
               >
-                {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                {copied ? <Check className="w-4 h-4 text-green-400" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
                 {copied ? 'Copied' : 'Copy'}
               </Button>
             </div>
@@ -169,12 +169,12 @@ export default function Referrals() {
         {stats && (
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 text-center">
-              <Users className="w-5 h-5 text-blue-400 mx-auto mb-2" />
+              <Users className="w-5 h-5 text-blue-400 mx-auto mb-2" aria-hidden="true" />
               <div className="text-2xl font-bold text-neutral-100">{stats.totalReferrals}</div>
               <div className="text-sm text-neutral-500">Total Referrals</div>
             </div>
             <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 text-center">
-              <ArrowRight className="w-5 h-5 text-green-400 mx-auto mb-2" />
+              <ArrowRight className="w-5 h-5 text-green-400 mx-auto mb-2" aria-hidden="true" />
               <div className="text-2xl font-bold text-neutral-100">{stats.converted}</div>
               <div className="text-sm text-neutral-500">Created a Project</div>
             </div>

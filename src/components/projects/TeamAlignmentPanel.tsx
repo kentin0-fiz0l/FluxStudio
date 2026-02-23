@@ -127,7 +127,7 @@ const AlignmentHealthBadge: React.FC<{
         )}
         title={reason}
       >
-        <Icon className="w-3 h-3" />
+        <Icon className="w-3 h-3" aria-hidden="true" />
         {label}
       </span>
       <span className="text-xs text-gray-400" title={reason}>
@@ -151,6 +151,7 @@ const DecisionRow: React.FC<{
   return (
     <div className="flex items-start gap-2 py-2 border-b border-gray-100 last:border-0">
       <CheckCircle2
+        aria-hidden="true"
         className={cn(
           'w-4 h-4 flex-shrink-0 mt-0.5',
           isAcknowledged ? 'text-green-500' : 'text-gray-300'
@@ -196,7 +197,7 @@ const QuestionRow: React.FC<{
 }> = ({ question, owner, onAssignToMe, onUnassign, onDiscuss }) => {
   return (
     <div className="flex items-start gap-2 py-2 border-b border-gray-100 last:border-0">
-      <HelpCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" />
+      <HelpCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" aria-hidden="true" />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-gray-700 line-clamp-2">{question.text}</p>
         <div className="flex items-center gap-2 mt-1">
@@ -207,7 +208,7 @@ const QuestionRow: React.FC<{
           )}
           {owner ? (
             <span className="text-xs text-blue-600 flex items-center gap-1">
-              <UserCheck className="w-3 h-3" />
+              <UserCheck className="w-3 h-3" aria-hidden="true" />
               {owner.userName}
             </span>
           ) : (
@@ -236,7 +237,7 @@ const QuestionRow: React.FC<{
           className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
           title="Discuss in messages"
         >
-          <MessageSquare className="w-3 h-3" />
+          <MessageSquare className="w-3 h-3" aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -437,7 +438,7 @@ export function TeamAlignmentPanel({
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-gray-400" />
+            <Users className="w-4 h-4 text-gray-400" aria-hidden="true" />
             <h4 className="text-sm font-medium text-gray-700">Team Alignment</h4>
             <span className="text-xs text-gray-400">(Local signals)</span>
           </div>
@@ -447,9 +448,9 @@ export function TeamAlignmentPanel({
             aria-label={isExpanded ? 'Collapse' : 'Expand'}
           >
             {isExpanded ? (
-              <ChevronUp className="w-4 h-4 text-gray-400" />
+              <ChevronUp className="w-4 h-4 text-gray-400" aria-hidden="true" />
             ) : (
-              <ChevronDown className="w-4 h-4 text-gray-400" />
+              <ChevronDown className="w-4 h-4 text-gray-400" aria-hidden="true" />
             )}
           </button>
         </div>
@@ -533,7 +534,7 @@ export function TeamAlignmentPanel({
                       onClick={handleSuggestionAction}
                       className="text-xs"
                     >
-                      <MessageSquare className="w-3 h-3 mr-1" />
+                      <MessageSquare className="w-3 h-3 mr-1" aria-hidden="true" />
                       Open Messages
                     </Button>
                   ) : null}

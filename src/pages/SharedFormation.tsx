@@ -107,7 +107,7 @@ export default function SharedFormation() {
       <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center max-w-md">
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Eye className="w-8 h-8 text-gray-400" />
+            <Eye className="w-8 h-8 text-gray-400" aria-hidden="true" />
           </div>
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
             Formation Not Found
@@ -120,7 +120,7 @@ export default function SharedFormation() {
               onClick={loadFormation}
               className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4" aria-hidden="true" />
               Retry
             </button>
             <button
@@ -181,7 +181,7 @@ export default function SharedFormation() {
             className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
           >
             Try FluxStudio
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -192,7 +192,7 @@ export default function SharedFormation() {
           <React.Suspense
             fallback={
               <div className="flex items-center justify-center h-full">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-500" aria-hidden="true" />
               </div>
             }
           >
@@ -243,7 +243,7 @@ export default function SharedFormation() {
 
         {/* Watermark */}
         <div className="absolute bottom-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-sm rounded-lg text-white/70 text-xs">
-          <RotateCcw className="w-3 h-3" />
+          <RotateCcw className="w-3 h-3" aria-hidden="true" />
           Made with FluxStudio
         </div>
       </div>

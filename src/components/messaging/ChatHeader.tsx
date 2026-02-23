@@ -61,7 +61,7 @@ export function ChatHeader({
           onClick={onBack}
           className="md:hidden p-2 -ml-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg flex-shrink-0"
         >
-          <ArrowLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+          <ArrowLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
         <Avatar user={conversation.participant} size="md" showStatus />
         <div className="min-w-0 flex-1">
@@ -87,10 +87,10 @@ export function ChatHeader({
           <Search className={`w-5 h-5 ${showMessageSearch ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'}`} />
         </button>
         <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="Voice call">
-          <Phone className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+          <Phone className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
         <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="Video call">
-          <Video className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+          <Video className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
         <button
           onClick={onTogglePinned}
@@ -107,7 +107,7 @@ export function ChatHeader({
           <Sparkles className={`w-5 h-5 ${showSummary ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'}`} />
         </button>
         <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="More options">
-          <MoreVertical className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+          <MoreVertical className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
       </div>
     </div>

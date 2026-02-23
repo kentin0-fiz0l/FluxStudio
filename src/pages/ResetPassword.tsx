@@ -122,7 +122,7 @@ export function ResetPassword() {
               className="text-center"
             >
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-r from-green-400 to-blue-500 flex items-center justify-center">
-                <CheckCircle className="h-12 w-12 text-white" />
+                <CheckCircle className="h-12 w-12 text-white" aria-hidden="true" />
               </div>
               <h2 className="text-2xl font-bold mb-4">Password Reset!</h2>
               <p className="text-gray-400 mb-6">
@@ -145,7 +145,7 @@ export function ResetPassword() {
             <>
               <div className="text-center mb-6">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 flex items-center justify-center">
-                  <Lock className="h-8 w-8 text-orange-400" />
+                  <Lock className="h-8 w-8 text-orange-400" aria-hidden="true" />
                 </div>
                 <h2 className="text-2xl font-bold mb-2">Create new password</h2>
                 <p className="text-gray-400">
@@ -175,7 +175,7 @@ export function ResetPassword() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                     >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      {showPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
                     </button>
                   </div>
                   {/* Password strength indicator */}
@@ -222,7 +222,7 @@ export function ResetPassword() {
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                     >
-                      {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      {showConfirmPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
                     </button>
                   </div>
                   {/* Match indicator */}
@@ -230,7 +230,7 @@ export function ResetPassword() {
                     <div className="mt-2 flex items-center text-xs">
                       {password === confirmPassword ? (
                         <span className="text-green-400 flex items-center">
-                          <ShieldCheck className="h-4 w-4 mr-1" />
+                          <ShieldCheck className="h-4 w-4 mr-1" aria-hidden="true" />
                           Passwords match
                         </span>
                       ) : (
@@ -247,7 +247,7 @@ export function ResetPassword() {
                     className="bg-red-500/10 border border-red-500/20 rounded-lg p-4"
                   >
                     <div className="flex items-start">
-                      <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 mr-2 flex-shrink-0" />
+                      <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 mr-2 flex-shrink-0" aria-hidden="true" />
                       <div>
                         <p className="text-sm text-red-400">{message}</p>
                         {message.includes('expired') && (
@@ -272,7 +272,7 @@ export function ResetPassword() {
                 >
                   {status === 'loading' ? (
                     <>
-                      <Loader className="h-5 w-5 mr-2 animate-spin" />
+                      <Loader className="h-5 w-5 mr-2 animate-spin" aria-hidden="true" />
                       Resetting...
                     </>
                   ) : (

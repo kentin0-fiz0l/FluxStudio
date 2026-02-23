@@ -137,9 +137,9 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
   }, [activeTab, handleStop]);
 
   const tabs: { key: AITab; label: string; icon: React.ReactNode }[] = [
-    { key: 'analyze', label: 'Analyze', icon: <Sparkles className="w-3.5 h-3.5" /> },
-    { key: 'chords', label: 'Chords', icon: <Music className="w-3.5 h-3.5" /> },
-    { key: 'practice', label: 'Practice', icon: <BarChart3 className="w-3.5 h-3.5" /> },
+    { key: 'analyze', label: 'Analyze', icon: <Sparkles className="w-3.5 h-3.5" aria-hidden="true" /> },
+    { key: 'chords', label: 'Chords', icon: <Music className="w-3.5 h-3.5" aria-hidden="true" /> },
+    { key: 'practice', label: 'Practice', icon: <BarChart3 className="w-3.5 h-3.5" aria-hidden="true" /> },
   ];
 
   return (
@@ -147,7 +147,7 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
       {/* Header */}
       <div className="px-3 py-2 border-b border-neutral-200 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-violet-600" />
+          <Sparkles className="w-4 h-4 text-violet-600" aria-hidden="true" />
           <span className="text-sm font-medium text-neutral-800">AI Co-Pilot</span>
         </div>
         <button
@@ -155,7 +155,7 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
           className="p-1 text-neutral-400 hover:text-neutral-600 transition-colors"
           aria-label="Close AI panel"
         >
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
 
@@ -194,14 +194,14 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
                 <option value="harmony">Harmony & Chords</option>
                 <option value="arrangement">Arrangement & Dynamics</option>
               </select>
-              <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" aria-hidden="true" />
             </div>
             <button
               onClick={handleAnalyze}
               disabled={isStreaming}
               className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs bg-violet-600 text-white rounded hover:bg-violet-700 disabled:opacity-50 transition-colors"
             >
-              {isStreaming ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              {isStreaming ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> : <Sparkles className="w-3 h-3" aria-hidden="true" />}
               Analyze Song
             </button>
           </>
@@ -223,7 +223,7 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" aria-hidden="true" />
             </div>
             <input
               type="text"
@@ -246,7 +246,7 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
               disabled={isStreaming || sections.length === 0}
               className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs bg-violet-600 text-white rounded hover:bg-violet-700 disabled:opacity-50 transition-colors"
             >
-              {isStreaming ? <Loader2 className="w-3 h-3 animate-spin" /> : <Music className="w-3 h-3" />}
+              {isStreaming ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> : <Music className="w-3 h-3" aria-hidden="true" />}
               Suggest Chords
             </button>
             {sections.length === 0 && (
@@ -263,7 +263,7 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
             disabled={isStreaming}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs bg-violet-600 text-white rounded hover:bg-violet-700 disabled:opacity-50 transition-colors"
           >
-            {isStreaming ? <Loader2 className="w-3 h-3 animate-spin" /> : <BarChart3 className="w-3 h-3" />}
+            {isStreaming ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> : <BarChart3 className="w-3 h-3" aria-hidden="true" />}
             Get Practice Insights
           </button>
         )}
@@ -277,7 +277,7 @@ export const MetMapAIPanel = React.memo(function MetMapAIPanel({
               onClick={handleStop}
               className="flex items-center gap-1 px-2 py-1 text-[10px] bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
             >
-              <Square className="w-2.5 h-2.5" />
+              <Square className="w-2.5 h-2.5" aria-hidden="true" />
               Stop
             </button>
           </div>

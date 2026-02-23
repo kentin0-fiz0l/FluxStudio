@@ -207,7 +207,7 @@ function BoardNodeComponent({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
-            <Image className="w-8 h-8" />
+            <Image className="w-8 h-8" aria-hidden="true" />
           </div>
         );
       default:
@@ -250,7 +250,7 @@ function BoardNodeComponent({
       {/* Lock indicator */}
       {(node.locked || isLockedByOther) && (
         <div className="absolute -top-6 left-0 bg-gray-800 text-white text-xs px-1.5 py-0.5 rounded">
-          <Lock className="w-3 h-3 inline" /> {isLockedByOther ? 'In use' : 'Locked'}
+          <Lock className="w-3 h-3 inline" aria-hidden="true" /> {isLockedByOther ? 'In use' : 'Locked'}
         </div>
       )}
     </div>
@@ -572,7 +572,7 @@ export default function DesignBoardPage() {
         <div className="flex items-center justify-between px-4 py-2 border-b bg-white">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={handleBack}>
-              <ArrowLeft className="w-4 h-4 mr-1" />
+              <ArrowLeft className="w-4 h-4 mr-1" aria-hidden="true" />
               Back
             </Button>
 
@@ -598,22 +598,22 @@ export default function DesignBoardPage() {
             {/* Collaborators */}
             {collaborators.length > 0 && (
               <div className="flex items-center gap-1 mr-2">
-                <Users className="w-4 h-4 text-gray-400" />
+                <Users className="w-4 h-4 text-gray-400" aria-hidden="true" />
                 <span className="text-sm text-gray-600">{collaborators.length}</span>
               </div>
             )}
 
             {/* Add node buttons */}
             <Button variant="outline" size="sm" onClick={() => handleAddNode('text')}>
-              <Type className="w-4 h-4 mr-1" />
+              <Type className="w-4 h-4 mr-1" aria-hidden="true" />
               Text
             </Button>
             <Button variant="outline" size="sm" onClick={() => handleAddNode('shape')}>
-              <Square className="w-4 h-4 mr-1" />
+              <Square className="w-4 h-4 mr-1" aria-hidden="true" />
               Shape
             </Button>
             <Button variant="outline" size="sm" onClick={() => handleAddNode('asset')}>
-              <Image className="w-4 h-4 mr-1" />
+              <Image className="w-4 h-4 mr-1" aria-hidden="true" />
               Asset
             </Button>
 
@@ -621,11 +621,11 @@ export default function DesignBoardPage() {
 
             {/* Zoom controls */}
             <Button variant="ghost" size="sm" onClick={handleZoomOut}>
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut className="w-4 h-4" aria-hidden="true" />
             </Button>
             <span className="text-sm text-gray-600 w-12 text-center">{Math.round(scale * 100)}%</span>
             <Button variant="ghost" size="sm" onClick={handleZoomIn}>
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn className="w-4 h-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -785,12 +785,12 @@ export default function DesignBoardPage() {
                   >
                     {selectedNode.locked ? (
                       <>
-                        <Unlock className="w-4 h-4 mr-1" />
+                        <Unlock className="w-4 h-4 mr-1" aria-hidden="true" />
                         Unlock
                       </>
                     ) : (
                       <>
-                        <Lock className="w-4 h-4 mr-1" />
+                        <Lock className="w-4 h-4 mr-1" aria-hidden="true" />
                         Lock
                       </>
                     )}
@@ -801,7 +801,7 @@ export default function DesignBoardPage() {
                     onClick={() => handleDeleteNode(selectedNode.id)}
                     className="text-red-600 hover:bg-red-50"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>

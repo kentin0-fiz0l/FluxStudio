@@ -52,13 +52,13 @@ function MessageBubble({ message, isOwn, showAvatar, onEdit, onDelete, onReply }
   const getStatusIcon = () => {
     switch (message.status) {
       case 'sending':
-        return <Clock className="h-3 w-3 text-gray-400" />;
+        return <Clock className="h-3 w-3 text-gray-400" aria-hidden="true" />;
       case 'sent':
-        return <Check className="h-3 w-3 text-gray-400" />;
+        return <Check className="h-3 w-3 text-gray-400" aria-hidden="true" />;
       case 'delivered':
-        return <CheckCheck className="h-3 w-3 text-gray-400" />;
+        return <CheckCheck className="h-3 w-3 text-gray-400" aria-hidden="true" />;
       case 'read':
-        return <CheckCheck className="h-3 w-3 text-blue-400" />;
+        return <CheckCheck className="h-3 w-3 text-blue-400" aria-hidden="true" />;
       default:
         return null;
     }
@@ -122,9 +122,9 @@ function MessageBubble({ message, isOwn, showAvatar, onEdit, onDelete, onReply }
                 >
                   <div className="flex items-center gap-3">
                     {attachment.isImage ? (
-                      <Image className="h-4 w-4 text-white/70" />
+                      <Image className="h-4 w-4 text-white/70" aria-hidden="true" />
                     ) : (
-                      <File className="h-4 w-4 text-white/70" />
+                      <File className="h-4 w-4 text-white/70" aria-hidden="true" />
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{attachment.name}</p>
@@ -164,7 +164,7 @@ function MessageBubble({ message, isOwn, showAvatar, onEdit, onDelete, onReply }
                   onClick={() => onReply?.(message.id)}
                   className="h-6 w-6 p-0 text-white/70 hover:text-white hover:bg-white/10"
                 >
-                  <Reply className="h-3 w-3" />
+                  <Reply className="h-3 w-3" aria-hidden="true" />
                 </Button>
                 {isOwn && (
                   <>
@@ -174,7 +174,7 @@ function MessageBubble({ message, isOwn, showAvatar, onEdit, onDelete, onReply }
                       onClick={() => onEdit?.(message.id)}
                       className="h-6 w-6 p-0 text-white/70 hover:text-white hover:bg-white/10"
                     >
-                      <Edit className="h-3 w-3" />
+                      <Edit className="h-3 w-3" aria-hidden="true" />
                     </Button>
                     <Button
                       size="sm"
@@ -182,7 +182,7 @@ function MessageBubble({ message, isOwn, showAvatar, onEdit, onDelete, onReply }
                       onClick={() => onDelete?.(message.id)}
                       className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3 w-3" aria-hidden="true" />
                     </Button>
                   </>
                 )}
@@ -205,15 +205,15 @@ function ConversationItem({ conversation, isActive, onClick }: ConversationItemP
   const getConversationIcon = () => {
     switch (conversation.type) {
       case 'direct':
-        return <Users className="h-4 w-4" />;
+        return <Users className="h-4 w-4" aria-hidden="true" />;
       case 'project':
-        return <Hash className="h-4 w-4" />;
+        return <Hash className="h-4 w-4" aria-hidden="true" />;
       case 'team':
-        return <Users className="h-4 w-4" />;
+        return <Users className="h-4 w-4" aria-hidden="true" />;
       case 'broadcast':
-        return <Globe className="h-4 w-4" />;
+        return <Globe className="h-4 w-4" aria-hidden="true" />;
       default:
-        return <MessageSquare className="h-4 w-4" />;
+        return <MessageSquare className="h-4 w-4" aria-hidden="true" />;
     }
   };
 
@@ -266,10 +266,10 @@ function ConversationItem({ conversation, isActive, onClick }: ConversationItemP
             </h4>
             <div className="flex items-center gap-2">
               {conversation.metadata.isPinned && (
-                <Pin className="h-3 w-3 text-yellow-400" />
+                <Pin className="h-3 w-3 text-yellow-400" aria-hidden="true" />
               )}
               {conversation.metadata.isMuted && (
-                <VolumeX className="h-3 w-3 text-gray-400" />
+                <VolumeX className="h-3 w-3 text-gray-400" aria-hidden="true" />
               )}
               <span className="text-xs text-gray-400">
                 {formatLastActivity(conversation.lastActivity)}
@@ -373,10 +373,10 @@ export function MessagesWidget(props: WidgetProps) {
             onClick={() => {}}
             className="h-7 px-2 text-xs text-white/70 hover:text-white hover:bg-white/10"
           >
-            <ArrowRight className="h-3 w-3 mr-1" />
+            <ArrowRight className="h-3 w-3 mr-1" aria-hidden="true" />
             Full View
           </Button>
-          <MessageSquare className="h-4 w-4 text-green-400" />
+          <MessageSquare className="h-4 w-4 text-green-400" aria-hidden="true" />
         </div>
       }
       className="flex flex-col"
@@ -394,7 +394,7 @@ export function MessagesWidget(props: WidgetProps) {
               {/* Search */}
               <div className="p-3 border-b border-white/10">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
                   <Input
                     placeholder="Search conversations..."
                     className="pl-10 bg-white/10 border-white/20 text-white placeholder-gray-400 h-8"
@@ -406,17 +406,17 @@ export function MessagesWidget(props: WidgetProps) {
               <div className="flex-1 overflow-y-auto">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <RefreshCw className="h-6 w-6 animate-spin text-white/50" />
+                    <RefreshCw className="h-6 w-6 animate-spin text-white/50" aria-hidden="true" />
                   </div>
                 ) : conversations.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <MessageSquare className="h-8 w-8 text-gray-500 mb-3" />
+                    <MessageSquare className="h-8 w-8 text-gray-500 mb-3" aria-hidden="true" />
                     <p className="text-gray-400 text-sm">No conversations yet</p>
                     <Button
                       size="sm"
                       className="mt-3 bg-blue-500 hover:bg-blue-600 text-white"
                     >
-                      <Plus className="h-3 w-3 mr-1" />
+                      <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
                       New Chat
                     </Button>
                   </div>
@@ -453,7 +453,7 @@ export function MessagesWidget(props: WidgetProps) {
                     onClick={() => setShowConversationList(true)}
                     className="md:hidden h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
                   >
-                    <ArrowRight className="h-4 w-4 rotate-180" />
+                    <ArrowRight className="h-4 w-4 rotate-180" aria-hidden="true" />
                   </Button>
                   <div>
                     <h3 className="font-medium text-white text-sm">
@@ -470,21 +470,21 @@ export function MessagesWidget(props: WidgetProps) {
                     size="sm"
                     className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
                   >
-                    <Phone className="h-4 w-4" />
+                    <Phone className="h-4 w-4" aria-hidden="true" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
                   >
-                    <Video className="h-4 w-4" />
+                    <Video className="h-4 w-4" aria-hidden="true" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
                   >
-                    <Info className="h-4 w-4" />
+                    <Info className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
@@ -515,7 +515,7 @@ export function MessagesWidget(props: WidgetProps) {
                     size="sm"
                     className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
                   >
-                    <Paperclip className="h-4 w-4" />
+                    <Paperclip className="h-4 w-4" aria-hidden="true" />
                   </Button>
                   <div className="flex-1 relative">
                     <textarea
@@ -539,14 +539,14 @@ export function MessagesWidget(props: WidgetProps) {
                     size="sm"
                     className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
                   >
-                    <Smile className="h-4 w-4" />
+                    <Smile className="h-4 w-4" aria-hidden="true" />
                   </Button>
                   <Button
                     onClick={handleSendMessage}
                     disabled={!messageText.trim()}
                     className="h-10 w-10 p-0 bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:text-white/30"
                   >
-                    <Send className="h-4 w-4" />
+                    <Send className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
@@ -554,7 +554,7 @@ export function MessagesWidget(props: WidgetProps) {
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <MessageSquare className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+                <MessageSquare className="h-16 w-16 text-gray-500 mx-auto mb-4" aria-hidden="true" />
                 <h3 className="text-lg font-semibold text-white mb-2">
                   Select a conversation
                 </h3>
@@ -562,7 +562,7 @@ export function MessagesWidget(props: WidgetProps) {
                   Choose from existing conversations or start a new one
                 </p>
                 <Button className="bg-blue-500 hover:bg-blue-600 text-white">
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
                   New Conversation
                 </Button>
               </div>

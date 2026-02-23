@@ -206,7 +206,7 @@ const ConsultationCard = React.memo(function ConsultationCard({
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <TypeIcon size={16} className="text-gray-600 dark:text-gray-400" />
+              <TypeIcon size={16} className="text-gray-600 dark:text-gray-400" aria-hidden="true" />
               <h3 className="font-semibold text-gray-900 dark:text-white">{consultation.title}</h3>
               {isToday && (
                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
@@ -218,15 +218,15 @@ const ConsultationCard = React.memo(function ConsultationCard({
 
             <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
               <div className="flex items-center gap-1">
-                <Calendar size={14} />
+                <Calendar size={14} aria-hidden="true" />
                 <span>{dateTime.date}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Clock size={14} />
+                <Clock size={14} aria-hidden="true" />
                 <span>{dateTime.time} ({consultation.duration}min)</span>
               </div>
               <div className="flex items-center gap-1">
-                <Users size={14} />
+                <Users size={14} aria-hidden="true" />
                 <span>{consultation.participants.length} participants</span>
               </div>
             </div>
@@ -234,7 +234,7 @@ const ConsultationCard = React.memo(function ConsultationCard({
 
           <div className="flex items-center gap-2">
             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusConfig.bg} ${statusConfig.text}`}>
-              <StatusIcon size={12} />
+              <StatusIcon size={12} aria-hidden="true" />
               {statusConfig.label}
             </span>
 
@@ -242,7 +242,7 @@ const ConsultationCard = React.memo(function ConsultationCard({
               onClick={() => setShowDetails(!showDetails)}
               className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <MoreVertical size={16} />
+              <MoreVertical size={16} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -283,7 +283,7 @@ const ConsultationCard = React.memo(function ConsultationCard({
                 onClick={() => onJoin(consultation.id)}
                 className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
               >
-                <Video size={14} />
+                <Video size={14} aria-hidden="true" />
                 Join
               </button>
             )}
@@ -299,7 +299,7 @@ const ConsultationCard = React.memo(function ConsultationCard({
                     }}
                     className="flex items-center gap-1 px-3 py-1 border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm"
                   >
-                    <Edit size={14} />
+                    <Edit size={14} aria-hidden="true" />
                     Reschedule
                   </button>
                 )}
@@ -309,7 +309,7 @@ const ConsultationCard = React.memo(function ConsultationCard({
                     onClick={() => onCancel(consultation.id)}
                     className="flex items-center gap-1 px-3 py-1 border border-red-200 text-red-700 rounded-md hover:bg-red-50 transition-colors text-sm"
                   >
-                    <XCircle size={14} />
+                    <XCircle size={14} aria-hidden="true" />
                     Cancel
                   </button>
                 )}
@@ -351,7 +351,7 @@ const ConsultationCard = React.memo(function ConsultationCard({
                   <ul className="space-y-1">
                     {consultation.outcomes.map((outcome, index) => (
                       <li key={index} className="text-sm text-green-700 flex items-start gap-2">
-                        <CheckCircle size={14} className="text-green-600 mt-0.5 flex-shrink-0" />
+                        <CheckCircle size={14} className="text-green-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
                         <span>{outcome}</span>
                       </li>
                     ))}
@@ -366,7 +366,7 @@ const ConsultationCard = React.memo(function ConsultationCard({
                   <ul className="space-y-1">
                     {consultation.followUpTasks.map((task, index) => (
                       <li key={index} className="text-sm text-orange-700 flex items-start gap-2">
-                        <AlertCircle size={14} className="text-orange-600 mt-0.5 flex-shrink-0" />
+                        <AlertCircle size={14} className="text-orange-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
                         <span>{task}</span>
                       </li>
                     ))}
@@ -444,7 +444,7 @@ function ScheduleConsultationForm({
           onClick={onCancel}
           className="text-gray-400 hover:text-gray-600 transition-colors"
         >
-          <XCircle size={20} />
+          <XCircle size={20} aria-hidden="true" />
         </button>
       </div>
 
@@ -546,7 +546,7 @@ function ScheduleConsultationForm({
                     onClick={() => removeAgendaItem(index)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={16} aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -556,7 +556,7 @@ function ScheduleConsultationForm({
               onClick={addAgendaItem}
               className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium"
             >
-              <Plus size={16} />
+              <Plus size={16} aria-hidden="true" />
               Add agenda item
             </button>
           </div>
@@ -637,7 +637,7 @@ export function ConsultationWidget({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Video size={20} className="text-green-600" />
+              <Video size={20} className="text-green-600" aria-hidden="true" />
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white">Consultations</h3>
@@ -649,7 +649,7 @@ export function ConsultationWidget({
             onClick={() => setShowScheduleForm(true)}
             className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            <Plus size={16} />
+            <Plus size={16} aria-hidden="true" />
             <span className="text-sm font-medium">Schedule</span>
           </button>
         </div>
@@ -703,7 +703,7 @@ export function ConsultationWidget({
             >
               {filteredConsultations.length === 0 ? (
                 <div className="text-center py-8">
-                  <Calendar size={32} className="mx-auto text-gray-300 mb-3" />
+                  <Calendar size={32} className="mx-auto text-gray-300 mb-3" aria-hidden="true" />
                   <p className="text-gray-500 text-sm">
                     {activeTab === 'upcoming' ? 'No upcoming consultations' :
                      activeTab === 'completed' ? 'No completed consultations' :

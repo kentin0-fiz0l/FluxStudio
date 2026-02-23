@@ -75,18 +75,18 @@ export function TestScenarioList({
               </div>
               <div className="flex items-center gap-2">
                 {outcome?.status === 'completed' && (
-                  <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <Check className="h-5 w-5 text-green-600 dark:text-green-400" aria-hidden="true" />
                 )}
                 {outcome?.status === 'stuck' && (
-                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" aria-hidden="true" />
                 )}
                 {outcome?.status === 'started' && (
                   <span className="text-xs text-amber-600 dark:text-amber-400">In progress</span>
                 )}
                 {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-neutral-400" />
+                  <ChevronDown className="h-4 w-4 text-neutral-400" aria-hidden="true" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-neutral-400" />
+                  <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden="true" />
                 )}
               </div>
             </button>
@@ -96,14 +96,14 @@ export function TestScenarioList({
                 <div className="flex flex-wrap gap-2 mb-3">
                   {outcome?.status === 'pending' && (
                     <Button size="sm" variant="outline" onClick={() => onStart(task.id)}>
-                      <Play className="h-3 w-3 mr-1" />
+                      <Play className="h-3 w-3 mr-1" aria-hidden="true" />
                       Start
                     </Button>
                   )}
                   {(outcome?.status === 'pending' || outcome?.status === 'started') && (
                     <>
                       <Button size="sm" variant="primary" onClick={() => onComplete(task.id)}>
-                        <Check className="h-3 w-3 mr-1" />
+                        <Check className="h-3 w-3 mr-1" aria-hidden="true" />
                         Complete
                       </Button>
                       <Button
@@ -112,14 +112,14 @@ export function TestScenarioList({
                         onClick={() => onStuck(task.id)}
                         className="text-red-600 hover:bg-red-50 dark:text-red-400"
                       >
-                        <AlertCircle className="h-3 w-3 mr-1" />
+                        <AlertCircle className="h-3 w-3 mr-1" aria-hidden="true" />
                         Stuck
                       </Button>
                     </>
                   )}
                   {(outcome?.status === 'completed' || outcome?.status === 'stuck') && (
                     <Button size="sm" variant="ghost" onClick={() => onStart(task.id)}>
-                      <RefreshCw className="h-3 w-3 mr-1" />
+                      <RefreshCw className="h-3 w-3 mr-1" aria-hidden="true" />
                       Retry
                     </Button>
                   )}

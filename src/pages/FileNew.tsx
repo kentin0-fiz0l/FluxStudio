@@ -34,25 +34,25 @@ type ViewMode = 'grid' | 'list';
 
 // File type icons
 const fileTypeIcons: Record<string, React.ReactNode> = {
-  image: <Image className="h-5 w-5 text-blue-500" />,
-  video: <Video className="h-5 w-5 text-purple-500" />,
-  audio: <Music className="h-5 w-5 text-pink-500" />,
-  document: <FileText className="h-5 w-5 text-orange-500" />,
-  pdf: <FileText className="h-5 w-5 text-red-500" />,
-  text: <Code className="h-5 w-5 text-green-500" />,
-  code: <Code className="h-5 w-5 text-green-500" />,
-  archive: <Archive className="h-5 w-5 text-amber-500" />,
-  other: <File className="h-5 w-5 text-neutral-400" />
+  image: <Image className="h-5 w-5 text-blue-500" aria-hidden="true" />,
+  video: <Video className="h-5 w-5 text-purple-500" aria-hidden="true" />,
+  audio: <Music className="h-5 w-5 text-pink-500" aria-hidden="true" />,
+  document: <FileText className="h-5 w-5 text-orange-500" aria-hidden="true" />,
+  pdf: <FileText className="h-5 w-5 text-red-500" aria-hidden="true" />,
+  text: <Code className="h-5 w-5 text-green-500" aria-hidden="true" />,
+  code: <Code className="h-5 w-5 text-green-500" aria-hidden="true" />,
+  archive: <Archive className="h-5 w-5 text-amber-500" aria-hidden="true" />,
+  other: <File className="h-5 w-5 text-neutral-400" aria-hidden="true" />
 };
 
 const sourceIcons: Record<string, React.ReactNode> = {
-  upload: <Upload className="h-4 w-4" />,
-  connector: <Cloud className="h-4 w-4" />,
-  github: <Github className="h-4 w-4" />,
-  google_drive: <Cloud className="h-4 w-4" />,
-  dropbox: <Cloud className="h-4 w-4" />,
-  onedrive: <HardDrive className="h-4 w-4" />,
-  generated: <File className="h-4 w-4" />
+  upload: <Upload className="h-4 w-4" aria-hidden="true" />,
+  connector: <Cloud className="h-4 w-4" aria-hidden="true" />,
+  github: <Github className="h-4 w-4" aria-hidden="true" />,
+  google_drive: <Cloud className="h-4 w-4" aria-hidden="true" />,
+  dropbox: <Cloud className="h-4 w-4" aria-hidden="true" />,
+  onedrive: <HardDrive className="h-4 w-4" aria-hidden="true" />,
+  generated: <File className="h-4 w-4" aria-hidden="true" />
 };
 
 // Inline file card component
@@ -93,8 +93,8 @@ const FileCardItem: React.FC<FileCardItemProps> = ({ file, view, onPreview, onDo
               <Badge variant="default" size="sm" className="flex items-center gap-1 bg-white/90">{sourceIcon}<span className="capitalize">{file.provider || file.source}</span></Badge>
             </div>
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-              <Button variant="ghost" size="icon" className="bg-white/90 hover:bg-white text-neutral-900" onClick={(e) => { e.stopPropagation(); onPreview(file); }} aria-label="Preview file"><Eye className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" className="bg-white/90 hover:bg-white text-neutral-900" onClick={(e) => { e.stopPropagation(); onDownload(file); }} aria-label="Download file"><Download className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" className="bg-white/90 hover:bg-white text-neutral-900" onClick={(e) => { e.stopPropagation(); onPreview(file); }} aria-label="Preview file"><Eye className="h-4 w-4" aria-hidden="true" /></Button>
+              <Button variant="ghost" size="icon" className="bg-white/90 hover:bg-white text-neutral-900" onClick={(e) => { e.stopPropagation(); onDownload(file); }} aria-label="Download file"><Download className="h-4 w-4" aria-hidden="true" /></Button>
             </div>
           </div>
           <div className="flex items-start justify-between gap-2">
@@ -104,14 +104,14 @@ const FileCardItem: React.FC<FileCardItemProps> = ({ file, view, onPreview, onDo
               {file.projectName && <div className="text-xs text-primary-600 mt-1 truncate">Linked to: {file.projectName}</div>}
             </div>
             <div className="relative" ref={menuRef}>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} aria-label="More options"><MoreVertical className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} aria-label="More options"><MoreVertical className="h-4 w-4" aria-hidden="true" /></Button>
               {showMenu && (
                 <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-10">
-                  <button onClick={(e) => { e.stopPropagation(); onRename(file); setShowMenu(false); }} className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2"><Pencil className="h-4 w-4" /> Rename</button>
-                  <button onClick={(e) => { e.stopPropagation(); onLinkProject(file); setShowMenu(false); }} className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2"><Link2 className="h-4 w-4" /> {file.projectId ? 'Change Project' : 'Link to Project'}</button>
-                  <button onClick={(e) => { e.stopPropagation(); onDownload(file); setShowMenu(false); }} className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2"><Download className="h-4 w-4" /> Download</button>
+                  <button onClick={(e) => { e.stopPropagation(); onRename(file); setShowMenu(false); }} className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2"><Pencil className="h-4 w-4" aria-hidden="true" /> Rename</button>
+                  <button onClick={(e) => { e.stopPropagation(); onLinkProject(file); setShowMenu(false); }} className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2"><Link2 className="h-4 w-4" aria-hidden="true" /> {file.projectId ? 'Change Project' : 'Link to Project'}</button>
+                  <button onClick={(e) => { e.stopPropagation(); onDownload(file); setShowMenu(false); }} className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 flex items-center gap-2"><Download className="h-4 w-4" aria-hidden="true" /> Download</button>
                   <hr className="my-1" />
-                  <button onClick={(e) => { e.stopPropagation(); onDelete(file); setShowMenu(false); }} className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 className="h-4 w-4" /> Delete</button>
+                  <button onClick={(e) => { e.stopPropagation(); onDelete(file); setShowMenu(false); }} className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 className="h-4 w-4" aria-hidden="true" /> Delete</button>
                 </div>
               )}
             </div>
@@ -137,10 +137,10 @@ const FileCardItem: React.FC<FileCardItemProps> = ({ file, view, onPreview, onDo
             </div>
           </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onPreview(file); }} aria-label="Preview"><Eye className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDownload(file); }} aria-label="Download"><Download className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onRename(file); }} aria-label="Rename"><Pencil className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDelete(file); }} className="text-red-600" aria-label="Delete"><Trash2 className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onPreview(file); }} aria-label="Preview"><Eye className="h-4 w-4" aria-hidden="true" /></Button>
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDownload(file); }} aria-label="Download"><Download className="h-4 w-4" aria-hidden="true" /></Button>
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onRename(file); }} aria-label="Rename"><Pencil className="h-4 w-4" aria-hidden="true" /></Button>
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDelete(file); }} className="text-red-600" aria-label="Delete"><Trash2 className="h-4 w-4" aria-hidden="true" /></Button>
           </div>
         </div>
       </CardContent>
@@ -248,7 +248,7 @@ export function FileNew() {
         {isDragging && (
           <div className="fixed inset-0 bg-primary-500/10 z-50 flex items-center justify-center pointer-events-none">
             <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-              <Upload className="h-16 w-16 text-primary-600 mx-auto mb-4" />
+              <Upload className="h-16 w-16 text-primary-600 mx-auto mb-4" aria-hidden="true" />
               <h3 className="text-xl font-semibold text-neutral-900">Drop files to upload</h3>
             </div>
           </div>
@@ -267,14 +267,14 @@ export function FileNew() {
           </div>
         ) : state.files.length === 0 ? (
           <div className="text-center py-16">
-            <FolderOpen className="h-16 w-16 text-neutral-200 mx-auto mb-4" />
+            <FolderOpen className="h-16 w-16 text-neutral-200 mx-auto mb-4" aria-hidden="true" />
             <h3 className="text-xl font-semibold text-neutral-900 mb-2">No Files Found</h3>
             <p className="text-neutral-600 mb-6 max-w-md mx-auto">
               {state.filters.search || state.filters.type !== 'all' || state.filters.source !== 'all' ? 'Try adjusting your filters or search term.' : 'Upload files or connect a service to get started.'}
             </p>
             <div className="flex items-center justify-center gap-3">
-              <Button onClick={() => setShowUploadDialog(true)} icon={<Upload className="h-4 w-4" />}>Upload Files</Button>
-              <Button variant="outline" onClick={() => navigate('/connectors')} icon={<Cloud className="h-4 w-4" />}>Connect a Service</Button>
+              <Button onClick={() => setShowUploadDialog(true)} icon={<Upload className="h-4 w-4" aria-hidden="true" />}>Upload Files</Button>
+              <Button variant="outline" onClick={() => navigate('/connectors')} icon={<Cloud className="h-4 w-4" aria-hidden="true" />}>Connect a Service</Button>
             </div>
           </div>
         ) : (
@@ -286,9 +286,9 @@ export function FileNew() {
             </div>
             {state.pagination.totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-8">
-                <Button variant="outline" size="sm" onClick={() => setPage(state.pagination.page - 1)} disabled={state.pagination.page <= 1} icon={<ChevronLeft className="h-4 w-4" />}>Previous</Button>
+                <Button variant="outline" size="sm" onClick={() => setPage(state.pagination.page - 1)} disabled={state.pagination.page <= 1} icon={<ChevronLeft className="h-4 w-4" aria-hidden="true" />}>Previous</Button>
                 <span className="text-sm text-neutral-600 px-4">Page {state.pagination.page} of {state.pagination.totalPages}</span>
-                <Button variant="outline" size="sm" onClick={() => setPage(state.pagination.page + 1)} disabled={state.pagination.page >= state.pagination.totalPages} icon={<ChevronRight className="h-4 w-4" />}>Next</Button>
+                <Button variant="outline" size="sm" onClick={() => setPage(state.pagination.page + 1)} disabled={state.pagination.page >= state.pagination.totalPages} icon={<ChevronRight className="h-4 w-4" aria-hidden="true" />}>Next</Button>
               </div>
             )}
           </>
@@ -301,7 +301,7 @@ export function FileNew() {
           <DialogContent>
             <DialogHeader><DialogTitle>Upload Files</DialogTitle></DialogHeader>
             <div className={cn('border-2 border-dashed rounded-lg p-12 text-center transition-colors', 'border-neutral-300 hover:border-primary-500')}>
-              <Upload className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
+              <Upload className="h-12 w-12 text-neutral-400 mx-auto mb-4" aria-hidden="true" />
               <p className="text-neutral-600 mb-4">Drag and drop files here, or click to select</p>
               <Button variant="outline" onClick={() => fileInputRef.current?.click()}>Choose Files</Button>
             </div>
@@ -336,7 +336,7 @@ export function FileNew() {
         {/* Link to Project Dialog */}
         <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
           <DialogContent>
-            <DialogHeader><DialogTitle className="flex items-center gap-2"><Link2 className="h-5 w-5 text-primary-600" />Link to Project</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="flex items-center gap-2"><Link2 className="h-5 w-5 text-primary-600" aria-hidden="true" />Link to Project</DialogTitle></DialogHeader>
             {selectedFileForAction && <p className="text-sm text-neutral-600 mb-4">Select a project to link "{selectedFileForAction.name}" to:</p>}
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {projects.length === 0 ? <p className="text-neutral-500 text-center py-4">No projects available</p> : projects.map((project) => (

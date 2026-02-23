@@ -169,7 +169,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <div className="flex items-center gap-3">
-                <MessageSquare className="h-5 w-5 text-gray-600" />
+                <MessageSquare className="h-5 w-5 text-gray-600" aria-hidden="true" />
                 <h2 className="font-semibold text-lg">Messages</h2>
                 {unreadCount > 0 && (
                   <Badge variant="error" className="h-5 px-1.5">
@@ -178,14 +178,14 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                 )}
               </div>
               <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
 
             {/* Search Bar and Filters */}
             <div className="p-4 border-b space-y-3">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
                 <Input
                   placeholder="Search conversations..."
                   value={searchQuery}
@@ -198,7 +198,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                   className="absolute right-0 top-0 h-full px-3"
                   onClick={() => setShowConversationList(false)}
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
 
@@ -235,7 +235,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                   <div className="p-2">
                     {filteredConversations.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
-                        <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <Search className="h-8 w-8 mx-auto mb-2 opacity-50" aria-hidden="true" />
                         <p className="text-sm">No conversations found</p>
                         {searchQuery && (
                           <p className="text-xs mt-1">Try different search terms</p>
@@ -298,7 +298,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                           setActiveConversation(null);
                         }}
                       >
-                        <MessageSquare className="h-4 w-4" />
+                        <MessageSquare className="h-4 w-4" aria-hidden="true" />
                       </Button>
                       {activeConversation && (
                         <>
@@ -321,20 +321,20 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                     </div>
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="sm">
-                        <Phone className="h-4 w-4" />
+                        <Phone className="h-4 w-4" aria-hidden="true" />
                       </Button>
                       <Button variant="ghost" size="sm">
-                        <Video className="h-4 w-4" />
+                        <Video className="h-4 w-4" aria-hidden="true" />
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
-                            <MoreVertical className="h-4 w-4" />
+                            <MoreVertical className="h-4 w-4" aria-hidden="true" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>
-                            <Bell className="mr-2 h-4 w-4" />
+                            <Bell className="mr-2 h-4 w-4" aria-hidden="true" />
                             Mute notifications
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -351,7 +351,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                     <div className="space-y-4">
                       {conversationMessages.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
-                          <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" aria-hidden="true" />
                           <p className="text-sm">No messages yet</p>
                           <p className="text-xs mt-1">Send a message to start the conversation</p>
                         </div>
@@ -404,7 +404,7 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                   <div className="p-4 border-t">
                     <div className="flex items-end gap-2">
                       <Button variant="ghost" size="sm">
-                        <Paperclip className="h-4 w-4" />
+                        <Paperclip className="h-4 w-4" aria-hidden="true" />
                       </Button>
                       <Textarea
                         placeholder="Type a message..."
@@ -416,10 +416,10 @@ export const MessagingSidepanel = memo(function MessagingSidepanel({
                         disabled={!activeConversation}
                       />
                       <Button variant="ghost" size="sm">
-                        <Smile className="h-4 w-4" />
+                        <Smile className="h-4 w-4" aria-hidden="true" />
                       </Button>
                       <Button size="sm" onClick={handleSendMessage}>
-                        <Send className="h-4 w-4" />
+                        <Send className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </div>
                   </div>

@@ -92,7 +92,7 @@ function MessageBubble({ role, content, isStreaming, toolsUsed, error, timestamp
         {/* Error */}
         {error && (
           <div className="mt-2 text-xs text-red-400 flex items-center gap-1">
-            <XCircle className="w-3 h-3" />
+            <XCircle className="w-3 h-3" aria-hidden="true" />
             {error}
           </div>
         )}
@@ -104,9 +104,9 @@ function MessageBubble({ role, content, isStreaming, toolsUsed, error, timestamp
               onClick={() => setShowTools(!showTools)}
               className="text-xs text-slate-400 hover:text-slate-300 flex items-center gap-1"
             >
-              <Zap className="w-3 h-3" />
+              <Zap className="w-3 h-3" aria-hidden="true" />
               {toolsUsed.length} tool{toolsUsed.length > 1 ? 's' : ''} used
-              {showTools ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              {showTools ? <ChevronUp className="w-3 h-3" aria-hidden="true" /> : <ChevronDown className="w-3 h-3" aria-hidden="true" />}
             </button>
             <AnimatePresence>
               {showTools && (
@@ -161,7 +161,7 @@ function PendingActionCard({ action, onApprove, onReject, isApproving, isRejecti
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 text-amber-400 text-sm font-medium">
-            <Clock className="w-4 h-4" />
+            <Clock className="w-4 h-4" aria-hidden="true" />
             Pending Approval
           </div>
           <p className="mt-1 text-sm text-slate-300">{action.preview}</p>
@@ -175,14 +175,14 @@ function PendingActionCard({ action, onApprove, onReject, isApproving, isRejecti
             disabled={isApproving || isRejecting}
             className="p-2 rounded-lg bg-green-600 hover:bg-green-500 text-white disabled:opacity-50"
           >
-            {isApproving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+            {isApproving ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <CheckCircle className="w-4 h-4" aria-hidden="true" />}
           </button>
           <button
             onClick={onReject}
             disabled={isApproving || isRejecting}
             className="p-2 rounded-lg bg-red-600 hover:bg-red-500 text-white disabled:opacity-50"
           >
-            {isRejecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+            {isRejecting ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <XCircle className="w-4 h-4" aria-hidden="true" />}
           </button>
         </div>
       </div>
@@ -262,33 +262,33 @@ export function AgentPanel({ projectId }: AgentPanelProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-400" />
+            <Sparkles className="w-5 h-5 text-indigo-400" aria-hidden="true" />
             <h2 className="text-lg font-semibold text-white">AI Assistant</h2>
           </div>
           <button
             onClick={close}
             className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
         {/* Quick Actions */}
         <div className="px-4 py-3 border-b border-slate-800 flex gap-2 overflow-x-auto">
           <QuickActionButton
-            icon={<Calendar className="w-4 h-4" />}
+            icon={<Calendar className="w-4 h-4" aria-hidden="true" />}
             label="Daily Brief"
             onClick={handleDailyBrief}
             disabled={isStreaming}
           />
           <QuickActionButton
-            icon={<Clock className="w-4 h-4" />}
+            icon={<Clock className="w-4 h-4" aria-hidden="true" />}
             label="What Changed?"
             onClick={handleWhatChanged}
             disabled={isStreaming}
           />
           <QuickActionButton
-            icon={<FolderSearch className="w-4 h-4" />}
+            icon={<FolderSearch className="w-4 h-4" aria-hidden="true" />}
             label="Projects"
             onClick={handleSearchProjects}
             disabled={isStreaming}
@@ -315,7 +315,7 @@ export function AgentPanel({ projectId }: AgentPanelProps) {
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <MessageSquare className="w-12 h-12 text-slate-700 mb-4" />
+              <MessageSquare className="w-12 h-12 text-slate-700 mb-4" aria-hidden="true" />
               <h3 className="text-lg font-medium text-slate-400">Start a conversation</h3>
               <p className="text-sm text-slate-500 mt-2 max-w-xs">
                 Ask me about your projects, get summaries, or search for assets.
@@ -366,9 +366,9 @@ export function AgentPanel({ projectId }: AgentPanelProps) {
               )}
             >
               {isStreaming ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
               ) : (
-                <Send className="w-5 h-5" />
+                <Send className="w-5 h-5" aria-hidden="true" />
               )}
             </button>
           </div>

@@ -88,7 +88,7 @@ export const TaskFilterPanel: React.FC<TaskFilterPanelProps> = ({
                 aria-pressed={isActive}
                 aria-label={`Filter by ${label} status`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4" aria-hidden="true" />
                 {label}
               </button>
             );

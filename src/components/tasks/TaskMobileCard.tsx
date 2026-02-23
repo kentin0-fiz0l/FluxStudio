@@ -77,7 +77,7 @@ export const TaskMobileCard: React.FC<TaskMobileCardProps> = ({
               aria-pressed={task.status === 'completed'}
             >
               {task.status === 'completed' && (
-                <Check className="w-3 h-3 text-white" />
+                <Check className="w-3 h-3 text-white" aria-hidden="true" />
               )}
             </button>
             <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">{task.title}</h3>
@@ -85,7 +85,7 @@ export const TaskMobileCard: React.FC<TaskMobileCardProps> = ({
 
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant={statusDisplay.variant} size="sm">
-              <StatusIcon className="w-3 h-3" />
+              <StatusIcon className="w-3 h-3" aria-hidden="true" />
               {statusDisplay.label}
             </Badge>
             <Badge variant={priorityDisplay.variant} size="sm">
@@ -100,7 +100,7 @@ export const TaskMobileCard: React.FC<TaskMobileCardProps> = ({
             size="sm"
             variant="ghost"
             onClick={() => onOpenEditModal(task)}
-            icon={<Edit2 className="w-4 h-4" />}
+            icon={<Edit2 className="w-4 h-4" aria-hidden="true" />}
             aria-label={`Edit ${task.title}`}
             className="h-9 w-9 p-0"
           />
@@ -108,7 +108,7 @@ export const TaskMobileCard: React.FC<TaskMobileCardProps> = ({
             size="sm"
             variant="ghost"
             onClick={() => onDelete(task.id)}
-            icon={<Trash2 className="w-4 h-4" />}
+            icon={<Trash2 className="w-4 h-4" aria-hidden="true" />}
             aria-label={`Delete ${task.title}`}
             className="h-9 w-9 p-0"
           />
@@ -128,7 +128,7 @@ export const TaskMobileCard: React.FC<TaskMobileCardProps> = ({
             <span className="text-neutral-500 dark:text-neutral-400 w-20">Due Date:</span>
             <span className={overdue ? 'text-error-600 dark:text-error-400 font-medium' : 'text-neutral-900 dark:text-neutral-100'}>
               {formatDate(task.dueDate)}
-              {overdue && <AlertCircle className="w-4 h-4 inline-block ml-1" />}
+              {overdue && <AlertCircle className="w-4 h-4 inline-block ml-1" aria-hidden="true" />}
             </span>
           </div>
         )}

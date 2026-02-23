@@ -217,7 +217,7 @@ export default function FormationEditor() {
             Please select a project to create or edit formations.
           </p>
           <Button onClick={() => navigate('/projects')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4 mr-2" aria-hidden="true" />
             Back to Projects
           </Button>
         </div>
@@ -240,7 +240,7 @@ export default function FormationEditor() {
             className="flex items-center gap-1 mr-1"
             aria-label="Back to Project"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           </Button>
           <nav aria-label="breadcrumb" className="flex-1 min-w-0">
             <ol className="flex items-center gap-1.5 text-sm">
@@ -249,19 +249,19 @@ export default function FormationEditor() {
                   Projects
                 </button>
               </li>
-              <li><ChevronRight className="w-3.5 h-3.5 text-neutral-400" /></li>
+              <li><ChevronRight className="w-3.5 h-3.5 text-neutral-400" aria-hidden="true" /></li>
               <li>
                 <button onClick={handleClose} className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors truncate max-w-[160px]">
                   Project
                 </button>
               </li>
-              <li><ChevronRight className="w-3.5 h-3.5 text-neutral-400" /></li>
+              <li><ChevronRight className="w-3.5 h-3.5 text-neutral-400" aria-hidden="true" /></li>
               <li>
                 <button onClick={handleClose} className="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors">
                   Formations
                 </button>
               </li>
-              <li><ChevronRight className="w-3.5 h-3.5 text-neutral-400" /></li>
+              <li><ChevronRight className="w-3.5 h-3.5 text-neutral-400" aria-hidden="true" /></li>
               <li>
                 <span className="font-medium text-neutral-900 dark:text-white truncate max-w-[200px] block" aria-current="page">
                   {formationId ? 'Edit Formation' : 'New Formation'}

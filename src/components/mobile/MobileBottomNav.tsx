@@ -103,12 +103,12 @@ export function MobileBottomNav({ onOpenSearch, className }: MobileBottomNavProp
   };
 
   const menuItems = [
-    { to: '/home', icon: <Home className="w-5 h-5" />, label: 'Dashboard' },
-    { to: '/organization', icon: <Building2 className="w-5 h-5" />, label: 'Organization' },
-    { to: '/tools', icon: <Wrench className="w-5 h-5" />, label: 'Tools' },
-    { to: '/notifications', icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
-    { to: '/settings', icon: <Settings className="w-5 h-5" />, label: 'Settings' },
-    { to: '/profile', icon: <User className="w-5 h-5" />, label: 'Profile' },
+    { to: '/home', icon: <Home className="w-5 h-5" aria-hidden="true" />, label: 'Dashboard' },
+    { to: '/organization', icon: <Building2 className="w-5 h-5" aria-hidden="true" />, label: 'Organization' },
+    { to: '/tools', icon: <Wrench className="w-5 h-5" aria-hidden="true" />, label: 'Tools' },
+    { to: '/notifications', icon: <Bell className="w-5 h-5" aria-hidden="true" />, label: 'Notifications' },
+    { to: '/settings', icon: <Settings className="w-5 h-5" aria-hidden="true" />, label: 'Settings' },
+    { to: '/profile', icon: <User className="w-5 h-5" aria-hidden="true" />, label: 'Profile' },
   ];
 
   return (
@@ -125,24 +125,24 @@ export function MobileBottomNav({ onOpenSearch, className }: MobileBottomNavProp
         <div className="grid grid-cols-4 h-16 max-w-lg mx-auto" role="menubar">
           <NavItem
             to="/projects"
-            icon={<Folder className="w-5 h-5" />}
+            icon={<Folder className="w-5 h-5" aria-hidden="true" />}
             label="Projects"
             active={isActive('/projects')}
           />
           <NavItem
             to="/messages"
-            icon={<MessageSquare className="w-5 h-5" />}
+            icon={<MessageSquare className="w-5 h-5" aria-hidden="true" />}
             label="Messages"
             active={isActive('/messages')}
             badge={unreadCount}
           />
           <NavItem
-            icon={<Search className="w-5 h-5" />}
+            icon={<Search className="w-5 h-5" aria-hidden="true" />}
             label="Search"
             onClick={onOpenSearch}
           />
           <NavItem
-            icon={<Menu className="w-5 h-5" />}
+            icon={<Menu className="w-5 h-5" aria-hidden="true" />}
             label="Menu"
             onClick={() => setIsMenuOpen(true)}
             active={isMenuOpen}

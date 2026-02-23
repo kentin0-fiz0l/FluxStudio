@@ -36,10 +36,10 @@ export interface AttentionInboxProps {
 
 // Icon mapping for attention types
 const attentionIcons: Record<AttentionItem['type'], React.ReactNode> = {
-  mention: <AtSign className="h-4 w-4" />,
-  assigned_task: <CheckSquare className="h-4 w-4" />,
-  reply: <MessageCircle className="h-4 w-4" />,
-  approval: <ShieldCheck className="h-4 w-4" />,
+  mention: <AtSign className="h-4 w-4" aria-hidden="true" />,
+  assigned_task: <CheckSquare className="h-4 w-4" aria-hidden="true" />,
+  reply: <MessageCircle className="h-4 w-4" aria-hidden="true" />,
+  approval: <ShieldCheck className="h-4 w-4" aria-hidden="true" />,
 };
 
 // Labels for attention types
@@ -141,6 +141,7 @@ function AttentionItemRow({
 
       {/* Action indicator */}
       <ChevronRight
+        aria-hidden="true"
         className={cn(
           'flex-shrink-0 text-neutral-400',
           compact ? 'h-4 w-4' : 'h-5 w-5'
@@ -193,7 +194,7 @@ export function AttentionInbox({
   if (items.length === 0) {
     return (
       <div className={cn('p-6 text-center', className)}>
-        <Inbox className="h-8 w-8 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" />
+        <Inbox className="h-8 w-8 text-neutral-300 dark:text-neutral-600 mx-auto mb-2" aria-hidden="true" />
         <p className="text-sm text-neutral-500 dark:text-neutral-400">
           All caught up!
         </p>
@@ -218,19 +219,19 @@ export function AttentionInbox({
         <div className="flex items-center gap-3 px-3 py-2 text-xs text-neutral-500 dark:text-neutral-400">
           {counts.mentions > 0 && (
             <span className="flex items-center gap-1">
-              <AtSign className="h-3 w-3" />
+              <AtSign className="h-3 w-3" aria-hidden="true" />
               {counts.mentions} message{counts.mentions !== 1 ? 's' : ''}
             </span>
           )}
           {counts.tasks > 0 && (
             <span className="flex items-center gap-1">
-              <CheckSquare className="h-3 w-3" />
+              <CheckSquare className="h-3 w-3" aria-hidden="true" />
               {counts.tasks} task{counts.tasks !== 1 ? 's' : ''}
             </span>
           )}
           {counts.approvals > 0 && (
             <span className="flex items-center gap-1">
-              <ShieldCheck className="h-3 w-3" />
+              <ShieldCheck className="h-3 w-3" aria-hidden="true" />
               {counts.approvals} approval{counts.approvals !== 1 ? 's' : ''}
             </span>
           )}

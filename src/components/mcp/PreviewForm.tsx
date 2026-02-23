@@ -51,7 +51,7 @@ export default function PreviewForm() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
-        <Rocket className="w-5 h-5 text-blue-600" />
+        <Rocket className="w-5 h-5 text-blue-600" aria-hidden="true" />
         <h3 className="text-lg font-semibold text-gray-900">
           Create Preview
         </h3>
@@ -99,12 +99,12 @@ export default function PreviewForm() {
         >
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
               Creating Preview...
             </>
           ) : (
             <>
-              <Rocket className="w-4 h-4" />
+              <Rocket className="w-4 h-4" aria-hidden="true" />
               Create Preview
             </>
           )}
@@ -114,7 +114,7 @@ export default function PreviewForm() {
       {/* Error message */}
       {error && (
         <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
           <div className="flex-1">
             <h4 className="text-sm font-medium text-red-900 mb-1">
               Error
@@ -165,7 +165,7 @@ export default function PreviewForm() {
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-white border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium text-sm"
           >
-            <ExternalLink className="w-4 h-4" />
+            <ExternalLink className="w-4 h-4" aria-hidden="true" />
             View on GitHub
           </a>
         </div>

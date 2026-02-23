@@ -134,7 +134,7 @@ export function ProgressToastContent({
                 className="p-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                 aria-label="Cancel"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             )}
             {dismissible && !isInProgress && (
@@ -144,7 +144,7 @@ export function ProgressToastContent({
                 className="p-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                 aria-label="Dismiss"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             )}
           </div>

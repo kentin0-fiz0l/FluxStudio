@@ -60,7 +60,7 @@ export function UserDirectoryFilters({
         {/* Search */}
         <div className="flex-1 max-w-lg">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
             <input
               type="text"
               placeholder="Search users by name, skills, organization..."
@@ -89,7 +89,7 @@ export function UserDirectoryFilters({
               <option value="activity-desc">Most Active</option>
               <option value="connections-desc">Most Connected</option>
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" aria-hidden="true" />
           </div>
 
           <button
@@ -101,7 +101,7 @@ export function UserDirectoryFilters({
                 : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
             )}
           >
-            <Filter className="w-4 h-4" />
+            <Filter className="w-4 h-4" aria-hidden="true" />
             <span>Filters</span>
             {hasActiveFilters && (
               <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1">
@@ -122,7 +122,7 @@ export function UserDirectoryFilters({
               viewMode === 'grid' ? 'bg-blue-500 text-white' : 'text-gray-500 hover:text-gray-700'
             )}
           >
-            <Grid3X3 className="w-4 h-4" />
+            <Grid3X3 className="w-4 h-4" aria-hidden="true" />
           </button>
           <button
             onClick={() => onViewModeChange('list')}
@@ -131,7 +131,7 @@ export function UserDirectoryFilters({
               viewMode === 'list' ? 'bg-blue-500 text-white' : 'text-gray-500 hover:text-gray-700'
             )}
           >
-            <List className="w-4 h-4" />
+            <List className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       </div>

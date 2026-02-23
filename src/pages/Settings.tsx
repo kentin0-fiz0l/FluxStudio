@@ -295,7 +295,7 @@ function Settings() {
                 )}
               </div>
               <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Camera className="w-5 h-5 text-white" />
+                <Camera className="w-5 h-5 text-white" aria-hidden="true" />
               </div>
               <input
                 ref={avatarInputRef}
@@ -620,7 +620,7 @@ function Settings() {
                 href="/settings/sessions"
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               >
-                <Monitor className="w-4 h-4" />
+                <Monitor className="w-4 h-4" aria-hidden="true" />
                 Manage Sessions
               </a>
             </div>
@@ -641,7 +641,7 @@ function Settings() {
               to="/settings/privacy"
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
             >
-              <Shield className="w-4 h-4" />
+              <Shield className="w-4 h-4" aria-hidden="true" />
               Privacy Settings
             </Link>
           </Card>

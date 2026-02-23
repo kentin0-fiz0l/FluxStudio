@@ -256,7 +256,7 @@ function FileCard({ file }: { file: ProjectFile }) {
     >
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-          <FileIcon size={16} className="text-gray-600" />
+          <FileIcon size={16} className="text-gray-600" aria-hidden="true" />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -273,13 +273,13 @@ function FileCard({ file }: { file: ProjectFile }) {
 
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
-                <Eye size={14} />
+                <Eye size={14} aria-hidden="true" />
               </button>
               <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
-                <Download size={14} />
+                <Download size={14} aria-hidden="true" />
               </button>
               <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
-                <Share2 size={14} />
+                <Share2 size={14} aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -287,7 +287,7 @@ function FileCard({ file }: { file: ProjectFile }) {
           {file.hasComments && (
             <div className="flex items-center gap-2 mt-2">
               <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                <MessageSquare size={12} />
+                <MessageSquare size={12} aria-hidden="true" />
                 <span>{file.commentCount} comments</span>
               </div>
               {file.isLatestVersion && (
@@ -326,7 +326,7 @@ function ActivityFeed({ projectId }: { projectId: string }) {
   if (recentMessages.length === 0) {
     return (
       <div className="p-6 text-center">
-        <MessageSquare size={32} className="mx-auto text-gray-300 mb-3" />
+        <MessageSquare size={32} className="mx-auto text-gray-300 mb-3" aria-hidden="true" />
         <p className="text-gray-500 text-sm">No recent project activity</p>
       </div>
     );
@@ -369,7 +369,7 @@ function ActivityFeed({ projectId }: { projectId: string }) {
 
             {message.attachments && message.attachments.length > 0 && (
               <div className="flex items-center gap-1 mt-2">
-                <Paperclip size={12} className="text-gray-400" />
+                <Paperclip size={12} className="text-gray-400" aria-hidden="true" />
                 <span className="text-xs text-gray-500">
                   {message.attachments.length} attachment{message.attachments.length > 1 ? 's' : ''}
                 </span>
@@ -445,7 +445,7 @@ export function ProjectCommunicationWidget({
       case 'team':
         return (
           <div className="p-6 text-center">
-            <Users size={32} className="mx-auto text-gray-300 mb-3" />
+            <Users size={32} className="mx-auto text-gray-300 mb-3" aria-hidden="true" />
             <p className="text-gray-500 text-sm">Team management coming soon</p>
           </div>
         );
@@ -462,7 +462,7 @@ export function ProjectCommunicationWidget({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Star size={16} className="text-blue-600" />
+              <Star size={16} className="text-blue-600" aria-hidden="true" />
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">{projectName}</h3>
@@ -472,7 +472,7 @@ export function ProjectCommunicationWidget({
 
           <div className="flex items-center gap-2">
             <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-              <Search size={16} />
+              <Search size={16} aria-hidden="true" />
             </button>
 
             {allowExpand && (
@@ -480,7 +480,7 @@ export function ProjectCommunicationWidget({
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <MoreVertical size={16} />
+                <MoreVertical size={16} aria-hidden="true" />
               </button>
             )}
           </div>
@@ -498,7 +498,7 @@ export function ProjectCommunicationWidget({
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
-              <tab.icon size={16} />
+              <tab.icon size={16} aria-hidden="true" />
               <span>{tab.label}</span>
               {tab.count !== undefined && tab.count > 0 && (
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${
@@ -536,12 +536,12 @@ export function ProjectCommunicationWidget({
       <div className="p-4 border-t border-gray-200 bg-gray-50">
         <div className="flex gap-2">
           <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <MessageSquare size={16} />
+            <MessageSquare size={16} aria-hidden="true" />
             <span className="text-sm font-medium">New Message</span>
           </button>
 
           <button className="flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-            <Plus size={16} />
+            <Plus size={16} aria-hidden="true" />
             <span className="text-sm font-medium">Add File</span>
           </button>
         </div>

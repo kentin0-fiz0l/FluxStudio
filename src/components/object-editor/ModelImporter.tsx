@@ -69,7 +69,7 @@ export function ModelImporter({ onImport, onClose }: ModelImporterProps) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-base font-semibold text-gray-900 dark:text-white">Import 3D Model</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -89,7 +89,7 @@ export function ModelImporter({ onImport, onClose }: ModelImporterProps) {
               }
             `}
           >
-            <Upload className="w-10 h-10 mx-auto mb-3 text-gray-400" />
+            <Upload className="w-10 h-10 mx-auto mb-3 text-gray-400" aria-hidden="true" />
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Drop a .glb, .gltf, or .obj file here
             </p>
@@ -106,7 +106,7 @@ export function ModelImporter({ onImport, onClose }: ModelImporterProps) {
           {/* File info */}
           {validation.file && (
             <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-              <FileUp className="w-5 h-5 text-gray-400" />
+              <FileUp className="w-5 h-5 text-gray-400" aria-hidden="true" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                   {validation.file.name}
@@ -115,8 +115,8 @@ export function ModelImporter({ onImport, onClose }: ModelImporterProps) {
                   {(validation.file.size / 1024 / 1024).toFixed(1)} MB
                 </p>
               </div>
-              {validation.status === 'valid' && <CheckCircle className="w-5 h-5 text-green-500" />}
-              {validation.status === 'error' && <AlertTriangle className="w-5 h-5 text-red-500" />}
+              {validation.status === 'valid' && <CheckCircle className="w-5 h-5 text-green-500" aria-hidden="true" />}
+              {validation.status === 'error' && <AlertTriangle className="w-5 h-5 text-red-500" aria-hidden="true" />}
             </div>
           )}
 

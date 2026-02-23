@@ -38,7 +38,7 @@ const DEFAULT_STEPS: TourStep[] = [
     description:
       'Everything starts with a project. Create one to organize your ideas, files, and collaboration.',
     targetSelector: '[data-tour="create-project"]',
-    icon: <FolderPlus className="w-5 h-5" />,
+    icon: <FolderPlus className="w-5 h-5" aria-hidden="true" />,
     ctaLabel: 'Create a Project',
     ctaHref: '/projects/new',
   },
@@ -48,7 +48,7 @@ const DEFAULT_STEPS: TourStep[] = [
     description:
       'MetMap is where you map tempo changes, chord progressions, and rehearse with your team.',
     targetSelector: '[data-tour="metmap"]',
-    icon: <Music className="w-5 h-5" />,
+    icon: <Music className="w-5 h-5" aria-hidden="true" />,
     ctaLabel: 'Explore MetMap',
     ctaHref: '/tools/metmap',
   },
@@ -58,7 +58,7 @@ const DEFAULT_STEPS: TourStep[] = [
     description:
       'Invite team members to edit, comment, and brainstorm together — changes sync instantly.',
     targetSelector: '[data-tour="collaborate"]',
-    icon: <Users className="w-5 h-5" />,
+    icon: <Users className="w-5 h-5" aria-hidden="true" />,
     ctaLabel: 'Got it!',
   },
 ];
@@ -243,12 +243,12 @@ export function ProductTour({
           className="absolute top-3 right-3 p-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
           aria-label="Skip tour"
         >
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4" aria-hidden="true" />
         </button>
 
         {/* Step indicator */}
         <div className="flex items-center gap-2 text-xs text-neutral-400 dark:text-neutral-500 mb-3">
-          <Sparkles className="w-3 h-3 text-indigo-400" />
+          <Sparkles className="w-3 h-3 text-indigo-400" aria-hidden="true" />
           <span>
             Step {currentStep + 1} of {steps.length}
           </span>
@@ -293,13 +293,13 @@ export function ProductTour({
             >
               {isLastStep ? (
                 <>
-                  <Check className="w-3.5 h-3.5" />
+                  <Check className="w-3.5 h-3.5" aria-hidden="true" />
                   {step.ctaLabel}
                 </>
               ) : (
                 <>
                   {step.ctaLabel}
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
                 </>
               )}
             </button>

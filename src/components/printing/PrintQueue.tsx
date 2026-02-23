@@ -108,14 +108,14 @@ const QueueItemCard: React.FC<QueueItemProps> = ({
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-neutral-400 dark:text-neutral-500 flex-shrink-0" />
+                <FileText className="h-4 w-4 text-neutral-400 dark:text-neutral-500 flex-shrink-0" aria-hidden="true" />
                 <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
                   {item.filename}
                 </h4>
               </div>
               <div className="flex items-center gap-3 mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                 <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
+                  <Clock className="h-3 w-3" aria-hidden="true" />
                   {formatDate(item.addedAt)}
                 </span>
                 {item.estimatedTime && (
@@ -153,7 +153,7 @@ const QueueItemCard: React.FC<QueueItemProps> = ({
                 loading={isStarting}
                 className="text-xs h-7"
               >
-                <Play className="h-3 w-3 mr-1" />
+                <Play className="h-3 w-3 mr-1" aria-hidden="true" />
                 Start
               </Button>
             )}
@@ -164,7 +164,7 @@ const QueueItemCard: React.FC<QueueItemProps> = ({
               disabled={isRemoving || item.status === 'printing'}
               className="text-xs h-7"
             >
-              <Trash2 className="h-3 w-3 mr-1" />
+              <Trash2 className="h-3 w-3 mr-1" aria-hidden="true" />
               Remove
             </Button>
           </div>
@@ -244,7 +244,7 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
       <Card className={cn('h-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ListOrdered className="h-5 w-5" />
+            <ListOrdered className="h-5 w-5" aria-hidden="true" />
             Print Queue
           </CardTitle>
         </CardHeader>
@@ -263,7 +263,7 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
       <Card className={cn('h-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ListOrdered className="h-5 w-5" />
+            <ListOrdered className="h-5 w-5" aria-hidden="true" />
             Print Queue
           </CardTitle>
         </CardHeader>
@@ -282,7 +282,7 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ListOrdered className="h-5 w-5" />
+            <ListOrdered className="h-5 w-5" aria-hidden="true" />
             Print Queue
             {hasItems && (
               <Badge variant="default" size="sm">
@@ -298,7 +298,7 @@ export const PrintQueue: React.FC<PrintQueueProps> = ({
               disabled={clearingAll}
               className="text-xs h-8"
             >
-              <X className="h-3 w-3 mr-1" />
+              <X className="h-3 w-3 mr-1" aria-hidden="true" />
               Clear Queue
             </Button>
           )}

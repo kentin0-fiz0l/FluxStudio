@@ -18,11 +18,11 @@ export function OrganizationBreadcrumb() {
   const getIcon = (type: 'organization' | 'team' | 'project') => {
     switch (type) {
       case 'organization':
-        return <Building2 className="h-4 w-4" />;
+        return <Building2 className="h-4 w-4" aria-hidden="true" />;
       case 'team':
-        return <Users className="h-4 w-4" />;
+        return <Users className="h-4 w-4" aria-hidden="true" />;
       case 'project':
-        return <FolderOpen className="h-4 w-4" />;
+        return <FolderOpen className="h-4 w-4" aria-hidden="true" />;
     }
   };
 
@@ -44,12 +44,12 @@ export function OrganizationBreadcrumb() {
           onClick={() => navigate('/dashboard')}
           className="text-white/70 hover:text-white hover:bg-white/10 p-2"
         >
-          <Home className="h-4 w-4" />
+          <Home className="h-4 w-4" aria-hidden="true" />
         </Button>
 
         {breadcrumbs.map((crumb, index) => (
           <React.Fragment key={crumb.id}>
-            <ChevronRight className="h-4 w-4 text-white/40" />
+            <ChevronRight className="h-4 w-4 text-white/40" aria-hidden="true" />
 
             <Button
               variant="ghost"
@@ -72,21 +72,21 @@ export function OrganizationBreadcrumb() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             {currentOrganization && (
               <div className="flex items-center space-x-2 text-white/60">
-                <Building2 className="h-3 w-3" />
+                <Building2 className="h-3 w-3" aria-hidden="true" />
                 <span>Organization: {currentOrganization.name}</span>
               </div>
             )}
 
             {currentTeam && (
               <div className="flex items-center space-x-2 text-white/60">
-                <Users className="h-3 w-3" />
+                <Users className="h-3 w-3" aria-hidden="true" />
                 <span>Team: {currentTeam.name}</span>
               </div>
             )}
 
             {currentProject && (
               <div className="flex items-center space-x-2 text-white/60">
-                <FolderOpen className="h-3 w-3" />
+                <FolderOpen className="h-3 w-3" aria-hidden="true" />
                 <span>Project: {currentProject.name}</span>
               </div>
             )}

@@ -42,11 +42,11 @@ export function AccountOverviewWidget(props: WidgetProps) {
   const getRoleIcon = (userType: string) => {
     switch (userType) {
       case 'admin':
-        return <Shield className="h-4 w-4 text-orange-400" />;
+        return <Shield className="h-4 w-4 text-orange-400" aria-hidden="true" />;
       case 'designer':
-        return <Star className="h-4 w-4 text-purple-400" />;
+        return <Star className="h-4 w-4 text-purple-400" aria-hidden="true" />;
       default:
-        return <User className="h-4 w-4 text-blue-400" />;
+        return <User className="h-4 w-4 text-blue-400" aria-hidden="true" />;
     }
   };
 
@@ -96,11 +96,11 @@ export function AccountOverviewWidget(props: WidgetProps) {
       {/* Contact Info */}
       <div className="space-y-2 mb-4">
         <div className="flex items-center gap-2 text-sm text-gray-400">
-          <Mail className="h-3 w-3" />
+          <Mail className="h-3 w-3" aria-hidden="true" />
           <span className="truncate">{user.email}</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-400">
-          <Calendar className="h-3 w-3" />
+          <Calendar className="h-3 w-3" aria-hidden="true" />
           <span>Member since {memberSince.toLocaleDateString()}</span>
         </div>
       </div>
@@ -122,7 +122,7 @@ export function AccountOverviewWidget(props: WidgetProps) {
         <div className="mb-4 p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
-              <Star className="h-4 w-4 text-yellow-400" />
+              <Star className="h-4 w-4 text-yellow-400" aria-hidden="true" />
               <span className="text-white">Designer Rating</span>
             </div>
             <span className="font-semibold text-white">{stats.rating}/5.0</span>
@@ -159,7 +159,7 @@ export function AccountOverviewWidget(props: WidgetProps) {
           onClick={() => navigate('/dashboard/profile')}
           className="w-full justify-start text-white/70 hover:text-white hover:bg-white/10"
         >
-          <User className="h-4 w-4 mr-2" />
+          <User className="h-4 w-4 mr-2" aria-hidden="true" />
           Edit Profile
         </Button>
         <Button
@@ -168,7 +168,7 @@ export function AccountOverviewWidget(props: WidgetProps) {
           onClick={() => navigate('/dashboard/settings')}
           className="w-full justify-start text-white/70 hover:text-white hover:bg-white/10"
         >
-          <Settings className="h-4 w-4 mr-2" />
+          <Settings className="h-4 w-4 mr-2" aria-hidden="true" />
           Account Settings
         </Button>
       </div>

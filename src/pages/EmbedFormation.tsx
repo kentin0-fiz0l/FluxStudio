@@ -139,7 +139,7 @@ export default function EmbedFormation() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-900">
-        <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-indigo-400" aria-hidden="true" />
       </div>
     );
   }
@@ -152,7 +152,7 @@ export default function EmbedFormation() {
           onClick={loadFormation}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 hover:border-indigo-500/60 rounded-lg transition-colors"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
+          <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
           Retry
         </button>
       </div>
@@ -168,7 +168,7 @@ export default function EmbedFormation() {
         <React.Suspense
           fallback={
             <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-indigo-400" aria-hidden="true" />
             </div>
           }
         >
@@ -201,13 +201,13 @@ export default function EmbedFormation() {
             }}
             className="p-1.5 text-white hover:text-indigo-400 transition-colors"
           >
-            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            {isPlaying ? <Pause className="w-4 h-4" aria-hidden="true" /> : <Play className="w-4 h-4" aria-hidden="true" />}
           </button>
           <button
             onClick={() => { setIsPlaying(false); setCurrentTime(0); setPositions(getInterpolatedPositions(0)); }}
             className="p-1.5 text-gray-400 hover:text-white transition-colors"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
           <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden cursor-pointer"
             onClick={(e) => {

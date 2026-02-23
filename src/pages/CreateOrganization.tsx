@@ -78,7 +78,7 @@ export function CreateOrganization() {
             onClick={() => navigate('/dashboard/organizations')}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={20} aria-hidden="true" />
             Back to Organizations
           </button>
 
@@ -140,7 +140,7 @@ export function CreateOrganization() {
 
                 <div>
                   <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                    <MapPin size={16} className="inline mr-1" />
+                    <MapPin size={16} className="inline mr-1" aria-hidden="true" />
                     Location
                   </label>
                   <input
@@ -178,7 +178,7 @@ export function CreateOrganization() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-1">
-                    <Mail size={16} className="inline mr-1" />
+                    <Mail size={16} className="inline mr-1" aria-hidden="true" />
                     Contact Email
                   </label>
                   <input
@@ -194,7 +194,7 @@ export function CreateOrganization() {
 
                 <div>
                   <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700 mb-1">
-                    <Phone size={16} className="inline mr-1" />
+                    <Phone size={16} className="inline mr-1" aria-hidden="true" />
                     Contact Phone
                   </label>
                   <input
@@ -246,7 +246,7 @@ export function CreateOrganization() {
                   </>
                 ) : (
                   <>
-                    <Plus size={16} />
+                    <Plus size={16} aria-hidden="true" />
                     Create Organization
                   </>
                 )}

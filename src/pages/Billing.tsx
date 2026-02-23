@@ -213,20 +213,20 @@ export function Billing() {
             className="p-2 text-neutral-400 hover:text-neutral-700 dark:hover:text-white transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-white/5"
             title="Refresh"
           >
-            <RefreshCw className="w-5 h-5" />
+            <RefreshCw className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
         {/* Error Banner */}
         {error && (
           <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center">
-            <AlertCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" aria-hidden="true" />
             <p className="text-red-600 dark:text-red-400 text-sm flex-1">{error}</p>
             <button
               onClick={fetchSubscriptionStatus}
               className="ml-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm font-medium flex items-center gap-1"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
               Retry
             </button>
             <button
@@ -249,7 +249,7 @@ export function Billing() {
                 onClick={loadUsage}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className="w-4 h-4" aria-hidden="true" />
                 Retry
               </button>
             </div>
@@ -314,7 +314,7 @@ export function Billing() {
                     )}
                   </div>
                   <div className="flex items-center text-neutral-500 dark:text-neutral-400 text-sm">
-                    <Calendar className="w-4 h-4 mr-2" />
+                    <Calendar className="w-4 h-4 mr-2" aria-hidden="true" />
                     <span>
                       Current period ends:{' '}
                       {formatDate(subscription.subscription?.currentPeriodEnd || '')}
@@ -329,7 +329,7 @@ export function Billing() {
                     className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg font-medium hover:from-blue-600 hover:to-purple-600 transition-all"
                   >
                     View Plans
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
               )}
@@ -337,9 +337,9 @@ export function Billing() {
 
             <div className="w-14 h-14 rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 flex items-center justify-center">
               {subscription?.hasSubscription ? (
-                <Check className="w-7 h-7 text-green-400" />
+                <Check className="w-7 h-7 text-green-400" aria-hidden="true" />
               ) : (
-                <CreditCard className="w-7 h-7 text-neutral-400 dark:text-neutral-500" />
+                <CreditCard className="w-7 h-7 text-neutral-400 dark:text-neutral-500" aria-hidden="true" />
               )}
             </div>
           </div>
@@ -366,12 +366,12 @@ export function Billing() {
             >
               {portalLoading ? (
                 <>
-                  <Loader className="w-5 h-5 animate-spin" />
+                  <Loader className="w-5 h-5 animate-spin" aria-hidden="true" />
                   Opening portal...
                 </>
               ) : (
                 <>
-                  <ExternalLink className="w-5 h-5" />
+                  <ExternalLink className="w-5 h-5" aria-hidden="true" />
                   Open Billing Portal
                 </>
               )}
@@ -388,7 +388,7 @@ export function Billing() {
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">Payment Methods</h2>
-            <CreditCard className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />
+            <CreditCard className="w-5 h-5 text-neutral-400 dark:text-neutral-500" aria-hidden="true" />
           </div>
 
           <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-4">
@@ -416,7 +416,7 @@ export function Billing() {
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">Invoice History</h2>
-            <Receipt className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />
+            <Receipt className="w-5 h-5 text-neutral-400 dark:text-neutral-500" aria-hidden="true" />
           </div>
 
           {subscription?.hasSubscription ? (
@@ -446,7 +446,7 @@ export function Billing() {
           className="text-center py-8 border-t border-neutral-200 dark:border-neutral-700"
         >
           <div className="flex items-center justify-center gap-2 text-neutral-500 text-sm">
-            <Shield className="w-4 h-4 text-green-500" />
+            <Shield className="w-4 h-4 text-green-500" aria-hidden="true" />
             <span>Payments secured by Stripe. Your data is encrypted and protected.</span>
           </div>
         </motion.div>

@@ -221,7 +221,7 @@ export function TiptapCollaborativeEditor({
       <div className="border-b px-4 py-3 flex items-center justify-between bg-background">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Button variant="ghost" size="icon" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
           <Input
             value={title}
@@ -238,12 +238,12 @@ export function TiptapCollaborativeEditor({
           <Badge variant={isConnected ? 'primary' : 'secondary'} className="gap-1">
             {isConnected ? (
               <>
-                <Wifi className="h-3 w-3" />
+                <Wifi className="h-3 w-3" aria-hidden="true" />
                 Synced
               </>
             ) : (
               <>
-                <WifiOff className="h-3 w-3" />
+                <WifiOff className="h-3 w-3" aria-hidden="true" />
                 Connecting...
               </>
             )}
@@ -252,7 +252,7 @@ export function TiptapCollaborativeEditor({
           {/* Collaborators */}
           {collaborators.length > 0 && (
             <Badge variant="outline" className="gap-1">
-              <Users className="h-3 w-3" />
+              <Users className="h-3 w-3" aria-hidden="true" />
               {collaborators.length} online
             </Badge>
           )}
@@ -275,7 +275,7 @@ export function TiptapCollaborativeEditor({
             onClick={() => editor.chain().focus().toggleBold().run()}
             className={cn(editor.isActive('bold') && 'bg-accent')}
           >
-            <Bold className="h-4 w-4" />
+            <Bold className="h-4 w-4" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
@@ -283,7 +283,7 @@ export function TiptapCollaborativeEditor({
             onClick={() => editor.chain().focus().toggleItalic().run()}
             className={cn(editor.isActive('italic') && 'bg-accent')}
           >
-            <Italic className="h-4 w-4" />
+            <Italic className="h-4 w-4" aria-hidden="true" />
           </Button>
 
           <Separator orientation="vertical" className="mx-1 h-6" />
@@ -294,7 +294,7 @@ export function TiptapCollaborativeEditor({
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
             className={cn(editor.isActive('heading', { level: 1 }) && 'bg-accent')}
           >
-            <Heading1 className="h-4 w-4" />
+            <Heading1 className="h-4 w-4" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
@@ -302,7 +302,7 @@ export function TiptapCollaborativeEditor({
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             className={cn(editor.isActive('heading', { level: 2 }) && 'bg-accent')}
           >
-            <Heading2 className="h-4 w-4" />
+            <Heading2 className="h-4 w-4" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
@@ -310,7 +310,7 @@ export function TiptapCollaborativeEditor({
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             className={cn(editor.isActive('heading', { level: 3 }) && 'bg-accent')}
           >
-            <Heading3 className="h-4 w-4" />
+            <Heading3 className="h-4 w-4" aria-hidden="true" />
           </Button>
 
           <Separator orientation="vertical" className="mx-1 h-6" />
@@ -321,7 +321,7 @@ export function TiptapCollaborativeEditor({
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             className={cn(editor.isActive('bulletList') && 'bg-accent')}
           >
-            <List className="h-4 w-4" />
+            <List className="h-4 w-4" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
@@ -329,7 +329,7 @@ export function TiptapCollaborativeEditor({
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             className={cn(editor.isActive('orderedList') && 'bg-accent')}
           >
-            <ListOrdered className="h-4 w-4" />
+            <ListOrdered className="h-4 w-4" aria-hidden="true" />
           </Button>
 
           <Separator orientation="vertical" className="mx-1 h-6" />
@@ -340,7 +340,7 @@ export function TiptapCollaborativeEditor({
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
             className={cn(editor.isActive('codeBlock') && 'bg-accent')}
           >
-            <Code className="h-4 w-4" />
+            <Code className="h-4 w-4" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
@@ -348,7 +348,7 @@ export function TiptapCollaborativeEditor({
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             className={cn(editor.isActive('blockquote') && 'bg-accent')}
           >
-            <Quote className="h-4 w-4" />
+            <Quote className="h-4 w-4" aria-hidden="true" />
           </Button>
 
           <Separator orientation="vertical" className="mx-1 h-6" />
@@ -359,7 +359,7 @@ export function TiptapCollaborativeEditor({
             onClick={() => editor.chain().focus().undo().run()}
             disabled={!editor.can().undo()}
           >
-            <Undo className="h-4 w-4" />
+            <Undo className="h-4 w-4" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
@@ -367,7 +367,7 @@ export function TiptapCollaborativeEditor({
             onClick={() => editor.chain().focus().redo().run()}
             disabled={!editor.can().redo()}
           >
-            <Redo className="h-4 w-4" />
+            <Redo className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       )}

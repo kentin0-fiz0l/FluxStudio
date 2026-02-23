@@ -125,7 +125,7 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
       <Card className={cn('h-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Printer className="h-5 w-5" />
+            <Printer className="h-5 w-5" aria-hidden="true" />
             Printer Status
           </CardTitle>
         </CardHeader>
@@ -148,13 +148,13 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
       <Card className={cn('h-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Printer className="h-5 w-5" />
+            <Printer className="h-5 w-5" aria-hidden="true" />
             Printer Status
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-3 text-error-600">
-            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <AlertCircle className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
             <p className="text-sm">{error}</p>
           </div>
           {onRefresh && (
@@ -164,7 +164,7 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
               onClick={onRefresh}
               className="mt-4"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
               Retry
             </Button>
           )}
@@ -179,7 +179,7 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
       <Card className={cn('h-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Printer className="h-5 w-5" />
+            <Printer className="h-5 w-5" aria-hidden="true" />
             Printer Status
           </CardTitle>
         </CardHeader>
@@ -195,7 +195,7 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Printer className="h-5 w-5" />
+            <Printer className="h-5 w-5" aria-hidden="true" />
             Printer Status
           </div>
           {onRefresh && (
@@ -206,7 +206,7 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
               className="h-8 w-8"
               aria-label="Refresh status"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
             </Button>
           )}
         </CardTitle>
@@ -250,7 +250,7 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-neutral-500">
-                  <Clock className="h-3.5 w-3.5" />
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                   <span className="text-xs font-medium">Elapsed</span>
                 </div>
                 <p className="text-sm font-semibold text-neutral-900">
@@ -259,7 +259,7 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-neutral-500">
-                  <Clock className="h-3.5 w-3.5" />
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                   <span className="text-xs font-medium">Remaining</span>
                 </div>
                 <p className="text-sm font-semibold text-neutral-900">
@@ -280,12 +280,12 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
               >
                 {isPaused ? (
                   <>
-                    <Play className="h-4 w-4 mr-2" />
+                    <Play className="h-4 w-4 mr-2" aria-hidden="true" />
                     Resume
                   </>
                 ) : (
                   <>
-                    <Pause className="h-4 w-4 mr-2" />
+                    <Pause className="h-4 w-4 mr-2" aria-hidden="true" />
                     Pause
                   </>
                 )}
@@ -298,7 +298,7 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
                 loading={isCancelling}
                 className="flex-1"
               >
-                <X className="h-4 w-4 mr-2" />
+                <X className="h-4 w-4 mr-2" aria-hidden="true" />
                 Cancel
               </Button>
             </div>

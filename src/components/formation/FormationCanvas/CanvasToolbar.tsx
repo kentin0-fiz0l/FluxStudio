@@ -115,23 +115,23 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {/* Drawing Tools */}
         <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
           <button onClick={() => setActiveTool('select')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'select' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Select (V)" aria-label="Select tool" aria-pressed={activeTool === 'select'}>
-            <MousePointer className="w-4 h-4" />
+            <MousePointer className="w-4 h-4" aria-hidden="true" />
           </button>
           <button onClick={() => setActiveTool('pan')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'pan' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Pan (H)" aria-label="Pan tool" aria-pressed={activeTool === 'pan'}>
-            <Move className="w-4 h-4" />
+            <Move className="w-4 h-4" aria-hidden="true" />
           </button>
           <button onClick={() => setActiveTool('add')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'add' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Add Performer" aria-label="Add performer tool" aria-pressed={activeTool === 'add'}>
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4" aria-hidden="true" />
           </button>
           <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5 hidden sm:block" aria-hidden="true" />
           <button onClick={() => setActiveTool('line')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'line' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Line Tool" aria-label="Line tool" aria-pressed={activeTool === 'line'}>
-            <Minus className="w-4 h-4" />
+            <Minus className="w-4 h-4" aria-hidden="true" />
           </button>
           <button onClick={() => setActiveTool('arc')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'arc' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Arc Tool" aria-label="Arc tool" aria-pressed={activeTool === 'arc'}>
-            <CircleDot className="w-4 h-4" />
+            <CircleDot className="w-4 h-4" aria-hidden="true" />
           </button>
           <button onClick={() => setActiveTool('block')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'block' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Block Tool" aria-label="Block tool" aria-pressed={activeTool === 'block'}>
-            <Grid3x3 className="w-4 h-4" />
+            <Grid3x3 className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -143,7 +143,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             title={fingerMode === 'select' ? 'Switch to pan mode' : 'Switch to select mode'}
             aria-label={fingerMode === 'select' ? 'Switch to pan mode' : 'Switch to select mode'}
           >
-            {fingerMode === 'pan' ? <Hand className="w-4 h-4" /> : <MousePointer className="w-4 h-4" />}
+            {fingerMode === 'pan' ? <Hand className="w-4 h-4" aria-hidden="true" /> : <MousePointer className="w-4 h-4" aria-hidden="true" />}
           </button>
         )}
 
@@ -158,7 +158,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             title="Undo (Ctrl+Z)"
             aria-label="Undo"
           >
-            <Undo2 className="w-4 h-4" />
+            <Undo2 className="w-4 h-4" aria-hidden="true" />
           </button>
           <button
             onClick={onRedo}
@@ -167,7 +167,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             title="Redo (Ctrl+Y)"
             aria-label="Redo"
           >
-            <Redo2 className="w-4 h-4" />
+            <Redo2 className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -176,11 +176,11 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         {/* Zoom */}
         <div className="flex items-center gap-0.5">
           <button onClick={onZoomOut} className="p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" aria-label="Zoom out">
-            <ZoomOut className="w-4 h-4" />
+            <ZoomOut className="w-4 h-4" aria-hidden="true" />
           </button>
           <span className="text-xs text-gray-500 dark:text-gray-400 min-w-[40px] text-center tabular-nums hidden sm:inline" aria-live="polite">{Math.round(zoom * 100)}%</span>
           <button onClick={onZoomIn} className="p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" aria-label="Zoom in">
-            <ZoomIn className="w-4 h-4" />
+            <ZoomIn className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -216,7 +216,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             aria-haspopup="true"
             aria-label="View options"
           >
-            <Settings2 className="w-4 h-4" />
+            <Settings2 className="w-4 h-4" aria-hidden="true" />
             {activeViewCount > 0 && (
               <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-full px-1 min-w-[16px] text-center">{activeViewCount}</span>
             )}
@@ -224,13 +224,13 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
 
           {showViewOptions && (
             <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 py-1">
-              <ViewToggleItem label="Grid" icon={<Grid className="w-4 h-4" />} active={showGrid} onClick={() => setShowGrid(!showGrid)} />
-              <ViewToggleItem label="Labels" icon={showLabels ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />} active={showLabels} onClick={() => setShowLabels(!showLabels)} />
-              <ViewToggleItem label="Rotation Handles" icon={<Layers className="w-4 h-4" />} active={showRotation} onClick={() => setShowRotation(!showRotation)} />
-              <ViewToggleItem label="Path Lines" icon={<Route className="w-4 h-4" />} active={showPaths} onClick={() => setShowPaths(!showPaths)} />
-              <ViewToggleItem label="Snap to Grid" icon={<Magnet className="w-4 h-4" />} active={snapEnabled} onClick={() => setSnapEnabled(!snapEnabled)} />
-              <ViewToggleItem label="Count Mode" icon={<Hash className="w-4 h-4" />} active={timeDisplayMode === 'counts'} onClick={() => setTimeDisplayMode(timeDisplayMode === 'time' ? 'counts' : 'time')} />
-              <ViewToggleItem label="Field Overlay" icon={<Map className="w-4 h-4" />} active={showFieldOverlay} onClick={() => setShowFieldOverlay(!showFieldOverlay)} />
+              <ViewToggleItem label="Grid" icon={<Grid className="w-4 h-4" aria-hidden="true" />} active={showGrid} onClick={() => setShowGrid(!showGrid)} />
+              <ViewToggleItem label="Labels" icon={showLabels ? <Eye className="w-4 h-4" aria-hidden="true" /> : <EyeOff className="w-4 h-4" aria-hidden="true" />} active={showLabels} onClick={() => setShowLabels(!showLabels)} />
+              <ViewToggleItem label="Rotation Handles" icon={<Layers className="w-4 h-4" aria-hidden="true" />} active={showRotation} onClick={() => setShowRotation(!showRotation)} />
+              <ViewToggleItem label="Path Lines" icon={<Route className="w-4 h-4" aria-hidden="true" />} active={showPaths} onClick={() => setShowPaths(!showPaths)} />
+              <ViewToggleItem label="Snap to Grid" icon={<Magnet className="w-4 h-4" aria-hidden="true" />} active={snapEnabled} onClick={() => setSnapEnabled(!snapEnabled)} />
+              <ViewToggleItem label="Count Mode" icon={<Hash className="w-4 h-4" aria-hidden="true" />} active={timeDisplayMode === 'counts'} onClick={() => setTimeDisplayMode(timeDisplayMode === 'time' ? 'counts' : 'time')} />
+              <ViewToggleItem label="Field Overlay" icon={<Map className="w-4 h-4" aria-hidden="true" />} active={showFieldOverlay} onClick={() => setShowFieldOverlay(!showFieldOverlay)} />
             </div>
           )}
         </div>
@@ -239,13 +239,13 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
 
         {/* Panel toggles */}
         <button onClick={() => setShowPerformerPanel(!showPerformerPanel)} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showPerformerPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title="Performers Panel" aria-label="Performers panel" aria-pressed={showPerformerPanel}>
-          <Users className="w-4 h-4" />
+          <Users className="w-4 h-4" aria-hidden="true" />
         </button>
         <button onClick={() => setShowAudioPanel(!showAudioPanel)} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${hasAudioTrack ? 'text-green-500' : showAudioPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`} title={hasAudioTrack ? 'Audio attached' : 'Add Audio'} aria-label={hasAudioTrack ? 'Audio attached' : 'Audio panel'} aria-pressed={showAudioPanel}>
-          <Music className="w-4 h-4" />
+          <Music className="w-4 h-4" aria-hidden="true" />
         </button>
         <button onClick={() => setShowTemplatePicker(true)} className="p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" title="Formation Templates" aria-label="Formation templates">
-          <LayoutGrid className="w-4 h-4" />
+          <LayoutGrid className="w-4 h-4" aria-hidden="true" />
         </button>
         {setShowDraftPanel && (
           <button
@@ -255,7 +255,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             aria-label="AI draft agent"
             aria-pressed={showDraftPanel}
           >
-            <Bot className="w-4 h-4" />
+            <Bot className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
 
@@ -284,7 +284,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
                 className="flex items-center gap-1 px-2 py-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                 title="Copy share link"
               >
-                <Share2 className="w-4 h-4" />
+                <Share2 className="w-4 h-4" aria-hidden="true" />
                 <span className="text-xs hidden sm:inline">Share</span>
               </button>
             )}
@@ -306,12 +306,12 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
                 className="flex items-center gap-1 px-2 py-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                 title="Copy embed code"
               >
-                <Code2 className="w-4 h-4" />
+                <Code2 className="w-4 h-4" aria-hidden="true" />
                 <span className="text-xs hidden sm:inline">Embed</span>
               </button>
             )}
             <button onClick={() => setIsExportDialogOpen(true)} className="flex items-center gap-1 px-2 py-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded hover:bg-gray-100 dark:hover:bg-gray-700">
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4" aria-hidden="true" />
               <span className="text-xs hidden sm:inline">{t('formation.export', 'Export')}</span>
             </button>
 
@@ -321,7 +321,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             <div className="flex items-center gap-1.5">
               {hasUnsavedChanges && saveStatus === 'idle' && (
                 <span className="flex items-center gap-1 text-xs text-amber-500">
-                  <Circle className="w-2 h-2 fill-current" />
+                  <Circle className="w-2 h-2 fill-current" aria-hidden="true" />
                   Unsaved
                 </span>
               )}
@@ -330,7 +330,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
                 disabled={saveStatus === 'saving' || apiSaving}
                 className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs transition-colors ${saveStatus === 'saved' ? 'bg-green-500 text-white' : saveStatus === 'error' ? 'bg-red-500 text-white' : saveStatus === 'saving' || apiSaving ? 'bg-blue-400 text-white cursor-wait' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
               >
-                {saveStatus === 'saving' || apiSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saveStatus === 'saved' ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+                {saveStatus === 'saving' || apiSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : saveStatus === 'saved' ? <Check className="w-3.5 h-3.5" aria-hidden="true" /> : <Save className="w-3.5 h-3.5" aria-hidden="true" />}
                 <span>{saveStatus === 'saving' || apiSaving ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : saveStatus === 'error' ? 'Failed' : 'Save'}</span>
               </button>
             </div>
@@ -340,7 +340,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             onClick={() => {/* TODO: navigate to signup */}}
             className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs bg-indigo-500 hover:bg-indigo-600 text-white transition-colors"
           >
-            <Save className="w-3.5 h-3.5" />
+            <Save className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Sign up to save</span>
           </button>
         )}
@@ -368,17 +368,17 @@ function OfflineBadge() {
     >
       {!isOnline ? (
         <>
-          <WifiOff className="w-3 h-3" />
+          <WifiOff className="w-3 h-3" aria-hidden="true" />
           <span className="hidden sm:inline">Offline</span>
         </>
       ) : syncStatus === 'syncing' ? (
         <>
-          <Cloud className="w-3 h-3 animate-pulse" />
+          <Cloud className="w-3 h-3 animate-pulse" aria-hidden="true" />
           <span className="hidden sm:inline">Syncing</span>
         </>
       ) : (
         <>
-          <Cloud className="w-3 h-3" />
+          <Cloud className="w-3 h-3" aria-hidden="true" />
           <span className="hidden sm:inline">{pendingCount}</span>
         </>
       )}

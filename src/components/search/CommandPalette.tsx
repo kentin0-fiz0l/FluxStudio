@@ -433,7 +433,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
           <div className="backdrop-blur-md bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="flex items-center gap-3 p-4 border-b border-white/10">
-              <Command className="h-5 w-5 text-white/70" />
+              <Command className="h-5 w-5 text-white/70" aria-hidden="true" />
               <Input
                 ref={inputRef}
                 value={query}
@@ -450,7 +450,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
                 onClick={close}
                 className="p-1 h-auto text-white/70 hover:text-white hover:bg-white/10"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
 
@@ -471,7 +471,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
                       <div key={category} className="mb-4 last:mb-0">
                         {/* Category Header */}
                         <div className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                          <CategoryIcon className="h-3 w-3" />
+                          <CategoryIcon className="h-3 w-3" aria-hidden="true" />
                           {getCategoryLabel(category)}
                         </div>
 
@@ -508,7 +508,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
                                     ? 'bg-white/20 text-white'
                                     : 'bg-white/10 text-white/70 group-hover:bg-white/20 group-hover:text-white'
                                 )}>
-                                  <ItemIcon className="h-4 w-4" />
+                                  <ItemIcon className="h-4 w-4" aria-hidden="true" />
                                 </div>
 
                                 <div className="flex-1 min-w-0">
@@ -527,7 +527,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
                                   )}
                                 </div>
 
-                                <ChevronRight className={cn(
+                                <ChevronRight aria-hidden="true" className={cn(
                                   'h-4 w-4 transition-opacity',
                                   isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                                 )} />
@@ -541,7 +541,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
                 </div>
               ) : query.trim() ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Search className="h-8 w-8 text-gray-500 mb-3" />
+                  <Search className="h-8 w-8 text-gray-500 mb-3" aria-hidden="true" />
                   <h3 className="text-lg font-semibold text-white mb-2">No results found</h3>
                   <p className="text-gray-400 text-sm">
                     Try searching for projects, files, or actions
@@ -551,7 +551,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
                 <div className="p-2">
                   <div className="flex items-center justify-between px-3 py-2">
                     <div className="flex items-center gap-2 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                      <Clock className="h-3 w-3" />
+                      <Clock className="h-3 w-3" aria-hidden="true" />
                       Recent Searches
                     </div>
                     <button
@@ -561,7 +561,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
                       }}
                       className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3 w-3" aria-hidden="true" />
                       Clear
                     </button>
                   </div>
@@ -579,7 +579,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
                           setQuery(term);
                         }}
                       >
-                        <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                        <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" aria-hidden="true" />
                         <span className="flex-1 text-sm truncate">{term}</span>
                         <button
                           onClick={(e) => {
@@ -589,7 +589,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
                           }}
                           className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded transition-all"
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-3 w-3" aria-hidden="true" />
                         </button>
                       </div>
                     ))}
@@ -597,7 +597,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Command className="h-8 w-8 text-gray-500 mb-3" />
+                  <Command className="h-8 w-8 text-gray-500 mb-3" aria-hidden="true" />
                   <h3 className="text-lg font-semibold text-white mb-2">Quick Actions</h3>
                   <p className="text-gray-400 text-sm">
                     Start typing to search across your workspace

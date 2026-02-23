@@ -83,11 +83,11 @@ function MessagesNew() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {state.isRetrying ? (
-                <Loader2 className="w-5 h-5 text-yellow-600 dark:text-yellow-400 animate-spin" />
+                <Loader2 className="w-5 h-5 text-yellow-600 dark:text-yellow-400 animate-spin" aria-hidden="true" />
               ) : /internet|network/i.test(friendlyError(state.conversationError)) ? (
-                <WifiOff className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <WifiOff className="w-5 h-5 text-red-600 dark:text-red-400" aria-hidden="true" />
               ) : (
-                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" aria-hidden="true" />
               )}
               <div>
                 <p className={`text-sm font-medium ${
@@ -109,7 +109,7 @@ function MessagesNew() {
             <div className="flex items-center gap-1">
               {!state.isRetrying && (
                 <Button variant="ghost" size="sm" onClick={state.loadConversations}>
-                  <RefreshCw className="w-4 h-4 mr-1" />
+                  <RefreshCw className="w-4 h-4 mr-1" aria-hidden="true" />
                   Retry
                 </Button>
               )}
@@ -118,7 +118,7 @@ function MessagesNew() {
                 className="p-1.5 hover:bg-red-100 dark:hover:bg-red-800/50 rounded transition-colors"
                 aria-label="Dismiss error"
               >
-                <X className="w-4 h-4 text-red-500 dark:text-red-400" />
+                <X className="w-4 h-4 text-red-500 dark:text-red-400" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -129,7 +129,7 @@ function MessagesNew() {
       {!state.realtime.isConnected && state.selectedConversationId && (
         <div className="mx-4 mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
           <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300 text-sm">
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
             Connecting to real-time messaging...
           </div>
         </div>
@@ -209,7 +209,7 @@ function MessagesNew() {
                       className="p-1 hover:bg-indigo-100 dark:hover:bg-indigo-800/50 rounded transition-colors flex-shrink-0"
                       aria-label="Dismiss hint"
                     >
-                      <X className="w-4 h-4 text-indigo-500" />
+                      <X className="w-4 h-4 text-indigo-500" aria-hidden="true" />
                     </button>
                   </div>
                 </div>

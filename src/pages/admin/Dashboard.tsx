@@ -57,14 +57,14 @@ export function AdminDashboard() {
 
   // Navigation items
   const navItems: NavItem[] = [
-    { id: 'overview', label: t('navigation.overview', 'Overview'), icon: <LayoutDashboard className="w-5 h-5" />, href: '/admin' },
-    { id: 'users', label: t('navigation.users', 'Users'), icon: <Users className="w-5 h-5" />, href: '/admin/users', badge: 5 },
-    { id: 'teams', label: t('navigation.teams', 'Teams'), icon: <Building2 className="w-5 h-5" />, href: '/admin/teams' },
-    { id: 'projects', label: t('navigation.projects', 'Projects'), icon: <FolderKanban className="w-5 h-5" />, href: '/admin/projects' },
-    { id: 'analytics', label: t('navigation.analytics', 'Analytics'), icon: <BarChart3 className="w-5 h-5" />, href: '/admin/analytics' },
-    { id: 'audit', label: t('navigation.auditLogs', 'Audit Logs'), icon: <FileText className="w-5 h-5" />, href: '/admin/audit' },
-    { id: 'settings', label: t('navigation.settings', 'Settings'), icon: <Settings className="w-5 h-5" />, href: '/admin/settings' },
-    { id: 'billing', label: t('navigation.billing', 'Billing'), icon: <CreditCard className="w-5 h-5" />, href: '/admin/billing' },
+    { id: 'overview', label: t('navigation.overview', 'Overview'), icon: <LayoutDashboard className="w-5 h-5" aria-hidden="true" />, href: '/admin' },
+    { id: 'users', label: t('navigation.users', 'Users'), icon: <Users className="w-5 h-5" aria-hidden="true" />, href: '/admin/users', badge: 5 },
+    { id: 'teams', label: t('navigation.teams', 'Teams'), icon: <Building2 className="w-5 h-5" aria-hidden="true" />, href: '/admin/teams' },
+    { id: 'projects', label: t('navigation.projects', 'Projects'), icon: <FolderKanban className="w-5 h-5" aria-hidden="true" />, href: '/admin/projects' },
+    { id: 'analytics', label: t('navigation.analytics', 'Analytics'), icon: <BarChart3 className="w-5 h-5" aria-hidden="true" />, href: '/admin/analytics' },
+    { id: 'audit', label: t('navigation.auditLogs', 'Audit Logs'), icon: <FileText className="w-5 h-5" aria-hidden="true" />, href: '/admin/audit' },
+    { id: 'settings', label: t('navigation.settings', 'Settings'), icon: <Settings className="w-5 h-5" aria-hidden="true" />, href: '/admin/settings' },
+    { id: 'billing', label: t('navigation.billing', 'Billing'), icon: <CreditCard className="w-5 h-5" aria-hidden="true" />, href: '/admin/billing' },
   ];
 
   // Overview stats
@@ -73,27 +73,27 @@ export function AdminDashboard() {
       label: t('overview.totalUsers', 'Total Users'),
       value: '2,847',
       change: 12.5,
-      icon: <Users className="w-6 h-6" />,
+      icon: <Users className="w-6 h-6" aria-hidden="true" />,
       href: '/admin/users',
     },
     {
       label: t('overview.activeUsers', 'Active Users'),
       value: '1,423',
       change: -3.2,
-      icon: <Activity className="w-6 h-6" />,
+      icon: <Activity className="w-6 h-6" aria-hidden="true" />,
     },
     {
       label: t('overview.totalProjects', 'Total Projects'),
       value: '846',
       change: 8.1,
-      icon: <FolderKanban className="w-6 h-6" />,
+      icon: <FolderKanban className="w-6 h-6" aria-hidden="true" />,
       href: '/admin/projects',
     },
     {
       label: t('overview.activeProjects', 'Active Projects'),
       value: '312',
       change: 15.7,
-      icon: <Activity className="w-6 h-6" />,
+      icon: <Activity className="w-6 h-6" aria-hidden="true" />,
     },
   ];
 
@@ -118,7 +118,7 @@ export function AdminDashboard() {
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <Shield className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <Shield className="w-6 h-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />
               </div>
               <div>
                 <h1 className="font-bold text-gray-900 dark:text-gray-100">
@@ -201,7 +201,7 @@ export function AdminDashboard() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</span>
-                  {stat.href && <ArrowUpRight className="w-4 h-4 text-gray-400" />}
+                  {stat.href && <ArrowUpRight className="w-4 h-4 text-gray-400" aria-hidden="true" />}
                 </div>
               </div>
             ))}
@@ -230,7 +230,7 @@ export function AdminDashboard() {
                   className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                 >
                   {t('navigation.auditLogs', 'View All')}
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4" aria-hidden="true" />
                 </Link>
               </div>
               <div className="divide-y divide-gray-200 dark:divide-gray-700">

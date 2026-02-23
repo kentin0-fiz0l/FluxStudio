@@ -190,7 +190,7 @@ export function PortfolioItemForm({ item, onSave, onCancel }: PortfolioItemFormP
             <Badge key={tag} variant="outline" className="flex items-center gap-1">
               {tag}
               <button onClick={() => removeTag(tag)}>
-                <X className="h-3 w-3" />
+                <X className="h-3 w-3" aria-hidden="true" />
               </button>
             </Badge>
           ))}

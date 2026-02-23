@@ -102,12 +102,12 @@ function WidgetPreview({ widgetId, onAdd, isAdded }: WidgetPreviewProps) {
             >
               {isAdded ? (
                 <>
-                  <Star className="h-3 w-3 mr-1" />
+                  <Star className="h-3 w-3 mr-1" aria-hidden="true" />
                   Added
                 </>
               ) : (
                 <>
-                  <Plus className="h-3 w-3 mr-1" />
+                  <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
                   Add
                 </>
               )}
@@ -194,9 +194,9 @@ export function WidgetPalette({ className }: WidgetPaletteProps) {
             className
           )}
         >
-          <Package className="h-4 w-4" />
+          <Package className="h-4 w-4" aria-hidden="true" />
           <span className="hidden sm:inline">Widget Palette</span>
-          <Sparkles className="h-3 w-3" />
+          <Sparkles className="h-3 w-3" aria-hidden="true" />
         </Button>
       </SheetTrigger>
 
@@ -206,7 +206,7 @@ export function WidgetPalette({ className }: WidgetPaletteProps) {
       >
         <SheetHeader className="space-y-3">
           <SheetTitle className="text-white flex items-center gap-2">
-            <Grid3X3 className="h-5 w-5" />
+            <Grid3X3 className="h-5 w-5" aria-hidden="true" />
             Widget Palette
           </SheetTitle>
           <SheetDescription className="text-gray-400">
@@ -217,7 +217,7 @@ export function WidgetPalette({ className }: WidgetPaletteProps) {
         <div className="mt-6 space-y-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
             <Input
               placeholder="Search widgets..."
               value={searchQuery}
@@ -231,7 +231,7 @@ export function WidgetPalette({ className }: WidgetPaletteProps) {
                 onClick={() => setSearchQuery('')}
                 className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-gray-400 hover:text-white"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3 w-3" aria-hidden="true" />
               </Button>
             )}
           </div>
@@ -292,7 +292,7 @@ export function WidgetPalette({ className }: WidgetPaletteProps) {
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col items-center justify-center p-8 text-center"
                   >
-                    <Filter className="h-8 w-8 text-gray-500 mb-3" />
+                    <Filter className="h-8 w-8 text-gray-500 mb-3" aria-hidden="true" />
                     <h3 className="text-lg font-semibold text-white mb-2">No widgets found</h3>
                     <p className="text-gray-400 text-sm">
                       Try adjusting your search or category filter

@@ -65,7 +65,7 @@ const NotificationIcon = ({ type }: { type: NotificationType }) => {
   };
 
   const Icon = iconMap[type] || Bell;
-  return <Icon size={16} />;
+  return <Icon size={16} aria-hidden="true" />;
 };
 
 const priorityLabels: Record<Priority, string> = {
@@ -226,7 +226,7 @@ function NotificationItem({
                           title="Mark as read"
                           aria-label="Mark as read"
                         >
-                          <Eye size={14} />
+                          <Eye size={14} aria-hidden="true" />
                         </button>
                       )}
 
@@ -236,7 +236,7 @@ function NotificationItem({
                         title="Snooze for 1 hour"
                         aria-label="Snooze for 1 hour"
                       >
-                        <Clock size={14} />
+                        <Clock size={14} aria-hidden="true" />
                       </button>
 
                       <button
@@ -245,7 +245,7 @@ function NotificationItem({
                         title="Archive"
                         aria-label="Archive"
                       >
-                        <Archive size={14} />
+                        <Archive size={14} aria-hidden="true" />
                       </button>
 
                       <button
@@ -254,7 +254,7 @@ function NotificationItem({
                         title="Dismiss"
                         aria-label="Dismiss"
                       >
-                        <X size={14} />
+                        <X size={14} aria-hidden="true" />
                       </button>
                     </motion.div>
                   )}
@@ -347,7 +347,7 @@ function FilterPanel({
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600"
         >
-          <X size={16} />
+          <X size={16} aria-hidden="true" />
         </button>
       </div>
 
@@ -547,7 +547,7 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
       <div className="relative border-b border-gray-200 dark:border-neutral-700 p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Bell size={20} className="text-gray-700 dark:text-neutral-300" />
+            <Bell size={20} className="text-gray-700 dark:text-neutral-300" aria-hidden="true" />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h2>
             {unreadCount > 0 && (
               <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
@@ -576,7 +576,7 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
               title="Notification preferences"
             >
-              <Settings size={16} />
+              <Settings size={16} aria-hidden="true" />
             </button>
 
             {onClose && (
@@ -585,7 +585,7 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
                 className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                 title="Close"
               >
-                <X size={16} />
+                <X size={16} aria-hidden="true" />
               </button>
             )}
           </div>
@@ -594,7 +594,7 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
         {/* Search and Filter */}
         <div className="flex gap-2">
           <div className="flex-1 relative">
-            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" aria-hidden="true" />
             <input
               type="text"
               placeholder="Search notifications..."
@@ -612,7 +612,7 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
               }`}
               title="Filter notifications"
             >
-              <Filter size={16} />
+              <Filter size={16} aria-hidden="true" />
             </button>
 
             <FilterPanel
@@ -657,7 +657,7 @@ export function NotificationCenter({ isOpen = true, onClose, className = '' }: N
           </div>
         ) : filteredNotifications.length === 0 ? (
           <div className="p-8 text-center">
-            <Bell size={32} className="mx-auto text-gray-300 mb-3" />
+            <Bell size={32} className="mx-auto text-gray-300 mb-3" aria-hidden="true" />
             <p className="text-gray-500 text-sm">
               {notifications.length === 0 ? 'No notifications yet' : 'No notifications match your filters'}
             </p>

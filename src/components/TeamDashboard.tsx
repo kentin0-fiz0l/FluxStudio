@@ -89,7 +89,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
           <div className="max-w-7xl mx-auto">
             <Card className="bg-white/10 border border-white/10 p-8">
               <div className="text-center">
-                <Users className="h-12 w-12 text-white/40 mx-auto mb-4" />
+                <Users className="h-12 w-12 text-white/40 mx-auto mb-4" aria-hidden="true" />
                 <h2 className="text-2xl font-bold text-white mb-2">Team Not Found</h2>
                 <p className="text-gray-400 mb-6">The requested team could not be found or you don't have access to it.</p>
                 <Button onClick={() => navigate('/dashboard')} className="bg-blue-500 hover:bg-blue-600 text-white">
@@ -118,13 +118,13 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
             <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <Users className="h-8 w-8 text-blue-400" />
+                  <Users className="h-8 w-8 text-blue-400" aria-hidden="true" />
                   <h1 className="text-4xl font-bold text-white">
                     {currentTeam.name}
                   </h1>
                   {currentTeam.settings?.isPrivate && (
                     <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
-                      <Shield className="h-3 w-3 mr-1" />
+                      <Shield className="h-3 w-3 mr-1" aria-hidden="true" />
                       Private
                     </Badge>
                   )}
@@ -162,14 +162,14 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
                   onClick={() => setShowCreateProject(true)}
                   className="bg-purple-500 hover:bg-purple-600 text-white"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
                   New Project
                 </Button>
                 <Button
                   variant="ghost"
                   className="text-white hover:bg-white/10"
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -181,7 +181,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <FolderOpen className="h-6 w-6 text-purple-400" />
+                  <FolderOpen className="h-6 w-6 text-purple-400" aria-hidden="true" />
                   Team Projects
                 </h2>
                 <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
@@ -192,7 +192,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
               {/* Search */}
               <div className="mb-6">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
                   <Input
                     placeholder="Search projects..."
                     value={searchQuery}
@@ -225,7 +225,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
                       <CardHeader>
                         <CardTitle className="text-white flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <FolderOpen className="h-5 w-5 text-purple-400" />
+                            <FolderOpen className="h-5 w-5 text-purple-400" aria-hidden="true" />
                             {project.name}
                           </div>
                           <div className="flex items-center gap-2">
@@ -239,7 +239,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
                             >
                               {project.status}
                             </Badge>
-                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                            <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />
                           </div>
                         </CardTitle>
                         {project.description && (
@@ -251,7 +251,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
                       <CardContent>
                         <div className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2 text-gray-400">
-                            <Clock className="h-3 w-3" />
+                            <Clock className="h-3 w-3" aria-hidden="true" />
                             Created {new Date(project.createdAt).toLocaleDateString()}
                           </div>
                           <Badge
@@ -272,14 +272,14 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
                   {filteredProjects.length === 0 && (
                     <Card className="bg-white/10 border border-white/10 border-dashed">
                       <CardContent className="py-12 text-center">
-                        <FolderOpen className="h-12 w-12 text-white/40 mx-auto mb-4" />
+                        <FolderOpen className="h-12 w-12 text-white/40 mx-auto mb-4" aria-hidden="true" />
                         <h3 className="text-xl font-semibold text-white mb-2">No Projects Yet</h3>
                         <p className="text-gray-400 mb-4">Create your first project to get started</p>
                         <Button
                           onClick={() => setShowCreateProject(true)}
                           className="bg-purple-500 hover:bg-purple-600 text-white"
                         >
-                          <Plus className="h-4 w-4 mr-2" />
+                          <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
                           Create Project
                         </Button>
                       </CardContent>
@@ -293,7 +293,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Users className="h-5 w-5 text-blue-400" />
+                  <Users className="h-5 w-5 text-blue-400" aria-hidden="true" />
                   Team Members
                 </h2>
                 <Button
@@ -301,7 +301,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
                   variant="ghost"
                   className="text-white hover:bg-white/10"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
 
@@ -311,7 +311,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                          <User className="h-5 w-5 text-white" />
+                          <User className="h-5 w-5 text-white" aria-hidden="true" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-medium truncate">
@@ -332,7 +332,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
                 {members.length === 0 && (
                   <Card className="bg-white/10 border border-white/10 border-dashed">
                     <CardContent className="py-8 text-center">
-                      <Users className="h-8 w-8 text-white/40 mx-auto mb-2" />
+                      <Users className="h-8 w-8 text-white/40 mx-auto mb-2" aria-hidden="true" />
                       <p className="text-gray-400 text-sm">No members yet</p>
                     </CardContent>
                   </Card>
@@ -343,7 +343,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
               <Card className="bg-white/10 border border-white/10 mt-6">
                 <CardHeader>
                   <CardTitle className="text-white text-lg flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-green-400" />
+                    <Activity className="h-5 w-5 text-green-400" aria-hidden="true" />
                     Recent Activity
                   </CardTitle>
                 </CardHeader>

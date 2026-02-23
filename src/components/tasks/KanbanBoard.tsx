@@ -165,7 +165,7 @@ const TaskCard: React.FC<TaskCardInternalProps> = ({
           aria-label="Drag to move task"
           onClick={(e) => e.stopPropagation()}
         >
-          <GripVertical size={16} />
+          <GripVertical size={16} aria-hidden="true" />
         </button>
 
         <div className="flex-1 min-w-0">
@@ -194,9 +194,9 @@ const TaskCard: React.FC<TaskCardInternalProps> = ({
                   ${isOverdue ? 'text-red-600 font-medium' : 'text-neutral-600'}
                 `}
               >
-                <Calendar size={12} />
+                <Calendar size={12} aria-hidden="true" />
                 {formattedDueDate}
-                {isOverdue && <AlertCircle size={12} />}
+                {isOverdue && <AlertCircle size={12} aria-hidden="true" />}
               </span>
             )}
 
@@ -253,7 +253,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
             className="p-1 hover:bg-white/50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
             aria-label={`Add task to ${column.label}`}
           >
-            <Plus size={18} />
+            <Plus size={18} aria-hidden="true" />
           </button>
         </div>
       </div>

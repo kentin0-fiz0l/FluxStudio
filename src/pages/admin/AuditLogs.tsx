@@ -153,21 +153,21 @@ export function AdminAuditLogs() {
   const getActionIcon = (action: AuditAction) => {
     switch (action) {
       case 'login':
-        return <LogIn className="w-4 h-4 text-green-500" />;
+        return <LogIn className="w-4 h-4 text-green-500" aria-hidden="true" />;
       case 'logout':
-        return <LogOut className="w-4 h-4 text-gray-500" />;
+        return <LogOut className="w-4 h-4 text-gray-500" aria-hidden="true" />;
       case 'create':
-        return <Plus className="w-4 h-4 text-blue-500" />;
+        return <Plus className="w-4 h-4 text-blue-500" aria-hidden="true" />;
       case 'update':
-        return <Edit className="w-4 h-4 text-yellow-500" />;
+        return <Edit className="w-4 h-4 text-yellow-500" aria-hidden="true" />;
       case 'delete':
-        return <Trash2 className="w-4 h-4 text-red-500" />;
+        return <Trash2 className="w-4 h-4 text-red-500" aria-hidden="true" />;
       case 'invite':
-        return <UserPlus className="w-4 h-4 text-purple-500" />;
+        return <UserPlus className="w-4 h-4 text-purple-500" aria-hidden="true" />;
       case 'remove':
-        return <UserMinus className="w-4 h-4 text-orange-500" />;
+        return <UserMinus className="w-4 h-4 text-orange-500" aria-hidden="true" />;
       default:
-        return <FileText className="w-4 h-4 text-gray-500" />;
+        return <FileText className="w-4 h-4 text-gray-500" aria-hidden="true" />;
     }
   };
 
@@ -204,7 +204,7 @@ export function AdminAuditLogs() {
           <Link to="/admin" className="hover:text-gray-700 dark:hover:text-gray-300">
             {t('title', 'Admin')}
           </Link>
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4" aria-hidden="true" />
           <span className="text-gray-900 dark:text-gray-100">{t('auditLogs.title', 'Audit Logs')}</span>
         </div>
         <div className="flex items-center justify-between">
@@ -222,12 +222,12 @@ export function AdminAuditLogs() {
               disabled={isRefreshing}
               className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
               Refresh
             </button>
             <div className="relative group">
               <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                <Download className="w-4 h-4" />
+                <Download className="w-4 h-4" aria-hidden="true" />
                 Export
               </button>
               <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
@@ -260,7 +260,7 @@ export function AdminAuditLogs() {
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
             <input
               type="text"
               value={searchQuery}
@@ -272,7 +272,7 @@ export function AdminAuditLogs() {
 
           {/* Category Filter */}
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400" />
+            <Filter className="w-4 h-4 text-gray-400" aria-hidden="true" />
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value as AuditCategory)}
@@ -289,7 +289,7 @@ export function AdminAuditLogs() {
 
           {/* Date Range */}
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-gray-400" />
+            <Calendar className="w-4 h-4 text-gray-400" aria-hidden="true" />
             <input
               type="date"
               value={dateRange.start}
@@ -394,7 +394,7 @@ export function AdminAuditLogs() {
               disabled={currentPage === 1}
               className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
             </button>
             {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((page) => (
               <button
@@ -414,7 +414,7 @@ export function AdminAuditLogs() {
               disabled={currentPage === totalPages}
               className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>

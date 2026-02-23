@@ -105,11 +105,11 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
   };
 
   const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return <Image className="h-5 w-5" />;
-    if (mimeType.startsWith('video/')) return <Video className="h-5 w-5" />;
-    if (mimeType.startsWith('audio/')) return <Music className="h-5 w-5" />;
-    if (mimeType.includes('zip') || mimeType.includes('rar')) return <Archive className="h-5 w-5" />;
-    return <FileText className="h-5 w-5" />;
+    if (mimeType.startsWith('image/')) return <Image className="h-5 w-5" aria-hidden="true" />;
+    if (mimeType.startsWith('video/')) return <Video className="h-5 w-5" aria-hidden="true" />;
+    if (mimeType.startsWith('audio/')) return <Music className="h-5 w-5" aria-hidden="true" />;
+    if (mimeType.includes('zip') || mimeType.includes('rar')) return <Archive className="h-5 w-5" aria-hidden="true" />;
+    return <FileText className="h-5 w-5" aria-hidden="true" />;
   };
 
   const formatFileSize = (bytes: number) => {
@@ -135,7 +135,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
           <div className="max-w-7xl mx-auto">
             <Card className="bg-white/10 border border-white/10 p-8">
               <div className="text-center">
-                <FolderOpen className="h-12 w-12 text-white/40 mx-auto mb-4" />
+                <FolderOpen className="h-12 w-12 text-white/40 mx-auto mb-4" aria-hidden="true" />
                 <h2 className="text-2xl font-bold text-white mb-2">Project Not Found</h2>
                 <p className="text-gray-400 mb-6">The requested project could not be found or you don't have access to it.</p>
                 <Button onClick={() => navigate('/dashboard')} className="bg-blue-500 hover:bg-blue-600 text-white">
@@ -164,7 +164,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
             <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <FolderOpen className="h-8 w-8 text-purple-400" />
+                  <FolderOpen className="h-8 w-8 text-purple-400" aria-hidden="true" />
                   <h1 className="text-4xl font-bold text-white">
                     {currentProject.name}
                   </h1>
@@ -228,7 +228,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                     multiple
                   />
                   <Button className="bg-purple-500 hover:bg-purple-600 text-white">
-                    <Upload className="h-4 w-4 mr-2" />
+                    <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
                     Upload Files
                   </Button>
                 </label>
@@ -236,7 +236,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                   variant="ghost"
                   className="text-white hover:bg-white/10"
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -250,7 +250,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
               <div className="flex flex-col lg:flex-row gap-4 mb-6">
                 <div className="flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
                     <Input
                       placeholder="Search files..."
                       value={searchQuery}
@@ -302,7 +302,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                     onClick={() => setViewMode('grid')}
                     className="p-2"
                   >
-                    <Grid3X3 className="h-4 w-4" />
+                    <Grid3X3 className="h-4 w-4" aria-hidden="true" />
                   </Button>
                   <Button
                     variant={viewMode === 'list' ? 'primary' : 'ghost'}
@@ -310,7 +310,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                     onClick={() => setViewMode('list')}
                     className="p-2"
                   >
-                    <List className="h-4 w-4" />
+                    <List className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
@@ -392,13 +392,13 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
 
                               <div className="flex items-center gap-2">
                                 <Button size="sm" variant="ghost" className="text-white hover:bg-white/10 p-2">
-                                  <Eye className="h-4 w-4" />
+                                  <Eye className="h-4 w-4" aria-hidden="true" />
                                 </Button>
                                 <Button size="sm" variant="ghost" className="text-white hover:bg-white/10 p-2">
-                                  <Download className="h-4 w-4" />
+                                  <Download className="h-4 w-4" aria-hidden="true" />
                                 </Button>
                                 <Button size="sm" variant="ghost" className="text-white hover:bg-white/10 p-2">
-                                  <MoreVertical className="h-4 w-4" />
+                                  <MoreVertical className="h-4 w-4" aria-hidden="true" />
                                 </Button>
                               </div>
                             </div>
@@ -409,7 +409,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                   ) : (
                     <Card className="bg-white/10 border border-white/10 border-dashed">
                       <CardContent className="py-12 text-center">
-                        <Upload className="h-12 w-12 text-white/40 mx-auto mb-4" />
+                        <Upload className="h-12 w-12 text-white/40 mx-auto mb-4" aria-hidden="true" />
                         <h3 className="text-xl font-semibold text-white mb-2">No Files Yet</h3>
                         <p className="text-gray-400 mb-4">Upload your first file to get started</p>
                         <label className="cursor-pointer">
@@ -420,7 +420,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                             multiple
                           />
                           <Button className="bg-purple-500 hover:bg-purple-600 text-white">
-                            <Upload className="h-4 w-4 mr-2" />
+                            <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
                             Upload Files
                           </Button>
                         </label>
@@ -438,7 +438,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                 <Card className="bg-white/10 border border-white/10">
                   <CardHeader>
                     <CardTitle className="text-white text-lg flex items-center gap-2">
-                      <Activity className="h-5 w-5 text-green-400" />
+                      <Activity className="h-5 w-5 text-green-400" aria-hidden="true" />
                       Project Stats
                     </CardTitle>
                   </CardHeader>
@@ -463,7 +463,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
               <Card className="bg-white/10 border border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white text-lg flex items-center gap-2">
-                    <Users className="h-5 w-5 text-blue-400" />
+                    <Users className="h-5 w-5 text-blue-400" aria-hidden="true" />
                     Project Members
                   </CardTitle>
                 </CardHeader>
@@ -472,7 +472,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                     {members.slice(0, 5).map((member, index) => (
                       <div key={member.id || index} className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                          <User className="h-4 w-4 text-white" />
+                          <User className="h-4 w-4 text-white" aria-hidden="true" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-sm font-medium truncate">
@@ -502,7 +502,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
               <Card className="bg-white/10 border border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white text-lg flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-purple-400" />
+                    <Clock className="h-5 w-5 text-purple-400" aria-hidden="true" />
                     Recent Activity
                   </CardTitle>
                 </CardHeader>

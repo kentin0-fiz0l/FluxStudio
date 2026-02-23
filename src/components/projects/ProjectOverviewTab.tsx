@@ -122,12 +122,12 @@ export const ProjectOverviewTab = React.forwardRef<HTMLDivElement, ProjectOvervi
                 >
                   {copiedPrompt ? (
                     <>
-                      <Check className="h-3 w-3 text-green-500" />
+                      <Check className="h-3 w-3 text-green-500" aria-hidden="true" />
                       <span className="text-green-600 dark:text-green-400">Copied</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="h-3 w-3" />
+                      <Copy className="h-3 w-3" aria-hidden="true" />
                       <span>Copy prompt</span>
                     </>
                   )}

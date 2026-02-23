@@ -170,7 +170,7 @@ const getActivityColor = (type: ActivityType): string => {
 // Dedicated component to render activity type icons - avoids dynamic component creation during render
 const ActivityTypeIcon: React.FC<{ type: ActivityType; className?: string }> = ({ type, className }) => {
   const Icon = ACTIVITY_ICON_MAP[type] || ActivityIcon;
-  return <Icon className={className} />;
+  return <Icon className={className} aria-hidden="true" />;
 };
 
 // ============================================================================
@@ -437,7 +437,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity, compact = false }
 
         {/* Timestamp */}
         <div className="flex items-center gap-1 mt-1 ml-8">
-          <Clock className="h-3 w-3 text-neutral-400" />
+          <Clock className="h-3 w-3 text-neutral-400" aria-hidden="true" />
           <span
             className="text-xs text-neutral-500 cursor-help"
             onMouseEnter={() => setShowFullTimestamp(true)}
@@ -477,7 +477,7 @@ const ActivityFeedSkeleton: React.FC = () => (
 const EmptyState: React.FC = () => (
   <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
     <div className="rounded-full bg-neutral-100 p-4 mb-4">
-      <ActivityIcon className="h-8 w-8 text-neutral-400" />
+      <ActivityIcon className="h-8 w-8 text-neutral-400" aria-hidden="true" />
     </div>
     <h3 className="text-lg font-semibold text-neutral-900 mb-2">No activity yet</h3>
     <p className="text-sm text-neutral-600 max-w-sm">
@@ -675,7 +675,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         <div className="flex flex-col gap-3 px-4 py-3 border-b border-neutral-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ActivityIcon className="h-5 w-5 text-neutral-700" />
+              <ActivityIcon className="h-5 w-5 text-neutral-700" aria-hidden="true" />
               <h2 className="text-lg font-semibold text-neutral-900">Activity</h2>
               {totalActivities > 0 && (
                 <Badge variant="secondary" className="ml-2">
@@ -684,7 +684,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
               )}
               {isRealtimeConnected && (
                 <span className="flex items-center gap-1 text-xs text-green-600" title="Live updates active">
-                  <Wifi className="h-3 w-3" />
+                  <Wifi className="h-3 w-3" aria-hidden="true" />
                   Live
                 </span>
               )}
@@ -693,7 +693,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
             {/* Filter Popover */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" icon={<Filter className="h-4 w-4" />}>
+              <Button variant="ghost" size="sm" icon={<Filter className="h-4 w-4" aria-hidden="true" />}>
                 Filter
                 {hasActiveFilters && (
                   <Badge variant="primary" className="ml-2 h-4 w-4 p-0 text-xs">
@@ -841,7 +841,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         {/* Load More Button */}
         {hasMore && !isLoading && (
           <div className="flex justify-center py-4 px-4 border-t border-neutral-200">
-            <Button variant="ghost" onClick={handleLoadMore} icon={<ChevronDown className="h-4 w-4" />}>
+            <Button variant="ghost" onClick={handleLoadMore} icon={<ChevronDown className="h-4 w-4" aria-hidden="true" />}>
               Load More Activity
             </Button>
           </div>
@@ -850,7 +850,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         {/* Loading More Indicator */}
         {isLoading && page > 1 && (
           <div className="flex justify-center py-4">
-            <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
+            <Loader2 className="h-5 w-5 animate-spin text-neutral-400" aria-hidden="true" />
           </div>
         )}
       </div>

@@ -41,7 +41,7 @@ export function PortfolioFilters({
     <div className="flex flex-col md:flex-row gap-4 mb-8">
       <div className="flex-1">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
           <Input
             placeholder="Search portfolio items..."
             value={searchQuery}
@@ -69,14 +69,14 @@ export function PortfolioFilters({
             size="sm"
             onClick={() => onViewModeChange('grid')}
           >
-            <Grid3X3 className="h-4 w-4" />
+            <Grid3X3 className="h-4 w-4" aria-hidden="true" />
           </Button>
           <Button
             variant={viewMode === 'list' ? 'primary' : 'ghost'}
             size="sm"
             onClick={() => onViewModeChange('list')}
           >
-            <List className="h-4 w-4" />
+            <List className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
 
@@ -84,7 +84,7 @@ export function PortfolioFilters({
           <Dialog open={isAddingItem} onOpenChange={onAddingItemChange}>
             <DialogTrigger asChild>
               <Button>
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
                 Add Item
               </Button>
             </DialogTrigger>

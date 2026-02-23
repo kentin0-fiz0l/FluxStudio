@@ -154,17 +154,17 @@ export function TemplateSelector({
   };
 
   const categoryIcons: Record<TemplateCategory, React.ReactNode> = {
-    design: <Palette className="w-5 h-5" />,
-    development: <Code className="w-5 h-5" />,
-    marketing: <Megaphone className="w-5 h-5" />,
-    music: <Music className="w-5 h-5" />,
-    video: <Video className="w-5 h-5" />,
-    photography: <Camera className="w-5 h-5" />,
-    branding: <Image className="w-5 h-5" />,
-    'social-media': <Star className="w-5 h-5" />,
-    presentation: <FileText className="w-5 h-5" />,
-    documentation: <FileText className="w-5 h-5" />,
-    custom: <FolderPlus className="w-5 h-5" />,
+    design: <Palette className="w-5 h-5" aria-hidden="true" />,
+    development: <Code className="w-5 h-5" aria-hidden="true" />,
+    marketing: <Megaphone className="w-5 h-5" aria-hidden="true" />,
+    music: <Music className="w-5 h-5" aria-hidden="true" />,
+    video: <Video className="w-5 h-5" aria-hidden="true" />,
+    photography: <Camera className="w-5 h-5" aria-hidden="true" />,
+    branding: <Image className="w-5 h-5" aria-hidden="true" />,
+    'social-media': <Star className="w-5 h-5" aria-hidden="true" />,
+    presentation: <FileText className="w-5 h-5" aria-hidden="true" />,
+    documentation: <FileText className="w-5 h-5" aria-hidden="true" />,
+    custom: <FolderPlus className="w-5 h-5" aria-hidden="true" />,
   };
 
   return (
@@ -183,10 +183,10 @@ export function TemplateSelector({
                 onClick={() => setViewState('browse')}
                 className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-5 h-5" aria-hidden="true" />
               </button>
             )}
-            <FolderPlus className="w-6 h-6 text-indigo-600" />
+            <FolderPlus className="w-6 h-6 text-indigo-600" aria-hidden="true" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               {viewState === 'browse' && 'New Project'}
               {viewState === 'detail' && selectedTemplate?.name}
@@ -198,7 +198,7 @@ export function TemplateSelector({
             onClick={onCancel}
             className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -220,7 +220,7 @@ export function TemplateSelector({
                     className="w-full flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl text-white hover:from-indigo-600 hover:to-purple-700 transition-colors"
                   >
                     <div className="p-3 bg-white/20 rounded-lg">
-                      <Wand2 className="w-6 h-6" />
+                      <Wand2 className="w-6 h-6" aria-hidden="true" />
                     </div>
                     <div className="flex-1 text-left">
                       <h3 className="font-semibold">Generate with AI</h3>
@@ -228,13 +228,13 @@ export function TemplateSelector({
                         Describe your project and let AI create the perfect template
                       </p>
                     </div>
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-5 h-5" aria-hidden="true" />
                   </button>
                 </div>
 
                 {/* Search */}
                 <div className="relative mb-6">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
                   <input
                     type="text"
                     value={searchQuery}
@@ -277,7 +277,7 @@ export function TemplateSelector({
                 {/* Templates Grid */}
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                    <Loader2 className="w-8 h-8 animate-spin text-indigo-500" aria-hidden="true" />
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -309,16 +309,16 @@ export function TemplateSelector({
                     </div>
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
-                        <Download className="w-4 h-4" />
+                        <Download className="w-4 h-4" aria-hidden="true" />
                         {selectedTemplate.downloads.toLocaleString()}
                       </span>
                       <span className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-amber-500" />
+                        <Star className="w-4 h-4 text-amber-500" aria-hidden="true" />
                         {selectedTemplate.rating.toFixed(1)}
                       </span>
                       {selectedTemplate.official && (
                         <span className="flex items-center gap-1 text-blue-500">
-                          <Check className="w-4 h-4" />
+                          <Check className="w-4 h-4" aria-hidden="true" />
                           Official
                         </span>
                       )}
@@ -416,7 +416,7 @@ export function TemplateSelector({
                 <div className="max-w-xl mx-auto">
                   <div className="text-center mb-8">
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-4">
-                      <Sparkles className="w-8 h-8 text-white" />
+                      <Sparkles className="w-8 h-8 text-white" aria-hidden="true" />
                     </div>
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                       Describe Your Project
@@ -460,12 +460,12 @@ export function TemplateSelector({
                   >
                     {isLoading ? (
                       <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                         Generating...
                       </>
                     ) : (
                       <>
-                        <Wand2 className="w-5 h-5" />
+                        <Wand2 className="w-5 h-5" aria-hidden="true" />
                         Generate Template
                       </>
                     )}
@@ -498,7 +498,7 @@ export function TemplateSelector({
                 onClick={handleCreate}
                 className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
               >
-                <FolderPlus className="w-4 h-4" />
+                <FolderPlus className="w-4 h-4" aria-hidden="true" />
                 Create Project
               </button>
             </div>
@@ -541,13 +541,13 @@ function TemplateCard({ template, onClick }: TemplateCardProps) {
       <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
         {template.official && (
           <span className="flex items-center gap-0.5 text-blue-500">
-            <Check className="w-3 h-3" />
+            <Check className="w-3 h-3" aria-hidden="true" />
             Official
           </span>
         )}
         {template.featured && (
           <span className="flex items-center gap-0.5 text-amber-500">
-            <Star className="w-3 h-3" />
+            <Star className="w-3 h-3" aria-hidden="true" />
             Featured
           </span>
         )}

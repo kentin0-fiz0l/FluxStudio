@@ -122,7 +122,7 @@ export function OptimizedImage({
         )}
         style={{ width, height }}
       >
-        <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
+        <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" aria-hidden="true" />
         <p className="text-xs text-muted-foreground">Failed to load image</p>
       </div>
     );
@@ -147,7 +147,7 @@ export function OptimizedImage({
               />
             ) : (
               <div className="flex items-center justify-center w-full h-full">
-                <ImageIcon className="h-8 w-8 text-muted-foreground animate-pulse" />
+                <ImageIcon className="h-8 w-8 text-muted-foreground animate-pulse" aria-hidden="true" />
               </div>
             )}
           </motion.div>

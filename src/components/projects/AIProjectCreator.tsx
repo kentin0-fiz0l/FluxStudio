@@ -208,7 +208,7 @@ export function AIProjectCreator({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Wand2 className="w-5 h-5 text-primary-600" />
+            <Wand2 className="w-5 h-5 text-primary-600" aria-hidden="true" />
             Create Project with AI
           </DialogTitle>
         </DialogHeader>
@@ -235,9 +235,9 @@ export function AIProjectCreator({
                 className="gap-2"
               >
                 {isGenerating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                 ) : (
-                  <Sparkles className="w-4 h-4" />
+                  <Sparkles className="w-4 h-4" aria-hidden="true" />
                 )}
                 {isGenerating ? 'Generating...' : 'Generate Suggestions'}
               </Button>
@@ -255,7 +255,7 @@ export function AIProjectCreator({
                 <Card className="bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20 border-primary-200 dark:border-primary-800">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-primary-600" />
+                      <Sparkles className="w-4 h-4 text-primary-600" aria-hidden="true" />
                       AI Suggestions
                       <Button
                         variant="ghost"
@@ -264,7 +264,7 @@ export function AIProjectCreator({
                         className="ml-auto h-6 w-6 p-0"
                         title="Regenerate"
                       >
-                        <RefreshCw className="w-3 h-3" />
+                        <RefreshCw className="w-3 h-3" aria-hidden="true" />
                       </Button>
                     </CardTitle>
                   </CardHeader>
@@ -286,7 +286,7 @@ export function AIProjectCreator({
                         className="gap-1"
                       >
                         {appliedSuggestions.name ? (
-                          <Check className="w-3 h-3" />
+                          <Check className="w-3 h-3" aria-hidden="true" />
                         ) : null}
                         {appliedSuggestions.name ? 'Applied' : 'Use This'}
                       </Button>
@@ -296,7 +296,7 @@ export function AIProjectCreator({
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <p className="font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
-                          <Folder className="w-4 h-4" />
+                          <Folder className="w-4 h-4" aria-hidden="true" />
                           Suggested Folders
                         </p>
                         <Button
@@ -311,7 +311,7 @@ export function AIProjectCreator({
                           className="gap-1"
                         >
                           {appliedSuggestions.folders ? (
-                            <Check className="w-3 h-3" />
+                            <Check className="w-3 h-3" aria-hidden="true" />
                           ) : null}
                           {appliedSuggestions.folders ? 'Applied' : 'Create Folders'}
                         </Button>
@@ -329,7 +329,7 @@ export function AIProjectCreator({
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <p className="font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
-                          <CheckSquare className="w-4 h-4" />
+                          <CheckSquare className="w-4 h-4" aria-hidden="true" />
                           Suggested Timeline
                         </p>
                         <Button
@@ -344,7 +344,7 @@ export function AIProjectCreator({
                           className="gap-1"
                         >
                           {appliedSuggestions.tasks ? (
-                            <Check className="w-3 h-3" />
+                            <Check className="w-3 h-3" aria-hidden="true" />
                           ) : null}
                           {appliedSuggestions.tasks ? 'Applied' : 'Create Tasks'}
                         </Button>
@@ -355,7 +355,7 @@ export function AIProjectCreator({
                             key={i}
                             className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400"
                           >
-                            <Calendar className="w-3 h-3 flex-shrink-0" />
+                            <Calendar className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
                             <span>
                               Week {task.week}: {task.title}
                             </span>
@@ -372,7 +372,7 @@ export function AIProjectCreator({
                     {/* Team Roles */}
                     <div>
                       <p className="font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2 mb-2">
-                        <Users className="w-4 h-4" />
+                        <Users className="w-4 h-4" aria-hidden="true" />
                         Suggested Team Roles
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -417,9 +417,9 @@ export function AIProjectCreator({
                 className="gap-2"
               >
                 {isCreating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                 ) : (
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 )}
                 Create Project
               </Button>

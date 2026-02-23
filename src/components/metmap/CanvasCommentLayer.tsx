@@ -229,7 +229,7 @@ export const CanvasCommentLayer = React.memo(function CanvasCommentLayer({
                 style={{ backgroundColor: comment.color }}
                 title={`${comment.username}: ${comment.text}`}
               >
-                <MessageCircle className="w-2.5 h-2.5 text-white" />
+                <MessageCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
               </button>
               {replyCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-indigo-600 text-white text-[8px] flex items-center justify-center font-medium">
@@ -249,7 +249,7 @@ export const CanvasCommentLayer = React.memo(function CanvasCommentLayer({
                     onClick={() => setOpenCommentId(null)}
                     className="text-neutral-400 hover:text-neutral-600"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3 h-3" aria-hidden="true" />
                   </button>
                 </div>
 
@@ -306,7 +306,7 @@ export const CanvasCommentLayer = React.memo(function CanvasCommentLayer({
                     }}
                     className="flex items-center gap-1 px-2 py-1 rounded bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
                   >
-                    <Check className="w-3 h-3" />
+                    <Check className="w-3 h-3" aria-hidden="true" />
                     Resolve
                   </button>
                   {comment.userId === currentUserId && (
@@ -317,7 +317,7 @@ export const CanvasCommentLayer = React.memo(function CanvasCommentLayer({
                       }}
                       className="flex items-center gap-1 px-2 py-1 rounded bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3 h-3" aria-hidden="true" />
                       Delete
                     </button>
                   )}
@@ -340,7 +340,7 @@ export const CanvasCommentLayer = React.memo(function CanvasCommentLayer({
         >
           <div className="w-56 bg-white rounded-lg shadow-lg border border-neutral-200 p-3">
             <div className="flex items-center gap-1.5 mb-2 text-xs text-neutral-500">
-              <MessageCircle className="w-3 h-3" />
+              <MessageCircle className="w-3 h-3" aria-hidden="true" />
               <span>Comment at bar {addingAtBar}</span>
             </div>
             <textarea

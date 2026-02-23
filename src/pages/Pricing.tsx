@@ -54,7 +54,7 @@ export function Pricing() {
               to={user ? '/projects' : '/'}
               className="text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5" aria-hidden="true" />
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">Pricing</h1>

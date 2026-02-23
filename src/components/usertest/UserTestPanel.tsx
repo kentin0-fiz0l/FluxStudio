@@ -261,7 +261,7 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 bg-amber-50 dark:bg-amber-900/20">
           <div className="flex items-center gap-2">
-            <Beaker className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <Beaker className="h-5 w-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
             <h2 className="font-semibold text-neutral-900 dark:text-neutral-100">
               User Test Mode
             </h2>
@@ -276,7 +276,7 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
             aria-label="Close panel (Esc)"
             title="Close (Esc)"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
 
@@ -310,7 +310,7 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
               )}
               disabled={confusionReported}
             >
-              <HelpCircle className="h-4 w-4 mr-1.5" />
+              <HelpCircle className="h-4 w-4 mr-1.5" aria-hidden="true" />
               {confusionReported ? 'Confusion Reported!' : "I'm confused right now"}
             </Button>
           ) : (
@@ -358,9 +358,9 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
         {/* Tabs */}
         <div className="flex border-b border-neutral-200 dark:border-neutral-800">
           {[
-            { id: 'info' as const, label: 'Tester Info', icon: <User className="h-4 w-4" /> },
-            { id: 'tasks' as const, label: 'Tasks', icon: <ListChecks className="h-4 w-4" /> },
-            { id: 'feedback' as const, label: 'Feedback', icon: <MessageSquare className="h-4 w-4" /> },
+            { id: 'info' as const, label: 'Tester Info', icon: <User className="h-4 w-4" aria-hidden="true" /> },
+            { id: 'tasks' as const, label: 'Tasks', icon: <ListChecks className="h-4 w-4" aria-hidden="true" /> },
+            { id: 'feedback' as const, label: 'Feedback', icon: <MessageSquare className="h-4 w-4" aria-hidden="true" /> },
           ].map(tab => (
             <button
               key={tab.id}
@@ -417,7 +417,7 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
             onClick={handleReset}
             className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
           >
-            <RefreshCw className="h-4 w-4 mr-1" />
+            <RefreshCw className="h-4 w-4 mr-1" aria-hidden="true" />
             Reset
           </Button>
           <div className="flex items-center gap-2">
@@ -426,7 +426,7 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
               size="sm"
               onClick={handleDownloadJson}
             >
-              <Download className="h-4 w-4 mr-1" />
+              <Download className="h-4 w-4 mr-1" aria-hidden="true" />
               JSON
             </Button>
             <Button
@@ -434,7 +434,7 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
               size="sm"
               onClick={handleCopyReport}
             >
-              <ClipboardCopy className="h-4 w-4 mr-1" />
+              <ClipboardCopy className="h-4 w-4 mr-1" aria-hidden="true" />
               {copySuccess ? 'Copied!' : 'Copy Report'}
             </Button>
           </div>
@@ -589,18 +589,18 @@ function TaskList({
               </div>
               <div className="flex items-center gap-2">
                 {outcome?.status === 'completed' && (
-                  <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <Check className="h-5 w-5 text-green-600 dark:text-green-400" aria-hidden="true" />
                 )}
                 {outcome?.status === 'stuck' && (
-                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" aria-hidden="true" />
                 )}
                 {outcome?.status === 'started' && (
                   <span className="text-xs text-amber-600 dark:text-amber-400">In progress</span>
                 )}
                 {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-neutral-400" />
+                  <ChevronDown className="h-4 w-4 text-neutral-400" aria-hidden="true" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-neutral-400" />
+                  <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden="true" />
                 )}
               </div>
             </button>
@@ -610,14 +610,14 @@ function TaskList({
                 <div className="flex flex-wrap gap-2 mb-3">
                   {outcome?.status === 'pending' && (
                     <Button size="sm" variant="outline" onClick={() => onStart(task.id)}>
-                      <Play className="h-3 w-3 mr-1" />
+                      <Play className="h-3 w-3 mr-1" aria-hidden="true" />
                       Start
                     </Button>
                   )}
                   {(outcome?.status === 'pending' || outcome?.status === 'started') && (
                     <>
                       <Button size="sm" variant="primary" onClick={() => onComplete(task.id)}>
-                        <Check className="h-3 w-3 mr-1" />
+                        <Check className="h-3 w-3 mr-1" aria-hidden="true" />
                         Complete
                       </Button>
                       <Button
@@ -626,14 +626,14 @@ function TaskList({
                         onClick={() => onStuck(task.id)}
                         className="text-red-600 hover:bg-red-50 dark:text-red-400"
                       >
-                        <AlertCircle className="h-3 w-3 mr-1" />
+                        <AlertCircle className="h-3 w-3 mr-1" aria-hidden="true" />
                         Stuck
                       </Button>
                     </>
                   )}
                   {(outcome?.status === 'completed' || outcome?.status === 'stuck') && (
                     <Button size="sm" variant="ghost" onClick={() => onStart(task.id)}>
-                      <RefreshCw className="h-3 w-3 mr-1" />
+                      <RefreshCw className="h-3 w-3 mr-1" aria-hidden="true" />
                       Retry
                     </Button>
                   )}

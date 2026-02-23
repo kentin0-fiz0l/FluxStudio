@@ -104,12 +104,12 @@ export function AIDesignAssistant({
 
   const getSuggestionIcon = (type: string) => {
     switch (type) {
-      case 'color': return <Palette className="h-4 w-4" />;
-      case 'layout': return <Layout className="h-4 w-4" />;
-      case 'typography': return <Type className="h-4 w-4" />;
-      case 'spacing': return <Layout className="h-4 w-4" />;
-      case 'accessibility': return <Eye className="h-4 w-4" />;
-      default: return <Lightbulb className="h-4 w-4" />;
+      case 'color': return <Palette className="h-4 w-4" aria-hidden="true" />;
+      case 'layout': return <Layout className="h-4 w-4" aria-hidden="true" />;
+      case 'typography': return <Type className="h-4 w-4" aria-hidden="true" />;
+      case 'spacing': return <Layout className="h-4 w-4" aria-hidden="true" />;
+      case 'accessibility': return <Eye className="h-4 w-4" aria-hidden="true" />;
+      default: return <Lightbulb className="h-4 w-4" aria-hidden="true" />;
     }
   };
 
@@ -168,11 +168,11 @@ export function AIDesignAssistant({
             onClick={() => onSuggestionApply?.(suggestion)}
             className="flex-1"
           >
-            <CheckCircle className="h-3 w-3 mr-1" />
+            <CheckCircle className="h-3 w-3 mr-1" aria-hidden="true" />
             Apply
           </Button>
           <Button size="sm" variant="outline">
-            <Info className="h-3 w-3 mr-1" />
+            <Info className="h-3 w-3 mr-1" aria-hidden="true" />
             Details
           </Button>
         </div>
@@ -215,7 +215,7 @@ export function AIDesignAssistant({
         </div>
 
         <Button size="sm" className="w-full">
-          <Palette className="h-3 w-3 mr-1" />
+          <Palette className="h-3 w-3 mr-1" aria-hidden="true" />
           Apply Palette
         </Button>
       </CardContent>
@@ -230,7 +230,7 @@ export function AIDesignAssistant({
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
+              <BarChart3 className="h-4 w-4" aria-hidden="true" />
               Layout Score
             </CardTitle>
           </CardHeader>
@@ -252,7 +252,7 @@ export function AIDesignAssistant({
           <CardContent className="space-y-3">
             {layoutAnalysis.issues.map((issue, index) => (
               <div key={index} className="flex items-start gap-2 p-2 bg-muted rounded">
-                <AlertTriangle className="h-4 w-4 mt-0.5 text-yellow-500" />
+                <AlertTriangle className="h-4 w-4 mt-0.5 text-yellow-500" aria-hidden="true" />
                 <div className="space-y-1 flex-1">
                   <div className="text-sm font-medium">{issue.description}</div>
                   <div className="text-xs text-muted-foreground">{issue.suggestion}</div>
@@ -273,7 +273,7 @@ export function AIDesignAssistant({
             <div className="space-y-2">
               {layoutAnalysis.strengths.map((strength, index) => (
                 <div key={index} className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <CheckCircle className="h-3 w-3 text-green-500" aria-hidden="true" />
                   {strength}
                 </div>
               ))}
@@ -291,7 +291,7 @@ export function AIDesignAssistant({
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Users className="h-4 w-4" />
+                <Users className="h-4 w-4" aria-hidden="true" />
                 {insight.title}
               </CardTitle>
               <Badge variant="outline">
@@ -308,7 +308,7 @@ export function AIDesignAssistant({
                 <div className="space-y-1">
                   {insight.suggestions.map((suggestion, index) => (
                     <div key={index} className="text-xs flex items-center gap-2">
-                      <Zap className="h-3 w-3" />
+                      <Zap className="h-3 w-3" aria-hidden="true" />
                       {suggestion}
                     </div>
                   ))}
@@ -327,9 +327,9 @@ export function AIDesignAssistant({
     <div className="w-80 h-full bg-background border-l flex flex-col">
       <div className="p-4 border-b">
         <div className="flex items-center gap-2">
-          <Brain className="h-5 w-5 text-primary" />
+          <Brain className="h-5 w-5 text-primary" aria-hidden="true" />
           <h2 className="font-semibold">AI Design Assistant</h2>
-          {isAnalyzing && <Sparkles className="h-4 w-4 animate-pulse text-yellow-500" />}
+          {isAnalyzing && <Sparkles className="h-4 w-4 animate-pulse text-yellow-500" aria-hidden="true" />}
         </div>
       </div>
 
@@ -337,16 +337,16 @@ export function AIDesignAssistant({
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
           <TabsList className="grid w-full grid-cols-4 m-2">
             <TabsTrigger value="suggestions" className="text-xs">
-              <Lightbulb className="h-3 w-3" />
+              <Lightbulb className="h-3 w-3" aria-hidden="true" />
             </TabsTrigger>
             <TabsTrigger value="colors" className="text-xs">
-              <Palette className="h-3 w-3" />
+              <Palette className="h-3 w-3" aria-hidden="true" />
             </TabsTrigger>
             <TabsTrigger value="layout" className="text-xs">
-              <Layout className="h-3 w-3" />
+              <Layout className="h-3 w-3" aria-hidden="true" />
             </TabsTrigger>
             <TabsTrigger value="insights" className="text-xs">
-              <TrendingUp className="h-3 w-3" />
+              <TrendingUp className="h-3 w-3" aria-hidden="true" />
             </TabsTrigger>
           </TabsList>
 
@@ -356,14 +356,14 @@ export function AIDesignAssistant({
                 <div className="p-4 space-y-4">
                   {isAnalyzing ? (
                     <div className="text-center py-8">
-                      <Sparkles className="h-8 w-8 animate-pulse text-primary mx-auto mb-2" />
+                      <Sparkles className="h-8 w-8 animate-pulse text-primary mx-auto mb-2" aria-hidden="true" />
                       <p className="text-sm text-muted-foreground">Analyzing design...</p>
                     </div>
                   ) : suggestions.length > 0 ? (
                     suggestions.map(renderSuggestionCard)
                   ) : (
                     <div className="text-center py-8">
-                      <Lightbulb className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <Lightbulb className="h-8 w-8 text-muted-foreground mx-auto mb-2" aria-hidden="true" />
                       <p className="text-sm text-muted-foreground">No suggestions available</p>
                       <Button size="sm" onClick={analyzeDesign} className="mt-2">
                         Analyze Design
@@ -381,7 +381,7 @@ export function AIDesignAssistant({
                     colorPalettes.map(renderColorPalette)
                   ) : (
                     <div className="text-center py-8">
-                      <Palette className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <Palette className="h-8 w-8 text-muted-foreground mx-auto mb-2" aria-hidden="true" />
                       <p className="text-sm text-muted-foreground">No color palettes available</p>
                     </div>
                   )}
@@ -404,7 +404,7 @@ export function AIDesignAssistant({
                     renderCollaborationInsights()
                   ) : (
                     <div className="text-center py-8">
-                      <TrendingUp className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <TrendingUp className="h-8 w-8 text-muted-foreground mx-auto mb-2" aria-hidden="true" />
                       <p className="text-sm text-muted-foreground">No insights available</p>
                       <Button size="sm" onClick={loadCollaborationInsights} className="mt-2">
                         Analyze Collaboration

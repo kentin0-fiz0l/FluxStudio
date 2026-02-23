@@ -138,7 +138,7 @@ export function Login() {
               {twoFAStep && (
                 <div className="mb-4 p-4 bg-purple-500/10 border border-purple-500/20 rounded-lg">
                   <div className="flex items-center gap-2 mb-3">
-                    <ShieldCheck size={20} className="text-purple-400" />
+                    <ShieldCheck size={20} className="text-purple-400" aria-hidden="true" />
                     <h2 className="text-white font-medium">Two-Factor Authentication</h2>
                   </div>
                   <p className="text-gray-400 text-sm mb-4">Enter the 6-digit code from your authenticator app, or use a backup code.</p>
@@ -249,7 +249,7 @@ export function Login() {
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-[#1a1a1a] rounded"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showPassword ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
                     </button>
                   </div>
                 </div>

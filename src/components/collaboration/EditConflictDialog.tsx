@@ -38,7 +38,7 @@ export function EditConflictDialog({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
-              <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" aria-hidden="true" />
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-gray-100">Edit Conflict</h3>
@@ -53,7 +53,7 @@ export function EditConflictDialog({
             onClick={onDismiss}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -110,7 +110,7 @@ export function EditConflictDialog({
             onClick={() => onResolve('local')}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
             Keep My Changes
           </button>
           <button
@@ -118,13 +118,13 @@ export function EditConflictDialog({
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
           >
             Accept Their Changes
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4" aria-hidden="true" />
           </button>
           <button
             onClick={() => onResolve('merge')}
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
-            <GitMerge className="w-4 h-4" />
+            <GitMerge className="w-4 h-4" aria-hidden="true" />
             Merge Both
           </button>
         </div>

@@ -36,7 +36,7 @@ export function UserTestPill({ onClick, className }: UserTestPillProps) {
       aria-label="Open User Test Panel"
       title="User Test Mode - Click to open test panel"
     >
-      <Beaker className="h-3.5 w-3.5" />
+      <Beaker className="h-3.5 w-3.5" aria-hidden="true" />
       <span>Test</span>
       {completedCount > 0 && (
         <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">

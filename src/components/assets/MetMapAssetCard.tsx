@@ -76,10 +76,10 @@ export function MetMapAssetCard({
       >
         {/* MetMap Icon */}
         <div className="w-full aspect-square bg-gradient-to-br from-indigo-50 to-purple-50 rounded-md mb-2 flex items-center justify-center relative">
-          <Music className="w-8 h-8 text-indigo-400" />
+          <Music className="w-8 h-8 text-indigo-400" aria-hidden="true" />
           {/* Play indicator on hover */}
           <div className="absolute inset-0 flex items-center justify-center bg-indigo-600/0 group-hover:bg-indigo-600/10 rounded-md transition-colors">
-            <Play className="w-6 h-6 text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Play className="w-6 h-6 text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
           </div>
         </div>
 
@@ -116,7 +116,7 @@ export function MetMapAssetCard({
       {/* Header with icon and title */}
       <div className="flex items-start gap-3 mb-3">
         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center flex-shrink-0">
-          <Music className="w-5 h-5 text-indigo-600" />
+          <Music className="w-5 h-5 text-indigo-600" aria-hidden="true" />
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="text-sm font-semibold text-gray-900 truncate">
@@ -131,22 +131,22 @@ export function MetMapAssetCard({
       {/* Metadata grid */}
       <div className="grid grid-cols-2 gap-2 mb-3">
         <MetadataItem
-          icon={<Play className="w-3.5 h-3.5" />}
+          icon={<Play className="w-3.5 h-3.5" aria-hidden="true" />}
           label="BPM"
           value={metadata.bpm?.toString() || '--'}
         />
         <MetadataItem
-          icon={<Hash className="w-3.5 h-3.5" />}
+          icon={<Hash className="w-3.5 h-3.5" aria-hidden="true" />}
           label="Sections"
           value={metadata.sectionCount?.toString() || '--'}
         />
         <MetadataItem
-          icon={<Music className="w-3.5 h-3.5" />}
+          icon={<Music className="w-3.5 h-3.5" aria-hidden="true" />}
           label="Bars"
           value={metadata.totalBars?.toString() || '--'}
         />
         <MetadataItem
-          icon={<Clock className="w-3.5 h-3.5" />}
+          icon={<Clock className="w-3.5 h-3.5" aria-hidden="true" />}
           label="Duration"
           value={formatDuration(metadata.estimatedDurationSeconds)}
         />
@@ -162,7 +162,7 @@ export function MetMapAssetCard({
           onClick={handleClick}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md transition-colors"
         >
-          <Play className="w-3.5 h-3.5" />
+          <Play className="w-3.5 h-3.5" aria-hidden="true" />
           Open in MetMap
         </Link>
       </div>

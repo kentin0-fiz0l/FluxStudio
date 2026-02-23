@@ -32,7 +32,7 @@ export default function LogsViewer() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
-        <FileText className="w-5 h-5 text-purple-600" />
+        <FileText className="w-5 h-5 text-purple-600" aria-hidden="true" />
         <h3 className="text-lg font-semibold text-gray-900">
           Tail Logs
         </h3>
@@ -55,12 +55,12 @@ export default function LogsViewer() {
         >
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
               Loading...
             </>
           ) : (
             <>
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4" aria-hidden="true" />
               Fetch
             </>
           )}
@@ -87,7 +87,7 @@ export default function LogsViewer() {
             onClick={handleTailLogs}
             className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
             Refresh
           </button>
         </div>

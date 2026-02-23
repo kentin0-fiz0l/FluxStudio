@@ -228,7 +228,7 @@ export function Signup() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-[#1a1a1a] rounded"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
                   </button>
                 </div>
                 {/* Password Strength Indicator */}
@@ -251,19 +251,19 @@ export function Signup() {
                     </div>
                     <div className="grid grid-cols-2 gap-1 text-xs">
                       <div className={`flex items-center gap-1 ${passwordStrength.checks.length ? 'text-green-400' : 'text-gray-500'}`}>
-                        {passwordStrength.checks.length ? <Check size={12} /> : <X size={12} />}
+                        {passwordStrength.checks.length ? <Check size={12} aria-hidden="true" /> : <X size={12} aria-hidden="true" />}
                         8+ characters
                       </div>
                       <div className={`flex items-center gap-1 ${passwordStrength.checks.uppercase ? 'text-green-400' : 'text-gray-500'}`}>
-                        {passwordStrength.checks.uppercase ? <Check size={12} /> : <X size={12} />}
+                        {passwordStrength.checks.uppercase ? <Check size={12} aria-hidden="true" /> : <X size={12} aria-hidden="true" />}
                         Uppercase
                       </div>
                       <div className={`flex items-center gap-1 ${passwordStrength.checks.lowercase ? 'text-green-400' : 'text-gray-500'}`}>
-                        {passwordStrength.checks.lowercase ? <Check size={12} /> : <X size={12} />}
+                        {passwordStrength.checks.lowercase ? <Check size={12} aria-hidden="true" /> : <X size={12} aria-hidden="true" />}
                         Lowercase
                       </div>
                       <div className={`flex items-center gap-1 ${passwordStrength.checks.number ? 'text-green-400' : 'text-gray-500'}`}>
-                        {passwordStrength.checks.number ? <Check size={12} /> : <X size={12} />}
+                        {passwordStrength.checks.number ? <Check size={12} aria-hidden="true" /> : <X size={12} aria-hidden="true" />}
                         Number
                       </div>
                     </div>
@@ -298,18 +298,18 @@ export function Signup() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-[#1a1a1a] rounded"
                     aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                   >
-                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showConfirmPassword ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
                   </button>
                 </div>
                 {confirmPassword && password !== confirmPassword && (
                   <p className="mt-1 text-xs text-red-400 flex items-center gap-1">
-                    <X size={12} />
+                    <X size={12} aria-hidden="true" />
                     Passwords do not match
                   </p>
                 )}
                 {confirmPassword && password === confirmPassword && password && (
                   <p className="mt-1 text-xs text-green-400 flex items-center gap-1">
-                    <Check size={12} />
+                    <Check size={12} aria-hidden="true" />
                     Passwords match
                   </p>
                 )}

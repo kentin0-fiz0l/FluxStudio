@@ -220,7 +220,7 @@ export default function ProjectPrintStats({
       <Card className={cn('w-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Printer className="h-5 w-5" />
+            <Printer className="h-5 w-5" aria-hidden="true" />
             3D Printing Statistics
           </CardTitle>
         </CardHeader>
@@ -241,14 +241,14 @@ export default function ProjectPrintStats({
       <Card className={cn('w-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Printer className="h-5 w-5" />
+            <Printer className="h-5 w-5" aria-hidden="true" />
             3D Printing Statistics
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
-              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" aria-hidden="true" />
               <p className="text-sm text-red-600">{error}</p>
             </div>
           </div>
@@ -263,14 +263,14 @@ export default function ProjectPrintStats({
       <Card className={cn('w-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Printer className="h-5 w-5" />
+            <Printer className="h-5 w-5" aria-hidden="true" />
             3D Printing Statistics
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-              <Printer className="h-8 w-8 text-gray-400" />
+              <Printer className="h-8 w-8 text-gray-400" aria-hidden="true" />
             </div>
             <p className="text-gray-600 mb-1">No printing activity yet</p>
             <p className="text-sm text-gray-500">
@@ -305,7 +305,7 @@ export default function ProjectPrintStats({
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Printer className="h-5 w-5" />
+            <Printer className="h-5 w-5" aria-hidden="true" />
             3D Printing Statistics
           </CardTitle>
           {stats.last_print_date && (
@@ -320,14 +320,14 @@ export default function ProjectPrintStats({
         {/* Primary Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
-            icon={<Activity className="h-5 w-5" />}
+            icon={<Activity className="h-5 w-5" aria-hidden="true" />}
             label="Total Prints"
             value={stats.total_prints}
             subValue={`${stats.unique_files_printed} unique files`}
           />
 
           <StatCard
-            icon={<CheckCircle className="h-5 w-5" />}
+            icon={<CheckCircle className="h-5 w-5" aria-hidden="true" />}
             label="Success Rate"
             value={`${successRate}%`}
             subValue={`${stats.successful_prints} completed`}
@@ -335,14 +335,14 @@ export default function ProjectPrintStats({
           />
 
           <StatCard
-            icon={<Weight className="h-5 w-5" />}
+            icon={<Weight className="h-5 w-5" aria-hidden="true" />}
             label="Material Used"
             value={formatWeight(stats.total_material_grams)}
             subValue={`${stats.total_prints > 0 ? formatWeight(stats.total_material_grams / stats.total_prints) : '0g'} avg`}
           />
 
           <StatCard
-            icon={<Clock className="h-5 w-5" />}
+            icon={<Clock className="h-5 w-5" aria-hidden="true" />}
             label="Print Time"
             value={formatTime(stats.total_print_time_minutes)}
             subValue={`${formatTime(stats.average_print_time_minutes)} avg`}
@@ -419,7 +419,7 @@ export default function ProjectPrintStats({
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                  <FileText className="h-4 w-4" />
+                  <FileText className="h-4 w-4" aria-hidden="true" />
                   Most Printed File
                 </div>
                 <div className="font-medium text-gray-900">

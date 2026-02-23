@@ -95,35 +95,35 @@ function getFileIcon(filename: string) {
 
   // 3D files
   if (['stl', 'obj', 'gltf', 'glb', 'gcode', '3mf'].includes(ext || '')) {
-    return <Box className="h-5 w-5" />;
+    return <Box className="h-5 w-5" aria-hidden="true" />;
   }
 
   // Images
   if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext || '')) {
-    return <Image className="h-5 w-5" />;
+    return <Image className="h-5 w-5" aria-hidden="true" />;
   }
 
   // Videos
   if (['mp4', 'webm', 'mov', 'avi'].includes(ext || '')) {
-    return <Film className="h-5 w-5" />;
+    return <Film className="h-5 w-5" aria-hidden="true" />;
   }
 
   // Audio
   if (['mp3', 'wav', 'ogg', 'flac'].includes(ext || '')) {
-    return <Music className="h-5 w-5" />;
+    return <Music className="h-5 w-5" aria-hidden="true" />;
   }
 
   // Code
   if (['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp'].includes(ext || '')) {
-    return <FileCode className="h-5 w-5" />;
+    return <FileCode className="h-5 w-5" aria-hidden="true" />;
   }
 
   // Archive
   if (['zip', 'rar', 'tar', 'gz'].includes(ext || '')) {
-    return <Archive className="h-5 w-5" />;
+    return <Archive className="h-5 w-5" aria-hidden="true" />;
   }
 
-  return <FileText className="h-5 w-5" />;
+  return <FileText className="h-5 w-5" aria-hidden="true" />;
 }
 
 /**
@@ -169,22 +169,22 @@ const PrintStatusBadge: React.FC<PrintStatusBadgeProps> = ({ status, progress })
 
   const config = {
     queued: {
-      icon: <Clock className="h-3 w-3" />,
+      icon: <Clock className="h-3 w-3" aria-hidden="true" />,
       label: 'Queued',
       variant: 'secondary' as const,
     },
     printing: {
-      icon: <Loader2 className="h-3 w-3 animate-spin" />,
+      icon: <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />,
       label: `Printing ${progress || 0}%`,
       variant: 'default' as const,
     },
     completed: {
-      icon: <CheckCircle2 className="h-3 w-3" />,
+      icon: <CheckCircle2 className="h-3 w-3" aria-hidden="true" />,
       label: 'Printed',
       variant: 'success' as const,
     },
     failed: {
-      icon: <XCircle className="h-3 w-3" />,
+      icon: <XCircle className="h-3 w-3" aria-hidden="true" />,
       label: 'Failed',
       variant: 'error' as const,
     },
@@ -241,7 +241,7 @@ const FileCard: React.FC<FileCardProps> = ({ file, onPrint, onDownload, onDelete
               className="h-8 w-8 flex-shrink-0"
               aria-label="File actions"
             >
-              <MoreVertical className="h-4 w-4" />
+              <MoreVertical className="h-4 w-4" aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -252,21 +252,21 @@ const FileCard: React.FC<FileCardProps> = ({ file, onPrint, onDownload, onDelete
                   disabled={!config.ENABLE_FLUXPRINT}
                   className={!config.ENABLE_FLUXPRINT ? "opacity-50 cursor-not-allowed" : ""}
                 >
-                  <Printer className="h-4 w-4 mr-2" />
+                  <Printer className="h-4 w-4 mr-2" aria-hidden="true" />
                   {config.ENABLE_FLUXPRINT ? "Print This File" : "Print (Coming Soon)"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
             )}
             <DropdownMenuItem onClick={() => onDownload(file)}>
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="h-4 w-4 mr-2" aria-hidden="true" />
               Download
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onDelete(file)}
               className="text-red-600 focus:text-red-600"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
+              <Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -283,7 +283,7 @@ const FileCard: React.FC<FileCardProps> = ({ file, onPrint, onDownload, onDelete
             variant="outline"
             size="sm"
             onClick={() => onPrint(file)}
-            icon={<Printer className="h-4 w-4" />}
+            icon={<Printer className="h-4 w-4" aria-hidden="true" />}
             className="flex-shrink-0"
           >
             Print
@@ -426,7 +426,7 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
   if (isLoading) {
     return (
       <div className={cn('flex items-center justify-center py-12', className)}>
-        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" aria-hidden="true" />
         <p className="ml-3 text-neutral-600">Loading files...</p>
       </div>
     );
@@ -436,7 +436,7 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
   if (error) {
     return (
       <div className={cn('flex flex-col items-center justify-center py-12', className)}>
-        <XCircle className="h-16 w-16 text-error-500 mb-4" />
+        <XCircle className="h-16 w-16 text-error-500 mb-4" aria-hidden="true" />
         <h3 className="text-lg font-semibold text-neutral-900 mb-2">Failed to load files</h3>
         <p className="text-neutral-600 mb-4">{error.message}</p>
         <Button variant="outline" onClick={() => refetch()}>
@@ -450,13 +450,13 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
   if (files.length === 0) {
     return (
       <div className={cn('flex flex-col items-center justify-center py-12', className)}>
-        <FileText className="h-16 w-16 text-neutral-300 mb-4" />
+        <FileText className="h-16 w-16 text-neutral-300 mb-4" aria-hidden="true" />
         <h3 className="text-lg font-semibold text-neutral-900 mb-2">No files yet</h3>
         <p className="text-neutral-600 text-center mb-6 max-w-md">
           Upload design files, 3D models, documentation, and more. Files marked as printable (STL,
           OBJ, GCODE) will get a Print button.
         </p>
-        <Button variant="primary" onClick={handleUpload} icon={<Upload className="h-4 w-4" />}>
+        <Button variant="primary" onClick={handleUpload} icon={<Upload className="h-4 w-4" aria-hidden="true" />}>
           Upload Files
         </Button>
       </div>
@@ -470,7 +470,7 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
       {/* Coming Soon Banner for Print Feature */}
       {!config.ENABLE_FLUXPRINT && hasPrintableFiles && (
         <Alert className="bg-gradient-to-r from-primary-50 to-blue-50 border-primary-200">
-          <Printer className="h-5 w-5 text-primary-600" />
+          <Printer className="h-5 w-5 text-primary-600" aria-hidden="true" />
           <AlertDescription className="text-sm">
             <strong className="block mb-1">3D Printing Coming Soon!</strong>
             <span className="text-neutral-600">
@@ -485,7 +485,7 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
       {uploadFiles.isLoading && (
         <Card className="p-4 bg-primary-50 border-primary-200">
           <div className="flex items-center gap-3 mb-2">
-            <Upload className="h-5 w-5 text-primary-600 animate-pulse" />
+            <Upload className="h-5 w-5 text-primary-600 animate-pulse" aria-hidden="true" />
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium text-neutral-900">Uploading files...</span>
@@ -516,7 +516,7 @@ export const ProjectFilesTab: React.FC<ProjectFilesTabProps> = ({ project, class
             {files.filter((f) => isPrintableFile(f.name)).length} printable
           </p>
         </div>
-        <Button variant="primary" onClick={handleUpload} icon={<Upload className="h-4 w-4" />}>
+        <Button variant="primary" onClick={handleUpload} icon={<Upload className="h-4 w-4" aria-hidden="true" />}>
           Upload Files
         </Button>
       </div>

@@ -208,9 +208,9 @@ export function VideoPlayer({
             className="h-16 w-16 rounded-full bg-black/50 hover:bg-black/70 text-white border-2 border-white/30"
           >
             {isPlaying ? (
-              <Pause className="h-8 w-8" />
+              <Pause className="h-8 w-8" aria-hidden="true" />
             ) : (
-              <Play className="h-8 w-8 ml-1" />
+              <Play className="h-8 w-8 ml-1" aria-hidden="true" />
             )}
           </Button>
         </div>
@@ -243,7 +243,7 @@ export function VideoPlayer({
                 onClick={() => skip(-10)}
                 className="text-white hover:bg-white/20"
               >
-                <SkipBack className="h-4 w-4" />
+                <SkipBack className="h-4 w-4" aria-hidden="true" />
               </Button>
 
               <Button
@@ -253,9 +253,9 @@ export function VideoPlayer({
                 className="text-white hover:bg-white/20"
               >
                 {isPlaying ? (
-                  <Pause className="h-4 w-4" />
+                  <Pause className="h-4 w-4" aria-hidden="true" />
                 ) : (
-                  <Play className="h-4 w-4" />
+                  <Play className="h-4 w-4" aria-hidden="true" />
                 )}
               </Button>
 
@@ -265,7 +265,7 @@ export function VideoPlayer({
                 onClick={() => skip(10)}
                 className="text-white hover:bg-white/20"
               >
-                <SkipForward className="h-4 w-4" />
+                <SkipForward className="h-4 w-4" aria-hidden="true" />
               </Button>
 
               {/* Volume Control */}
@@ -277,9 +277,9 @@ export function VideoPlayer({
                   className="text-white hover:bg-white/20"
                 >
                   {isMuted || volume === 0 ? (
-                    <VolumeX className="h-4 w-4" />
+                    <VolumeX className="h-4 w-4" aria-hidden="true" />
                   ) : (
-                    <Volume2 className="h-4 w-4" />
+                    <Volume2 className="h-4 w-4" aria-hidden="true" />
                   )}
                 </Button>
                 <Slider
@@ -314,9 +314,9 @@ export function VideoPlayer({
                 className="text-white hover:bg-white/20"
               >
                 {isFullscreen ? (
-                  <Minimize className="h-4 w-4" />
+                  <Minimize className="h-4 w-4" aria-hidden="true" />
                 ) : (
-                  <Maximize className="h-4 w-4" />
+                  <Maximize className="h-4 w-4" aria-hidden="true" />
                 )}
               </Button>
             </div>

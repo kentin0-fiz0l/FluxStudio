@@ -37,7 +37,7 @@ export const SectionHeader: React.FC<{
         className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors"
       >
         {action.label}
-        <ChevronRight className="w-4 h-4" />
+        <ChevronRight className="w-4 h-4" aria-hidden="true" />
       </Link>
     )}
   </div>
@@ -118,7 +118,7 @@ export const ProjectNotFound: React.FC<{ projectId: string }> = ({ projectId: _p
     <div className="flex-1 flex items-center justify-center bg-gray-50 min-h-screen">
       <div className="text-center max-w-md px-6">
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <AlertCircle className="w-8 h-8 text-red-500" />
+          <AlertCircle className="w-8 h-8 text-red-500" aria-hidden="true" />
         </div>
         <h1 className="text-xl font-semibold text-gray-900 mb-2">
           Project Not Found
@@ -130,7 +130,7 @@ export const ProjectNotFound: React.FC<{ projectId: string }> = ({ projectId: _p
           to="/projects"
           className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
-          <Folder className="w-5 h-5" />
+          <Folder className="w-5 h-5" aria-hidden="true" />
           View All Projects
         </Link>
       </div>

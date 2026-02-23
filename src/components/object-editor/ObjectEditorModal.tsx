@@ -49,7 +49,7 @@ export function ObjectEditorModal({ object, onUpdate, onRemove, onDuplicate, onC
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Object Properties</h3>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
 
@@ -201,21 +201,21 @@ export function ObjectEditorModal({ object, onUpdate, onRemove, onDuplicate, onC
           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
           title={object.visible ? 'Hide' : 'Show'}
         >
-          {object.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          {object.visible ? <Eye className="w-4 h-4" aria-hidden="true" /> : <EyeOff className="w-4 h-4" aria-hidden="true" />}
         </button>
         <button
           onClick={() => onUpdate(object.id, { locked: !object.locked })}
           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
           title={object.locked ? 'Unlock' : 'Lock'}
         >
-          {object.locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+          {object.locked ? <Lock className="w-4 h-4" aria-hidden="true" /> : <Unlock className="w-4 h-4" aria-hidden="true" />}
         </button>
         <button
           onClick={() => onDuplicate(object.id)}
           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
           title="Duplicate"
         >
-          <Copy className="w-4 h-4" />
+          <Copy className="w-4 h-4" aria-hidden="true" />
         </button>
         <div className="flex-1" />
         <Button
@@ -224,7 +224,7 @@ export function ObjectEditorModal({ object, onUpdate, onRemove, onDuplicate, onC
           onClick={() => onRemove(object.id)}
           className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
         >
-          <Trash2 className="w-4 h-4 mr-1" />
+          <Trash2 className="w-4 h-4 mr-1" aria-hidden="true" />
           Delete
         </Button>
       </div>

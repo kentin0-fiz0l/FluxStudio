@@ -59,13 +59,13 @@ export function ProjectOverviewWidget(props: WidgetProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active':
-        return <TrendingUp className="h-3 w-3 text-blue-400" />;
+        return <TrendingUp className="h-3 w-3 text-blue-400" aria-hidden="true" />;
       case 'review':
-        return <AlertCircle className="h-3 w-3 text-orange-400" />;
+        return <AlertCircle className="h-3 w-3 text-orange-400" aria-hidden="true" />;
       case 'completed':
-        return <CheckCircle className="h-3 w-3 text-green-400" />;
+        return <CheckCircle className="h-3 w-3 text-green-400" aria-hidden="true" />;
       default:
-        return <Clock className="h-3 w-3 text-gray-400" />;
+        return <Clock className="h-3 w-3 text-gray-400" aria-hidden="true" />;
     }
   };
 
@@ -120,11 +120,11 @@ export function ProjectOverviewWidget(props: WidgetProps) {
           <div className="flex items-center gap-1">
             {error ? (
               <span title={`Error: ${error}`}>
-                <WifiOff className="h-3 w-3 text-red-400" />
+                <WifiOff className="h-3 w-3 text-red-400" aria-hidden="true" />
               </span>
             ) : (
               <span title={`Last updated: ${lastUpdated?.toLocaleTimeString()}`}>
-                <Wifi className="h-3 w-3 text-green-400" />
+                <Wifi className="h-3 w-3 text-green-400" aria-hidden="true" />
               </span>
             )}
           </div>
@@ -137,7 +137,7 @@ export function ProjectOverviewWidget(props: WidgetProps) {
             disabled={isLoading}
             className="h-7 px-2 text-xs text-white/70 hover:text-white hover:bg-white/10"
           >
-            <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
           </Button>
 
           {/* Filter Button */}
@@ -147,18 +147,18 @@ export function ProjectOverviewWidget(props: WidgetProps) {
             onClick={() => setFilter(filter === 'all' ? 'active' : 'all')}
             className="h-7 px-2 text-xs text-white/70 hover:text-white hover:bg-white/10"
           >
-            <Filter className="h-3 w-3 mr-1" />
+            <Filter className="h-3 w-3 mr-1" aria-hidden="true" />
             {filter}
           </Button>
 
-          <FolderOpen className="h-4 w-4 text-purple-400" />
+          <FolderOpen className="h-4 w-4 text-purple-400" aria-hidden="true" />
         </div>
       }
     >
       {/* Loading State */}
       {isLoading && projectsData.length === 0 && (
         <div className="flex items-center justify-center py-8">
-          <RefreshCw className="h-6 w-6 animate-spin text-white/50" />
+          <RefreshCw className="h-6 w-6 animate-spin text-white/50" aria-hidden="true" />
           <span className="ml-2 text-white/70">Loading projects...</span>
         </div>
       )}
@@ -166,7 +166,7 @@ export function ProjectOverviewWidget(props: WidgetProps) {
       {/* Error State */}
       {error && projectsData.length === 0 && (
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <WifiOff className="h-8 w-8 text-red-400 mb-2" />
+          <WifiOff className="h-8 w-8 text-red-400 mb-2" aria-hidden="true" />
           <p className="text-red-400 text-sm font-medium">Connection Error</p>
           <p className="text-gray-400 text-xs mb-3">{error}</p>
           <Button
@@ -174,7 +174,7 @@ export function ProjectOverviewWidget(props: WidgetProps) {
             onClick={refresh}
             className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
           >
-            <RefreshCw className="h-3 w-3 mr-1" />
+            <RefreshCw className="h-3 w-3 mr-1" aria-hidden="true" />
             Retry
           </Button>
         </div>
@@ -216,7 +216,7 @@ export function ProjectOverviewWidget(props: WidgetProps) {
                   </div>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <ChevronRight className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
             </div>
 
             {/* Progress */}
@@ -231,11 +231,11 @@ export function ProjectOverviewWidget(props: WidgetProps) {
             {/* Meta info */}
             <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
               <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
+                <Calendar className="h-3 w-3" aria-hidden="true" />
                 <span>Due {new Date(project.dueDate).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
+                <Clock className="h-3 w-3" aria-hidden="true" />
                 <span>{project.lastActivity}</span>
               </div>
             </div>
@@ -258,7 +258,7 @@ export function ProjectOverviewWidget(props: WidgetProps) {
           onClick={() => {/* Open create project modal */}}
           className="bg-purple-500 hover:bg-purple-600 text-white"
         >
-          <Plus className="h-3 w-3 mr-1" />
+          <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
           New
         </Button>
       </div>

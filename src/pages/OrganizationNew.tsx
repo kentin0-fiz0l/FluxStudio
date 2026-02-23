@@ -162,15 +162,15 @@ export function OrganizationNew() {
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'team_created':
-        return <Users className="w-4 h-4 text-primary-600" />;
+        return <Users className="w-4 h-4 text-primary-600" aria-hidden="true" />;
       case 'member_joined':
-        return <Plus className="w-4 h-4 text-success-600" />;
+        return <Plus className="w-4 h-4 text-success-600" aria-hidden="true" />;
       case 'project_started':
-        return <Target className="w-4 h-4 text-secondary-600" />;
+        return <Target className="w-4 h-4 text-secondary-600" aria-hidden="true" />;
       case 'message_sent':
-        return <MessageSquare className="w-4 h-4 text-accent-600" />;
+        return <MessageSquare className="w-4 h-4 text-accent-600" aria-hidden="true" />;
       default:
-        return <Activity className="w-4 h-4 text-neutral-600" />;
+        return <Activity className="w-4 h-4 text-neutral-600" aria-hidden="true" />;
     }
   };
 
@@ -185,7 +185,7 @@ export function OrganizationNew() {
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4">
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary-600 to-secondary-600 flex items-center justify-center">
-              <Building2 className="w-8 h-8 text-white" />
+              <Building2 className="w-8 h-8 text-white" aria-hidden="true" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-neutral-900">
@@ -202,18 +202,18 @@ export function OrganizationNew() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 hover:text-primary-600 transition-colors"
                   >
-                    <Globe className="w-4 h-4" />
+                    <Globe className="w-4 h-4" aria-hidden="true" />
                     {organization.website.replace('https://', '')}
                   </a>
                 )}
                 {organization.industry && (
                   <span className="flex items-center gap-1">
-                    <Building2 className="w-4 h-4" />
+                    <Building2 className="w-4 h-4" aria-hidden="true" />
                     {organization.industry}
                   </span>
                 )}
                 <span className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
+                  <Calendar className="w-4 h-4" aria-hidden="true" />
                   Since {formatDate(organization.createdAt)}
                 </span>
               </div>
@@ -221,7 +221,7 @@ export function OrganizationNew() {
           </div>
 
           <Button onClick={() => setShowSettings(true)} variant="outline">
-            <Settings className="w-4 h-4 mr-2" />
+            <Settings className="w-4 h-4 mr-2" aria-hidden="true" />
             Settings
           </Button>
         </div>
@@ -237,11 +237,11 @@ export function OrganizationNew() {
                 </p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary-600" />
+                <Users className="w-6 h-6 text-primary-600" aria-hidden="true" />
               </div>
             </div>
             <div className="flex items-center text-sm text-success-600">
-              <TrendingUp className="w-4 h-4 mr-1" />
+              <TrendingUp className="w-4 h-4 mr-1" aria-hidden="true" />
               <span>+3 this month</span>
             </div>
           </Card>
@@ -255,7 +255,7 @@ export function OrganizationNew() {
                 </p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-secondary-100 flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-secondary-600" />
+                <Building2 className="w-6 h-6 text-secondary-600" aria-hidden="true" />
               </div>
             </div>
             <button
@@ -275,11 +275,11 @@ export function OrganizationNew() {
                 </p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-accent-100 flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-accent-600" />
+                <MessageSquare className="w-6 h-6 text-accent-600" aria-hidden="true" />
               </div>
             </div>
             <div className="flex items-center text-sm text-success-600">
-              <TrendingUp className="w-4 h-4 mr-1" />
+              <TrendingUp className="w-4 h-4 mr-1" aria-hidden="true" />
               <span>+18% vs yesterday</span>
             </div>
           </Card>
@@ -293,7 +293,7 @@ export function OrganizationNew() {
                 </p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-success-100 flex items-center justify-center">
-                <Target className="w-6 h-6 text-success-600" />
+                <Target className="w-6 h-6 text-success-600" aria-hidden="true" />
               </div>
             </div>
             <button
@@ -309,11 +309,11 @@ export function OrganizationNew() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 flex items-center">
-              <Users className="w-5 h-5 mr-2 text-primary-600" />
+              <Users className="w-5 h-5 mr-2 text-primary-600" aria-hidden="true" />
               Members
             </h2>
             <Button variant="outline" size="sm">
-              <Mail className="w-4 h-4 mr-1" />
+              <Mail className="w-4 h-4 mr-1" aria-hidden="true" />
               Invite
             </Button>
           </div>
@@ -321,7 +321,7 @@ export function OrganizationNew() {
           {/* Filter Bar */}
           <div className="flex items-center gap-3 mb-4">
             <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
               <input
                 type="text"
                 value={memberSearch}
@@ -369,7 +369,7 @@ export function OrganizationNew() {
                       <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">{member.name}</span>
                       {member.role === 'admin' && (
                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full">
-                          <Shield className="w-2.5 h-2.5" />
+                          <Shield className="w-2.5 h-2.5" aria-hidden="true" />
                           Admin
                         </span>
                       )}
@@ -392,7 +392,7 @@ export function OrganizationNew() {
 
                   {/* Actions */}
                   <button className="p-1.5 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors">
-                    <MoreHorizontal className="w-4 h-4 text-neutral-400" />
+                    <MoreHorizontal className="w-4 h-4 text-neutral-400" aria-hidden="true" />
                   </button>
                 </div>
               ))
@@ -405,7 +405,7 @@ export function OrganizationNew() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-neutral-900 flex items-center">
-                <Activity className="w-5 h-5 mr-2 text-primary-600" />
+                <Activity className="w-5 h-5 mr-2 text-primary-600" aria-hidden="true" />
                 Recent Activity
               </h2>
             </div>
@@ -438,7 +438,7 @@ export function OrganizationNew() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-neutral-900 flex items-center">
-                <BarChart3 className="w-5 h-5 mr-2 text-primary-600" />
+                <BarChart3 className="w-5 h-5 mr-2 text-primary-600" aria-hidden="true" />
                 Performance Metrics
               </h2>
             </div>
@@ -489,7 +489,7 @@ export function OrganizationNew() {
               className="justify-start"
               onClick={() => navigate('/team')}
             >
-              <Users className="w-4 h-4 mr-2" />
+              <Users className="w-4 h-4 mr-2" aria-hidden="true" />
               Manage Teams
             </Button>
             <Button
@@ -497,7 +497,7 @@ export function OrganizationNew() {
               className="justify-start"
               onClick={() => navigate('/projects')}
             >
-              <Target className="w-4 h-4 mr-2" />
+              <Target className="w-4 h-4 mr-2" aria-hidden="true" />
               View Projects
             </Button>
             <Button
@@ -505,7 +505,7 @@ export function OrganizationNew() {
               className="justify-start"
               onClick={() => navigate('/messages')}
             >
-              <MessageSquare className="w-4 h-4 mr-2" />
+              <MessageSquare className="w-4 h-4 mr-2" aria-hidden="true" />
               Team Messages
             </Button>
             <Button
@@ -513,7 +513,7 @@ export function OrganizationNew() {
               className="justify-start"
               onClick={() => setShowSettings(true)}
             >
-              <Settings className="w-4 h-4 mr-2" />
+              <Settings className="w-4 h-4 mr-2" aria-hidden="true" />
               Settings
             </Button>
           </div>
@@ -592,7 +592,7 @@ export function OrganizationNew() {
                 Cancel
               </Button>
               <Button onClick={() => setShowSettings(false)}>
-                <CheckCircle2 className="w-4 h-4 mr-2" />
+                <CheckCircle2 className="w-4 h-4 mr-2" aria-hidden="true" />
                 Save Changes
               </Button>
             </div>

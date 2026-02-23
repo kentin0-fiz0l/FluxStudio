@@ -154,7 +154,7 @@ export default function FormationCategory() {
             className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-xl font-semibold text-lg hover:bg-indigo-50 transition-colors shadow-lg"
           >
             Try it free — no signup required
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-5 h-5" aria-hidden="true" />
           </Link>
         </div>
       </header>
@@ -182,7 +182,7 @@ export default function FormationCategory() {
             className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
           >
             Start designing now
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-5 h-5" aria-hidden="true" />
           </Link>
         </div>
       </section>
@@ -217,7 +217,7 @@ export default function FormationCategory() {
             className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-xl font-semibold hover:bg-indigo-50 transition-colors"
           >
             Open the editor
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-5 h-5" aria-hidden="true" />
           </Link>
         </div>
       </section>

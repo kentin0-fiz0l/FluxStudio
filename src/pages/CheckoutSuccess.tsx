@@ -15,7 +15,7 @@ export function CheckoutSuccess() {
           transition={{ type: 'spring', duration: 0.5 }}
           className="w-24 h-24 mx-auto mb-8 rounded-full bg-gradient-to-r from-green-400 to-blue-500 flex items-center justify-center"
         >
-          <CheckCircle className="w-14 h-14 text-white" />
+          <CheckCircle className="w-14 h-14 text-white" aria-hidden="true" />
         </motion.div>
 
         <motion.h1
@@ -46,7 +46,7 @@ export function CheckoutSuccess() {
           <ul className="text-left space-y-4">
             <li className="flex items-start">
               <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center mr-3 mt-0.5">
-                <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
               </div>
               <div>
                 <p className="font-medium text-neutral-900 dark:text-white">Check your email</p>
@@ -57,7 +57,7 @@ export function CheckoutSuccess() {
             </li>
             <li className="flex items-start">
               <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center mr-3 mt-0.5">
-                <Download className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <Download className="w-4 h-4 text-purple-600 dark:text-purple-400" aria-hidden="true" />
               </div>
               <div>
                 <p className="font-medium text-neutral-900 dark:text-white">Access your dashboard</p>
@@ -80,7 +80,7 @@ export function CheckoutSuccess() {
             className="flex items-center justify-center gap-2 w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl font-semibold text-white hover:from-blue-600 hover:to-purple-600 transition-all"
           >
             Go to Projects
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-5 h-5" aria-hidden="true" />
           </Link>
 
           <Link

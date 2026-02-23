@@ -103,7 +103,7 @@ export function FormationsTab({ projectId }: FormationsTabProps) {
             onClick={() => setShowNewFormationInput(true)}
             aria-label={t('formation.createNew', 'Create new formation')}
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
             {t('formation.newFormation', 'New Formation')}
           </Button>
         ) : (
@@ -142,7 +142,7 @@ export function FormationsTab({ projectId }: FormationsTabProps) {
       {/* Empty state */}
       {formations.length === 0 ? (
         <Card className="p-8 text-center">
-          <Play className="h-12 w-12 mx-auto text-neutral-400 mb-4" />
+          <Play className="h-12 w-12 mx-auto text-neutral-400 mb-4" aria-hidden="true" />
           <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
             {t('formation.noFormationsYet', 'No formations yet')}
           </h3>
@@ -153,7 +153,7 @@ export function FormationsTab({ projectId }: FormationsTabProps) {
             variant="primary"
             onClick={() => setShowNewFormationInput(true)}
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
             {t('formation.createFirst', 'Create First Formation')}
           </Button>
         </Card>
@@ -176,22 +176,22 @@ export function FormationsTab({ projectId }: FormationsTabProps) {
                 {deletingId === formation.id ? (
                   <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Trash2 className="w-4 h-4 text-red-500" />
+                  <Trash2 className="w-4 h-4 text-red-500" aria-hidden="true" />
                 )}
               </button>
 
               {/* Preview area */}
               <div className="aspect-video bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 flex items-center justify-center relative">
-                <Play className="w-12 h-12 text-indigo-400 dark:text-indigo-300" />
+                <Play className="w-12 h-12 text-indigo-400 dark:text-indigo-300" aria-hidden="true" />
 
                 {/* Stats overlay */}
                 <div className="absolute bottom-2 left-2 flex items-center gap-3 text-xs">
                   <span className="flex items-center gap-1 bg-white/80 dark:bg-neutral-800/80 px-2 py-1 rounded-full">
-                    <Users className="w-3 h-3" />
+                    <Users className="w-3 h-3" aria-hidden="true" />
                     {formation.performerCount}
                   </span>
                   <span className="flex items-center gap-1 bg-white/80 dark:bg-neutral-800/80 px-2 py-1 rounded-full">
-                    <Clock className="w-3 h-3" />
+                    <Clock className="w-3 h-3" aria-hidden="true" />
                     {formation.keyframeCount}
                   </span>
                 </div>

@@ -110,21 +110,21 @@ export function TrackList({ tracks, style, className = '' }: TrackListProps) {
             className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-white"
             title="Add Video Track"
           >
-            <Film className="w-3.5 h-3.5" />
+            <Film className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
           <button
             onClick={() => handleAddTrack('audio')}
             className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-white"
             title="Add Audio Track"
           >
-            <Music className="w-3.5 h-3.5" />
+            <Music className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
           <button
             onClick={() => handleAddTrack('text')}
             className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-white"
             title="Add Text Track"
           >
-            <Type className="w-3.5 h-3.5" />
+            <Type className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -150,7 +150,7 @@ export function TrackList({ tracks, style, className = '' }: TrackListProps) {
             >
               {/* Drag handle */}
               <div className="cursor-grab text-gray-600 hover:text-gray-400">
-                <GripVertical className="w-4 h-4" />
+                <GripVertical className="w-4 h-4" aria-hidden="true" />
               </div>
 
               {/* Track type indicator */}
@@ -159,7 +159,7 @@ export function TrackList({ tracks, style, className = '' }: TrackListProps) {
               {/* Track info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <Icon className="w-3.5 h-3.5 text-gray-400" />
+                  <Icon className="w-3.5 h-3.5 text-gray-400" aria-hidden="true" />
                   <input
                     type="text"
                     value={track.name}
@@ -181,7 +181,7 @@ export function TrackList({ tracks, style, className = '' }: TrackListProps) {
                   }`}
                   title="Solo"
                 >
-                  <Headphones className="w-3.5 h-3.5" />
+                  <Headphones className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
 
                 {/* Mute */}
@@ -195,9 +195,9 @@ export function TrackList({ tracks, style, className = '' }: TrackListProps) {
                   title={track.muted ? 'Unmute' : 'Mute'}
                 >
                   {track.muted ? (
-                    <VolumeX className="w-3.5 h-3.5" />
+                    <VolumeX className="w-3.5 h-3.5" aria-hidden="true" />
                   ) : (
-                    <Volume2 className="w-3.5 h-3.5" />
+                    <Volume2 className="w-3.5 h-3.5" aria-hidden="true" />
                   )}
                 </button>
 
@@ -212,9 +212,9 @@ export function TrackList({ tracks, style, className = '' }: TrackListProps) {
                   title={track.locked ? 'Unlock' : 'Lock'}
                 >
                   {track.locked ? (
-                    <Lock className="w-3.5 h-3.5" />
+                    <Lock className="w-3.5 h-3.5" aria-hidden="true" />
                   ) : (
-                    <Unlock className="w-3.5 h-3.5" />
+                    <Unlock className="w-3.5 h-3.5" aria-hidden="true" />
                   )}
                 </button>
 
@@ -229,9 +229,9 @@ export function TrackList({ tracks, style, className = '' }: TrackListProps) {
                   title={track.visible ? 'Hide' : 'Show'}
                 >
                   {track.visible ? (
-                    <Eye className="w-3.5 h-3.5" />
+                    <Eye className="w-3.5 h-3.5" aria-hidden="true" />
                   ) : (
-                    <EyeOff className="w-3.5 h-3.5" />
+                    <EyeOff className="w-3.5 h-3.5" aria-hidden="true" />
                   )}
                 </button>
               </div>
@@ -242,7 +242,7 @@ export function TrackList({ tracks, style, className = '' }: TrackListProps) {
         {/* Empty state */}
         {tracks.length === 0 && (
           <div className="flex flex-col items-center justify-center py-8 text-gray-500">
-            <Plus className="w-8 h-8 mb-2" />
+            <Plus className="w-8 h-8 mb-2" aria-hidden="true" />
             <p className="text-sm">Add a track to get started</p>
           </div>
         )}

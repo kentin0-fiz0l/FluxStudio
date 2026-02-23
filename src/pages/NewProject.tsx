@@ -134,9 +134,9 @@ export function NewProject() {
   };
 
   const modes: { id: CreationMode; label: string; icon: React.ReactNode }[] = [
-    { id: 'blank', label: 'Blank Project', icon: <Plus className="w-4 h-4" /> },
-    { id: 'template', label: 'From Template', icon: <LayoutTemplate className="w-4 h-4" /> },
-    { id: 'ai', label: 'AI Create', icon: <Sparkles className="w-4 h-4" /> },
+    { id: 'blank', label: 'Blank Project', icon: <Plus className="w-4 h-4" aria-hidden="true" /> },
+    { id: 'template', label: 'From Template', icon: <LayoutTemplate className="w-4 h-4" aria-hidden="true" /> },
+    { id: 'ai', label: 'AI Create', icon: <Sparkles className="w-4 h-4" aria-hidden="true" /> },
   ];
 
   return (
@@ -158,14 +158,14 @@ export function NewProject() {
             className="gap-2"
             aria-label="Back to projects"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
             Back
           </Button>
         </div>
 
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-white flex items-center gap-3">
-            <Plus className="w-6 h-6 text-primary-600" />
+            <Plus className="w-6 h-6 text-primary-600" aria-hidden="true" />
             Create New Project
           </h1>
           <p className="text-neutral-600 dark:text-neutral-400 mt-1">
@@ -348,7 +348,7 @@ export function NewProject() {
                 loading={isSubmitting}
                 className="gap-2"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4" aria-hidden="true" />
                 {isSubmitting ? 'Creating...' : 'Create Project'}
               </Button>
             </div>

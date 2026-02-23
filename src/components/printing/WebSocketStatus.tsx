@@ -41,7 +41,7 @@ export const WebSocketStatus: React.FC<WebSocketStatusProps> = ({
     if (status.connected) {
       return {
         variant: 'success' as const,
-        icon: <Activity className="h-3 w-3" />,
+        icon: <Activity className="h-3 w-3" aria-hidden="true" />,
         text: 'Real-Time',
         dotColor: 'bg-green-500',
         description: 'Connected to real-time updates. Receiving live printer data every 1-5 seconds.',
@@ -51,7 +51,7 @@ export const WebSocketStatus: React.FC<WebSocketStatusProps> = ({
     if (status.connecting) {
       return {
         variant: 'warning' as const,
-        icon: <Wifi className="h-3 w-3 animate-pulse" />,
+        icon: <Wifi className="h-3 w-3 animate-pulse" aria-hidden="true" />,
         text: 'Connecting...',
         dotColor: 'bg-yellow-500',
         description: 'Establishing WebSocket connection...',
@@ -61,7 +61,7 @@ export const WebSocketStatus: React.FC<WebSocketStatusProps> = ({
     if (status.reconnectAttempts > 0) {
       return {
         variant: 'warning' as const,
-        icon: <AlertTriangle className="h-3 w-3" />,
+        icon: <AlertTriangle className="h-3 w-3" aria-hidden="true" />,
         text: `Reconnecting (${status.reconnectAttempts})`,
         dotColor: 'bg-yellow-500 animate-pulse',
         description: `Connection lost. Attempting to reconnect... (Attempt ${status.reconnectAttempts})`,
@@ -70,7 +70,7 @@ export const WebSocketStatus: React.FC<WebSocketStatusProps> = ({
 
     return {
       variant: 'secondary' as const,
-      icon: <WifiOff className="h-3 w-3" />,
+      icon: <WifiOff className="h-3 w-3" aria-hidden="true" />,
       text: 'Polling Mode',
       dotColor: 'bg-gray-400',
       description: 'WebSocket disconnected. Using REST API polling (updates every 30-60 seconds).',

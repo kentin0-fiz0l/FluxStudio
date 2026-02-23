@@ -120,14 +120,14 @@ export const ConversationItem = React.memo(function ConversationItem({ conversat
           className="w-[46px] flex items-center justify-center bg-accent-500 text-white active:bg-accent-600"
           aria-label={conversation.isPinned ? 'Unpin' : 'Pin'}
         >
-          <Pin className="w-4 h-4" />
+          <Pin className="w-4 h-4" aria-hidden="true" />
         </button>
         <button
           onClick={() => { onMute?.(); closeSwipe(); }}
           className="w-[46px] flex items-center justify-center bg-neutral-500 text-white active:bg-neutral-600"
           aria-label={conversation.isMuted ? 'Unmute' : 'Mute'}
         >
-          <BellOff className="w-4 h-4" />
+          <BellOff className="w-4 h-4" aria-hidden="true" />
         </button>
         <button
           onClick={() => { onDelete?.(); closeSwipe(); }}
@@ -231,10 +231,10 @@ export function EmptyMessagesState({ onStartConversation }: EmptyMessagesStatePr
     <div className="h-full flex flex-col items-center justify-center p-8 text-center">
       <div className="relative mb-6">
         <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-100 to-indigo-100 dark:from-primary-900/30 dark:to-indigo-900/30 flex items-center justify-center">
-          <MessageCircle className="w-12 h-12 text-primary-600 dark:text-primary-400" />
+          <MessageCircle className="w-12 h-12 text-primary-600 dark:text-primary-400" aria-hidden="true" />
         </div>
         <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-accent-500 flex items-center justify-center animate-bounce">
-          <Sparkles className="w-4 h-4 text-white" />
+          <Sparkles className="w-4 h-4 text-white" aria-hidden="true" />
         </div>
       </div>
 
@@ -246,14 +246,14 @@ export function EmptyMessagesState({ onStartConversation }: EmptyMessagesStatePr
       </p>
 
       <Button onClick={onStartConversation} className="mb-8 shadow-lg hover:shadow-xl transition-shadow">
-        <UserPlus className="w-4 h-4 mr-2" />
+        <UserPlus className="w-4 h-4 mr-2" aria-hidden="true" />
         New Message
       </Button>
 
       <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl max-w-xs transition-all duration-500">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0">
-            <TipIcon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+            <TipIcon className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true" />
           </div>
           <p className="text-sm text-neutral-600 dark:text-neutral-400 text-left">
             {tip.text}
@@ -326,7 +326,7 @@ export function ConversationSidebar({
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={onNewConversation} aria-label="New conversation">
-            <UserPlus className="w-4 h-4" />
+            <UserPlus className="w-4 h-4" aria-hidden="true" />
           </Button>
         </div>
 

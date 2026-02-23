@@ -112,7 +112,7 @@ const FileItem: React.FC<FileItemProps> = React.memo(({
       <div className="flex items-start gap-3">
         {/* Icon */}
         <div className="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg flex items-center justify-center">
-          <FileText className="h-5 w-5" />
+          <FileText className="h-5 w-5" aria-hidden="true" />
         </div>
 
         {/* Content */}
@@ -125,7 +125,7 @@ const FileItem: React.FC<FileItemProps> = React.memo(({
                 </h4>
                 {isLinked && projectName && (
                   <Badge variant="outline" size="sm" className="flex items-center gap-1 shrink-0">
-                    <Folder className="h-3 w-3" />
+                    <Folder className="h-3 w-3" aria-hidden="true" />
                     <span className="max-w-[100px] truncate">{projectName}</span>
                   </Badge>
                 )}
@@ -160,7 +160,7 @@ const FileItem: React.FC<FileItemProps> = React.memo(({
               loading={isAdding}
               className="text-xs h-7"
             >
-              <Plus className="h-3 w-3 mr-1" />
+              <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
               Add to Queue
             </Button>
 
@@ -172,7 +172,7 @@ const FileItem: React.FC<FileItemProps> = React.memo(({
                 disabled={isAdding || isDeleting}
                 className="text-xs h-7"
               >
-                <LinkIcon className="h-3 w-3 mr-1" />
+                <LinkIcon className="h-3 w-3 mr-1" aria-hidden="true" />
                 Link to Project
               </Button>
             )}
@@ -185,7 +185,7 @@ const FileItem: React.FC<FileItemProps> = React.memo(({
                 disabled={isAdding || isDeleting}
                 className="text-xs h-7"
               >
-                <X className="h-3 w-3 mr-1" />
+                <X className="h-3 w-3 mr-1" aria-hidden="true" />
                 Unlink
               </Button>
             )}
@@ -197,7 +197,7 @@ const FileItem: React.FC<FileItemProps> = React.memo(({
               disabled={isAdding || isDeleting}
               className="text-xs h-7"
             >
-              <Trash2 className="h-3 w-3 mr-1" />
+              <Trash2 className="h-3 w-3 mr-1" aria-hidden="true" />
               Delete
             </Button>
           </div>
@@ -466,7 +466,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
       <Card className={cn('h-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+            <FileText className="h-5 w-5" aria-hidden="true" />
             G-code Files
           </CardTitle>
         </CardHeader>
@@ -486,13 +486,13 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
       <Card className={cn('h-full', className)}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+            <FileText className="h-5 w-5" aria-hidden="true" />
             G-code Files
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-3 text-error-600 dark:text-error-400">
-            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <AlertCircle className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
             <p className="text-sm">{error}</p>
           </div>
         </CardContent>
@@ -506,7 +506,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+              <FileText className="h-5 w-5" aria-hidden="true" />
               G-code Files
               {hasFiles && (
                 <Badge variant="default" size="sm">
@@ -520,7 +520,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
               onClick={handleUploadClick}
               disabled={uploadProgress !== null}
             >
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
               Upload
             </Button>
           </CardTitle>
@@ -552,14 +552,14 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
                 <SelectContent>
                   <SelectItem value="all">
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
+                      <FileText className="h-4 w-4" aria-hidden="true" />
                       All Files
                     </div>
                   </SelectItem>
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       <div className="flex items-center gap-2">
-                        <Folder className="h-4 w-4" />
+                        <Folder className="h-4 w-4" aria-hidden="true" />
                         {project.title}
                       </div>
                     </SelectItem>
@@ -572,7 +572,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
           {/* Search */}
           {hasFiles && (
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" aria-hidden="true" />
               <Input
                 type="text"
                 placeholder="Search files..."
@@ -587,7 +587,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
           {!hasFiles ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-center space-y-3">
-                <FileText className="h-12 w-12 text-neutral-300 dark:text-neutral-600 mx-auto" />
+                <FileText className="h-12 w-12 text-neutral-300 dark:text-neutral-600 mx-auto" aria-hidden="true" />
                 <div>
                   <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">No Files</p>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
@@ -600,7 +600,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
                   onClick={handleUploadClick}
                   className="mt-2"
                 >
-                  <Upload className="h-4 w-4 mr-2" />
+                  <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
                   Upload Files
                 </Button>
               </div>
@@ -608,7 +608,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
           ) : filteredFiles.length === 0 ? (
             <div className="h-full flex items-center justify-center">
               <div className="text-center space-y-2">
-                <Search className="h-10 w-10 text-neutral-300 dark:text-neutral-600 mx-auto" />
+                <Search className="h-10 w-10 text-neutral-300 dark:text-neutral-600 mx-auto" aria-hidden="true" />
                 <p className="text-sm text-neutral-500 dark:text-neutral-400">No files match your search</p>
               </div>
             </div>
@@ -646,7 +646,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
           <div className="border-t border-neutral-200 dark:border-neutral-800 px-6 py-3 bg-neutral-50 dark:bg-neutral-900">
             <div className="flex items-center justify-between text-xs text-neutral-600 dark:text-neutral-400">
               <div className="flex items-center gap-2">
-                <HardDrive className="h-3.5 w-3.5" />
+                <HardDrive className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>
                   {formatFileSize(files.total - files.free)} / {formatFileSize(files.total)} used
                 </span>
@@ -724,7 +724,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       <div className="flex items-center gap-2">
-                        <Folder className="h-4 w-4" />
+                        <Folder className="h-4 w-4" aria-hidden="true" />
                         {project.title}
                       </div>
                     </SelectItem>

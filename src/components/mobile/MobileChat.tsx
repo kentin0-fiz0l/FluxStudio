@@ -184,15 +184,15 @@ export const MobileChat: React.FC<MobileChatProps> = ({
   const MessageStatus = ({ status }: { status: Message['status'] }) => {
     switch (status) {
       case 'sending':
-        return <Clock className="w-3 h-3 text-gray-400" />;
+        return <Clock className="w-3 h-3 text-gray-400" aria-hidden="true" />;
       case 'sent':
-        return <Check className="w-3 h-3 text-gray-400" />;
+        return <Check className="w-3 h-3 text-gray-400" aria-hidden="true" />;
       case 'delivered':
-        return <CheckCheck className="w-3 h-3 text-gray-400" />;
+        return <CheckCheck className="w-3 h-3 text-gray-400" aria-hidden="true" />;
       case 'read':
-        return <CheckCheck className="w-3 h-3 text-blue-500" />;
+        return <CheckCheck className="w-3 h-3 text-blue-500" aria-hidden="true" />;
       case 'failed':
-        return <AlertCircle className="w-3 h-3 text-red-500" />;
+        return <AlertCircle className="w-3 h-3 text-red-500" aria-hidden="true" />;
       default:
         return null;
     }
@@ -210,7 +210,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
             className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
           </button>
 
           <div className="flex items-center space-x-3">
@@ -250,7 +250,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
               aria-label="Search messages"
             >
-              <Search className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <Search className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
             </button>
           )}
 
@@ -260,7 +260,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
               aria-label="Voice call"
             >
-              <Phone className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <Phone className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
             </button>
           )}
 
@@ -270,12 +270,12 @@ export const MobileChat: React.FC<MobileChatProps> = ({
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
               aria-label="Video call"
             >
-              <Video className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <Video className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
             </button>
           )}
 
           <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors" aria-label="More options">
-            <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -355,7 +355,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
                       {message.type === 'audio' && (
                         <div className="flex items-center space-x-2 py-1">
                           <button className="p-1 bg-white/20 rounded-full">
-                            <Mic className="w-4 h-4" />
+                            <Mic className="w-4 h-4" aria-hidden="true" />
                           </button>
                           <div className="flex-1 bg-white/20 rounded-full h-1">
                             <div className="bg-white h-1 rounded-full w-1/3"></div>
@@ -412,7 +412,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
             className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-full transition-colors"
             aria-label="Cancel reply"
           >
-            <X className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <X className="w-4 h-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -433,7 +433,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
                 className="flex flex-col items-center space-y-1 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
                 <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                  <Image className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  <Image className="w-5 h-5 text-green-600 dark:text-green-400" aria-hidden="true" />
                 </div>
                 <span className="text-xs text-gray-600 dark:text-gray-400">Photo</span>
               </button>
@@ -443,7 +443,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
                 className="flex flex-col items-center space-y-1 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
                 <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                  <Camera className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <Camera className="w-5 h-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
                 </div>
                 <span className="text-xs text-gray-600 dark:text-gray-400">Camera</span>
               </button>
@@ -453,7 +453,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
                 className="flex flex-col items-center space-y-1 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
                 <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
-                  <Paperclip className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <Paperclip className="w-5 h-5 text-purple-600 dark:text-purple-400" aria-hidden="true" />
                 </div>
                 <span className="text-xs text-gray-600 dark:text-gray-400">File</span>
               </button>
@@ -497,7 +497,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
               showAttachments ? 'bg-blue-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
             )}
           >
-            <Paperclip className="w-5 h-5" />
+            <Paperclip className="w-5 h-5" aria-hidden="true" />
           </button>
 
           <div className="flex-1 relative">
@@ -515,7 +515,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
-              <Smile className="w-4 h-4" />
+              <Smile className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
 
@@ -524,7 +524,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
               onClick={handleSend}
               className="bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 transition-colors"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-5 h-5" aria-hidden="true" />
             </button>
           ) : (
             <button
@@ -537,7 +537,7 @@ export const MobileChat: React.FC<MobileChatProps> = ({
                 isRecording ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
               )}
             >
-              {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              {isRecording ? <MicOff className="w-5 h-5" aria-hidden="true" /> : <Mic className="w-5 h-5" aria-hidden="true" />}
             </button>
           )}
         </div>

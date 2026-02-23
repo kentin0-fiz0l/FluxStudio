@@ -209,7 +209,7 @@ const ErrorState = React.forwardRef<HTMLDivElement, ErrorStateProps>(
                 onClick={onRetry}
                 disabled={retrying}
                 loading={retrying}
-                icon={!retrying ? <RefreshCw className="h-4 w-4" /> : undefined}
+                icon={!retrying ? <RefreshCw className="h-4 w-4" aria-hidden="true" /> : undefined}
               >
                 {retryText}
               </Button>

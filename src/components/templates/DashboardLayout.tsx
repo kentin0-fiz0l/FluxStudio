@@ -247,7 +247,7 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
             )}
             aria-label="Close navigation menu"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </Button>
           <NavigationSidebar
             user={user}

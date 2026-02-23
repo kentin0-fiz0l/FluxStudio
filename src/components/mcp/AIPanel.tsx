@@ -27,8 +27,8 @@ export default function AIPanel({ isOpen: controlledOpen, onClose }: AIPanelProp
         className="fixed right-0 top-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-6 rounded-l-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2 z-40"
         title="Open AI Workspace"
       >
-        <ChevronLeft className="w-5 h-5" />
-        <Sparkles className="w-5 h-5" />
+        <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+        <Sparkles className="w-5 h-5" aria-hidden="true" />
       </button>
     );
   }
@@ -38,7 +38,7 @@ export default function AIPanel({ isOpen: controlledOpen, onClose }: AIPanelProp
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-blue-600" />
+          <Sparkles className="w-5 h-5 text-blue-600" aria-hidden="true" />
           <h2 className="text-lg font-semibold text-gray-900">
             AI Workspace
           </h2>
@@ -48,7 +48,7 @@ export default function AIPanel({ isOpen: controlledOpen, onClose }: AIPanelProp
           className="p-1.5 hover:bg-white rounded-lg transition-colors"
           title="Close panel"
         >
-          <ChevronRight className="w-5 h-5 text-gray-600" />
+          <ChevronRight className="w-5 h-5 text-gray-600" aria-hidden="true" />
         </button>
       </div>
 

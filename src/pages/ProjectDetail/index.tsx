@@ -251,7 +251,7 @@ export const ProjectDetail = () => {
             <p className="text-neutral-600 mb-6" id="not-found-description">
               The project you're looking for doesn't exist or you don't have access to it.
             </p>
-            <Button variant="primary" onClick={() => navigate('/projects')} icon={<ArrowLeft className="h-4 w-4" />} aria-label="Go back to projects list" aria-describedby="not-found-description">
+            <Button variant="primary" onClick={() => navigate('/projects')} icon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />} aria-label="Go back to projects list" aria-describedby="not-found-description">
               Back to Projects
             </Button>
           </Card>
@@ -271,7 +271,7 @@ export const ProjectDetail = () => {
           <div className="flex items-start justify-between gap-4 mb-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <Button variant="ghost" size="icon" onClick={() => navigate('/projects')} className="flex-shrink-0" icon={<ArrowLeft className="h-4 w-4" />} aria-label="Back to projects list" />
+                <Button variant="ghost" size="icon" onClick={() => navigate('/projects')} className="flex-shrink-0" icon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />} aria-label="Back to projects list" />
                 <h1 className="text-2xl font-bold text-neutral-900 truncate" id="project-title">{project.name}</h1>
               </div>
               <div className="flex items-center gap-3 flex-wrap ml-12" role="group" aria-label="Project information">
@@ -302,15 +302,15 @@ export const ProjectDetail = () => {
               <Button
                 variant={isProjectFocused(id || '') ? 'primary' : 'outline'}
                 size="sm"
-                icon={<Target className="h-4 w-4" />}
+                icon={<Target className="h-4 w-4" aria-hidden="true" />}
                 onClick={() => { if (project) { setActiveProject(project.id); toast.success(`Now focused on "${project.name}"`); } }}
                 aria-pressed={isProjectFocused(id || '')}
                 aria-label={isProjectFocused(id || '') ? 'Project is focused' : 'Focus on this project'}
               >
                 {isProjectFocused(id || '') ? 'Focused' : 'Focus'}
               </Button>
-              <Button variant="outline" size="sm" icon={<Settings className="h-4 w-4" />} aria-label="Open project settings">Settings</Button>
-              <Button variant="ghost" size="icon" icon={<MoreVertical className="h-4 w-4" />} aria-label="More project options" aria-haspopup="menu" />
+              <Button variant="outline" size="sm" icon={<Settings className="h-4 w-4" aria-hidden="true" />} aria-label="Open project settings">Settings</Button>
+              <Button variant="ghost" size="icon" icon={<MoreVertical className="h-4 w-4" aria-hidden="true" />} aria-label="More project options" aria-haspopup="menu" />
             </div>
           </div>
         </header>

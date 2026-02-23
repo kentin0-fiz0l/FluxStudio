@@ -66,7 +66,7 @@ export function DailyBriefWidget({ className }: DailyBriefWidgetProps) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="p-2 bg-indigo-600/20 rounded-lg">
-            <Sparkles className="w-5 h-5 text-indigo-400" />
+            <Sparkles className="w-5 h-5 text-indigo-400" aria-hidden="true" />
           </div>
           <div>
             <h3 className="text-base font-semibold text-white">Daily Brief</h3>
@@ -80,9 +80,9 @@ export function DailyBriefWidget({ className }: DailyBriefWidgetProps) {
           title="Refresh brief"
         >
           {isLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
           ) : (
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="w-4 h-4" aria-hidden="true" />
           )}
         </button>
       </div>
@@ -91,25 +91,25 @@ export function DailyBriefWidget({ className }: DailyBriefWidgetProps) {
       {brief?.stats && (
         <div className="grid grid-cols-2 gap-4 mb-4">
           <StatItem
-            icon={<FolderGit2 className="w-4 h-4 text-blue-400" />}
+            icon={<FolderGit2 className="w-4 h-4 text-blue-400" aria-hidden="true" />}
             label="Project Updates"
             value={brief.stats.projectUpdates}
             color="bg-blue-500/20"
           />
           <StatItem
-            icon={<MessageSquare className="w-4 h-4 text-green-400" />}
+            icon={<MessageSquare className="w-4 h-4 text-green-400" aria-hidden="true" />}
             label="New Messages"
             value={brief.stats.newMessages}
             color="bg-green-500/20"
           />
           <StatItem
-            icon={<Image className="w-4 h-4 text-purple-400" />}
+            icon={<Image className="w-4 h-4 text-purple-400" aria-hidden="true" />}
             label="New Assets"
             value={brief.stats.newAssets}
             color="bg-purple-500/20"
           />
           <StatItem
-            icon={<Bell className="w-4 h-4 text-amber-400" />}
+            icon={<Bell className="w-4 h-4 text-amber-400" aria-hidden="true" />}
             label="Notifications"
             value={brief.stats.notifications}
             color="bg-amber-500/20"
@@ -120,7 +120,7 @@ export function DailyBriefWidget({ className }: DailyBriefWidgetProps) {
       {/* Brief Summary */}
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+          <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" aria-hidden="true" />
         </div>
       ) : error ? (
         <div className="text-sm text-red-400 py-4 text-center">
@@ -159,9 +159,9 @@ export function DailyBriefWidget({ className }: DailyBriefWidgetProps) {
           'transition-colors'
         )}
       >
-        <Sparkles className="w-4 h-4" />
+        <Sparkles className="w-4 h-4" aria-hidden="true" />
         Ask AI Assistant
-        <ArrowRight className="w-4 h-4" />
+        <ArrowRight className="w-4 h-4" aria-hidden="true" />
       </button>
     </motion.div>
   );

@@ -81,7 +81,7 @@ export function BaseWidget({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="widget-drag-handle cursor-move p-1 hover:bg-white/10 rounded transition-colors">
-              <GripVertical className="h-4 w-4 text-white/50" />
+              <GripVertical className="h-4 w-4 text-white/50" aria-hidden="true" />
             </div>
             <CardTitle className="text-white text-lg">{config.title}</CardTitle>
             <Badge className={getCategoryColor(config.category)}>
@@ -98,7 +98,7 @@ export function BaseWidget({
                 disabled={isRefreshing}
                 className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
               >
-                <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
+                <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} aria-hidden="true" />
               </Button>
             )}
             <DropdownMenu>
@@ -108,26 +108,26 @@ export function BaseWidget({
                   size="sm"
                   className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
                 >
-                  <MoreVertical className="h-4 w-4" />
+                  <MoreVertical className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={() => setIsExpanded(!isExpanded)}>
                   {isExpanded ? (
                     <>
-                      <Minimize2 className="mr-2 h-4 w-4" />
+                      <Minimize2 className="mr-2 h-4 w-4" aria-hidden="true" />
                       Minimize
                     </>
                   ) : (
                     <>
-                      <Maximize2 className="mr-2 h-4 w-4" />
+                      <Maximize2 className="mr-2 h-4 w-4" aria-hidden="true" />
                       Expand
                     </>
                   )}
                 </DropdownMenuItem>
                 {onConfigChange && (
                   <DropdownMenuItem onClick={() => {/* Open settings modal */}}>
-                    <Settings className="mr-2 h-4 w-4" />
+                    <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
                     Settings
                   </DropdownMenuItem>
                 )}
@@ -137,7 +137,7 @@ export function BaseWidget({
                     onClick={onRemove}
                     className="text-red-400 focus:text-red-400"
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
+                    <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
                     Remove Widget
                   </DropdownMenuItem>
                 )}
@@ -164,7 +164,7 @@ export function BaseWidget({
                   onClick={handleRefresh}
                   className="mt-4"
                 >
-                  <RefreshCw className="mr-2 h-4 w-4" />
+                  <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
                   Retry
                 </Button>
               )}
@@ -173,7 +173,7 @@ export function BaseWidget({
         ) : isLoading ? (
           <div className="flex items-center justify-center p-8">
             <div className="flex items-center gap-2 text-white/70">
-              <RefreshCw className="h-4 w-4 animate-spin" />
+              <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
               <span>Loading...</span>
             </div>
           </div>

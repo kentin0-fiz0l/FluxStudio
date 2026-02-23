@@ -329,7 +329,7 @@ export function FormationDraftPanel({
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
-            <Bot className="w-4 h-4 text-white" />
+            <Bot className="w-4 h-4 text-white" aria-hidden="true" />
           </div>
           <div>
             <h3 className="text-sm font-semibold">Draft Agent</h3>
@@ -337,7 +337,7 @@ export function FormationDraftPanel({
           </div>
         </div>
         <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close draft panel">
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
 
@@ -372,7 +372,7 @@ export function FormationDraftPanel({
               disabled={!showDescription.trim() || isActive}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm transition-colors"
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-4 h-4" aria-hidden="true" />
               Generate Draft
             </button>
 
@@ -386,7 +386,7 @@ export function FormationDraftPanel({
                     disabled={!showDescription.trim()}
                     className="flex items-center gap-1 mt-1.5 text-xs font-medium text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 disabled:opacity-50"
                   >
-                    <RefreshCw className="w-3 h-3" />
+                    <RefreshCw className="w-3 h-3" aria-hidden="true" />
                     Retry
                   </button>
                 </div>
@@ -415,7 +415,7 @@ export function FormationDraftPanel({
                   className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-amber-500 hover:bg-amber-600 text-white"
                   aria-label="Resume generation"
                 >
-                  <Play className="w-3.5 h-3.5" />
+                  <Play className="w-3.5 h-3.5" aria-hidden="true" />
                   Resume
                 </button>
               ) : (
@@ -424,7 +424,7 @@ export function FormationDraftPanel({
                   className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
                   aria-label="Pause generation"
                 >
-                  <Pause className="w-3.5 h-3.5" />
+                  <Pause className="w-3.5 h-3.5" aria-hidden="true" />
                   Pause
                 </button>
               )}
@@ -433,7 +433,7 @@ export function FormationDraftPanel({
                 className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-red-500"
                 aria-label="Cancel generation"
               >
-                <Square className="w-3.5 h-3.5" />
+                <Square className="w-3.5 h-3.5" aria-hidden="true" />
                 Cancel
               </button>
             </div>
@@ -450,7 +450,7 @@ export function FormationDraftPanel({
               aria-label="Toggle show plan details"
             >
               <span>Show Plan</span>
-              {planExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {planExpanded ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
             </button>
 
             {planExpanded && (
@@ -463,14 +463,14 @@ export function FormationDraftPanel({
                   onClick={handleApprovePlan}
                   className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium"
                 >
-                  <Check className="w-4 h-4" />
+                  <Check className="w-4 h-4" aria-hidden="true" />
                   Approve Plan
                 </button>
                 <button
                   onClick={() => handleInterrupt('cancel')}
                   className="flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4" aria-hidden="true" />
                   Reject
                 </button>
               </div>
@@ -482,7 +482,7 @@ export function FormationDraftPanel({
         {draft.draftStatus === 'done' && draft.activeDraftSessionId && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
-              <Check className="w-4 h-4 text-green-500" />
+              <Check className="w-4 h-4 text-green-500" aria-hidden="true" />
               <span className="text-sm text-green-700 dark:text-green-400">Draft complete</span>
             </div>
 
@@ -505,7 +505,7 @@ export function FormationDraftPanel({
                   disabled={!refinementInput.trim() || isRefining}
                   className="p-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white"
                 >
-                  {isRefining ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {isRefining ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Send className="w-4 h-4" aria-hidden="true" />}
                 </button>
               </div>
             </div>
@@ -516,7 +516,7 @@ export function FormationDraftPanel({
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">History</span>
                 {draft.refinementHistory.map((entry, i) => (
                   <div key={i} className="flex items-start gap-2 p-2 rounded bg-gray-50 dark:bg-gray-900 text-xs">
-                    <RefreshCw className="w-3 h-3 mt-0.5 text-amber-500 flex-shrink-0" />
+                    <RefreshCw className="w-3 h-3 mt-0.5 text-amber-500 flex-shrink-0" aria-hidden="true" />
                     <div>
                       <span className="text-gray-700 dark:text-gray-300">{entry.instruction}</span>
                       <span className="text-gray-400 ml-1">({entry.keyframesUpdated} keyframes)</span>
@@ -533,7 +533,7 @@ export function FormationDraftPanel({
       {draft.tokensUsed > 0 && (
         <div className="flex items-center justify-between px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-400">
           <div className="flex items-center gap-1">
-            <Zap className="w-3 h-3" />
+            <Zap className="w-3 h-3" aria-hidden="true" />
             <span>{draft.tokensUsed.toLocaleString()} tokens</span>
           </div>
         </div>

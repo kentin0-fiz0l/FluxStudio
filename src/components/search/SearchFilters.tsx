@@ -59,10 +59,10 @@ export function SearchFilters({
   };
 
   const typeIcons: Record<SearchResultType, React.ReactNode> = {
-    project: <FolderKanban className="w-4 h-4" />,
-    file: <File className="w-4 h-4" />,
-    task: <CheckSquare className="w-4 h-4" />,
-    message: <MessageSquare className="w-4 h-4" />,
+    project: <FolderKanban className="w-4 h-4" aria-hidden="true" />,
+    file: <File className="w-4 h-4" aria-hidden="true" />,
+    task: <CheckSquare className="w-4 h-4" aria-hidden="true" />,
+    message: <MessageSquare className="w-4 h-4" aria-hidden="true" />,
   };
 
   const typeLabels: Record<SearchResultType, string> = {
@@ -96,7 +96,7 @@ export function SearchFilters({
             aria-label="Clear all filters"
             className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1"
           >
-            <X className="w-3 h-3" />
+            <X className="w-3 h-3" aria-hidden="true" />
             {t('search.filters.clear', 'Clear')}
           </button>
         )}

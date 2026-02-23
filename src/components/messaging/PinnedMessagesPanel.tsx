@@ -25,11 +25,11 @@ export function PinnedMessagesPanel({
       <div className="absolute inset-x-0 top-0 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700 p-4 z-20">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Pin className="w-4 h-4 text-accent-500" />
+            <Pin className="w-4 h-4 text-accent-500" aria-hidden="true" />
             <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">Pinned Messages</h3>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded">
-            <X className="w-4 h-4 text-neutral-500" />
+            <X className="w-4 h-4 text-neutral-500" aria-hidden="true" />
           </button>
         </div>
         <p className="text-sm text-neutral-500 dark:text-neutral-400">No pinned messages yet</p>
@@ -41,13 +41,13 @@ export function PinnedMessagesPanel({
     <div className="absolute inset-x-0 top-0 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700 p-4 max-h-64 overflow-y-auto z-20">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Pin className="w-4 h-4 text-accent-500" />
+          <Pin className="w-4 h-4 text-accent-500" aria-hidden="true" />
           <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">
             Pinned Messages ({messages.length})
           </h3>
         </div>
         <button onClick={onClose} className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded">
-          <X className="w-4 h-4 text-neutral-500" />
+          <X className="w-4 h-4 text-neutral-500" aria-hidden="true" />
         </button>
       </div>
       <div className="space-y-2">
@@ -70,7 +70,7 @@ export function PinnedMessagesPanel({
               className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-600 rounded"
               title="Unpin"
             >
-              <PinOff className="w-4 h-4 text-neutral-500" />
+              <PinOff className="w-4 h-4 text-neutral-500" aria-hidden="true" />
             </button>
           </div>
         ))}
