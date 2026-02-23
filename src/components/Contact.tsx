@@ -132,9 +132,9 @@ export function Contact() {
               <CardContent>
                 {/* Success notification */}
                 {isSubmitted && (
-                  <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                  <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg" role="alert" aria-live="polite" aria-atomic="true">
                     <div className="flex items-center space-x-2">
-                      <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" aria-hidden="true" />
                       <div>
                         <h4 className="text-green-800 dark:text-green-200 font-medium">Message Sent Successfully!</h4>
                         <p className="text-green-700 dark:text-green-300 text-sm">Thank you for your inquiry. We'll get back to you within 24 hours.</p>
@@ -152,6 +152,7 @@ export function Contact() {
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         required
+                        aria-required="true"
                         className="bg-input-solid text-off-white"
                       />
                     </div>
@@ -163,8 +164,11 @@ export function Contact() {
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         required
+                        aria-required="true"
+                        aria-describedby="email-hint"
                         className="bg-input-solid text-off-white"
                       />
+                      <p id="email-hint" className="sr-only">We'll use this email to respond to your inquiry</p>
                     </div>
                   </div>
 
@@ -176,6 +180,7 @@ export function Contact() {
                         value={formData.ensemble}
                         onChange={(e) => handleInputChange('ensemble', e.target.value)}
                         required
+                        aria-required="true"
                         className="bg-input-solid text-off-white"
                       />
                     </div>
@@ -216,7 +221,7 @@ export function Contact() {
                     <div>
                       <Label htmlFor="timeline" className="text-off-white">Timeline</Label>
                       <Select value={formData.timeline} onValueChange={(value) => handleInputChange('timeline', value)}>
-                        <SelectTrigger className="bg-input-solid text-off-white">
+                        <SelectTrigger className="bg-input-solid text-off-white" aria-label="Timeline — when do you need this?">
                           <SelectValue placeholder="When do you need this?" />
                         </SelectTrigger>
                         <SelectContent>

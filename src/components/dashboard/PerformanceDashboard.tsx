@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { RefreshCw, WifiOff } from 'lucide-react';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -32,13 +33,26 @@ export const PerformanceDashboard: React.FC = () => {
   const [databaseMetrics, setDatabaseMetrics] = useState<DatabaseMetrics[]>([]);
   const [currentMetrics, setCurrentMetrics] = useState<SystemMetrics | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   const { socket } = useWebSocket('/performance');
 
   useEffect(() => {
     if (socket) {
-      socket.on('connect', () => setIsConnected(true));
-      socket.on('disconnect', () => setIsConnected(false));
+      socket.on('connect', () => {
+        setIsConnected(true);
+        setConnectionError(false);
+        setRetrying(false);
+      });
+      socket.on('disconnect', () => {
+        setIsConnected(false);
+        setConnectionError(true);
+      });
+      socket.on('connect_error', () => {
+        setConnectionError(true);
+        setRetrying(false);
+      });
 
       socket.on('system_metrics', (data: SystemMetrics) => {
         setCurrentMetrics(data);
@@ -61,9 +75,18 @@ export const PerformanceDashboard: React.FC = () => {
         clearInterval(interval);
         socket.off('connect');
         socket.off('disconnect');
+        socket.off('connect_error');
         socket.off('system_metrics');
         socket.off('database_metrics');
       };
+    }
+  }, [socket]);
+
+  const handleRetry = useCallback(() => {
+    if (socket) {
+      setRetrying(true);
+      socket.connect();
+      socket.emit('request_metrics');
     }
   }, [socket]);
 
@@ -85,6 +108,27 @@ export const PerformanceDashboard: React.FC = () => {
           {isConnected ? 'Connected' : 'Disconnected'}
         </Badge>
       </div>
+
+      {/* Connection error banner */}
+      {connectionError && !isConnected && (
+        <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex items-center gap-3 text-red-700 dark:text-red-400">
+            <WifiOff className="w-5 h-5 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-sm">Connection lost</p>
+              <p className="text-xs text-red-600 dark:text-red-500">Real-time metrics are unavailable. Showing last known data.</p>
+            </div>
+          </div>
+          <button
+            onClick={handleRetry}
+            disabled={retrying}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} />
+            {retrying ? 'Reconnecting...' : 'Retry'}
+          </button>
+        </div>
+      )}
 
       {/* Current Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

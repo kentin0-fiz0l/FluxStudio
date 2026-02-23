@@ -164,8 +164,29 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading documents...</div>
+      <div className="space-y-4">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-7 w-36 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-56 bg-muted rounded animate-pulse mt-2" />
+          </div>
+          <div className="h-9 w-36 bg-muted rounded animate-pulse" />
+        </div>
+        {/* Card grid skeleton */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-5 w-3/4 bg-muted rounded" />
+                <div className="space-y-2 mt-2">
+                  <div className="h-3 w-28 bg-muted rounded" />
+                  <div className="h-3 w-36 bg-muted rounded" />
+                </div>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }

@@ -67,6 +67,8 @@ function ParticipantVideo({
       className={`relative bg-gray-800 rounded-lg overflow-hidden ${
         isLarge ? 'col-span-2 row-span-2' : ''
       }`}
+      role="group"
+      aria-label={`${participant.name}'s video`}
     >
       {!participant.isVideoOff && stream ? (
         <video
@@ -74,6 +76,7 @@ function ParticipantVideo({
           autoPlay
           playsInline
           className="w-full h-full object-cover"
+          aria-label={`${participant.name}'s video feed`}
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-gray-700">
@@ -89,15 +92,15 @@ function ParticipantVideo({
           <span className="text-white text-sm font-medium truncate">
             {participant.name}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" aria-label="Participant status">
             {participant.isMuted && (
-              <MicOff className="w-4 h-4 text-red-400" />
+              <MicOff className="w-4 h-4 text-red-400" aria-label="Muted" role="img" />
             )}
             {participant.isVideoOff && (
-              <VideoOff className="w-4 h-4 text-red-400" />
+              <VideoOff className="w-4 h-4 text-red-400" aria-label="Camera off" role="img" />
             )}
             {participant.isScreenSharing && (
-              <Monitor className="w-4 h-4 text-blue-400" />
+              <Monitor className="w-4 h-4 text-blue-400" aria-label="Sharing screen" role="img" />
             )}
           </div>
         </div>
@@ -236,7 +239,7 @@ export function VideoCall({
               {participants.length + 1} {t('call.participants', 'participants')}
             </span>
           </div>
-          <div className="text-gray-400 text-sm">{getStatusText()}</div>
+          <div className="text-gray-400 text-sm" aria-live="polite" aria-atomic="true">{getStatusText()}</div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -244,6 +247,7 @@ export function VideoCall({
             <button
               onClick={onOpenChat}
               className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+              aria-label="Open chat"
             >
               <MessageSquare className="w-5 h-5" />
             </button>
@@ -251,6 +255,7 @@ export function VideoCall({
           <button
             onClick={toggleFullscreen}
             className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           >
             {isFullscreen ? (
               <Minimize2 className="w-5 h-5" />
@@ -261,12 +266,15 @@ export function VideoCall({
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+            aria-label="Call settings"
+            aria-expanded={showSettings}
           >
             <Settings className="w-5 h-5" />
           </button>
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+            aria-label="Close call window"
           >
             <X className="w-5 h-5" />
           </button>
@@ -331,7 +339,7 @@ export function VideoCall({
       </div>
 
       {/* Controls */}
-      <div className="flex items-center justify-center gap-4 px-6 py-6 bg-gray-800/80 backdrop-blur">
+      <div className="flex items-center justify-center gap-4 px-6 py-6 bg-gray-800/80 backdrop-blur" role="toolbar" aria-label="Call controls">
         {/* Mute */}
         <button
           onClick={toggleMute}
@@ -340,6 +348,8 @@ export function VideoCall({
               ? 'bg-red-500 hover:bg-red-600 text-white'
               : 'bg-gray-700 hover:bg-gray-600 text-white'
           }`}
+          aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+          aria-pressed={isMuted}
         >
           {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
         </button>
@@ -352,6 +362,8 @@ export function VideoCall({
               ? 'bg-red-500 hover:bg-red-600 text-white'
               : 'bg-gray-700 hover:bg-gray-600 text-white'
           }`}
+          aria-label={isVideoOff ? 'Turn camera on' : 'Turn camera off'}
+          aria-pressed={isVideoOff}
         >
           {isVideoOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
         </button>
@@ -364,6 +376,8 @@ export function VideoCall({
               ? 'bg-blue-500 hover:bg-blue-600 text-white'
               : 'bg-gray-700 hover:bg-gray-600 text-white'
           }`}
+          aria-label={isScreenSharing ? 'Stop screen sharing' : 'Share screen'}
+          aria-pressed={isScreenSharing}
         >
           {isScreenSharing ? (
             <MonitorOff className="w-6 h-6" />
@@ -376,12 +390,13 @@ export function VideoCall({
         <button
           onClick={handleEndCall}
           className="p-4 rounded-full bg-red-500 hover:bg-red-600 text-white"
+          aria-label="End call"
         >
           <PhoneOff className="w-6 h-6" />
         </button>
 
         {/* More Options */}
-        <button className="p-4 rounded-full bg-gray-700 hover:bg-gray-600 text-white">
+        <button className="p-4 rounded-full bg-gray-700 hover:bg-gray-600 text-white" aria-label="More options">
           <MoreVertical className="w-6 h-6" />
         </button>
       </div>
