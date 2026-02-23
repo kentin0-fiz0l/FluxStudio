@@ -119,7 +119,7 @@ export function SaaSPricingTable({ currentPlan }: SaaSPricingTableProps) {
               <ul className="mt-6 space-y-3 flex-1">
                 {plan.features.map((feature, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-neutral-700 dark:text-neutral-300">
-                    <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" aria-hidden="true" />
                     {feature}
                   </li>
                 ))}

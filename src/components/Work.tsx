@@ -97,11 +97,11 @@ export function Work() {
                 <div className={`p-6 flex flex-col justify-center ${project.featured ? 'md:w-2/5' : 'h-1/2'}`}>
                   <div className="flex items-center space-x-4 text-sm text-off-white/60 mb-3">
                     <div className="flex items-center space-x-1">
-                      <Calendar className="w-4 h-4" />
+                      <Calendar className="w-4 h-4" aria-hidden="true" />
                       <span>{project.year}</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <MapPin className="w-4 h-4" />
+                      <MapPin className="w-4 h-4" aria-hidden="true" />
                       <span>{project.location}</span>
                     </div>
                   </div>
