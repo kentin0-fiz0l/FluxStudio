@@ -261,7 +261,7 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 bg-amber-50 dark:bg-amber-900/20">
           <div className="flex items-center gap-2">
-            <Beaker className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <Beaker className="h-5 w-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
             <h2 className="font-semibold text-neutral-900 dark:text-neutral-100">
               User Test Mode
             </h2>
