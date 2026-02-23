@@ -178,7 +178,7 @@ export const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
                 className="text-neutral-400 hover:text-neutral-600 transition-colors"
                 aria-label="Clear search"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             ) : undefined
           }

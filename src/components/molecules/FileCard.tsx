@@ -92,12 +92,12 @@ export interface FileCardProps {
 
 // Pure helper functions (stable — no per-render re-creation)
 function getFileIcon(type: string) {
-  if (type.startsWith('image/')) return <Image className="h-6 w-6" />;
-  if (type.startsWith('video/')) return <Video className="h-6 w-6" />;
-  if (type.startsWith('audio/')) return <Music className="h-6 w-6" />;
-  if (type.includes('pdf')) return <FileText className="h-6 w-6" />;
-  if (type.includes('zip') || type.includes('compressed')) return <Archive className="h-6 w-6" />;
-  return <File className="h-6 w-6" />;
+  if (type.startsWith('image/')) return <Image className="h-6 w-6" aria-hidden="true" />;
+  if (type.startsWith('video/')) return <Video className="h-6 w-6" aria-hidden="true" />;
+  if (type.startsWith('audio/')) return <Music className="h-6 w-6" aria-hidden="true" />;
+  if (type.includes('pdf')) return <FileText className="h-6 w-6" aria-hidden="true" />;
+  if (type.includes('zip') || type.includes('compressed')) return <Archive className="h-6 w-6" aria-hidden="true" />;
+  return <File className="h-6 w-6" aria-hidden="true" />;
 }
 
 function getFileTypeColor(type: string) {
@@ -182,8 +182,9 @@ export const FileCard = React.memo(React.forwardRef<HTMLDivElement, FileCardProp
                       onDownload(file);
                     }}
                     className="bg-white/90 hover:bg-white text-neutral-900"
+                    aria-label={`Download ${file.name}`}
                   >
-                    <Download className="h-4 w-4" />
+                    <Download className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 )}
                 {onShare && (
@@ -195,8 +196,9 @@ export const FileCard = React.memo(React.forwardRef<HTMLDivElement, FileCardProp
                       onShare(file);
                     }}
                     className="bg-white/90 hover:bg-white text-neutral-900"
+                    aria-label={`Share ${file.name}`}
                   >
-                    <Share2 className="h-4 w-4" />
+                    <Share2 className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 )}
                 {onDelete && (
@@ -208,8 +210,9 @@ export const FileCard = React.memo(React.forwardRef<HTMLDivElement, FileCardProp
                       onDelete(file);
                     }}
                     className="bg-white/90 hover:bg-white text-error-600"
+                    aria-label={`Delete ${file.name}`}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 )}
               </div>
@@ -231,8 +234,9 @@ export const FileCard = React.memo(React.forwardRef<HTMLDivElement, FileCardProp
                     onMoreOptions(file);
                   }}
                   className="flex-shrink-0 h-6 w-6"
+                  aria-label={`More options for ${file.name}`}
                 >
-                  <MoreVertical className="h-3 w-3" />
+                  <MoreVertical className="h-3 w-3" aria-hidden="true" />
                 </Button>
               )}
             </div>
@@ -319,8 +323,9 @@ export const FileCard = React.memo(React.forwardRef<HTMLDivElement, FileCardProp
                     e.stopPropagation();
                     onDownload(file);
                   }}
+                  aria-label={`Download ${file.name}`}
                 >
-                  <Download className="h-4 w-4" />
+                  <Download className="h-4 w-4" aria-hidden="true" />
                 </Button>
               )}
               {onShare && (
@@ -331,8 +336,9 @@ export const FileCard = React.memo(React.forwardRef<HTMLDivElement, FileCardProp
                     e.stopPropagation();
                     onShare(file);
                   }}
+                  aria-label={`Share ${file.name}`}
                 >
-                  <Share2 className="h-4 w-4" />
+                  <Share2 className="h-4 w-4" aria-hidden="true" />
                 </Button>
               )}
               {onDelete && (
@@ -344,8 +350,9 @@ export const FileCard = React.memo(React.forwardRef<HTMLDivElement, FileCardProp
                     onDelete(file);
                   }}
                   className="text-error-600"
+                  aria-label={`Delete ${file.name}`}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </Button>
               )}
               {onMoreOptions && (
@@ -356,8 +363,9 @@ export const FileCard = React.memo(React.forwardRef<HTMLDivElement, FileCardProp
                     e.stopPropagation();
                     onMoreOptions(file);
                   }}
+                  aria-label={`More options for ${file.name}`}
                 >
-                  <MoreVertical className="h-4 w-4" />
+                  <MoreVertical className="h-4 w-4" aria-hidden="true" />
                 </Button>
               )}
             </div>

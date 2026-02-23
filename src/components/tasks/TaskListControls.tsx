@@ -31,7 +31,7 @@ export const TaskListControls: React.FC<TaskListControlsProps> = ({
           variant="outline"
           size="sm"
           onClick={onToggleFilters}
-          icon={<Filter className="w-4 h-4" />}
+          icon={<Filter className="w-4 h-4" aria-hidden="true" />}
           aria-expanded={showFilters}
           aria-label="Toggle filters"
         >
@@ -48,7 +48,7 @@ export const TaskListControls: React.FC<TaskListControlsProps> = ({
             variant="ghost"
             size="sm"
             onClick={onClearFilters}
-            icon={<X className="w-4 h-4" />}
+            icon={<X className="w-4 h-4" aria-hidden="true" />}
             aria-label="Clear all filters"
           >
             Clear
@@ -58,7 +58,7 @@ export const TaskListControls: React.FC<TaskListControlsProps> = ({
 
       <Button
         onClick={onTaskCreate}
-        icon={<Plus className="w-4 h-4" />}
+        icon={<Plus className="w-4 h-4" aria-hidden="true" />}
         aria-label="Create new task"
       >
         New Task

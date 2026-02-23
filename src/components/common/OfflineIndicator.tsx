@@ -34,7 +34,7 @@ export function OfflineIndicator() {
     >
       {isOffline ? (
         <>
-          <WifiOff className="h-3.5 w-3.5" />
+          <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Offline</span>
           {pendingCount > 0 && (
             <span className="ml-1 tabular-nums">
@@ -44,7 +44,7 @@ export function OfflineIndicator() {
         </>
       ) : isError ? (
         <>
-          <AlertCircle className="h-3.5 w-3.5" />
+          <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Sync failed</span>
           <button
             onClick={() => sync()}
@@ -55,12 +55,12 @@ export function OfflineIndicator() {
         </>
       ) : isSyncing ? (
         <>
-          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+          <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
           <span>Syncing{pendingCount > 0 ? ` ${pendingCount}` : ''}...</span>
         </>
       ) : (
         <>
-          <RefreshCw className="h-3.5 w-3.5" />
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
           <span>{pendingCount} pending</span>
           <button
             onClick={() => sync()}

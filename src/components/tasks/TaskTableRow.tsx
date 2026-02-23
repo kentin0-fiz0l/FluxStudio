@@ -112,7 +112,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
           aria-pressed={task.status === 'completed'}
         >
           {task.status === 'completed' && (
-            <Check className="w-3 h-3 text-white" />
+            <Check className="w-3 h-3 text-white" aria-hidden="true" />
           )}
         </button>
       </td>
@@ -124,7 +124,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
           field="status"
           display={
             <Badge variant={statusDisplay.variant} size="sm" className="w-fit">
-              <StatusIcon className="w-3 h-3" />
+              <StatusIcon className="w-3 h-3" aria-hidden="true" />
               {statusDisplay.label}
             </Badge>
           }
@@ -217,7 +217,9 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
             <span className={overdue ? 'text-error-600 font-medium' : 'text-neutral-700'}>
               {formatDate(task.dueDate)}
               {overdue && (
-                <AlertCircle className="w-4 h-4 inline-block ml-1" aria-label="Overdue" />
+                <span className="inline-flex items-center ml-1" aria-label="Overdue" role="img">
+                  <AlertCircle className="w-4 h-4" aria-hidden="true" />
+                </span>
               )}
             </span>
           }
@@ -240,7 +242,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
             size="sm"
             variant="ghost"
             onClick={() => onOpenEditModal(task)}
-            icon={<Edit2 className="w-4 h-4" />}
+            icon={<Edit2 className="w-4 h-4" aria-hidden="true" />}
             aria-label={`Edit ${task.title}`}
             className="h-8 px-2"
           />
@@ -248,7 +250,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
             size="sm"
             variant="ghost"
             onClick={() => onDelete(task.id)}
-            icon={<Trash2 className="w-4 h-4" />}
+            icon={<Trash2 className="w-4 h-4" aria-hidden="true" />}
             aria-label={deleteConfirm === task.id ? `Confirm delete ${task.title}` : `Delete ${task.title}`}
             className={`h-8 px-2 ${
               deleteConfirm === task.id ? 'text-error-600 hover:text-error-700' : ''
