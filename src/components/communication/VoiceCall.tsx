@@ -82,7 +82,7 @@ function ParticipantAvatar({
         {participant.name.charAt(0).toUpperCase()}
         {participant.isMuted && (
           <div className="absolute -bottom-1 -right-1 p-1 bg-red-500 rounded-full">
-            <MicOff className="w-3 h-3 text-white" />
+            <MicOff className="w-3 h-3 text-white" aria-hidden="true" />
           </div>
         )}
       </div>
@@ -204,11 +204,11 @@ export function VoiceCall({
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2 text-white">
-          <Phone className="w-5 h-5" />
+          <Phone className="w-5 h-5" aria-hidden="true" />
           <span className="font-medium">{t('call.voiceCall', 'Voice Call')}</span>
         </div>
         <div className="flex items-center gap-2 text-gray-400">
-          <Users className="w-4 h-4" />
+          <Users className="w-4 h-4" aria-hidden="true" />
           <span className="text-sm">{participants.length + 1}</span>
         </div>
       </div>
@@ -247,7 +247,7 @@ export function VoiceCall({
               : 'bg-gray-700 hover:bg-gray-600 text-white'
           }`}
         >
-          {isMuted ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
+          {isMuted ? <MicOff className="w-7 h-7" aria-hidden="true" /> : <Mic className="w-7 h-7" aria-hidden="true" />}
         </button>
 
         {/* End Call */}
@@ -255,7 +255,7 @@ export function VoiceCall({
           onClick={handleEndCall}
           className="p-5 rounded-full bg-red-500 hover:bg-red-600 text-white"
         >
-          <PhoneOff className="w-7 h-7" />
+          <PhoneOff className="w-7 h-7" aria-hidden="true" />
         </button>
       </div>
 

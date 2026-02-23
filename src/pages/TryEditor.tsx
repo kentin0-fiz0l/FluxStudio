@@ -109,7 +109,7 @@ export default function TryEditor() {
       {showBanner && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm">
           <div className="flex items-center gap-2 min-w-0">
-            <Users className="w-4 h-4 flex-shrink-0 text-indigo-200" />
+            <Users className="w-4 h-4 flex-shrink-0 text-indigo-200" aria-hidden="true" />
             <span className="font-medium whitespace-nowrap">
               {interactionCount >= 3
                 ? `You've made ${interactionCount} edits — sign up to keep them`
@@ -127,7 +127,7 @@ export default function TryEditor() {
               className="flex items-center gap-1 px-4 py-1.5 bg-white text-indigo-600 rounded-lg font-medium text-sm hover:bg-indigo-50 transition-colors"
             >
               Sign up free
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
             <button
               onClick={() => navigate('/login')}
@@ -139,7 +139,7 @@ export default function TryEditor() {
               onClick={() => setShowBanner(false)}
               className="p-1 text-indigo-300 hover:text-white"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function TryEditor() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md mx-4 p-6 text-center">
             <div className="w-14 h-14 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield className="w-7 h-7 text-indigo-500" />
+              <Shield className="w-7 h-7 text-indigo-500" aria-hidden="true" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
               Don't lose your work!
