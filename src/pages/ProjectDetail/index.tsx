@@ -187,6 +187,24 @@ export const ProjectDetail = () => {
   React.useEffect(() => { localStorage.setItem('taskViewMode', viewMode); }, [viewMode]);
   React.useEffect(() => { if (tabContentRef.current) tabContentRef.current.focus(); }, [activeTab]);
 
+  // Keyboard shortcuts: Ctrl+1..9 to switch tabs
+  React.useEffect(() => {
+    const tabShortcuts = ['overview', 'tasks', 'documents', 'files', 'assets', 'boards', 'formations', 'analytics', 'messages'];
+    const handler = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= tabShortcuts.length) {
+        // Don't override if user is typing in an input/textarea
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+        e.preventDefault();
+        setActiveTab(tabShortcuts[num - 1]);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   // Handlers
   const handleCreateTask = () => { setSelectedTask(null); setIsCreateMode(true); setIsTaskModalOpen(true); };
   const handleTaskClick = (task: Task) => { setSelectedTask(task); setIsCreateMode(false); setIsTaskModalOpen(true); };

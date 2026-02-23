@@ -5,7 +5,7 @@
  */
 
 import React, { useRef, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
-import { MessageCircle, Pin } from 'lucide-react';
+import { MessageCircle, Pin, Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
 import { ChatAvatar } from './ChatMessageBubble';
 import type { Message } from './types';
 
@@ -193,6 +193,20 @@ function MessageBubbleWrapper({
                   {' '}(edited)
                 </span>
               )}
+            </div>
+          )}
+
+          {/* Read receipt for own messages */}
+          {isOwn && message.status && !isEditing && (
+            <div className="flex items-center gap-1 mt-0.5 justify-end">
+              {message.status === 'sending' && <Clock className="w-3 h-3 text-neutral-400 animate-pulse" />}
+              {message.status === 'sent' && <Check className="w-3 h-3 text-neutral-400" />}
+              {message.status === 'delivered' && <CheckCheck className="w-3 h-3 text-neutral-400" />}
+              {message.status === 'read' && <CheckCheck className="w-3 h-3 text-blue-500 dark:text-blue-400" />}
+              {message.status === 'failed' && <AlertCircle className="w-3 h-3 text-red-500" />}
+              <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
+                {message.status === 'read' ? 'Read' : message.status === 'delivered' ? 'Delivered' : message.status === 'sent' ? 'Sent' : message.status === 'sending' ? 'Sending...' : message.status === 'failed' ? 'Failed' : ''}
+              </span>
             </div>
           )}
 

@@ -7,6 +7,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { socketService, ProjectPresenceMember, PulseEvent } from '../services/socketService';
 import { useAuth } from './AuthContext';
 import { socketLogger } from '../lib/logger';
+import { toast } from '../lib/toast';
 import { Message, MessageUser, UserPresence } from '../types/messaging';
 
 interface SocketContextType {
@@ -109,16 +110,26 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
   // Set up socket event listeners
   useEffect(() => {
+    // Track whether we were previously connected (for reconnect detection)
+    let wasConnected = false;
+
     // Connection events
     const handleConnect = () => {
       setIsConnected(true);
       setConnectionError(null);
       socketLogger.info('Socket connected');
+      if (wasConnected) {
+        toast.reconnected();
+      }
+      wasConnected = true;
     };
 
     const handleDisconnect = () => {
       setIsConnected(false);
       socketLogger.info('Socket disconnected');
+      if (wasConnected) {
+        toast.offline();
+      }
     };
 
     // Typing events

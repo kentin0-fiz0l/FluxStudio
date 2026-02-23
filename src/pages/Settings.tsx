@@ -26,6 +26,8 @@ import {
   Loader2,
   Monitor,
   Clock,
+  Camera,
+  User,
 } from 'lucide-react';
 import { FigmaIntegration } from '@/components/organisms/FigmaIntegration';
 import { SlackIntegration } from '@/components/organisms/SlackIntegration';
@@ -58,6 +60,11 @@ function Settings() {
   const [quietHoursEnabled, setQuietHoursEnabled] = React.useState(false);
   const [quietHoursStart, setQuietHoursStart] = React.useState('22:00');
   const [quietHoursEnd, setQuietHoursEnd] = React.useState('08:00');
+
+  // Profile avatar
+  const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
 
   const [isSaving, setIsSaving] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -173,6 +180,45 @@ function Settings() {
     }
   };
 
+  // Avatar handling
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size (max 5MB)
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5MB');
+      return;
+    }
+
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setAvatarPreview(ev.target?.result as string);
+      setHasChanges(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAvatarDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const fakeEvent = {
+        target: { files: [file] },
+      } as unknown as React.ChangeEvent<HTMLInputElement>;
+      handleAvatarSelect(fakeEvent);
+    }
+  };
+
+  const userInitials = user?.name
+    ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+    : '?';
+
   // Don't render settings page if not authenticated
   if (!user) {
     return null;
@@ -199,6 +245,67 @@ function Settings() {
             Manage your application preferences and account settings
           </p>
         </div>
+
+        {/* Profile Section */}
+        <Card className="p-4 md:p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/20 flex items-center justify-center">
+              <User className="w-5 h-5 text-primary-600 dark:text-primary-400" aria-hidden="true" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Profile</h2>
+              <p className="text-sm text-neutral-600 dark:text-neutral-300">Your public profile and avatar</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            {/* Avatar */}
+            <div
+              className="relative group cursor-pointer"
+              onClick={() => avatarInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleAvatarDrop}
+              role="button"
+              tabIndex={0}
+              aria-label="Upload profile picture"
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') avatarInputRef.current?.click(); }}
+            >
+              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-neutral-200 dark:border-neutral-700 flex items-center justify-center bg-gradient-to-br from-primary-400 to-primary-600">
+                {avatarPreview || user?.avatar ? (
+                  <img
+                    src={avatarPreview || user?.avatar}
+                    alt="Profile avatar"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-xl font-semibold text-white">{userInitials}</span>
+                )}
+              </div>
+              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera className="w-5 h-5 text-white" />
+              </div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarSelect}
+                aria-label="Choose avatar image"
+              />
+            </div>
+
+            {/* Profile Info */}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 truncate">
+                {user?.name || 'User'}
+              </h3>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate">{user?.email}</p>
+              <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-1">
+                Click avatar to upload a new photo (max 5MB)
+              </p>
+            </div>
+          </div>
+        </Card>
 
         {/* Integrations Section - Moved to Top */}
         <div className="space-y-4">

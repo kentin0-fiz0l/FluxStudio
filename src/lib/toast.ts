@@ -118,9 +118,98 @@ function showToast(message: string, type: ToastType, options: ToastOptions = {})
   }
 }
 
+// ============================================================================
+// Persistent connection status toast
+// ============================================================================
+
+let connectionToastEl: HTMLDivElement | null = null;
+
+function showConnectionToast(message: string, type: 'offline' | 'reconnecting' | 'reconnected') {
+  const container = createToastContainer(DEFAULT_POSITION);
+
+  // Remove existing connection toast if any
+  if (connectionToastEl && connectionToastEl.parentNode) {
+    connectionToastEl.parentNode.removeChild(connectionToastEl);
+  }
+
+  const styles: Record<string, string> = {
+    offline: 'bg-neutral-800 text-white',
+    reconnecting: 'bg-yellow-600 text-white',
+    reconnected: 'bg-success-600 text-white',
+  };
+  const icons: Record<string, string> = {
+    offline: '⚡',
+    reconnecting: '🔄',
+    reconnected: '✓',
+  };
+
+  const toastEl = document.createElement('div');
+  toastEl.className = `${styles[type]} px-4 py-3 rounded-lg shadow-lg pointer-events-auto max-w-md overflow-hidden`;
+  toastEl.style.transform = 'translateX(100%)';
+  toastEl.style.opacity = '0';
+  toastEl.style.transition = 'transform 300ms ease-out, opacity 300ms ease-out';
+
+  const retryHtml = type === 'offline'
+    ? `<button class="ml-3 px-2 py-1 text-xs font-medium bg-white/20 hover:bg-white/30 rounded transition-colors" data-retry>Retry</button>`
+    : '';
+
+  toastEl.innerHTML = `
+    <div class="flex items-center gap-3">
+      <span class="text-lg font-semibold flex-shrink-0">${icons[type]}</span>
+      <span class="flex-1 text-sm font-medium">${message}</span>
+      ${retryHtml}
+    </div>
+  `;
+
+  connectionToastEl = toastEl;
+  container.appendChild(toastEl);
+
+  requestAnimationFrame(() => {
+    toastEl.style.transform = 'translateX(0)';
+    toastEl.style.opacity = '1';
+  });
+
+  // Auto-dismiss reconnected toast after 3 seconds
+  if (type === 'reconnected') {
+    setTimeout(() => {
+      if (connectionToastEl === toastEl) {
+        toastEl.style.transform = 'translateX(100%)';
+        toastEl.style.opacity = '0';
+        setTimeout(() => {
+          if (toastEl.parentNode) toastEl.parentNode.removeChild(toastEl);
+          if (connectionToastEl === toastEl) connectionToastEl = null;
+          if (container.children.length === 0 && container.parentNode) {
+            document.body.removeChild(container);
+          }
+        }, 300);
+      }
+    }, 3000);
+  }
+
+  return toastEl;
+}
+
+function dismissConnectionToast() {
+  if (connectionToastEl && connectionToastEl.parentNode) {
+    const el = connectionToastEl;
+    el.style.transform = 'translateX(100%)';
+    el.style.opacity = '0';
+    setTimeout(() => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 300);
+    connectionToastEl = null;
+  }
+}
+
 export const toast = {
   success: (message: string, options?: ToastOptions) => showToast(message, 'success', options),
   error: (message: string, options?: ToastOptions) => showToast(message, 'error', options),
   info: (message: string, options?: ToastOptions) => showToast(message, 'info', options),
   warning: (message: string, options?: ToastOptions) => showToast(message, 'warning', options),
+
+  // Connection state toasts
+  offline: (message = 'Connection lost. Working offline.') => showConnectionToast(message, 'offline'),
+  reconnecting: (message = 'Reconnecting...') => showConnectionToast(message, 'reconnecting'),
+  reconnected: (message = 'Connection restored') => showConnectionToast(message, 'reconnected'),
+  dismissConnection: dismissConnectionToast,
 };
