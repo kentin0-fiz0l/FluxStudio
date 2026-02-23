@@ -34,7 +34,7 @@ const pricingTiers: PricingTier[] = [
       'Basic revisions included',
       'Email support'
     ],
-    icon: <Star className="w-6 h-6" />,
+    icon: <Star className="w-6 h-6" aria-hidden="true" />,
     ctaText: 'Get Started',
     priceId: 'price_foundation_starter'
   },
@@ -52,7 +52,7 @@ const pricingTiers: PricingTier[] = [
       'Design consultation hours',
       'Priority support'
     ],
-    icon: <Zap className="w-6 h-6" />,
+    icon: <Zap className="w-6 h-6" aria-hidden="true" />,
     popular: true,
     ctaText: 'Most Popular',
     priceId: 'price_standard_project'
@@ -72,7 +72,7 @@ const pricingTiers: PricingTier[] = [
       'Staff training included',
       'Dedicated designer'
     ],
-    icon: <Crown className="w-6 h-6" />,
+    icon: <Crown className="w-6 h-6" aria-hidden="true" />,
     ctaText: 'Go Premium',
     priceId: 'price_premium_project'
   },
@@ -92,7 +92,7 @@ const pricingTiers: PricingTier[] = [
       '24/7 priority support',
       'On-site consultation'
     ],
-    icon: <Sparkles className="w-6 h-6" />,
+    icon: <Sparkles className="w-6 h-6" aria-hidden="true" />,
     ctaText: 'Contact Sales',
     priceId: 'price_elite_season'
   }
@@ -162,7 +162,7 @@ export function PricingTable({ onSelectPlan, loading }: PricingTableProps) {
               <ul className="space-y-3 mb-6">
                 {tier.features.map((feature, i) => (
                   <li key={i} className="flex items-start text-sm">
-                    <Check className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                    <Check className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" aria-hidden="true" />
                     <span className="text-gray-300">{feature}</span>
                   </li>
                 ))}

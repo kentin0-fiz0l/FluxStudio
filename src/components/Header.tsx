@@ -59,7 +59,7 @@ export function Header() {
             {isAuthenticated ? (
               <>
                 <div className="flex items-center space-x-2 text-white">
-                  <User className="h-4 w-4" />
+                  <User className="h-4 w-4" aria-hidden="true" />
                   <span className="text-sm">{user?.name}</span>
                 </div>
                 <Button
@@ -104,8 +104,10 @@ export function Header() {
               size="sm"
               className="btn-glass-ghost text-off-white"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isMenuOpen}
             >
-              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {isMenuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
             </Button>
           </div>
         </div>
@@ -131,7 +133,7 @@ export function Header() {
                 {isAuthenticated ? (
                   <>
                     <div className="flex items-center space-x-2 text-white py-3 px-4 bg-white/5 rounded-lg">
-                      <User className="h-5 w-5 text-pink-400" />
+                      <User className="h-5 w-5 text-pink-400" aria-hidden="true" />
                       <span className="text-base font-medium">{user?.name}</span>
                     </div>
                     <Button

@@ -397,7 +397,7 @@ export function CommandPalette({
         {/* Search Input */}
         <div className="border-b border-neutral-200 dark:border-neutral-700 p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -450,6 +450,7 @@ export function CommandPalette({
                                       ? 'text-primary-600 dark:text-primary-400'
                                       : 'text-neutral-400 dark:text-neutral-500'
                                   )}
+                                  aria-hidden="true"
                                 />
                               )}
                               <div className="flex-1 min-w-0">

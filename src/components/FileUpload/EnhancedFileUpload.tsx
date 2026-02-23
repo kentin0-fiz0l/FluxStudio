@@ -190,19 +190,19 @@ export const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
   const getStageIcon = (stage: string, securityStatus: string) => {
     switch (stage) {
       case 'validation':
-        return <FileIcon className="w-4 h-4" />;
+        return <FileIcon className="w-4 h-4" aria-hidden="true" />;
       case 'security-prescan':
       case 'security-scan':
-        return <Shield className="w-4 h-4" />;
+        return <Shield className="w-4 h-4" aria-hidden="true" />;
       case 'uploading':
-        return <Upload className="w-4 h-4" />;
+        return <Upload className="w-4 h-4" aria-hidden="true" />;
       case 'completed':
       case 'scan-complete':
         return securityStatus === 'infected' ?
-          <AlertTriangle className="w-4 h-4 text-red-500" /> :
-          <CheckCircle className="w-4 h-4 text-green-500" />;
+          <AlertTriangle className="w-4 h-4 text-red-500" aria-hidden="true" /> :
+          <CheckCircle className="w-4 h-4 text-green-500" aria-hidden="true" />;
       default:
-        return <FileIcon className="w-4 h-4" />;
+        return <FileIcon className="w-4 h-4" aria-hidden="true" />;
     }
   };
 
@@ -264,7 +264,7 @@ export const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
         onClick={() => fileInputRef.current?.click()}
       >
         <CardContent className="p-8 text-center">
-          <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" aria-hidden="true" />
           <p className="text-lg font-semibold mb-2">
             Drop files here or click to browse
           </p>
@@ -273,7 +273,7 @@ export const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
           </p>
           {!connected && (
             <Alert className="mt-4">
-              <AlertTriangle className="h-4 w-4" />
+              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
               <AlertDescription>
                 Not connected to server. Progress tracking unavailable.
               </AlertDescription>
@@ -333,7 +333,7 @@ export const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
 
                 {upload.errors.length > 0 && (
                   <Alert>
-                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTriangle className="h-4 w-4" aria-hidden="true" />
                     <AlertDescription>
                       {upload.errors.join(', ')}
                     </AlertDescription>
@@ -355,7 +355,7 @@ export const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
             {completedUploads.slice(-5).map((file, index) => (
               <div key={index} className="flex items-center justify-between p-2 border rounded">
                 <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <CheckCircle className="w-4 h-4 text-green-500" aria-hidden="true" />
                   <span className="font-medium">{file.original_name}</span>
                 </div>
                 <div className="flex items-center space-x-2">
