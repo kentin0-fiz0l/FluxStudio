@@ -55,11 +55,11 @@ export function OfflineIndicator({
   };
 
   const getStatusIcon = () => {
-    if (!isOnline) return <WifiOff className="w-4 h-4" />;
-    if (syncStatus === 'error') return <AlertCircle className="w-4 h-4" />;
-    if (syncStatus === 'syncing') return <RefreshCw className="w-4 h-4 animate-spin" />;
-    if (syncStatus === 'pending') return <Cloud className="w-4 h-4" />;
-    return <Check className="w-4 h-4" />;
+    if (!isOnline) return <WifiOff className="w-4 h-4" aria-hidden="true" />;
+    if (syncStatus === 'error') return <AlertCircle className="w-4 h-4" aria-hidden="true" />;
+    if (syncStatus === 'syncing') return <RefreshCw className="w-4 h-4 animate-spin" aria-hidden="true" />;
+    if (syncStatus === 'pending') return <Cloud className="w-4 h-4" aria-hidden="true" />;
+    return <Check className="w-4 h-4" aria-hidden="true" />;
   };
 
   const getStatusText = () => {
