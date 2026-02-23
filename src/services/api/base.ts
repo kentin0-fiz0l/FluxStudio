@@ -22,6 +22,12 @@ export interface UserSettings {
   notifications?: {
     push?: boolean;
     emailDigest?: boolean;
+    frequency?: 'realtime' | 'hourly' | 'daily';
+    quietHours?: {
+      enabled?: boolean;
+      startTime?: string; // "HH:mm"
+      endTime?: string;   // "HH:mm"
+    };
   };
   appearance?: {
     darkMode?: boolean;

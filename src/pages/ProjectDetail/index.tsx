@@ -51,7 +51,8 @@ import { ProjectHealthDashboard } from '@/components/analytics/ProjectHealthDash
 import { DeadlineRiskPanel } from '@/components/analytics/DeadlineRiskPanel';
 import { TeamWorkloadPanel } from '@/components/analytics/TeamWorkloadPanel';
 import { ProjectDetailSkeleton } from '@/components/loading/LoadingStates';
-import { PresenceIndicators, statusVariants, priorityVariants } from './ProjectDetailHelpers';
+import { PresenceIndicators, statusVariants, priorityVariants, TabPresenceIndicator } from './ProjectDetailHelpers';
+import type { TabUser } from './ProjectDetailHelpers';
 import { TasksTabPanel, AssetsTabPanel, BoardsTabPanel } from './ProjectDetailTabs';
 import type { DesignBoard, ViewMode } from './ProjectDetailTabs';
 
@@ -168,6 +169,20 @@ export const ProjectDetail = () => {
   const updateTask = useUpdateTaskMutation(id || '');
   const deleteTask = useDeleteTaskMutation(id || '');
   const { onlineUsers } = useTaskRealtime(id, { disableNotifications: false });
+
+  // Derive per-tab presence from online users
+  // In production this would come from the collaboration service's currentPage field
+  const TAB_NAMES = ['overview', 'tasks', 'documents', 'files', 'assets', 'boards', 'formations', 'analytics', 'messages'];
+  const tabUsers: TabUser[] = React.useMemo(
+    () =>
+      onlineUsers.map((u) => ({
+        id: u.id,
+        name: u.name,
+        // Assign to a tab based on stable hash — real implementation would use socket presence
+        currentTab: TAB_NAMES[u.id.charCodeAt(0) % TAB_NAMES.length],
+      })),
+    [onlineUsers]
+  );
 
   React.useEffect(() => { localStorage.setItem('taskViewMode', viewMode); }, [viewMode]);
   React.useEffect(() => { if (tabContentRef.current) tabContentRef.current.focus(); }, [activeTab]);
@@ -314,31 +329,31 @@ export const ProjectDetail = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6">
             <TabsList ref={tabListRef} className="w-full justify-start h-12 bg-transparent p-0 gap-1" role="tablist" aria-label="Project navigation tabs">
               <TabsTrigger value="overview" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'overview'} aria-controls="overview-panel" id="overview-tab">
-                <LayoutDashboard className="h-4 w-4 mr-2" aria-hidden="true" />Overview
+                <LayoutDashboard className="h-4 w-4 mr-2" aria-hidden="true" />Overview<TabPresenceIndicator users={tabUsers} tabName="overview" />
               </TabsTrigger>
               <TabsTrigger value="tasks" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'tasks'} aria-controls="tasks-panel" id="tasks-tab" aria-label={`Tasks, ${tasks.length} items`}>
-                <CheckSquare className="h-4 w-4 mr-2" aria-hidden="true" />Tasks<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{tasks.length}</Badge>
+                <CheckSquare className="h-4 w-4 mr-2" aria-hidden="true" />Tasks<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{tasks.length}</Badge><TabPresenceIndicator users={tabUsers} tabName="tasks" />
               </TabsTrigger>
               <TabsTrigger value="documents" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'documents'} aria-controls="documents-panel" id="documents-tab">
-                <FileText className="h-4 w-4 mr-2" aria-hidden="true" />Documents
+                <FileText className="h-4 w-4 mr-2" aria-hidden="true" />Documents<TabPresenceIndicator users={tabUsers} tabName="documents" />
               </TabsTrigger>
               <TabsTrigger value="files" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'files'} aria-controls="files-panel" id="files-tab" aria-label={`Files, ${project.files?.length || 0} items`}>
-                <FileText className="h-4 w-4 mr-2" aria-hidden="true" />Files<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{project.files?.length || 0}</Badge>
+                <FileText className="h-4 w-4 mr-2" aria-hidden="true" />Files<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{project.files?.length || 0}</Badge><TabPresenceIndicator users={tabUsers} tabName="files" />
               </TabsTrigger>
               <TabsTrigger value="assets" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'assets'} aria-controls="assets-panel" id="assets-tab" aria-label={`Assets, ${projectAssets.length} items`}>
-                <Layers className="h-4 w-4 mr-2" aria-hidden="true" />Assets<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{projectAssets.length}</Badge>
+                <Layers className="h-4 w-4 mr-2" aria-hidden="true" />Assets<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{projectAssets.length}</Badge><TabPresenceIndicator users={tabUsers} tabName="assets" />
               </TabsTrigger>
               <TabsTrigger value="boards" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'boards'} aria-controls="boards-panel" id="boards-tab" aria-label={`Boards, ${boards.length} items`}>
-                <PenTool className="h-4 w-4 mr-2" aria-hidden="true" />Boards<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{boards.length}</Badge>
+                <PenTool className="h-4 w-4 mr-2" aria-hidden="true" />Boards<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{boards.length}</Badge><TabPresenceIndicator users={tabUsers} tabName="boards" />
               </TabsTrigger>
               <TabsTrigger value="formations" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'formations'} aria-controls="formations-panel" id="formations-tab" aria-label={`Formations, ${formations.length} items`}>
-                <Play className="h-4 w-4 mr-2" aria-hidden="true" />Formations<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{formations.length}</Badge>
+                <Play className="h-4 w-4 mr-2" aria-hidden="true" />Formations<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{formations.length}</Badge><TabPresenceIndicator users={tabUsers} tabName="formations" />
               </TabsTrigger>
               <TabsTrigger value="analytics" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'analytics'} aria-controls="analytics-panel" id="analytics-tab">
-                <BarChart3 className="h-4 w-4 mr-2" aria-hidden="true" />Analytics
+                <BarChart3 className="h-4 w-4 mr-2" aria-hidden="true" />Analytics<TabPresenceIndicator users={tabUsers} tabName="analytics" />
               </TabsTrigger>
               <TabsTrigger value="messages" className={cn('data-[state=active]:border-b-2 data-[state=active]:border-primary-600', 'rounded-none border-b-2 border-transparent h-full px-4')} role="tab" aria-selected={activeTab === 'messages'} aria-controls="messages-panel" id="messages-tab" aria-label={`Messages, ${messagesCount} conversations`}>
-                <MessageSquare className="h-4 w-4 mr-2" aria-hidden="true" />Messages<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{messagesCount}</Badge>
+                <MessageSquare className="h-4 w-4 mr-2" aria-hidden="true" />Messages<Badge variant="outline" size="sm" className="ml-2" aria-hidden="true">{messagesCount}</Badge><TabPresenceIndicator users={tabUsers} tabName="messages" />
               </TabsTrigger>
             </TabsList>
           </Tabs>

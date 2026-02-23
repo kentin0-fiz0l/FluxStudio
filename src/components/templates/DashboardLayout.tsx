@@ -26,6 +26,7 @@ import { useShortcutRegistry } from '@/contexts/KeyboardShortcutsContext';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { useSwipeBack } from '@/hooks/useSwipeBack';
 import { useSwipeSidebar } from '@/hooks/useSwipeSidebar';
+import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 import { cn } from '@/lib/utils';
 
 export interface DashboardLayoutProps {
@@ -128,6 +129,10 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
     const [aiPanelOpen, setAiPanelOpen] = React.useState(false);
     const [isLgScreen, setIsLgScreen] = React.useState(window.innerWidth >= 1024);
+
+    // Auto-generate breadcrumbs if none provided
+    const autoBreadcrumbs = useBreadcrumbs();
+    const resolvedBreadcrumbs = breadcrumbs && breadcrumbs.length > 0 ? breadcrumbs : autoBreadcrumbs;
 
     // Keyboard shortcuts dialog
     const { open: shortcutsOpen, setOpen: setShortcutsOpen } = useKeyboardShortcuts();
@@ -256,7 +261,7 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* TopBar */}
           <TopBar
-            breadcrumbs={breadcrumbs}
+            breadcrumbs={resolvedBreadcrumbs}
             showSearch={showSearch}
             onSearch={onSearch}
             recentSearches={recentSearches}

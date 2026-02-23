@@ -25,6 +25,7 @@ import {
   Puzzle,
   Loader2,
   Monitor,
+  Clock,
 } from 'lucide-react';
 import { FigmaIntegration } from '@/components/organisms/FigmaIntegration';
 import { SlackIntegration } from '@/components/organisms/SlackIntegration';
@@ -51,6 +52,12 @@ function Settings() {
   const [notifyProjectUpdates, setNotifyProjectUpdates] = React.useState(true);
   const [notifyCollabInvites, setNotifyCollabInvites] = React.useState(true);
   const [notifySystemAlerts, setNotifySystemAlerts] = React.useState(true);
+
+  // Notification frequency & quiet hours
+  const [notifFrequency, setNotifFrequency] = React.useState<'realtime' | 'hourly' | 'daily'>('realtime');
+  const [quietHoursEnabled, setQuietHoursEnabled] = React.useState(false);
+  const [quietHoursStart, setQuietHoursStart] = React.useState('22:00');
+  const [quietHoursEnd, setQuietHoursEnd] = React.useState('08:00');
 
   const [isSaving, setIsSaving] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -83,6 +90,10 @@ function Settings() {
           // Apply fetched settings to state
           setNotifications(settings.notifications?.push ?? true);
           setEmailDigest(settings.notifications?.emailDigest ?? true);
+          setNotifFrequency(settings.notifications?.frequency ?? 'realtime');
+          setQuietHoursEnabled(settings.notifications?.quietHours?.enabled ?? false);
+          setQuietHoursStart(settings.notifications?.quietHours?.startTime ?? '22:00');
+          setQuietHoursEnd(settings.notifications?.quietHours?.endTime ?? '08:00');
           setDarkMode(settings.appearance?.darkMode ?? false);
           setAutoSave(settings.performance?.autoSave ?? true);
 
@@ -112,11 +123,15 @@ function Settings() {
     const hasChanged =
       notifications !== (originalSettings.notifications?.push ?? true) ||
       emailDigest !== (originalSettings.notifications?.emailDigest ?? true) ||
+      notifFrequency !== (originalSettings.notifications?.frequency ?? 'realtime') ||
+      quietHoursEnabled !== (originalSettings.notifications?.quietHours?.enabled ?? false) ||
+      quietHoursStart !== (originalSettings.notifications?.quietHours?.startTime ?? '22:00') ||
+      quietHoursEnd !== (originalSettings.notifications?.quietHours?.endTime ?? '08:00') ||
       darkMode !== (originalSettings.appearance?.darkMode ?? false) ||
       autoSave !== (originalSettings.performance?.autoSave ?? true);
 
     setHasChanges(hasChanged);
-  }, [notifications, emailDigest, darkMode, autoSave, originalSettings]);
+  }, [notifications, emailDigest, notifFrequency, quietHoursEnabled, quietHoursStart, quietHoursEnd, darkMode, autoSave, originalSettings]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -124,7 +139,13 @@ function Settings() {
       const settings: UserSettings = {
         notifications: {
           push: notifications,
-          emailDigest: emailDigest
+          emailDigest: emailDigest,
+          frequency: notifFrequency,
+          quietHours: {
+            enabled: quietHoursEnabled,
+            startTime: quietHoursStart,
+            endTime: quietHoursEnd,
+          },
         },
         appearance: {
           darkMode: darkMode
@@ -274,6 +295,70 @@ function Settings() {
                       <p className="text-xs text-neutral-500 dark:text-neutral-400">Security, maintenance, and account</p>
                     </div>
                     <Switch checked={notifySystemAlerts} onCheckedChange={setNotifySystemAlerts} aria-label="Toggle system alert notifications" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery Frequency & Quiet Hours */}
+              <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                <h3 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-3 uppercase tracking-wide">Delivery & Schedule</h3>
+                <div className="space-y-3">
+                  {/* Frequency */}
+                  <div className="flex items-center justify-between px-4 py-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                    <div>
+                      <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Notification Frequency</h4>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">How often you receive notification digests</p>
+                    </div>
+                    <select
+                      value={notifFrequency}
+                      onChange={(e) => setNotifFrequency(e.target.value as 'realtime' | 'hourly' | 'daily')}
+                      className="text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 px-3 py-1.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      aria-label="Notification frequency"
+                    >
+                      <option value="realtime">Real-time</option>
+                      <option value="hourly">Hourly digest</option>
+                      <option value="daily">Daily digest</option>
+                    </select>
+                  </div>
+
+                  {/* Quiet Hours Toggle */}
+                  <div className="px-4 py-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-neutral-500 dark:text-neutral-400" aria-hidden="true" />
+                        <div>
+                          <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Quiet Hours</h4>
+                          <p className="text-xs text-neutral-500 dark:text-neutral-400">Mute notifications during set hours</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={quietHoursEnabled}
+                        onCheckedChange={setQuietHoursEnabled}
+                        aria-label="Toggle quiet hours"
+                      />
+                    </div>
+
+                    {/* Time pickers — only shown when enabled */}
+                    {quietHoursEnabled && (
+                      <div className="flex items-center gap-3 pl-6">
+                        <label className="text-xs text-neutral-600 dark:text-neutral-300">From</label>
+                        <input
+                          type="time"
+                          value={quietHoursStart}
+                          onChange={(e) => setQuietHoursStart(e.target.value)}
+                          className="text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 px-2 py-1 focus:ring-2 focus:ring-primary-500"
+                          aria-label="Quiet hours start time"
+                        />
+                        <label className="text-xs text-neutral-600 dark:text-neutral-300">To</label>
+                        <input
+                          type="time"
+                          value={quietHoursEnd}
+                          onChange={(e) => setQuietHoursEnd(e.target.value)}
+                          className="text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 px-2 py-1 focus:ring-2 focus:ring-primary-500"
+                          aria-label="Quiet hours end time"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -75,7 +75,7 @@ export function PresenceIndicator({
       <div className={cn("flex items-center gap-2", className)}>
         {/* Active collaborators label */}
         {showDetails && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-neutral-500 dark:text-neutral-400">
             {collaborators.length} active {collaborators.length === 1 ? 'user' : 'users'}
           </span>
         )}
@@ -96,7 +96,7 @@ export function PresenceIndicator({
                   <TooltipTrigger asChild>
                     <div className="relative">
                       <Avatar className={cn(
-                        "h-8 w-8 border-2 border-white shadow-sm cursor-pointer",
+                        "h-8 w-8 border-2 border-white dark:border-neutral-800 shadow-sm cursor-pointer",
                         "hover:z-10 hover:scale-110 transition-transform"
                       )}>
                         <AvatarImage src={collaborator.avatar} />
@@ -107,9 +107,9 @@ export function PresenceIndicator({
 
                       {/* Status indicator */}
                       <div className={cn(
-                        "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white",
+                        "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-neutral-800",
                         collaborator.status === 'online' ? 'bg-green-500' :
-                        collaborator.status === 'idle' ? 'bg-yellow-500' : 'bg-gray-400'
+                        collaborator.status === 'idle' ? 'bg-yellow-500' : 'bg-neutral-400 dark:bg-neutral-500'
                       )} />
 
                       {/* Typing indicator */}
@@ -120,19 +120,19 @@ export function PresenceIndicator({
                           exit={{ scale: 0 }}
                           className="absolute -top-1 -right-1"
                         >
-                          <div className="flex gap-0.5 bg-white rounded-full p-1 shadow-sm">
+                          <div className="flex gap-0.5 bg-white dark:bg-neutral-800 rounded-full p-1 shadow-sm">
                             <motion.div
-                              className="w-1 h-1 bg-gray-500 rounded-full"
+                              className="w-1 h-1 bg-neutral-500 rounded-full"
                               animate={{ y: [0, -2, 0] }}
                               transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
                             />
                             <motion.div
-                              className="w-1 h-1 bg-gray-500 rounded-full"
+                              className="w-1 h-1 bg-neutral-500 rounded-full"
                               animate={{ y: [0, -2, 0] }}
                               transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
                             />
                             <motion.div
-                              className="w-1 h-1 bg-gray-500 rounded-full"
+                              className="w-1 h-1 bg-neutral-500 rounded-full"
                               animate={{ y: [0, -2, 0] }}
                               transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
                             />
@@ -144,9 +144,9 @@ export function PresenceIndicator({
                   <TooltipContent side="bottom" className="max-w-xs">
                     <div className="space-y-1">
                       <p className="font-medium">{collaborator.name}</p>
-                      <p className="text-xs text-gray-500">{collaborator.email}</p>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">{collaborator.email}</p>
                       {collaborator.currentPage && (
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-neutral-400 dark:text-neutral-500">
                           Viewing: {collaborator.currentPage}
                         </p>
                       )}
@@ -167,8 +167,8 @@ export function PresenceIndicator({
               animate={{ scale: 1, opacity: 1 }}
               className="relative z-0"
             >
-              <Avatar className="h-8 w-8 border-2 border-white shadow-sm bg-gray-100">
-                <AvatarFallback className="text-xs text-gray-600">
+              <Avatar className="h-8 w-8 border-2 border-white dark:border-neutral-800 shadow-sm bg-neutral-100 dark:bg-neutral-700">
+                <AvatarFallback className="text-xs text-neutral-600 dark:text-neutral-300">
                   +{remainingCount}
                 </AvatarFallback>
               </Avatar>
