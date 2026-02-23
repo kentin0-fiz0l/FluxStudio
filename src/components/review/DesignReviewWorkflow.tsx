@@ -211,7 +211,7 @@ export function DesignReviewWorkflow({
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
         <div className="text-center">
-          <Palette className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <Palette className="h-12 w-12 mx-auto mb-4 text-gray-300" aria-hidden="true" />
           <h3 className="font-medium text-gray-900 mb-2">No design files</h3>
           <p className="text-sm">Upload design files to start the review process</p>
         </div>
@@ -235,7 +235,7 @@ export function DesignReviewWorkflow({
               <Progress value={getReviewProgress()} className="h-2" />
               {reviewSession.deadline && (
                 <div className="flex items-center gap-1 text-sm text-gray-600">
-                  <Clock className="h-4 w-4" />
+                  <Clock className="h-4 w-4" aria-hidden="true" />
                   Due {new Date(reviewSession.deadline).toLocaleDateString()}
                 </div>
               )}
@@ -271,21 +271,21 @@ export function DesignReviewWorkflow({
                       />
                     ) : (
                       <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
-                        <Palette className="h-6 w-6 text-gray-400" />
+                        <Palette className="h-6 w-6 text-gray-400" aria-hidden="true" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium text-gray-900 truncate">{file.name}</h3>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge className={cn('text-white text-xs', statusInfo.color)}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
+                          <StatusIcon className="h-3 w-3 mr-1" aria-hidden="true" />
                           {statusInfo.label}
                         </Badge>
                         <span className="text-xs text-gray-500">v{file.version}</span>
                       </div>
                       {openAnnotations > 0 && (
                         <div className="flex items-center gap-1 mt-1 text-xs text-orange-600">
-                          <MessageSquare className="h-3 w-3" />
+                          <MessageSquare className="h-3 w-3" aria-hidden="true" />
                           {openAnnotations} open comment{openAnnotations !== 1 ? 's' : ''}
                         </div>
                       )}
@@ -302,7 +302,7 @@ export function DesignReviewWorkflow({
           <div className="p-4 border-t border-gray-200">
             <label htmlFor="file-upload" className="block">
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 cursor-pointer">
-                <Plus className="h-6 w-6 mx-auto mb-2 text-gray-400" />
+                <Plus className="h-6 w-6 mx-auto mb-2 text-gray-400" aria-hidden="true" />
                 <span className="text-sm text-gray-600">Upload new version</span>
               </div>
               <input
@@ -342,7 +342,7 @@ export function DesignReviewWorkflow({
                   size="sm"
                   onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
                 >
-                  <ZoomOut className="h-4 w-4" />
+                  <ZoomOut className="h-4 w-4" aria-hidden="true" />
                 </Button>
                 <span className="px-2 text-sm">{Math.round(zoom * 100)}%</span>
                 <Button
@@ -350,7 +350,7 @@ export function DesignReviewWorkflow({
                   size="sm"
                   onClick={() => setZoom(Math.min(3, zoom + 0.25))}
                 >
-                  <ZoomIn className="h-4 w-4" />
+                  <ZoomIn className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
 
@@ -365,7 +365,7 @@ export function DesignReviewWorkflow({
                       {Object.entries(annotationTypeConfig).map(([key, config]) => (
                         <SelectItem key={key} value={key}>
                           <div className="flex items-center gap-2">
-                            <config.icon className="h-4 w-4" />
+                            <config.icon className="h-4 w-4" aria-hidden="true" />
                             {config.label}
                           </div>
                         </SelectItem>
@@ -379,12 +379,12 @@ export function DesignReviewWorkflow({
                   >
                     {isAddingAnnotation ? (
                       <>
-                        <X className="h-4 w-4 mr-2" />
+                        <X className="h-4 w-4 mr-2" aria-hidden="true" />
                         Cancel
                       </>
                     ) : (
                       <>
-                        <Plus className="h-4 w-4 mr-2" />
+                        <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
                         Add Comment
                       </>
                     )}
@@ -395,11 +395,11 @@ export function DesignReviewWorkflow({
               {/* Action Buttons */}
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
+                  <Download className="h-4 w-4 mr-2" aria-hidden="true" />
                   Download
                 </Button>
                 <Button variant="outline" size="sm">
-                  <Share2 className="h-4 w-4 mr-2" />
+                  <Share2 className="h-4 w-4 mr-2" aria-hidden="true" />
                   Share
                 </Button>
 
@@ -416,7 +416,7 @@ export function DesignReviewWorkflow({
                           key={status}
                           onClick={() => handleStatusChange(status as DesignFile['status'])}
                         >
-                          <config.icon className="h-4 w-4 mr-2" />
+                          <config.icon className="h-4 w-4 mr-2" aria-hidden="true" />
                           {config.label}
                         </DropdownMenuItem>
                       ))}
@@ -475,7 +475,7 @@ export function DesignReviewWorkflow({
                         );
                       }}
                     >
-                      <TypeIcon className="h-4 w-4" />
+                      <TypeIcon className="h-4 w-4" aria-hidden="true" />
                       {annotation.status === 'open' && (
                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-white" />
                       )}
@@ -490,7 +490,7 @@ export function DesignReviewWorkflow({
           {isAddingAnnotation && (
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg">
               <div className="flex items-center gap-2">
-                <MousePointer className="h-4 w-4" />
+                <MousePointer className="h-4 w-4" aria-hidden="true" />
                 Click on the design to add a {annotationTypeConfig[annotationType].label.toLowerCase()}
               </div>
             </div>
@@ -582,14 +582,14 @@ function AnnotationPanel({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className={cn('p-2 rounded-lg', typeConfig.color.replace('bg-', 'bg-opacity-20 text-'))}>
-              <TypeIcon className="h-4 w-4" />
+              <TypeIcon className="h-4 w-4" aria-hidden="true" />
             </div>
             <span className="font-medium">{typeConfig.label}</span>
           </div>
           <div className="flex items-center gap-2">
             <Badge className={priorityInfo.color}>{priorityInfo.label}</Badge>
             <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -637,7 +637,7 @@ function AnnotationPanel({
               <p className="text-gray-900">{annotation.content}</p>
               {!isReadOnly && annotation.author.id === user?.id && (
                 <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
-                  <Edit3 className="h-4 w-4 mr-2" />
+                  <Edit3 className="h-4 w-4 mr-2" aria-hidden="true" />
                   Edit
                 </Button>
               )}
@@ -658,7 +658,7 @@ function AnnotationPanel({
                 onClick={() => handleStatusChange('resolved')}
                 className="text-green-600 border-green-300 hover:bg-green-50"
               >
-                <CheckCircle className="h-4 w-4 mr-2" />
+                <CheckCircle className="h-4 w-4 mr-2" aria-hidden="true" />
                 Resolved
               </Button>
               <Button
@@ -667,7 +667,7 @@ function AnnotationPanel({
                 onClick={() => handleStatusChange('dismissed')}
                 className="text-gray-600 border-gray-300 hover:bg-gray-50"
               >
-                <XCircle className="h-4 w-4 mr-2" />
+                <XCircle className="h-4 w-4 mr-2" aria-hidden="true" />
                 Dismiss
               </Button>
             </div>
@@ -677,9 +677,9 @@ function AnnotationPanel({
         {annotation.status !== 'open' && (
           <div className="flex items-center gap-2 text-sm">
             {annotation.status === 'resolved' ? (
-              <CheckCircle className="h-4 w-4 text-green-500" />
+              <CheckCircle className="h-4 w-4 text-green-500" aria-hidden="true" />
             ) : (
-              <XCircle className="h-4 w-4 text-gray-500" />
+              <XCircle className="h-4 w-4 text-gray-500" aria-hidden="true" />
             )}
             <span className="capitalize text-gray-600">{annotation.status}</span>
             {!isReadOnly && (
@@ -689,7 +689,7 @@ function AnnotationPanel({
                 onClick={() => handleStatusChange('open')}
                 className="ml-auto"
               >
-                <RotateCcw className="h-4 w-4 mr-2" />
+                <RotateCcw className="h-4 w-4 mr-2" aria-hidden="true" />
                 Reopen
               </Button>
             )}
@@ -736,7 +736,7 @@ function AnnotationPanel({
                 onClick={handleAddReply}
                 disabled={!replyContent.trim()}
               >
-                <Reply className="h-4 w-4 mr-2" />
+                <Reply className="h-4 w-4 mr-2" aria-hidden="true" />
                 Reply
               </Button>
             </div>
