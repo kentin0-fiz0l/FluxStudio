@@ -120,7 +120,7 @@ export function WelcomeFlow() {
                   transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
                   className="w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-purple-500/20"
                 >
-                  <Sparkles className="h-10 w-10 text-white" />
+                  <Sparkles className="h-10 w-10 text-white" aria-hidden="true" />
                 </motion.div>
                 <motion.h1
                   initial={{ opacity: 0, y: 10 }}
@@ -178,7 +178,7 @@ export function WelcomeFlow() {
                          flex items-center justify-center group shadow-lg shadow-purple-500/20"
               >
                 Let's Go
-                <ChevronRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                <ChevronRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
               </motion.button>
 
               {/* Skip */}
@@ -208,7 +208,7 @@ export function WelcomeFlow() {
                   transition={{ type: 'spring', stiffness: 200 }}
                   className="w-16 h-16 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/20"
                 >
-                  <Rocket className="h-8 w-8 text-white" />
+                  <Rocket className="h-8 w-8 text-white" aria-hidden="true" />
                 </motion.div>
                 <h2 className="text-3xl font-bold text-white mb-2">
                   How would you like to start?
@@ -242,7 +242,7 @@ export function WelcomeFlow() {
                           action.primary ? 'bg-white/20' : 'bg-white/10'
                         }`}
                       >
-                        <ActionIcon className="h-6 w-6" />
+                        <ActionIcon className="h-6 w-6" aria-hidden="true" />
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold text-lg">{action.title}</h3>
@@ -250,7 +250,7 @@ export function WelcomeFlow() {
                           {action.description}
                         </p>
                       </div>
-                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                      <ChevronRight className="h-5 w-5 text-gray-400" aria-hidden="true" />
                     </motion.button>
                   );
                 })}
@@ -268,7 +268,7 @@ export function WelcomeFlow() {
                   className="w-full p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-4 transition-all text-left"
                 >
                   <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                    <Book className="h-5 w-5 text-blue-400" />
+                    <Book className="h-5 w-5 text-blue-400" aria-hidden="true" />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-medium text-white">Need Help?</h3>
@@ -276,7 +276,7 @@ export function WelcomeFlow() {
                       Check out our getting started guide
                     </p>
                   </div>
-                  <HelpCircle className="h-5 w-5 text-gray-500" />
+                  <HelpCircle className="h-5 w-5 text-gray-500" aria-hidden="true" />
                 </button>
               </motion.div>
 
