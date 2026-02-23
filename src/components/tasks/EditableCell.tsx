@@ -115,7 +115,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
           aria-label="Save changes"
           className="h-8 px-2"
         >
-          <Check className="w-4 h-4" />
+          <Check className="w-4 h-4" aria-hidden="true" />
         </Button>
         <Button
           size="sm"
@@ -124,7 +124,7 @@ export const EditableCell: React.FC<EditableCellProps> = ({
           aria-label="Cancel editing"
           className="h-8 px-2"
         >
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4" aria-hidden="true" />
         </Button>
       </div>
     );
