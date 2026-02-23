@@ -87,7 +87,7 @@ function MetricCard({ title, value, unit, icon: Icon, threshold, description }: 
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <Icon className="h-4 w-4 text-muted-foreground" />
+          <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <StatusIcon className={cn('h-3 w-3', statusColors[status])} />
         </div>
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -195,7 +195,7 @@ export function PerformanceMonitor() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Activity className="h-6 w-6" />
+            <Activity className="h-6 w-6" aria-hidden="true" />
             Performance Monitor
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -277,7 +277,7 @@ export function PerformanceMonitor() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
-              <HardDrive className="h-4 w-4" />
+              <HardDrive className="h-4 w-4" aria-hidden="true" />
               JavaScript Heap Memory
             </CardTitle>
           </CardHeader>
@@ -317,7 +317,7 @@ export function PerformanceMonitor() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <Wifi className="h-4 w-4 text-muted-foreground mb-2" />
+              <Wifi className="h-4 w-4 text-muted-foreground mb-2" aria-hidden="true" />
               <CardTitle className="text-sm">Connection Type</CardTitle>
             </CardHeader>
             <CardContent>

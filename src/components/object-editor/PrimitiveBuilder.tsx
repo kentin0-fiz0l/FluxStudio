@@ -102,11 +102,11 @@ export function PrimitiveBuilder({ onSave, onClose }: PrimitiveBuilderProps) {
               onClick={() => onSave(name, primitives)}
               disabled={primitives.length === 0}
             >
-              <Save className="w-4 h-4 mr-1" />
+              <Save className="w-4 h-4 mr-1" aria-hidden="true" />
               Save Object
             </Button>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -124,7 +124,7 @@ export function PrimitiveBuilder({ onSave, onClose }: PrimitiveBuilderProps) {
                     onClick={() => addPrimitive(value)}
                     className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded transition-colors"
                   >
-                    <Plus className="w-3 h-3" />
+                    <Plus className="w-3 h-3" aria-hidden="true" />
                     {label}
                   </button>
                 ))}
@@ -147,7 +147,7 @@ export function PrimitiveBuilder({ onSave, onClose }: PrimitiveBuilderProps) {
                     onClick={(e) => { e.stopPropagation(); removePrimitive(prim.id); }}
                     className="text-gray-400 hover:text-red-500"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-3 h-3" aria-hidden="true" />
                   </button>
                 </div>
               ))}
