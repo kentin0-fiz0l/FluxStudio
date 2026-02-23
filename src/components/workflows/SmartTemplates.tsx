@@ -244,7 +244,7 @@ export function SmartTemplates() {
           <p className="text-gray-600 mt-1">Pre-built workflows to automate common tasks</p>
         </div>
         <Button>
-          <Plus size={16} className="mr-2" />
+          <Plus size={16} className="mr-2" aria-hidden="true" />
           Create Custom
         </Button>
       </div>
@@ -268,7 +268,7 @@ export function SmartTemplates() {
               size="sm"
               onClick={() => setSelectedCategory(category)}
             >
-              <Icon size={14} className="mr-1" />
+              <Icon size={14} className="mr-1" aria-hidden="true" />
               {category.charAt(0).toUpperCase() + category.slice(1)}
             </Button>
           ))}
@@ -337,7 +337,7 @@ export function SmartTemplates() {
                     ))}
                   </div>
                   <div className="flex items-center gap-1 text-xs text-gray-500">
-                    <Star size={12} className="text-yellow-500 fill-yellow-500" />
+                    <Star size={12} className="text-yellow-500 fill-yellow-500" aria-hidden="true" />
                     {template.popularity}%
                   </div>
                 </div>
@@ -350,7 +350,7 @@ export function SmartTemplates() {
                       startWorkflow(template);
                     }}
                   >
-                    <Play size={14} className="mr-1" />
+                    <Play size={14} className="mr-1" aria-hidden="true" />
                     Start
                   </Button>
                   <Button
