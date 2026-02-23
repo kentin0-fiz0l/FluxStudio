@@ -220,7 +220,7 @@ export function SmartTemplates() {
 
     return (
       <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon size={12} />
+        <Icon size={12} aria-hidden="true" />
         {config.label}
       </Badge>
     );
@@ -252,7 +252,7 @@ export function SmartTemplates() {
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} aria-hidden="true" />
           <Input
             placeholder="Search templates..."
             value={searchQuery}
@@ -303,7 +303,7 @@ export function SmartTemplates() {
                       template.category === 'review' && "bg-orange-100 text-orange-600",
                       template.category === 'automation' && "bg-gray-100 text-gray-600"
                     )}>
-                      <Icon size={20} />
+                      <Icon size={20} aria-hidden="true" />
                     </div>
                     <div>
                       <CardTitle className="text-base">{template.name}</CardTitle>
@@ -362,7 +362,7 @@ export function SmartTemplates() {
                       setShowCustomizeDialog(true);
                     }}
                   >
-                    <Edit size={14} />
+                    <Edit size={14} aria-hidden="true" />
                   </Button>
                 </div>
               </CardContent>
@@ -376,7 +376,7 @@ export function SmartTemplates() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Clock size={18} />
+              <Clock size={18} aria-hidden="true" />
               Running Workflows
             </CardTitle>
           </CardHeader>
@@ -402,7 +402,7 @@ export function SmartTemplates() {
                       variant="ghost"
                       onClick={() => workflowEngine.cancelWorkflow(instance.id)}
                     >
-                      <XCircle size={14} />
+                      <XCircle size={14} aria-hidden="true" />
                     </Button>
                   </div>
                 </div>

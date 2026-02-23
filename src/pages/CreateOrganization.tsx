@@ -78,7 +78,7 @@ export function CreateOrganization() {
             onClick={() => navigate('/dashboard/organizations')}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={20} aria-hidden="true" />
             Back to Organizations
           </button>
 
@@ -246,7 +246,7 @@ export function CreateOrganization() {
                   </>
                 ) : (
                   <>
-                    <Plus size={16} />
+                    <Plus size={16} aria-hidden="true" />
                     Create Organization
                   </>
                 )}
