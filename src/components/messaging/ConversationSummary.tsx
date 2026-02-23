@@ -100,7 +100,7 @@ function SectionHeader({
         onToggle && 'cursor-pointer'
       )}
     >
-      <Icon className="w-4 h-4 text-neutral-500" />
+      <Icon className="w-4 h-4 text-neutral-500" aria-hidden="true" />
       <span className="flex-1 text-left">{title}</span>
       {count !== undefined && count > 0 && (
         <span className="text-xs bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded">
@@ -109,9 +109,9 @@ function SectionHeader({
       )}
       {onToggle && (
         isExpanded ? (
-          <ChevronUp className="w-4 h-4 text-neutral-400" />
+          <ChevronUp className="w-4 h-4 text-neutral-400" aria-hidden="true" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-neutral-400" />
+          <ChevronDown className="w-4 h-4 text-neutral-400" aria-hidden="true" />
         )
       )}
     </button>
@@ -128,7 +128,7 @@ function EmptySummaryState({
   return (
     <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
       <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-4">
-        <Sparkles className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+        <Sparkles className="w-6 h-6 text-primary-600 dark:text-primary-400" aria-hidden="true" />
       </div>
       <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
         No Summary Yet
@@ -147,9 +147,9 @@ function EmptySummaryState({
         )}
       >
         {isGenerating ? (
-          <RefreshCw className="w-4 h-4 animate-spin" />
+          <RefreshCw className="w-4 h-4 animate-spin" aria-hidden="true" />
         ) : (
-          <Sparkles className="w-4 h-4" />
+          <Sparkles className="w-4 h-4" aria-hidden="true" />
         )}
         {isGenerating ? 'Generating...' : 'Generate Summary'}
       </button>
@@ -161,7 +161,7 @@ function GeneratingState() {
   return (
     <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
       <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-4 animate-pulse">
-        <RefreshCw className="w-6 h-6 text-primary-600 dark:text-primary-400 animate-spin" />
+        <RefreshCw className="w-6 h-6 text-primary-600 dark:text-primary-400 animate-spin" aria-hidden="true" />
       </div>
       <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">
         Analyzing Conversation...
@@ -176,7 +176,7 @@ function GeneratingState() {
 function LoadingState() {
   return (
     <div className="flex flex-col items-center justify-center py-8 px-4">
-      <RefreshCw className="w-6 h-6 text-neutral-400 animate-spin mb-2" />
+      <RefreshCw className="w-6 h-6 text-neutral-400 animate-spin mb-2" aria-hidden="true" />
       <p className="text-xs text-neutral-500">Loading summary...</p>
     </div>
   );
@@ -210,12 +210,12 @@ function ToneIndicator({
   return (
     <div className="flex items-center gap-3 px-3 py-2 text-[10px] text-neutral-500 dark:text-neutral-400">
       <div className="flex items-center gap-1">
-        <pulse.icon className={cn('w-3 h-3', pulse.color)} />
+        <pulse.icon className={cn('w-3 h-3', pulse.color)} aria-hidden="true" />
         <span>{pulse.label}</span>
       </div>
       <span className="text-neutral-300 dark:text-neutral-600">|</span>
       <div className="flex items-center gap-1">
-        <clarity.icon className={cn('w-3 h-3', clarity.color)} />
+        <clarity.icon className={cn('w-3 h-3', clarity.color)} aria-hidden="true" />
         <span>{clarity.label}</span>
       </div>
     </div>
@@ -342,7 +342,7 @@ export function ConversationSummary({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-700">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary-600" />
+          <Sparkles className="w-4 h-4 text-primary-600" aria-hidden="true" />
           <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">
             Summary
           </h3>
@@ -360,7 +360,7 @@ export function ConversationSummary({
               )}
               title="Refresh summary"
             >
-              <RefreshCw className={cn('w-4 h-4', isGenerating && 'animate-spin')} />
+              <RefreshCw className={cn('w-4 h-4', isGenerating && 'animate-spin')} aria-hidden="true" />
             </button>
           )}
           <button
@@ -368,7 +368,7 @@ export function ConversationSummary({
             className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
             title="Close summary"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -389,7 +389,7 @@ export function ConversationSummary({
           <GeneratingState />
         ) : error ? (
           <div className="p-4 text-center">
-            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" aria-hidden="true" />
             <p className="text-sm text-red-600 dark:text-red-400 mb-3">{error}</p>
             <button
               onClick={handleGenerate}
@@ -433,7 +433,7 @@ export function ConversationSummary({
                         key={idx}
                         className="flex gap-2 text-sm text-neutral-600 dark:text-neutral-400"
                       >
-                        <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                        <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
                         <div>
                           <span>{decision.text}</span>
                           {decision.decidedBy && (
@@ -466,7 +466,7 @@ export function ConversationSummary({
                         key={idx}
                         className="flex gap-2 text-sm text-neutral-600 dark:text-neutral-400"
                       >
-                        <HelpCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <HelpCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
                         <div>
                           <span>{question.text}</span>
                           {question.askedBy && (
@@ -499,7 +499,7 @@ export function ConversationSummary({
                         key={idx}
                         className="flex gap-2 text-sm text-neutral-600 dark:text-neutral-400"
                       >
-                        <ArrowRight className={cn(
+                        <ArrowRight aria-hidden="true" className={cn(
                           'w-4 h-4 flex-shrink-0 mt-0.5',
                           step.priority === 'high' ? 'text-red-500' :
                           step.priority === 'medium' ? 'text-amber-500' :
@@ -540,7 +540,7 @@ export function ConversationSummary({
         <div className="px-4 py-2 border-t border-neutral-200 dark:border-neutral-700">
           <div className="flex items-center justify-between text-[10px] text-neutral-400">
             <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+              <Clock className="w-3 h-3" aria-hidden="true" />
               {formatRelativeTime(new Date(summary.updatedAt))}
             </span>
             <span>

@@ -108,7 +108,7 @@ const FileUploadItem = React.memo(function FileUploadItem({
                 />
               ) : (
                 <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
-                  <FileIcon className="h-6 w-6 text-gray-400" />
+                  <FileIcon className="h-6 w-6 text-gray-400" aria-hidden="true" />
                 </div>
               )}
             </div>
@@ -119,10 +119,10 @@ const FileUploadItem = React.memo(function FileUploadItem({
                   <p className="text-xs text-gray-500">{formatFileSize(fileObj.file.size)}</p>
                 </div>
                 <div className="flex-shrink-0 flex items-center gap-2">
-                  {fileObj.status === 'uploading' && <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />}
-                  {fileObj.status === 'analyzing' && <Sparkles className="h-4 w-4 text-purple-500 animate-pulse" />}
-                  {fileObj.status === 'success' && <Check className="h-4 w-4 text-green-500" />}
-                  {fileObj.status === 'error' && <AlertCircle className="h-4 w-4 text-red-500" />}
+                  {fileObj.status === 'uploading' && <Loader2 className="h-4 w-4 text-blue-500 animate-spin" aria-hidden="true" />}
+                  {fileObj.status === 'analyzing' && <Sparkles className="h-4 w-4 text-purple-500 animate-pulse" aria-hidden="true" />}
+                  {fileObj.status === 'success' && <Check className="h-4 w-4 text-green-500" aria-hidden="true" />}
+                  {fileObj.status === 'error' && <AlertCircle className="h-4 w-4 text-red-500" aria-hidden="true" />}
                 </div>
               </div>
               {(fileObj.status === 'uploading' || fileObj.status === 'analyzing') && (
@@ -153,7 +153,7 @@ const FileUploadItem = React.memo(function FileUploadItem({
                   </div>
                   {fileObj.selectedTags && fileObj.selectedTags.length > 0 && (
                     <div className="flex items-center gap-1 flex-wrap">
-                      <Tag className="w-3 h-3 text-gray-400" />
+                      <Tag className="w-3 h-3 text-gray-400" aria-hidden="true" />
                       {fileObj.selectedTags.slice(0, 3).map((tag) => (
                         <span key={tag} className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">{tag}</span>
                       ))}
@@ -169,12 +169,12 @@ const FileUploadItem = React.memo(function FileUploadItem({
                   <>
                     {fileObj.analysis && (
                       <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={(e) => { e.stopPropagation(); onSelect(fileObj.id); }}>
-                        <Eye className="h-3 w-3 mr-1" />
+                        <Eye className="h-3 w-3 mr-1" aria-hidden="true" />
                         View Details
                       </Button>
                     )}
                     <Button variant="ghost" size="sm" className="h-6 text-xs text-red-600 hover:text-red-700" onClick={(e) => { e.stopPropagation(); onRemove(fileObj.id); }}>
-                      <X className="h-3 w-3 mr-1" />
+                      <X className="h-3 w-3 mr-1" aria-hidden="true" />
                       Remove
                     </Button>
                   </>
@@ -372,9 +372,9 @@ export function EnhancedFileUpload({
           transition={{ duration: 0.2 }}
         >
           {enableAIAnalysis ? (
-            <Sparkles className="h-12 w-12 mx-auto mb-4 text-purple-500" />
+            <Sparkles className="h-12 w-12 mx-auto mb-4 text-purple-500" aria-hidden="true" />
           ) : (
-            <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" aria-hidden="true" />
           )}
         </motion.div>
 
@@ -394,7 +394,7 @@ export function EnhancedFileUpload({
               </Badge>
               {enableAIAnalysis && (
                 <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                  <Sparkles className="w-3 h-3 mr-1" />
+                  <Sparkles className="w-3 h-3 mr-1" aria-hidden="true" />
                   AI Powered
                 </Badge>
               )}
@@ -442,7 +442,7 @@ export function EnhancedFileUpload({
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-blue-500" />
+              <BarChart3 className="w-5 h-5 text-blue-500" aria-hidden="true" />
               <h3 className="text-lg font-semibold text-gray-900">
                 Analysis Details
               </h3>
@@ -452,7 +452,7 @@ export function EnhancedFileUpload({
               size="sm"
               onClick={() => setSelectedFileId(null)}
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" aria-hidden="true" />
             </Button>
           </div>
 
@@ -592,7 +592,7 @@ export function EnhancedFileUpload({
                   <ul className="space-y-1">
                     {selectedFile.analysis.insights.map((insight, index) => (
                       <li key={index} className="text-sm text-gray-600 flex gap-2">
-                        <Sparkles className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
+                        <Sparkles className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
                         <span>{insight}</span>
                       </li>
                     ))}
