@@ -62,7 +62,7 @@ export function FigmaIntegration() {
             variant="ghost"
             onClick={loadFigmaFiles}
             disabled={isLoadingFiles}
-            icon={<RefreshCw className={`h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />}
+            icon={<RefreshCw className={`h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} aria-hidden="true" />}
             aria-label="Refresh Figma files"
           >
             Refresh
@@ -71,7 +71,7 @@ export function FigmaIntegration() {
 
         {isLoadingFiles && (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary-600" />
+            <Loader2 className="h-6 w-6 animate-spin text-primary-600" aria-hidden="true" />
           </div>
         )}
 
@@ -83,7 +83,7 @@ export function FigmaIntegration() {
 
         {!isLoadingFiles && !filesError && files.length === 0 && (
           <div className="text-center py-8 text-sm text-neutral-500">
-            <Folder className="h-12 w-12 mx-auto mb-2 text-neutral-400" />
+            <Folder className="h-12 w-12 mx-auto mb-2 text-neutral-400" aria-hidden="true" />
             <p>No Figma files found</p>
             <p className="text-xs mt-1">Create a file in Figma to see it here</p>
           </div>
@@ -105,7 +105,7 @@ export function FigmaIntegration() {
                   />
                 ) : (
                   <div className="w-10 h-10 rounded bg-primary-100 dark:bg-primary-900/20 flex items-center justify-center flex-shrink-0">
-                    <FileText className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                    <FileText className="h-5 w-5 text-primary-600 dark:text-primary-400" aria-hidden="true" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">

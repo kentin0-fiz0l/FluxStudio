@@ -114,7 +114,7 @@ export function MessageSearchPanel({
       <div className="p-3 border-b border-neutral-100 dark:border-neutral-800">
         <div className="flex items-center gap-2">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
             <input
               ref={inputRef}
               type="text"
@@ -127,17 +127,18 @@ export function MessageSearchPanel({
               <button
                 onClick={clearSearch}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded"
+                aria-label="Clear search"
               >
-                <X className="w-4 h-4 text-neutral-400" />
+                <X className="w-4 h-4 text-neutral-400" aria-hidden="true" />
               </button>
             )}
           </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
-            title="Close search"
+            aria-label="Close search"
           >
-            <X className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+            <X className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
           </button>
         </div>
 
@@ -153,7 +154,7 @@ export function MessageSearchPanel({
                   : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
               )}
             >
-              <MessageCircle className="w-3.5 h-3.5" />
+              <MessageCircle className="w-3.5 h-3.5" aria-hidden="true" />
               This conversation
             </button>
             <button
@@ -165,7 +166,7 @@ export function MessageSearchPanel({
                   : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
               )}
             >
-              <Globe className="w-3.5 h-3.5" />
+              <Globe className="w-3.5 h-3.5" aria-hidden="true" />
               All conversations
             </button>
           </div>
@@ -176,7 +177,7 @@ export function MessageSearchPanel({
       <div className="flex-1 overflow-y-auto max-h-80">
         {isLoading && results.length === 0 ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 text-primary-600 animate-spin" />
+            <Loader2 className="w-5 h-5 text-primary-600 animate-spin" aria-hidden="true" />
             <span className="ml-2 text-sm text-neutral-500">Searching...</span>
           </div>
         ) : error ? (
@@ -185,7 +186,7 @@ export function MessageSearchPanel({
           </div>
         ) : !isSearchActive ? (
           <div className="p-6 text-center">
-            <Search className="w-10 h-10 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" />
+            <Search className="w-10 h-10 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" aria-hidden="true" />
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
               Type to search messages
             </p>
@@ -195,7 +196,7 @@ export function MessageSearchPanel({
           </div>
         ) : results.length === 0 ? (
           <div className="p-6 text-center">
-            <MessageCircle className="w-10 h-10 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" />
+            <MessageCircle className="w-10 h-10 text-neutral-300 dark:text-neutral-600 mx-auto mb-3" aria-hidden="true" />
             <p className="text-sm text-neutral-600 dark:text-neutral-400">
               No messages found for "{debouncedQuery}"
             </p>
@@ -230,7 +231,7 @@ export function MessageSearchPanel({
                   </div>
                   {isGlobalSearch && result.conversationName && (
                     <div className="flex items-center gap-1 mb-1">
-                      <Hash className="w-3 h-3 text-neutral-400" />
+                      <Hash className="w-3 h-3 text-neutral-400" aria-hidden="true" />
                       <span className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
                         {result.conversationName}
                       </span>
@@ -240,7 +241,7 @@ export function MessageSearchPanel({
                     {highlightMatch(result.text, debouncedQuery)}
                   </p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-neutral-400 flex-shrink-0 mt-2" />
+                <ChevronRight className="w-4 h-4 text-neutral-400 flex-shrink-0 mt-2" aria-hidden="true" />
               </button>
             ))}
 
@@ -253,7 +254,7 @@ export function MessageSearchPanel({
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                     Loading...
                   </>
                 ) : (

@@ -93,7 +93,7 @@ export function SlackIntegration() {
                       />
                     ) : (
                       <div className="w-10 h-10 rounded bg-secondary-100 dark:bg-secondary-900/20 flex items-center justify-center flex-shrink-0">
-                        <MessageSquare className="h-5 w-5 text-secondary-600 dark:text-secondary-400" />
+                        <MessageSquare className="h-5 w-5 text-secondary-600 dark:text-secondary-400" aria-hidden="true" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
@@ -126,7 +126,7 @@ export function SlackIntegration() {
                 />
               ) : (
                 <div className="w-10 h-10 rounded bg-secondary-100 dark:bg-secondary-900/20 flex items-center justify-center">
-                  <MessageSquare className="h-5 w-5 text-secondary-600 dark:text-secondary-400" />
+                  <MessageSquare className="h-5 w-5 text-secondary-600 dark:text-secondary-400" aria-hidden="true" />
                 </div>
               )}
               <div className="flex-1">
@@ -152,7 +152,7 @@ export function SlackIntegration() {
                   variant="ghost"
                   onClick={() => loadSlackChannels(selectedWorkspace || undefined)}
                   disabled={isLoadingChannels}
-                  icon={<RefreshCw className={`h-4 w-4 ${isLoadingChannels ? 'animate-spin' : ''}`} />}
+                  icon={<RefreshCw className={`h-4 w-4 ${isLoadingChannels ? 'animate-spin' : ''}`} aria-hidden="true" />}
                   aria-label="Refresh Slack channels"
                 >
                   Refresh
@@ -161,7 +161,7 @@ export function SlackIntegration() {
 
               {isLoadingChannels && (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary-600" />
+                  <Loader2 className="h-6 w-6 animate-spin text-primary-600" aria-hidden="true" />
                 </div>
               )}
 
@@ -173,7 +173,7 @@ export function SlackIntegration() {
 
               {!isLoadingChannels && !channelsError && channels.length === 0 && (
                 <div className="text-center py-8 text-sm text-neutral-500">
-                  <Hash className="h-12 w-12 mx-auto mb-2 text-neutral-400" />
+                  <Hash className="h-12 w-12 mx-auto mb-2 text-neutral-400" aria-hidden="true" />
                   <p>No channels found</p>
                   <p className="text-xs mt-1">Join channels in Slack to see them here</p>
                 </div>
@@ -186,7 +186,7 @@ export function SlackIntegration() {
                       key={channel.id}
                       className="flex items-center gap-2 p-2 bg-neutral-50 dark:bg-neutral-800/50 rounded text-sm"
                     >
-                      <Hash className="h-4 w-4 text-neutral-500 dark:text-neutral-400 flex-shrink-0" />
+                      <Hash className="h-4 w-4 text-neutral-500 dark:text-neutral-400 flex-shrink-0" aria-hidden="true" />
                       <span className="flex-1 text-neutral-900 dark:text-neutral-100 truncate">
                         {channel.name}
                       </span>
@@ -197,7 +197,7 @@ export function SlackIntegration() {
                       )}
                       {channel.num_members && (
                         <span className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1">
-                          <Users className="h-3 w-3" />
+                          <Users className="h-3 w-3" aria-hidden="true" />
                           {channel.num_members}
                         </span>
                       )}

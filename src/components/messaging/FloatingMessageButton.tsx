@@ -46,13 +46,14 @@ export function FloatingMessageButton({
           <Button
             onClick={onClick}
             size="lg"
+            aria-label={unreadCount > 0 ? `${unreadCount} new messages` : 'Open messages'}
             className={cn(
               'h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300',
               'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700',
               'text-white border-0 relative group'
             )}
           >
-            <MessageSquare className="h-6 w-6" />
+            <MessageSquare className="h-6 w-6" aria-hidden="true" />
 
             {/* Unread count badge */}
             {unreadCount > 0 && (

@@ -40,7 +40,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ isConnecting, isExpir
   if (isConnecting) {
     return (
       <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
         <span>Connecting...</span>
       </div>
     );
@@ -49,7 +49,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ isConnecting, isExpir
   if (isExpired) {
     return (
       <div className="flex items-center gap-2 text-sm text-error-600 dark:text-error-400">
-        <XCircle className="h-4 w-4" />
+        <XCircle className="h-4 w-4" aria-hidden="true" />
         <span>Connection expired</span>
       </div>
     );
@@ -58,7 +58,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ isConnecting, isExpir
   if (isConnected) {
     return (
       <div className="flex items-center gap-2 text-sm text-success-600 dark:text-success-400">
-        <CheckCircle className="h-4 w-4" />
+        <CheckCircle className="h-4 w-4" aria-hidden="true" />
         <span>Connected</span>
       </div>
     );
@@ -151,7 +151,7 @@ export function IntegrationCard({
       {/* Loading overlay */}
       {isConnecting && (
         <div className="absolute inset-0 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-10">
-          <Loader2 className="h-8 w-8 animate-spin text-primary-600 mb-2" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary-600 mb-2" aria-hidden="true" />
           <p className="text-sm text-neutral-700 dark:text-neutral-100">
             {statusMessage || 'Opening authorization...'}
           </p>
@@ -186,7 +186,7 @@ export function IntegrationCard({
       {error && (
         <div className="mb-4 p-4 bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800 rounded-lg">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-error-600 dark:text-error-400 mt-0.5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-error-600 dark:text-error-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-error-900 dark:text-error-100 mb-1">
                 Connection Failed
@@ -216,7 +216,7 @@ export function IntegrationCard({
       {expirationWarning && expirationWarning.show && !isExpired && (
         <div className="mb-4 p-3 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-warning-600 dark:text-warning-400 flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-warning-600 dark:text-warning-400 flex-shrink-0" aria-hidden="true" />
             <div className="flex-1">
               <p className="text-sm text-warning-900 dark:text-warning-100">
                 Connection expiring in {expirationWarning.daysRemaining} day
@@ -234,7 +234,7 @@ export function IntegrationCard({
       {isExpired && (
         <div className="mb-4 p-3 bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800 rounded-lg">
           <div className="flex items-start gap-3">
-            <XCircle className="w-5 h-5 text-error-600 dark:text-error-400 flex-shrink-0" />
+            <XCircle className="w-5 h-5 text-error-600 dark:text-error-400 flex-shrink-0" aria-hidden="true" />
             <div className="flex-1">
               <p className="text-sm text-error-900 dark:text-error-100">
                 Your {config.name} connection has expired
@@ -256,7 +256,7 @@ export function IntegrationCard({
           <ul className="space-y-2">
             {config.features.map((feature, index) => (
               <li key={index} className="flex items-start gap-2 text-sm text-neutral-600 dark:text-neutral-300">
-                <CheckCircle className="h-4 w-4 text-success-600 dark:text-success-400 mt-0.5 flex-shrink-0" />
+                <CheckCircle className="h-4 w-4 text-success-600 dark:text-success-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
                 <span>{feature}</span>
               </li>
             ))}
@@ -273,7 +273,7 @@ export function IntegrationCard({
           <ul className="space-y-2">
             {config.permissions.map((permission, index) => (
               <li key={index} className="flex items-start gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-success-600 dark:text-success-400 mt-0.5 flex-shrink-0" />
+                <CheckCircle className="h-4 w-4 text-success-600 dark:text-success-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
                 <div>
                   <span className="font-medium text-neutral-900 dark:text-neutral-100">
                     {permission.name}
@@ -313,7 +313,7 @@ export function IntegrationCard({
                 <ul className="space-y-3">
                   {config.permissions.map((permission, index) => (
                     <li key={index} className="flex items-start gap-3">
-                      <CheckCircle className="h-5 w-5 text-success-600 dark:text-success-400 mt-0.5 flex-shrink-0" />
+                      <CheckCircle className="h-5 w-5 text-success-600 dark:text-success-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
                       <div className="flex-1">
                         <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           {permission.name}
@@ -385,15 +385,15 @@ export function IntegrationCard({
                     </p>
                     <ul className="space-y-2 text-sm">
                       <li className="flex items-start gap-2">
-                        <XCircle className="h-4 w-4 text-error-600 mt-0.5 flex-shrink-0" />
+                        <XCircle className="h-4 w-4 text-error-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
                         <span>You won't be able to use {config.name} features</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <CheckCircle className="h-4 w-4 text-success-600 mt-0.5 flex-shrink-0" />
+                        <CheckCircle className="h-4 w-4 text-success-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
                         <span>Existing imported data will remain available</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <AlertCircle className="h-4 w-4 text-primary-600 mt-0.5 flex-shrink-0" />
+                        <AlertCircle className="h-4 w-4 text-primary-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
                         <span>You can reconnect at any time</span>
                       </li>
                     </ul>
@@ -414,7 +414,7 @@ export function IntegrationCard({
             <Button
               variant="ghost"
               size="sm"
-              icon={<ExternalLink className="h-4 w-4" />}
+              icon={<ExternalLink className="h-4 w-4" aria-hidden="true" />}
               onClick={() => window.open(`https://${provider}.com`, '_blank')}
               aria-label={`Open ${config.name} in new tab`}
             >
