@@ -239,7 +239,7 @@ Timestamp: ${new Date().toISOString()}
           onClick={this.copyErrorDetails}
           className="w-full"
         >
-          <Copy size={14} className="mr-2" />
+          <Copy size={14} className="mr-2" aria-hidden="true" />
           Copy Error Details
         </Button>
       </div>
@@ -265,7 +265,7 @@ Timestamp: ${new Date().toISOString()}
       if (isolateComponent) {
         return (
           <Alert variant="destructive" className="m-4">
-            <AlertTriangle className="h-4 w-4" />
+            <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             <AlertTitle>Component Error</AlertTitle>
             <AlertDescription>
               This component encountered an error. {canRetry && 'Trying to recover...'}
@@ -277,7 +277,7 @@ Timestamp: ${new Date().toISOString()}
                 onClick={this.handleRetry}
                 className="mt-2"
               >
-                <RefreshCw size={14} className="mr-2" />
+                <RefreshCw size={14} className="mr-2" aria-hidden="true" />
                 Retry
               </Button>
             )}
@@ -299,7 +299,7 @@ Timestamp: ${new Date().toISOString()}
                     severity === 'medium' && "bg-yellow-100 text-yellow-600",
                     severity === 'low' && "bg-blue-100 text-blue-600"
                   )}>
-                    <AlertTriangle size={24} />
+                    <AlertTriangle size={24} aria-hidden="true" />
                   </div>
                   <div>
                     <CardTitle className="text-xl">
@@ -319,7 +319,7 @@ Timestamp: ${new Date().toISOString()}
             <CardContent className="space-y-4">
               {/* Error Summary */}
               <Alert>
-                <Bug className="h-4 w-4" />
+                <Bug className="h-4 w-4" aria-hidden="true" />
                 <AlertTitle>Error Details</AlertTitle>
                 <AlertDescription>
                   {error?.message || 'An unknown error occurred'}
@@ -334,7 +334,7 @@ Timestamp: ${new Date().toISOString()}
               {/* Auto-recovery info */}
               {isRetryable && (
                 <Alert>
-                  <RefreshCw className="h-4 w-4" />
+                  <RefreshCw className="h-4 w-4" aria-hidden="true" />
                   <AlertTitle>Auto Recovery</AlertTitle>
                   <AlertDescription>
                     This appears to be a temporary issue. The system will automatically attempt to recover.
@@ -346,7 +346,7 @@ Timestamp: ${new Date().toISOString()}
               <div className="flex flex-wrap gap-3">
                 {canRetry && (
                   <Button onClick={this.handleRetry} className="flex-1 sm:flex-none">
-                    <RefreshCw size={16} className="mr-2" />
+                    <RefreshCw size={16} className="mr-2" aria-hidden="true" />
                     Try Again
                   </Button>
                 )}
@@ -356,7 +356,7 @@ Timestamp: ${new Date().toISOString()}
                   onClick={this.handleReload}
                   className="flex-1 sm:flex-none"
                 >
-                  <RefreshCw size={16} className="mr-2" />
+                  <RefreshCw size={16} className="mr-2" aria-hidden="true" />
                   Reload Page
                 </Button>
 
@@ -365,7 +365,7 @@ Timestamp: ${new Date().toISOString()}
                   onClick={this.handleGoHome}
                   className="flex-1 sm:flex-none"
                 >
-                  <Home size={16} className="mr-2" />
+                  <Home size={16} className="mr-2" aria-hidden="true" />
                   Go Home
                 </Button>
 
@@ -374,7 +374,7 @@ Timestamp: ${new Date().toISOString()}
                   onClick={() => window.open('mailto:support@fluxstudio.com?subject=Error Report')}
                   className="flex-1 sm:flex-none"
                 >
-                  <Mail size={16} className="mr-2" />
+                  <Mail size={16} className="mr-2" aria-hidden="true" />
                   Report Issue
                 </Button>
               </div>
@@ -387,8 +387,8 @@ Timestamp: ${new Date().toISOString()}
               >
                 <span>Technical Details</span>
                 {this.state.showDetails ?
-                  <ChevronDown size={16} /> :
-                  <ChevronRight size={16} />
+                  <ChevronDown size={16} aria-hidden="true" /> :
+                  <ChevronRight size={16} aria-hidden="true" />
                 }
               </Button>
 
@@ -428,7 +428,7 @@ export function MessagingErrorBoundary({ children }: { children: ReactNode }) {
       }}
       fallback={
         <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
+          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
           <AlertTitle>Messaging Unavailable</AlertTitle>
           <AlertDescription>
             Unable to load messaging. Please refresh the page or try again later.
@@ -451,7 +451,7 @@ export function WorkflowErrorBoundary({ children }: { children: ReactNode }) {
       }}
       fallback={
         <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
+          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
           <AlertTitle>Workflow Engine Error</AlertTitle>
           <AlertDescription>
             Workflow features are temporarily unavailable. Core functionality remains accessible.
@@ -475,7 +475,7 @@ export function CollaborationErrorBoundary({ children }: { children: ReactNode }
       }}
       fallback={
         <Alert>
-          <AlertTriangle className="h-4 w-4" />
+          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
           <AlertTitle>Collaboration Features Limited</AlertTitle>
           <AlertDescription>
             Real-time collaboration is temporarily unavailable. You can continue working normally.
@@ -500,7 +500,7 @@ export function FilesErrorBoundary({ children }: { children: ReactNode }) {
           <Card className="w-full max-w-md">
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-orange-100 mx-auto mb-4 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-orange-600" />
+                <AlertTriangle className="h-6 w-6 text-orange-600" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Files Unavailable</h3>
               <p className="text-gray-600 mb-4">
@@ -508,11 +508,11 @@ export function FilesErrorBoundary({ children }: { children: ReactNode }) {
               </p>
               <div className="flex gap-3 justify-center">
                 <Button onClick={() => window.location.reload()}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
                   Reload
                 </Button>
                 <Button variant="outline" onClick={() => window.location.href = '/projects'}>
-                  <Home className="h-4 w-4 mr-2" />
+                  <Home className="h-4 w-4 mr-2" aria-hidden="true" />
                   Projects
                 </Button>
               </div>
@@ -537,7 +537,7 @@ export function ToolsErrorBoundary({ children }: { children: ReactNode }) {
           <Card className="w-full max-w-md">
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-purple-100 mx-auto mb-4 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-purple-600" />
+                <AlertTriangle className="h-6 w-6 text-purple-600" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Tools Unavailable</h3>
               <p className="text-gray-600 mb-4">
@@ -545,7 +545,7 @@ export function ToolsErrorBoundary({ children }: { children: ReactNode }) {
               </p>
               <div className="flex gap-3 justify-center">
                 <Button onClick={() => window.location.reload()}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
                   Reload
                 </Button>
                 <Button variant="outline" onClick={() => window.location.href = '/tools'}>
@@ -573,7 +573,7 @@ export function ProjectsErrorBoundary({ children }: { children: ReactNode }) {
           <Card className="w-full max-w-md">
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-blue-100 mx-auto mb-4 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-blue-600" />
+                <AlertTriangle className="h-6 w-6 text-blue-600" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Projects Unavailable</h3>
               <p className="text-gray-600 mb-4">
@@ -581,11 +581,11 @@ export function ProjectsErrorBoundary({ children }: { children: ReactNode }) {
               </p>
               <div className="flex gap-3 justify-center">
                 <Button onClick={() => window.location.reload()}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
                   Reload
                 </Button>
                 <Button variant="outline" onClick={() => window.location.href = '/'}>
-                  <Home className="h-4 w-4 mr-2" />
+                  <Home className="h-4 w-4 mr-2" aria-hidden="true" />
                   Home
                 </Button>
               </div>
@@ -609,13 +609,13 @@ export function FormationEditorErrorBoundary({ children }: { children: ReactNode
       }}
       fallback={
         <div className="flex flex-col items-center justify-center h-full min-h-[200px] bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 p-6 text-center">
-          <AlertTriangle className="h-8 w-8 text-orange-500 mb-3" />
+          <AlertTriangle className="h-8 w-8 text-orange-500 mb-3" aria-hidden="true" />
           <h4 className="font-semibold text-neutral-900 dark:text-white mb-1">Formation Editor Error</h4>
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
             The canvas encountered an error. Your work has been preserved.
           </p>
           <Button size="sm" onClick={() => window.location.reload()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
             Reload Editor
           </Button>
         </div>
@@ -636,13 +636,13 @@ export function AIErrorBoundary({ children }: { children: ReactNode }) {
       }}
       fallback={
         <div className="flex flex-col items-center justify-center p-6 text-center">
-          <AlertTriangle className="h-6 w-6 text-yellow-500 mb-2" />
+          <AlertTriangle className="h-6 w-6 text-yellow-500 mb-2" aria-hidden="true" />
           <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">AI Assistant Unavailable</p>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
             The AI features encountered an error. Please try again.
           </p>
           <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
             Retry
           </Button>
         </div>
@@ -663,7 +663,7 @@ export function FileUploadErrorBoundary({ children }: { children: ReactNode }) {
       }}
       fallback={
         <Alert>
-          <AlertTriangle className="h-4 w-4" />
+          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
           <AlertTitle>Upload Error</AlertTitle>
           <AlertDescription>
             File upload failed. Please try uploading again.
@@ -708,7 +708,7 @@ export function RouteErrorBoundary() {
             <div className="flex gap-3 justify-center">
               <Button onClick={() => window.history.back()}>Go Back</Button>
               <Button variant="outline" onClick={() => { window.location.href = '/dashboard'; }}>
-                <Home className="h-4 w-4 mr-2" />
+                <Home className="h-4 w-4 mr-2" aria-hidden="true" />
                 Dashboard
               </Button>
             </div>
@@ -723,7 +723,7 @@ export function RouteErrorBoundary() {
       <Card className="w-full max-w-lg">
         <CardContent className="p-6 text-center">
           <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900 mx-auto mb-4 flex items-center justify-center">
-            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
           </div>
           <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">
             Something went wrong
@@ -733,11 +733,11 @@ export function RouteErrorBoundary() {
           </p>
           <div className="flex gap-3 justify-center">
             <Button onClick={() => window.location.reload()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
               Reload
             </Button>
             <Button variant="outline" onClick={() => { window.location.href = '/dashboard'; }}>
-              <Home className="h-4 w-4 mr-2" />
+              <Home className="h-4 w-4 mr-2" aria-hidden="true" />
               Dashboard
             </Button>
           </div>
@@ -758,7 +758,7 @@ export function ConnectorsErrorBoundary({ children }: { children: ReactNode }) {
           <Card className="w-full max-w-md">
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mx-auto mb-4 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <AlertTriangle className="h-6 w-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-white">Integrations Unavailable</h3>
               <p className="text-neutral-600 dark:text-neutral-400 mb-4">
@@ -766,11 +766,11 @@ export function ConnectorsErrorBoundary({ children }: { children: ReactNode }) {
               </p>
               <div className="flex gap-3 justify-center">
                 <Button onClick={() => window.location.reload()}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
                   Reload
                 </Button>
                 <Button variant="outline" onClick={() => { window.location.href = '/projects'; }}>
-                  <Home className="h-4 w-4 mr-2" />
+                  <Home className="h-4 w-4 mr-2" aria-hidden="true" />
                   Projects
                 </Button>
               </div>

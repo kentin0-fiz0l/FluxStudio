@@ -21,29 +21,29 @@ import { cn } from '@/lib/utils';
 // Notification type icons (v2 messaging types + legacy)
 const typeIcons: Record<NotificationType, React.ReactNode> = {
   // v2 messaging types
-  mention: <MessageSquare className="h-5 w-5" />,
-  reply: <MessageSquare className="h-5 w-5" />,
-  thread_reply: <MessageSquare className="h-5 w-5" />,
-  file_shared: <Briefcase className="h-5 w-5" />,
-  decision: <AlertCircle className="h-5 w-5" />,
-  blocker: <AlertCircle className="h-5 w-5" />,
-  assignment: <Briefcase className="h-5 w-5" />,
-  file_change: <Briefcase className="h-5 w-5" />,
+  mention: <MessageSquare className="h-5 w-5" aria-hidden="true" />,
+  reply: <MessageSquare className="h-5 w-5" aria-hidden="true" />,
+  thread_reply: <MessageSquare className="h-5 w-5" aria-hidden="true" />,
+  file_shared: <Briefcase className="h-5 w-5" aria-hidden="true" />,
+  decision: <AlertCircle className="h-5 w-5" aria-hidden="true" />,
+  blocker: <AlertCircle className="h-5 w-5" aria-hidden="true" />,
+  assignment: <Briefcase className="h-5 w-5" aria-hidden="true" />,
+  file_change: <Briefcase className="h-5 w-5" aria-hidden="true" />,
   // Legacy types
-  message_mention: <MessageSquare className="h-5 w-5" />,
-  message_reply: <MessageSquare className="h-5 w-5" />,
-  project_member_added: <Briefcase className="h-5 w-5" />,
-  project_status_changed: <Briefcase className="h-5 w-5" />,
-  project_file_uploaded: <Briefcase className="h-5 w-5" />,
-  collaboration_invite: <Users className="h-5 w-5" />,
-  team_invite: <Users className="h-5 w-5" />,
-  organization_alert: <Building2 className="h-5 w-5" />,
-  system: <AlertCircle className="h-5 w-5" />,
+  message_mention: <MessageSquare className="h-5 w-5" aria-hidden="true" />,
+  message_reply: <MessageSquare className="h-5 w-5" aria-hidden="true" />,
+  project_member_added: <Briefcase className="h-5 w-5" aria-hidden="true" />,
+  project_status_changed: <Briefcase className="h-5 w-5" aria-hidden="true" />,
+  project_file_uploaded: <Briefcase className="h-5 w-5" aria-hidden="true" />,
+  collaboration_invite: <Users className="h-5 w-5" aria-hidden="true" />,
+  team_invite: <Users className="h-5 w-5" aria-hidden="true" />,
+  organization_alert: <Building2 className="h-5 w-5" aria-hidden="true" />,
+  system: <AlertCircle className="h-5 w-5" aria-hidden="true" />,
   // Toast types
-  success: <Info className="h-5 w-5" />,
-  info: <Info className="h-5 w-5" />,
-  warning: <AlertTriangle className="h-5 w-5" />,
-  error: <XCircle className="h-5 w-5" />,
+  success: <Info className="h-5 w-5" aria-hidden="true" />,
+  info: <Info className="h-5 w-5" aria-hidden="true" />,
+  warning: <AlertTriangle className="h-5 w-5" aria-hidden="true" />,
+  error: <XCircle className="h-5 w-5" aria-hidden="true" />,
 };
 
 // Notification type colors (v2 messaging types + legacy)
@@ -123,7 +123,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ notification, onDismiss, onNaviga
     >
       {/* Icon */}
       <div className={cn('flex-shrink-0 mt-0.5', colors.icon)} aria-hidden="true">
-        {typeIcons[notification.type] || <Bell className="h-5 w-5" />}
+        {typeIcons[notification.type] || <Bell className="h-5 w-5" aria-hidden="true" />}
       </div>
 
       {/* Content */}
@@ -148,7 +148,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ notification, onDismiss, onNaviga
         className="flex-shrink-0 p-1 rounded-full text-neutral-400 hover:text-neutral-600 hover:bg-neutral-200/50 transition-colors"
         aria-label="Dismiss notification"
       >
-        <X className="h-4 w-4" />
+        <X className="h-4 w-4" aria-hidden="true" />
       </button>
     </div>
   );

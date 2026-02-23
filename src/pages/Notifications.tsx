@@ -53,55 +53,55 @@ type NotificationCategory = 'all' | 'mention' | 'decision' | 'blocker' | 'file_c
 const CATEGORY_CONFIG: Record<NotificationCategory, { label: string; icon: React.ReactNode; types: string[] }> = {
   all: {
     label: 'All',
-    icon: <Bell className="h-4 w-4" />,
+    icon: <Bell className="h-4 w-4" aria-hidden="true" />,
     types: [],
   },
   mention: {
     label: 'Mentions',
-    icon: <AtSign className="h-4 w-4" />,
+    icon: <AtSign className="h-4 w-4" aria-hidden="true" />,
     types: ['mention', 'message_mention', 'reply', 'thread_reply'],
   },
   decision: {
     label: 'Decisions',
-    icon: <Gavel className="h-4 w-4" />,
+    icon: <Gavel className="h-4 w-4" aria-hidden="true" />,
     types: ['decision'],
   },
   blocker: {
     label: 'Blockers',
-    icon: <AlertOctagon className="h-4 w-4" />,
+    icon: <AlertOctagon className="h-4 w-4" aria-hidden="true" />,
     types: ['blocker'],
   },
   file_change: {
     label: 'Files',
-    icon: <FileText className="h-4 w-4" />,
+    icon: <FileText className="h-4 w-4" aria-hidden="true" />,
     types: ['file_shared', 'file_change', 'project_file_uploaded'],
   },
   system: {
     label: 'System',
-    icon: <AlertCircle className="h-4 w-4" />,
+    icon: <AlertCircle className="h-4 w-4" aria-hidden="true" />,
     types: ['system', 'info', 'warning', 'error', 'organization_alert'],
   },
 };
 
 // Notification type icons
 const typeIcons: Record<string, React.ReactNode> = {
-  mention: <AtSign className="h-5 w-5" />,
-  message_mention: <AtSign className="h-5 w-5" />,
-  message_reply: <MessageSquare className="h-5 w-5" />,
-  reply: <MessageSquare className="h-5 w-5" />,
-  thread_reply: <MessageSquare className="h-5 w-5" />,
-  decision: <Gavel className="h-5 w-5" />,
-  blocker: <AlertOctagon className="h-5 w-5" />,
-  file_shared: <FileText className="h-5 w-5" />,
-  file_change: <FileText className="h-5 w-5" />,
-  project_member_added: <Briefcase className="h-5 w-5" />,
-  project_status_changed: <Briefcase className="h-5 w-5" />,
-  project_file_uploaded: <FileText className="h-5 w-5" />,
-  organization_alert: <Building2 className="h-5 w-5" />,
-  system: <AlertCircle className="h-5 w-5" />,
-  info: <Info className="h-5 w-5" />,
-  warning: <AlertTriangle className="h-5 w-5" />,
-  error: <XCircle className="h-5 w-5" />,
+  mention: <AtSign className="h-5 w-5" aria-hidden="true" />,
+  message_mention: <AtSign className="h-5 w-5" aria-hidden="true" />,
+  message_reply: <MessageSquare className="h-5 w-5" aria-hidden="true" />,
+  reply: <MessageSquare className="h-5 w-5" aria-hidden="true" />,
+  thread_reply: <MessageSquare className="h-5 w-5" aria-hidden="true" />,
+  decision: <Gavel className="h-5 w-5" aria-hidden="true" />,
+  blocker: <AlertOctagon className="h-5 w-5" aria-hidden="true" />,
+  file_shared: <FileText className="h-5 w-5" aria-hidden="true" />,
+  file_change: <FileText className="h-5 w-5" aria-hidden="true" />,
+  project_member_added: <Briefcase className="h-5 w-5" aria-hidden="true" />,
+  project_status_changed: <Briefcase className="h-5 w-5" aria-hidden="true" />,
+  project_file_uploaded: <FileText className="h-5 w-5" aria-hidden="true" />,
+  organization_alert: <Building2 className="h-5 w-5" aria-hidden="true" />,
+  system: <AlertCircle className="h-5 w-5" aria-hidden="true" />,
+  info: <Info className="h-5 w-5" aria-hidden="true" />,
+  warning: <AlertTriangle className="h-5 w-5" aria-hidden="true" />,
+  error: <XCircle className="h-5 w-5" aria-hidden="true" />,
 };
 
 // Notification type colors
@@ -148,7 +148,7 @@ function NotificationProjectBadge({ projectId, projectName }: { projectId: strin
       className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-accent-100 dark:bg-accent-900/30 text-accent-700 dark:text-accent-300 hover:bg-accent-200 dark:hover:bg-accent-900/50 transition-colors truncate max-w-[140px]"
       title={`Project: ${projectName}`}
     >
-      <FolderOpen className="w-2.5 h-2.5 flex-shrink-0" />
+      <FolderOpen className="w-2.5 h-2.5 flex-shrink-0" aria-hidden="true" />
       <span className="truncate">{projectName}</span>
     </Link>
   );
@@ -217,7 +217,7 @@ function NotificationItem({
   onDelete: (id: string) => void;
 }) {
   const typeColor = typeColors[notification.type] || 'bg-neutral-100 text-neutral-600';
-  const typeIcon = typeIcons[notification.type] || <Bell className="h-5 w-5" />;
+  const typeIcon = typeIcons[notification.type] || <Bell className="h-5 w-5" aria-hidden="true" />;
 
   return (
     <li
@@ -287,7 +287,7 @@ function NotificationItem({
               className="text-neutral-400 hover:text-primary-600"
               aria-label={`Mark "${notification.title}" as read`}
             >
-              <Check className="h-4 w-4" />
+              <Check className="h-4 w-4" aria-hidden="true" />
             </Button>
           )}
           <Button
@@ -300,7 +300,7 @@ function NotificationItem({
             className="text-neutral-400 hover:text-error-600"
             aria-label={`Delete notification: ${notification.title}`}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       </div>
