@@ -39,14 +39,14 @@ export function PropLibraryPanel({ onPlaceProp, onClose }: PropLibraryPanelProps
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Prop Library</h3>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
 
       {/* Search */}
       <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" aria-hidden="true" />
           <input
             type="text"
             value={searchQuery}
@@ -130,7 +130,7 @@ function PropCard({ prop, onPlace }: { prop: PropDefinition; onPlace: (id: strin
         className="w-full mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
         onClick={() => onPlace(prop.id)}
       >
-        <Plus className="w-3 h-3 mr-1" />
+        <Plus className="w-3 h-3 mr-1" aria-hidden="true" />
         Place
       </Button>
     </div>

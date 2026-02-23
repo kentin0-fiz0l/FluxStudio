@@ -47,19 +47,19 @@ export const ConnectionStatus = React.memo(function ConnectionStatus({
     >
       {isOffline ? (
         <>
-          <WifiOff className="w-3.5 h-3.5" />
+          <WifiOff className="w-3.5 h-3.5" aria-hidden="true" />
           <span>Offline — changes saved locally</span>
           <button
             onClick={onRetry}
             className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-100 hover:bg-red-200 text-red-800 transition-colors"
           >
-            <RefreshCw className="w-3 h-3" />
+            <RefreshCw className="w-3 h-3" aria-hidden="true" />
             Retry
           </button>
         </>
       ) : (
         <>
-          <Wifi className="w-3.5 h-3.5 animate-pulse" />
+          <Wifi className="w-3.5 h-3.5 animate-pulse" aria-hidden="true" />
           <span>Reconnecting...</span>
         </>
       )}

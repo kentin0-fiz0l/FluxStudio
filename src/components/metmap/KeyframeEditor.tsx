@@ -386,7 +386,7 @@ export const KeyframeEditor = memo(function KeyframeEditor({
           onClick={() => setExpanded(!expanded)}
           className="flex items-center gap-1.5 text-xs font-medium text-neutral-400 hover:text-neutral-200"
         >
-          {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          {expanded ? <ChevronDown className="h-3 w-3" aria-hidden="true" /> : <ChevronRight className="h-3 w-3" aria-hidden="true" />}
           Keyframes
           {animations.length > 0 && (
             <span className="text-neutral-500">({animations.reduce((n, a) => n + a.keyframes.length, 0)})</span>
@@ -409,14 +409,14 @@ export const KeyframeEditor = memo(function KeyframeEditor({
                 className="p-0.5 text-neutral-500 hover:text-red-400"
                 aria-label="Delete keyframe"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             </>
           )}
           {availableProperties.length > 0 && (
             <div className="relative group">
               <button className="p-0.5 text-neutral-500 hover:text-neutral-300" aria-label="Add property track">
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
               <div className="absolute right-0 top-full mt-1 hidden group-hover:block bg-neutral-800 border border-neutral-600 rounded shadow-lg z-10">
                 {availableProperties.map(p => (
