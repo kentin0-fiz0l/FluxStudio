@@ -87,14 +87,14 @@ export function MessageActionsMenu({
           title="More actions"
           aria-label="Message actions menu"
         >
-          <MoreHorizontal className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
+          <MoreHorizontal className="w-4 h-4 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} side={side} className="w-48">
         {/* Reply */}
         {canReply && onReply && (
           <DropdownMenuItem onClick={() => onReply(messageId)}>
-            <Reply className="w-4 h-4 mr-2" />
+            <Reply className="w-4 h-4 mr-2" aria-hidden="true" />
             Reply
           </DropdownMenuItem>
         )}
@@ -102,7 +102,7 @@ export function MessageActionsMenu({
         {/* Open Thread */}
         {canOpenThread && onOpenThread && (
           <DropdownMenuItem onClick={() => onOpenThread(messageId)}>
-            <MessageCircle className="w-4 h-4 mr-2" />
+            <MessageCircle className="w-4 h-4 mr-2" aria-hidden="true" />
             {hasReplies ? 'View thread' : 'Start thread'}
           </DropdownMenuItem>
         )}
@@ -110,7 +110,7 @@ export function MessageActionsMenu({
         {/* Add Reaction */}
         {canReact && onReact && (
           <DropdownMenuItem onClick={() => onReact(messageId)}>
-            <Smile className="w-4 h-4 mr-2" />
+            <Smile className="w-4 h-4 mr-2" aria-hidden="true" />
             Add reaction...
           </DropdownMenuItem>
         )}
@@ -120,12 +120,12 @@ export function MessageActionsMenu({
           <DropdownMenuItem onClick={() => onPinToggle(messageId)}>
             {isPinned ? (
               <>
-                <PinOff className="w-4 h-4 mr-2" />
+                <PinOff className="w-4 h-4 mr-2" aria-hidden="true" />
                 Unpin message
               </>
             ) : (
               <>
-                <Pin className="w-4 h-4 mr-2" />
+                <Pin className="w-4 h-4 mr-2" aria-hidden="true" />
                 Pin message
               </>
             )}
@@ -135,7 +135,7 @@ export function MessageActionsMenu({
         {/* Edit */}
         {canEdit && onEdit && (
           <DropdownMenuItem onClick={() => onEdit(messageId)}>
-            <Pencil className="w-4 h-4 mr-2" />
+            <Pencil className="w-4 h-4 mr-2" aria-hidden="true" />
             Edit message
           </DropdownMenuItem>
         )}
@@ -143,7 +143,7 @@ export function MessageActionsMenu({
         {/* Forward */}
         {canForward && onForward && (
           <DropdownMenuItem onClick={() => onForward(messageId)}>
-            <Forward className="w-4 h-4 mr-2" />
+            <Forward className="w-4 h-4 mr-2" aria-hidden="true" />
             Forward
           </DropdownMenuItem>
         )}
@@ -151,7 +151,7 @@ export function MessageActionsMenu({
         {/* Copy */}
         {onCopy && (
           <DropdownMenuItem onClick={() => onCopy(messageId)}>
-            <Copy className="w-4 h-4 mr-2" />
+            <Copy className="w-4 h-4 mr-2" aria-hidden="true" />
             Copy text
           </DropdownMenuItem>
         )}
@@ -165,7 +165,7 @@ export function MessageActionsMenu({
             variant="destructive"
             onClick={() => onDelete(messageId)}
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
             Delete
           </DropdownMenuItem>
         )}
