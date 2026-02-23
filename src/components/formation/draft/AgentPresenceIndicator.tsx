@@ -65,7 +65,7 @@ export function AgentPresenceIndicator({
               <div
                 className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center"
               >
-                <Bot className="w-3.5 h-3.5 text-white" />
+                <Bot className="w-3.5 h-3.5 text-white" aria-hidden="true" />
               </div>
               {config.pulse && (
                 <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-400 rounded-full animate-pulse" />
@@ -75,7 +75,7 @@ export function AgentPresenceIndicator({
               {agentMessage || agentStatus}
             </span>
             {isAnimating && (
-              <Loader2 className="w-3 h-3 text-amber-500 animate-spin flex-shrink-0" />
+              <Loader2 className="w-3 h-3 text-amber-500 animate-spin flex-shrink-0" aria-hidden="true" />
             )}
           </div>
         </TooltipTrigger>

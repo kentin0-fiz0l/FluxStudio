@@ -364,7 +364,7 @@ export function EnhancedCommandPalette() {
     <Dialog open={state.commandPaletteOpen} onOpenChange={actions.closeCommandPalette}>
       <DialogContent className="max-w-2xl p-0 gap-0">
         <div className="flex items-center border-b px-4 py-3">
-          <Search size={16} className="text-gray-400 mr-3" />
+          <Search size={16} className="text-gray-400 mr-3" aria-hidden="true" />
           <Input
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
@@ -381,7 +381,7 @@ export function EnhancedCommandPalette() {
           <div className="p-2">
             {filteredCommands.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                <Search size={32} className="mx-auto mb-2 opacity-50" />
+                <Search size={32} className="mx-auto mb-2 opacity-50" aria-hidden="true" />
                 <p>No commands found</p>
                 <p className="text-sm">Try searching for projects, conversations, or actions</p>
               </div>
@@ -410,7 +410,7 @@ export function EnhancedCommandPalette() {
                         'w-8 h-8 rounded-lg flex items-center justify-center',
                         getCategoryColor(command.category)
                       )}>
-                        <Icon size={16} />
+                        <Icon size={16} aria-hidden="true" />
                       </div>
 
                       <div className="flex-1 min-w-0">
