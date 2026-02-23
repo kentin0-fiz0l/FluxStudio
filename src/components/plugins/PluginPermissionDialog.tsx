@@ -29,52 +29,52 @@ interface PluginPermissionDialogProps {
 
 const PERMISSION_INFO: Record<PluginPermission, { icon: React.ReactNode; label: string; description: string }> = {
   storage: {
-    icon: <Database className="w-4 h-4" />,
+    icon: <Database className="w-4 h-4" aria-hidden="true" />,
     label: 'Storage',
     description: 'Save data in plugin-scoped storage',
   },
   projects: {
-    icon: <FolderOpen className="w-4 h-4" />,
+    icon: <FolderOpen className="w-4 h-4" aria-hidden="true" />,
     label: 'Projects',
     description: 'Read and write your projects',
   },
   files: {
-    icon: <FolderOpen className="w-4 h-4" />,
+    icon: <FolderOpen className="w-4 h-4" aria-hidden="true" />,
     label: 'Files',
     description: 'Read, write, and delete files',
   },
   network: {
-    icon: <Globe className="w-4 h-4" />,
+    icon: <Globe className="w-4 h-4" aria-hidden="true" />,
     label: 'Network',
     description: 'Make network requests to external services',
   },
   notifications: {
-    icon: <Bell className="w-4 h-4" />,
+    icon: <Bell className="w-4 h-4" aria-hidden="true" />,
     label: 'Notifications',
     description: 'Show notifications',
   },
   commands: {
-    icon: <Terminal className="w-4 h-4" />,
+    icon: <Terminal className="w-4 h-4" aria-hidden="true" />,
     label: 'Commands',
     description: 'Register commands in the command palette',
   },
   ui: {
-    icon: <Layout className="w-4 h-4" />,
+    icon: <Layout className="w-4 h-4" aria-hidden="true" />,
     label: 'UI',
     description: 'Add panels, toolbar items, and UI components',
   },
   ai: {
-    icon: <Sparkles className="w-4 h-4" />,
+    icon: <Sparkles className="w-4 h-4" aria-hidden="true" />,
     label: 'AI',
     description: 'Access AI features (chat, generation, suggestions)',
   },
   collaboration: {
-    icon: <Users className="w-4 h-4" />,
+    icon: <Users className="w-4 h-4" aria-hidden="true" />,
     label: 'Collaboration',
     description: 'Access real-time collaboration features',
   },
   system: {
-    icon: <Lock className="w-4 h-4" />,
+    icon: <Lock className="w-4 h-4" aria-hidden="true" />,
     label: 'System',
     description: 'System-level access (admin only)',
   },
@@ -110,7 +110,7 @@ export function PluginPermissionDialog({
             className="p-1.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700"
             aria-label="Close"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -124,7 +124,7 @@ export function PluginPermissionDialog({
         {/* Permissions */}
         <div className="px-4 pb-4">
           <div className="flex items-center gap-2 mb-2">
-            <Shield className="w-4 h-4 text-neutral-500" />
+            <Shield className="w-4 h-4 text-neutral-500" aria-hidden="true" />
             <h3 className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide">
               Requested Permissions
             </h3>

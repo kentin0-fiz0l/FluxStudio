@@ -105,7 +105,7 @@ function ReplyPreview({
       </div>
       {onClear && (
         <button onClick={onClear} className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded">
-          <X className="w-4 h-4 text-neutral-500" />
+          <X className="w-4 h-4 text-neutral-500" aria-hidden="true" />
         </button>
       )}
     </div>
@@ -273,7 +273,7 @@ export function MessageComposer({
       {isDraggingOver && (
         <div className="absolute inset-0 flex items-center justify-center bg-primary-100/80 dark:bg-primary-900/50 border-2 border-dashed border-primary-400 dark:border-primary-600 rounded-lg z-10 pointer-events-none">
           <div className="text-primary-600 dark:text-primary-400 font-medium flex items-center gap-2">
-            <Paperclip className="w-5 h-5" />
+            <Paperclip className="w-5 h-5" aria-hidden="true" />
             Drop files to attach
           </div>
         </div>
@@ -303,7 +303,7 @@ export function MessageComposer({
                 />
               ) : (
                 <div className="w-10 h-10 flex items-center justify-center bg-neutral-200 dark:bg-neutral-700 rounded">
-                  <File className="w-5 h-5 text-neutral-500" />
+                  <File className="w-5 h-5 text-neutral-500" aria-hidden="true" />
                 </div>
               )}
 
@@ -320,7 +320,7 @@ export function MessageComposer({
               {/* Upload progress */}
               {attachment.uploading && (
                 <div className="absolute inset-0 bg-black/30 rounded-lg flex items-center justify-center">
-                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  <Loader2 className="w-5 h-5 text-white animate-spin" aria-hidden="true" />
                 </div>
               )}
 
@@ -330,13 +330,13 @@ export function MessageComposer({
                 className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                 title="Remove"
               >
-                <X className="w-3 h-3" />
+                <X className="w-3 h-3" aria-hidden="true" />
               </button>
 
               {/* Error indicator */}
               {attachment.error && (
                 <div className="absolute inset-0 bg-red-500/20 rounded-lg flex items-center justify-center">
-                  <AlertCircle className="w-5 h-5 text-red-500" />
+                  <AlertCircle className="w-5 h-5 text-red-500" aria-hidden="true" />
                 </div>
               )}
             </div>
@@ -372,7 +372,7 @@ export function MessageComposer({
           className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           title="Link (Ctrl+K)"
         >
-          <Link2 className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
+          <Link2 className="w-4 h-4 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
         <div className="flex-1" />
         <span className="text-[10px] text-neutral-400">Markdown supported</span>
@@ -385,7 +385,7 @@ export function MessageComposer({
           className="flex-shrink-0 p-2.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           title="Attach file"
         >
-          <Paperclip className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+          <Paperclip className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
 
         {/* Input area */}
@@ -407,7 +407,7 @@ export function MessageComposer({
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full transition-colors"
             >
-              <Smile className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />
+              <Smile className="w-5 h-5 text-neutral-400 dark:text-neutral-500" aria-hidden="true" />
             </button>
 
             {/* Emoji Picker */}
@@ -428,7 +428,7 @@ export function MessageComposer({
             className="flex-shrink-0 p-2.5 rounded-full bg-primary-600 hover:bg-primary-700 disabled:opacity-50 transition-colors shadow-lg hover:shadow-xl"
             title="Send message"
           >
-            <Send className="w-5 h-5 text-white" />
+            <Send className="w-5 h-5 text-white" aria-hidden="true" />
           </button>
         ) : (
           <button
@@ -441,9 +441,9 @@ export function MessageComposer({
             title={isRecording ? 'Stop recording' : 'Record voice message'}
           >
             {isRecording ? (
-              <MicOff className="w-5 h-5 text-white" />
+              <MicOff className="w-5 h-5 text-white" aria-hidden="true" />
             ) : (
-              <Mic className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+              <Mic className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
             )}
           </button>
         )}

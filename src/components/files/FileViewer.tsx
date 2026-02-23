@@ -16,15 +16,15 @@ import {
 } from 'lucide-react';
 
 const fileTypeIcons: Record<string, React.ReactNode> = {
-  image: <Image className="h-5 w-5 text-blue-500" />,
-  video: <Video className="h-5 w-5 text-purple-500" />,
-  audio: <Music className="h-5 w-5 text-pink-500" />,
-  document: <FileText className="h-5 w-5 text-orange-500" />,
-  pdf: <FileText className="h-5 w-5 text-red-500" />,
-  text: <Code className="h-5 w-5 text-green-500" />,
-  code: <Code className="h-5 w-5 text-green-500" />,
-  archive: <Archive className="h-5 w-5 text-amber-500" />,
-  other: <File className="h-5 w-5 text-neutral-400" />,
+  image: <Image className="h-5 w-5 text-blue-500" aria-hidden="true" />,
+  video: <Video className="h-5 w-5 text-purple-500" aria-hidden="true" />,
+  audio: <Music className="h-5 w-5 text-pink-500" aria-hidden="true" />,
+  document: <FileText className="h-5 w-5 text-orange-500" aria-hidden="true" />,
+  pdf: <FileText className="h-5 w-5 text-red-500" aria-hidden="true" />,
+  text: <Code className="h-5 w-5 text-green-500" aria-hidden="true" />,
+  code: <Code className="h-5 w-5 text-green-500" aria-hidden="true" />,
+  archive: <Archive className="h-5 w-5 text-amber-500" aria-hidden="true" />,
+  other: <File className="h-5 w-5 text-neutral-400" aria-hidden="true" />,
 };
 
 // ============================================================================
@@ -80,7 +80,7 @@ function AudioPreview({ url, mimeType, fileName }: { url: string; mimeType?: str
   return (
     <div className="flex flex-col items-center justify-center gap-6 h-full">
       <div className="w-32 h-32 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-xl">
-        <Music className="w-16 h-16 text-white" />
+        <Music className="w-16 h-16 text-white" aria-hidden="true" />
       </div>
       <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300 text-center truncate max-w-xs">
         {fileName}
@@ -224,7 +224,7 @@ export function FileViewer({
             <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-700">
               <Button
                 variant="outline"
-                icon={<Download className="h-4 w-4" />}
+                icon={<Download className="h-4 w-4" aria-hidden="true" />}
                 onClick={() => onDownload(file)}
                 aria-label={`Download ${file.name}`}
               >
@@ -232,7 +232,7 @@ export function FileViewer({
               </Button>
               <Button
                 variant="outline"
-                icon={<Link2 className="h-4 w-4" />}
+                icon={<Link2 className="h-4 w-4" aria-hidden="true" />}
                 aria-label={`Link ${file.name} to project`}
                 onClick={() => {
                   onOpenChange(false);
