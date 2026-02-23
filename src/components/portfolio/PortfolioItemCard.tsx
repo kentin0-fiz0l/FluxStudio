@@ -59,7 +59,7 @@ export const PortfolioItemCard = React.memo(function PortfolioItemCard({
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <MediaIcon className="h-8 w-8 text-gray-400" />
+                <MediaIcon className="h-8 w-8 text-gray-400" aria-hidden="true" />
               </div>
             )}
           </div>
@@ -71,7 +71,7 @@ export const PortfolioItemCard = React.memo(function PortfolioItemCard({
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{item.title}</h3>
                   {item.is_featured && (
                     <Badge className="bg-yellow-500">
-                      <Star className="h-3 w-3 mr-1" />
+                      <Star className="h-3 w-3 mr-1" aria-hidden="true" />
                       Featured
                     </Badge>
                   )}
@@ -103,10 +103,10 @@ export const PortfolioItemCard = React.memo(function PortfolioItemCard({
               {isOwner && (
                 <div className="flex items-center gap-1 ml-4">
                   <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(); }} aria-label="Edit">
-                    <Edit3 className="h-4 w-4" />
+                    <Edit3 className="h-4 w-4" aria-hidden="true" />
                   </Button>
                   <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onDelete(); }} aria-label="Delete">
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </div>
               )}
@@ -130,10 +130,10 @@ export const PortfolioItemCard = React.memo(function PortfolioItemCard({
 
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onLike(); }} aria-label="Like">
-                  <Heart className="h-4 w-4" />
+                  <Heart className="h-4 w-4" aria-hidden="true" />
                 </Button>
                 <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onShare(); }} aria-label="Share">
-                  <Share2 className="h-4 w-4" />
+                  <Share2 className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -155,7 +155,7 @@ export const PortfolioItemCard = React.memo(function PortfolioItemCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <MediaIcon className="h-12 w-12 text-gray-400" />
+              <MediaIcon className="h-12 w-12 text-gray-400" aria-hidden="true" />
             </div>
           )}
         </div>
@@ -169,7 +169,7 @@ export const PortfolioItemCard = React.memo(function PortfolioItemCard({
           )}
           {primaryMedia?.type === 'video' && (
             <Badge className="bg-black/70 text-white">
-              <Play className="h-3 w-3 mr-1" />
+              <Play className="h-3 w-3 mr-1" aria-hidden="true" />
               Video
             </Badge>
           )}
@@ -178,7 +178,7 @@ export const PortfolioItemCard = React.memo(function PortfolioItemCard({
         {item.is_featured && (
           <div className="absolute top-3 left-3">
             <Badge className="bg-yellow-500">
-              <Star className="h-3 w-3 mr-1" />
+              <Star className="h-3 w-3 mr-1" aria-hidden="true" />
               Featured
             </Badge>
           </div>
@@ -193,7 +193,7 @@ export const PortfolioItemCard = React.memo(function PortfolioItemCard({
               onClick={(e) => { e.stopPropagation(); onLike(); }}
               aria-label="Like"
             >
-              <Heart className="h-4 w-4" />
+              <Heart className="h-4 w-4" aria-hidden="true" />
             </Button>
             <Button
               variant="secondary"
@@ -201,7 +201,7 @@ export const PortfolioItemCard = React.memo(function PortfolioItemCard({
               onClick={(e) => { e.stopPropagation(); onShare(); }}
               aria-label="Share"
             >
-              <Share2 className="h-4 w-4" />
+              <Share2 className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -213,7 +213,7 @@ export const PortfolioItemCard = React.memo(function PortfolioItemCard({
           {isOwner && (
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(); }} aria-label="Edit">
-                <Edit3 className="h-3 w-3" />
+                <Edit3 className="h-3 w-3" aria-hidden="true" />
               </Button>
             </div>
           )}
