@@ -140,7 +140,7 @@ export function CreateOrganization() {
 
                 <div>
                   <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                    <MapPin size={16} className="inline mr-1" />
+                    <MapPin size={16} className="inline mr-1" aria-hidden="true" />
                     Location
                   </label>
                   <input
@@ -178,7 +178,7 @@ export function CreateOrganization() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-1">
-                    <Mail size={16} className="inline mr-1" />
+                    <Mail size={16} className="inline mr-1" aria-hidden="true" />
                     Contact Email
                   </label>
                   <input
@@ -194,7 +194,7 @@ export function CreateOrganization() {
 
                 <div>
                   <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700 mb-1">
-                    <Phone size={16} className="inline mr-1" />
+                    <Phone size={16} className="inline mr-1" aria-hidden="true" />
                     Contact Phone
                   </label>
                   <input
