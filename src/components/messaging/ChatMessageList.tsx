@@ -136,7 +136,7 @@ const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
               <span className="text-xs text-neutral-500">
                 {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
-              {isPinned && <Pin className="w-3 h-3 text-accent-500" />}
+              {isPinned && <Pin className="w-3 h-3 text-accent-500" aria-hidden="true" />}
             </div>
           )}
 
@@ -199,11 +199,11 @@ const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
           {/* Read receipt for own messages */}
           {isOwn && message.status && !isEditing && (
             <div className="flex items-center gap-1 mt-0.5 justify-end">
-              {message.status === 'sending' && <Clock className="w-3 h-3 text-neutral-400 animate-pulse" />}
-              {message.status === 'sent' && <Check className="w-3 h-3 text-neutral-400" />}
-              {message.status === 'delivered' && <CheckCheck className="w-3 h-3 text-neutral-400" />}
-              {message.status === 'read' && <CheckCheck className="w-3 h-3 text-blue-500 dark:text-blue-400" />}
-              {message.status === 'failed' && <AlertCircle className="w-3 h-3 text-red-500" />}
+              {message.status === 'sending' && <Clock className="w-3 h-3 text-neutral-400 animate-pulse" aria-hidden="true" />}
+              {message.status === 'sent' && <Check className="w-3 h-3 text-neutral-400" aria-hidden="true" />}
+              {message.status === 'delivered' && <CheckCheck className="w-3 h-3 text-neutral-400" aria-hidden="true" />}
+              {message.status === 'read' && <CheckCheck className="w-3 h-3 text-blue-500 dark:text-blue-400" aria-hidden="true" />}
+              {message.status === 'failed' && <AlertCircle className="w-3 h-3 text-red-500" aria-hidden="true" />}
               <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
                 {message.status === 'read' ? 'Read' : message.status === 'delivered' ? 'Delivered' : message.status === 'sent' ? 'Sent' : message.status === 'sending' ? 'Sending...' : message.status === 'failed' ? 'Failed' : ''}
               </span>
@@ -214,7 +214,7 @@ const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
           {!isEditing && (
             <div className="flex gap-0.5 sm:gap-1 mt-1 opacity-0 hover:opacity-100 focus-within:opacity-100 active:opacity-100 transition-opacity touch-manipulation">
               <button onClick={onReply} className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 active:bg-neutral-300 dark:active:bg-neutral-600 rounded-lg sm:rounded" title="Reply">
-                <MessageCircle className="w-4 h-4 text-neutral-500" />
+                <MessageCircle className="w-4 h-4 text-neutral-500" aria-hidden="true" />
               </button>
               {isOwn && (
                 <>
@@ -227,7 +227,7 @@ const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
                 </>
               )}
               <button onClick={onPin} className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 active:bg-neutral-300 dark:active:bg-neutral-600 rounded-lg sm:rounded" title={isPinned ? 'Unpin' : 'Pin'}>
-                <Pin className="w-4 h-4 text-neutral-500" />
+                <Pin className="w-4 h-4 text-neutral-500" aria-hidden="true" />
               </button>
               <button onClick={() => onReact('👍')} className="p-2 sm:p-1 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 active:bg-neutral-300 dark:active:bg-neutral-600 rounded-lg sm:rounded" title="React">
                 <span className="text-xs">👍</span>
@@ -356,7 +356,7 @@ export const ChatMessageList = forwardRef<ChatMessageListRef, ChatMessageListPro
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-100 to-indigo-100 dark:from-primary-900/30 dark:to-indigo-900/30 flex items-center justify-center mx-auto mb-4">
-                <MessageCircle className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                <MessageCircle className="w-8 h-8 text-primary-600 dark:text-primary-400" aria-hidden="true" />
               </div>
               <p className="text-sm text-neutral-600 dark:text-neutral-400">
                 Start the conversation!

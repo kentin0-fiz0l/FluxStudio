@@ -283,21 +283,21 @@ export function AudioPlayer({
               onClick={addBookmark}
               className="text-gray-400 hover:text-white"
             >
-              <Bookmark className="h-4 w-4" />
+              <Bookmark className="h-4 w-4" aria-hidden="true" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
               className="text-gray-400 hover:text-white"
             >
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4" aria-hidden="true" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
               className="text-gray-400 hover:text-white"
             >
-              <Share className="h-4 w-4" />
+              <Share className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -347,7 +347,7 @@ export function AudioPlayer({
               onClick={() => skip(-10)}
               className="text-white hover:bg-gray-700"
             >
-              <SkipBack className="h-4 w-4" />
+              <SkipBack className="h-4 w-4" aria-hidden="true" />
             </Button>
 
             <Button
@@ -357,9 +357,9 @@ export function AudioPlayer({
               className="h-12 w-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isPlaying ? (
-                <Pause className="h-6 w-6" />
+                <Pause className="h-6 w-6" aria-hidden="true" />
               ) : (
-                <Play className="h-6 w-6 ml-1" />
+                <Play className="h-6 w-6 ml-1" aria-hidden="true" />
               )}
             </Button>
 
@@ -369,7 +369,7 @@ export function AudioPlayer({
               onClick={() => skip(10)}
               className="text-white hover:bg-gray-700"
             >
-              <SkipForward className="h-4 w-4" />
+              <SkipForward className="h-4 w-4" aria-hidden="true" />
             </Button>
 
             {/* Volume Control */}
@@ -381,9 +381,9 @@ export function AudioPlayer({
                 className="text-white hover:bg-gray-700"
               >
                 {isMuted || volume === 0 ? (
-                  <VolumeX className="h-4 w-4" />
+                  <VolumeX className="h-4 w-4" aria-hidden="true" />
                 ) : (
-                  <Volume2 className="h-4 w-4" />
+                  <Volume2 className="h-4 w-4" aria-hidden="true" />
                 )}
               </Button>
               <Slider

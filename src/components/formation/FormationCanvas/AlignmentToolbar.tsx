@@ -46,21 +46,21 @@ export const AlignmentToolbar: React.FC<AlignmentToolbarProps> = ({
           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
           title={t('formation.alignLeft', 'Align Left')}
         >
-          <AlignStartVertical className="w-3.5 h-3.5" />
+          <AlignStartVertical className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
         <button
           onClick={() => onAlign('center')}
           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
           title={t('formation.alignCenter', 'Align Center')}
         >
-          <AlignCenterVertical className="w-3.5 h-3.5" />
+          <AlignCenterVertical className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
         <button
           onClick={() => onAlign('right')}
           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
           title={t('formation.alignRight', 'Align Right')}
         >
-          <AlignEndVertical className="w-3.5 h-3.5" />
+          <AlignEndVertical className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
 
         <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-0.5" />
@@ -70,21 +70,21 @@ export const AlignmentToolbar: React.FC<AlignmentToolbarProps> = ({
           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
           title={t('formation.alignTop', 'Align Top')}
         >
-          <AlignStartHorizontal className="w-3.5 h-3.5" />
+          <AlignStartHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
         <button
           onClick={() => onAlign('middle')}
           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
           title={t('formation.alignMiddle', 'Align Middle')}
         >
-          <AlignCenterHorizontal className="w-3.5 h-3.5" />
+          <AlignCenterHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
         <button
           onClick={() => onAlign('bottom')}
           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
           title={t('formation.alignBottom', 'Align Bottom')}
         >
-          <AlignEndHorizontal className="w-3.5 h-3.5" />
+          <AlignEndHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
       </div>
 
@@ -98,21 +98,21 @@ export const AlignmentToolbar: React.FC<AlignmentToolbarProps> = ({
               className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
               title={t('formation.distributeHorizontal', 'Distribute Horizontally')}
             >
-              <ArrowRightLeft className="w-3.5 h-3.5" />
+              <ArrowRightLeft className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
             <button
               onClick={() => onDistribute('vertical')}
               className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
               title={t('formation.distributeVertical', 'Distribute Vertically')}
             >
-              <ArrowUpDown className="w-3.5 h-3.5" />
+              <ArrowUpDown className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
             <button
               onClick={() => onDistribute('equal')}
               className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
               title={t('formation.distributeEqual', 'Equal Spacing')}
             >
-              <Maximize2 className="w-3.5 h-3.5" />
+              <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           </div>
         </>
