@@ -131,9 +131,9 @@ export function AudioTrackRow({
           title={track.muted ? 'Unmute' : 'Mute'}
         >
           {track.muted ? (
-            <VolumeX className="h-3.5 w-3.5" />
+            <VolumeX className="h-3.5 w-3.5" aria-hidden="true" />
           ) : (
-            <Volume2 className="h-3.5 w-3.5" />
+            <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />
           )}
         </button>
         <input
@@ -198,7 +198,7 @@ export function AudioTrackRow({
           aria-label="Detect beats"
           title="Detect beats"
         >
-          <Zap className="h-3.5 w-3.5" />
+          <Zap className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       )}
       {track.beatMap && (
@@ -213,7 +213,7 @@ export function AudioTrackRow({
         className="p-0.5 text-neutral-300 hover:text-red-500 transition-colors"
         aria-label={`Remove ${track.name}`}
       >
-        <X className="h-3.5 w-3.5" />
+        <X className="h-3.5 w-3.5" aria-hidden="true" />
       </button>
     </div>
   );
