@@ -116,7 +116,7 @@ export function IntentNoteInline({
         className
       )}
     >
-      <PenLine className="h-3 w-3" />
+      <PenLine className="h-3 w-3" aria-hidden="true" />
       <span>{currentNote ? 'Edit note' : 'Add a note'}</span>
     </button>
   );
