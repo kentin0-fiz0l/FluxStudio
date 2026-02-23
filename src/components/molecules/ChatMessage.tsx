@@ -92,7 +92,31 @@ export interface ChatMessageProps {
   className?: string;
 }
 
-export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(
+// Pure helper functions (stable references, no re-creation per render)
+function formatTime(date: Date) {
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getUserInitials(name: string) {
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+export const ChatMessage = React.memo(React.forwardRef<HTMLDivElement, ChatMessageProps>(
   (
     {
       message,
@@ -107,32 +131,6 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(
     },
     ref
   ) => {
-    // Format timestamp
-    const formatTime = (date: Date) => {
-      return date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
-    };
-
-    // Format file size
-    const formatFileSize = (bytes: number) => {
-      if (bytes < 1024) return `${bytes} B`;
-      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    };
-
-    // Get user initials
-    const getUserInitials = (name: string) => {
-      return name
-        .split(' ')
-        .map(n => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-    };
-
     return (
       <div
         ref={ref}
@@ -263,6 +261,6 @@ export const ChatMessage = React.forwardRef<HTMLDivElement, ChatMessageProps>(
       </div>
     );
   }
-);
+));
 
 ChatMessage.displayName = 'ChatMessage';

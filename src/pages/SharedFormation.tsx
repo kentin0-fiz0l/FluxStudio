@@ -5,9 +5,9 @@
  * Shows a 3D preview with orbit controls and a "Made with FluxStudio" watermark.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, ArrowRight, RotateCcw, Eye } from 'lucide-react';
+import { Loader2, ArrowRight, RotateCcw, Eye, RefreshCw } from 'lucide-react';
 import * as formationsApi from '../services/formationsApi';
 import { SEOHead } from '../components/SEOHead';
 import { eventTracker } from '../services/analytics/eventTracking';
@@ -33,49 +33,70 @@ export default function SharedFormation() {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
 
-  useEffect(() => {
+  const loadFormation = useCallback(async () => {
     if (!formationId) return;
-
-    const loadFormation = async () => {
-      try {
-        setLoading(true);
-        // Fetch from public endpoint (no auth required)
-        const data = await formationsApi.fetchSharedFormation(formationId);
-        const positions = new Map<string, { x: number; y: number; rotation?: number }>();
-        if (data.keyframes?.[0]?.positions) {
-          Object.entries(data.keyframes[0].positions).forEach(([id, pos]) => {
-            positions.set(id, pos as { x: number; y: number; rotation?: number });
-          });
-        }
-        setFormation({
-          id: data.id,
-          name: data.name,
-          description: data.description,
-          performers: data.performers || [],
-          positions,
-          createdBy: data.createdBy,
+    try {
+      setLoading(true);
+      setError(null);
+      // Fetch from public endpoint (no auth required)
+      const data = await formationsApi.fetchSharedFormation(formationId);
+      const positions = new Map<string, { x: number; y: number; rotation?: number }>();
+      if (data.keyframes?.[0]?.positions) {
+        Object.entries(data.keyframes[0].positions).forEach(([id, pos]) => {
+          positions.set(id, pos as { x: number; y: number; rotation?: number });
         });
-        eventTracker.trackEvent('shared_formation_view', {
-          formationId,
-          performerCount: (data.performers || []).length,
-        });
-      } catch (err) {
-        console.error('Failed to load shared formation:', err);
-        setError('This formation is not available or the link has expired.');
-      } finally {
-        setLoading(false);
       }
-    };
-
-    loadFormation();
+      setFormation({
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        performers: data.performers || [],
+        positions,
+        createdBy: data.createdBy,
+      });
+      eventTracker.trackEvent('shared_formation_view', {
+        formationId,
+        performerCount: (data.performers || []).length,
+      });
+    } catch (err) {
+      console.error('Failed to load shared formation:', err);
+      setError('This formation is not available or the link has expired.');
+    } finally {
+      setLoading(false);
+    }
   }, [formationId]);
+
+  useEffect(() => {
+    loadFormation();
+  }, [loadFormation]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-          <span className="text-sm text-gray-500">Loading formation...</span>
+      <div className="h-screen flex flex-col bg-gray-900 animate-pulse">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-40 bg-gray-700 rounded" />
+            <div className="h-4 w-16 bg-gray-700 rounded" />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-7 w-20 bg-gray-700 rounded-lg" />
+            <div className="h-7 w-28 bg-gray-700 rounded-lg" />
+          </div>
+        </div>
+        {/* Canvas skeleton */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="relative" style={{ width: '60vmin', height: '60vmin' }}>
+            <div className="absolute inset-0 border border-gray-700 rounded-lg bg-gray-800/50">
+              {[25, 45, 65, 35, 55, 50].map((x, i) => (
+                <div
+                  key={i}
+                  className="absolute w-6 h-6 rounded-full bg-gray-700"
+                  style={{ left: `${x}%`, top: `${[30, 50, 40, 60, 70, 20][i]}%`, transform: 'translate(-50%, -50%)' }}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -94,12 +115,21 @@ export default function SharedFormation() {
           <p className="text-gray-500 dark:text-gray-400 mb-6">
             {error || 'This formation does not exist or has been removed.'}
           </p>
-          <button
-            onClick={() => navigate('/')}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Go to FluxStudio
-          </button>
+          <div className="flex items-center gap-3 justify-center">
+            <button
+              onClick={loadFormation}
+              className="flex items-center gap-1.5 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              Go to FluxStudio
+            </button>
+          </div>
         </div>
       </div>
     );

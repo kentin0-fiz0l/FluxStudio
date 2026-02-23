@@ -107,10 +107,10 @@ export default function FormationCategory() {
 
   if (!config) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-950">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Category not found</h1>
-          <Link to="/" className="text-indigo-600 hover:text-indigo-700">Back to home</Link>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Category not found</h1>
+          <Link to="/" className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">Back to home</Link>
         </div>
       </div>
     );
@@ -127,7 +127,7 @@ export default function FormationCategory() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-neutral-950">
       <SEOHead
         title={config.title}
         description={config.metaDescription}
@@ -161,18 +161,18 @@ export default function FormationCategory() {
 
       {/* Template Gallery */}
       <section className="max-w-6xl mx-auto px-4 py-16">
-        <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center">
           Popular {config.title}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {config.templates.map((template) => (
-            <div key={template.name} className="bg-gray-50 rounded-xl p-6 border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
-                <span className="text-lg font-bold text-indigo-600">{template.performers}</span>
+            <div key={template.name} className="bg-gray-50 dark:bg-neutral-900 rounded-xl p-6 border border-gray-200 dark:border-neutral-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md transition-all">
+              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg flex items-center justify-center mb-4">
+                <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{template.performers}</span>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">{template.name}</h3>
-              <p className="text-sm text-gray-600 mb-3">{template.description}</p>
-              <span className="text-xs text-gray-400">{template.performers} performers</span>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{template.name}</h3>
+              <p className="text-sm text-gray-600 dark:text-neutral-400 mb-3">{template.description}</p>
+              <span className="text-xs text-gray-400 dark:text-neutral-500">{template.performers} performers</span>
             </div>
           ))}
         </div>
@@ -189,17 +189,17 @@ export default function FormationCategory() {
 
       {/* FAQ Section (SEO + structured data) */}
       <section className="max-w-3xl mx-auto px-4 py-16">
-        <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center">
           Frequently Asked Questions
         </h2>
         <div className="space-y-4">
           {config.faqs.map((faq, i) => (
-            <details key={i} className="group bg-gray-50 rounded-lg border border-gray-200">
-              <summary className="flex items-center justify-between px-5 py-4 cursor-pointer text-gray-900 font-medium">
+            <details key={i} className="group bg-gray-50 dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-700">
+              <summary className="flex items-center justify-between px-5 py-4 cursor-pointer text-gray-900 dark:text-white font-medium">
                 {faq.q}
-                <span className="text-gray-400 group-open:rotate-180 transition-transform">&#9660;</span>
+                <span className="text-gray-400 dark:text-neutral-500 group-open:rotate-180 transition-transform">&#9660;</span>
               </summary>
-              <p className="px-5 pb-4 text-gray-600 text-sm">{faq.a}</p>
+              <p className="px-5 pb-4 text-gray-600 dark:text-neutral-400 text-sm">{faq.a}</p>
             </details>
           ))}
         </div>

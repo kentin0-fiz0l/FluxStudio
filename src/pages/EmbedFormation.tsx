@@ -7,7 +7,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Loader2, Play, Pause, RotateCcw } from 'lucide-react';
+import { Loader2, Play, Pause, RotateCcw, RefreshCw } from 'lucide-react';
 import * as formationsApi from '../services/formationsApi';
 
 const Formation3DViewLazy = React.lazy(
@@ -34,41 +34,43 @@ export default function EmbedFormation() {
   const [currentTime, setCurrentTime] = useState(0);
   const [positions, setPositions] = useState<Map<string, { x: number; y: number; rotation?: number }>>(new Map());
 
-  useEffect(() => {
+  const loadFormation = useCallback(async () => {
     if (!formationId) return;
-    const load = async () => {
-      try {
-        setLoading(true);
-        const res = await formationsApi.fetchSharedFormation(formationId);
-        setData({
-          id: res.id,
-          name: res.name,
-          performers: res.performers || [],
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          keyframes: (res.keyframes || []).map((kf: any) => ({
-            id: String(kf.id),
-            timestamp: Number(kf.timestamp),
-            positions: (kf.positions instanceof Map
-              ? Object.fromEntries(kf.positions)
-              : kf.positions || {}) as Record<string, { x: number; y: number; rotation?: number }>,
-          })),
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await formationsApi.fetchSharedFormation(formationId);
+      setData({
+        id: res.id,
+        name: res.name,
+        performers: res.performers || [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        keyframes: (res.keyframes || []).map((kf: any) => ({
+          id: String(kf.id),
+          timestamp: Number(kf.timestamp),
+          positions: (kf.positions instanceof Map
+            ? Object.fromEntries(kf.positions)
+            : kf.positions || {}) as Record<string, { x: number; y: number; rotation?: number }>,
+        })),
+      });
+      // Set initial positions from first keyframe
+      if (res.keyframes?.[0]?.positions) {
+        const map = new Map<string, { x: number; y: number; rotation?: number }>();
+        Object.entries(res.keyframes[0].positions).forEach(([id, pos]) => {
+          map.set(id, pos as { x: number; y: number; rotation?: number });
         });
-        // Set initial positions from first keyframe
-        if (res.keyframes?.[0]?.positions) {
-          const map = new Map<string, { x: number; y: number; rotation?: number }>();
-          Object.entries(res.keyframes[0].positions).forEach(([id, pos]) => {
-            map.set(id, pos as { x: number; y: number; rotation?: number });
-          });
-          setPositions(map);
-        }
-      } catch {
-        setError('Formation not available');
-      } finally {
-        setLoading(false);
+        setPositions(map);
       }
-    };
-    load();
+    } catch {
+      setError('Formation not available');
+    } finally {
+      setLoading(false);
+    }
   }, [formationId]);
+
+  useEffect(() => {
+    loadFormation();
+  }, [loadFormation]);
 
   // Interpolate positions between keyframes
   const getInterpolatedPositions = useCallback((time: number): Map<string, { x: number; y: number; rotation?: number }> => {
@@ -144,8 +146,15 @@ export default function EmbedFormation() {
 
   if (error || !data) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-900 text-gray-400 text-sm">
-        {error || 'Not found'}
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-gray-400 text-sm gap-3">
+        <span>{error || 'Not found'}</span>
+        <button
+          onClick={loadFormation}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 hover:border-indigo-500/60 rounded-lg transition-colors"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Retry
+        </button>
       </div>
     );
   }

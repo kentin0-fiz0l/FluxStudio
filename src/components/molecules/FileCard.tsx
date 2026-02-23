@@ -90,7 +90,31 @@ export interface FileCardProps {
   view?: 'grid' | 'list';
 }
 
-export const FileCard = React.forwardRef<HTMLDivElement, FileCardProps>(
+// Pure helper functions (stable — no per-render re-creation)
+function getFileIcon(type: string) {
+  if (type.startsWith('image/')) return <Image className="h-6 w-6" />;
+  if (type.startsWith('video/')) return <Video className="h-6 w-6" />;
+  if (type.startsWith('audio/')) return <Music className="h-6 w-6" />;
+  if (type.includes('pdf')) return <FileText className="h-6 w-6" />;
+  if (type.includes('zip') || type.includes('compressed')) return <Archive className="h-6 w-6" />;
+  return <File className="h-6 w-6" />;
+}
+
+function getFileTypeColor(type: string) {
+  if (type.startsWith('image/')) return 'text-blue-600 bg-blue-50';
+  if (type.startsWith('video/')) return 'text-purple-600 bg-purple-50';
+  if (type.startsWith('audio/')) return 'text-pink-600 bg-pink-50';
+  if (type.includes('pdf')) return 'text-red-600 bg-red-50';
+  if (type.includes('zip')) return 'text-amber-600 bg-amber-50';
+  return 'text-neutral-600 bg-neutral-50';
+}
+
+function getFileExtension(name: string) {
+  const parts = name.split('.');
+  return parts.length > 1 ? parts[parts.length - 1].toUpperCase() : 'FILE';
+}
+
+export const FileCard = React.memo(React.forwardRef<HTMLDivElement, FileCardProps>(
   (
     {
       file,
@@ -108,32 +132,6 @@ export const FileCard = React.forwardRef<HTMLDivElement, FileCardProps>(
     },
     ref
   ) => {
-    // Get file icon based on type
-    const getFileIcon = (type: string) => {
-      if (type.startsWith('image/')) return <Image className="h-6 w-6" />;
-      if (type.startsWith('video/')) return <Video className="h-6 w-6" />;
-      if (type.startsWith('audio/')) return <Music className="h-6 w-6" />;
-      if (type.includes('pdf')) return <FileText className="h-6 w-6" />;
-      if (type.includes('zip') || type.includes('compressed')) return <Archive className="h-6 w-6" />;
-      return <File className="h-6 w-6" />;
-    };
-
-    // Get file type color
-    const getFileTypeColor = (type: string) => {
-      if (type.startsWith('image/')) return 'text-blue-600 bg-blue-50';
-      if (type.startsWith('video/')) return 'text-purple-600 bg-purple-50';
-      if (type.startsWith('audio/')) return 'text-pink-600 bg-pink-50';
-      if (type.includes('pdf')) return 'text-red-600 bg-red-50';
-      if (type.includes('zip')) return 'text-amber-600 bg-amber-50';
-      return 'text-neutral-600 bg-neutral-50';
-    };
-
-    // Get file extension
-    const getFileExtension = (name: string) => {
-      const parts = name.split('.');
-      return parts.length > 1 ? parts[parts.length - 1].toUpperCase() : 'FILE';
-    };
-
     // Grid view
     if (view === 'grid') {
       return (
@@ -368,6 +366,6 @@ export const FileCard = React.forwardRef<HTMLDivElement, FileCardProps>(
       </Card>
     );
   }
-);
+));
 
 FileCard.displayName = 'FileCard';
