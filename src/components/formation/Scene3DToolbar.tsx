@@ -77,7 +77,7 @@ export function Scene3DToolbar({
             onClick={() => onToolChange(tool)}
             title={label}
           >
-            <Icon className="w-4 h-4" />
+            <Icon className="w-4 h-4" aria-hidden="true" />
           </ToolButton>
         ))}
       </div>
@@ -91,7 +91,7 @@ export function Scene3DToolbar({
             onClick={() => onToolChange(tool)}
             title={`Add ${label}`}
           >
-            <Icon className="w-4 h-4" />
+            <Icon className="w-4 h-4" aria-hidden="true" />
           </ToolButton>
         ))}
       </div>
@@ -99,13 +99,13 @@ export function Scene3DToolbar({
       {/* Library & Import */}
       <div className="flex items-center gap-0.5 pr-2 border-r border-gray-200 dark:border-gray-700">
         <ToolButton onClick={onOpenPropLibrary} title="Prop Library">
-          <Library className="w-4 h-4" />
+          <Library className="w-4 h-4" aria-hidden="true" />
         </ToolButton>
         <ToolButton onClick={onOpenModelImporter} title="Import Model">
-          <Upload className="w-4 h-4" />
+          <Upload className="w-4 h-4" aria-hidden="true" />
         </ToolButton>
         <ToolButton onClick={onOpenPrimitiveBuilder} title="Primitive Builder">
-          <Wrench className="w-4 h-4" />
+          <Wrench className="w-4 h-4" aria-hidden="true" />
         </ToolButton>
       </div>
 
@@ -115,13 +115,13 @@ export function Scene3DToolbar({
       {/* Settings toggles */}
       <div className="flex items-center gap-0.5">
         <ToolButton active={showGrid} onClick={onToggleGrid} title="Toggle Grid">
-          <Grid3X3 className="w-4 h-4" />
+          <Grid3X3 className="w-4 h-4" aria-hidden="true" />
         </ToolButton>
         <ToolButton active={showLabels} onClick={onToggleLabels} title="Toggle Labels">
-          <Tag className="w-4 h-4" />
+          <Tag className="w-4 h-4" aria-hidden="true" />
         </ToolButton>
         <ToolButton active={showShadows} onClick={onToggleShadows} title="Toggle Shadows">
-          <Sun className="w-4 h-4" />
+          <Sun className="w-4 h-4" aria-hidden="true" />
         </ToolButton>
       </div>
     </div>
@@ -142,7 +142,8 @@ function ToolButton({
   return (
     <button
       onClick={onClick}
-      title={title}
+      aria-label={title}
+      aria-pressed={active}
       className={`
         p-1.5 rounded transition-colors
         ${active

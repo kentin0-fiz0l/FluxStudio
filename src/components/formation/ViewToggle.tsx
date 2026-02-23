@@ -30,9 +30,10 @@ export function ViewToggle({ mode, onChange }: ViewToggleProps) {
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }
           `}
-          title={`${label} View`}
+          aria-label={`${label} View`}
+          aria-pressed={mode === value}
         >
-          <Icon className="w-4 h-4" />
+          <Icon className="w-4 h-4" aria-hidden="true" />
           <span className="hidden sm:inline">{label}</span>
         </button>
       ))}

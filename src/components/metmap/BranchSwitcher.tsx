@@ -158,7 +158,7 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
                             disabled={isMerging}
                             className="px-1 py-0.5 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50 flex items-center gap-0.5"
                           >
-                            {isMerging && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+                            {isMerging && <Loader2 className="w-2.5 h-2.5 animate-spin" aria-hidden="true" />}
                             Yes
                           </button>
                           <button
@@ -175,7 +175,7 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
                             className="flex items-center gap-0.5 px-1 py-0.5 text-[10px] text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-colors"
                             aria-label={`Merge branch ${branch.name}`}
                           >
-                            <Merge className="w-2.5 h-2.5" />
+                            <Merge className="w-2.5 h-2.5" aria-hidden="true" />
                             Merge
                           </button>
                           {branch.userId === currentUserId && (
@@ -184,7 +184,7 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
                               className="flex items-center gap-0.5 px-1 py-0.5 text-[10px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
                               aria-label={`Delete branch ${branch.name}`}
                             >
-                              <Trash2 className="w-2.5 h-2.5" />
+                              <Trash2 className="w-2.5 h-2.5" aria-hidden="true" />
                             </button>
                           )}
                         </>
@@ -204,7 +204,7 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
               onClick={() => setShowCreateForm(true)}
               className="w-full flex items-center gap-2 px-2 py-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
             >
-              <Plus className="w-3 h-3" />
+              <Plus className="w-3 h-3" aria-hidden="true" />
               New Branch
             </button>
           ) : (
@@ -214,6 +214,7 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="Branch name..."
+                aria-label="Branch name"
                 maxLength={60}
                 className="w-full px-2 py-1 text-xs border border-neutral-200 dark:border-neutral-700 rounded bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-indigo-400"
                 autoFocus
@@ -227,6 +228,7 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
                   value={sourceSnapshotId}
                   onChange={(e) => setSourceSnapshotId(e.target.value)}
                   className="w-full px-2 py-1 text-xs border border-neutral-200 dark:border-neutral-700 rounded focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
+                  aria-label="Source snapshot"
                 >
                   <option value="">From current state</option>
                   {snapshots.map((snap) => (
@@ -248,7 +250,7 @@ export const BranchSwitcher = React.memo(function BranchSwitcher({
                   disabled={!newName.trim() || isCreating}
                   className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center gap-1"
                 >
-                  {isCreating && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {isCreating && <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />}
                   Create
                 </button>
               </div>

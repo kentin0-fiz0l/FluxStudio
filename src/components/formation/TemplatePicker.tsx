@@ -156,11 +156,11 @@ export function TemplatePicker({
   const categories = templateRegistry.getCategories();
 
   const categoryIcons: Record<TemplateCategory, React.ReactNode> = {
-    basic: <Grid3X3 className="w-4 h-4" />,
-    intermediate: <LayoutGrid className="w-4 h-4" />,
-    advanced: <Users className="w-4 h-4" />,
-    custom: <Users className="w-4 h-4" />,
-    drill: <Music className="w-4 h-4" />,
+    basic: <Grid3X3 className="w-4 h-4" aria-hidden="true" />,
+    intermediate: <LayoutGrid className="w-4 h-4" aria-hidden="true" />,
+    advanced: <Users className="w-4 h-4" aria-hidden="true" />,
+    custom: <Users className="w-4 h-4" aria-hidden="true" />,
+    drill: <Music className="w-4 h-4" aria-hidden="true" />,
   };
 
   const categoryLabels: Record<TemplateCategory, string> = {
@@ -186,11 +186,12 @@ export function TemplatePicker({
               <button
                 onClick={() => setViewState('browse')}
                 className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                aria-label="Back to template list"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-5 h-5" aria-hidden="true" />
               </button>
             )}
-            <LayoutGrid className="w-6 h-6 text-indigo-600" />
+            <LayoutGrid className="w-6 h-6 text-indigo-600" aria-hidden="true" />
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                 {emptyState && viewState === 'browse' && 'Choose a Starting Formation'}
@@ -217,8 +218,9 @@ export function TemplatePicker({
               <button
                 onClick={onCancel}
                 className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                aria-label="Close template picker"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             )}
           </div>
@@ -237,12 +239,13 @@ export function TemplatePicker({
               >
                 {/* Search */}
                 <div className="relative mb-4">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search templates..."
+                    aria-label="Search templates"
                     className="w-full pl-12 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -257,6 +260,7 @@ export function TemplatePicker({
                         ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
                         : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                     )}
+                    aria-pressed={selectedCategory === null}
                   >
                     All Templates
                   </button>
@@ -270,6 +274,7 @@ export function TemplatePicker({
                           ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                       )}
+                      aria-pressed={selectedCategory === cat}
                     >
                       {categoryIcons[cat]}
                       <span>{categoryLabels[cat]}</span>
@@ -290,6 +295,7 @@ export function TemplatePicker({
                             ? 'bg-indigo-600 text-white'
                             : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                         )}
+                        aria-pressed={selectedTags.has(tag)}
                       >
                         {tag}
                       </button>
@@ -299,7 +305,7 @@ export function TemplatePicker({
 
                 {/* Performer count range */}
                 <div className="flex items-center gap-3 mb-4">
-                  <Users className="w-4 h-4 text-gray-400" />
+                  <Users className="w-4 h-4 text-gray-400" aria-hidden="true" />
                   <span className="text-sm text-gray-500 dark:text-gray-400">Performers:</span>
                   <input
                     type="number"
@@ -325,11 +331,11 @@ export function TemplatePicker({
                 {/* Templates Grid */}
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                    <Loader2 className="w-8 h-8 animate-spin text-indigo-500" aria-hidden="true" />
                   </div>
                 ) : templates.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
-                    <LayoutGrid className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <LayoutGrid className="w-12 h-12 mx-auto mb-3 opacity-50" aria-hidden="true" />
                     <p>No templates found for {performerCount} performers</p>
                     <p className="text-sm mt-1">Try adjusting your search or add more performers</p>
                   </div>
@@ -376,12 +382,12 @@ export function TemplatePicker({
                         >
                           {isPreviewAnimating ? (
                             <>
-                              <Pause className="w-4 h-4" />
+                              <Pause className="w-4 h-4" aria-hidden="true" />
                               Pause
                             </>
                           ) : (
                             <>
-                              <Play className="w-4 h-4" />
+                              <Play className="w-4 h-4" aria-hidden="true" />
                               Play
                             </>
                           )}
@@ -392,14 +398,14 @@ export function TemplatePicker({
                     {/* Template info */}
                     <div className="mt-4 flex items-center gap-3 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
+                        <Users className="w-4 h-4" aria-hidden="true" />
                         {selectedTemplate.parameters.minPerformers}
                         {selectedTemplate.parameters.maxPerformers &&
                           `-${selectedTemplate.parameters.maxPerformers}`} performers
                       </span>
                       {selectedTemplate.parameters.scalable && (
                         <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                          <Check className="w-4 h-4" />
+                          <Check className="w-4 h-4" aria-hidden="true" />
                           Scalable
                         </span>
                       )}
@@ -483,7 +489,7 @@ export function TemplatePicker({
               onClick={handleApply}
               className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
             >
-              <LayoutGrid className="w-4 h-4" />
+              <LayoutGrid className="w-4 h-4" aria-hidden="true" />
               Apply Template
             </button>
           </div>
@@ -526,7 +532,7 @@ function TemplateCard({ template, performerCount, onClick }: TemplateCardProps) 
           {template.category}
         </span>
         <span className="flex items-center gap-1">
-          <Users className="w-3 h-3" />
+          <Users className="w-3 h-3" aria-hidden="true" />
           {template.parameters.minPerformers}+
         </span>
       </div>

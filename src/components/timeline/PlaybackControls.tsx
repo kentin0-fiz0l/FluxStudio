@@ -102,30 +102,30 @@ export function PlaybackControls({ className = '' }: PlaybackControlsProps) {
         <button
           onClick={handleSkipBack}
           className="p-2 hover:bg-gray-700 rounded-md transition-colors"
-          title="Skip to Previous Marker"
+          aria-label="Skip to Previous Marker"
         >
-          <SkipBack className="w-4 h-4" />
+          <SkipBack className="w-4 h-4" aria-hidden="true" />
         </button>
 
         {/* Frame back */}
         <button
           onClick={handleFrameBack}
           className="p-2 hover:bg-gray-700 rounded-md transition-colors"
-          title="Previous Frame"
+          aria-label="Previous Frame"
         >
-          <Rewind className="w-4 h-4" />
+          <Rewind className="w-4 h-4" aria-hidden="true" />
         </button>
 
         {/* Play/Pause */}
         <button
           onClick={handlePlayPause}
           className="p-2 bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
-          title={playback.isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+          aria-label={playback.isPlaying ? 'Pause (Space)' : 'Play (Space)'}
         >
           {playback.isPlaying ? (
-            <Pause className="w-5 h-5" />
+            <Pause className="w-5 h-5" aria-hidden="true" />
           ) : (
-            <Play className="w-5 h-5" />
+            <Play className="w-5 h-5" aria-hidden="true" />
           )}
         </button>
 
@@ -133,27 +133,27 @@ export function PlaybackControls({ className = '' }: PlaybackControlsProps) {
         <button
           onClick={handleStop}
           className="p-2 hover:bg-gray-700 rounded-md transition-colors"
-          title="Stop"
+          aria-label="Stop"
         >
-          <Square className="w-4 h-4" />
+          <Square className="w-4 h-4" aria-hidden="true" />
         </button>
 
         {/* Frame forward */}
         <button
           onClick={handleFrameForward}
           className="p-2 hover:bg-gray-700 rounded-md transition-colors"
-          title="Next Frame"
+          aria-label="Next Frame"
         >
-          <FastForward className="w-4 h-4" />
+          <FastForward className="w-4 h-4" aria-hidden="true" />
         </button>
 
         {/* Skip to end */}
         <button
           onClick={handleSkipForward}
           className="p-2 hover:bg-gray-700 rounded-md transition-colors"
-          title="Skip to Next Marker"
+          aria-label="Skip to Next Marker"
         >
-          <SkipForward className="w-4 h-4" />
+          <SkipForward className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
 
@@ -165,9 +165,10 @@ export function PlaybackControls({ className = '' }: PlaybackControlsProps) {
             ? 'bg-blue-600/20 text-blue-400'
             : 'hover:bg-gray-700 text-gray-400'
         }`}
-        title="Toggle Loop"
+        aria-label="Toggle Loop"
+        aria-pressed={playback.loop}
       >
-        <Repeat className="w-4 h-4" />
+        <Repeat className="w-4 h-4" aria-hidden="true" />
       </button>
 
       {/* Playback rate */}
@@ -175,7 +176,7 @@ export function PlaybackControls({ className = '' }: PlaybackControlsProps) {
         value={playback.playbackRate}
         onChange={(e) => playback.setPlaybackRate(parseFloat(e.target.value))}
         className="bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-        title="Playback Speed"
+        aria-label="Playback Speed"
       >
         {playbackRates.map((rate) => (
           <option key={rate} value={rate}>
@@ -189,12 +190,12 @@ export function PlaybackControls({ className = '' }: PlaybackControlsProps) {
         <button
           onClick={handleToggleMute}
           className="p-1 hover:bg-gray-700 rounded transition-colors"
-          title={isMuted ? 'Unmute' : 'Mute'}
+          aria-label={isMuted ? 'Unmute' : 'Mute'}
         >
           {isMuted || volume === 0 ? (
-            <VolumeX className="w-4 h-4 text-gray-400" />
+            <VolumeX className="w-4 h-4 text-gray-400" aria-hidden="true" />
           ) : (
-            <Volume2 className="w-4 h-4" />
+            <Volume2 className="w-4 h-4" aria-hidden="true" />
           )}
         </button>
         <input
@@ -205,7 +206,7 @@ export function PlaybackControls({ className = '' }: PlaybackControlsProps) {
           value={isMuted ? 0 : volume}
           onChange={handleVolumeChange}
           className="w-20 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
-          title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
+          aria-label={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
         />
       </div>
     </div>
