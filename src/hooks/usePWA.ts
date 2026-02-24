@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '../services/db';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { getApiUrl } from '../utils/apiHelpers';
 
 interface BeforeInstallPromptEvent extends Event {

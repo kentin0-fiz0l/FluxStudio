@@ -7,7 +7,7 @@
 
 import { StateCreator } from 'zustand';
 import { FluxStore } from '../store';
-import { getApiUrl } from '@/utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 
 // ============================================================================
 // Types
@@ -113,15 +113,6 @@ export interface ConnectorActions {
 
 export interface ConnectorSlice {
   connectors: ConnectorState & ConnectorActions;
-}
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
-function getAuthHeader() {
-  const token = localStorage.getItem('auth_token');
-  return { Authorization: `Bearer ${token}` };
 }
 
 // ============================================================================
@@ -238,11 +229,9 @@ export const createConnectorSlice: StateCreator<
     fetchConnectors: async () => {
       set((state) => { state.connectors.loading = true; });
       try {
-        const response = await fetch(getApiUrl('/connectors/list'), {
-          headers: getAuthHeader(),
-        });
-        if (!response.ok) throw new Error('Failed to fetch connectors');
-        const data = await response.json();
+        const response = await apiService.get<{ connectors: Connector[] }>('/connectors/list');
+        if (!response.success) throw new Error('Failed to fetch connectors');
+        const data = response.data as { connectors: Connector[] };
         set((state) => {
           state.connectors.connectors = data.connectors || [];
           state.connectors.loading = false;
@@ -257,15 +246,11 @@ export const createConnectorSlice: StateCreator<
 
     connect: async (provider) => {
       try {
-        const response = await fetch(getApiUrl(`/connectors/${provider}/auth-url`), {
-          headers: getAuthHeader(),
-        });
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to get authorization URL');
+        const response = await apiService.get<{ url: string }>(`/connectors/${provider}/auth-url`);
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to get authorization URL');
         }
-        const data = await response.json();
-        window.location.href = data.url;
+        window.location.href = (response.data as { url: string }).url;
       } catch (error) {
         set((state) => {
           state.connectors.error = (error as Error).message;
@@ -275,11 +260,8 @@ export const createConnectorSlice: StateCreator<
 
     disconnect: async (provider) => {
       try {
-        const response = await fetch(getApiUrl(`/connectors/${provider}`), {
-          method: 'DELETE',
-          headers: getAuthHeader(),
-        });
-        if (!response.ok) throw new Error('Failed to disconnect');
+        const response = await apiService.delete(`/connectors/${provider}`);
+        if (!response.success) throw new Error('Failed to disconnect');
 
         set((state) => {
           const connector = state.connectors.connectors.find((c) => c.id === provider);
@@ -300,19 +282,20 @@ export const createConnectorSlice: StateCreator<
     fetchFiles: async (provider, options = {}) => {
       set((state) => { state.connectors.filesLoading = true; });
       try {
-        const params = new URLSearchParams();
-        if (options.path) params.append('path', options.path);
-        if (options.folderId) params.append('folderId', options.folderId);
-        if (options.owner) params.append('owner', options.owner);
-        if (options.repo) params.append('repo', options.repo);
+        const params: Record<string, string> = {};
+        if (options.path) params.path = options.path;
+        if (options.folderId) params.folderId = options.folderId;
+        if (options.owner) params.owner = options.owner;
+        if (options.repo) params.repo = options.repo;
 
-        const url = `${getApiUrl(`/connectors/${provider}/files`)}${params.toString() ? `?${params.toString()}` : ''}`;
-        const response = await fetch(url, { headers: getAuthHeader() });
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to fetch files');
+        const response = await apiService.get<{ files: ConnectorFile[] }>(
+          `/connectors/${provider}/files`,
+          { params: Object.keys(params).length > 0 ? params : undefined }
+        );
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to fetch files');
         }
-        const data = await response.json();
+        const data = response.data as { files: ConnectorFile[] };
         set((state) => {
           state.connectors.files = data.files || [];
           state.connectors.filesLoading = false;
@@ -327,16 +310,11 @@ export const createConnectorSlice: StateCreator<
 
     importFile: async (provider, fileId, projectId) => {
       try {
-        const response = await fetch(getApiUrl(`/connectors/${provider}/import`), {
-          method: 'POST',
-          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileId, projectId }),
-        });
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to import file');
+        const response = await apiService.post<{ file: ImportedFile }>(`/connectors/${provider}/import`, { fileId, projectId });
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to import file');
         }
-        const data = await response.json();
+        const data = response.data as { file: ImportedFile };
         set((state) => {
           state.connectors.importedFiles.unshift(data.file);
         });
@@ -351,14 +329,16 @@ export const createConnectorSlice: StateCreator<
 
     fetchImportedFiles: async (options = {}) => {
       try {
-        const params = new URLSearchParams();
-        if (options.provider) params.append('provider', options.provider);
-        if (options.projectId) params.append('projectId', options.projectId);
+        const params: Record<string, string> = {};
+        if (options.provider) params.provider = options.provider;
+        if (options.projectId) params.projectId = options.projectId;
 
-        const url = `${getApiUrl('/connectors/files')}${params.toString() ? `?${params.toString()}` : ''}`;
-        const response = await fetch(url, { headers: getAuthHeader() });
-        if (!response.ok) throw new Error('Failed to fetch imported files');
-        const data = await response.json();
+        const response = await apiService.get<{ files: ImportedFile[] }>(
+          '/connectors/files',
+          { params: Object.keys(params).length > 0 ? params : undefined }
+        );
+        if (!response.success) throw new Error('Failed to fetch imported files');
+        const data = response.data as { files: ImportedFile[] };
         set((state) => {
           state.connectors.importedFiles = data.files || [];
         });
@@ -369,12 +349,8 @@ export const createConnectorSlice: StateCreator<
 
     linkFileToProject: async (fileId, projectId) => {
       try {
-        const response = await fetch(getApiUrl(`/connectors/files/${fileId}/link`), {
-          method: 'POST',
-          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectId }),
-        });
-        if (!response.ok) throw new Error('Failed to link file');
+        const response = await apiService.post(`/connectors/files/${fileId}/link`, { projectId });
+        if (!response.success) throw new Error('Failed to link file');
         await get().connectors.fetchImportedFiles();
       } catch {
         set((state) => {

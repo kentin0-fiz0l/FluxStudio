@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth, UserType } from '../contexts/AuthContext';
+import { useAuth, type UserType } from '@/store/slices/authSlice';
 import { useGoogleOAuth } from '../hooks/useGoogleOAuth';
 import { eventTracker } from '../services/analytics/eventTracking';
 import {

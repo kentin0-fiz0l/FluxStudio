@@ -17,6 +17,12 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     css: true,
     reporters: ['verbose'],
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        isolate: true,
+      },
+    },
     exclude: [
       '**/node_modules/**',
       'cli/**',  // CLI uses node:test, not Vitest

@@ -14,7 +14,7 @@ import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/templates';
 import { Button, Badge, Dialog, DialogContent, DialogHeader, DialogTitle, Input, Card, CardContent } from '../components/ui';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useFilesOptional, FileRecord, FileSource } from '../contexts/FilesContext';
 import { useProjects } from '../hooks/useProjects';
 import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';

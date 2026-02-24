@@ -162,7 +162,32 @@ class SearchService {
   }
 
   /**
-   * Perform unified search across all content types
+   * Perform server-side search via the unified search API endpoint.
+   * Uses PostgreSQL full-text search for better relevance ranking.
+   */
+  async searchServer(searchQuery: SearchQuery): Promise<SearchResponse> {
+    const { query, filters, limit = 20, offset = 0, sortBy = 'relevance', sortOrder = 'desc' } = searchQuery;
+    const params = new URLSearchParams({
+      q: query,
+      limit: String(limit),
+      offset: String(offset),
+      sortBy,
+      sortOrder,
+    });
+    if (filters?.types?.length) params.set('types', filters.types.join(','));
+
+    const response = await fetch(buildApiUrl(`/api/search?${params}`), {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) throw new Error('Server search failed');
+    const data = await response.json();
+    return data;
+  }
+
+  /**
+   * Perform unified search across all content types.
+   * Tries server-side PostgreSQL full-text search first, falls back to client-side.
    */
   async search(searchQuery: SearchQuery): Promise<SearchResponse> {
     const { query, filters, limit = 20, offset = 0, sortBy = 'relevance', sortOrder = 'desc' } = searchQuery;
@@ -170,6 +195,13 @@ class SearchService {
     // Add to search history if not duplicate
     if (query.trim() && !this.searchHistory.includes(query.trim())) {
       this.addToHistory(query.trim());
+    }
+
+    // Try server-side search first
+    try {
+      return await this.searchServer(searchQuery);
+    } catch {
+      // Fall back to client-side search
     }
 
     try {

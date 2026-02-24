@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Separator } from '../ui/separator';
 import { Progress } from '../ui/progress';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { cn } from '../../lib/utils';
 
 interface Annotation {

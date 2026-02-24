@@ -16,7 +16,7 @@ import { getApiUrl } from '../utils/apiHelpers';
 import { CACHE_STANDARD, CACHE_FREQUENT } from '@/lib/queryConfig';
 
 // Re-export useAuth for convenience
-export { useAuth } from '../contexts/AuthContext';
+export { useAuth } from '@/store/slices/authSlice';
 
 // ============================================================================
 // Type Definitions

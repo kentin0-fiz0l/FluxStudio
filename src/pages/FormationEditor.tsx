@@ -11,7 +11,7 @@ import { DashboardLayout } from '@/components/templates';
 import { FormationCanvas } from '@/components/formation';
 import { FormationEditorErrorBoundary } from '@/components/error/ErrorBoundary';
 import { useRegisterShortcuts } from '@/contexts/KeyboardShortcutsContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useNotification } from '../contexts/NotificationContext';
 import { Formation } from '../services/formationService';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
@@ -24,6 +24,7 @@ import { PropLibraryPanel } from '../components/object-editor/PropLibraryPanel';
 import { ModelImporter } from '../components/object-editor/ModelImporter';
 import { PrimitiveBuilder } from '../components/object-editor/PrimitiveBuilder';
 import * as formationsApi from '../services/formationsApi';
+import { observability } from '@/services/observability';
 import type { ComposedPrimitive } from '../services/scene3d/types';
 const Formation3DViewLazy = React.lazy(
   () => import('../components/formation/Formation3DView').then((m) => ({ default: m.Formation3DView }))
@@ -95,6 +96,7 @@ export default function FormationEditor() {
         }
       }
 
+      observability.analytics.track('formation_saved', { formationId: formation.id, projectId });
       addNotification({
         type: 'success',
         title: 'Formation Saved',
@@ -180,6 +182,11 @@ export default function FormationEditor() {
     });
     setPrimitiveBuilderOpen(false);
   }, [addObject, objectList.length, setPrimitiveBuilderOpen]);
+
+  // Track formation editor open
+  React.useEffect(() => {
+    observability.analytics.track('formation_opened', { projectId, formationId: formationId ?? 'new' });
+  }, [projectId, formationId]);
 
   // Keep a stable ref to scene3d state/actions for load and save
   const scene3dRef = React.useRef({ clearScene, addObject, objects: scene3dObjects });

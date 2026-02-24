@@ -13,7 +13,7 @@ import * as React from 'react';
 import { DashboardLayout } from '../../components/templates';
 import { Button, Card } from '@/components/ui';
 import { Switch } from '@/components/ui/switch';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import {
   Download,
   Trash2,

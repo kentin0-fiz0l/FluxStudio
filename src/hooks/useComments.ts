@@ -10,8 +10,9 @@
  */
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
-import { getApiUrl } from '../utils/apiHelpers';
-import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '@/services/apiService';
+import { buildApiUrl } from '@/config/environment';
+import { useAuth } from '@/store/slices/authSlice';
 import { toast } from '../lib/toast';
 import { CACHE_STANDARD } from '@/lib/queryConfig';
 
@@ -95,24 +96,15 @@ export const useCommentsQuery = (
     queryFn: async () => {
       if (!projectId || !taskId) throw new Error('Project ID and Task ID are required');
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(
-        getApiUrl(`/api/projects/${projectId}/tasks/${taskId}/comments`),
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        }
+      const response = await apiService.get<ApiResponse<Comment>>(
+        `/projects/${projectId}/tasks/${taskId}/comments`
       );
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || 'Failed to fetch comments');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch comments');
       }
 
-      const result: ApiResponse<Comment> = await response.json();
+      const result = response.data as ApiResponse<Comment>;
 
       // Handle different response formats
       if (result.comments) return result.comments;
@@ -149,24 +141,15 @@ export const useCommentQuery = (
         throw new Error('Project ID, Task ID, and Comment ID are required');
       }
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(
-        getApiUrl(`/api/projects/${projectId}/tasks/${taskId}/comments/${commentId}`),
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        }
+      const response = await apiService.get<ApiResponse<Comment>>(
+        `/projects/${projectId}/tasks/${taskId}/comments/${commentId}`
       );
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || 'Failed to fetch comment');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch comment');
       }
 
-      const result: ApiResponse<Comment> = await response.json();
+      const result = response.data as ApiResponse<Comment>;
       return result.comment || (result.data as Comment);
     },
     enabled: !!projectId && !!taskId && !!commentId && !!user,
@@ -202,26 +185,16 @@ export const useCreateCommentMutation = (projectId: string, taskId: string) => {
     mutationFn: async (newComment: CreateCommentInput) => {
       if (!user) throw new Error('Authentication required');
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(
-        getApiUrl(`/api/projects/${projectId}/tasks/${taskId}/comments`),
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify(newComment),
-        }
+      const response = await apiService.post<ApiResponse<Comment>>(
+        `/projects/${projectId}/tasks/${taskId}/comments`,
+        newComment
       );
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || 'Failed to create comment');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create comment');
       }
 
-      const result: ApiResponse<Comment> = await response.json();
+      const result = response.data as ApiResponse<Comment>;
       return result.comment || (result.data as Comment);
     },
 
@@ -300,26 +273,19 @@ export const useUpdateCommentMutation = (projectId: string, taskId: string) => {
     mutationFn: async ({ commentId, updates }) => {
       if (!user) throw new Error('Authentication required');
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(
-        getApiUrl(`/api/projects/${projectId}/tasks/${taskId}/comments/${commentId}`),
+      const response = await apiService.makeRequest<ApiResponse<Comment>>(
+        buildApiUrl(`/projects/${projectId}/tasks/${taskId}/comments/${commentId}`),
         {
           method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
           body: JSON.stringify(updates),
         }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || 'Failed to update comment');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update comment');
       }
 
-      const result: ApiResponse<Comment> = await response.json();
+      const result = response.data as ApiResponse<Comment>;
       return result.comment || (result.data as Comment);
     },
 
@@ -402,21 +368,12 @@ export const useDeleteCommentMutation = (projectId: string, taskId: string) => {
     mutationFn: async (commentId: string) => {
       if (!user) throw new Error('Authentication required');
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(
-        getApiUrl(`/api/projects/${projectId}/tasks/${taskId}/comments/${commentId}`),
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: 'include',
-        }
+      const response = await apiService.delete(
+        `/projects/${projectId}/tasks/${taskId}/comments/${commentId}`
       );
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || 'Failed to delete comment');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete comment');
       }
     },
 

@@ -24,14 +24,13 @@
  */
 
 import React from 'react';
-import { AuthProvider } from '../../contexts/AuthContext';
 import { SocketProvider } from '../../contexts/SocketContext';
 import { NotificationProvider } from '../../contexts/NotificationContext';
 import { RealtimeNotifications } from '../notifications/RealtimeNotifications';
 import { MessagingSocketBridge } from '../../contexts/MessagingContext';
 import { SessionProvider } from '../../contexts/SessionContext';
 import { OrganizationProvider } from '../../contexts/OrganizationContext';
-import { useAuth } from '../../store/slices/authSlice';
+import { useAuth, useAuthInit } from '@/store/slices/authSlice';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -39,13 +38,11 @@ interface ProvidersProps {
 
 /**
  * Core providers - foundational services
+ * Auth initialization now handled by useAuthInit() hook (replaces AuthProvider).
  */
 function CoreProviders({ children }: ProvidersProps) {
-  return (
-    <AuthProvider>
-      {children}
-    </AuthProvider>
-  );
+  useAuthInit();
+  return <>{children}</>;
 }
 
 /**

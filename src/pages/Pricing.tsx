@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { SaaSPricingTable } from '../components/payments/SaaSPricingTable';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { fetchLimits } from '../services/usageService';
 import type { PlanId } from '../config/plans';
 

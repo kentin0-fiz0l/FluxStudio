@@ -656,6 +656,11 @@ const referralsRoutes = require('./routes/referrals');
 app.use('/referrals', referralsRoutes);
 app.use('/api/referrals', referralsRoutes);
 
+// Sprint 87: Unified search with PostgreSQL full-text search
+const searchRoutes = require('./routes/search');
+app.use('/search', searchRoutes);
+app.use('/api/search', searchRoutes);
+
 // Sprint 42: Feature Flags
 const adminFlagsRoutes = require('./routes/admin-flags');
 const { featureFlagMiddleware } = require('./lib/featureFlags');

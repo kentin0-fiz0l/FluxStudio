@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useDebounce } from 'use-debounce';
 import { DashboardLayout } from '../components/widgets/types';
 // @ts-expect-error - react-grid-layout types are provided by the package

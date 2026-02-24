@@ -10,7 +10,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button, Card } from '@/components/ui';
 import { Switch } from '@/components/ui/switch';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { SEOHead } from '../components/SEOHead';
 import {
   Bell,

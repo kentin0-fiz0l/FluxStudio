@@ -8,7 +8,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Badge, Button } from '@/components/ui';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { Project } from '@/hooks/useProjects';
 import { AssetRecord } from '@/contexts/AssetsContext';
 import { useMetMap } from '@/contexts/MetMapContext';

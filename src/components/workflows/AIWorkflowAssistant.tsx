@@ -25,7 +25,7 @@ import {
   Users
 } from 'lucide-react';
 import { useWorkspace } from '@/store';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { workflowEngine, WorkflowTemplate } from '../../services/workflowEngine';
 import { cn } from '../../lib/utils';
 

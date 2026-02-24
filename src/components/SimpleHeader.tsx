@@ -1,6 +1,6 @@
 // React import not needed with JSX transform
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 
 export function SimpleHeader() {
   // Updated with comprehensive navigation menu

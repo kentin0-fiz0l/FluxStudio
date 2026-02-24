@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import { useProjectsData } from '../../hooks/useRealTimeData';
 import { BaseWidget } from './BaseWidget';

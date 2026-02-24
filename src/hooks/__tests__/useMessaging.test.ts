@@ -65,7 +65,7 @@ vi.mock('../../services/messagingService', () => ({
   messagingService: mockMessagingService,
 }));
 
-vi.mock('../../contexts/AuthContext', () => ({
+vi.mock('@/store/slices/authSlice', () => ({
   useAuth: () => ({
     user: { id: 'user-1', name: 'Test User', userType: 'designer' },
   }),

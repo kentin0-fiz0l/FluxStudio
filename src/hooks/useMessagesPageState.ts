@@ -7,7 +7,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useActiveProject } from '@/store';
 import { useConversationRealtime } from './useConversationRealtime';
 import { ConversationMessage } from '../services/messagingSocketService';

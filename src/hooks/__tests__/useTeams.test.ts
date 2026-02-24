@@ -17,12 +17,25 @@ function createWrapper() {
 
 const mockUseAuth = vi.fn(() => ({ user: { id: 'user-1', name: 'Test User' } }));
 
-vi.mock('../../contexts/AuthContext', () => ({
+vi.mock('@/store/slices/authSlice', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
 vi.mock('../../utils/apiHelpers', () => ({
   getApiUrl: vi.fn((path: string) => `http://localhost:3001${path}`),
+}));
+
+const { mockApiService } = vi.hoisted(() => ({
+  mockApiService: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    makeRequest: vi.fn(),
+  },
+}));
+vi.mock('@/services/apiService', () => ({
+  apiService: mockApiService,
 }));
 
 const mockTeams = [
@@ -51,10 +64,10 @@ describe('useTeams', () => {
   });
 
   it('should fetch teams on mount', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ teams: mockTeams }),
-    }));
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { teams: mockTeams },
+    });
 
     const { result } = renderHook(() => useTeams(), { wrapper: createWrapper() });
 
@@ -64,10 +77,7 @@ describe('useTeams', () => {
   });
 
   it('should handle fetch error', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      json: () => Promise.resolve({}),
-    }));
+    mockApiService.get.mockRejectedValue(new Error('Failed to fetch teams'));
 
     const { result } = renderHook(() => useTeams(), { wrapper: createWrapper() });
 
@@ -75,15 +85,24 @@ describe('useTeams', () => {
   });
 
   it('should create a team', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ teams: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ team: mockTeams[0] }) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ teams: mockTeams }) });
-    vi.stubGlobal('fetch', fetchMock);
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { teams: [] },
+    });
+    mockApiService.post.mockResolvedValueOnce({
+      success: true,
+      data: { team: mockTeams[0] },
+    });
 
     const { result } = renderHook(() => useTeams(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // Update get mock to return the team after creation
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { teams: mockTeams },
+    });
 
     await act(async () => {
       await result.current.createTeam({ name: 'Design Team' });
@@ -94,15 +113,24 @@ describe('useTeams', () => {
 
   it('should update a team', async () => {
     const updated = { ...mockTeams[0], name: 'Updated Team' };
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ teams: mockTeams }) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(updated) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ teams: [updated] }) });
-    vi.stubGlobal('fetch', fetchMock);
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { teams: mockTeams },
+    });
+    mockApiService.makeRequest.mockResolvedValueOnce({
+      success: true,
+      data: updated,
+    });
 
     const { result } = renderHook(() => useTeams(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.teams).toHaveLength(1));
+
+    // Update get mock to return updated team after update
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { teams: [updated] },
+    });
 
     await act(async () => {
       await result.current.updateTeam('team-1', { name: 'Updated Team' });
@@ -112,11 +140,13 @@ describe('useTeams', () => {
   });
 
   it('should invite a member', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ teams: mockTeams }) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ success: true }) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ teams: mockTeams }) });
-    vi.stubGlobal('fetch', fetchMock);
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { teams: mockTeams },
+    });
+    mockApiService.post.mockResolvedValueOnce({
+      success: true,
+    });
 
     const { result } = renderHook(() => useTeams(), { wrapper: createWrapper() });
 
@@ -126,16 +156,16 @@ describe('useTeams', () => {
       await result.current.inviteMember('team-1', 'new@example.com', 'member');
     });
 
-    expect(fetchMock.mock.calls[1][0]).toContain('/invite');
+    expect(mockApiService.post).toHaveBeenCalledWith(
+      '/teams/team-1/invite',
+      expect.objectContaining({ email: 'new@example.com', role: 'member' })
+    );
   });
 
   it('should not fetch when user is null', () => {
     mockUseAuth.mockReturnValue({ user: null as any });
 
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-
     renderHook(() => useTeams(), { wrapper: createWrapper() });
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockApiService.get).not.toHaveBeenCalled();
   });
 });

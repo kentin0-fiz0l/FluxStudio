@@ -19,7 +19,7 @@ import {
   type CollaborationStatus,
 } from '../services/metmapCollaboration';
 import type { Section } from '../contexts/metmap/types';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { getWebSocketUrl } from '../utils/apiHelpers';
 
 // ==================== Types ====================

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { WidgetConfig, WidgetLayout, WIDGET_DIMENSIONS } from './types';
 import { getWidgetById, getDefaultWidgets } from './registry';
 import { cn } from '../ui/utils';

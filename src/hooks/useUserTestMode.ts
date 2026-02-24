@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useActiveProject } from '@/store';
 import {
   userTestLogger,

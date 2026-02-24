@@ -6,6 +6,7 @@
 
 import { StateCreator } from 'zustand';
 import type { FluxStore } from '../store';
+import { observability } from '@/services/observability';
 
 // ============================================================================
 // Types
@@ -266,11 +267,13 @@ export const createAuthSlice: StateCreator<
           const { apiService } = await import('../../services/apiService');
           const response = await apiService.getMe();
           if (response.success && response.data) {
+            const checkedUser = response.data as User;
             set((state) => {
-              state.auth.user = response.data as User;
+              state.auth.user = checkedUser;
               state.auth.isAuthenticated = true;
               state.auth.token = token;
             });
+            observability.analytics.identify(checkedUser.id, { email: checkedUser.email, name: checkedUser.name, userType: checkedUser.userType });
             startTokenRefresh();
           } else {
             const refreshed = await refreshAccessToken();
@@ -339,6 +342,7 @@ export const createAuthSlice: StateCreator<
           state.auth.isLoading = false;
           state.auth.token = localStorage.getItem(ACCESS_TOKEN_KEY);
         });
+        observability.analytics.identify(authData.user.id, { email: authData.user.email, name: authData.user.name, userType: authData.user.userType });
         startTokenRefresh();
         return authData.user;
       } catch (error) {
@@ -377,6 +381,7 @@ export const createAuthSlice: StateCreator<
           state.auth.isLoading = false;
           state.auth.token = localStorage.getItem(ACCESS_TOKEN_KEY);
         });
+        observability.analytics.identify(authData.user.id, { email: authData.user.email, name: authData.user.name, userType: authData.user.userType });
         startTokenRefresh();
         return authData.user;
       } catch (error) {
@@ -514,6 +519,7 @@ export const createAuthSlice: StateCreator<
 
 // Resolve useStore via registry to break circular dependency: authSlice ↔ store
 // These hooks only run during React render, well after store initialization.
+import { useEffect } from 'react';
 import { getUseStore as _getUseStore } from '../storeRef';
 function getUseStore() {
   return _getUseStore() as typeof import('../store').useStore;
@@ -522,6 +528,34 @@ function getUseStore() {
 export const useAuth = () => {
   return getUseStore()((state) => state.auth);
 };
+
+/**
+ * useAuthInit - Initializes auth on mount (checkAuth + unauthorized listener).
+ * Call this once from RootProviders or the top-level app component.
+ * Replaces the old AuthProvider component.
+ */
+export function useAuthInit() {
+  const checkAuth = getUseStore()((state) => state.auth.checkAuth);
+  const logout = getUseStore()((state) => state.auth.logout);
+
+  useEffect(() => {
+    checkAuth();
+
+    const handleUnauthorized = async () => {
+      const publicAuthPaths = ['/login', '/signup', '/forgot-password', '/reset-password'];
+      const isPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.includes(path));
+      if (!isPublicAuthPage) {
+        await logout();
+        window.location.href = '/login?reason=session_expired';
+      }
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+  }, [checkAuth, logout]);
+}
 
 export const useSession = () => {
   const store = getUseStore();

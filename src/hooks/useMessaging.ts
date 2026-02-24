@@ -8,7 +8,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { useStore } from '../store/store';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { messagingService } from '../services/messagingService';
 import { buildApiUrl } from '../config/environment';
 import { hookLogger } from '../lib/logger';

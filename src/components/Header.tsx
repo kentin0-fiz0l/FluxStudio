@@ -3,7 +3,7 @@ import { useState, forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
 import { FluxLogo } from './FluxLogo';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 
 // ForwardRef wrapper for React Router Link to fix Slot ref warnings
 const ForwardedLink = forwardRef<HTMLAnchorElement, React.ComponentProps<typeof Link>>((props, ref) => (

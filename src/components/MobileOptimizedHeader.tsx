@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
 import { FluxLogo } from './FluxLogo';
 import { ThemeToggle } from './ThemeToggle';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 
 export function MobileOptimizedHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

@@ -21,7 +21,7 @@ import {
   TrendingDown,
   Globe,
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { DashboardLayout } from '../components/templates';
 import { Skeleton } from '../components/ui/skeleton';
 

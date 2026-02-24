@@ -22,7 +22,7 @@ import {
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button, Badge, Card } from '@/components/ui';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useProjects } from '@/hooks/useProjects';
 import { ProjectOverviewTab } from '@/components/projects/ProjectOverviewTab';
 import { ProjectMessagesTab } from '@/components/projects/ProjectMessagesTab';

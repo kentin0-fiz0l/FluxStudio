@@ -6,7 +6,7 @@
  */
 
 import * as React from 'react';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useNotification } from '../NotificationContext';
 import { useMetMapCore } from './MetMapCoreContext';
 import type { SectionEditorContextValue, Section, Chord } from './types';

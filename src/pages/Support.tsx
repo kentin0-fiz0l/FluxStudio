@@ -22,7 +22,7 @@ import { DashboardLayout } from '@/components/templates';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://fluxstudio.art';
 

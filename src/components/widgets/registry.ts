@@ -1,6 +1,6 @@
 import { lazy } from 'react';
 import { WidgetConfig, WidgetRegistry } from './types';
-import type { UserType } from '../../contexts/AuthContext';
+import type { UserType } from '@/store/slices/authSlice';
 import { QuickActionsWidget } from './QuickActionsWidget';
 import { ProjectOverviewWidget } from './ProjectOverviewWidget';
 import { AccountOverviewWidget } from './AccountOverviewWidget';

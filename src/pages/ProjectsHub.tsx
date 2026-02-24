@@ -50,7 +50,7 @@ import { ProjectCardSkeleton } from '@/components/loading/LoadingStates';
 import { UniversalEmptyState, emptyStateConfigs } from '@/components/ui/UniversalEmptyState';
 import { useProjects } from '@/hooks/useProjects';
 import { useDashboardActivities } from '@/hooks/useActivities';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useFirstTimeExperience } from '@/hooks/useFirstTimeExperience';

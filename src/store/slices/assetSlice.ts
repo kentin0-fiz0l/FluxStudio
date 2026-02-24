@@ -7,7 +7,8 @@
 
 import { StateCreator } from 'zustand';
 import { FluxStore } from '../store';
-import { getApiUrl } from '@/utils/apiHelpers';
+import { apiService } from '@/services/apiService';
+import { buildApiUrl } from '@/config/environment';
 
 // ============================================================================
 // Asset Types (from assets/types.ts)
@@ -195,14 +196,6 @@ export interface AssetSlice {
 }
 
 // ============================================================================
-// Helpers
-// ============================================================================
-
-function getToken() {
-  return localStorage.getItem('auth_token');
-}
-
-// ============================================================================
 // Initial State
 // ============================================================================
 
@@ -292,24 +285,24 @@ export const createAssetSlice: StateCreator<
     refreshFiles: async (params) => {
       set((s) => { s.assets.filesLoading = true; s.assets.filesError = null; });
       try {
-        const token = getToken();
         const filters = { ...get().assets.filesFilter, ...params };
         const { page, pageSize } = get().assets.filesPagination;
 
-        const queryParams = new URLSearchParams();
-        if (filters.search) queryParams.set('search', filters.search);
-        if (filters.type && filters.type !== 'all') queryParams.set('type', filters.type);
-        if (filters.source && filters.source !== 'all') queryParams.set('source', filters.source);
-        if (filters.projectId) queryParams.set('projectId', filters.projectId);
-        queryParams.set('limit', String(pageSize));
-        queryParams.set('offset', String((page - 1) * pageSize));
+        const queryParams: Record<string, string> = {};
+        if (filters.search) queryParams.search = filters.search;
+        if (filters.type && filters.type !== 'all') queryParams.type = filters.type;
+        if (filters.source && filters.source !== 'all') queryParams.source = filters.source;
+        if (filters.projectId) queryParams.projectId = filters.projectId;
+        queryParams.limit = String(pageSize);
+        queryParams.offset = String((page - 1) * pageSize);
 
-        const response = await fetch(getApiUrl(`/files?${queryParams.toString()}`), {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('Failed to fetch files');
+        const response = await apiService.get<{ files: FileRecord[]; total: number; totalPages: number }>(
+          '/files',
+          { params: queryParams }
+        );
+        if (!response.success) throw new Error(response.error || 'Failed to fetch files');
 
-        const data = await response.json();
+        const data = response.data as { files: FileRecord[]; total: number; totalPages: number };
         set((s) => {
           s.assets.files = data.files || [];
           s.assets.filesPagination.total = data.total || 0;
@@ -328,7 +321,6 @@ export const createAssetSlice: StateCreator<
     },
 
     uploadFiles: async (files, options) => {
-      const token = getToken();
       const fileArray = Array.from(files);
       if (fileArray.length === 0) throw new Error('No files selected');
 
@@ -338,6 +330,8 @@ export const createAssetSlice: StateCreator<
         set((s) => { s.assets.uploadProgress[file.name] = 0; });
       });
       if (options?.projectId) formData.append('projectId', options.projectId);
+
+      const headers = await apiService.getDefaultHeaders(true, true, false);
 
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -373,21 +367,19 @@ export const createAssetSlice: StateCreator<
           });
           reject(new Error('Upload failed'));
         });
-        xhr.open('POST', getApiUrl('/files/upload'));
-        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.open('POST', buildApiUrl('/files/upload'));
+        Object.entries(headers).forEach(([key, value]) => {
+          xhr.setRequestHeader(key, value);
+        });
+        xhr.withCredentials = true;
         xhr.send(formData);
       });
     },
 
     renameFile: async (fileId, newName) => {
-      const token = getToken();
-      const response = await fetch(getApiUrl(`/files/${fileId}/rename`), {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName }),
-      });
-      if (!response.ok) throw new Error('Failed to rename file');
-      const data = await response.json();
+      const response = await apiService.post<{ file: FileRecord }>(`/files/${fileId}/rename`, { name: newName });
+      if (!response.success) throw new Error(response.error || 'Failed to rename file');
+      const data = response.data as { file: FileRecord };
       set((s) => {
         const idx = s.assets.files.findIndex((f) => f.id === fileId);
         if (idx !== -1) s.assets.files[idx] = data.file;
@@ -396,12 +388,8 @@ export const createAssetSlice: StateCreator<
     },
 
     deleteFile: async (fileId) => {
-      const token = getToken();
-      const response = await fetch(getApiUrl(`/files/${fileId}`), {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Failed to delete file');
+      const response = await apiService.delete(`/files/${fileId}`);
+      if (!response.success) throw new Error(response.error || 'Failed to delete file');
       set((s) => {
         s.assets.files = s.assets.files.filter((f) => f.id !== fileId);
         if (s.assets.selectedFile?.id === fileId) s.assets.selectedFile = null;
@@ -410,14 +398,9 @@ export const createAssetSlice: StateCreator<
     },
 
     linkFileToProject: async (fileId, projectId) => {
-      const token = getToken();
-      const response = await fetch(getApiUrl(`/files/${fileId}/link`), {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId }),
-      });
-      if (!response.ok) throw new Error('Failed to link file');
-      const data = await response.json();
+      const response = await apiService.post<{ file: FileRecord }>(`/files/${fileId}/link`, { projectId });
+      if (!response.success) throw new Error(response.error || 'Failed to link file');
+      const data = response.data as { file: FileRecord };
       set((s) => {
         const idx = s.assets.files.findIndex((f) => f.id === fileId);
         if (idx !== -1) s.assets.files[idx] = data.file;
@@ -426,13 +409,9 @@ export const createAssetSlice: StateCreator<
     },
 
     unlinkFileFromProject: async (fileId) => {
-      const token = getToken();
-      const response = await fetch(getApiUrl(`/files/${fileId}/unlink`), {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Failed to unlink file');
-      const data = await response.json();
+      const response = await apiService.post<{ file: FileRecord }>(`/files/${fileId}/unlink`);
+      if (!response.success) throw new Error(response.error || 'Failed to unlink file');
+      const data = response.data as { file: FileRecord };
       set((s) => {
         const idx = s.assets.files.findIndex((f) => f.id === fileId);
         if (idx !== -1) s.assets.files[idx] = data.file;
@@ -441,13 +420,10 @@ export const createAssetSlice: StateCreator<
     },
 
     fetchFileStats: async () => {
-      const token = getToken();
       try {
-        const response = await fetch(getApiUrl('/files/stats'), {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('Failed to fetch stats');
-        const data = await response.json();
+        const response = await apiService.get<{ stats: FilesStats }>('/files/stats');
+        if (!response.success) throw new Error(response.error || 'Failed to fetch stats');
+        const data = response.data as { stats: FilesStats };
         set((s) => { s.assets.filesStats = data.stats; });
       } catch {
         // silent fail

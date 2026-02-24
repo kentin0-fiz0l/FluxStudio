@@ -15,6 +15,7 @@ import {
   SearchResponse,
   SavedSearch,
 } from '../services/searchService';
+import { observability } from '@/services/observability';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -245,6 +246,7 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
         setTotal(response.total);
         setHasMore(response.hasMore);
         setFacets(response.facets);
+        observability.analytics.track('search_performed', { query: debouncedQuery, resultCount: response.total });
 
         // Update search history
         setSearchHistory(searchService.getSearchHistory());

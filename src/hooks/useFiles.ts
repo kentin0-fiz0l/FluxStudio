@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { getApiUrl } from '../utils/apiHelpers';
 import { queryKeys } from '../lib/queryClient';
 import { toast } from '../lib/toast';

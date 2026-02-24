@@ -43,7 +43,7 @@ vi.mock('../../services/messagingSocketService', () => ({
   messagingSocketService: mockSocketService,
 }));
 
-vi.mock('../../contexts/AuthContext', () => ({
+vi.mock('@/store/slices/authSlice', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-1', email: 'test@example.com' },
   })),

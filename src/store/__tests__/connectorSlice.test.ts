@@ -10,6 +10,20 @@ vi.mock('@/utils/apiHelpers', () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+// Mock apiService to avoid CSRF fetch interference — use vi.hoisted to avoid hoisting issues
+const { mockApiService } = vi.hoisted(() => ({
+  mockApiService: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    makeRequest: vi.fn(),
+  },
+}));
+vi.mock('@/services/apiService', () => ({
+  apiService: mockApiService,
+}));
+
 import { createConnectorSlice, type ConnectorSlice } from '../slices/connectorSlice';
 
 function createTestStore() {
@@ -28,6 +42,10 @@ describe('connectorSlice', () => {
     localStorage.clear();
     vi.clearAllMocks();
     mockFetch.mockReset();
+    mockApiService.get.mockReset();
+    mockApiService.post.mockReset();
+    mockApiService.put.mockReset();
+    mockApiService.delete.mockReset();
   });
 
   describe('initial state', () => {
@@ -110,9 +128,9 @@ describe('connectorSlice', () => {
   describe('fetchConnectors', () => {
     it('should fetch and set connector list', async () => {
       const connectors = [{ id: 'github', name: 'GitHub', status: 'connected' }];
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ connectors }),
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: { connectors },
       });
 
       await store.getState().connectors.fetchConnectors();
@@ -122,7 +140,7 @@ describe('connectorSlice', () => {
     });
 
     it('should set error on failure', async () => {
-      mockFetch.mockResolvedValueOnce({ ok: false });
+      mockApiService.get.mockResolvedValueOnce({ success: false, error: 'Failed to load connectors' });
 
       await store.getState().connectors.fetchConnectors();
 
@@ -133,9 +151,9 @@ describe('connectorSlice', () => {
   describe('fetchFiles', () => {
     it('should fetch files for a provider', async () => {
       const files = [{ id: 'f1', name: 'readme.md', type: 'file' }];
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ files }),
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: { files },
       });
 
       await store.getState().connectors.fetchFiles('github', { owner: 'user', repo: 'repo' });
@@ -148,9 +166,9 @@ describe('connectorSlice', () => {
   describe('importFile', () => {
     it('should import file and add to importedFiles', async () => {
       const file = { id: 'imp-1', name: 'design.fig', provider: 'figma' };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ file }),
+      mockApiService.post.mockResolvedValueOnce({
+        success: true,
+        data: { file },
       });
 
       const result = await store.getState().connectors.importFile('figma', 'ext-id-1');
@@ -160,9 +178,9 @@ describe('connectorSlice', () => {
     });
 
     it('should return null on failure', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: () => Promise.resolve({ error: 'Not found' }),
+      mockApiService.post.mockResolvedValueOnce({
+        success: false,
+        error: 'Not found',
       });
 
       const result = await store.getState().connectors.importFile('figma', 'bad-id');
@@ -179,7 +197,7 @@ describe('connectorSlice', () => {
       ] as any[]);
       store.getState().connectors.setCurrentProvider('github');
 
-      mockFetch.mockResolvedValueOnce({ ok: true });
+      mockApiService.delete.mockResolvedValueOnce({ success: true });
 
       await store.getState().connectors.disconnect('github');
 

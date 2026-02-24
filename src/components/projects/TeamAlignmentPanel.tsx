@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useNotifications } from '@/contexts/NotificationContext';
 import {
   makeDecisionId,

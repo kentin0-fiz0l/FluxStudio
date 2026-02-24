@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
-vi.mock('@/contexts/AuthContext', () => ({
+vi.mock('@/store/slices/authSlice', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-1', email: 'test@example.com' },
   })),

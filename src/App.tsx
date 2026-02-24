@@ -15,6 +15,7 @@ import ErrorBoundary, {
   ConnectorsErrorBoundary,
 } from './components/error/ErrorBoundary';
 import { performanceMonitoring } from './services/performanceMonitoring';
+import { observability } from './services/observability';
 import { apiService } from './services/apiService';
 import { logger } from './lib/logger';
 import { lazyLoadWithRetry, DefaultLoadingFallback } from './utils/lazyLoad';
@@ -26,7 +27,7 @@ import { useTheme } from './hooks/useTheme';
 import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 import { HelmetProvider } from 'react-helmet-async';
 
-import { useAuth, AuthProvider } from './contexts/AuthContext';
+import { useAuth, useAuthInit } from '@/store/slices/authSlice';
 import { AssetsProvider } from './contexts/AssetsContext';
 
 // All pages lazy loaded for smaller initial bundle
@@ -142,18 +143,17 @@ function RootRedirect() {
   return <LandingPage />;
 }
 
-// OAuth callback routes wrapper - minimal providers (only AuthProvider)
+// OAuth callback routes wrapper - minimal providers (only auth init)
 // This avoids ConnectorsContext which interferes with Google login OAuth
 function OAuthCallbackRoutes() {
+  useAuthInit();
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="google" element={<OAuthCallback provider="google" />} />
-        <Route path="figma" element={<OAuthCallback provider="figma" />} />
-        <Route path="slack" element={<OAuthCallback provider="slack" />} />
-        <Route path="github" element={<OAuthCallback provider="github" />} />
-      </Routes>
-    </AuthProvider>
+    <Routes>
+      <Route path="google" element={<OAuthCallback provider="google" />} />
+      <Route path="figma" element={<OAuthCallback provider="figma" />} />
+      <Route path="slack" element={<OAuthCallback provider="slack" />} />
+      <Route path="github" element={<OAuthCallback provider="github" />} />
+    </Routes>
   );
 }
 
@@ -399,6 +399,7 @@ export default function App() {
 
     // Track route changes
     const handleRouteChange = () => {
+      observability.analytics.page(window.location.pathname);
       const startTime = performance.now();
       setTimeout(() => {
         const loadTime = performance.now() - startTime;

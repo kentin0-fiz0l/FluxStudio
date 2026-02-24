@@ -22,7 +22,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useWorkspace } from '@/store';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useMessaging } from '../hooks/useMessaging';
 import { cn } from '../lib/utils';

@@ -6,7 +6,7 @@
 
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { PluginManager } from '@/components/plugins/PluginManager';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 
 export default function PluginManagerPage() {
   const { user } = useAuth();

@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Card, CardContent, Badge, Button } from '@/components/ui';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useNotifications, Notification } from '@/contexts/NotificationContext';
 import { useActiveProject } from '@/store';
 import { useProjectContext } from '@/store';

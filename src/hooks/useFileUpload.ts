@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { getApiUrl } from '../utils/apiHelpers';
 
 export interface FileUpload {

@@ -12,7 +12,7 @@ import { SearchFilters } from '../components/search/SearchFilters';
 import { SearchResultCard } from '../components/search/SearchResultCard';
 import { SearchResultType } from '../services/searchService';
 import { DashboardLayout } from '../components/templates';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import {
   Search,
   X,

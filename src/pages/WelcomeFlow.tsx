@@ -11,7 +11,7 @@ import {
   Book,
   HelpCircle,
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useOnboardingState } from '../hooks/useOnboardingState';
 
 /**

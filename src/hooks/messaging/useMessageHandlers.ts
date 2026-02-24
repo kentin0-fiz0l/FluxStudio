@@ -9,6 +9,7 @@ import { useState, useRef, useCallback } from 'react';
 import type { Message } from '@/components/messaging/types';
 import type { UseConversationRealtimeReturn } from '@/hooks/useConversationRealtime';
 import { toast } from '@/lib/toast';
+import { observability } from '@/services/observability';
 
 export interface PendingAttachment {
   id: string;
@@ -80,6 +81,8 @@ export function useMessageHandlers({
           replyToMessageId: replyTo?.id,
         });
       }
+
+      observability.analytics.track('message_sent', { conversationId: selectedConversationId, hasAttachments });
 
       // Clear state
       setNewMessage('');

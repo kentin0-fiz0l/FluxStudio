@@ -12,12 +12,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { DashboardLayout } from '../components/templates';
 import { Button, Input } from '../components/ui';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useProjects, Project } from '../hooks/useProjects';
 import { useTeams } from '../hooks/useTeams';
 import { useOrganizations } from '../hooks/useOrganizations';
 import { toast } from '../lib/toast';
 import { ArrowLeft, Plus, LayoutTemplate, Sparkles } from 'lucide-react';
+import { observability } from '@/services/observability';
 import { TemplateSelector } from '../components/templates/TemplateSelector';
 import { AIProjectCreator } from '../components/projects/AIProjectCreator';
 import { templateService } from '../services/templates/TemplateService';
@@ -98,6 +99,7 @@ export function NewProject() {
         members: []
       });
 
+      observability.analytics.track('project_created', { mode: 'blank', projectId: newProject?.id });
       toast.success(`Project "${data.name}" created successfully!`);
 
       if (newProject?.id) {

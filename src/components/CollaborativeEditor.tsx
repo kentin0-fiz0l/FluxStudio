@@ -14,7 +14,7 @@ import {
   Undo,
   Redo
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { sanitizeRichText, sanitizePlainText } from '../lib/sanitize';
 
 interface CollaborativeEditorProps {

@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useGoogleOAuth } from '../hooks/useGoogleOAuth';
 import { SEOHead } from '../components/SEOHead';
+import { observability } from '@/services/observability';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '65518208813-f4rgudom5b57qad0jlhjtsocsrb26mfc.apps.googleusercontent.com';
 
@@ -39,6 +40,11 @@ export function Signup() {
   }, [password]);
   const { signup, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+
+  // Track signup page view
+  useEffect(() => {
+    observability.analytics.track('signup_started');
+  }, []);
 
   // Initialize Google OAuth
   const googleOAuth = useGoogleOAuth({
@@ -80,6 +86,7 @@ export function Signup() {
 
     try {
       await signup(email, password, name, 'designer');
+      observability.analytics.track('signup_completed', { method: 'email' });
       navigate(callbackUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');

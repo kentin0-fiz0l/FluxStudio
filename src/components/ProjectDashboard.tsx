@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { MobileOptimizedHeader } from './MobileOptimizedHeader';
 import { OrganizationBreadcrumb } from './OrganizationBreadcrumb';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';

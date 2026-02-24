@@ -23,6 +23,38 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   });
 }
 
+// Core Web Vitals collection
+import { onCLS, onLCP, onINP, onTTFB } from 'web-vitals';
+import { observability } from './services/observability';
+
+function reportVital(metric: { name: string; value: number; id: string; rating: string }) {
+  observability.analytics.track('web_vital', {
+    metric_name: metric.name,
+    metric_value: metric.value,
+    metric_id: metric.id,
+    metric_rating: metric.rating,
+  });
+
+  // Also send to dedicated vitals endpoint
+  const apiUrl = import.meta.env.VITE_API_URL || '';
+  navigator.sendBeacon(
+    `${apiUrl}/api/observability/vitals`,
+    new Blob([JSON.stringify({
+      name: metric.name,
+      value: metric.value,
+      id: metric.id,
+      rating: metric.rating,
+      url: window.location.href,
+      timestamp: new Date().toISOString(),
+    })], { type: 'application/json' })
+  );
+}
+
+onCLS(reportVital);
+onLCP(reportVital);
+onINP(reportVital);
+onTTFB(reportVital);
+
 // Connect offlineSlice to IndexedDB and browser events
 initOfflineBridge(useStore);
 

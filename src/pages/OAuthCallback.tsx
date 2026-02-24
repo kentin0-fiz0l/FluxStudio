@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, XCircle, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 import { apiService } from '../services/apiService';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 
 interface OAuthCallbackProps {
   provider: 'google' | 'figma' | 'slack' | 'github';

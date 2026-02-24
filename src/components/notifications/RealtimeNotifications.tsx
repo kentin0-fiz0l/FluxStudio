@@ -12,7 +12,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useNotifications, type Notification } from '@/contexts/NotificationContext';
 import { messagingSocketService } from '@/services/messagingSocketService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 
 interface RealtimeNotificationsProps {
   enabled?: boolean;

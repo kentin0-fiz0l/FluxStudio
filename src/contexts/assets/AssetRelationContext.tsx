@@ -6,7 +6,7 @@
  */
 
 import * as React from 'react';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { getApiUrl } from '../../utils/apiHelpers';
 import { useAssetCore } from './AssetCoreContext';
 import type { AssetRelationContextValue, AssetRelation, RelationType } from './types';

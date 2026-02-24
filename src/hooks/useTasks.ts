@@ -9,8 +9,9 @@
  */
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
-import { getApiUrl } from '../utils/apiHelpers';
-import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '@/services/apiService';
+import { buildApiUrl } from '@/config/environment';
+import { useAuth } from '@/store/slices/authSlice';
 import { queryKeys, invalidateProjectQueries } from '../lib/queryClient';
 import { toast } from '../lib/toast';
 import { taskSocketService } from '../services/taskSocketService';
@@ -79,21 +80,13 @@ export const useTasksQuery = (
     queryFn: async () => {
       if (!projectId) throw new Error('Project ID is required');
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks`), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      const response = await apiService.get<ApiResponse<Task>>(`/projects/${projectId}/tasks`);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || 'Failed to fetch tasks');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch tasks');
       }
 
-      const result: ApiResponse<Task> = await response.json();
+      const result = response.data as ApiResponse<Task>;
 
       // Handle different response formats
       if (result.tasks) return result.tasks;
@@ -121,21 +114,13 @@ export const useTaskQuery = (projectId: string | undefined, taskId: string | und
     queryFn: async () => {
       if (!projectId || !taskId) throw new Error('Project ID and Task ID are required');
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks/${taskId}`), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      const response = await apiService.get<ApiResponse<Task>>(`/projects/${projectId}/tasks/${taskId}`);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || 'Failed to fetch task');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch task');
       }
 
-      const result: ApiResponse<Task> = await response.json();
+      const result = response.data as ApiResponse<Task>;
       return result.task || result.data as Task;
     },
     enabled: !!projectId && !!taskId && !!user,
@@ -161,23 +146,13 @@ export const useCreateTaskMutation = (projectId: string) => {
     mutationFn: async (newTask: CreateTaskInput) => {
       if (!user) throw new Error('Authentication required');
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks`), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(newTask),
-      });
+      const response = await apiService.post<ApiResponse<Task>>(`/projects/${projectId}/tasks`, newTask);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || 'Failed to create task');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create task');
       }
 
-      const result: ApiResponse<Task> = await response.json();
+      const result = response.data as ApiResponse<Task>;
       return result.task || result.data as Task;
     },
 
@@ -256,23 +231,16 @@ export const useUpdateTaskMutation = (projectId: string) => {
     mutationFn: async ({ taskId, updates }) => {
       if (!user) throw new Error('Authentication required');
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks/${taskId}`), {
+      const response = await apiService.makeRequest<ApiResponse<Task>>(buildApiUrl(`/projects/${projectId}/tasks/${taskId}`), {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
         body: JSON.stringify(updates),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || 'Failed to update task');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update task');
       }
 
-      const result: ApiResponse<Task> = await response.json();
+      const result = response.data as ApiResponse<Task>;
       return result.task || result.data as Task;
     },
 
@@ -367,18 +335,10 @@ export const useDeleteTaskMutation = (projectId: string) => {
     mutationFn: async (taskId: string) => {
       if (!user) throw new Error('Authentication required');
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks/${taskId}`), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include',
-      });
+      const response = await apiService.delete(`/projects/${projectId}/tasks/${taskId}`);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || 'Failed to delete task');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete task');
       }
     },
 
@@ -444,27 +404,18 @@ export const useBatchUpdateTasksMutation = (projectId: string) => {
     mutationFn: async ({ taskIds, updates }) => {
       if (!user) throw new Error('Authentication required');
 
-      const token = localStorage.getItem('auth_token');
-
       // Execute updates in parallel
-      const updatePromises = taskIds.map((taskId) =>
-        fetch(getApiUrl(`/api/projects/${projectId}/tasks/${taskId}`), {
+      const updatePromises = taskIds.map(async (taskId) => {
+        const response = await apiService.makeRequest<ApiResponse<Task>>(buildApiUrl(`/projects/${projectId}/tasks/${taskId}`), {
           method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
           body: JSON.stringify(updates),
-        }).then(async (response) => {
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || 'Failed to update task');
-          }
-          const result: ApiResponse<Task> = await response.json();
-          return result.task || result.data as Task;
-        })
-      );
+        });
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to update task');
+        }
+        const result = response.data as ApiResponse<Task>;
+        return result.task || result.data as Task;
+      });
 
       return Promise.all(updatePromises);
     },

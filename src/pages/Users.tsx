@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserDirectory } from '../components/UserDirectory';
 import { SimpleHeader } from '../components/SimpleHeader';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { buildApiUrl } from '../config/environment';
 import { toast } from '../lib/toast';
 

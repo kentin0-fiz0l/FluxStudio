@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import {
   messagingSocketService,
   ConversationMessage,

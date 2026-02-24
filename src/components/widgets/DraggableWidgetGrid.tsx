@@ -2,7 +2,7 @@ import React, { Suspense, useCallback, useMemo } from 'react';
 // @ts-expect-error - react-grid-layout types are provided by the package
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useWidgetLayout } from '../../hooks/useWidgetLayout';
 import { getWidgetById } from './registry';
 import { cn } from '../ui/utils';

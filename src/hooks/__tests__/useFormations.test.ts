@@ -10,7 +10,7 @@ import { createTestQueryClient } from '../../test/utils';
 
 const mockUseAuth = vi.fn(() => ({ user: { id: 'user-1', name: 'Test User' } }));
 
-vi.mock('../../contexts/AuthContext', () => ({
+vi.mock('@/store/slices/authSlice', () => ({
   useAuth: () => mockUseAuth(),
 }));
 

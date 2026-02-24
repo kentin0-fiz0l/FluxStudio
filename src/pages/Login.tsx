@@ -2,8 +2,9 @@ import { useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { SEOHead } from '../components/SEOHead';
+import { observability } from '@/services/observability';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '65518208813-f4rgudom5b57qad0jlhjtsocsrb26mfc.apps.googleusercontent.com';
 const API_URL = import.meta.env.VITE_API_URL || 'https://fluxstudio.art';
@@ -51,6 +52,7 @@ export function Login() {
         setTimeout(() => totpInputRef.current?.focus(), 100);
         return;
       }
+      observability.analytics.track('login_completed', { method: 'email' });
       navigate(getPostLoginUrl(callbackUrl));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid email or password');

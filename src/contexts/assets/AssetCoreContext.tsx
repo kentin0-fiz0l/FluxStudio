@@ -7,7 +7,7 @@
  */
 
 import * as React from 'react';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import type { AssetCoreContextValue } from './types';
 import { assetsReducer, initialAssetsState } from './types';
 

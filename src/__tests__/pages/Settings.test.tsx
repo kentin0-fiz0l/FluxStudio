@@ -22,7 +22,7 @@ vi.mock('../../services/apiService', () => ({
   },
 }));
 
-vi.mock('../../contexts/AuthContext', () => ({
+vi.mock('@/store/slices/authSlice', () => ({
   useAuth: vi.fn(),
 }));
 
@@ -85,7 +85,7 @@ vi.mock('../../components/settings/TwoFactorSetup', () => ({
   ),
 }));
 
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { apiService } from '../../services/apiService';
 import { toast } from '../../lib/toast';
 

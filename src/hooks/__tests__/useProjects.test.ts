@@ -17,8 +17,9 @@ function createWrapper() {
 
 const mockUseAuth = vi.fn(() => ({ user: { id: 'user-1', name: 'Test User' } }));
 
-vi.mock('../../contexts/AuthContext', () => ({
+vi.mock('@/store/slices/authSlice', () => ({
   useAuth: () => mockUseAuth(),
+  createAuthSlice: vi.fn(() => () => ({})),
 }));
 
 vi.mock('../../utils/apiHelpers', () => ({
@@ -83,14 +84,19 @@ describe('useProjects', () => {
   });
 
   it('should handle fetch error', async () => {
+    // Use an error message that does NOT include "fetch" or "network"
+    // to avoid triggering apiService retry logic
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false,
-      json: () => Promise.resolve({}),
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: () => Promise.resolve({ message: 'Server error' }),
+      headers: new Headers(),
     }));
 
     const { result } = renderHook(() => useProjects(), { wrapper: createWrapper() });
 
-    await waitFor(() => expect(result.current.error).toBe('Failed to fetch projects'));
+    await waitFor(() => expect(result.current.error).toBe('Server error'));
   });
 
   it('should create a project', async () => {

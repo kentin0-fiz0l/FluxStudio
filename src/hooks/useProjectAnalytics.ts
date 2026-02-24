@@ -6,7 +6,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getApiUrl } from '../utils/apiHelpers';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 
 interface HealthBreakdownItem {
   score: number;

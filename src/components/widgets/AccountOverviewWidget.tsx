@@ -1,7 +1,7 @@
 // React import not needed with JSX transform
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import { BaseWidget } from './BaseWidget';
 import { Button } from '../ui/button';

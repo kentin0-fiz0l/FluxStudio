@@ -22,7 +22,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('@/contexts/AuthContext', () => ({
+vi.mock('@/store/slices/authSlice', () => ({
   useAuth: vi.fn(() => ({
     user: {
       id: 'user-1',
@@ -120,7 +120,7 @@ vi.mock('@/components/loading/LoadingStates', () => ({
 }));
 
 // Get mocked functions for manipulation in tests
-const mockUseAuth = vi.mocked(await import('@/contexts/AuthContext')).useAuth;
+const mockUseAuth = vi.mocked(await import('@/store/slices/authSlice')).useAuth;
 const mockUseProjects = vi.mocked(await import('@/hooks/useProjects')).useProjects;
 
 describe('ProjectsHub', () => {

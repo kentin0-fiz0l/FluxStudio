@@ -23,7 +23,7 @@ vi.mock('react-router-dom', async () => {
 const mockUser = { id: 'user-1', name: 'Test User', email: 'test@example.com', avatar: null };
 const mockLogout = vi.fn();
 
-vi.mock('@/contexts/AuthContext', () => ({
+vi.mock('@/store/slices/authSlice', () => ({
   useAuth: vi.fn(() => ({
     user: mockUser,
     token: 'test-token',
@@ -164,7 +164,7 @@ describe('Billing', () => {
   });
 
   test('redirects to login when user is null', async () => {
-    const { useAuth } = await import('@/contexts/AuthContext');
+    const { useAuth } = await import('@/store/slices/authSlice');
     vi.mocked(useAuth).mockReturnValue({
       user: null,
       token: null,

@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button, Card, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import {
   Building2,
   Users,

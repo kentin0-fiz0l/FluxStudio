@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiService } from '@/services/apiService';
+import { buildApiUrl } from '@/config/environment';
 import { getApiUrl } from '../utils/apiHelpers';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { hookLogger } from '../lib/logger';
 import { queryKeys } from '../lib/queryClient';
 import { toast } from '../lib/toast';
@@ -71,22 +73,6 @@ export interface ProjectFile {
   size: number;
 }
 
-// ---------- helpers ----------
-
-function getAuthHeaders() {
-  const token = localStorage.getItem('auth_token');
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-}
-
-async function fetchCsrfToken(): Promise<string> {
-  const res = await fetch(getApiUrl('/api/csrf-token'), { credentials: 'include' });
-  const data = await res.json();
-  return data.csrfToken;
-}
-
 // ---------- hook ----------
 
 function isNetworkError(error: unknown): boolean {
@@ -112,16 +98,13 @@ export function useProjects() {
   } = useQuery<Project[], Error>({
     queryKey: queryKeys.projects.all,
     queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl('/api/projects'), {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const response = await apiService.get<{ projects: Project[] }>('/projects');
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch projects');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch projects');
       }
 
-      const result = await response.json();
+      const result = response.data as { projects: Project[] };
       return result.projects || [];
     },
     enabled: !!user,
@@ -147,27 +130,13 @@ export function useProjects() {
     mutationFn: async (projectData) => {
       if (!user) throw new Error('Authentication required');
 
-      const csrfToken = await fetchCsrfToken();
-      const token = localStorage.getItem('auth_token');
+      const response = await apiService.post<{ project: Project }>('/projects', projectData);
 
-      const response = await fetch(getApiUrl('/api/projects'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
-        },
-        credentials: 'include',
-        body: JSON.stringify(projectData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create project');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create project');
       }
 
-      const result = await response.json();
-      return result.project;
+      return (response.data as { project: Project }).project;
     },
     onMutate: async (projectData) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.projects.all });
@@ -231,23 +200,16 @@ export function useProjects() {
     mutationFn: async ({ projectId, updates }) => {
       if (!user) throw new Error('Authentication required');
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/api/projects/${projectId}`), {
+      const response = await apiService.makeRequest<{ project: Project }>(buildApiUrl(`/projects/${projectId}`), {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(updates),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update project');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update project');
       }
 
-      const result = await response.json();
-      return result.project;
+      return (response.data as { project: Project }).project;
     },
     onMutate: async ({ projectId, updates }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.projects.all });
@@ -288,15 +250,10 @@ export function useProjects() {
     mutationFn: async (projectId) => {
       if (!user) throw new Error('Authentication required');
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/api/projects/${projectId}`), {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const response = await apiService.delete(`/projects/${projectId}`);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete project');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete project');
       }
     },
     onMutate: async (projectId) => {
@@ -339,17 +296,11 @@ export function useProjects() {
   >({
     mutationFn: async ({ projectId, taskData }) => {
       if (!user) throw new Error('Authentication required');
-      const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks`), {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(taskData),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create task');
+      const response = await apiService.post<{ task: Task }>(`/projects/${projectId}/tasks`, taskData);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create task');
       }
-      const result = await response.json();
-      return result.task;
+      return (response.data as { task: Task }).task;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
@@ -366,17 +317,14 @@ export function useProjects() {
   >({
     mutationFn: async ({ projectId, taskId, updates }) => {
       if (!user) throw new Error('Authentication required');
-      const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks/${taskId}`), {
+      const response = await apiService.makeRequest<{ task: Task }>(buildApiUrl(`/projects/${projectId}/tasks/${taskId}`), {
         method: 'PUT',
-        headers: getAuthHeaders(),
         body: JSON.stringify(updates),
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update task');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update task');
       }
-      const result = await response.json();
-      return result.task;
+      return (response.data as { task: Task }).task;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
@@ -389,13 +337,9 @@ export function useProjects() {
   const deleteTaskMutation = useMutation<void, Error, { projectId: string; taskId: string }>({
     mutationFn: async ({ projectId, taskId }) => {
       if (!user) throw new Error('Authentication required');
-      const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks/${taskId}`), {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete task');
+      const response = await apiService.delete(`/projects/${projectId}/tasks/${taskId}`);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete task');
       }
     },
     onSuccess: () => {
@@ -414,17 +358,11 @@ export function useProjects() {
   >({
     mutationFn: async ({ projectId, milestoneData }) => {
       if (!user) throw new Error('Authentication required');
-      const response = await fetch(getApiUrl(`/api/projects/${projectId}/milestones`), {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(milestoneData),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create milestone');
+      const response = await apiService.post<{ milestone: Milestone }>(`/projects/${projectId}/milestones`, milestoneData);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create milestone');
       }
-      const result = await response.json();
-      return result.milestone;
+      return (response.data as { milestone: Milestone }).milestone;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
@@ -441,17 +379,14 @@ export function useProjects() {
   >({
     mutationFn: async ({ projectId, milestoneId, updates }) => {
       if (!user) throw new Error('Authentication required');
-      const response = await fetch(getApiUrl(`/api/projects/${projectId}/milestones/${milestoneId}`), {
+      const response = await apiService.makeRequest<{ milestone: Milestone }>(buildApiUrl(`/projects/${projectId}/milestones/${milestoneId}`), {
         method: 'PUT',
-        headers: getAuthHeaders(),
         body: JSON.stringify(updates),
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update milestone');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update milestone');
       }
-      const result = await response.json();
-      return result.milestone;
+      return (response.data as { milestone: Milestone }).milestone;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });

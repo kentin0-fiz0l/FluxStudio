@@ -31,7 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { useMessaging } from '../../hooks/useMessaging';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { cn } from '../../lib/utils';
 
 interface MessagingSidepanelProps {

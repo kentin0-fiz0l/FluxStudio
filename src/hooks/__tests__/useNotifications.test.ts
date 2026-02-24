@@ -8,7 +8,7 @@ import { renderHook, act } from '@testing-library/react';
 
 const eventHandlers = new Map<string, (...args: unknown[]) => void>();
 
-vi.mock('../../contexts/AuthContext', () => ({
+vi.mock('@/store/slices/authSlice', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-1', email: 'test@example.com', userType: 'designer' },
   })),

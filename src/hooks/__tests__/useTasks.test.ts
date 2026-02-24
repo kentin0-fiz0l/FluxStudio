@@ -8,7 +8,7 @@ import React from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createTestQueryClient } from '../../test/utils';
 
-vi.mock('../../contexts/AuthContext', () => ({
+vi.mock('@/store/slices/authSlice', () => ({
   useAuth: vi.fn(() => ({ user: { id: 'user-1', name: 'Test User' } })),
 }));
 

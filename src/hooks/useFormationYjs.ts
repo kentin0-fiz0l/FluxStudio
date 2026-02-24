@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import {
   Formation,
   Performer,

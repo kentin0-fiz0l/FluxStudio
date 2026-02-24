@@ -7,7 +7,7 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button, Card } from '@/components/ui';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useOrganization } from '../contexts/OrganizationContext';
 import {
   User,

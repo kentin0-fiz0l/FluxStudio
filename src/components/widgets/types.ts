@@ -1,4 +1,4 @@
-import { UserType } from '../../contexts/AuthContext';
+import type { UserType } from '@/store/slices/authSlice';
 
 export interface WidgetConfig {
   id: string;

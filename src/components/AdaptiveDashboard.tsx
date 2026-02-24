@@ -5,7 +5,7 @@
 
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useWorkspace } from '@/store';
 import { DashboardShell } from './DashboardShell';
 import { IntegratedActivityFeed } from './IntegratedActivityFeed';

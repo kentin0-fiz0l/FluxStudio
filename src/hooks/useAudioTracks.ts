@@ -6,8 +6,9 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../contexts/AuthContext';
-import { getApiUrl } from '../utils/apiHelpers';
+import { useAuth } from '@/store/slices/authSlice';
+import { apiService } from '@/services/apiService';
+import { buildApiUrl } from '@/config/environment';
 
 // ==================== Types ====================
 
@@ -46,93 +47,80 @@ export interface UpdateTrackData {
 
 // ==================== API Functions ====================
 
-async function fetchTracks(songId: string, token: string): Promise<AudioTrack[]> {
-  const res = await fetch(getApiUrl(`/api/metmap/songs/${songId}/tracks`), {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error('Failed to fetch tracks');
-  const data = await res.json();
-  return data.tracks ?? data;
+async function fetchTracks(songId: string): Promise<AudioTrack[]> {
+  const res = await apiService.get<{ tracks: AudioTrack[] } | AudioTrack[]>(`/metmap/songs/${songId}/tracks`);
+  if (!res.success) throw new Error(res.error || 'Failed to fetch tracks');
+  const data = res.data as { tracks?: AudioTrack[] };
+  return data.tracks ?? (res.data as AudioTrack[]);
 }
 
-async function createTrackApi(songId: string, token: string, trackData: CreateTrackData): Promise<AudioTrack> {
+async function createTrackApi(songId: string, trackData: CreateTrackData): Promise<AudioTrack> {
   const formData = new FormData();
   if (trackData.name) formData.append('name', trackData.name);
   if (trackData.file) formData.append('audio', trackData.file);
 
-  const res = await fetch(getApiUrl(`/api/metmap/songs/${songId}/tracks`), {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: formData,
-  });
-  if (!res.ok) throw new Error('Failed to create track');
-  const data = await res.json();
-  return data.track ?? data;
+  const res = await apiService.post<{ track: AudioTrack } | AudioTrack>(`/metmap/songs/${songId}/tracks`, formData);
+  if (!res.success) throw new Error(res.error || 'Failed to create track');
+  const data = res.data as { track?: AudioTrack };
+  return data.track ?? (res.data as AudioTrack);
 }
 
-async function updateTrackApi(trackId: string, token: string, changes: UpdateTrackData): Promise<AudioTrack> {
-  const res = await fetch(getApiUrl(`/api/metmap/tracks/${trackId}`), {
+async function updateTrackApi(trackId: string, changes: UpdateTrackData): Promise<AudioTrack> {
+  const res = await apiService.makeRequest<{ track: AudioTrack } | AudioTrack>(buildApiUrl(`/metmap/tracks/${trackId}`), {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(changes),
   });
-  if (!res.ok) throw new Error('Failed to update track');
-  const data = await res.json();
-  return data.track ?? data;
+  if (!res.success) throw new Error(res.error || 'Failed to update track');
+  const data = res.data as { track?: AudioTrack };
+  return data.track ?? (res.data as AudioTrack);
 }
 
-async function deleteTrackApi(trackId: string, token: string): Promise<void> {
-  const res = await fetch(getApiUrl(`/api/metmap/tracks/${trackId}`), {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error('Failed to delete track');
+async function deleteTrackApi(trackId: string): Promise<void> {
+  const res = await apiService.delete(`/metmap/tracks/${trackId}`);
+  if (!res.success) throw new Error(res.error || 'Failed to delete track');
 }
 
-async function reorderTrackApi(trackId: string, token: string, newOrder: number): Promise<void> {
-  const res = await fetch(getApiUrl(`/api/metmap/tracks/${trackId}/reorder`), {
+async function reorderTrackApi(trackId: string, newOrder: number): Promise<void> {
+  const res = await apiService.makeRequest(buildApiUrl(`/metmap/tracks/${trackId}/reorder`), {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ sortOrder: newOrder }),
   });
-  if (!res.ok) throw new Error('Failed to reorder track');
+  if (!res.success) throw new Error(res.error || 'Failed to reorder track');
 }
 
 async function updateTrackBeatMapApi(
   trackId: string,
-  token: string,
   beatMap: AudioTrack['beatMap']
 ): Promise<void> {
-  const res = await fetch(getApiUrl(`/api/metmap/tracks/${trackId}/beat-map`), {
+  const res = await apiService.makeRequest(buildApiUrl(`/metmap/tracks/${trackId}/beat-map`), {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ beatMap }),
   });
-  if (!res.ok) throw new Error('Failed to save beat map');
+  if (!res.success) throw new Error(res.error || 'Failed to save beat map');
 }
 
 // ==================== Hooks ====================
 
 export function useAudioTracks(songId: string | undefined) {
-  const { token } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const queryKey = ['audio-tracks', songId];
 
   const tracksQuery = useQuery({
     queryKey,
-    queryFn: () => fetchTracks(songId!, token!),
-    enabled: !!songId && !!token,
+    queryFn: () => fetchTracks(songId!),
+    enabled: !!songId && !!user,
     staleTime: 30_000,
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateTrackData) => createTrackApi(songId!, token!, data),
+    mutationFn: (data: CreateTrackData) => createTrackApi(songId!, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ trackId, changes }: { trackId: string; changes: UpdateTrackData }) =>
-      updateTrackApi(trackId, token!, changes),
+      updateTrackApi(trackId, changes),
     onMutate: async ({ trackId, changes }) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<AudioTrack[]>(queryKey);
@@ -148,7 +136,7 @@ export function useAudioTracks(songId: string | undefined) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (trackId: string) => deleteTrackApi(trackId, token!),
+    mutationFn: (trackId: string) => deleteTrackApi(trackId),
     onMutate: async (trackId) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<AudioTrack[]>(queryKey);
@@ -165,13 +153,13 @@ export function useAudioTracks(songId: string | undefined) {
 
   const reorderMutation = useMutation({
     mutationFn: ({ trackId, newOrder }: { trackId: string; newOrder: number }) =>
-      reorderTrackApi(trackId, token!, newOrder),
+      reorderTrackApi(trackId, newOrder),
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
 
   const beatMapMutation = useMutation({
     mutationFn: ({ trackId, beatMap }: { trackId: string; beatMap: AudioTrack['beatMap'] }) =>
-      updateTrackBeatMapApi(trackId, token!, beatMap),
+      updateTrackBeatMapApi(trackId, beatMap),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 

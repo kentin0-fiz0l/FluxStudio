@@ -44,7 +44,7 @@ import {
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useConnectors } from '@/store';
 import type { Connector, ConnectorFile, ConnectorProvider, ImportedFile } from '@/store';
 import { useNotifications } from '@/contexts/NotificationContext';

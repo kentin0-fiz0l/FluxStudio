@@ -19,7 +19,7 @@ import {
   Target
 } from 'lucide-react';
 
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { DailyBriefWidget } from '../components/agent/DailyBriefWidget';
 
 export function Home() {

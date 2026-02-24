@@ -19,7 +19,7 @@ import { MobilePlaybackControls } from '../../components/metmap/MobilePlaybackCo
 import { OfflineIndicator, NetworkStatusBadge } from '../../components/pwa/OfflineIndicator';
 import { usePWA } from '../../hooks/usePWA';
 import { ONBOARDING_STORAGE_KEYS, useFirstTimeExperience } from '../../hooks/useFirstTimeExperience';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { getApiUrl } from '../../utils/apiHelpers';
 
 // MetMap components

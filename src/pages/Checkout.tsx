@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CreditCard, Shield, Check, ArrowLeft, Loader, AlertCircle } from 'lucide-react';
 import { PricingTable } from '../components/payments/PricingTable';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://fluxstudio.art';
 

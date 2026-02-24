@@ -18,6 +18,8 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { apiService } from '@/services/apiService';
+import { buildApiUrl } from '@/config/environment';
 import { usePrintWebSocket } from './usePrintWebSocket';
 import {
   PrinterStatus,
@@ -184,19 +186,14 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
       setStatusLoading(true);
       setStatusError(null);
 
-      const response = await fetch('/api/printing/status');
+      const response = await apiService.get<PrinterStatus>('/printing/status');
 
-      if (response.status === 503) {
+      if (!response.success) {
         setIsServiceAvailable(false);
-        const data = await response.json();
-        throw new Error(data.message || 'FluxPrint service unavailable');
+        throw new Error(response.error || 'FluxPrint service unavailable');
       }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data: PrinterStatus = await response.json();
+      const data = response.data as PrinterStatus;
       setStatus(data);
       setIsServiceAvailable(true);
       retryCountRef.current.status = 0;
@@ -248,17 +245,13 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
       setJobLoading(true);
       setJobError(null);
 
-      const response = await fetch('/api/printing/job');
+      const response = await apiService.get<JobStatus>('/printing/job');
 
-      if (response.status === 503) {
-        throw new Error('FluxPrint service unavailable');
+      if (!response.success) {
+        throw new Error(response.error || 'FluxPrint service unavailable');
       }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data: JobStatus = await response.json();
+      const data = response.data as JobStatus;
       setJob(data);
       retryCountRef.current.job = 0;
     } catch (err) {
@@ -283,17 +276,13 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
       setQueueLoading(true);
       setQueueError(null);
 
-      const response = await fetch('/api/printing/queue');
+      const response = await apiService.get<PrintQueue>('/printing/queue');
 
-      if (response.status === 503) {
-        throw new Error('FluxPrint service unavailable');
+      if (!response.success) {
+        throw new Error(response.error || 'FluxPrint service unavailable');
       }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data: PrintQueue = await response.json();
+      const data = response.data as PrintQueue;
       setQueue(data);
       retryCountRef.current.queue = 0;
     } catch (err) {
@@ -318,17 +307,13 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
       setFilesLoading(true);
       setFilesError(null);
 
-      const response = await fetch('/api/printing/files');
+      const response = await apiService.get<FileList>('/printing/files');
 
-      if (response.status === 503) {
-        throw new Error('FluxPrint service unavailable');
+      if (!response.success) {
+        throw new Error(response.error || 'FluxPrint service unavailable');
       }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data: FileList = await response.json();
+      const data = response.data as FileList;
       setFiles(data);
       retryCountRef.current.files = 0;
     } catch (err) {
@@ -377,17 +362,10 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
   const addToQueue = useCallback(
     async (filename: string, priority: QueuePriority = 'normal'): Promise<void> => {
       try {
-        const response = await fetch('/api/printing/queue', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ filename, priority }),
-        });
+        const response = await apiService.post('/printing/queue', { filename, priority });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to add to queue');
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to add to queue');
         }
 
         // Optimistic update: refetch queue
@@ -407,13 +385,10 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
   const removeFromQueue = useCallback(
     async (id: number): Promise<void> => {
       try {
-        const response = await fetch(`/api/printing/queue/${id}`, {
-          method: 'DELETE',
-        });
+        const response = await apiService.delete(`/printing/queue/${id}`);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to remove from queue');
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to remove from queue');
         }
 
         // Optimistic update: refetch queue
@@ -433,17 +408,13 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
   const reorderQueue = useCallback(
     async (items: QueueItem[]): Promise<void> => {
       try {
-        const response = await fetch('/api/printing/queue/reorder', {
+        const response = await apiService.makeRequest(buildApiUrl('/printing/queue/reorder'), {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({ items }),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to reorder queue');
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to reorder queue');
         }
 
         // Optimistic update: refetch queue
@@ -463,13 +434,10 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
   const startJob = useCallback(
     async (id: number): Promise<void> => {
       try {
-        const response = await fetch(`/api/printing/queue/${id}/start`, {
-          method: 'POST',
-        });
+        const response = await apiService.post(`/printing/queue/${id}/start`);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to start job');
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to start job');
         }
 
         // Optimistic update: refetch queue and job
@@ -499,17 +467,13 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
           formData.append('files', file);
         }
 
-        const response = await fetch('/api/printing/files/upload', {
-          method: 'POST',
-          body: formData,
-        });
+        const response = await apiService.post<FileUploadResponse>('/printing/files/upload', formData);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to upload files');
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to upload files');
         }
 
-        const result: FileUploadResponse = await response.json();
+        const result = response.data as FileUploadResponse;
 
         // Refetch file list after upload
         await fetchFiles();
@@ -530,13 +494,10 @@ export function usePrinterStatus(options: UsePrinterStatusOptions = {}): UsePrin
   const deleteFile = useCallback(
     async (filename: string): Promise<void> => {
       try {
-        const response = await fetch(`/api/printing/files/${encodeURIComponent(filename)}`, {
-          method: 'DELETE',
-        });
+        const response = await apiService.delete(`/printing/files/${encodeURIComponent(filename)}`);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to delete file');
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to delete file');
         }
 
         // Optimistic update: refetch files

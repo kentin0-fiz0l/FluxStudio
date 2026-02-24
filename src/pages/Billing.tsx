@@ -13,7 +13,7 @@ import {
   ArrowRight,
   Shield
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { DashboardLayout } from '../components/templates';
 import { UsageBar } from '../components/payments/UsageBar';
 import { fetchUsage } from '../services/usageService';

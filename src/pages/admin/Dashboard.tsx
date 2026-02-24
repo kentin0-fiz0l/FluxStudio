@@ -7,7 +7,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { SystemHealth } from '../../components/admin/SystemHealth';
 import { UsageCharts } from '../../components/admin/UsageCharts';
 import {

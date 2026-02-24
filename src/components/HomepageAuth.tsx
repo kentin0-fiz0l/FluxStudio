@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
 import { useState, forwardRef } from 'react';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';

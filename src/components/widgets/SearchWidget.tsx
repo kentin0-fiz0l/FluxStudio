@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { useCommandPalette } from '../../hooks/useCommandPalette';
 import { useProjectsData, useActivityData } from '../../hooks/useRealTimeData';
 import { BaseWidget } from './BaseWidget';

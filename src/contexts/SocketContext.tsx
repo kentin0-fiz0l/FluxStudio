@@ -6,7 +6,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { socketService, ProjectPresenceMember, PulseEvent } from '../services/socketService';
-import { useAuth } from './AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { socketLogger } from '../lib/logger';
 import { toast } from '../lib/toast';
 import { Message, MessageUser, UserPresence } from '../types/messaging';

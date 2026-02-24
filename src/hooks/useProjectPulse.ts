@@ -15,7 +15,7 @@ import { useActiveProject } from '@/store';
 import { useSession } from '@/contexts/SessionContext';
 import { useNotifications, Notification } from '@/contexts/NotificationContext';
 import { useTasks, Task } from '@/hooks/useTasks';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 
 // Activity item types
 export type ActivityType =

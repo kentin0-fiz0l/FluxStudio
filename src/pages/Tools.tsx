@@ -9,7 +9,7 @@ import * as React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Card, Button, Badge } from '@/components/ui';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 import { SEOHead } from '../components/SEOHead';
 import { useMetMap } from '../contexts/MetMapContext';
 import { useActiveProject } from '@/store';

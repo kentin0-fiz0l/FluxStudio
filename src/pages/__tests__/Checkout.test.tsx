@@ -17,7 +17,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('@/contexts/AuthContext', () => ({
+vi.mock('@/store/slices/authSlice', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-1', name: 'Test User', email: 'test@example.com' },
     token: 'test-token',
@@ -188,7 +188,7 @@ describe('Checkout', () => {
 
   describe('Unauthenticated User', () => {
     test('redirects to login when selecting plan without auth', async () => {
-      const { useAuth } = await import('@/contexts/AuthContext');
+      const { useAuth } = await import('@/store/slices/authSlice');
       vi.mocked(useAuth).mockReturnValue({
         user: null,
         token: null,

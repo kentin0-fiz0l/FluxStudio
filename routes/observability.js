@@ -100,7 +100,44 @@ router.post('/vitals', async (req, res) => {
       return res.status(429).json({ error: 'Rate limit exceeded' });
     }
 
-    const { sessionId, url, vitals, viewport, connectionType, userAgent, performanceScore } = req.body;
+    const body = req.body;
+
+    // Per-metric format from web-vitals library (sendBeacon)
+    // { name, value, id, rating, url, timestamp }
+    if (body.name && typeof body.value === 'number' && body.id) {
+      const name = String(body.name).substring(0, 20);
+      const ALLOWED_METRICS = ['CLS', 'FID', 'LCP', 'INP', 'TTFB', 'FCP'];
+      if (!ALLOWED_METRICS.includes(name)) {
+        return res.status(400).json({ error: 'Invalid metric name' });
+      }
+
+      console.log(`[Observability] Web Vital: ${name}=${body.value.toFixed(2)} (${body.rating}) url=${body.url || '/'}`);
+
+      await ensureVitalsTable();
+
+      // Map the metric name to the appropriate column
+      const columnMap = { LCP: 'lcp', FCP: 'fcp', FID: 'fid', CLS: 'cls', TTFB: 'ttfb', INP: 'inp' };
+      const column = columnMap[name];
+      if (column) {
+        // Ensure inp column exists (added for web-vitals v4+)
+        await ensureInpColumn();
+
+        await query(
+          `INSERT INTO web_vitals (session_id, url, ${column})
+           VALUES ($1, $2, $3)`,
+          [
+            String(body.id).substring(0, 255),
+            (body.url || '/').substring(0, 2048),
+            body.value,
+          ]
+        );
+      }
+
+      return res.status(204).end();
+    }
+
+    // Batch format (existing): { sessionId, url, vitals, viewport, connectionType, userAgent, performanceScore }
+    const { sessionId, url, vitals, viewport, connectionType, userAgent, performanceScore } = body;
 
     if (!sessionId || !vitals) {
       return res.status(400).json({ error: 'sessionId and vitals are required' });
@@ -303,6 +340,18 @@ router.get('/metrics', authenticateToken, async (req, res) => {
 // Auto-create web_vitals table if missing
 // ========================================
 let vitalsTableReady = false;
+let inpColumnReady = false;
+
+async function ensureInpColumn() {
+  if (inpColumnReady) return;
+  try {
+    await query(`ALTER TABLE web_vitals ADD COLUMN IF NOT EXISTS inp DOUBLE PRECISION`);
+    inpColumnReady = true;
+  } catch (err) {
+    // Column may already exist or ALTER not supported — safe to ignore
+    inpColumnReady = true;
+  }
+}
 
 async function ensureVitalsTable() {
   if (vitalsTableReady) return;

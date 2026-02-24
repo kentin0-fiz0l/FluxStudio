@@ -25,7 +25,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useMessagingOptional } from '@/hooks/useMessaging';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/store/slices/authSlice';
 
 interface MobileBottomNavProps {
   onOpenSearch?: () => void;
