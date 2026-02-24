@@ -190,7 +190,7 @@ describe('ErrorBoundary', () => {
 
     it('should attempt retry when clicking Try Again', async () => {
       const user = userEvent.setup();
-      let shouldThrow = true;
+      const shouldThrow = true;
 
       function ConditionalThrow() {
         if (shouldThrow) {

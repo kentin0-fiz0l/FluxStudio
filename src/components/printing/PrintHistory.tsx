@@ -6,7 +6,7 @@
  * status tracking, and detailed information.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardHeader,
@@ -110,7 +110,7 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
   const [projects, setProjects] = useState<Array<{ id: string; title: string }>>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -134,7 +134,7 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [limit, selectedProjectId]);
 
   const fetchProjects = async () => {
     try {
@@ -161,7 +161,7 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
     // Refresh every 60 seconds
     const interval = setInterval(fetchHistory, 60000);
     return () => clearInterval(interval);
-  }, [limit, selectedProjectId]);
+  }, [fetchHistory]);
 
   if (isLoading && history.length === 0) {
     return (

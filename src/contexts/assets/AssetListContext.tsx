@@ -305,7 +305,7 @@ export function AssetListProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       refreshAssets();
     }
-  }, [user, state.filters, state.pagination.page]);
+  }, [user, state.filters, state.pagination.page, refreshAssets]);
 
   const value: AssetListContextValue = {
     refreshAssets,

@@ -31,7 +31,7 @@ export interface AutomationAction {
 export class AutomationEngine {
   private rules: AutomationRule[] = [];
 
-  async executeRule(ruleId: string, context: Record<string, any>): Promise<boolean> {
+  async executeRule(ruleId: string, context: Record<string, unknown>): Promise<boolean> {
     const rule = this.rules.find((r) => r.id === ruleId);
     if (!rule || !rule.enabled) return false;
 
@@ -50,7 +50,7 @@ export class AutomationEngine {
     return true;
   }
 
-  private evaluateCondition(condition: AutomationCondition, context: Record<string, any>): boolean {
+  private evaluateCondition(condition: AutomationCondition, context: Record<string, unknown>): boolean {
     const value = context[condition.field];
     switch (condition.operator) {
       case 'equals':

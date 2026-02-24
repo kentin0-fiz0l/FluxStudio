@@ -349,7 +349,7 @@ export function CommandPalette({
 
   // Reset selection when search changes
   useLayoutEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setSelectedIndex(0);
   }, [search]);
 

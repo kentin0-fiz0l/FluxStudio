@@ -178,7 +178,7 @@ export function PerformanceMonitor() {
     const interval = setInterval(collectMetrics, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [enableMonitoring]);
 
   if (!isVisible || !metrics) return null;
 

@@ -41,42 +41,50 @@ export function PathOverlay({
     y: (pos.y / 100) * canvasHeight,
   });
 
-  // Generate SVG path data for a performer's path
-  const generatePathData = (
-    points: { time: number; position: Position }[],
-    filterFn?: (point: { time: number; position: Position }) => boolean
-  ): string => {
-    const filteredPoints = filterFn ? points.filter(filterFn) : points;
-    if (filteredPoints.length < 2) return '';
-
-    const coords = filteredPoints.map((p) => toCanvasCoords(p.position));
-    let d = `M ${coords[0].x} ${coords[0].y}`;
-
-    for (let i = 1; i < coords.length; i++) {
-      d += ` L ${coords[i].x} ${coords[i].y}`;
-    }
-
-    return d;
-  };
-
-  // Calculate arrow marker position at path end
-  const getArrowPosition = (
-    points: { time: number; position: Position }[]
-  ): { x: number; y: number; rotation: number } | null => {
-    if (points.length < 2) return null;
-
-    const lastTwo = points.slice(-2);
-    const start = toCanvasCoords(lastTwo[0].position);
-    const end = toCanvasCoords(lastTwo[1].position);
-
-    const rotation = Math.atan2(end.y - start.y, end.x - start.x) * (180 / Math.PI);
-
-    return { x: end.x, y: end.y, rotation };
-  };
-
   // Memoized path rendering data
   const pathRenderData = useMemo(() => {
     if (!showPaths) return [];
+
+    // Generate SVG path data for a performer's path
+    const generatePathData = (
+      points: { time: number; position: Position }[],
+      filterFn?: (point: { time: number; position: Position }) => boolean
+    ): string => {
+      const filteredPoints = filterFn ? points.filter(filterFn) : points;
+      if (filteredPoints.length < 2) return '';
+
+      const toCoords = (pos: Position) => ({
+        x: (pos.x / 100) * canvasWidth,
+        y: (pos.y / 100) * canvasHeight,
+      });
+      const coords = filteredPoints.map((p) => toCoords(p.position));
+      let d = `M ${coords[0].x} ${coords[0].y}`;
+
+      for (let i = 1; i < coords.length; i++) {
+        d += ` L ${coords[i].x} ${coords[i].y}`;
+      }
+
+      return d;
+    };
+
+    // Calculate arrow marker position at path end
+    const getArrowPosition = (
+      points: { time: number; position: Position }[]
+    ): { x: number; y: number; rotation: number } | null => {
+      if (points.length < 2) return null;
+
+      const toCoords = (pos: Position) => ({
+        x: (pos.x / 100) * canvasWidth,
+        y: (pos.y / 100) * canvasHeight,
+      });
+      const lastTwo = points.slice(-2);
+      const start = toCoords(lastTwo[0].position);
+      const end = toCoords(lastTwo[1].position);
+
+      const rotation = Math.atan2(end.y - start.y, end.x - start.x) * (180 / Math.PI);
+
+      return { x: end.x, y: end.y, rotation };
+    };
 
     const data: Array<{
       performer: Performer;

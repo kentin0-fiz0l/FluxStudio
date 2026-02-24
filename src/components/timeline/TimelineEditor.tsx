@@ -98,7 +98,7 @@ export function TimelineEditor({ className = '' }: TimelineEditorProps) {
 
     const intervalId = setInterval(tick, 1000 / 60); // 60 fps
     return () => clearInterval(intervalId);
-  }, [playback.isPlaying, playback.playbackRate, playback.loop, project?.duration]);
+  }, [playback, project]);
 
   // Handle scroll sync
   const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {

@@ -78,11 +78,7 @@ export function TemplatePicker({
   }, []);
 
   // Load templates
-  React.useEffect(() => {
-    loadTemplates();
-  }, [selectedCategory, searchQuery, selectedTags, performerRange]);
-
-  const loadTemplates = () => {
+  const loadTemplates = React.useCallback(() => {
     setIsLoading(true);
     try {
       let result: DrillTemplate[];
@@ -124,7 +120,11 @@ export function TemplatePicker({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedCategory, searchQuery, selectedTags, performerRange, emptyState, performerCount]);
+
+  React.useEffect(() => {
+    loadTemplates();
+  }, [loadTemplates]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) => {
@@ -629,8 +629,8 @@ function TemplatePreviewCanvas({
 
     positions.forEach((pos: TemplatePosition, index: number) => {
       // Transform position
-      let x = ((pos.x - 50) * scale) / 100 * (width * 0.8);
-      let y = ((pos.y - 50) * scale) / 100 * (height * 0.8);
+      const x = ((pos.x - 50) * scale) / 100 * (width * 0.8);
+      const y = ((pos.y - 50) * scale) / 100 * (height * 0.8);
 
       // Apply rotation around center
       const rotatedX = x * Math.cos(rotationRad) - y * Math.sin(rotationRad);

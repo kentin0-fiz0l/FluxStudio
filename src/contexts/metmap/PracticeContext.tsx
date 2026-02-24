@@ -8,7 +8,15 @@ import * as React from 'react';
 import { useAuth } from '../AuthContext';
 import { useNotification } from '../NotificationContext';
 import { useMetMapCore } from './MetMapCoreContext';
-import type { PracticeContextValue, PracticeSession, PracticeSettings } from './types';
+import type { PracticeContextValue, PracticeSession, PracticeSettings, MetMapStats } from './types';
+
+interface PracticeSessionResponse {
+  session: PracticeSession;
+}
+
+interface PracticeHistoryResponse {
+  sessions: PracticeSession[];
+}
 
 const PracticeContext = React.createContext<PracticeContextValue | null>(null);
 
@@ -21,7 +29,7 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
     if (!token || !state.currentSong) return null;
 
     try {
-      const result = await apiCall(`/api/metmap/songs/${state.currentSong.id}/practice`, {
+      const result = await apiCall<PracticeSessionResponse>(`/api/metmap/songs/${state.currentSong.id}/practice`, {
         method: 'POST',
         body: JSON.stringify({ settings: settings || {} })
       });
@@ -57,7 +65,7 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_PRACTICE_HISTORY_LOADING', payload: true });
 
     try {
-      const data = await apiCall(`/api/metmap/songs/${state.currentSong.id}/practice-history`);
+      const data = await apiCall<PracticeHistoryResponse>(`/api/metmap/songs/${state.currentSong.id}/practice-history`);
       dispatch({ type: 'SET_PRACTICE_HISTORY', payload: data.sessions });
     } catch (_error) {
       dispatch({ type: 'SET_PRACTICE_HISTORY', payload: [] });
@@ -68,7 +76,7 @@ export function PracticeProvider({ children }: { children: React.ReactNode }) {
     if (!token) return;
 
     try {
-      const stats = await apiCall('/api/metmap/stats');
+      const stats = await apiCall<MetMapStats>('/api/metmap/stats');
       dispatch({ type: 'SET_STATS', payload: stats });
     } catch (_error) {
       // Silently fail for stats

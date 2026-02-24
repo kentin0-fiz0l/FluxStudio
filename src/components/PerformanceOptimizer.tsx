@@ -203,23 +203,23 @@ export function useScrollPosition() {
 }
 
 // Utility function for throttling
-function throttle<T extends (...args: any[]) => any>(
-  func: T,
+function throttle(
+  func: () => void,
   delay: number
-): (...args: Parameters<T>) => void {
+): () => void {
   let timeoutId: NodeJS.Timeout | null = null;
   let lastExecTime = 0;
-  
-  return (...args: Parameters<T>) => {
+
+  return () => {
     const currentTime = Date.now();
-    
+
     if (currentTime - lastExecTime > delay) {
-      func(...args);
+      func();
       lastExecTime = currentTime;
     } else {
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        func(...args);
+        func();
         lastExecTime = Date.now();
       }, delay - (currentTime - lastExecTime));
     }

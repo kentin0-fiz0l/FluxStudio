@@ -348,40 +348,16 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   }, [isOpen, task, editor]);
 
   // ============================================================================
-  // Keyboard Shortcuts
-  // ============================================================================
-
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+S / Ctrl+S to save
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      }
-
-      // Escape to close (if not in editor)
-      if (e.key === 'Escape' && document.activeElement !== editor?.view.dom) {
-        handleClose();
-      }
-    };
-
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [isOpen, title, description, status, priority, assignedTo, dueDate, editor]);
-
-  // ============================================================================
   // Event Handlers
   // ============================================================================
 
-  const handleClose = () => {
+  const handleClose = React.useCallback(() => {
     if (!isSaving && !isDeleting) {
       onClose();
     }
-  };
+  }, [isSaving, isDeleting, onClose]);
 
-  const handleSave = async () => {
+  const handleSave = React.useCallback(async () => {
     // Validate form
     const validationErrors = validateTask(title, description, dueDate || null);
 
@@ -420,7 +396,31 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [title, description, status, priority, assignedTo, dueDate, task, onSave, onClose]);
+
+  // ============================================================================
+  // Keyboard Shortcuts
+  // ============================================================================
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+S / Ctrl+S to save
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+
+      // Escape to close (if not in editor)
+      if (e.key === 'Escape' && document.activeElement !== editor?.view.dom) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, editor, handleClose, handleSave]);
 
   const handleDelete = async () => {
     if (!task) return;

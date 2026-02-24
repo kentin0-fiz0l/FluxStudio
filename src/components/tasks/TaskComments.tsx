@@ -589,7 +589,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
         newText = inputValue.slice(0, start) + `\`${text}\`` + inputValue.slice(end);
         cursorOffset = selectedText ? 1 : text.length + 1;
         break;
-      case 'link':
+      case 'link': {
         const url = window.prompt('Enter URL:');
         if (url) {
           newText = inputValue.slice(0, start) + `[${text}](${url})` + inputValue.slice(end);
@@ -598,6 +598,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
           return;
         }
         break;
+      }
       default:
         return;
     }

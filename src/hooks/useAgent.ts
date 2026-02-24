@@ -15,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useStore } from '@/store/store';
 import { apiService } from '@/services/apiService';
 import { CACHE_STABLE, CACHE_STANDARD } from '@/lib/queryConfig';
+import type { DailyBrief, WhatChangedData, PendingAction } from '@/store/slices/agentSlice';
 
 // ============================================================================
 // Types
@@ -38,39 +39,39 @@ interface SearchResult {
 // ============================================================================
 
 async function fetchDailyBrief() {
-  const response = await apiService.get('/agent/daily_brief');
+  const response = await apiService.get<DailyBrief>('/agent/daily_brief');
   return response.data;
 }
 
 async function fetchWhatChanged(since?: string) {
   const params = since ? `?since=${encodeURIComponent(since)}` : '';
-  const response = await apiService.get(`/agent/what_changed${params}`);
+  const response = await apiService.get<WhatChangedData>(`/agent/what_changed${params}`);
   return response.data;
 }
 
 async function fetchPendingActions() {
-  const response = await apiService.get('/agent/pending_actions');
+  const response = await apiService.get<PendingAction[]>('/agent/pending_actions');
   return response.data;
 }
 
 async function searchProjects(query: string) {
-  const response = await apiService.get(`/agent/search_projects?query=${encodeURIComponent(query)}`);
+  const response = await apiService.get<SearchResult[]>(`/agent/search_projects?query=${encodeURIComponent(query)}`);
   return response.data;
 }
 
 async function approveAction(actionId: string) {
-  const response = await apiService.post(`/agent/pending_action/${actionId}/approve`);
+  const response = await apiService.post<{ success: boolean }>(`/agent/pending_action/${actionId}/approve`);
   return response.data;
 }
 
 async function rejectAction(actionId: string) {
-  const response = await apiService.post(`/agent/pending_action/${actionId}/reject`);
+  const response = await apiService.post<{ success: boolean }>(`/agent/pending_action/${actionId}/reject`);
   return response.data;
 }
 
-async function createSession(projectId?: string): Promise<{ id?: string }> {
-  const response = await apiService.post('/agent/session', { projectId });
-  return response.data as { id?: string };
+async function createSession(projectId?: string): Promise<{ id?: string } | undefined> {
+  const response = await apiService.post<{ id?: string }>('/agent/session', { projectId });
+  return response.data;
 }
 
 // ============================================================================
@@ -102,7 +103,7 @@ export function useAgentSession(options: ChatOptions = {}) {
       const response = await createSession(options.projectId);
       const sessionId = createSessionStore(options.projectId);
       // Update with server session ID if different
-      if (response.id && response.id !== sessionId) {
+      if (response?.id && response.id !== sessionId) {
         setCurrentSession(response.id);
       }
       return sessionId;
@@ -257,9 +258,10 @@ export function useAgentSession(options: ChatOptions = {}) {
 
   // Cleanup on unmount
   useEffect(() => {
+    const eventSource = eventSourceRef.current;
     return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+      if (eventSource) {
+        eventSource.close();
       }
     };
   }, []);

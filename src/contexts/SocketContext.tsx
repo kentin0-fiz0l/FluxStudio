@@ -190,6 +190,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     socketService.on('user:online', handleUserOnline);
     socketService.on('user:offline', handleUserOffline);
 
+    // Copy ref value for cleanup
+    const timeouts = typingTimeouts.current;
+
     // Cleanup function
     return () => {
       socketService.off('connect', handleConnect);
@@ -200,8 +203,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       socketService.off('user:offline', handleUserOffline);
 
       // Clear all typing timeouts
-      typingTimeouts.current.forEach(timeout => clearTimeout(timeout));
-      typingTimeouts.current.clear();
+      timeouts.forEach(timeout => clearTimeout(timeout));
+      timeouts.clear();
     };
   }, [typingUsers, onlineUsers]);
 

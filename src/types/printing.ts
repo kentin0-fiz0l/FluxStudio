@@ -284,12 +284,12 @@ export interface PrintJobRecord {
   estimatedTime?: number;       // Seconds
   actualTime?: number;          // Seconds
   printerName: string;
-  printSettings?: Record<string, any>;
+  printSettings?: Record<string, unknown>;
   materialType?: string;
   materialColor?: string;
   materialUsed?: number;
   errorMessage?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: string;            // ISO 8601
   updatedAt: string;            // ISO 8601
 }

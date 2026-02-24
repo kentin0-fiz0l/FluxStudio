@@ -5,7 +5,7 @@
  * View, filter, and export security events with timeline visualization
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAdminApi } from '../hooks/useAdminAuth';
 
 interface SecurityEvent {
@@ -49,11 +49,7 @@ export function Events() {
   const [exportLoading, setExportLoading] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<SecurityEvent | null>(null);
 
-  useEffect(() => {
-    loadEvents();
-  }, [page, filters]);
-
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -75,7 +71,11 @@ export function Events() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiRequest, page, filters]);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
 
   const handleExport = async (format: 'json' | 'csv') => {
     try {

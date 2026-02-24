@@ -149,7 +149,7 @@ export function VideoCall({
     getParticipantStream,
   } = useWebRTC({ userId });
 
-  // Start or answer call on mount
+  // Start or answer call on mount -- intentionally runs only once to avoid re-initiating the call
   useEffect(() => {
     if (isIncoming && incomingOffer && fromUserId) {
       answerCall(callId, fromUserId, incomingOffer);
@@ -160,6 +160,7 @@ export function VideoCall({
     return () => {
       // Cleanup handled by the hook
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only effect: call should be started/answered once
   }, []);
 
   // Call duration timer

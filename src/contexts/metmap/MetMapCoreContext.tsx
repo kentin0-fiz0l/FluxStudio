@@ -16,7 +16,7 @@ export function MetMapCoreProvider({ children }: { children: React.ReactNode }) 
   const { token } = useAuth();
   const [state, dispatch] = React.useReducer(metmapReducer, initialMetMapState);
 
-  const apiCall = React.useCallback(async (endpoint: string, options: RequestInit = {}) => {
+  const apiCall = React.useCallback(async <T = Record<string, unknown>>(endpoint: string, options: RequestInit = {}): Promise<T> => {
     const url = getApiUrl(endpoint);
     const response = await fetch(url, {
       ...options,
@@ -32,7 +32,7 @@ export function MetMapCoreProvider({ children }: { children: React.ReactNode }) 
       throw new Error(error.error || 'Request failed');
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   }, [token]);
 
   const value: MetMapCoreContextValue = {

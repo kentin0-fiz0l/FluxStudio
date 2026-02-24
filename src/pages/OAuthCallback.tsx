@@ -207,7 +207,7 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
     };
 
     handleCallback();
-  }, [searchParams, provider, navigate]);
+  }, [searchParams, provider, navigate, setAuthToken]);
 
   // Provider display names
   const providerNames: Record<typeof provider, string> = {

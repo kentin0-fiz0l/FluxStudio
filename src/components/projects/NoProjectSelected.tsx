@@ -53,7 +53,7 @@ export const NoProjectSelected: React.FC<NoProjectSelectedProps> = ({
   const context = useProjectContext();
 
   // Handle case when provider is not available
-  const projects = context?.projects ?? [];
+  const projects = React.useMemo(() => context?.projects ?? [], [context?.projects]);
   const switchProject = context?.switchProject;
   const isLoading = context?.isLoading ?? true;
 

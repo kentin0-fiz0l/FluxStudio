@@ -122,7 +122,7 @@ export function VoiceCall({
     toggleMute,
   } = useWebRTC({ userId });
 
-  // Start or answer call on mount (voice only)
+  // Start or answer call on mount (voice only) -- intentionally runs only once to avoid re-initiating the call
   useEffect(() => {
     if (isIncoming && incomingOffer && fromUserId) {
       answerCall(callId, fromUserId, incomingOffer, { audio: true, video: false });
@@ -133,6 +133,7 @@ export function VoiceCall({
     return () => {
       // Cleanup handled by the hook
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only effect: call should be started/answered once
   }, []);
 
   // Call duration timer

@@ -213,7 +213,7 @@ export function useMessaging(): UseMessagingReturn {
         projectId: options.projectId,
       },
     });
-  }, [store.currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [store.currentUser]);  
 
   const setActiveConversation = useCallback((conversationId: string | null) => {
     store.setActiveConversation(conversationId);

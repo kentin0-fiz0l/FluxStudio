@@ -33,9 +33,8 @@ export function registerSW() {
       onUpdateAvailable?.();
     });
 
-    wb.register().catch((err) => {
-      // SW registration can fail silently (e.g. stale SW, IndexedDB issues)
-      console.debug('[FluxStudio] Service worker registration skipped:', err.message);
+    wb.register().catch(() => {
+      // SW registration can fail (stale SW, IndexedDB issues) — non-critical, skip silently
     });
   } catch {
     // Workbox constructor or event binding failed — non-critical

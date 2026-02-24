@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -88,6 +88,19 @@ export function Signup() {
     }
   };
 
+  const handleGoogleSignup = useCallback(async (response: { credential?: string }) => {
+    if (!response.credential) {
+      setError('Google authentication failed');
+      return;
+    }
+    try {
+      await loginWithGoogle(response.credential);
+      navigate(callbackUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google authentication failed');
+    }
+  }, [loginWithGoogle, navigate, callbackUrl]);
+
   // Setup Google OAuth button
   useEffect(() => {
     if (googleOAuth.isReady && !googleOAuth.error) {
@@ -103,20 +116,7 @@ export function Signup() {
       });
     }
     return () => googleOAuth.removeButton('google-oauth-signup');
-  }, [googleOAuth.isReady, googleOAuth.error]);
-
-  const handleGoogleSignup = async (response: { credential?: string }) => {
-    if (!response.credential) {
-      setError('Google authentication failed');
-      return;
-    }
-    try {
-      await loginWithGoogle(response.credential);
-      navigate(callbackUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google authentication failed');
-    }
-  };
+  }, [googleOAuth, handleGoogleSignup]);
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] flex flex-col items-center justify-center px-4 py-12">

@@ -98,7 +98,7 @@ export interface Chord {
   beat: number;
   symbol: string;
   durationBeats: number;
-  voicing?: Record<string, any>;
+  voicing?: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -386,7 +386,7 @@ export function metmapReducer(state: MetMapState, action: MetMapAction): MetMapS
 export interface MetMapCoreContextValue {
   state: MetMapState;
   dispatch: React.Dispatch<MetMapAction>;
-  apiCall: (endpoint: string, options?: RequestInit) => Promise<any>;
+  apiCall: <T = Record<string, unknown>>(endpoint: string, options?: RequestInit) => Promise<T>;
 }
 
 export interface SongListContextValue {

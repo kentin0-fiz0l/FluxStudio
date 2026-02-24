@@ -366,7 +366,7 @@ export function CommandPalette({ className: _className }: CommandPaletteProps) {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, results, selectedIndex, close]);
+  }, [isOpen, results, selectedIndex, close, query, recentSearches]);
 
   // Reset selection when results change
   useEffect(() => {

@@ -75,7 +75,7 @@ export const ProjectSwitcher: React.FC<ProjectSwitcherProps> = ({
 
   // Handle case when ProjectProvider is not available
   const currentProject = projectContext?.currentProject;
-  const projects = projectContext?.projects || [];
+  const projects = React.useMemo(() => projectContext?.projects || [], [projectContext?.projects]);
   const isLoading = projectContext?.isLoading ?? true;
   const switchProject = projectContext?.switchProject;
   const clearProject = projectContext?.clearProject;

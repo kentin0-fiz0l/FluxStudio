@@ -256,7 +256,7 @@ export function useFirstTimeExperience(
       });
       return updated;
     });
-  }, []);
+  }, [totalSteps]);
 
   // Auto-complete when all steps done - use queueMicrotask to avoid sync setState in effect
   useEffect(() => {

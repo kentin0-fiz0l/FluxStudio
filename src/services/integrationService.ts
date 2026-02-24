@@ -18,6 +18,116 @@ interface IntegrationListResponse {
   integrations: Integration[];
 }
 
+// Figma API types
+interface FigmaFile {
+  key: string;
+  name: string;
+  thumbnail_url?: string;
+  last_modified: string;
+}
+
+interface FigmaFileDetail {
+  name: string;
+  lastModified: string;
+  thumbnailUrl: string;
+  version: string;
+  document: Record<string, unknown>;
+  components: Record<string, unknown>;
+}
+
+interface FigmaFilesResponse {
+  files: FigmaFile[];
+}
+
+// Slack API types
+interface SlackChannel {
+  id: string;
+  name: string;
+  is_private: boolean;
+  is_member: boolean;
+  topic?: { value: string };
+  purpose?: { value: string };
+  num_members?: number;
+}
+
+interface SlackChannelsResponse {
+  channels: SlackChannel[];
+}
+
+interface SlackMessageResponse {
+  ok: boolean;
+  channel: string;
+  ts: string;
+  message?: Record<string, unknown>;
+}
+
+// GitHub API types
+interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  html_url: string;
+  private: boolean;
+  owner: { login: string; avatar_url: string };
+  default_branch: string;
+  language: string | null;
+  updated_at: string;
+  stargazers_count: number;
+  forks_count: number;
+  open_issues_count: number;
+}
+
+interface GitHubRepositoriesResponse {
+  repositories: GitHubRepository[];
+}
+
+interface GitHubIssue {
+  id: number;
+  number: number;
+  title: string;
+  state: string;
+  body: string | null;
+  html_url: string;
+  created_at: string;
+  updated_at: string;
+  user: { login: string; avatar_url: string };
+  labels: Array<{ name: string; color: string }>;
+}
+
+interface GitHubIssuesResponse {
+  issues: GitHubIssue[];
+}
+
+interface GitHubPullRequest {
+  id: number;
+  number: number;
+  title: string;
+  state: string;
+  body: string | null;
+  html_url: string;
+  created_at: string;
+  updated_at: string;
+  user: { login: string; avatar_url: string };
+  head: { ref: string };
+  base: { ref: string };
+}
+
+interface GitHubPullRequestsResponse {
+  pulls: GitHubPullRequest[];
+}
+
+interface GitHubCommit {
+  sha: string;
+  message: string;
+  author: { name: string; email: string; date: string };
+  html_url: string;
+}
+
+interface GitHubCommitsResponse {
+  commits: GitHubCommit[];
+}
+
 class IntegrationService {
   private getAuthHeaders(): HeadersInit {
     // Fixed: Use 'auth_token' to match AuthContext storage key
@@ -104,7 +214,7 @@ class IntegrationService {
   /**
    * Get Figma files accessible to the user
    */
-  async getFigmaFiles(): Promise<any[]> {
+  async getFigmaFiles(): Promise<FigmaFile[]> {
     const response = await fetch(buildApiUrl('/integrations/figma/files'), {
       headers: this.getAuthHeaders()
     });
@@ -113,14 +223,14 @@ class IntegrationService {
       throw new Error(`Failed to fetch Figma files: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data: FigmaFilesResponse = await response.json();
     return data.files || [];
   }
 
   /**
    * Get a specific Figma file by key
    */
-  async getFigmaFile(fileKey: string): Promise<any> {
+  async getFigmaFile(fileKey: string): Promise<FigmaFileDetail> {
     const response = await fetch(buildApiUrl(`/integrations/figma/files/${fileKey}`), {
       headers: this.getAuthHeaders()
     });
@@ -137,7 +247,7 @@ class IntegrationService {
   /**
    * Get Slack channels for all connected workspaces
    */
-  async getSlackChannels(teamId?: string): Promise<any[]> {
+  async getSlackChannels(teamId?: string): Promise<SlackChannel[]> {
     const url = teamId
       ? buildApiUrl(`/integrations/slack/channels?teamId=${teamId}`)
       : buildApiUrl('/integrations/slack/channels');
@@ -150,14 +260,14 @@ class IntegrationService {
       throw new Error(`Failed to fetch Slack channels: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data: SlackChannelsResponse = await response.json();
     return data.channels || [];
   }
 
   /**
    * Send a message to a Slack channel
    */
-  async sendSlackMessage(channel: string, message: string, teamId?: string): Promise<any> {
+  async sendSlackMessage(channel: string, message: string, teamId?: string): Promise<SlackMessageResponse> {
     const response = await fetch(buildApiUrl('/integrations/slack/message'), {
       method: 'POST',
       headers: this.getAuthHeaders(),
@@ -176,7 +286,7 @@ class IntegrationService {
   /**
    * Get GitHub repositories accessible to the user
    */
-  async getGitHubRepositories(): Promise<any[]> {
+  async getGitHubRepositories(): Promise<GitHubRepository[]> {
     const response = await fetch(buildApiUrl('/integrations/github/repositories'), {
       headers: this.getAuthHeaders()
     });
@@ -185,14 +295,14 @@ class IntegrationService {
       throw new Error(`Failed to fetch GitHub repositories: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data: GitHubRepositoriesResponse = await response.json();
     return data.repositories || [];
   }
 
   /**
    * Get a specific GitHub repository
    */
-  async getGitHubRepository(owner: string, repo: string): Promise<any> {
+  async getGitHubRepository(owner: string, repo: string): Promise<GitHubRepository> {
     const response = await fetch(buildApiUrl(`/integrations/github/repositories/${owner}/${repo}`), {
       headers: this.getAuthHeaders()
     });
@@ -222,7 +332,7 @@ class IntegrationService {
   /**
    * Get issues for a GitHub repository
    */
-  async getGitHubIssues(owner: string, repo: string): Promise<any[]> {
+  async getGitHubIssues(owner: string, repo: string): Promise<GitHubIssue[]> {
     const response = await fetch(buildApiUrl(`/integrations/github/repositories/${owner}/${repo}/issues`), {
       headers: this.getAuthHeaders()
     });
@@ -231,14 +341,14 @@ class IntegrationService {
       throw new Error(`Failed to fetch GitHub issues: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data: GitHubIssuesResponse = await response.json();
     return data.issues || [];
   }
 
   /**
    * Get pull requests for a GitHub repository
    */
-  async getGitHubPullRequests(owner: string, repo: string): Promise<any[]> {
+  async getGitHubPullRequests(owner: string, repo: string): Promise<GitHubPullRequest[]> {
     const response = await fetch(buildApiUrl(`/integrations/github/repositories/${owner}/${repo}/pulls`), {
       headers: this.getAuthHeaders()
     });
@@ -247,14 +357,14 @@ class IntegrationService {
       throw new Error(`Failed to fetch GitHub pull requests: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data: GitHubPullRequestsResponse = await response.json();
     return data.pulls || [];
   }
 
   /**
    * Get commits for a GitHub repository
    */
-  async getGitHubCommits(owner: string, repo: string): Promise<any[]> {
+  async getGitHubCommits(owner: string, repo: string): Promise<GitHubCommit[]> {
     const response = await fetch(buildApiUrl(`/integrations/github/repositories/${owner}/${repo}/commits`), {
       headers: this.getAuthHeaders()
     });
@@ -263,7 +373,7 @@ class IntegrationService {
       throw new Error(`Failed to fetch GitHub commits: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data: GitHubCommitsResponse = await response.json();
     return data.commits || [];
   }
 }

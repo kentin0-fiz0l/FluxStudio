@@ -244,7 +244,7 @@ export function EnoBackground() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [scrollProgress, theme]);
+  }, [scrollProgress, theme, isLightMode]);
 
   return (
     <>

@@ -195,7 +195,7 @@ export default function FormationEditor() {
         console.error('Failed to load scene objects:', err);
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [formationId]);
 
   // Auto-open object editor when selecting an object

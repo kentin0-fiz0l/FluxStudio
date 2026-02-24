@@ -686,8 +686,9 @@ export function RouteErrorBoundary() {
   try {
     // Dynamic import to avoid hard dependency when component is used outside router
     // useRouteError is only available inside a RouterProvider context
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- dynamic require to avoid hard dependency outside router context
     const { useRouteError } = require('react-router-dom');
-    routeError = useRouteError();
+    routeError = useRouteError(); // eslint-disable-line react-hooks/rules-of-hooks -- intentionally conditional: only available inside RouterProvider
   } catch {
     // Not inside a router context
   }

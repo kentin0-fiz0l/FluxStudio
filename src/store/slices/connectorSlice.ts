@@ -247,7 +247,7 @@ export const createConnectorSlice: StateCreator<
           state.connectors.connectors = data.connectors || [];
           state.connectors.loading = false;
         });
-      } catch (error) {
+      } catch (_error) {
         set((state) => {
           state.connectors.error = 'Failed to load connectors';
           state.connectors.loading = false;

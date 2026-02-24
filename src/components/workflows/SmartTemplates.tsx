@@ -62,7 +62,7 @@ export function SmartTemplates() {
   const [showCustomizeDialog, setShowCustomizeDialog] = useState(false);
 
   // Pre-built smart templates
-  const smartTemplates: SmartTemplate[] = [
+  const smartTemplates: SmartTemplate[] = useMemo(() => [
     {
       id: 'quick-project-setup',
       name: 'Quick Project Setup',
@@ -156,7 +156,7 @@ export function SmartTemplates() {
         variables: {}
       }
     }
-  ];
+  ], []);
 
   // Filter templates based on search and category
   const filteredTemplates = useMemo(() => {

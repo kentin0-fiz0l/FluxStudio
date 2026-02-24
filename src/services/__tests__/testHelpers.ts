@@ -22,7 +22,7 @@ export interface MockSocket {
 export interface SocketMockContext {
   mockSocket: MockSocket;
   mockIo: ReturnType<typeof vi.fn>;
-  eventHandlers: Map<string, Function>;
+  eventHandlers: Map<string, (...args: unknown[]) => void>;
   /** Manually trigger a registered socket event */
   trigger: (event: string, ...args: unknown[]) => void;
 }
@@ -36,10 +36,10 @@ export interface SocketMockContext {
  * ```
  */
 export function createSocketMockContext(): SocketMockContext {
-  const eventHandlers = new Map<string, Function>();
+  const eventHandlers = new Map<string, (...args: unknown[]) => void>();
 
   const mockSocket: MockSocket = {
-    on: vi.fn((event: string, handler: Function) => {
+    on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
       eventHandlers.set(event, handler);
       return mockSocket;
     }),

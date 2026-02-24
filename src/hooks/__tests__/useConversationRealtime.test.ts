@@ -8,7 +8,7 @@ import { renderHook, act } from '@testing-library/react';
 
 // Socket mock - use vi.hoisted to avoid TDZ issues with vi.mock hoisting
 const { eventHandlers, mockSocketService } = vi.hoisted(() => {
-  const handlers = new Map<string, Function>();
+  const handlers = new Map<string, (...args: unknown[]) => void>();
   return {
     eventHandlers: handlers,
     mockSocketService: {
@@ -31,7 +31,7 @@ const { eventHandlers, mockSocketService } = vi.hoisted(() => {
       unpinMessage: vi.fn(),
       editMessage: vi.fn(),
       forwardMessage: vi.fn(),
-      on: vi.fn((event: string, handler: Function) => {
+      on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
         handlers.set(event, handler);
         return () => handlers.delete(event);
       }),
@@ -56,7 +56,7 @@ describe('useConversationRealtime', () => {
     vi.clearAllMocks();
     eventHandlers.clear();
     // Re-apply mock implementations after clearAllMocks
-    mockSocketService.on.mockImplementation((event: string, handler: Function) => {
+    mockSocketService.on.mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
       eventHandlers.set(event, handler);
       return () => eventHandlers.delete(event);
     });

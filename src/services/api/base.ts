@@ -5,7 +5,7 @@
 import { buildApiUrl, config } from '../../config/environment';
 import { apiLogger } from '../../lib/logger';
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -212,7 +212,7 @@ export class ApiService {
   }
 
   // Generic HTTP methods
-  async get<T = any>(endpoint: string, options: { params?: Record<string, string> } = {}): Promise<ApiResponse<T>> {
+  async get<T = unknown>(endpoint: string, options: { params?: Record<string, string> } = {}): Promise<ApiResponse<T>> {
     let url = endpoint.startsWith('http') ? endpoint : buildApiUrl(endpoint);
     if (options.params) {
       const searchParams = new URLSearchParams(options.params);
@@ -236,7 +236,7 @@ export class ApiService {
     return this.makeRequest<T>(url, { method: 'PATCH', body: JSON.stringify(data) });
   }
 
-  async delete<T = any>(endpoint: string): Promise<ApiResponse<T>> {
+  async delete<T = unknown>(endpoint: string): Promise<ApiResponse<T>> {
     const url = endpoint.startsWith('http') ? endpoint : buildApiUrl(endpoint);
     return this.makeRequest<T>(url, { method: 'DELETE' });
   }

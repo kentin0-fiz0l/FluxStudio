@@ -122,9 +122,7 @@ class AnalyticsService {
       });
     }
 
-    // Console log in development
-    if (process.env.NODE_ENV === 'development') {
-    }
+    // Analytics events are dispatched above; no additional dev-only logging needed
   }
 
   page(name: string, properties?: Record<string, unknown>) {

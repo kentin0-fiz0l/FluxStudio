@@ -15,13 +15,13 @@ import { useTheme } from '../useTheme';
 const THEME_KEY = 'flux-studio-theme-preference';
 
 function createMockMediaQuery(matches = false) {
-  const listeners: Function[] = [];
+  const listeners: ((...args: unknown[]) => void)[] = [];
   return {
     matches,
-    addEventListener: vi.fn((_: string, handler: Function) => {
+    addEventListener: vi.fn((_: string, handler: (...args: unknown[]) => void) => {
       listeners.push(handler);
     }),
-    removeEventListener: vi.fn((_: string, handler: Function) => {
+    removeEventListener: vi.fn((_: string, handler: (...args: unknown[]) => void) => {
       const idx = listeners.indexOf(handler);
       if (idx >= 0) listeners.splice(idx, 1);
     }),

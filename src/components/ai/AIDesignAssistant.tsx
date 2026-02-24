@@ -49,13 +49,6 @@ export function AIDesignAssistant({
   const [collaborationInsights, setCollaborationInsights] = useState<CollaborationInsight[]>([]);
   const [_realTimeSuggestions, _setRealTimeSuggestions] = useState<DesignSuggestion[]>([]);
 
-  // Auto-analyze design when it changes
-  useEffect(() => {
-    if (currentDesign && isVisible) {
-      analyzeDesign();
-    }
-  }, [currentDesign, isVisible]);
-
   const analyzeDesign = useCallback(async () => {
     if (!currentDesign) return;
 
@@ -85,6 +78,13 @@ export function AIDesignAssistant({
       setIsAnalyzing(false);
     }
   }, [currentDesign]);
+
+  // Auto-analyze design when it changes
+  useEffect(() => {
+    if (currentDesign && isVisible) {
+      analyzeDesign();
+    }
+  }, [currentDesign, isVisible, analyzeDesign]);
 
   const loadCollaborationInsights = useCallback(async () => {
     if (!projectId) return;

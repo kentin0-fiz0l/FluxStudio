@@ -587,10 +587,11 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
 
   // Cleanup on unmount
   useEffect(() => {
+    const interval = intervalRef.current;
     return () => {
       mountedRef.current = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (interval) {
+        clearInterval(interval);
       }
     };
   }, []);

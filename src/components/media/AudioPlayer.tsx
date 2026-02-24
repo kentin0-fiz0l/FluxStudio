@@ -72,9 +72,10 @@ export function AudioPlayer({
 
     initAudioContext();
 
+    const animationId = animationRef.current;
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      if (animationId) {
+        cancelAnimationFrame(animationId);
       }
     };
   }, [src]);

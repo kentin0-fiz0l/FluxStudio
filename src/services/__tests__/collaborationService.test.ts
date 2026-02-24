@@ -6,15 +6,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Store socket event handlers for later invocation
-const socketEventHandlers: Map<string, Function> = new Map();
+const socketEventHandlers: Map<string, (...args: unknown[]) => void> = new Map();
 
 // Use vi.hoisted to ensure mocks are available during hoisting
 const { mockSocket, mockIo, initialIoCalls, initialOnCalls } = vi.hoisted(() => {
-  const initialOnCalls: Array<[string, Function]> = [];
+  const initialOnCalls: Array<[string, (...args: unknown[]) => void]> = [];
   const initialIoCalls: Array<[string, object]> = [];
 
   const mockSocket = {
-    on: vi.fn((event: string, handler: Function) => {
+    on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
       initialOnCalls.push([event, handler]);
       return mockSocket;
     }),

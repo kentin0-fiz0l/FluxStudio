@@ -8,9 +8,9 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 
 // Socket mock - use vi.hoisted to ensure stable references
 const { socketEventHandlers, mockSocket } = vi.hoisted(() => {
-  const handlers = new Map<string, Function>();
+  const handlers = new Map<string, (...args: unknown[]) => void>();
   const socket = {
-    on: vi.fn((event: string, handler: Function) => {
+    on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
       handlers.set(event, handler);
       return socket;
     }),
@@ -33,7 +33,7 @@ describe('usePrintWebSocket', () => {
   beforeEach(() => {
     socketEventHandlers.clear();
     mockSocket.connected = false;
-    mockSocket.on.mockImplementation((event: string, handler: Function) => {
+    mockSocket.on.mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
       socketEventHandlers.set(event, handler);
       return mockSocket;
     });

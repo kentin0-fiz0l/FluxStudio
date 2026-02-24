@@ -67,11 +67,7 @@ export function TemplateSelector({
   const [projectName, setProjectName] = React.useState('');
 
   // Load templates
-  React.useEffect(() => {
-    loadTemplates();
-  }, [selectedCategory, searchQuery]);
-
-  const loadTemplates = async () => {
+  const loadTemplates = React.useCallback(async () => {
     setIsLoading(true);
     try {
       const result = await templateService.search({
@@ -84,7 +80,11 @@ export function TemplateSelector({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedCategory, searchQuery]);
+
+  React.useEffect(() => {
+    loadTemplates();
+  }, [loadTemplates]);
 
   const handleSelectTemplate = (template: ProjectTemplate) => {
     setSelectedTemplate(template);

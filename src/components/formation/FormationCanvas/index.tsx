@@ -948,7 +948,7 @@ export function FormationCanvas({
     pushHistory('Apply template');
   }, [formation, playbackState.currentTime, pushHistory]);
 
-  const performerPaths = React.useMemo(() => { if (!formation || !showPaths) return new Map(); return formationService.getAllPerformerPaths(formation.id, 15); }, [formation?.id, formation?.keyframes, showPaths]);
+  const performerPaths = React.useMemo(() => { if (!formation || !showPaths) return new Map(); return formationService.getAllPerformerPaths(formation.id, 15); }, [formation, showPaths]);
 
   const handleNameChange = useCallback((newName: string) => {
     if (!formation) return;

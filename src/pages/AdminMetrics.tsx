@@ -7,7 +7,7 @@
  * Accessible only to admin users at /admin/metrics.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -121,7 +121,7 @@ export function AdminMetrics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -135,14 +135,14 @@ export function AdminMetrics() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     fetchMetrics();
     const interval = setInterval(fetchMetrics, 60_000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, fetchMetrics, navigate]);
 
   if (loading && !data) {
     return (

@@ -6,10 +6,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Inline the socket mock since vi.hoisted can't import from other files
 const { mockSocket, mockIo, eventHandlers } = vi.hoisted(() => {
-  const eventHandlers = new Map<string, Function>();
+  const eventHandlers = new Map<string, (...args: unknown[]) => void>();
 
   const mockSocket = {
-    on: vi.fn((event: string, handler: Function) => {
+    on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
       eventHandlers.set(event, handler);
       return mockSocket;
     }),

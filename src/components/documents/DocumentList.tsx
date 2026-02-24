@@ -4,7 +4,7 @@
  * Displays and manages project documents with create/archive/delete actions
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { FileText, Plus, MoreVertical, Archive, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -53,11 +53,7 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
 
-  useEffect(() => {
-    fetchDocuments();
-  }, [projectId]);
-
-  async function fetchDocuments() {
+  const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -80,7 +76,11 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
 
   async function handleCreateDocument() {
     try {

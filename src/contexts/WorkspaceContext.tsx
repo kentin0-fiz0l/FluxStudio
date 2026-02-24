@@ -116,7 +116,7 @@ export function useWorkspace() {
       loadingStates: new Map(),
       lastUpdated: new Map(),
     },
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
+     
     dispatch: () => {},
     actions: {
       setContext: ui.setContext,

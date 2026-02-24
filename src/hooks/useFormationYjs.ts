@@ -357,6 +357,7 @@ export function useFormationYjs({
       providerRef.current = null;
       persistenceRef.current = null;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- initialData, initializeYjsFromFormation, and syncYjsToReact are stable and intentionally excluded to avoid re-connecting WebSocket on every render
   }, [enabled, projectId, formationId, user, userColor, onConnectionChange]);
 
   // ============================================================================

@@ -111,6 +111,7 @@ export function UnifiedNotificationCenter() {
   const [filter, setFilter] = useState<'all' | 'unread' | 'mentions'>('all');
 
   // Try to get notifications context
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- notifications is conditionally assigned from try/catch context; cannot be wrapped in useMemo
   let notifications: Notification[] = [];
   let unreadCount = 0;
   let loading = false;

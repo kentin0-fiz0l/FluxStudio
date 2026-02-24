@@ -149,6 +149,27 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
     return groups;
   }, [filteredCommands]);
 
+  const executeCommand = React.useCallback(async (command: AICommand, input: string) => {
+    setIsExecuting(true);
+    try {
+      await command.action(input);
+      onClose();
+    } catch (error) {
+      console.error('Command execution failed:', error);
+    } finally {
+      setIsExecuting(false);
+    }
+  }, [onClose]);
+
+  const handleSelectCommand = React.useCallback((command: AICommand) => {
+    if (command.placeholder) {
+      setSelectedCommand(command);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
+      executeCommand(command, '');
+    }
+  }, [executeCommand]);
+
   // Handle keyboard navigation
   React.useEffect(() => {
     if (!isOpen) return;
@@ -187,7 +208,7 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, selectedIndex, filteredCommands, selectedCommand, commandInput, onClose]);
+  }, [isOpen, selectedIndex, filteredCommands, selectedCommand, commandInput, onClose, executeCommand, handleSelectCommand]);
 
   // Focus input when opened
   React.useEffect(() => {
@@ -199,27 +220,6 @@ export function AICommandPalette({ isOpen, onClose, onOpenChat }: AICommandPalet
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
-
-  const handleSelectCommand = (command: AICommand) => {
-    if (command.placeholder) {
-      setSelectedCommand(command);
-      setTimeout(() => inputRef.current?.focus(), 50);
-    } else {
-      executeCommand(command, '');
-    }
-  };
-
-  const executeCommand = async (command: AICommand, input: string) => {
-    setIsExecuting(true);
-    try {
-      await command.action(input);
-      onClose();
-    } catch (error) {
-      console.error('Command execution failed:', error);
-    } finally {
-      setIsExecuting(false);
-    }
-  };
 
   return (
     <AnimatePresence>

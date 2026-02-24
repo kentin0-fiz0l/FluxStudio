@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
@@ -76,7 +76,7 @@ export function UserSearch({
   const debounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Mock user data - in real app, this would come from API
-  const mockUsers: UserSearchResult[] = [
+  const mockUsers: UserSearchResult[] = useMemo(() => [
     {
       id: 'user-1',
       name: 'Sarah Chen',
@@ -145,7 +145,7 @@ export function UserSearch({
       mutualConnections: 18,
       skills: ['After Effects', 'Cinema 4D', 'Motion Design', 'Animation']
     }
-  ];
+  ], []);
 
   // Load recent users from localStorage
   useEffect(() => {
@@ -228,7 +228,7 @@ export function UserSearch({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedUsers, excludeUserIds, searchFilters, maxResults]);
+  }, [selectedUsers, excludeUserIds, searchFilters, maxResults, mockUsers]);
 
   // Handle search input change with debouncing
   const handleSearchChange = (value: string) => {

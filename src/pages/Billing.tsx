@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -56,16 +56,7 @@ export function Billing() {
       .catch(() => { setUsageError(true); });
   };
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/login?callbackUrl=/billing');
-      return;
-    }
-    fetchSubscriptionStatus();
-    loadUsage();
-  }, [user, navigate]);
-
-  const fetchSubscriptionStatus = async () => {
+  const fetchSubscriptionStatus = useCallback(async () => {
     setLoading(true);
     setError('');
 
@@ -89,7 +80,16 @@ export function Billing() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login?callbackUrl=/billing');
+      return;
+    }
+    fetchSubscriptionStatus();
+    loadUsage();
+  }, [user, navigate, fetchSubscriptionStatus]);
 
   const openCustomerPortal = async () => {
     setPortalLoading(true);

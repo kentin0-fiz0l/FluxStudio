@@ -92,7 +92,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
       }
     };
     loadData();
-  }, [activeTab, asset.id]);
+  }, [activeTab, asset.id, getVersions, getRelations, getMetadata, getTags, getComments]);
 
   // Handlers
   const handleSaveEdit = async () => {

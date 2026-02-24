@@ -71,13 +71,7 @@ export function PluginManager() {
   }, []);
 
   // Load marketplace plugins
-  React.useEffect(() => {
-    if (activeTab === 'marketplace') {
-      loadMarketplace();
-    }
-  }, [activeTab, searchQuery]);
-
-  const loadMarketplace = async () => {
+  const loadMarketplace = React.useCallback(async () => {
     setIsLoading(true);
     try {
       const result = await pluginMarketplace.search({ query: searchQuery });
@@ -87,7 +81,13 @@ export function PluginManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchQuery]);
+
+  React.useEffect(() => {
+    if (activeTab === 'marketplace') {
+      loadMarketplace();
+    }
+  }, [activeTab, loadMarketplace]);
 
   const handleActivate = async (pluginId: string) => {
     try {

@@ -16,8 +16,9 @@ export { useSession } from '../store/slices/authSlice';
 // Optional hook for components that may render outside providers
 export const useSessionOptional = () => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- dynamic require to avoid hard dependency outside providers
     const { useSession: useSessionHook } = require('../store/slices/authSlice');
-    return useSessionHook();
+    return useSessionHook(); // eslint-disable-line react-hooks/rules-of-hooks -- intentionally conditional: only available inside providers
   } catch {
     return null;
   }

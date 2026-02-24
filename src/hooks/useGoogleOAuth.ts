@@ -80,7 +80,7 @@ export function useGoogleOAuth(options: UseGoogleOAuthOptions): UseGoogleOAuthRe
     return () => {
       mounted = false;
     };
-  }, [options.clientId, options.preload]);
+  }, [options.clientId, options.preload, manager]);
 
   // Cleanup effect when component unmounts
   useEffect(() => {
@@ -88,7 +88,7 @@ export function useGoogleOAuth(options: UseGoogleOAuthOptions): UseGoogleOAuthRe
       // Cleanup on unmount but preserve the singleton
       manager.cleanup();
     };
-  }, []);
+  }, [manager]);
 
   const createButton = async (
     containerId: string,

@@ -8,7 +8,21 @@ import * as React from 'react';
 import { useAuth } from '../AuthContext';
 import { useNotification } from '../NotificationContext';
 import { useMetMapCore } from './MetMapCoreContext';
-import type { SongListContextValue, Song, SongsFilter } from './types';
+import type { SongListContextValue, Song, SongsFilter, Section } from './types';
+
+interface SongsListResponse {
+  songs: Song[];
+  total: number;
+  hasMore: boolean;
+}
+
+interface SongResponse {
+  song: Song;
+}
+
+interface SongDetailResponse {
+  song: Song & { sections?: Section[] };
+}
 
 const SongListContext = React.createContext<SongListContextValue | null>(null);
 
@@ -30,7 +44,7 @@ export function SongListProvider({ children }: { children: React.ReactNode }) {
       params.set('limit', String(state.pagination.limit));
       params.set('offset', '0');
 
-      const data = await apiCall(`/api/metmap/songs?${params}`);
+      const data = await apiCall<SongsListResponse>(`/api/metmap/songs?${params}`);
       dispatch({
         type: 'SET_SONGS',
         payload: { songs: data.songs, total: data.total, hasMore: data.hasMore }
@@ -57,7 +71,7 @@ export function SongListProvider({ children }: { children: React.ReactNode }) {
       params.set('limit', String(state.pagination.limit));
       params.set('offset', String(newOffset));
 
-      const data = await apiCall(`/api/metmap/songs?${params}`);
+      const data = await apiCall<SongsListResponse>(`/api/metmap/songs?${params}`);
       dispatch({
         type: 'SET_SONGS',
         payload: {
@@ -81,7 +95,7 @@ export function SongListProvider({ children }: { children: React.ReactNode }) {
     if (!token) return null;
 
     try {
-      const result = await apiCall('/api/metmap/songs', {
+      const result = await apiCall<SongResponse>('/api/metmap/songs', {
         method: 'POST',
         body: JSON.stringify(data)
       });
@@ -101,7 +115,7 @@ export function SongListProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_CURRENT_SONG_LOADING', payload: true });
 
     try {
-      const data = await apiCall(`/api/metmap/songs/${songId}`);
+      const data = await apiCall<SongDetailResponse>(`/api/metmap/songs/${songId}`);
       dispatch({ type: 'SET_CURRENT_SONG', payload: data.song });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load song';
@@ -114,7 +128,7 @@ export function SongListProvider({ children }: { children: React.ReactNode }) {
     if (!token) return null;
 
     try {
-      const result = await apiCall(`/api/metmap/songs/${songId}`, {
+      const result = await apiCall<SongResponse>(`/api/metmap/songs/${songId}`, {
         method: 'PUT',
         body: JSON.stringify(changes)
       });
@@ -162,7 +176,7 @@ export function SongListProvider({ children }: { children: React.ReactNode }) {
       }, 300);
       return () => clearTimeout(debounceTimer);
     }
-  }, [token, state.filters.search, state.filters.projectId, state.filters.orderBy, state.filters.orderDir]);
+  }, [token, state.filters.search, state.filters.projectId, state.filters.orderBy, state.filters.orderDir, loadSongs]);
 
   const value: SongListContextValue = {
     loadSongs,

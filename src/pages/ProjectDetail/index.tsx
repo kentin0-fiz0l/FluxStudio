@@ -116,7 +116,7 @@ export const ProjectDetail = () => {
 
   React.useEffect(() => {
     if (activeTab === 'assets' && id) refreshAssets({ projectId: id });
-  }, [activeTab, id]);
+  }, [activeTab, id, refreshAssets]);
 
   React.useEffect(() => {
     const fetchBoards = async () => {
@@ -172,7 +172,7 @@ export const ProjectDetail = () => {
 
   // Derive per-tab presence from online users
   // In production this would come from the collaboration service's currentPage field
-  const TAB_NAMES = ['overview', 'tasks', 'documents', 'files', 'assets', 'boards', 'formations', 'analytics', 'messages'];
+  const TAB_NAMES = React.useMemo(() => ['overview', 'tasks', 'documents', 'files', 'assets', 'boards', 'formations', 'analytics', 'messages'], []);
   const tabUsers: TabUser[] = React.useMemo(
     () =>
       onlineUsers.map((u) => ({
@@ -181,7 +181,7 @@ export const ProjectDetail = () => {
         // Assign to a tab based on stable hash — real implementation would use socket presence
         currentTab: TAB_NAMES[u.id.charCodeAt(0) % TAB_NAMES.length],
       })),
-    [onlineUsers]
+    [onlineUsers, TAB_NAMES]
   );
 
   React.useEffect(() => { localStorage.setItem('taskViewMode', viewMode); }, [viewMode]);

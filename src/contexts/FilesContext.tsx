@@ -139,7 +139,7 @@ export function useFiles(): FilesContextValue {
 
   return {
     state,
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
+     
     dispatch: (() => {}) as React.Dispatch<never>,
     refreshFiles: assets.refreshFiles as FilesContextValue['refreshFiles'],
     uploadFiles: assets.uploadFiles as FilesContextValue['uploadFiles'],

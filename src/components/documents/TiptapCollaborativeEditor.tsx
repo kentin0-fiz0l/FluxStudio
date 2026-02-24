@@ -50,6 +50,19 @@ interface DocumentData {
   userRole: string;
 }
 
+interface Collaborator {
+  clientId: number;
+  name: string;
+  color: string | undefined;
+}
+
+interface AwarenessState {
+  user?: {
+    name?: string;
+    color?: string;
+  };
+}
+
 // Generate a random color for user cursor
 function generateColor(userId: string) {
   const colors = [
@@ -73,15 +86,10 @@ export function TiptapCollaborativeEditor({
   const [document, setDocument] = useState<DocumentData | null>(null);
   const [title, setTitle] = useState('');
   const [isConnected, setIsConnected] = useState(false);
-  const [collaborators, setCollaborators] = useState<any[]>([]);
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [isSavingTitle, setIsSavingTitle] = useState(false);
 
-  // Fetch document details
-  useEffect(() => {
-    fetchDocument();
-  }, [documentId]);
-
-  async function fetchDocument() {
+  const fetchDocument = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/api/documents/${documentId}`, {
@@ -101,7 +109,12 @@ export function TiptapCollaborativeEditor({
       console.error('Error fetching document:', error);
       toast.error('Failed to load document');
     }
-  }
+  }, [documentId]);
+
+  // Fetch document details
+  useEffect(() => {
+    fetchDocument();
+  }, [fetchDocument]);
 
   // Setup Yjs and WebSocket provider
   useEffect(() => {
@@ -131,7 +144,7 @@ export function TiptapCollaborativeEditor({
     wsProvider.awareness.on('change', () => {
       const states = Array.from(wsProvider.awareness.getStates().entries());
       const users = states
-        .map(([clientId, state]: [number, any]) => ({
+        .map(([clientId, state]: [number, AwarenessState]) => ({
           clientId,
           name: state.user?.name || 'Anonymous',
           color: state.user?.color,
@@ -203,7 +216,7 @@ export function TiptapCollaborativeEditor({
     } finally {
       setIsSavingTitle(false);
     }
-  }, [title, document, documentId, toast]);
+  }, [title, document, documentId]);
 
   if (!editor || !document) {
     return (

@@ -232,8 +232,7 @@ export function useRenderCount(_componentName: string): number {
   const renderCount = useRef(0);
   renderCount.current += 1;
 
-  if (process.env.NODE_ENV === 'development') {
-  }
+  // Render counting is tracked via ref; no dev-only side effects needed
 
   return renderCount.current;
 }

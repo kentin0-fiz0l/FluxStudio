@@ -7,7 +7,7 @@
  * Sprint 36: Phase 4.1 Plugin System.
  */
 
-/* eslint-disable no-restricted-globals */
+ 
 
 interface RPCRequest {
   type: 'rpc';
@@ -97,7 +97,7 @@ function loadPluginCode(code: string): void {
   // Wrap in a function to provide module/exports
   const wrapped = `(function(module, exports, self) {\n${code}\n})`;
 
-  // eslint-disable-next-line no-eval
+   
   const factory = (0, eval)(wrapped);
   factory(module, exports, self);
 

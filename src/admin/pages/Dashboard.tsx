@@ -5,7 +5,7 @@
  * Main dashboard with security metrics, charts, and system health
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAdminApi } from '../hooks/useAdminAuth';
 // Line chart import - uncomment when needed
 // import { Line } from 'react-chartjs-2';
@@ -67,7 +67,7 @@ export function Dashboard() {
     system?: { currentMemory: number; currentCpu?: number };
   } | null>(null);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -94,11 +94,11 @@ export function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiRequest]);
 
   useEffect(() => {
     loadDashboardData();
-  }, [apiRequest]);
+  }, [loadDashboardData]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity?.toUpperCase()) {

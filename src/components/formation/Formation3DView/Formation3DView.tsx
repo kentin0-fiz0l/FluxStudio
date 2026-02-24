@@ -208,8 +208,8 @@ interface TransformGizmoProps {
 function TransformGizmo({
   object,
   mode,
-  stageWidth,
-  stageHeight,
+  stageWidth: _stageWidth,
+  stageHeight: _stageHeight,
   fieldLength,
   fieldWidth,
   onUpdate,
@@ -220,7 +220,7 @@ function TransformGizmo({
   const worldPos = useMemo(() => {
     const { wx, wz } = posToWorld(object.position.x, object.position.y);
     return new THREE.Vector3(wx, object.position.z || 0, wz);
-  }, [object.position, stageWidth, stageHeight]);
+  }, [object.position]);
 
   return (
     <TransformControls

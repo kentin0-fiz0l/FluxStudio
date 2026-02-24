@@ -82,16 +82,18 @@ export const sortTasks = (tasks: Task[], field: SortField, direction: SortDirect
     let bValue: string | number;
 
     switch (field) {
-      case 'status':
+      case 'status': {
         const statusOrder = { todo: 0, 'in_progress': 1, review: 2, completed: 3 };
         aValue = statusOrder[a.status];
         bValue = statusOrder[b.status];
         break;
-      case 'priority':
+      }
+      case 'priority': {
         const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
         aValue = priorityOrder[a.priority];
         bValue = priorityOrder[b.priority];
         break;
+      }
       case 'dueDate':
         aValue = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
         bValue = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;

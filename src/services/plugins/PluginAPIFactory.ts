@@ -172,8 +172,8 @@ export function createPluginAPI(plugin: PluginInstance): FluxStudioAPI {
         switch (options.type) {
           case 'success': toast.success(options.title); break;
           case 'error': toast.error(options.title); break;
-          case 'warning': toast.warning?.(options.title) ?? toast.error(options.title); break;
-          default: toast.info?.(options.title) ?? toast.success(options.title); break;
+          case 'warning': if (toast.warning) { toast.warning(options.title); } else { toast.error(options.title); } break;
+          default: if (toast.info) { toast.info(options.title); } else { toast.success(options.title); } break;
         }
       },
 

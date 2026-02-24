@@ -103,21 +103,23 @@ function filterByDueDate(tasks: Task[], filter: DueDateFilter): Task[] {
         return dueDateStart.getTime() === today.getTime();
       });
 
-    case 'this-week':
+    case 'this-week': {
       const weekEnd = new Date(today.getTime() + 7 * 86400000);
       return tasks.filter(task => {
         if (!task.dueDate) return false;
         const dueDate = new Date(task.dueDate);
         return dueDate >= today && dueDate < weekEnd;
       });
+    }
 
-    case 'this-month':
+    case 'this-month': {
       const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
       return tasks.filter(task => {
         if (!task.dueDate) return false;
         const dueDate = new Date(task.dueDate);
         return dueDate >= today && dueDate <= monthEnd;
       });
+    }
 
     case 'no-date':
       return tasks.filter(task => !task.dueDate);
@@ -153,13 +155,15 @@ function sortTasks(tasks: Task[], sortBy: SortOption): Task[] {
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
       });
 
-    case 'priority':
+    case 'priority': {
       const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
       return sorted.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+    }
 
-    case 'status':
+    case 'status': {
       const statusOrder = { 'in_progress': 0, 'review': 1, 'todo': 2, 'completed': 3 };
       return sorted.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+    }
 
     default:
       return sorted;

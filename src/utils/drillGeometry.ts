@@ -238,7 +238,7 @@ export function generateBlockPositions(
   const aspect = width / (height || 1);
 
   let cols = Math.max(1, Math.round(Math.sqrt(count * aspect)));
-  let rows = Math.max(1, Math.ceil(count / cols));
+  const rows = Math.max(1, Math.ceil(count / cols));
 
   // Ensure we have enough cells
   while (cols * rows < count) {

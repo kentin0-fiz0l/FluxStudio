@@ -204,7 +204,6 @@ export function EnhancedCommandPalette() {
           // Navigate based on activity type
           if (activity.projectId) {
             navigate(`/dashboard/projects/${activity.projectId}`);
-          } else if (activity.conversationId) {
           }
         },
         priority: 3

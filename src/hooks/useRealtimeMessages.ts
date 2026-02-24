@@ -173,13 +173,15 @@ export function useRealtimeMessages({
     // Join conversation
     realtimeCollaborationService.joinConversation(conversationId);
 
+    const retryTimeout = retryTimeoutRef.current;
+
     return () => {
       realtimeCollaborationService.off('connection_status', handleConnectionStatus);
       realtimeCollaborationService.off('message_event', handleMessageEvent);
       realtimeCollaborationService.leaveConversation(conversationId);
 
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
       }
     };
   }, [conversationId, currentUser.id, enabled, handleIncomingMessage, handleMessageUpdate, handleMessageDelete, handleMessageReaction, processMessageQueue]);

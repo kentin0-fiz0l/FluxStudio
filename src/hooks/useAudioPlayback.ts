@@ -61,19 +61,6 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}): UseAudi
   const animationFrameRef = useRef<number | null>(null);
   const lastSyncTimeRef = useRef<number>(0);
 
-  // Create or update audio element when track changes
-  useEffect(() => {
-    if (audioTrack?.url) {
-      loadAudio(audioTrack.url);
-    } else {
-      unloadAudio();
-    }
-
-    return () => {
-      unloadAudio();
-    };
-  }, [audioTrack?.url]);
-
   // Time update loop
   const updateTime = useCallback(() => {
     if (audioRef.current && state.isPlaying) {
@@ -169,6 +156,19 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}): UseAudi
 
     setState(initialState);
   }, []);
+
+  // Create or update audio element when track changes
+  useEffect(() => {
+    if (audioTrack?.url) {
+      loadAudio(audioTrack.url);
+    } else {
+      unloadAudio();
+    }
+
+    return () => {
+      unloadAudio();
+    };
+  }, [audioTrack?.url, loadAudio, unloadAudio]);
 
   const play = useCallback((startTime?: number) => {
     if (!audioRef.current || !state.isLoaded) return;

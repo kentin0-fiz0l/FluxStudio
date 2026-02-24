@@ -9,7 +9,7 @@ interface RealTimeDataConfig {
   transform?: (data: unknown) => unknown;
 }
 
-interface RealTimeDataHook<T = any> {
+interface RealTimeDataHook<T = unknown> {
   data: T | null;
   isLoading: boolean;
   error: string | null;
@@ -94,7 +94,7 @@ const mockDataGenerators = {
 };
 
 // Simulate API call
-const fetchData = async (endpoint: string): Promise<any> => {
+const fetchData = async (endpoint: string): Promise<unknown> => {
   await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
 
   if (Math.random() < 0.05) {
@@ -111,7 +111,7 @@ const fetchData = async (endpoint: string): Promise<any> => {
   };
 };
 
-export function useRealTimeData<T = any>(config: RealTimeDataConfig): RealTimeDataHook<T> {
+export function useRealTimeData<T = unknown>(config: RealTimeDataConfig): RealTimeDataHook<T> {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const isEnabled = config.enabled !== false && !!user;
@@ -126,7 +126,7 @@ export function useRealTimeData<T = any>(config: RealTimeDataConfig): RealTimeDa
     queryKey: ['realtime', config.endpoint],
     queryFn: async () => {
       const rawData = await fetchData(config.endpoint);
-      return config.transform ? config.transform(rawData) : rawData;
+      return (config.transform ? config.transform(rawData) : rawData) as T;
     },
     enabled: isEnabled,
     refetchInterval: config.refreshInterval ? config.refreshInterval * 1000 : false,
@@ -149,9 +149,57 @@ export function useRealTimeData<T = any>(config: RealTimeDataConfig): RealTimeDa
   };
 }
 
+// Data types for specialized hooks
+interface ProjectData {
+  id: string;
+  name: string;
+  status: string;
+  progress: number;
+  dueDate: string;
+  team: string;
+  priority: string;
+  lastActivity: string;
+}
+
+interface NotificationData {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  time: string;
+  unread: boolean;
+}
+
+interface StatsData {
+  totalProjects: number;
+  activeProjects: number;
+  completedThisMonth: number;
+  teamMembers: number;
+  avgProgress: number;
+  recentActivity: number;
+}
+
+interface ActivityData {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  user: string;
+  timestamp: Date;
+}
+
+interface FileData {
+  id: number;
+  name: string;
+  size: string;
+  modifiedAt: Date;
+  modifiedBy: string;
+  type: string;
+}
+
 // Specialized hooks for different data types
 export function useProjectsData() {
-  return useRealTimeData({
+  return useRealTimeData<ProjectData[]>({
     endpoint: '/api/projects',
     refreshInterval: 30,
     enabled: true,
@@ -159,7 +207,7 @@ export function useProjectsData() {
 }
 
 export function useNotificationsData() {
-  return useRealTimeData({
+  return useRealTimeData<NotificationData[]>({
     endpoint: '/api/notifications',
     refreshInterval: 10,
     enabled: true,
@@ -167,7 +215,7 @@ export function useNotificationsData() {
 }
 
 export function useStatsData() {
-  return useRealTimeData({
+  return useRealTimeData<StatsData>({
     endpoint: '/api/stats',
     refreshInterval: 60,
     enabled: true,
@@ -175,7 +223,7 @@ export function useStatsData() {
 }
 
 export function useActivityData() {
-  return useRealTimeData({
+  return useRealTimeData<ActivityData[]>({
     endpoint: '/api/activity',
     refreshInterval: 15,
     enabled: true,
@@ -183,7 +231,7 @@ export function useActivityData() {
 }
 
 export function useFilesData() {
-  return useRealTimeData({
+  return useRealTimeData<FileData[]>({
     endpoint: '/api/files',
     refreshInterval: 45,
     enabled: true,

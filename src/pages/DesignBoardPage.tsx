@@ -153,7 +153,7 @@ function BoardNodeComponent({
             {(node.data.content as string) || 'Double-click to edit'}
           </div>
         );
-      case 'shape':
+      case 'shape': {
         const shapeType = (node.data.shapeType as string) || 'rectangle';
         const fillColor = (node.data.fillColor as string) || '#3B82F6';
         const strokeColor = (node.data.strokeColor as string) || '#1D4ED8';
@@ -196,7 +196,8 @@ function BoardNodeComponent({
             style={{ backgroundColor: fillColor, border: `2px solid ${strokeColor}` }}
           />
         );
-      case 'asset':
+      }
+      case 'asset': {
         const assetUrl = node.data.previewUrl as string;
         return assetUrl ? (
           <img
@@ -210,6 +211,7 @@ function BoardNodeComponent({
             <Image className="w-8 h-8" aria-hidden="true" />
           </div>
         );
+      }
       default:
         return null;
     }
@@ -305,6 +307,8 @@ export default function DesignBoardPage() {
   const [_isSaving, _setIsSaving] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
+  const selectedNodeIdRef = useRef(selectedNodeId);
+  selectedNodeIdRef.current = selectedNodeId;
 
   // Auth guard
   useEffect(() => {
@@ -382,7 +386,7 @@ export default function DesignBoardPage() {
     const unsubNodeDeleted = designBoardsSocketService.on('node:deleted', (data: unknown) => {
       const { nodeId } = data as { nodeId: string };
       setNodes(prev => prev.filter(n => n.id !== nodeId));
-      if (selectedNodeId === nodeId) setSelectedNodeId(null);
+      if (selectedNodeIdRef.current === nodeId) setSelectedNodeId(null);
     });
 
     const unsubNodeSelected = designBoardsSocketService.on('node:selected', (data: unknown) => {

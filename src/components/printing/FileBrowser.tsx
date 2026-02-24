@@ -232,7 +232,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
   const [linkModalOpen, setLinkModalOpen] = React.useState(false);
   const [fileToLink, setFileToLink] = React.useState<string | null>(null);
 
-  const fileList = files?.files || [];
+  const fileList = React.useMemo(() => files?.files || [], [files?.files]);
   const hasFiles = fileList.length > 0;
 
   /**

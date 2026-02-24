@@ -15,14 +15,14 @@ class MockAudio {
   volume = 1;
   playbackRate = 1;
   paused = true;
-  private listeners: Record<string, Function[]> = {};
+  private listeners: Record<string, ((...args: unknown[]) => void)[]> = {};
 
-  addEventListener(event: string, handler: Function) {
+  addEventListener(event: string, handler: (...args: unknown[]) => void) {
     if (!this.listeners[event]) this.listeners[event] = [];
     this.listeners[event].push(handler);
   }
 
-  removeEventListener(event: string, handler: Function) {
+  removeEventListener(event: string, handler: (...args: unknown[]) => void) {
     if (this.listeners[event]) {
       this.listeners[event] = this.listeners[event].filter(h => h !== handler);
     }

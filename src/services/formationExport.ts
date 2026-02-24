@@ -263,7 +263,9 @@ export async function exportToImage(
 
   return new Promise((resolve, reject) => {
     const mimeType = options.format === 'png' ? 'image/png' : 'image/jpeg';
-    canvas.toBlob((blob) => { blob ? resolve(blob) : reject(new Error('Failed to create image blob')); }, mimeType, quality);
+    canvas.toBlob((blob) => {
+      if (blob) { resolve(blob); } else { reject(new Error('Failed to create image blob')); }
+    }, mimeType, quality);
   });
 }
 

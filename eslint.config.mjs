@@ -54,6 +54,15 @@ export default [
       'no-undef': 'off',
       // DEBT-012: Prevent console statements in production
       'no-console': ['error', { allow: ['warn', 'error'] }],
+      // Disable React Compiler rules — FluxStudio uses React 18 without the compiler
+      'react-hooks/refs': 'off',
+      'react-hooks/globals': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/static-components': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
+      'react-hooks/use-memo': 'off',
       // Allow variable declarations in switch cases (wrap in braces if needed for clarity)
       'no-case-declarations': 'warn',
       // DEBT-013: Array index keys - add eslint-plugin-react and enable 'react/no-array-index-key'

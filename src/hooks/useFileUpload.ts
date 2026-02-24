@@ -22,22 +22,22 @@ export interface UploadProgress {
   error?: string;
 }
 
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const ALLOWED_TYPES = [
+  'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
+  'video/mp4', 'video/webm',
+  'application/pdf',
+  'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+  'application/zip', 'application/x-zip-compressed',
+  'application/x-figma', 'application/x-sketch',
+];
+
 export function useFileUpload() {
   const { token } = useAuth();
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
   const [files, setFiles] = useState<FileUpload[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-  const ALLOWED_TYPES = [
-    'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
-    'video/mp4', 'video/webm',
-    'application/pdf',
-    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain',
-    'application/zip', 'application/x-zip-compressed',
-    'application/x-figma', 'application/x-sketch',
-  ];
 
   const validateFiles = useCallback((filesToValidate: File[]): { valid: File[]; errors: string[] } => {
     const valid: File[] = [];

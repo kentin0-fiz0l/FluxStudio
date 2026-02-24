@@ -5,7 +5,7 @@
  * View, unblock, whitelist, and manage blocked IP addresses
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAdminApi } from '../hooks/useAdminAuth';
 
 interface BlockedIP {
@@ -27,11 +27,7 @@ export function BlockedIPs() {
   const [filterScore, setFilterScore] = useState<string>('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadBlockedIPs();
-  }, [page, filterScore]);
-
-  const loadBlockedIPs = async () => {
+  const loadBlockedIPs = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -57,7 +53,11 @@ export function BlockedIPs() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiRequest, page, filterScore]);
+
+  useEffect(() => {
+    loadBlockedIPs();
+  }, [loadBlockedIPs]);
 
   const handleUnblock = async (ip: string) => {
     if (!confirm(`Are you sure you want to unblock ${ip}?`)) return;

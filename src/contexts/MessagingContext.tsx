@@ -75,7 +75,7 @@ export function MessagingSocketBridge() {
  * should migrate to importing from '@/hooks/useMessaging' or '@/store'.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
+ 
 const noop = () => {};
 
 /** @deprecated Use MessagingSocketBridge instead. This is a no-op passthrough. */

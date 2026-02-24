@@ -12,7 +12,7 @@ export interface RecommendationItem {
   reason: string;
   category: string;
   priority: 'high' | 'medium' | 'low';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UserBehavior {
@@ -21,7 +21,7 @@ export interface UserBehavior {
   searchQueries: string[];
   usedFeatures: string[];
   collaborators: string[];
-  preferences: Record<string, any>;
+  preferences: Record<string, unknown>;
 }
 
 export class RecommendationEngine {

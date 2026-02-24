@@ -102,7 +102,7 @@ export function withSuspense<P extends Record<string, unknown> = Record<string, 
  * Preloads multiple components in parallel
  */
 export async function preloadComponents(
-  components: Array<{ preload: () => Promise<any> }>
+  components: Array<{ preload: () => Promise<{ default: ComponentType<Record<string, unknown>> }> }>
 ): Promise<void> {
   try {
     await Promise.all(components.map(c => c.preload()));
@@ -114,7 +114,7 @@ export async function preloadComponents(
 /**
  * Creates a route-based preloader hook
  */
-export function useRoutePreloader(routes: Record<string, { preload: () => Promise<any> }>) {
+export function useRoutePreloader(routes: Record<string, { preload: () => Promise<{ default: ComponentType<Record<string, unknown>> }> }>) {
   const preloadRoute = React.useCallback(
     (routeName: string) => {
       const route = routes[routeName];
@@ -156,7 +156,7 @@ export function withLazyLoad<P extends Record<string, unknown> = Record<string, 
  * Preload on hover/focus for improved perceived performance
  */
 export function usePreloadOnInteraction(
-  preloadFn: () => Promise<any>
+  preloadFn: () => Promise<unknown>
 ): {
   onMouseEnter: () => void;
   onFocus: () => void;

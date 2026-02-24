@@ -347,7 +347,6 @@ export function printAccessibilityReport(result: AccessibilityAuditResult): void
       console.group(`${index + 1}. [${issue.severity.toUpperCase()}] ${issue.type}`);
       console.groupEnd();
     });
-  } else {
   }
 
   console.groupEnd();

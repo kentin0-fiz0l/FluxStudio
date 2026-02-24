@@ -53,8 +53,6 @@ export function PerformerInstances({
     if (!meshRef.current) return;
 
     const mesh = meshRef.current;
-    let visibleCount = 0;
-
     worldPositions.forEach(({ performer, wx, wz, hasPosition, rotation }, i) => {
       if (!hasPosition) {
         // Hide performers without positions by scaling to 0
@@ -64,7 +62,6 @@ export function PerformerInstances({
         tempObject.position.set(wx, PERFORMER_HEIGHT / 2, wz);
         tempObject.rotation.set(0, ((rotation ?? 0) * Math.PI) / 180, 0);
         tempObject.scale.set(1, 1, 1);
-        visibleCount++;
       }
 
       tempObject.updateMatrix();

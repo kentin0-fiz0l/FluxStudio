@@ -5,6 +5,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import type { Team, Project } from '@/types/organization';
 
 // Mock dependencies
 const mockNavigate = vi.fn();
@@ -28,9 +29,9 @@ vi.mock('@/contexts/AuthContext', () => ({
 }));
 
 const defaultOrgMock = {
-  currentTeam: null,
+  currentTeam: null as Team | null,
   currentOrganization: { id: 'org-1', name: 'Test Org' },
-  projects: [],
+  projects: [] as Project[],
   isLoadingProjects: false,
   navigateTo: vi.fn(),
   getTeamStats: vi.fn().mockResolvedValue(null),
@@ -40,7 +41,7 @@ const defaultOrgMock = {
 const mockUseOrganization = vi.fn(() => defaultOrgMock);
 
 vi.mock('@/contexts/OrganizationContext', () => ({
-  useOrganization: (...args: unknown[]) => mockUseOrganization(...args),
+  useOrganization: () => mockUseOrganization(),
 }));
 
 // Mock sub-components
@@ -101,10 +102,43 @@ describe('TeamDashboard', () => {
         id: 'team-1',
         name: 'Design Team',
         description: 'The design team',
-        settings: { isPrivate: false },
+        organizationIds: ['org-1'],
+        primaryOrganizationId: 'org-1',
+        createdAt: '2025-01-01T00:00:00Z',
+        updatedAt: '2025-01-01T00:00:00Z',
+        leadId: 'user-1',
+        settings: {
+          isPrivate: false,
+          allowProjectCreation: true,
+          defaultProjectRole: 'contributor',
+          crossOrganizational: false,
+        },
       },
       projects: [
-        { id: 'p1', name: 'Project 1' },
+        {
+          id: 'p1',
+          name: 'Project 1',
+          organizationId: 'org-1',
+          teamIds: ['team-1'],
+          createdAt: '2025-01-01T00:00:00Z',
+          updatedAt: '2025-01-01T00:00:00Z',
+          managerId: 'user-1',
+          status: 'active',
+          priority: 'medium',
+          settings: {
+            isPrivate: false,
+            allowFileSharing: true,
+            requireApproval: false,
+            multiTeamCollaboration: false,
+          },
+          metadata: {
+            projectType: 'show-concept',
+            serviceCategory: 'design-concepts',
+            serviceTier: 'standard',
+            ensembleType: 'marching-band',
+            tags: [],
+          },
+        },
       ],
     });
 

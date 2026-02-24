@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-const eventHandlers = new Map<string, Function>();
+const eventHandlers = new Map<string, (...args: unknown[]) => void>();
 
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: vi.fn(() => ({
@@ -21,7 +21,7 @@ vi.mock('../../services/messagingSocketService', () => ({
     subscribeToNotifications: vi.fn(),
     markNotificationRead: vi.fn(),
     markAllNotificationsRead: vi.fn(),
-    on: vi.fn((event: string, handler: Function) => {
+    on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
       eventHandlers.set(event, handler);
       return () => eventHandlers.delete(event);
     }),

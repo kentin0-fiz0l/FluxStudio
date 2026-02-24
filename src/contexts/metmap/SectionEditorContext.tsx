@@ -11,6 +11,10 @@ import { useMetMapCore } from './MetMapCoreContext';
 import type { SectionEditorContextValue, Section, Chord } from './types';
 import { calculateNextStartBar, recalculateStartBars } from './types';
 
+interface SaveSectionsResponse {
+  sections: Section[];
+}
+
 const SectionEditorContext = React.createContext<SectionEditorContextValue | null>(null);
 
 export function SectionEditorProvider({ children }: { children: React.ReactNode }) {
@@ -26,7 +30,7 @@ export function SectionEditorProvider({ children }: { children: React.ReactNode 
     if (!token || !state.currentSong) return false;
 
     try {
-      const result = await apiCall(`/api/metmap/songs/${state.currentSong.id}/sections`, {
+      const result = await apiCall<SaveSectionsResponse>(`/api/metmap/songs/${state.currentSong.id}/sections`, {
         method: 'PUT',
         body: JSON.stringify({ sections: state.editedSections })
       });

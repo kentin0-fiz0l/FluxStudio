@@ -5,7 +5,7 @@
  * Search, view, and revoke user authentication tokens
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAdminApi } from '../hooks/useAdminAuth';
 
 interface Token {
@@ -46,15 +46,7 @@ export function Tokens() {
   const [totalPages, setTotalPages] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadTokens();
-  }, [page, searchQuery, statusFilter]);
-
-  useEffect(() => {
-    loadStats();
-  }, []);
-
-  const loadTokens = async () => {
+  const loadTokens = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -79,9 +71,9 @@ export function Tokens() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiRequest, page, searchQuery, statusFilter]);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       const response = await apiRequest('/api/admin/tokens/stats');
       setStats(response.overview || { total: 0, active: 0, expired: 0, revoked: 0 });
@@ -89,7 +81,15 @@ export function Tokens() {
     } catch (error) {
       console.error('Failed to load token stats:', error);
     }
-  };
+  }, [apiRequest]);
+
+  useEffect(() => {
+    loadTokens();
+  }, [loadTokens]);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
 
   const handleRevokeToken = async (tokenId: string, revokeAll: boolean = false) => {
     const confirmMessage = revokeAll
