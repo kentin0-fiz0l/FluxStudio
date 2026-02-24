@@ -258,7 +258,10 @@ function ChatMessageBubbleComponent({
                 </div>
               ) : (
                 <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onViewInFiles?.(message.asset!.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewInFiles?.(message.asset!.id); } }}
                   className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                     isOwn
                       ? 'bg-white/10 border-white/20 hover:bg-white/20'

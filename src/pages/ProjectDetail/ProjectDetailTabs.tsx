@@ -261,6 +261,7 @@ export const BoardsTabPanel: React.FC<{
           {boards.map((board) => (
             <Card
               key={board.id}
+              interactive
               className="group overflow-hidden hover:shadow-lg hover:border-primary-300 transition-all cursor-pointer"
               onClick={() => navigate(`/boards/${board.id}`)}
             >

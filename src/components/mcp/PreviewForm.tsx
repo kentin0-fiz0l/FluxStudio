@@ -30,7 +30,7 @@ export default function PreviewForm() {
       const mcpClient = getMCPClient();
 
       // Parse optional payload
-      let payloadObj: Record<string, any> | undefined;
+      let payloadObj: Record<string, unknown> | undefined;
       if (payload.trim()) {
         try {
           payloadObj = JSON.parse(payload);

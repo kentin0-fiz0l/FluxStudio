@@ -210,6 +210,12 @@ export default function EmbedFormation() {
             <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
           <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden cursor-pointer"
+            role="slider"
+            tabIndex={0}
+            aria-label="Playback progress"
+            aria-valuenow={Math.round(currentTime)}
+            aria-valuemin={0}
+            aria-valuemax={Math.round(duration)}
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const t = ((e.clientX - rect.left) / rect.width) * duration;

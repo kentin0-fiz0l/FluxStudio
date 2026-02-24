@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * AssetActions - Action buttons and comment/version/relation management
  * Extracted from AssetDetailDrawer

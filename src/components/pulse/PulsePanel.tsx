@@ -237,6 +237,7 @@ export function PulsePanel({
         {/* Backdrop */}
         <div
           className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40"
+          role="presentation"
           onClick={onClose}
         />
         {/* Panel */}

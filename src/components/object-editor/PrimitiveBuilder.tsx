@@ -135,7 +135,10 @@ export function PrimitiveBuilder({ onSave, onClose }: PrimitiveBuilderProps) {
               {primitives.map((prim) => (
                 <div
                   key={prim.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setSelectedId(prim.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(prim.id); } }}
                   className={`flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer ${
                     prim.id === selectedId
                       ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'

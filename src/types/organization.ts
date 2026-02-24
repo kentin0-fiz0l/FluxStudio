@@ -114,6 +114,8 @@ export interface TeamMember {
   joinedAt: string;
   invitedBy: string;
   isActive: boolean;
+  name?: string;
+  email?: string;
 }
 
 export interface ProjectMember {
@@ -125,6 +127,8 @@ export interface ProjectMember {
   invitedBy: string;
   isActive: boolean;
   permissions: FilePermission[];
+  name?: string;
+  email?: string;
 }
 
 export interface OrganizationInvite {

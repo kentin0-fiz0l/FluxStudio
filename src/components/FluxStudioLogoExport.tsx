@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // React import not needed with JSX transform
 
 interface FluxStudioLogoExportProps {

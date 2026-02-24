@@ -130,7 +130,7 @@ async function uploadProjectFiles(
     throw new Error(result.error || 'Failed to upload files');
   }
 
-  return result.data;
+  return result.data as FileUploadResult;
 }
 
 /**

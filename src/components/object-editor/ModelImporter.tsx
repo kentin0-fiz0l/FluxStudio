@@ -77,10 +77,13 @@ export function ModelImporter({ onImport, onClose }: ModelImporterProps) {
         <div className="p-5 space-y-4">
           {/* Drop zone */}
           <div
+            role="button"
+            tabIndex={0}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
             className={`
               border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
               ${isDragging

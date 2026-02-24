@@ -63,7 +63,7 @@ export function Tokens() {
         params.append('status', statusFilter);
       }
 
-      const response = await apiRequest(`/api/admin/tokens/search?${params}`);
+      const response = await apiRequest<{ tokens?: Token[]; pagination?: { totalPages: number } }>(`/api/admin/tokens/search?${params}`);
       setTokens(response.tokens || []);
       setTotalPages(response.pagination?.totalPages || 1);
     } catch (error) {
@@ -75,7 +75,7 @@ export function Tokens() {
 
   const loadStats = useCallback(async () => {
     try {
-      const response = await apiRequest('/api/admin/tokens/stats');
+      const response = await apiRequest<{ overview?: TokenStats; topUsers?: TopUser[] }>('/api/admin/tokens/stats');
       setStats(response.overview || { total: 0, active: 0, expired: 0, revoked: 0 });
       setTopUsers(response.topUsers || []);
     } catch (error) {

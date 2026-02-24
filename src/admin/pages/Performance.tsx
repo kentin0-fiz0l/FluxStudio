@@ -61,8 +61,8 @@ export function Performance() {
       setLoading(true);
 
       const [metricsData, healthData] = await Promise.all([
-        apiRequest(`/api/admin/performance/summary?period=${period}`),
-        apiRequest('/api/admin/health'),
+        apiRequest<{ summary: PerformanceMetrics }>(`/api/admin/performance/summary?period=${period}`),
+        apiRequest<{ health: SystemHealth }>('/api/admin/health'),
       ]);
 
       setMetrics(metricsData.summary);

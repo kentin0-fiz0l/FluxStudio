@@ -9,6 +9,8 @@
  */
 
 import * as React from 'react';
+import { List as VirtualList, RowComponentProps } from 'react-window';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import {
   Package,
   Search,
@@ -209,65 +211,76 @@ export function PluginManager() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-hidden p-6">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-500" aria-hidden="true" />
           </div>
         ) : activeTab === 'installed' ? (
-          <div
-            className={cn(
-              viewMode === 'grid'
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-                : 'space-y-3'
-            )}
-          >
-            {filteredInstalled.length === 0 ? (
-              <EmptyState
-                icon={<Package className="w-12 h-12" aria-hidden="true" />}
-                title="No plugins installed"
-                description="Browse the marketplace to discover plugins"
-                action={
-                  <button
-                    onClick={() => setActiveTab('marketplace')}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                  >
-                    Browse Marketplace
-                  </button>
-                }
+          filteredInstalled.length === 0 ? (
+            <EmptyState
+              icon={<Package className="w-12 h-12" aria-hidden="true" />}
+              title="No plugins installed"
+              description="Browse the marketplace to discover plugins"
+              action={
+                <button
+                  onClick={() => setActiveTab('marketplace')}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                >
+                  Browse Marketplace
+                </button>
+              }
+            />
+          ) : (
+            <div className="h-full">
+              <AutoSizer
+                renderProp={({ height, width }) => (
+                  <VirtualList
+                    style={{ height: height ?? 0, width: width ?? 0 }}
+                    rowComponent={InstalledPluginRow}
+                    rowCount={filteredInstalled.length}
+                    rowHeight={viewMode === 'list' ? PLUGIN_LIST_ROW_HEIGHT : PLUGIN_GRID_ROW_HEIGHT}
+                    rowProps={{
+                      plugins: filteredInstalled,
+                      viewMode,
+                      onActivate: handleActivate,
+                      onDeactivate: handleDeactivate,
+                      onUninstall: handleUninstall,
+                      onSettings: (id: string) => setSelectedPlugin(id),
+                    }}
+                    overscanCount={5}
+                  />
+                )}
               />
-            ) : (
-              filteredInstalled.map((plugin) => (
-                <InstalledPluginCard
-                  key={plugin.manifest.id}
-                  plugin={plugin}
-                  viewMode={viewMode}
-                  onActivate={handleActivate}
-                  onDeactivate={handleDeactivate}
-                  onUninstall={handleUninstall}
-                  onSettings={() => setSelectedPlugin(plugin.manifest.id)}
-                />
-              ))
-            )}
-          </div>
+            </div>
+          )
         ) : activeTab === 'marketplace' ? (
-          <div
-            className={cn(
-              viewMode === 'grid'
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-                : 'space-y-3'
-            )}
-          >
-            {marketplacePlugins.map((plugin) => (
-              <MarketplacePluginCard
-                key={plugin.id}
-                plugin={plugin}
-                viewMode={viewMode}
-                isInstalled={pluginRegistry.isInstalled(plugin.id)}
-                onInstall={() => handleInstallRequest(plugin)}
+          marketplacePlugins.length === 0 ? (
+            <EmptyState
+              icon={<Package className="w-12 h-12" aria-hidden="true" />}
+              title="No plugins found"
+              description="Try a different search query"
+            />
+          ) : (
+            <div className="h-full">
+              <AutoSizer
+                renderProp={({ height, width }) => (
+                  <VirtualList
+                    style={{ height: height ?? 0, width: width ?? 0 }}
+                    rowComponent={MarketplacePluginRow}
+                    rowCount={marketplacePlugins.length}
+                    rowHeight={viewMode === 'list' ? PLUGIN_LIST_ROW_HEIGHT : PLUGIN_GRID_ROW_HEIGHT}
+                    rowProps={{
+                      plugins: marketplacePlugins,
+                      viewMode,
+                      onInstall: handleInstallRequest,
+                    }}
+                    overscanCount={5}
+                  />
+                )}
               />
-            ))}
-          </div>
+            </div>
+          )
         ) : (
           <EmptyState
             icon={<RefreshCw className="w-12 h-12" aria-hidden="true" />}
@@ -285,6 +298,72 @@ export function PluginManager() {
           onDeny={() => setPendingInstall(null)}
         />
       )}
+    </div>
+  );
+}
+
+// Row heights for plugin list virtualization
+const PLUGIN_GRID_ROW_HEIGHT = 220;
+const PLUGIN_LIST_ROW_HEIGHT = 76;
+
+// Row component for installed plugins in list view
+interface InstalledPluginRowProps {
+  plugins: PluginInstance[];
+  viewMode: ViewMode;
+  onActivate: (id: string) => void;
+  onDeactivate: (id: string) => void;
+  onUninstall: (id: string) => void;
+  onSettings: (id: string) => void;
+}
+
+function InstalledPluginRow({
+  index,
+  style,
+  plugins,
+  viewMode,
+  onActivate,
+  onDeactivate,
+  onUninstall,
+  onSettings,
+}: RowComponentProps<InstalledPluginRowProps>): React.ReactElement {
+  const plugin = plugins[index];
+  return (
+    <div style={style}>
+      <InstalledPluginCard
+        plugin={plugin}
+        viewMode={viewMode}
+        onActivate={onActivate}
+        onDeactivate={onDeactivate}
+        onUninstall={onUninstall}
+        onSettings={() => onSettings(plugin.manifest.id)}
+      />
+    </div>
+  );
+}
+
+// Row component for marketplace plugins in list view
+interface MarketplacePluginRowProps {
+  plugins: MarketplacePlugin[];
+  viewMode: ViewMode;
+  onInstall: (plugin: MarketplacePlugin) => void;
+}
+
+function MarketplacePluginRow({
+  index,
+  style,
+  plugins,
+  viewMode,
+  onInstall,
+}: RowComponentProps<MarketplacePluginRowProps>): React.ReactElement {
+  const plugin = plugins[index];
+  return (
+    <div style={style}>
+      <MarketplacePluginCard
+        plugin={plugin}
+        viewMode={viewMode}
+        isInstalled={pluginRegistry.isInstalled(plugin.id)}
+        onInstall={() => onInstall(plugin)}
+      />
     </div>
   );
 }

@@ -218,7 +218,7 @@ export interface NotificationAction {
   label: string;
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   action: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   icon?: string;
 }
 

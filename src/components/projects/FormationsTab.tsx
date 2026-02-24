@@ -163,6 +163,7 @@ export function FormationsTab({ projectId }: FormationsTabProps) {
           {formations.map((formation) => (
             <Card
               key={formation.id}
+              interactive
               className="group overflow-hidden hover:shadow-lg hover:border-primary-300 transition-all cursor-pointer relative"
               onClick={() => navigate(`/projects/${projectId}/formations/${formation.id}`)}
             >

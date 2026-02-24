@@ -478,6 +478,7 @@ export function UserSearch({
       {isOpen && (
         <div
           className="fixed inset-0 z-40"
+          role="presentation"
           onClick={() => setIsOpen(false)}
         />
       )}

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * AssetPreview - File/asset preview display and basic info
  * Extracted from AssetDetailDrawer

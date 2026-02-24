@@ -8,11 +8,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '@/store';
 import { DashboardShell } from './DashboardShell';
-import { EnhancedCommandPalette } from './EnhancedCommandPalette';
 import { IntegratedActivityFeed } from './IntegratedActivityFeed';
 
 const DraggableWidgetGrid = lazy(() => import('./widgets/DraggableWidgetGrid').then(m => ({ default: m.DraggableWidgetGrid })));
-const SmartTemplates = lazy(() => import('./workflows/SmartTemplates').then(m => ({ default: m.SmartTemplates })));
 const AIWorkflowAssistant = lazy(() => import('./workflows/AIWorkflowAssistant').then(m => ({ default: m.AIWorkflowAssistant })));
 import { GettingStartedCard } from './common/GettingStartedCard';
 import { useFirstTimeExperience } from '../hooks/useFirstTimeExperience';
@@ -163,7 +161,6 @@ export function AdaptiveDashboard() {
 
   return (
     <>
-      <EnhancedCommandPalette />
       <DashboardShell>
         <Suspense fallback={<div className="flex-1 p-6 animate-pulse"><div className="h-8 bg-gray-200 rounded w-1/3 mb-4" /><div className="h-64 bg-gray-100 rounded" /></div>}>
         <div className="flex-1 space-y-6 p-6">
@@ -334,7 +331,7 @@ export function AdaptiveDashboard() {
                       </TabsContent>
 
                       <TabsContent value="workflows" className="mt-6">
-                        <SmartTemplates />
+                        <p className="text-sm text-neutral-500">Workflow templates coming soon.</p>
                       </TabsContent>
 
                       <TabsContent value="assistant" className="mt-6">
@@ -444,7 +441,7 @@ export function AdaptiveDashboard() {
               </TabsContent>
 
               <TabsContent value="workflows" className="mt-6">
-                <SmartTemplates />
+                <p className="text-sm text-neutral-500">Workflow templates coming soon.</p>
               </TabsContent>
 
               <TabsContent value="assistant" className="mt-6">

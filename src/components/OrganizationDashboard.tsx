@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useAuth } from '../contexts/AuthContext';
-import { EnoBackground } from './EnoBackground';
 import { MobileOptimizedHeader } from './MobileOptimizedHeader';
 import { OrganizationBreadcrumb } from './OrganizationBreadcrumb';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -91,7 +90,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
   if (!currentOrganization) {
     return (
       <div className="min-h-screen bg-background text-foreground relative">
-        <EnoBackground />
+
         <MobileOptimizedHeader />
         <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-12">
           <div className="max-w-7xl mx-auto">
@@ -105,6 +104,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
                   {organizations.map((org) => (
                     <Card
                       key={org.id}
+                      interactive
                       className="bg-white/10 border border-white/10 hover:bg-white/10 cursor-pointer transition-colors"
                       onClick={() => navigateTo('organization', org.id)}
                     >
@@ -132,7 +132,6 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
 
   return (
     <div className="min-h-screen bg-background text-foreground relative">
-      <EnoBackground />
       <MobileOptimizedHeader />
 
       <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-12">
@@ -293,6 +292,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
                   {filteredTeams.map((team) => (
                     <Card
                       key={team.id}
+                      interactive
                       className="bg-white/10 border border-white/10 hover:bg-white/10 cursor-pointer transition-colors"
                       onClick={() => navigateTo('team', team.id)}
                     >
@@ -358,6 +358,7 @@ export function OrganizationDashboard({ organizationId }: OrganizationDashboardP
                   {filteredProjects.map((project) => (
                     <Card
                       key={project.id}
+                      interactive
                       className="bg-white/10 border border-white/10 hover:bg-white/10 cursor-pointer transition-colors"
                       onClick={() => navigateTo('project', project.id)}
                     >

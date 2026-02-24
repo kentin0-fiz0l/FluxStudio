@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
@@ -31,9 +31,6 @@ import {
 } from 'lucide-react';
 import { OfflineIndicator } from './common/OfflineIndicator';
 import { cn } from '../lib/utils';
-
-// Lazy-load the notification center (heavy component, only opens on click)
-const UnifiedNotificationCenter = lazy(() => import('./notifications/UnifiedNotificationCenter').then(m => ({ default: m.UnifiedNotificationCenter })));
 
 interface EnhancedHeaderProps {
   openCommandPalette: () => void;
@@ -178,11 +175,6 @@ export function EnhancedHeader({ openCommandPalette, className, activeView = 'or
               </Badge>
             )}
           </Button>
-
-          {/* Notifications */}
-          <Suspense fallback={null}>
-            <UnifiedNotificationCenter />
-          </Suspense>
 
           {/* User Menu */}
           <DropdownMenu>

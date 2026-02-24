@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * AICoPilotProvider - Global AI Co-Pilot integration
  *

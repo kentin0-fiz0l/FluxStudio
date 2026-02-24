@@ -467,7 +467,7 @@ export function ChordGrid({
 
       {/* Chord input modal */}
       {selectedCell && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setSelectedCell(null)}>
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" role="presentation" onClick={() => setSelectedCell(null)}>
           <div className="bg-white rounded-lg shadow-xl p-4 w-80" onClick={(e) => e.stopPropagation()}>
             <div className="text-sm font-medium mb-2">
               Set chord at Bar {selectedCell.bar}, Beat {selectedCell.beat}

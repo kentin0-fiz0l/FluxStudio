@@ -48,7 +48,7 @@ export const PortfolioItemCard = React.memo(function PortfolioItemCard({
 
   if (viewMode === 'list') {
     return (
-      <Card className="overflow-hidden hover:shadow-lg transition-all cursor-pointer" onClick={onClick}>
+      <Card interactive className="overflow-hidden hover:shadow-lg transition-all cursor-pointer" onClick={onClick}>
         <div className="flex">
           <div className="w-48 h-32 bg-gray-100 dark:bg-gray-800 flex-shrink-0">
             {primaryMedia ? (
@@ -144,7 +144,7 @@ export const PortfolioItemCard = React.memo(function PortfolioItemCard({
   }
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all cursor-pointer group" onClick={onClick}>
+    <Card interactive className="overflow-hidden hover:shadow-lg transition-all cursor-pointer group" onClick={onClick}>
       <div className="relative">
         <div className="aspect-video bg-gray-100 dark:bg-gray-800">
           {primaryMedia ? (

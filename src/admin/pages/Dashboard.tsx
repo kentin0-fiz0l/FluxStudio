@@ -73,11 +73,11 @@ export function Dashboard() {
 
       // Load all dashboard data in parallel
       const [blockedIpsData, tokensData, eventsData, healthData, perfData] = await Promise.all([
-        apiRequest('/api/admin/security/blocked-ips/stats'),
-        apiRequest('/api/admin/tokens/stats'),
-        apiRequest('/api/admin/security/events?perPage=5'),
-        apiRequest('/api/admin/health'),
-        apiRequest('/api/admin/performance/summary?period=1h'),
+        apiRequest<{ totalBlocked?: number }>('/api/admin/security/blocked-ips/stats'),
+        apiRequest<{ overview?: { active?: number } }>('/api/admin/tokens/stats'),
+        apiRequest<{ summary?: { totalEvents?: number }; events?: SecurityEvent[] }>('/api/admin/security/events?perPage=5'),
+        apiRequest<{ health?: { status?: 'healthy' | 'degraded' | 'warning' } }>('/api/admin/health'),
+        apiRequest<{ summary?: { requests?: { total: number; errorRate?: number }; latency?: { avg?: number; p95?: number }; system?: { currentMemory: number; currentCpu?: number } } | null }>('/api/admin/performance/summary?period=1h'),
       ]);
 
       setStats({

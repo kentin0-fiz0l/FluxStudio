@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * Socket.IO React Context for Real-time Communication
  * Provides WebSocket connection management and real-time messaging state

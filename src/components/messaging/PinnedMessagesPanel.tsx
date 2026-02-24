@@ -54,8 +54,11 @@ export function PinnedMessagesPanel({
         {messages.map((msg) => (
           <div
             key={msg.id}
+            role="button"
+            tabIndex={0}
             className="flex items-start gap-3 p-2 rounded-lg bg-neutral-50 dark:bg-neutral-800 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
             onClick={() => onJumpTo(msg.id)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJumpTo(msg.id); } }}
           >
             <ChatAvatar user={msg.author} size="sm" />
             <div className="flex-1 min-w-0">

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useAuth } from '../contexts/AuthContext';
-import { EnoBackground } from './EnoBackground';
 import { MobileOptimizedHeader } from './MobileOptimizedHeader';
 import { OrganizationBreadcrumb } from './OrganizationBreadcrumb';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -21,7 +20,7 @@ import {
   Clock,
   Activity
 } from 'lucide-react';
-import { TeamStats } from '../types/organization';
+import { TeamStats, TeamMember } from '../types/organization';
 
 interface TeamDashboardProps {
   teamId?: string;
@@ -42,7 +41,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState<TeamStats | null>(null);
-  const [members, setMembers] = useState<any[]>([]);
+  const [members, setMembers] = useState<TeamMember[]>([]);
   const [_showCreateProject, setShowCreateProject] = useState(false);
 
   // Initialize team if provided
@@ -83,7 +82,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
   if (!currentTeam) {
     return (
       <div className="min-h-screen bg-background text-foreground relative">
-        <EnoBackground />
+
         <MobileOptimizedHeader />
         <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-12">
           <div className="max-w-7xl mx-auto">
@@ -105,7 +104,6 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground relative">
-      <EnoBackground />
       <MobileOptimizedHeader />
 
       <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-12">
@@ -219,6 +217,7 @@ export function TeamDashboard({ teamId }: TeamDashboardProps) {
                   {filteredProjects.map((project) => (
                     <Card
                       key={project.id}
+                      interactive
                       className="bg-white/10 border border-white/10 hover:bg-white/10 cursor-pointer transition-colors"
                       onClick={() => navigateTo('project', project.id)}
                     >

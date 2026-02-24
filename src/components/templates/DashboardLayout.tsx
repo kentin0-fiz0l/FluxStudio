@@ -207,6 +207,7 @@ export const DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutP
         {mobileMenuOpen && (
           <div
             className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            role="presentation"
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />

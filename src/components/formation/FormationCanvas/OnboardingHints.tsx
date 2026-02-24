@@ -107,7 +107,7 @@ export function OnboardingHints() {
   return (
     <div className="absolute inset-0 z-50 pointer-events-none">
       {/* Subtle backdrop */}
-      <div className="absolute inset-0 bg-black/20 pointer-events-auto" onClick={next} />
+      <div className="absolute inset-0 bg-black/20 pointer-events-auto" role="presentation" onClick={next} />
 
       {/* Hint card — centered, responsive width */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto w-[calc(100%-2rem)] max-w-xs">

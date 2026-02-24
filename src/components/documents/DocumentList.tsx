@@ -4,7 +4,9 @@
  * Displays and manages project documents with create/archive/delete actions
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo, ReactElement } from 'react';
+import { List, RowComponentProps } from 'react-window';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { FileText, Plus, MoreVertical, Archive, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -47,11 +49,119 @@ interface DocumentListProps {
   onOpenDocument: (documentId: number) => void;
 }
 
+const DOC_ROW_HEIGHT = 140;
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+  });
+}
+
+interface DocumentRowProps {
+  documents: Document[];
+  columnCount: number;
+  onOpenDocument: (documentId: number) => void;
+  onRequestDelete: (document: Document) => void;
+}
+
+function DocumentRow({
+  index,
+  style,
+  documents,
+  columnCount,
+  onOpenDocument,
+  onRequestDelete,
+}: RowComponentProps<DocumentRowProps>): ReactElement {
+  return (
+    <div style={style} className="flex gap-4">
+      {Array.from({ length: columnCount }, (_, colIndex) => {
+        const docIndex = index * columnCount + colIndex;
+        if (docIndex >= documents.length) return <div key={colIndex} className="flex-1" />;
+        const document = documents[docIndex];
+        return (
+          <Card
+            key={document.id}
+            interactive
+            className="flex-1 cursor-pointer hover:bg-accent transition-colors"
+            onClick={() => onOpenDocument(document.id)}
+          >
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="truncate">{document.title}</CardTitle>
+                  <CardDescription className="space-y-1">
+                    <div className="flex items-center text-xs">
+                      <Clock className="mr-1 h-3 w-3" aria-hidden="true" />
+                      {formatDate(document.lastEditedAt)}
+                    </div>
+                    <div className="text-xs">
+                      Edited by {document.lastEditedByName || 'Unknown'}
+                    </div>
+                    {document.versionCount > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        {document.versionCount} version{document.versionCount !== 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </CardDescription>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Actions for ${document.title}`}>
+                      <MoreVertical className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenDocument(document.id);
+                    }}>
+                      <FileText className="mr-2 h-4 w-4" aria-hidden="true" />
+                      Open
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {(document.userRole === 'manager' || document.userRole === 'contributor') && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRequestDelete(document);
+                        }}
+                        className="text-destructive"
+                      >
+                        <Archive className="mr-2 h-4 w-4" aria-hidden="true" />
+                        Archive
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardHeader>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
 export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
+  const [containerWidth, setContainerWidth] = useState(1024);
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -142,25 +252,20 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
     }
   }
 
-  function formatDate(dateString: string) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+  const onRequestDelete = useCallback((doc: Document) => {
+    setDocumentToDelete(doc);
+    setDeleteDialogOpen(true);
+  }, []);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  const columnCount = containerWidth >= 1024 ? 3 : containerWidth >= 768 ? 2 : 1;
+  const rowCount = Math.ceil(documents.length / columnCount);
 
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-    });
-  }
+  const rowProps = useMemo(() => ({
+    documents,
+    columnCount,
+    onOpenDocument,
+    onRequestDelete,
+  }), [documents, columnCount, onOpenDocument, onRequestDelete]);
 
   if (loading) {
     return (
@@ -236,66 +341,20 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
           </CardHeader>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {documents.map((document) => (
-            <Card
-              key={document.id}
-              className="cursor-pointer hover:bg-accent transition-colors"
-              onClick={() => onOpenDocument(document.id)}
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="truncate">{document.title}</CardTitle>
-                    <CardDescription className="space-y-1">
-                      <div className="flex items-center text-xs">
-                        <Clock className="mr-1 h-3 w-3" aria-hidden="true" />
-                        {formatDate(document.lastEditedAt)}
-                      </div>
-                      <div className="text-xs">
-                        Edited by {document.lastEditedByName || 'Unknown'}
-                      </div>
-                      {document.versionCount > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          {document.versionCount} version{document.versionCount !== 1 ? 's' : ''}
-                        </div>
-                      )}
-                    </CardDescription>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Actions for ${document.title}`}>
-                        <MoreVertical className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenDocument(document.id);
-                      }}>
-                        <FileText className="mr-2 h-4 w-4" aria-hidden="true" />
-                        Open
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      {(document.userRole === 'manager' || document.userRole === 'contributor') && (
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDocumentToDelete(document);
-                            setDeleteDialogOpen(true);
-                          }}
-                          className="text-destructive"
-                        >
-                          <Archive className="mr-2 h-4 w-4" aria-hidden="true" />
-                          Archive
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
+        <div style={{ height: Math.min(rowCount * DOC_ROW_HEIGHT, 600) }}>
+          <AutoSizer
+            onResize={({ width }) => { if (width) setContainerWidth(width); }}
+            renderProp={({ height, width }) => (
+              <List
+                style={{ height: height ?? 0, width: width ?? 0 }}
+                rowComponent={DocumentRow}
+                rowCount={rowCount}
+                rowHeight={DOC_ROW_HEIGHT}
+                rowProps={rowProps}
+                overscanCount={3}
+              />
+            )}
+          />
         </div>
       )}
 

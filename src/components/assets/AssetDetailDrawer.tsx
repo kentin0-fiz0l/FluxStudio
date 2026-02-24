@@ -212,7 +212,7 @@ export function AssetDetailDrawer({ asset, onClose, onDelete }: AssetDetailDrawe
 
   return (
     <div className="fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="Asset details">
-      <div className="flex-1 bg-black/50" onClick={onClose} aria-hidden="true" />
+      <div className="flex-1 bg-black/50" role="presentation" onClick={onClose} aria-hidden="true" />
 
       <div className="w-full max-w-xl bg-white shadow-xl flex flex-col overflow-hidden">
         {/* Header */}

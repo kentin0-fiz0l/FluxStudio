@@ -35,7 +35,7 @@ export function ExportImport({
   const [importError, setImportError] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [lastCreatedAsset, setLastCreatedAsset] = useState<any>(null);
+  const [lastCreatedAsset, setLastCreatedAsset] = useState<{ id: string; name: string } | null>(null);
   const [videoExporting, setVideoExporting] = useState(false);
   const [videoProgress, setVideoProgress] = useState<MetMapExportProgress | null>(null);
   const [gifExporting, setGifExporting] = useState(false);
@@ -328,6 +328,7 @@ ${exportData.sections}`;
         <>
           <div
             className="fixed inset-0 z-10"
+            role="presentation"
             onClick={() => setShowDropdown(false)}
           />
           <div className="absolute right-0 top-full mt-1 py-2 bg-white rounded-lg shadow-xl border border-gray-200 z-20 min-w-[180px]">

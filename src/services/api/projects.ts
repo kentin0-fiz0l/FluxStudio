@@ -78,7 +78,7 @@ export function projectsApi(service: ApiService) {
       projectId: string,
       files: File[],
       onProgress?: (progress: number) => void
-    ): Promise<ApiResponse<any>> {
+    ): Promise<ApiResponse<unknown>> {
       const formData = new FormData();
       files.forEach((file) => formData.append('files', file));
 

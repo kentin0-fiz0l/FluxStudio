@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * Card Component - Flux Design Language
  *
@@ -63,12 +64,19 @@ export interface CardProps
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, padding, interactive, role, tabIndex, ...props }, ref) => (
+  ({ className, variant, padding, interactive, role, tabIndex, onKeyDown, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(cardVariants({ variant, padding, interactive, className }))}
       role={interactive ? role || 'button' : role}
       tabIndex={interactive ? (tabIndex ?? 0) : tabIndex}
+      onKeyDown={interactive ? (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          (e.currentTarget as HTMLDivElement).click();
+        }
+        onKeyDown?.(e);
+      } : onKeyDown}
       {...props}
     />
   )

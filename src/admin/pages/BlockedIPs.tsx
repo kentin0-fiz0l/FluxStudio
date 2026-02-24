@@ -41,8 +41,8 @@ export function BlockedIPs() {
       }
 
       const [ipsData, statsData] = await Promise.all([
-        apiRequest(`/api/admin/security/blocked-ips?${params}`),
-        apiRequest('/api/admin/security/blocked-ips/stats'),
+        apiRequest<{ ips: BlockedIP[]; pagination?: { totalPages: number } }>(`/api/admin/security/blocked-ips?${params}`),
+        apiRequest<{ totalBlocked: number; criticalLevel: number; highLevel: number }>('/api/admin/security/blocked-ips/stats'),
       ]);
 
       setIps(ipsData.ips || []);

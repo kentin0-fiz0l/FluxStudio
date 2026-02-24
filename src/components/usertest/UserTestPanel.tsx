@@ -243,6 +243,7 @@ export function UserTestPanel({ isOpen, onClose }: UserTestPanelProps) {
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/20 dark:bg-black/40 z-50"
+        role="presentation"
         onClick={onClose}
         aria-hidden="true"
       />

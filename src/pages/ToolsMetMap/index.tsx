@@ -888,6 +888,7 @@ export default function ToolsMetMap() {
         {isMobile && showSongList && (
           <div
             className="fixed inset-0 bg-black/40 z-30"
+            role="presentation"
             onClick={() => setShowSongList(false)}
             aria-hidden="true"
           />

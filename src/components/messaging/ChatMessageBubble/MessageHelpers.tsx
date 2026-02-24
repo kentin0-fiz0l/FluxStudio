@@ -120,8 +120,11 @@ export const AttachmentPreview: React.FC<{
         <img
           src={attachment.thumbnailUrl || attachment.url}
           alt={attachment.name}
+          role="button"
+          tabIndex={0}
           className="max-w-full max-h-64 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
           onClick={onView}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onView(); } }}
         />
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/attach:opacity-100 transition-opacity">
           <button

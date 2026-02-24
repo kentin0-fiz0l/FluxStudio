@@ -86,20 +86,12 @@ vi.mock('@/components/DashboardShell', () => ({
   DashboardShell: ({ children }: any) => <div data-testid="dashboard-shell">{children}</div>,
 }));
 
-vi.mock('@/components/EnhancedCommandPalette', () => ({
-  EnhancedCommandPalette: () => <div data-testid="command-palette" />,
-}));
-
 vi.mock('@/components/IntegratedActivityFeed', () => ({
   IntegratedActivityFeed: () => <div data-testid="activity-feed" />,
 }));
 
 vi.mock('@/components/widgets/DraggableWidgetGrid', () => ({
   DraggableWidgetGrid: () => <div data-testid="widget-grid" />,
-}));
-
-vi.mock('@/components/workflows/SmartTemplates', () => ({
-  SmartTemplates: () => <div data-testid="smart-templates" />,
 }));
 
 vi.mock('@/components/workflows/AIWorkflowAssistant', () => ({

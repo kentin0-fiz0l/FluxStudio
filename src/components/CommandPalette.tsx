@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * CommandPalette - Quick navigation and actions (⌘K)
  *

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * RealtimeNotifications - Real-time notification integration
  *

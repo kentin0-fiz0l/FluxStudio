@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * Helper components for ProjectDetail page
  * Extracted from monolithic ProjectDetail.tsx

@@ -251,6 +251,7 @@ export const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
     <div className="space-y-4">
       {/* Upload Zone */}
       <Card
+        interactive
         className={`cursor-pointer transition-colors ${
           dragActive ? 'border-blue-500 bg-blue-50' : 'border-dashed border-gray-300'
         }`}

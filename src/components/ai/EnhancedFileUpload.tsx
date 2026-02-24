@@ -91,6 +91,7 @@ const FileUploadItem = React.memo(function FileUploadItem({
       transition={{ duration: 0.2 }}
     >
       <Card
+        interactive
         className={cn(
           'cursor-pointer transition-all',
           isSelected && 'ring-2 ring-blue-500'

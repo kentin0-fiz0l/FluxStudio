@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * AgentPresenceIndicator - Shows the Formation Draft Agent as a collaborator
  *

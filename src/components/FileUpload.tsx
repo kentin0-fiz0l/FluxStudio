@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { Plus, Upload, CheckCircle, AlertCircle, File, Image, Video, FileText } from 'lucide-react';
-import { useFileUpload, UploadProgress } from '../hooks/useFileUpload';
+import { useFileUpload, UploadProgress, FileUpload as UploadedFile } from '../hooks/useFileUpload';
 
 interface FileUploadProps {
-  onUploadComplete?: (files: any[]) => void;
+  onUploadComplete?: (files: UploadedFile[]) => void;
   className?: string;
   maxFiles?: number;
 }

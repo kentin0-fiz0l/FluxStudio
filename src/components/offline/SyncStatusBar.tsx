@@ -125,7 +125,11 @@ export function SyncStatusBar({ className = '', collapsible = true }: SyncStatus
         className={`flex items-center justify-between px-4 py-3 ${
           collapsible ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50' : ''
         }`}
+        role={collapsible ? 'button' : undefined}
+        tabIndex={collapsible ? 0 : undefined}
         onClick={() => collapsible && setIsExpanded(!isExpanded)}
+        onKeyDown={collapsible ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsExpanded(!isExpanded); } } : undefined}
+        aria-expanded={collapsible ? isExpanded : undefined}
       >
         <div className="flex items-center gap-3">
           {getStatusIcon()}

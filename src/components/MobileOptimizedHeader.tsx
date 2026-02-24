@@ -157,8 +157,9 @@ export function MobileOptimizedHeader() {
       {isMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-40">
           {/* Backdrop */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            role="presentation"
             onClick={() => setIsMenuOpen(false)}
             aria-hidden="true"
           />

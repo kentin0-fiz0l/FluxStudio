@@ -233,7 +233,7 @@ function getRoleLevel(role: string): number {
 export function useAdminApi() {
   const { token, isAuthenticated, logout } = useAdminAuth();
 
-  const apiRequest = useCallback(async <T = any>(
+  const apiRequest = useCallback(async <T = unknown>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> => {

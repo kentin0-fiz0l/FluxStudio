@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * Shared Test Utilities for FluxStudio
  * Custom render, store helpers, and mock helpers.

@@ -62,7 +62,7 @@ export function Events() {
         if (value) params.append(key, value);
       });
 
-      const response = await apiRequest(`/api/admin/security/events?${params}`);
+      const response = await apiRequest<{ events?: SecurityEvent[]; summary?: EventSummary | null; pagination?: { totalPages: number } }>(`/api/admin/security/events?${params}`);
       setEvents(response.events || []);
       setSummary(response.summary || null);
       setTotalPages(response.pagination?.totalPages || 1);
@@ -86,11 +86,11 @@ export function Events() {
         if (value) params.append(key, value);
       });
 
-      const response = await apiRequest(`/api/admin/security/events/export?${params}`);
+      const response = await apiRequest<string | { events?: SecurityEvent[] }>(`/api/admin/security/events/export?${params}`);
 
       if (format === 'csv') {
         // Create download link for CSV
-        const blob = new Blob([response], { type: 'text/csv' });
+        const blob = new Blob([response as string], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -101,7 +101,8 @@ export function Events() {
         window.URL.revokeObjectURL(url);
       } else {
         // Download JSON
-        const blob = new Blob([JSON.stringify(response.events, null, 2)], { type: 'application/json' });
+        const jsonResponse = response as { events?: SecurityEvent[] };
+        const blob = new Blob([JSON.stringify(jsonResponse.events, null, 2)], { type: 'application/json' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -333,7 +334,10 @@ export function Events() {
             {events.map((event) => (
               <div
                 key={event.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelectedEvent(event)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedEvent(event); } }}
                 className="flex items-start p-4 bg-gray-900/50 rounded-lg hover:bg-gray-900 cursor-pointer transition-colors border border-transparent hover:border-blue-500/30"
               >
                 {/* Timeline Indicator */}
@@ -411,7 +415,7 @@ export function Events() {
 
       {/* Event Details Modal */}
       {selectedEvent && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedEvent(null)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="presentation" onClick={() => setSelectedEvent(null)}>
           <div className="bg-gray-800 rounded-xl border border-gray-700 max-w-2xl w-full max-h-[80vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-700">
               <h2 className="text-xl font-semibold text-white">Event Details</h2>

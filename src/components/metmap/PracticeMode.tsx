@@ -141,8 +141,12 @@ export function PracticeMode({
     <div className={`bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg ${className}`}>
       {/* Header */}
       <div
+        role="button"
+        tabIndex={0}
         className="flex items-center justify-between p-3 cursor-pointer"
         onClick={() => setExpanded(!expanded)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded); } }}
+        aria-expanded={expanded}
       >
         <div className="flex items-center gap-2">
           <span className="text-lg">🎯</span>

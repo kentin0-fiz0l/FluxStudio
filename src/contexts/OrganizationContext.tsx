@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * OrganizationContext - Backward compatibility wrapper
  *

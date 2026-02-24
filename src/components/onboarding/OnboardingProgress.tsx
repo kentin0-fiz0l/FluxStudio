@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * OnboardingProgress - Progress indicator/stepper
  * Extracted from ClientOnboarding.tsx

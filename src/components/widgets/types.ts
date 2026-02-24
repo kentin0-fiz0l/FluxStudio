@@ -12,7 +12,7 @@ export interface WidgetConfig {
   isResizable?: boolean;
   isDraggable?: boolean;
   refreshInterval?: number; // in seconds
-  settings?: Record<string, any>;
+  settings?: Record<string, unknown>;
 }
 
 export interface WidgetProps {

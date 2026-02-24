@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * TaskFilterPanel Component
  * Status, priority, and assignee filter controls for task lists

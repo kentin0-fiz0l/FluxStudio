@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useAuth } from '../contexts/AuthContext';
-import { EnoBackground } from './EnoBackground';
 import { MobileOptimizedHeader } from './MobileOptimizedHeader';
 import { OrganizationBreadcrumb } from './OrganizationBreadcrumb';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -29,7 +28,7 @@ import {
   MoreVertical,
   Eye
 } from 'lucide-react';
-import { ProjectStats } from '../types/organization';
+import { ProjectStats, ProjectMember } from '../types/organization';
 
 interface ProjectDashboardProps {
   projectId?: string;
@@ -58,7 +57,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterType, setFilterType] = useState<'all' | 'design' | 'reference' | 'final' | 'feedback'>('all');
   const [stats, setStats] = useState<ProjectStats | null>(null);
-  const [members, setMembers] = useState<any[]>([]);
+  const [members, setMembers] = useState<ProjectMember[]>([]);
   const [_selectedFiles, _setSelectedFiles] = useState<string[]>([]);
 
   // Initialize project if provided
@@ -129,7 +128,7 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
   if (!currentProject) {
     return (
       <div className="min-h-screen bg-background text-foreground relative">
-        <EnoBackground />
+
         <MobileOptimizedHeader />
         <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-12">
           <div className="max-w-7xl mx-auto">
@@ -151,7 +150,6 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground relative">
-      <EnoBackground />
       <MobileOptimizedHeader />
 
       <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-12">

@@ -66,7 +66,7 @@ export interface AssetRelation {
   relationType: RelationType;
   direction: 'incoming' | 'outgoing';
   description?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdBy: string;
   createdAt: string;
 }

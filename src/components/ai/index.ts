@@ -10,9 +10,6 @@ export { AICommandPalette } from './AICommandPalette';
 export { AISuggestionsBar } from './AISuggestionsBar';
 export { AICoPilotProvider, useAICoPilot } from './AICoPilotProvider';
 
-// Design Assistant
-export { AIDesignAssistant } from './AIDesignAssistant';
-
 // Supporting Components
 export { default as ContentInsights } from './ContentInsights';
 export { default as DesignAssistant } from './DesignAssistant';

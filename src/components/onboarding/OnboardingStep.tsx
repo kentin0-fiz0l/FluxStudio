@@ -128,7 +128,7 @@ export function ProjectStep({ formData, updateFormData }: StepProps) {
           <Label>Service Category *</Label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Object.entries(SERVICE_OFFERINGS).map(([key, service]) => (
-              <Card key={key} className={cn('cursor-pointer transition-all border-2', formData.serviceCategory === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300')} onClick={() => updateFormData({ serviceCategory: key, projectType: '' })}>
+              <Card key={key} interactive className={cn('cursor-pointer transition-all border-2', formData.serviceCategory === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300')} onClick={() => updateFormData({ serviceCategory: key, projectType: '' })}>
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-gray-900 mb-2">{service.name}</h3>
                   <p className="text-sm text-gray-600">{service.description}</p>
@@ -143,7 +143,7 @@ export function ProjectStep({ formData, updateFormData }: StepProps) {
             <Label>Specific Service *</Label>
             <div className="grid grid-cols-1 gap-3">
               {availableProjectTypes.map(([key, details]) => (
-                <Card key={key} className={cn('cursor-pointer transition-all border-2', formData.projectType === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300')} onClick={() => updateFormData({ projectType: key })}>
+                <Card key={key} interactive className={cn('cursor-pointer transition-all border-2', formData.projectType === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300')} onClick={() => updateFormData({ projectType: key })}>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -167,7 +167,7 @@ export function ProjectStep({ formData, updateFormData }: StepProps) {
             <Label>Service Tier *</Label>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {Object.entries(SERVICE_TIERS).map(([key, tier]) => (
-                <Card key={key} className={cn('cursor-pointer transition-all border-2 relative', formData.serviceTier === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300')} onClick={() => updateFormData({ serviceTier: key })}>
+                <Card key={key} interactive className={cn('cursor-pointer transition-all border-2 relative', formData.serviceTier === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300')} onClick={() => updateFormData({ serviceTier: key })}>
                   <CardContent className="p-4">
                     {key === 'elite' && (
                       <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
@@ -188,7 +188,7 @@ export function ProjectStep({ formData, updateFormData }: StepProps) {
           <Label>Ensemble Type *</Label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {ensembleTypes.map(ensemble => (
-              <Card key={ensemble.value} className={cn('cursor-pointer transition-all border-2', formData.ensembleType === ensemble.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300')} onClick={() => updateFormData({ ensembleType: ensemble.value })}>
+              <Card key={ensemble.value} interactive className={cn('cursor-pointer transition-all border-2', formData.ensembleType === ensemble.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300')} onClick={() => updateFormData({ ensembleType: ensemble.value })}>
                 <CardContent className="p-3 text-center">
                   <div className="text-2xl mb-2">{ensemble.icon}</div>
                   <div className="text-sm font-medium">{ensemble.label}</div>
@@ -249,7 +249,7 @@ export function TimelineStep({ formData, updateFormData }: StepProps) {
           <Label>Budget Range *</Label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {budgetRanges.map(range => (
-              <Card key={range} className={cn('cursor-pointer transition-all border-2', formData.budgetRange === range ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300')} onClick={() => updateFormData({ budgetRange: range })}>
+              <Card key={range} interactive className={cn('cursor-pointer transition-all border-2', formData.budgetRange === range ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300')} onClick={() => updateFormData({ budgetRange: range })}>
                 <CardContent className="p-3 text-center"><div className="font-medium">{range}</div></CardContent>
               </Card>
             ))}

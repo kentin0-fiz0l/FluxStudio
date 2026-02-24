@@ -202,6 +202,7 @@ export function ExportDialog({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50"
+        role="presentation"
         onClick={onClose}
       />
 

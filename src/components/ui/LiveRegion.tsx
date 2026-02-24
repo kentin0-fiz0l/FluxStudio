@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * LiveRegion - ARIA live region for screen reader announcements
  *

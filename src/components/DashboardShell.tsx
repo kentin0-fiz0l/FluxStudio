@@ -6,7 +6,6 @@ import { FloatingMessageButton } from './messaging/FloatingMessageButton';
 
 // Lazy-load heavy components to keep dashboard chunk under 500 KB
 const EnhancedHeader = lazy(() => import('./EnhancedHeader').then(m => ({ default: m.EnhancedHeader })));
-const CommandPalette = lazy(() => import('./search/CommandPalette').then(m => ({ default: m.CommandPalette })));
 const File = lazy(() => import('../pages/File').then(m => ({ default: m.File })));
 const MessagingSidepanel = lazy(() => import('./messaging/MessagingSidepanel').then(m => ({ default: m.MessagingSidepanel })));
 
@@ -117,11 +116,6 @@ export function DashboardShell({ children: _children }: DashboardShellProps) {
           </div>
         </div>
       </main>
-
-      {/* Global Command Palette */}
-      <Suspense fallback={null}>
-        <CommandPalette />
-      </Suspense>
 
       {/* Messaging Sidepanel - Available from any view */}
       <Suspense fallback={null}>

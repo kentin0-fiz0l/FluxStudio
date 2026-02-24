@@ -45,10 +45,6 @@ vi.mock('@/contexts/OrganizationContext', () => ({
 }));
 
 // Mock sub-components
-vi.mock('@/components/EnoBackground', () => ({
-  EnoBackground: () => <div data-testid="eno-background" />,
-}));
-
 vi.mock('@/components/MobileOptimizedHeader', () => ({
   MobileOptimizedHeader: () => <div data-testid="mobile-header" />,
 }));

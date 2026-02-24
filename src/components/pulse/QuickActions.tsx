@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * QuickActions - Command palette for quick creation
  *
@@ -283,6 +284,7 @@ export function QuickActions({ isOpen, onClose, onAction }: QuickActionsProps) {
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/20 dark:bg-black/40 z-50"
+        role="presentation"
         onClick={onClose}
       />
 

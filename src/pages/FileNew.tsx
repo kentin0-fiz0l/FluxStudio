@@ -83,7 +83,7 @@ const FileCardItem: React.FC<FileCardItemProps> = ({ file, view, onPreview, onDo
 
   if (view === 'grid') {
     return (
-      <Card className="group cursor-pointer hover:shadow-md transition-shadow" onClick={() => onPreview(file)}>
+      <Card interactive className="group cursor-pointer hover:shadow-md transition-shadow" onClick={() => onPreview(file)}>
         <CardContent className="p-4">
           <div className="aspect-video bg-neutral-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative">
             {file.thumbnailUrl ? <img src={file.thumbnailUrl} alt={file.name} className="w-full h-full object-cover" />
@@ -122,7 +122,7 @@ const FileCardItem: React.FC<FileCardItemProps> = ({ file, view, onPreview, onDo
   }
 
   return (
-    <Card className="group cursor-pointer hover:shadow-sm transition-shadow" onClick={() => onPreview(file)}>
+    <Card interactive className="group cursor-pointer hover:shadow-sm transition-shadow" onClick={() => onPreview(file)}>
       <CardContent className="p-3">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center flex-shrink-0">{icon}</div>

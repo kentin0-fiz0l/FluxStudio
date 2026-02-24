@@ -137,9 +137,13 @@ export const ChatMessage = React.memo(React.forwardRef<HTMLDivElement, ChatMessa
         className={cn(
           'flex gap-3 py-2 px-4 group hover:bg-neutral-50 transition-colors',
           message.isCurrentUser && 'flex-row-reverse',
+          onClick && 'cursor-pointer',
           className
         )}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
         onClick={() => onClick?.(message)}
+        onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(message); } } : undefined}
       >
         {/* Avatar */}
         {showAvatar && (
