@@ -2,10 +2,17 @@
  * useCanvasKeyboardHandlers - Keyboard shortcuts and touch gestures for FormationCanvas
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useKeyboardShortcuts } from '../../../hooks/useKeyboardShortcuts';
 import { useTouchGestures } from '../../../hooks/useTouchGestures';
 import type { Formation, Position, PlaybackState } from '../../../services/formationService';
+
+export interface ContextMenuState {
+  isOpen: boolean;
+  position: { x: number; y: number };
+  performer: { id: string; name: string } | null;
+  close: () => void;
+}
 
 interface UseCanvasKeyboardHandlersProps {
   // State
@@ -60,8 +67,19 @@ export function useCanvasKeyboardHandlers({
   handleSave,
   handlePlay,
   handlePause,
-}: UseCanvasKeyboardHandlersProps) {
+}: UseCanvasKeyboardHandlersProps): { contextMenu: ContextMenuState; handleWheel: (e: React.WheelEvent) => void } {
   const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+
+  // Context menu state for long-press
+  const [contextMenuState, setContextMenuState] = useState<{
+    isOpen: boolean;
+    position: { x: number; y: number };
+    performer: { id: string; name: string } | null;
+  }>({ isOpen: false, position: { x: 0, y: 0 }, performer: null });
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenuState(prev => ({ ...prev, isOpen: false, performer: null }));
+  }, []);
 
   // Hook-based keyboard shortcuts
   useKeyboardShortcuts({
@@ -106,14 +124,46 @@ export function useCanvasKeyboardHandlers({
     });
     if (performer) {
       setSelectedPerformerIds(new Set([performer.id]));
+      // Convert percentage coords to viewport px for menu positioning
+      const el = canvasRef.current;
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        setContextMenuState({
+          isOpen: true,
+          position: { x: rect.left + (x / 100) * rect.width, y: rect.top + (y / 100) * rect.height },
+          performer: { id: performer.id, name: performer.name },
+        });
+      }
     }
-  }, [formation, currentPositions, setSelectedPerformerIds]);
+  }, [formation, currentPositions, setSelectedPerformerIds, canvasRef]);
+
+  // Double-tap to toggle zoom between 1x and 2x
+  const handleDoubleTap = useCallback((_x: number, _y: number) => {
+    setZoom(z => z >= 1.5 ? 1 : 2);
+  }, [setZoom]);
+
+  // Wheel zoom handler for desktop
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl/Cmd + wheel = zoom
+      e.preventDefault();
+      const delta = -e.deltaY * 0.002;
+      setZoom(z => Math.max(0.5, Math.min(3, z + delta)));
+    } else {
+      // Plain wheel = pan
+      setCanvasPan(prev => ({
+        x: prev.x - e.deltaX,
+        y: prev.y - e.deltaY,
+      }));
+    }
+  }, [setZoom, setCanvasPan]);
 
   useTouchGestures({
     targetRef: canvasRef,
     onZoom: handleTouchZoom,
     onPan: handleTouchPan,
     onLongPress: handleLongPress,
+    onDoubleTap: handleDoubleTap,
     enabled: true,
   });
 
@@ -199,4 +249,9 @@ export function useCanvasKeyboardHandlers({
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [handleSave, playbackState.isPlaying, handlePause, handlePlay, handleUndo, handleRedo, selectedPerformerIds, formation, setCurrentPositions, setHasUnsavedChanges, setSelectedPerformerIds, handleDeleteSelected, setShowShortcutsDialog, setZoom]);
+
+  return {
+    contextMenu: { ...contextMenuState, close: closeContextMenu },
+    handleWheel,
+  };
 }

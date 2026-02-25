@@ -37,6 +37,10 @@ vi.mock('@/services/analytics/eventTracking', () => ({
   },
 }));
 
+vi.mock('@/hooks/useFeatureFlag', () => ({
+  useFeatureFlag: () => false,
+}));
+
 import TryEditor from '../TryEditor';
 
 describe('TryEditor', () => {
@@ -67,9 +71,9 @@ describe('TryEditor', () => {
     expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
   });
 
-  test('displays sign up banner', () => {
+  test('displays sign up banner with progressive CTA', () => {
     renderPage();
-    expect(screen.getByText('Sign up free')).toBeInTheDocument();
+    expect(screen.getByText('Try it out')).toBeInTheDocument();
   });
 
   test('displays log in link', () => {

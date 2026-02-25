@@ -80,6 +80,120 @@ const CATEGORIES: Record<string, CategoryConfig> = {
       { q: 'How do I share drill charts with my corps?', a: 'Use the share link or embed code to share interactive formations. You can also export to PDF for printed drill books.' },
     ],
   },
+  'color-guard': {
+    slug: 'color-guard',
+    title: 'Color Guard Formations',
+    h1: 'Color Guard Formation Designer',
+    description: 'Design color guard formations with equipment paths for flags, rifles, and sabres. Visualize tosses, spins, and choreography alongside your drill.',
+    metaDescription: 'Free color guard formation designer with equipment paths. Plan flag, rifle, and sabre choreography alongside drill formations.',
+    templates: [
+      { name: 'Flag Line', performers: 8, description: 'Horizontal line with even spacing for flag work' },
+      { name: 'Rifle Diamond', performers: 6, description: 'Diamond shape optimized for rifle toss visibility' },
+      { name: 'Sabre Triangle', performers: 6, description: 'Triangular formation for sabre feature moments' },
+      { name: 'Equipment Cascade', performers: 10, description: 'Staggered diagonal for sequential toss effects' },
+      { name: 'Split Silks', performers: 8, description: 'Two mirrored lines for silk feature work' },
+    ],
+    faqs: [
+      { q: 'Can I plan equipment tosses in the editor?', a: 'Yes. Use keyframes to mark toss and catch positions, then animate the transitions to visualize timing.' },
+      { q: 'Does it support separate flag, rifle, and sabre groups?', a: 'Yes. Assign performers to equipment groups with color coding so you can plan formations for each section independently.' },
+      { q: 'Can I sync guard choreography with the music?', a: 'Yes. Upload your audio track and place beat markers to sync guard movements with musical cues.' },
+    ],
+  },
+  'winter-guard': {
+    slug: 'winter-guard',
+    title: 'Winter Guard Formations',
+    h1: 'Winter Guard Formation Planner',
+    description: 'Plan indoor color guard formations with floor work, equipment tosses, and stage-sized layouts. Designed for the gym floor performance space.',
+    metaDescription: 'Free winter guard formation planner for indoor color guard. Design floor work, equipment choreography, and stage formations.',
+    templates: [
+      { name: 'Floor Spread', performers: 12, description: 'Full floor coverage for opening impact moments' },
+      { name: 'Center Cluster', performers: 8, description: 'Tight center grouping for intimate choreography' },
+      { name: 'Corner Fan', performers: 6, description: 'Fan shape expanding from a floor corner' },
+      { name: 'Toss Line', performers: 8, description: 'Straight line with spacing for simultaneous tosses' },
+      { name: 'Dance Block', performers: 10, description: 'Grid formation for synchronized dance sections' },
+    ],
+    faqs: [
+      { q: 'Does it support indoor gym floor dimensions?', a: 'Yes. Switch to the indoor floor overlay which shows a regulation WGI performance area (60x90 feet).' },
+      { q: 'Can I plan floor work and standing choreography together?', a: 'Yes. Use layers to separate floor work from standing formations and toggle between them.' },
+      { q: 'Is it useful for WGI competition prep?', a: 'Yes. Many winter guard instructors use FluxStudio to plan formations, share with judges, and export printed floor charts.' },
+    ],
+  },
+  'indoor-drumline': {
+    slug: 'indoor-drumline',
+    title: 'Indoor Drumline Formations',
+    h1: 'Indoor Drumline Formation Tool',
+    description: 'Design indoor percussion formations with front ensemble staging, battery placement, and movement choreography for WGI and BOA competition.',
+    metaDescription: 'Free indoor drumline formation tool. Plan battery and front ensemble staging for WGI and indoor percussion competitions.',
+    templates: [
+      { name: 'Battery Arc', performers: 12, description: 'Curved arc formation for battery section impact' },
+      { name: 'Pit Layout', performers: 8, description: 'Front ensemble keyboard and auxiliary placement' },
+      { name: 'Split Battery', performers: 10, description: 'Two battery groups flanking center stage' },
+      { name: 'Feature Circle', performers: 8, description: 'Circle formation for featured soloist moments' },
+      { name: 'March-In Line', performers: 14, description: 'Entrance formation with battery leading front ensemble' },
+    ],
+    faqs: [
+      { q: 'Can I position front ensemble instruments separately?', a: 'Yes. Place keyboards, auxiliary percussion, and electronics on the floor layout independently from the battery.' },
+      { q: 'Does it support WGI floor dimensions?', a: 'Yes. Select the indoor percussion floor overlay for a regulation WGI staging area.' },
+      { q: 'Can I animate battery movement during the show?', a: 'Yes. Set keyframes for battery positions and FluxStudio will animate movement paths between formations.' },
+    ],
+  },
+  'cheerleading': {
+    slug: 'cheerleading',
+    title: 'Cheerleading Formations',
+    h1: 'Cheerleading Formation Builder',
+    description: 'Build cheerleading formations with stunt group placement, pyramid layouts, and transition choreography. Plan routines for sideline and competition.',
+    metaDescription: 'Free cheerleading formation builder. Design stunt groups, pyramids, and dance sections for sideline and competitive cheerleading routines.',
+    templates: [
+      { name: 'Pyramid Base', performers: 12, description: 'Three stunt groups in pyramid configuration' },
+      { name: 'Sideline Spread', performers: 16, description: 'Full sideline coverage for game-day routines' },
+      { name: 'Stunt Pods', performers: 8, description: 'Two-group stunt layout with spacing for tosses' },
+      { name: 'Dance Block', performers: 12, description: 'Grid formation for synchronized dance sections' },
+      { name: 'Tunnel Formation', performers: 14, description: 'Two-line tunnel for team entrances' },
+    ],
+    faqs: [
+      { q: 'Can I plan stunt group positions?', a: 'Yes. Assign performers to stunt groups with color coding and position each group independently on the floor.' },
+      { q: 'Does it work for competition routines?', a: 'Yes. Use the timer and audio sync to plan formations that match your competition music and time limits.' },
+      { q: 'Can I share formations with my coaching staff?', a: 'Yes. Share a link or export to PDF so coaches and athletes can review formations on any device.' },
+    ],
+  },
+  'pep-band': {
+    slug: 'pep-band',
+    title: 'Pep Band Formations',
+    h1: 'Pep Band Formation Planner',
+    description: 'Plan pep band formations for stands, floor shows, and halftime performances. Arrange brass, woodwind, and percussion sections with flexible layouts.',
+    metaDescription: 'Free pep band formation planner. Arrange stands formations, floor shows, and halftime layouts for your pep band.',
+    templates: [
+      { name: 'Bleacher Layout', performers: 20, description: 'Tiered rows arranged for bleacher seating sections' },
+      { name: 'Floor Block', performers: 16, description: 'Rectangular block for gymnasium floor performances' },
+      { name: 'Section Split', performers: 12, description: 'Instrument sections separated for antiphonal effects' },
+      { name: 'Halftime Line', performers: 16, description: 'Single-file entrance line for halftime shows' },
+      { name: 'Fan Shape', performers: 14, description: 'Semi-circular fan formation facing the audience' },
+    ],
+    faqs: [
+      { q: 'Can I plan formations for the stands?', a: 'Yes. Use the bleacher overlay to arrange rows and sections within the stands seating area.' },
+      { q: 'Can I separate instrument sections?', a: 'Yes. Assign performers to instrument groups (brass, woodwinds, percussion) with color coding for clear visual separation.' },
+      { q: 'Does it support both indoor and outdoor layouts?', a: 'Yes. Switch between gymnasium, football field, and custom stage overlays depending on your performance venue.' },
+    ],
+  },
+  'drill-team': {
+    slug: 'drill-team',
+    title: 'Drill Team Formations',
+    h1: 'Drill Team Formation Designer',
+    description: 'Design precision drill team formations with kick lines, columns, and geometric patterns. Plan halftime routines with count-based timing.',
+    metaDescription: 'Free drill team formation designer. Create kick lines, precision columns, and geometric patterns for halftime and competition performances.',
+    templates: [
+      { name: 'Kick Line', performers: 12, description: 'Straight line with precise spacing for kick routines' },
+      { name: 'Double Column', performers: 16, description: 'Two parallel columns for marching and precision work' },
+      { name: 'Star Pattern', performers: 10, description: 'Five-point star shape for visual impact formations' },
+      { name: 'Chevron', performers: 12, description: 'Angled V-shape with leader at the point' },
+      { name: 'Rotating Square', performers: 8, description: 'Square formation designed for 90-degree rotation drills' },
+    ],
+    faqs: [
+      { q: 'Can I set exact spacing between performers?', a: 'Yes. Use the grid snap tool to set precise intervals measured in steps, feet, or yards between each performer.' },
+      { q: 'Does it support count-based timing for drill?', a: 'Yes. Switch to count mode to plan transitions at specific counts, matching your music score and routine timing.' },
+      { q: 'Can I export formation charts for practice?', a: 'Yes. Export to PDF with performer labels, spacing measurements, and count annotations for printed practice charts.' },
+    ],
+  },
 };
 
 // JSON-LD structured data for SoftwareApplication
@@ -126,13 +240,23 @@ export default function FormationCategory() {
     })),
   };
 
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://fluxstudio.art' },
+      { '@type': 'ListItem', position: 2, name: 'Formations', item: 'https://fluxstudio.art/formations' },
+      { '@type': 'ListItem', position: 3, name: config.title, item: `https://fluxstudio.art/formations/${config.slug}` },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
       <SEOHead
         title={config.title}
         description={config.metaDescription}
         canonicalUrl={`https://fluxstudio.art/formations/${config.slug}`}
-        structuredData={SOFTWARE_SCHEMA}
+        structuredData={[SOFTWARE_SCHEMA, faqSchema, breadcrumbSchema]}
       />
 
       {/* Hero */}
@@ -146,6 +270,16 @@ export default function FormationCategory() {
             </Link>
           </div>
         </nav>
+        {/* Visible breadcrumb */}
+        <div className="max-w-6xl mx-auto px-4 pb-2">
+          <ol className="flex items-center gap-1.5 text-xs text-indigo-200" aria-label="Breadcrumb">
+            <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
+            <li aria-hidden="true">/</li>
+            <li><Link to="/templates" className="hover:text-white transition-colors">Formations</Link></li>
+            <li aria-hidden="true">/</li>
+            <li className="text-white font-medium" aria-current="page">{config.title}</li>
+          </ol>
+        </div>
         <div className="max-w-6xl mx-auto px-4 py-16 text-center">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">{config.h1}</h1>
           <p className="text-lg text-indigo-100 max-w-2xl mx-auto mb-8">{config.description}</p>
@@ -203,8 +337,6 @@ export default function FormationCategory() {
             </details>
           ))}
         </div>
-        {/* Inject FAQ schema */}
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       </section>
 
       {/* Footer CTA */}

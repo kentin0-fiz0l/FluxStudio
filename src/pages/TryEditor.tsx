@@ -14,7 +14,31 @@ import { FormationEditorErrorBoundary } from '@/components/error/ErrorBoundary';
 import { SEOHead } from '@/components/SEOHead';
 import { ArrowRight, X, Users, Shield } from 'lucide-react';
 import { eventTracker } from '@/services/analytics/eventTracking';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import type { Position } from '@/services/formationService';
+
+const STORAGE_KEY_FORMATIONS = 'tryEditor_formations';
+
+function serializePositions(positions: Map<string, Position>): string {
+  return JSON.stringify(Array.from(positions.entries()));
+}
+
+function deserializePositions(json: string): Map<string, Position> | null {
+  try {
+    const entries: [string, Position][] = JSON.parse(json);
+    if (!Array.isArray(entries)) return null;
+    return new Map(entries);
+  } catch {
+    return null;
+  }
+}
+
+function getProgressiveCTA(count: number): string {
+  if (count >= 6) return 'Create Your Show Free';
+  if (count >= 3) return 'Looking good! Save your work';
+  return 'Try it out';
+}
+
 
 // 8 performers in a V-formation (wedge pointing forward)
 // Stage default: 40 wide x 30 tall, grid size 2
@@ -48,7 +72,32 @@ export default function TryEditor() {
   const [showBanner, setShowBanner] = useState(true);
   const [showExitIntent, setShowExitIntent] = useState(false);
   const exitIntentShownRef = useRef(false);
-  const sandboxPositions = useMemo(() => buildSandboxPositions(), []);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // A/B test: CTA copy variant
+  const ctaVariantActive = useFeatureFlag('try-cta-variant');
+
+  // Restore saved positions or fall back to default V-formation
+  const sandboxPositions = useMemo(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_FORMATIONS);
+      if (saved) {
+        const restored = deserializePositions(saved);
+        if (restored && restored.size > 0) return restored;
+      }
+    } catch { /* fall through to default */ }
+    return buildSandboxPositions();
+  }, []);
+
+  // Debounced auto-save: save positions to localStorage on change
+  const saveFormations = useCallback((positions: Map<string, Position>) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY_FORMATIONS, serializePositions(positions));
+      } catch { /* storage full or unavailable */ }
+    }, 300);
+  }, []);
 
   // Track formation interactions for conversion badge
   const [interactionCount, setInteractionCount] = useState(() => {
@@ -121,12 +170,12 @@ export default function TryEditor() {
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
               onClick={() => {
-                eventTracker.trackEvent('sandbox_signup_click', { source: 'try_banner', interactions: interactionCount });
+                eventTracker.trackEvent('sandbox_signup_click', { source: 'try_banner', interactions: interactionCount, cta_variant: ctaVariantActive });
                 navigate('/signup');
               }}
               className="flex items-center gap-1 px-4 py-1.5 bg-white text-indigo-600 rounded-lg font-medium text-sm hover:bg-indigo-50 transition-colors"
             >
-              Sign up free
+              {ctaVariantActive ? 'Create Your Show' : getProgressiveCTA(interactionCount)}
               <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
             <button
@@ -154,6 +203,7 @@ export default function TryEditor() {
             collaborativeMode={false}
             sandboxPerformers={SANDBOX_PERFORMERS}
             sandboxPositions={sandboxPositions}
+            onPositionsChange={saveFormations}
           />
         </FormationEditorErrorBoundary>
       </div>
@@ -177,12 +227,12 @@ export default function TryEditor() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => {
-                  eventTracker.trackEvent('sandbox_signup_click', { source: 'exit_intent', interactions: interactionCount });
+                  eventTracker.trackEvent('sandbox_signup_click', { source: 'exit_intent', interactions: interactionCount, cta_variant: ctaVariantActive });
                   navigate('/signup');
                 }}
                 className="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
               >
-                Create free account
+                {ctaVariantActive ? 'Create Your Show' : 'Create free account'}
               </button>
               <button
                 onClick={() => setShowExitIntent(false)}

@@ -2,9 +2,9 @@
  * Performer side panel for FormationCanvas
  */
 
-import React, { ReactElement, useMemo } from 'react';
+import React, { ReactElement, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { List, RowComponentProps } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import type { Formation } from '../../../services/formationService';
@@ -82,6 +82,7 @@ export const PerformerPanel: React.FC<PerformerPanelProps> = ({
   onSelectPerformer, onAddPerformer, onRemovePerformer,
 }) => {
   const { t } = useTranslation('common');
+  const [mobileExpanded, setMobileExpanded] = useState(false);
 
   const rowProps = useMemo(() => ({
     performers: formation.performers,
@@ -90,12 +91,13 @@ export const PerformerPanel: React.FC<PerformerPanelProps> = ({
     onRemovePerformer,
   }), [formation.performers, selectedPerformerIds, onSelectPerformer, onRemovePerformer]);
 
-  return (
-    <div className="w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="font-medium text-gray-900 dark:text-white">
-          {t('formation.performers', 'Performers')}
-        </h3>
+  const header = (
+    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h3 className="font-medium text-gray-900 dark:text-white">
+        {t('formation.performers', 'Performers')}
+        <span className="ml-1.5 text-xs text-gray-400 font-normal">({formation.performers.length})</span>
+      </h3>
+      <div className="flex items-center gap-1">
         <button
           onClick={onAddPerformer}
           className="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
@@ -103,35 +105,78 @@ export const PerformerPanel: React.FC<PerformerPanelProps> = ({
         >
           <Plus className="w-5 h-5" aria-hidden="true" />
         </button>
-      </div>
-
-      <div className="flex-1 overflow-hidden p-2">
-        {formation.performers.length === 0 ? (
-          <p className="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
-            {t('formation.noPerformers', 'No performers yet. Click + to add.')}
-          </p>
-        ) : (
-          <AutoSizer
-            renderProp={({ height, width }) => (
-              <List
-                style={{ height: height ?? 0, width: width ?? 0 }}
-                rowComponent={PerformerRow}
-                rowCount={formation.performers.length}
-                rowHeight={PERFORMER_ROW_HEIGHT}
-                rowProps={rowProps}
-                overscanCount={5}
-              />
-            )}
-          />
-        )}
-      </div>
-
-      <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {formation.performers.length} {t('formation.performersCount', 'performers')} •{' '}
-          {formation.keyframes.length} {t('formation.keyframesCount', 'keyframes')}
-        </p>
+        {/* Mobile expand/collapse toggle */}
+        <button
+          onClick={() => setMobileExpanded(e => !e)}
+          className="p-1 text-gray-400 hover:text-gray-600 rounded md:hidden"
+          aria-label={mobileExpanded ? 'Collapse performers' : 'Expand performers'}
+        >
+          {mobileExpanded ? <ChevronDown className="w-5 h-5" aria-hidden="true" /> : <ChevronUp className="w-5 h-5" aria-hidden="true" />}
+        </button>
       </div>
     </div>
+  );
+
+  const listContent = (
+    <>
+      {formation.performers.length === 0 ? (
+        <p className="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
+          {t('formation.noPerformers', 'No performers yet. Click + to add.')}
+        </p>
+      ) : (
+        <AutoSizer
+          renderProp={({ height, width }) => (
+            <List
+              style={{ height: height ?? 0, width: width ?? 0 }}
+              rowComponent={PerformerRow}
+              rowCount={formation.performers.length}
+              rowHeight={PERFORMER_ROW_HEIGHT}
+              rowProps={rowProps}
+              overscanCount={5}
+            />
+          )}
+        />
+      )}
+    </>
+  );
+
+  const footer = (
+    <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        {formation.performers.length} {t('formation.performersCount', 'performers')} •{' '}
+        {formation.keyframes.length} {t('formation.keyframesCount', 'keyframes')}
+      </p>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop: side panel */}
+      <div className="hidden md:flex w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex-col">
+        {header}
+        <div className="flex-1 overflow-hidden p-2">{listContent}</div>
+        {footer}
+      </div>
+
+      {/* Mobile: bottom sheet */}
+      <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40 transition-all ${mobileExpanded ? 'max-h-[50vh]' : 'max-h-[56px]'}`}>
+        {/* Drag handle */}
+        <div
+          className="flex justify-center py-1 cursor-pointer"
+          onClick={() => setMobileExpanded(e => !e)}
+        >
+          <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+        </div>
+        {header}
+        {mobileExpanded && (
+          <>
+            <div className="overflow-hidden p-2" style={{ height: 'calc(50vh - 120px)' }}>
+              {listContent}
+            </div>
+            {footer}
+          </>
+        )}
+      </div>
+    </>
   );
 };

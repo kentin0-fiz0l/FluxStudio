@@ -12,7 +12,7 @@ import {
   Move, MousePointer, Layers, Eye, EyeOff,
   Loader2, Check, Music, Route, LayoutGrid, Users, Magnet, Hash,
   Minus, CircleDot, Grid3x3, Map, Bot, Hand, WifiOff, Cloud,
-  Undo2, Redo2, Settings2, Circle, Share2, Code2,
+  Undo2, Redo2, Settings2, Circle, Share2, Code2, Menu, X,
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
 import { useSyncStatus } from '@/store/slices/offlineSlice';
@@ -90,6 +90,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
 }) => {
   const { t } = useTranslation('common');
   const [showViewOptions, setShowViewOptions] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const viewOptionsRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -108,8 +109,9 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
   // Count active view options for badge
   const activeViewCount = [showGrid, showLabels, showRotation, showPaths, snapEnabled, timeDisplayMode === 'counts', showFieldOverlay].filter(Boolean).length;
 
-  return (
-    <div className="flex items-center justify-between px-3 py-1.5 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-x-auto" role="toolbar" aria-label="Formation canvas toolbar">
+  // Core toolbar content (shared between desktop and mobile drawer)
+  const toolbarContent = (
+    <>
       {/* Left: Drawing tools + Finger Mode + Undo/Redo + Zoom */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {/* Drawing Tools */}
@@ -345,7 +347,45 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
           </button>
         )}
       </div>
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop toolbar (hidden on mobile) */}
+      <div className="hidden md:flex items-center justify-between px-3 py-1.5 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-x-auto" role="toolbar" aria-label="Formation canvas toolbar">
+        {toolbarContent}
+      </div>
+
+      {/* Mobile: compact bar with toggle + drawer */}
+      <div className="md:hidden">
+        <div className="flex items-center justify-between px-3 py-1.5 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setMobileDrawerOpen(o => !o)}
+            className="p-1.5 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label={mobileDrawerOpen ? 'Close tools' : 'Open tools'}
+            aria-expanded={mobileDrawerOpen}
+          >
+            {mobileDrawerOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
+          </button>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate max-w-[140px]">{formationName}</span>
+          <div className="flex items-center gap-1">
+            <button onClick={onZoomOut} className="p-1.5 rounded text-gray-600 dark:text-gray-400" aria-label="Zoom out">
+              <ZoomOut className="w-4 h-4" aria-hidden="true" />
+            </button>
+            <span className="text-xs text-gray-500 tabular-nums">{Math.round(zoom * 100)}%</span>
+            <button onClick={onZoomIn} className="p-1.5 rounded text-gray-600 dark:text-gray-400" aria-label="Zoom in">
+              <ZoomIn className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        {mobileDrawerOpen && (
+          <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-3 py-2 flex flex-wrap items-center gap-1.5" role="toolbar" aria-label="Formation canvas toolbar">
+            {toolbarContent}
+          </div>
+        )}
+      </div>
+    </>
   );
 });
 

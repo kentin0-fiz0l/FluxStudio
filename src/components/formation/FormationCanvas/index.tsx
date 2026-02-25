@@ -9,6 +9,7 @@
  * Toolbar extracted to CanvasToolbar.tsx, PerformerPanel to PerformerPanel.tsx
  */
 
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { Timeline } from '../Timeline';
@@ -29,7 +30,7 @@ import type { FormationCanvasProps } from './types';
 export type { FormationCanvasProps };
 
 export function FormationCanvas(props: FormationCanvasProps) {
-  const { formationId, projectId, onSave, sandboxMode = false } = props;
+  const { formationId, projectId, onSave, sandboxMode = false, onPositionsChange } = props;
   const { t } = useTranslation('common');
 
   const state = useCanvasState(props);
@@ -122,6 +123,13 @@ export function FormationCanvas(props: FormationCanvasProps) {
     handlePlay,
     handlePause,
   });
+
+  // Notify parent when positions change (used for sandbox auto-save)
+  useEffect(() => {
+    if (onPositionsChange && currentPositions.size > 0) {
+      onPositionsChange(currentPositions);
+    }
+  }, [currentPositions, onPositionsChange]);
 
   // Loading/error states
   if (apiLoading || (formationId && !formation)) {

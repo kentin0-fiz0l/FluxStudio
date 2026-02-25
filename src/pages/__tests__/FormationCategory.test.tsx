@@ -75,4 +75,48 @@ describe('FormationCategory', () => {
     expect(screen.getByText('Drum Corps Drill Design Tool')).toBeInTheDocument();
     expect(screen.getByText('Gate Turn')).toBeInTheDocument();
   });
+
+  test('renders color-guard category correctly', () => {
+    renderPage('color-guard');
+    expect(screen.getByText('Color Guard Formation Designer')).toBeInTheDocument();
+    expect(screen.getByText('Flag Line')).toBeInTheDocument();
+  });
+
+  test('renders winter-guard category correctly', () => {
+    renderPage('winter-guard');
+    expect(screen.getByText('Winter Guard Formation Planner')).toBeInTheDocument();
+    expect(screen.getByText('Floor Spread')).toBeInTheDocument();
+  });
+
+  test('renders indoor-drumline category correctly', () => {
+    renderPage('indoor-drumline');
+    expect(screen.getByText('Indoor Drumline Formation Tool')).toBeInTheDocument();
+    expect(screen.getByText('Battery Arc')).toBeInTheDocument();
+  });
+
+  test('renders cheerleading category correctly', () => {
+    renderPage('cheerleading');
+    expect(screen.getByText('Cheerleading Formation Builder')).toBeInTheDocument();
+    expect(screen.getByText('Pyramid Base')).toBeInTheDocument();
+  });
+
+  test('renders pep-band category correctly', () => {
+    renderPage('pep-band');
+    expect(screen.getByText('Pep Band Formation Planner')).toBeInTheDocument();
+    expect(screen.getByText('Bleacher Layout')).toBeInTheDocument();
+  });
+
+  test('renders drill-team category correctly', () => {
+    renderPage('drill-team');
+    expect(screen.getByText('Drill Team Formation Designer')).toBeInTheDocument();
+    expect(screen.getByText('Kick Line')).toBeInTheDocument();
+  });
+
+  test('displays visible breadcrumb navigation', () => {
+    renderPage('marching-band');
+    expect(screen.getByLabelText('Breadcrumb')).toBeInTheDocument();
+    expect(screen.getByText('Home')).toBeInTheDocument();
+    expect(screen.getByText('Formations')).toBeInTheDocument();
+    expect(screen.getByText('Marching Band Formations')).toBeInTheDocument();
+  });
 });

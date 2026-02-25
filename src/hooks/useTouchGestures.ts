@@ -6,6 +6,7 @@
  */
 
 import { useRef, useEffect, useCallback } from 'react';
+import { createDoubleTapHandler, type Point } from '@/utils/touch';
 
 interface TouchGestureOptions {
   /** Ref to the element that receives touch events */
@@ -16,6 +17,8 @@ interface TouchGestureOptions {
   onPan: (deltaX: number, deltaY: number) => void;
   /** Called on long press (500ms) — used for context menu on touch */
   onLongPress?: (x: number, y: number) => void;
+  /** Called on double-tap — used for zoom toggle */
+  onDoubleTap?: (x: number, y: number) => void;
   /** Whether gestures are enabled */
   enabled?: boolean;
 }
@@ -31,6 +34,7 @@ export function useTouchGestures({
   onZoom,
   onPan,
   onLongPress,
+  onDoubleTap,
   enabled = true,
 }: TouchGestureOptions) {
   const pointersRef = useRef<Map<number, ActivePointer>>(new Map());
@@ -149,11 +153,30 @@ export function useTouchGestures({
       }
     };
 
+    // Double-tap detection
+    const doubleTapHandler = onDoubleTap
+      ? createDoubleTapHandler({
+          onDoubleTap: (point: Point) => {
+            const rect = el.getBoundingClientRect();
+            const x = ((point.x - rect.left) / rect.width) * 100;
+            const y = ((point.y - rect.top) / rect.height) * 100;
+            onDoubleTap(x, y);
+          },
+        })
+      : null;
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      doubleTapHandler?.onTouchEnd(e);
+    };
+
     el.addEventListener('pointerdown', handlePointerDown);
     el.addEventListener('pointermove', handlePointerMove);
     el.addEventListener('pointerup', handlePointerUp);
     el.addEventListener('pointercancel', handlePointerCancel);
     el.addEventListener('touchstart', handleTouchStart, { passive: false });
+    if (doubleTapHandler) {
+      el.addEventListener('touchend', handleTouchEnd);
+    }
 
     return () => {
       el.removeEventListener('pointerdown', handlePointerDown);
@@ -161,7 +184,10 @@ export function useTouchGestures({
       el.removeEventListener('pointerup', handlePointerUp);
       el.removeEventListener('pointercancel', handlePointerCancel);
       el.removeEventListener('touchstart', handleTouchStart);
+      if (doubleTapHandler) {
+        el.removeEventListener('touchend', handleTouchEnd);
+      }
       clearLongPress();
     };
-  }, [targetRef, onZoom, onPan, onLongPress, enabled, clearLongPress]);
+  }, [targetRef, onZoom, onPan, onLongPress, onDoubleTap, enabled, clearLongPress]);
 }

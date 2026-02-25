@@ -16,7 +16,7 @@ interface SEOHeadProps {
   ogImage?: string;
   ogType?: 'website' | 'article';
   noindex?: boolean;
-  structuredData?: Record<string, unknown>;
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 const DEFAULTS = {
@@ -66,11 +66,11 @@ export function SEOHead({
       <meta name="twitter:image" content={ogImage} />
 
       {/* Structured data (JSON-LD) */}
-      {structuredData && (
-        <script type="application/ld+json">
-          {JSON.stringify(structuredData)}
+      {structuredData && (Array.isArray(structuredData) ? structuredData : [structuredData]).map((schema, i) => (
+        <script key={i} type="application/ld+json">
+          {JSON.stringify(schema)}
         </script>
-      )}
+      ))}
     </Helmet>
   );
 }

@@ -860,7 +860,7 @@ export default function ToolsMetMap() {
 
         {/* Main content + AI panel */}
         <div className="flex-1 flex min-w-0">
-        <div className={`flex-1 flex flex-col min-w-0 ${isMobile ? 'pt-12' : ''}`}>
+        <div className={`flex-1 flex flex-col min-w-0 ${isMobile ? 'pt-12 snap-y snap-proximity overflow-y-auto overflow-x-hidden' : ''}`}>
           {currentSongLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-gray-500">Loading song...</div>
@@ -868,7 +868,7 @@ export default function ToolsMetMap() {
           ) : currentSong ? (
             <>
               {/* Song header */}
-              <div className="p-3 sm:p-4 border-b border-gray-200 bg-white">
+              <div className={`p-3 sm:p-4 border-b border-gray-200 bg-white ${isMobile ? 'snap-start' : ''}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div className="min-w-0">
                     <input
@@ -948,9 +948,9 @@ export default function ToolsMetMap() {
                     <button
                       onClick={saveSections}
                       disabled={!hasUnsavedChanges}
-                      className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      Save Timeline
+                      {isMobile ? 'Save' : 'Save Timeline'}
                     </button>
                     <ExportImport
                       currentSong={currentSong}
@@ -1010,7 +1010,7 @@ export default function ToolsMetMap() {
 
               {/* Visual Timeline */}
               {showVisualTimeline && editedSections.length > 0 && (
-                <div className="px-3 sm:px-4 py-2 border-b border-gray-200 bg-white overflow-x-auto scroll-smooth snap-x snap-mandatory [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full touch-pan-x">
+                <div className={`px-3 sm:px-4 py-2 border-b border-gray-200 bg-white overflow-x-auto scroll-smooth snap-x snap-mandatory [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full touch-pan-x ${isMobile ? 'snap-start' : ''}`}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-gray-500 uppercase">Timeline</span>
                     <div className="flex items-center gap-2">
@@ -1160,7 +1160,7 @@ export default function ToolsMetMap() {
               )}
 
               {/* Practice Mode */}
-              <div className="px-4 py-2 border-b border-gray-200 bg-white">
+              <div className={`px-4 py-2 border-b border-gray-200 bg-white ${isMobile ? 'snap-start' : ''}`}>
                 <PracticeMode
                   sections={editedSections}
                   loopSection={loopSection}
@@ -1205,7 +1205,7 @@ export default function ToolsMetMap() {
 
               {/* Audio Tracks — Multi-track mixer + legacy single-track fallback */}
               {currentSong && (
-                <div className="px-4 py-2 border-b border-gray-200 bg-white">
+                <div className={`px-4 py-2 border-b border-gray-200 bg-white ${isMobile ? 'snap-start' : ''}`}>
                   <AudioTrackMixer
                     song={currentSong}
                     playbackMode={playback.playbackMode ?? 'metronome'}
@@ -1232,7 +1232,7 @@ export default function ToolsMetMap() {
 
               {/* Section timeline — swipe left/right to navigate sections on mobile */}
               <div
-                className="flex-1 overflow-y-auto p-3 sm:p-4 bg-gray-50"
+                className={`flex-1 p-3 sm:p-4 bg-gray-50 ${isMobile ? 'snap-start pb-48 overflow-visible' : 'overflow-y-auto'}`}
                 onTouchStart={(e) => {
                   const touch = e.touches[0];
                   (e.currentTarget as HTMLElement).dataset.swipeX = String(touch.clientX);

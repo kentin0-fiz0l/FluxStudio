@@ -22,6 +22,8 @@ export interface FormationCanvasProps {
   sandboxPerformers?: Array<{ id: string; name: string; label: string; color: string }>;
   /** Initial positions keyed by performer ID */
   sandboxPositions?: Map<string, Position>;
+  /** Called when positions change (e.g. for auto-save in sandbox) */
+  onPositionsChange?: (positions: Map<string, Position>) => void;
 }
 
 export interface Marquee {

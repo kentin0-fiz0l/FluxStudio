@@ -42,6 +42,7 @@ interface CanvasRendererProps {
   onCanvasPointerUp: (e: React.PointerEvent) => void;
   onCanvasMouseMove: (e: React.MouseEvent) => void;
   onCanvasMouseLeave: () => void;
+  onWheel?: (e: React.WheelEvent) => void;
   onSelectPerformer: (id: string, multi: boolean) => void;
   onMovePerformer: (id: string, pos: Position) => void;
   onRotatePerformer: (id: string, rotation: number) => void;
@@ -78,6 +79,7 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   onCanvasPointerUp,
   onCanvasMouseMove,
   onCanvasMouseLeave,
+  onWheel,
   onSelectPerformer,
   onMovePerformer,
   onRotatePerformer,
@@ -104,6 +106,7 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
       onPointerMove={(e) => { onCanvasMouseMove(e as unknown as React.MouseEvent); onCanvasPointerMove(e); }}
       onPointerUp={onCanvasPointerUp}
       onMouseLeave={onCanvasMouseLeave}
+      onWheel={onWheel}
     >
       {showGrid && (
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
