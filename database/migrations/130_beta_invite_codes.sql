@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS beta_invite_codes (
   email VARCHAR(255),
   max_uses INTEGER DEFAULT 1,
   uses_count INTEGER DEFAULT 0,
-  created_by UUID REFERENCES users(id),
+  created_by TEXT REFERENCES users(id),
   expires_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

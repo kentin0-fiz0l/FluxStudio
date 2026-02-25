@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS user_feedback (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
+  user_id TEXT REFERENCES users(id),
   type VARCHAR(20) NOT NULL CHECK (type IN ('bug', 'feature', 'general')),
   message TEXT NOT NULL,
   page_url TEXT,
