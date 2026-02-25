@@ -185,6 +185,40 @@ services:
         max-file: "3"
 
   # ============================================================================
+  # Browser Worker (Playwright headless browser service)
+  # ============================================================================
+  browser-worker:
+    build:
+      context: .
+      dockerfile: services/browser-worker/Dockerfile
+    container_name: fluxstudio-browser-worker
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 8081
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fluxstudio_user}:${POSTGRES_PASSWORD:-fluxstudio2025secure}@postgres:5432/${POSTGRES_DB:-fluxstudio}
+      STORAGE_TYPE: ${STORAGE_TYPE:-local}
+      UPLOADS_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - fluxstudio-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ============================================================================
   # Frontend (Nginx serving built React app)
   # ============================================================================
   frontend:

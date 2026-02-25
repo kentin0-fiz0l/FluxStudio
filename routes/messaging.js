@@ -19,6 +19,7 @@ const messagingConversationsAdapter = require('../database/messaging-conversatio
 const filesAdapter = require('../database/files-adapter');
 const assetsAdapter = require('../database/assets-adapter');
 const fileStorage = require('../storage');
+const { query } = require('../database/config');
 
 // Try to load AI summary service (may not be available)
 let aiSummaryService = null;
@@ -470,6 +471,21 @@ router.post('/:id/messages', authenticateToken, async (req, res) => {
         conversation.projectId || projectId,
         conversationId
       );
+    }
+
+    // Auto-generate link previews
+    const urls = text ? text.match(/https?:\/\/[^\s]+/g) : null;
+    if (urls?.length) {
+      for (const url of urls.slice(0, 3)) {
+        try {
+          await query(
+            'INSERT INTO browser_jobs (type, input, created_by) VALUES ($1, $2::jsonb, $3)',
+            ['link_preview', JSON.stringify({ url, messageId: message.id, conversationId }), userId]
+          );
+        } catch (err) {
+          console.error('Failed to queue link preview:', err.message);
+        }
+      }
     }
 
     res.status(201).json({ success: true, message });

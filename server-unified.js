@@ -661,6 +661,11 @@ const searchRoutes = require('./routes/search');
 app.use('/search', searchRoutes);
 app.use('/api/search', searchRoutes);
 
+// Sprint 51: Browser automation routes
+const browserRoutes = require('./routes/browser');
+app.use('/browser', browserRoutes);
+app.use('/api/browser', browserRoutes);
+
 // Sprint 42: Feature Flags
 const adminFlagsRoutes = require('./routes/admin-flags');
 const { featureFlagMiddleware } = require('./lib/featureFlags');
