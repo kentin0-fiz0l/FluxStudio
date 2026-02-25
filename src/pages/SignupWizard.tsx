@@ -24,6 +24,7 @@ interface SignupFormData {
   // Step 1: Basic Info
   name: string;
   email: string;
+  inviteCode: string;
 
   // Step 2: Account Security
   password: string;
@@ -70,10 +71,13 @@ const steps = [
 export function SignupWizard() {
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get('ref') || undefined;
+  const inviteParam = searchParams.get('invite') || '';
   const [currentStep, setCurrentStep] = useState(0);
+  const [betaGateEnabled, setBetaGateEnabled] = useState(false);
   const [formData, setFormData] = useState<SignupFormData>({
     name: '',
     email: '',
+    inviteCode: inviteParam,
     password: '',
     confirmPassword: '',
     userType: 'client',
@@ -86,6 +90,16 @@ export function SignupWizard() {
   // Sprint 44: Track signup_started on mount
   useState(() => {
     eventTracker.trackEvent('signup_started', { hasReferral: !!referralCode });
+  });
+
+  // Sprint 56: Check if beta invite gate is enabled
+  useState(() => {
+    fetch('/api/admin/flags/evaluate')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.flags?.beta_invite_required) setBetaGateEnabled(true);
+      })
+      .catch(() => {});
   });
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signup } = useAuth();
@@ -190,7 +204,7 @@ export function SignupWizard() {
     setError('');
 
     try {
-      await signup(formData.email, formData.password, formData.name, formData.userType, referralCode);
+      await signup(formData.email, formData.password, formData.name, formData.userType, referralCode, formData.inviteCode || undefined);
       eventTracker.trackEvent('signup_complete', { method: 'email', userType: formData.userType });
       nextStep(); // Move to success step
 
@@ -334,6 +348,27 @@ export function SignupWizard() {
                         placeholder="you@example.com"
                       />
                     </div>
+
+                    {betaGateEnabled && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Invite Code *
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.inviteCode}
+                          onChange={(e) => updateFormData({ inviteCode: e.target.value.toUpperCase() })}
+                          className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white
+                                   placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1
+                                   focus:ring-blue-500 transition-colors uppercase tracking-wider"
+                          placeholder="Enter your invite code"
+                          maxLength={20}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          FluxStudio is in private beta. Enter the invite code you received.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

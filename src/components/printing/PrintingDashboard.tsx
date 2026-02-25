@@ -25,6 +25,7 @@ import FileBrowser from './FileBrowser';
 import PrintHistory from './PrintHistory';
 import WebSocketStatus from './WebSocketStatus';
 import { cn } from '@/lib/utils';
+import { config } from '@/config/environment';
 
 interface PrintingDashboardProps {
   className?: string;
@@ -83,7 +84,7 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
    * Handle open external FluxPrint
    */
   const handleOpenExternal = () => {
-    window.open('http://localhost:5001', '_blank');
+    window.open(config.FLUXPRINT_URL, '_blank');
   };
 
   /**
@@ -153,14 +154,16 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
               Refresh
             </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleOpenExternal}
-            >
-              <ExternalLink className="h-4 w-4 mr-2" aria-hidden="true" />
-              Open External
-            </Button>
+            {config.ENABLE_FLUXPRINT && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenExternal}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" aria-hidden="true" />
+                Open External
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -174,9 +177,9 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
             <AlertDescription className="mt-2 space-y-2">
               <p>Unable to connect to the FluxPrint service. Please check the following:</p>
               <ul className="list-disc list-inside text-sm space-y-1">
-                <li>Ensure the FluxPrint Flask server is running on port 5001</li>
+                <li>Ensure the FluxPrint Flask server is running at {config.FLUXPRINT_URL}</li>
                 <li>Check that FLUXPRINT_ENABLED=true in your environment configuration</li>
-                <li>Verify network connectivity to localhost:5001</li>
+                <li>Verify network connectivity to the FluxPrint service</li>
               </ul>
               <div className="flex space-x-2 mt-3">
                 <Button onClick={refetch} variant="outline" size="sm">
@@ -184,7 +187,7 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
                   Retry Connection
                 </Button>
                 <Button
-                  onClick={() => window.open('http://localhost:5001', '_blank')}
+                  onClick={() => window.open(config.FLUXPRINT_URL, '_blank')}
                   variant="outline"
                   size="sm"
                 >
@@ -278,7 +281,7 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
             <code className="bg-gray-100 px-2 py-1 rounded">localhost:3001</code>
             <span>•</span>
             <span>FluxPrint:</span>
-            <code className="bg-gray-100 px-2 py-1 rounded">localhost:5001</code>
+            <code className="bg-gray-100 px-2 py-1 rounded">{config.FLUXPRINT_URL.replace(/^https?:\/\//, '')}</code>
           </div>
         </div>
       </div>

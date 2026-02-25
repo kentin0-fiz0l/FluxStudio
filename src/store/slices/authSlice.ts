@@ -54,7 +54,7 @@ export interface TwoFARequired {
 export interface AuthActions {
   login: (email: string, password: string) => Promise<User | TwoFARequired>;
   loginWithToken: (authData: Record<string, unknown>) => Promise<User>;
-  signup: (email: string, password: string, name: string, userType: UserType, referralCode?: string) => Promise<User>;
+  signup: (email: string, password: string, name: string, userType: UserType, referralCode?: string, inviteCode?: string) => Promise<User>;
   loginWithGoogle: (credential: string) => Promise<User>;
   loginWithApple: () => Promise<User>;
   logout: () => Promise<void>;
@@ -366,12 +366,12 @@ export const createAuthSlice: StateCreator<
       return authData.user;
     },
 
-    signup: async (email: string, password: string, name: string, userType: UserType, referralCode?: string): Promise<User> => {
+    signup: async (email: string, password: string, name: string, userType: UserType, referralCode?: string, inviteCode?: string): Promise<User> => {
       set((state) => { state.auth.isLoading = true; state.auth.error = null; });
 
       try {
         const { apiService } = await import('../../services/apiService');
-        const response = await apiService.signup(email, password, name, userType, referralCode);
+        const response = await apiService.signup(email, password, name, userType, referralCode, inviteCode);
         if (!response.success) throw new Error(response.error || 'Signup failed');
 
         const authData = response.data as AuthResponseData;

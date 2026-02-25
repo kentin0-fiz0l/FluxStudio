@@ -39,6 +39,8 @@ declare module '*.webp' {
 import { ThreeElements } from '@react-three/fiber';
 
 declare global {
+  const __APP_VERSION__: string;
+
   namespace JSX {
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface IntrinsicElements extends ThreeElements {}

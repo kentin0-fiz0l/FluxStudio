@@ -604,6 +604,11 @@ app.use('/api/payments', paymentsRoutes);  // Also support full path for local d
 app.use('/support', supportRoutes);  // Direct path
 app.use('/api/support', supportRoutes);  // Full path for local dev
 
+// Feedback routes - Sprint 56 Beta Widget
+const feedbackRoutes = require('./routes/feedback');
+app.use('/feedback', feedbackRoutes);
+app.use('/api/feedback', feedbackRoutes);
+
 // Formations routes - Drill Writer MVP
 // Routes define /projects/:projectId/formations, so mount at /api
 app.use('/api', formationsRoutes);

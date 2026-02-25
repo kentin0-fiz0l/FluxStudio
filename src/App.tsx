@@ -28,6 +28,7 @@ import { useTheme } from './hooks/useTheme';
 import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 import { HelmetProvider } from 'react-helmet-async';
 import { CookieConsent } from './components/ui/CookieConsent';
+import { FeedbackWidget } from './components/ui/FeedbackWidget';
 
 import { useAuth, useAuthInit } from '@/store/slices/authSlice';
 import { useFeatureFlag } from './hooks/useFeatureFlag';
@@ -388,6 +389,7 @@ function AuthenticatedRoutes() {
       {/* Push Notification Permission Prompt - shows after 30s for eligible users */}
       <AuthOnly>
         <PushPermissionPrompt />
+        <FeedbackWidget />
       </AuthOnly>
       {/* SW Update Banner */}
       <UpdateBanner />

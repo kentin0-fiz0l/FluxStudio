@@ -46,6 +46,9 @@ jobs:
           VITE_SOCKET_URL: ${{ secrets.VITE_SOCKET_URL }}
           VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
           VITE_GITHUB_CONNECTED: 'true'
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
       - name: Deploy to DigitalOcean
         uses: digitalocean/app_action/deploy@v2

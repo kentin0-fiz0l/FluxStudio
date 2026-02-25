@@ -141,6 +141,37 @@ router.post('/signup',
         });
       }
 
+      // Beta invite code gate (Sprint 56)
+      const betaGateEnabled = req.isFeatureEnabled
+        ? await req.isFeatureEnabled('beta_invite_required')
+        : false;
+      if (betaGateEnabled) {
+        const { inviteCode } = req.body;
+        if (!inviteCode) {
+          return res.status(403).json({ message: 'An invite code is required to sign up during the beta period.' });
+        }
+        const codeResult = dbQuery
+          ? await dbQuery(
+              `SELECT id, code, max_uses, uses_count, expires_at
+               FROM beta_invite_codes
+               WHERE UPPER(code) = UPPER($1)`,
+              [inviteCode]
+            )
+          : { rows: [] };
+        const invite = codeResult.rows[0];
+        if (!invite) {
+          return res.status(403).json({ message: 'Invalid invite code.' });
+        }
+        if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+          return res.status(403).json({ message: 'This invite code has expired.' });
+        }
+        if (invite.uses_count >= invite.max_uses) {
+          return res.status(403).json({ message: 'This invite code has reached its maximum uses.' });
+        }
+        // Store invite id for post-signup increment
+        req._betaInviteId = invite.id;
+      }
+
       // Validation
       if (!email || !password || !name) {
         return res.status(400).json({ message: 'All fields are required' });
@@ -259,6 +290,14 @@ router.post('/signup',
             }
           } catch (_) { /* best-effort */ }
         })();
+      }
+
+      // Sprint 56: Increment beta invite code usage
+      if (req._betaInviteId && dbQuery) {
+        dbQuery(
+          `UPDATE beta_invite_codes SET uses_count = uses_count + 1 WHERE id = $1`,
+          [req._betaInviteId]
+        ).catch(() => {});
       }
 
       // Return auth response with access + refresh tokens

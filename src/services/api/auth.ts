@@ -15,11 +15,11 @@ export function authApi(service: ApiService) {
       });
     },
 
-    signup(email: string, password: string, name: string, userType: string, referralCode?: string) {
+    signup(email: string, password: string, name: string, userType: string, referralCode?: string, inviteCode?: string) {
       return service.makeRequest(buildAuthUrl('/signup'), {
         method: 'POST',
         requireAuth: false,
-        body: JSON.stringify({ email, password, name, userType, referralCode }),
+        body: JSON.stringify({ email, password, name, userType, referralCode, inviteCode }),
       });
     },
 

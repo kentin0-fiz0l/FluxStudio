@@ -16,6 +16,7 @@ export interface EnvironmentConfig {
   MAX_FILE_SIZE: number;
   SUPPORTED_FILE_TYPES: string[];
   ENABLE_FLUXPRINT: boolean;
+  FLUXPRINT_URL: string;
 }
 
 // Environment detection
@@ -36,7 +37,8 @@ const baseConfig = {
   API_TIMEOUT: 30000, // 30 seconds
   MAX_FILE_SIZE: 104857600, // 100MB
   SUPPORTED_FILE_TYPES: ['png', 'jpg', 'jpeg', 'gif', 'pdf', 'figma', 'sketch', 'svg', 'webp'],
-  ENABLE_FLUXPRINT: getEnvVar('VITE_ENABLE_FLUXPRINT', 'false') === 'true'
+  ENABLE_FLUXPRINT: getEnvVar('VITE_ENABLE_FLUXPRINT', 'false') === 'true',
+  FLUXPRINT_URL: getEnvVar('VITE_FLUXPRINT_URL', 'http://localhost:5001')
 };
 
 // Development configuration

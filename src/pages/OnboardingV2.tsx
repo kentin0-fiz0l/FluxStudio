@@ -69,6 +69,7 @@ const stepVariants = {
 export function OnboardingV2() {
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get('ref') || undefined;
+  const inviteParam = searchParams.get('invite') || '';
 
   const [step, setStep] = useState<OnboardingStep>('auth');
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
@@ -76,9 +77,11 @@ export function OnboardingV2() {
   // Auth form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState(inviteParam);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [betaGateEnabled, setBetaGateEnabled] = useState(false);
 
   // Template selection state
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -91,6 +94,16 @@ export function OnboardingV2() {
   useEffect(() => {
     eventTracker.trackEvent('onboarding_v2_started', { hasReferral: !!referralCode });
   }, [referralCode]);
+
+  // Sprint 56: Check if beta invite gate is enabled
+  useEffect(() => {
+    fetch('/api/admin/flags/evaluate')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.flags?.beta_invite_required) setBetaGateEnabled(true);
+      })
+      .catch(() => {});
+  }, []);
 
   // If already authenticated, skip to template step
   useEffect(() => {
@@ -147,7 +160,7 @@ export function OnboardingV2() {
 
     setIsSubmitting(true);
     try {
-      await signup(email, password, email.split('@')[0], 'client' as UserType, referralCode);
+      await signup(email, password, email.split('@')[0], 'client' as UserType, referralCode, inviteCode || undefined);
       eventTracker.trackEvent('onboarding_v2_auth_complete', { method: 'email' });
       goToStep('template');
     } catch (err) {
@@ -333,6 +346,25 @@ export function OnboardingV2() {
                     </button>
                   </div>
                 </div>
+
+                {betaGateEnabled && (
+                  <div>
+                    <label htmlFor="onboarding-invite" className="block text-sm font-medium text-gray-300 mb-1.5">
+                      Invite Code
+                    </label>
+                    <input
+                      id="onboarding-invite"
+                      type="text"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                      className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white
+                               placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1
+                               focus:ring-blue-500 transition-colors uppercase tracking-wider"
+                      placeholder="Enter invite code"
+                      maxLength={20}
+                    />
+                  </div>
+                )}
 
                 <button
                   type="submit"

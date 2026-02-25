@@ -3,7 +3,9 @@
   import react from '@vitejs/plugin-react-swc';
   import { VitePWA } from 'vite-plugin-pwa';
   import compression from 'vite-plugin-compression';
+  import { sentryVitePlugin } from '@sentry/vite-plugin';
   import path from 'path';
+  import pkg from './package.json' with { type: 'json' };
 
   const isAnalyze = process.env.ANALYZE === 'true';
 
@@ -83,7 +85,17 @@
       compression({ algorithm: 'brotliCompress', ext: '.br', threshold: 1024 }),
       // Bundle visualizer — run with ANALYZE=true vite build
       ...visualizerPlugins,
+      // Sentry source map upload (production only, requires auth token)
+      ...(process.env.SENTRY_AUTH_TOKEN ? [sentryVitePlugin({
+        org: process.env.SENTRY_ORG || 'fluxstudio',
+        project: process.env.SENTRY_PROJECT || 'fluxstudio-frontend',
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        release: { name: `fluxstudio@${pkg.version}` },
+      })] : []),
     ],
+    define: {
+      '__APP_VERSION__': JSON.stringify(pkg.version),
+    },
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
@@ -324,7 +336,7 @@
       // Removed terser dependency to reduce build complexity
       chunkSizeWarningLimit: 500, // Warn for chunks > 500KB
       reportCompressedSize: true,
-      sourcemap: false, // Disable sourcemaps in production for smaller bundles
+      sourcemap: 'hidden', // Generate source maps for Sentry upload but don't expose publicly
       cssCodeSplit: true, // Split CSS per chunk for smaller initial load
     },
     server: {
