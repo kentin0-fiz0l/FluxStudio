@@ -5,6 +5,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockNavigate = vi.fn();
 
@@ -38,18 +39,40 @@ vi.mock('../../components/admin/UsageCharts', () => ({
   ),
 }));
 
+// Mock apiService
+vi.mock('@/services/apiService', () => ({
+  apiService: {
+    get: vi.fn().mockResolvedValue({
+      success: true,
+      data: { users: [], total: 0, projects: [] },
+    }),
+  },
+}));
+
+vi.mock('@/config/environment', () => ({
+  buildApiUrl: vi.fn((endpoint: string) => `/api${endpoint}`),
+  config: { API_TIMEOUT: 30000, API_BASE_URL: '/api' },
+}));
+
 import { AdminDashboard } from '../admin/Dashboard';
 
 describe('AdminDashboard', () => {
+  let queryClient: QueryClient;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
   });
 
   const renderPage = () =>
     render(
-      <MemoryRouter>
-        <AdminDashboard />
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <AdminDashboard />
+        </MemoryRouter>
+      </QueryClientProvider>
     );
 
   test('renders without crashing', () => {
@@ -86,21 +109,16 @@ describe('AdminDashboard', () => {
     expect(screen.getByText('Billing')).toBeInTheDocument();
   });
 
-  test('displays stat cards', () => {
+  test('displays stat cards with labels', async () => {
     renderPage();
-    expect(screen.getByText('2,847')).toBeInTheDocument();
-    expect(screen.getByText('Total Users')).toBeInTheDocument();
-    expect(screen.getByText('1,423')).toBeInTheDocument();
-    expect(screen.getByText('Active Users')).toBeInTheDocument();
-    expect(screen.getByText('846')).toBeInTheDocument();
+    // Stats are loaded via useQuery; labels exist in both loading and loaded states
+    expect(await screen.findByText('Total Users')).toBeInTheDocument();
     expect(screen.getByText('Total Projects')).toBeInTheDocument();
   });
 
   test('displays recent activity section', () => {
     renderPage();
     expect(screen.getByText('Recent Activity')).toBeInTheDocument();
-    expect(screen.getByText('John Doe')).toBeInTheDocument();
-    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
   });
 
   test('renders SystemHealth component', () => {
@@ -113,9 +131,8 @@ describe('AdminDashboard', () => {
     expect(screen.getByTestId('usage-charts')).toBeInTheDocument();
   });
 
-  test('displays stat change percentages', () => {
+  test('displays View All link for audit logs', () => {
     renderPage();
-    expect(screen.getByText('+12.5%')).toBeInTheDocument();
-    expect(screen.getByText('-3.2%')).toBeInTheDocument();
+    expect(screen.getByText('View All')).toBeInTheDocument();
   });
 });

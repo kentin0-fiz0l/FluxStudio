@@ -2,12 +2,16 @@
  * Admin Dashboard Page - Flux Studio
  *
  * Main admin dashboard with overview metrics, system health, and navigation.
+ * Stats and recent activity are fetched from the backend API.
  */
 
 import React, { useState, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/store/slices/authSlice';
+import { apiService } from '@/services/apiService';
+import { buildApiUrl } from '@/config/environment';
 
 // Lazy-load chart-heavy admin components to reduce feature-admin chunk size
 const SystemHealth = React.lazy(() =>
@@ -27,7 +31,6 @@ import {
   CreditCard,
   ChevronRight,
   Shield,
-  Activity,
   ArrowUpRight,
 } from 'lucide-react';
 
@@ -51,6 +54,16 @@ interface StatCard {
   href?: string;
 }
 
+interface AuditLogEntry {
+  id: string;
+  userId: string;
+  userName?: string;
+  action: string;
+  resource: string;
+  details?: string;
+  timestamp: string;
+}
+
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -60,6 +73,42 @@ export function AdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState('overview');
+
+  // Fetch admin stats
+  const { data: statsData, isLoading: statsLoading } = useQuery({
+    queryKey: ['admin', 'stats'],
+    queryFn: async () => {
+      const [usersRes, projectsRes] = await Promise.all([
+        apiService.get<{ users: { id: string }[]; total?: number }>('/users'),
+        apiService.get<{ projects: { id: string }[]; total?: number }>('/projects'),
+      ]);
+
+      const usersList = usersRes.success && usersRes.data
+        ? (usersRes.data as { users: { id: string }[]; total?: number })
+        : { users: [], total: 0 };
+      const projectsList = projectsRes.success && projectsRes.data
+        ? (projectsRes.data as { projects: { id: string }[]; total?: number })
+        : { projects: [], total: 0 };
+
+      return {
+        totalUsers: usersList.total ?? usersList.users?.length ?? 0,
+        totalProjects: projectsList.total ?? projectsList.projects?.length ?? 0,
+      };
+    },
+  });
+
+  // Fetch recent audit logs
+  const { data: auditData, isLoading: auditLoading } = useQuery({
+    queryKey: ['admin', 'audit-logs', { limit: 5 }],
+    queryFn: async () => {
+      const res = await apiService.get<{ logs: AuditLogEntry[]; pagination: { total: number } }>(
+        '/admin/audit-logs',
+        { params: { limit: '5' } }
+      );
+      if (!res.success) throw new Error(res.error || 'Failed to fetch audit logs');
+      return res.data as { logs: AuditLogEntry[]; pagination: { total: number } };
+    },
+  });
 
   // Navigation items
   const navItems: NavItem[] = [
@@ -73,48 +122,66 @@ export function AdminDashboard() {
     { id: 'billing', label: t('navigation.billing', 'Billing'), icon: <CreditCard className="w-5 h-5" aria-hidden="true" />, href: '/admin/billing' },
   ];
 
-  // Overview stats
-  const stats: StatCard[] = [
-    {
-      label: t('overview.totalUsers', 'Total Users'),
-      value: '2,847',
-      change: 12.5,
-      icon: <Users className="w-6 h-6" aria-hidden="true" />,
-      href: '/admin/users',
-    },
-    {
-      label: t('overview.activeUsers', 'Active Users'),
-      value: '1,423',
-      change: -3.2,
-      icon: <Activity className="w-6 h-6" aria-hidden="true" />,
-    },
-    {
-      label: t('overview.totalProjects', 'Total Projects'),
-      value: '846',
-      change: 8.1,
-      icon: <FolderKanban className="w-6 h-6" aria-hidden="true" />,
-      href: '/admin/projects',
-    },
-    {
-      label: t('overview.activeProjects', 'Active Projects'),
-      value: '312',
-      change: 15.7,
-      icon: <Activity className="w-6 h-6" aria-hidden="true" />,
-    },
-  ];
+  // Dynamic stats from fetched data
+  const stats: StatCard[] = statsLoading
+    ? [
+        { label: t('overview.totalUsers', 'Total Users'), value: '...', icon: <Users className="w-6 h-6" aria-hidden="true" />, href: '/admin/users' },
+        { label: t('overview.totalProjects', 'Total Projects'), value: '...', icon: <FolderKanban className="w-6 h-6" aria-hidden="true" />, href: '/admin/projects' },
+      ]
+    : [
+        {
+          label: t('overview.totalUsers', 'Total Users'),
+          value: statsData?.totalUsers?.toLocaleString() ?? '0',
+          icon: <Users className="w-6 h-6" aria-hidden="true" />,
+          href: '/admin/users',
+        },
+        {
+          label: t('overview.totalProjects', 'Total Projects'),
+          value: statsData?.totalProjects?.toLocaleString() ?? '0',
+          icon: <FolderKanban className="w-6 h-6" aria-hidden="true" />,
+          href: '/admin/projects',
+        },
+      ];
 
-  // Recent activity mock data
-  const recentActivity = [
-    { id: 1, user: 'John Doe', action: t('auditLogs.actions.login', 'User login'), time: '2 minutes ago' },
-    { id: 2, user: 'Jane Smith', action: t('auditLogs.actions.create', 'Created project'), time: '15 minutes ago' },
-    { id: 3, user: 'Mike Johnson', action: t('auditLogs.actions.update', 'Updated settings'), time: '1 hour ago' },
-    { id: 4, user: 'Sarah Wilson', action: t('auditLogs.actions.invite', 'Invited team member'), time: '2 hours ago' },
-    { id: 5, user: 'Admin', action: t('auditLogs.actions.update', 'System update'), time: '3 hours ago' },
-  ];
+  // Format relative time for audit log entries
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const then = new Date(timestamp);
+    const diffMs = now.getTime() - then.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  const handleExport = (_format: 'csv' | 'pdf' | 'excel') => {
-    // Implementation would go here
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
   };
+
+  const handleExport = async (format: 'csv' | 'pdf' | 'excel') => {
+    if (format === 'csv') {
+      try {
+        const response = await fetch(buildApiUrl('/admin/audit-logs/export'), {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        if (!response.ok) throw new Error('Export failed');
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'audit-logs.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch {
+        // Export error — silently fail for now
+      }
+    }
+  };
+
+  // Recent activity from audit logs
+  const recentActivity = auditData?.logs ?? [];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -177,43 +244,58 @@ export function AdminDashboard() {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {stats.map((stat, index) => {
-              const CardWrapper = stat.href ? 'button' : 'div';
-              return (
-                <CardWrapper
-                  key={index}
-                  {...(stat.href ? { onClick: () => navigate(stat.href!), 'aria-label': `${stat.label}: ${stat.value}` } : {})}
-                  className={`w-full text-left bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 ${
-                    stat.href ? 'cursor-pointer hover:border-blue-300 dark:hover:border-blue-600 transition-colors' : ''
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400">
-                      {stat.icon}
+            {statsLoading ? (
+              // Loading skeletons
+              <>
+                {[1, 2].map((i) => (
+                  <div key={i} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
                     </div>
-                    {stat.change !== undefined && (
-                      <span
-                        className={`text-sm font-medium ${
-                          stat.change >= 0
-                            ? 'text-green-600 dark:text-green-400'
-                            : 'text-red-600 dark:text-red-400'
-                        }`}
-                      >
-                        {stat.change >= 0 ? '+' : ''}
-                        {stat.change}%
-                      </span>
-                    )}
+                    <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
+                    <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
                   </div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                    {stat.value}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</span>
-                    {stat.href && <ArrowUpRight className="w-4 h-4 text-gray-400" aria-hidden="true" />}
-                  </div>
-                </CardWrapper>
-              );
-            })}
+                ))}
+              </>
+            ) : (
+              stats.map((stat, index) => {
+                const CardWrapper = stat.href ? 'button' : 'div';
+                return (
+                  <CardWrapper
+                    key={index}
+                    {...(stat.href ? { onClick: () => navigate(stat.href!), 'aria-label': `${stat.label}: ${stat.value}` } : {})}
+                    className={`w-full text-left bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 ${
+                      stat.href ? 'cursor-pointer hover:border-blue-300 dark:hover:border-blue-600 transition-colors' : ''
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400">
+                        {stat.icon}
+                      </div>
+                      {stat.change !== undefined && (
+                        <span
+                          className={`text-sm font-medium ${
+                            stat.change >= 0
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-red-600 dark:text-red-400'
+                          }`}
+                        >
+                          {stat.change >= 0 ? '+' : ''}
+                          {stat.change}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                      {stat.value}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</span>
+                      {stat.href && <ArrowUpRight className="w-4 h-4 text-gray-400" aria-hidden="true" />}
+                    </div>
+                  </CardWrapper>
+                );
+              })
+            )}
           </div>
 
           {/* System Health */}
@@ -247,19 +329,40 @@ export function AdminDashboard() {
                 </Link>
               </div>
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="px-6 py-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {activity.user}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {activity.time}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{activity.action}</p>
+                {auditLoading ? (
+                  // Loading skeletons for activity
+                  <>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="px-6 py-4">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                          <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        </div>
+                        <div className="h-3 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mt-1" />
+                      </div>
+                    ))}
+                  </>
+                ) : recentActivity.length === 0 ? (
+                  <div className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                    No recent activity
                   </div>
-                ))}
+                ) : (
+                  recentActivity.map((activity) => (
+                    <div key={activity.id} className="px-6 py-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          {activity.userName || activity.userId}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatTimeAgo(activity.timestamp)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {activity.action}{activity.resource ? ` — ${activity.resource}` : ''}
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

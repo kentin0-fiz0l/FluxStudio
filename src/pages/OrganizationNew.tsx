@@ -2,21 +2,22 @@
  * Organization Page - Flux Design Language
  *
  * Redesigned organization management using DashboardLayout and Card components.
- * Simplified from 836 lines to ~400 lines with clean modern design.
+ * Uses real data from useOrganizations, useTeams, and useOrganization hooks.
  */
 
-import { useState } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button, Card, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui';
 import { useAuth } from '@/store/slices/authSlice';
+import { useOrganizations } from '@/hooks/useOrganizations';
+import { useTeams, type TeamMember, type TeamInvite } from '@/hooks/useTeams';
+import { useOrganization } from '../contexts/OrganizationContext';
 import {
   Building2,
   Users,
   MessageSquare,
   Target,
-  TrendingUp,
-  Activity,
   Settings,
   Plus,
   BarChart3,
@@ -27,107 +28,94 @@ import {
   MoreHorizontal,
   Mail,
   Search,
+  Loader2,
+  AlertCircle,
+  Info,
 } from 'lucide-react';
 
-// Types
-interface Organization {
-  id: string;
-  name: string;
-  description?: string;
-  website?: string;
-  industry?: string;
-  size: 'startup' | 'small' | 'medium' | 'large' | 'enterprise';
-  createdAt: string;
-}
-
-interface OrganizationStats {
-  totalMembers: number;
-  activeTeams: number;
-  totalMessages: number;
-  activeProjects: number;
-}
-
-// Mock data
-const mockOrganization: Organization = {
-  id: '1',
-  name: 'Flux Studio',
-  description: 'A creative production studio focused on innovative design solutions',
-  website: 'https://fluxstudio.art',
-  industry: 'Design & Technology',
-  size: 'small',
-  createdAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString()
-};
-
-const mockStats: OrganizationStats = {
-  totalMembers: 12,
-  activeTeams: 3,
-  totalMessages: 1247,
-  activeProjects: 8
-};
-
-const mockRecentActivity = [
-  {
-    id: '1',
-    type: 'team_created',
-    description: 'Design Team was created',
-    user: 'Sarah Chen',
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000)
-  },
-  {
-    id: '2',
-    type: 'member_joined',
-    description: 'Mike Johnson joined the organization',
-    user: 'Mike Johnson',
-    timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000)
-  },
-  {
-    id: '3',
-    type: 'project_started',
-    description: 'Summer Show 2024 project was started',
-    user: 'Alex Rodriguez',
-    timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000)
-  },
-  {
-    id: '4',
-    type: 'message_sent',
-    description: '127 messages sent across all channels',
-    user: 'Team',
-    timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000)
-  }
-];
-
-interface OrgMember {
+// Unified member type derived from team data
+interface DisplayMember {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'member' | 'viewer';
-  status: 'active' | 'pending' | 'inactive';
+  role: 'owner' | 'admin' | 'member';
+  status: 'active' | 'pending';
   joinedAt: string;
-  avatar?: string;
 }
-
-const mockMembers: OrgMember[] = [
-  { id: '1', name: 'Sarah Chen', email: 'sarah@fluxstudio.art', role: 'admin', status: 'active', joinedAt: '2024-01-15' },
-  { id: '2', name: 'Mike Johnson', email: 'mike@fluxstudio.art', role: 'member', status: 'active', joinedAt: '2024-02-20' },
-  { id: '3', name: 'Alex Rodriguez', email: 'alex@fluxstudio.art', role: 'member', status: 'active', joinedAt: '2024-03-10' },
-  { id: '4', name: 'Emily Davis', email: 'emily@fluxstudio.art', role: 'member', status: 'active', joinedAt: '2024-04-05' },
-  { id: '5', name: 'Jordan Lee', email: 'jordan@fluxstudio.art', role: 'viewer', status: 'active', joinedAt: '2024-05-18' },
-  { id: '6', name: 'Chris Taylor', email: 'chris@fluxstudio.art', role: 'member', status: 'inactive', joinedAt: '2024-02-01' },
-  { id: '7', name: 'Pending User', email: 'pending@example.com', role: 'member', status: 'pending', joinedAt: '2024-06-01' },
-];
 
 export function OrganizationNew() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  // Real data hooks
+  const {
+    currentOrganization,
+    loading: orgLoading,
+    error: orgError,
+    updateOrganization,
+    inviteToOrganization,
+  } = useOrganizations();
+  const { teams, loading: teamsLoading } = useTeams();
+  const { projects } = useOrganization();
+
   // State
-  const [organization] = useState<Organization>(mockOrganization);
-  const [stats] = useState<OrganizationStats>(mockStats);
   const [showSettings, setShowSettings] = useState(false);
-  const [memberFilter, setMemberFilter] = useState<'all' | 'admin' | 'member' | 'viewer' | 'pending'>('all');
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [memberFilter, setMemberFilter] = useState<'all' | 'admin' | 'member' | 'owner' | 'pending'>('all');
   const [memberSearch, setMemberSearch] = useState('');
 
-  const filteredMembers = mockMembers.filter((m) => {
+  // Settings form refs
+  const nameRef = useRef<HTMLInputElement>(null);
+  const descRef = useRef<HTMLTextAreaElement>(null);
+  const websiteRef = useRef<HTMLInputElement>(null);
+  const industryRef = useRef<HTMLInputElement>(null);
+  const sizeRef = useRef<HTMLSelectElement>(null);
+
+  const loading = orgLoading || teamsLoading;
+
+  // Derive members from teams data
+  const members: DisplayMember[] = useMemo(() => {
+    const memberMap = new Map<string, DisplayMember>();
+
+    teams.forEach((team) => {
+      // Active members
+      team.members?.forEach((m: TeamMember) => {
+        if (!memberMap.has(m.userId)) {
+          memberMap.set(m.userId, {
+            id: m.userId,
+            name: m.userId, // userId is the best we have without a users lookup
+            email: '',
+            role: m.role,
+            status: 'active',
+            joinedAt: m.joinedAt,
+          });
+        }
+      });
+
+      // Pending invites
+      team.invites?.forEach((inv: TeamInvite) => {
+        if (inv.status === 'pending' && !memberMap.has(`invite-${inv.id}`)) {
+          memberMap.set(`invite-${inv.id}`, {
+            id: `invite-${inv.id}`,
+            name: inv.email.split('@')[0],
+            email: inv.email,
+            role: (inv.role as 'admin' | 'member') || 'member',
+            status: 'pending',
+            joinedAt: inv.invitedAt,
+          });
+        }
+      });
+    });
+
+    return Array.from(memberMap.values());
+  }, [teams]);
+
+  const filteredMembers = members.filter((m) => {
     const matchesFilter = memberFilter === 'all'
       ? true
       : memberFilter === 'pending'
@@ -139,6 +127,15 @@ export function OrganizationNew() {
     return matchesFilter && matchesSearch;
   });
 
+  const pendingCount = members.filter((m) => m.status === 'pending').length;
+
+  // Computed stats from real data
+  const stats = {
+    totalMembers: members.filter((m) => m.status === 'active').length,
+    activeTeams: teams.length,
+    activeProjects: projects?.length ?? 0,
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -147,32 +144,106 @@ export function OrganizationNew() {
     });
   };
 
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
-  };
-
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'team_created':
-        return <Users className="w-4 h-4 text-primary-600" aria-hidden="true" />;
-      case 'member_joined':
-        return <Plus className="w-4 h-4 text-success-600" aria-hidden="true" />;
-      case 'project_started':
-        return <Target className="w-4 h-4 text-secondary-600" aria-hidden="true" />;
-      case 'message_sent':
-        return <MessageSquare className="w-4 h-4 text-accent-600" aria-hidden="true" />;
-      default:
-        return <Activity className="w-4 h-4 text-neutral-600" aria-hidden="true" />;
+  const handleInvite = async () => {
+    if (!currentOrganization || !inviteEmail.trim()) return;
+    setInviteLoading(true);
+    setInviteError(null);
+    try {
+      await inviteToOrganization(currentOrganization.id, inviteEmail.trim(), inviteRole);
+      setShowInviteDialog(false);
+      setInviteEmail('');
+      setInviteRole('member');
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : 'Failed to send invite');
+    } finally {
+      setInviteLoading(false);
     }
   };
+
+  const handleSaveSettings = async () => {
+    if (!currentOrganization) return;
+    setSettingsSaving(true);
+    try {
+      await updateOrganization(currentOrganization.id, {
+        name: nameRef.current?.value || currentOrganization.name,
+        description: descRef.current?.value,
+        website: websiteRef.current?.value,
+        industry: industryRef.current?.value,
+        size: (sizeRef.current?.value as 'startup' | 'small' | 'medium' | 'large' | 'enterprise') || currentOrganization.size,
+      });
+      setShowSettings(false);
+    } catch {
+      // Error is handled by the hook
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <DashboardLayout
+        user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
+        breadcrumbs={[{ label: 'Organization' }]}
+        onLogout={logout}
+      >
+        <div className="p-6 space-y-6">
+          <div className="flex items-start gap-4">
+            <div className="w-16 h-16 rounded-xl bg-neutral-200 dark:bg-neutral-700 animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="h-7 w-48 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse" />
+              <div className="h-4 w-80 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-32 bg-neutral-200 dark:bg-neutral-700 rounded-lg animate-pulse" />
+            ))}
+          </div>
+          <div className="h-64 bg-neutral-200 dark:bg-neutral-700 rounded-lg animate-pulse" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Error state
+  if (orgError) {
+    return (
+      <DashboardLayout
+        user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
+        breadcrumbs={[{ label: 'Organization' }]}
+        onLogout={logout}
+      >
+        <div className="p-6 flex flex-col items-center justify-center min-h-[400px]">
+          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+          <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">Something went wrong</h2>
+          <p className="text-neutral-600 dark:text-neutral-400 mb-4">{orgError}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Empty state — no organization found
+  if (!currentOrganization) {
+    return (
+      <DashboardLayout
+        user={user ? { name: user.name, email: user.email, avatar: user.avatar } : undefined}
+        breadcrumbs={[{ label: 'Organization' }]}
+        onLogout={logout}
+      >
+        <div className="p-6 flex flex-col items-center justify-center min-h-[400px]">
+          <Building2 className="w-12 h-12 text-neutral-400 mb-4" />
+          <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">No organization found</h2>
+          <p className="text-neutral-600 dark:text-neutral-400 mb-4">Create an organization to get started.</p>
+          <Button onClick={() => navigate('/organization/create')}>
+            <Plus className="w-4 h-4 mr-2" aria-hidden="true" />
+            Create Organization
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout
@@ -189,32 +260,32 @@ export function OrganizationNew() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-neutral-900">
-                {organization.name}
+                {currentOrganization.name}
               </h1>
               <p className="text-neutral-600 mt-1">
-                {organization.description}
+                {currentOrganization.description}
               </p>
               <div className="flex items-center gap-4 mt-2 text-sm text-neutral-500">
-                {organization.website && (
+                {currentOrganization.website && (
                   <a
-                    href={organization.website}
+                    href={currentOrganization.website}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 hover:text-primary-600 transition-colors"
                   >
                     <Globe className="w-4 h-4" aria-hidden="true" />
-                    {organization.website.replace('https://', '')}
+                    {currentOrganization.website.replace('https://', '')}
                   </a>
                 )}
-                {organization.industry && (
+                {currentOrganization.industry && (
                   <span className="flex items-center gap-1">
                     <Building2 className="w-4 h-4" aria-hidden="true" />
-                    {organization.industry}
+                    {currentOrganization.industry}
                   </span>
                 )}
                 <span className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" aria-hidden="true" />
-                  Since {formatDate(organization.createdAt)}
+                  Since {formatDate(currentOrganization.createdAt)}
                 </span>
               </div>
             </div>
@@ -227,7 +298,7 @@ export function OrganizationNew() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -240,10 +311,11 @@ export function OrganizationNew() {
                 <Users className="w-6 h-6 text-primary-600" aria-hidden="true" />
               </div>
             </div>
-            <div className="flex items-center text-sm text-success-600">
-              <TrendingUp className="w-4 h-4 mr-1" aria-hidden="true" />
-              <span>+3 this month</span>
-            </div>
+            {currentOrganization.subscription && (
+              <p className="text-sm text-neutral-500">
+                Limit: {currentOrganization.subscription.memberLimit}
+              </p>
+            )}
           </Card>
 
           <Card className="p-6">
@@ -264,24 +336,6 @@ export function OrganizationNew() {
             >
               View Teams →
             </button>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm text-neutral-600">Messages Today</p>
-                <p className="text-3xl font-bold text-neutral-900 mt-1">
-                  {stats.totalMessages}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-accent-100 flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-accent-600" aria-hidden="true" />
-              </div>
-            </div>
-            <div className="flex items-center text-sm text-success-600">
-              <TrendingUp className="w-4 h-4 mr-1" aria-hidden="true" />
-              <span>+18% vs yesterday</span>
-            </div>
           </Card>
 
           <Card className="p-6">
@@ -312,7 +366,7 @@ export function OrganizationNew() {
               <Users className="w-5 h-5 mr-2 text-primary-600" aria-hidden="true" />
               Members
             </h2>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setShowInviteDialog(true)}>
               <Mail className="w-4 h-4 mr-1" aria-hidden="true" />
               Invite
             </Button>
@@ -331,7 +385,7 @@ export function OrganizationNew() {
               />
             </div>
             <div className="flex gap-1">
-              {(['all', 'admin', 'member', 'viewer', 'pending'] as const).map((f) => (
+              {(['all', 'admin', 'member', 'owner', 'pending'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setMemberFilter(f)}
@@ -342,7 +396,7 @@ export function OrganizationNew() {
                   }`}
                 >
                   {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-                  {f === 'pending' && ` (${mockMembers.filter((m) => m.status === 'pending').length})`}
+                  {f === 'pending' && pendingCount > 0 && ` (${pendingCount})`}
                 </button>
               ))}
             </div>
@@ -360,7 +414,7 @@ export function OrganizationNew() {
                 >
                   {/* Avatar */}
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-                    {member.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                    {member.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
 
                   {/* Info */}
@@ -373,18 +427,21 @@ export function OrganizationNew() {
                           Admin
                         </span>
                       )}
+                      {member.role === 'owner' && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full">
+                          <Shield className="w-2.5 h-2.5" aria-hidden="true" />
+                          Owner
+                        </span>
+                      )}
                       {member.status === 'pending' && (
                         <span className="px-1.5 py-0.5 text-[10px] font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full">
                           Pending
                         </span>
                       )}
-                      {member.status === 'inactive' && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-medium bg-neutral-100 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 rounded-full">
-                          Inactive
-                        </span>
-                      )}
                     </div>
-                    <span className="text-xs text-neutral-500 dark:text-neutral-400">{member.email}</span>
+                    {member.email && (
+                      <span className="text-xs text-neutral-500 dark:text-neutral-400">{member.email}</span>
+                    )}
                   </div>
 
                   {/* Role badge */}
@@ -401,80 +458,79 @@ export function OrganizationNew() {
         </Card>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* Recent Activity */}
+          {/* Recent Activity — Coming Soon */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-neutral-900 flex items-center">
-                <Activity className="w-5 h-5 mr-2 text-primary-600" aria-hidden="true" />
+              <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 flex items-center">
+                <Info className="w-5 h-5 mr-2 text-primary-600" aria-hidden="true" />
                 Recent Activity
               </h2>
             </div>
-
-            <div className="space-y-4">
-              {mockRecentActivity.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-neutral-50 transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0">
-                    {getActivityIcon(activity.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-neutral-900">{activity.description}</p>
-                    <p className="text-xs text-neutral-500 mt-1">
-                      {activity.user} • {formatTimeAgo(activity.timestamp)}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-col items-center justify-center py-8 text-neutral-500 dark:text-neutral-400">
+              <MessageSquare className="w-10 h-10 mb-3 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
+              <p className="text-sm font-medium">Coming soon</p>
+              <p className="text-xs mt-1">Activity feed will be available in a future update.</p>
             </div>
-
-            <button className="w-full mt-4 py-2 text-sm text-primary-600 hover:text-primary-700 transition-colors">
-              View All Activity →
-            </button>
           </Card>
 
           {/* Performance Metrics */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-neutral-900 flex items-center">
+              <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 flex items-center">
                 <BarChart3 className="w-5 h-5 mr-2 text-primary-600" aria-hidden="true" />
-                Performance Metrics
+                Organization Overview
               </h2>
             </div>
 
             <div className="space-y-6">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-neutral-700">Team Efficiency</span>
-                  <span className="text-sm font-semibold text-neutral-900">87%</span>
+                  <span className="text-sm text-neutral-700 dark:text-neutral-300">Member Capacity</span>
+                  <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                    {stats.totalMembers}/{currentOrganization.subscription?.memberLimit ?? '?'}
+                  </span>
                 </div>
-                <div className="w-full bg-neutral-200 rounded-full h-2">
-                  <div className="bg-gradient-to-r from-success-500 to-success-600 h-2 rounded-full transition-all" style={{ width: '87%' }} />
+                <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-primary-500 to-primary-600 h-2 rounded-full transition-all"
+                    style={{
+                      width: currentOrganization.subscription?.memberLimit
+                        ? `${Math.min(100, (stats.totalMembers / currentOrganization.subscription.memberLimit) * 100)}%`
+                        : '0%'
+                    }}
+                  />
                 </div>
-                <p className="text-xs text-success-600 mt-1">+12% vs last month</p>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-neutral-700">Communication Volume</span>
-                  <span className="text-sm font-semibold text-neutral-900">2.4k</span>
+                  <span className="text-sm text-neutral-700 dark:text-neutral-300">Teams</span>
+                  <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                    {stats.activeTeams}/{currentOrganization.subscription?.teamLimit ?? '?'}
+                  </span>
                 </div>
-                <div className="w-full bg-neutral-200 rounded-full h-2">
-                  <div className="bg-gradient-to-r from-primary-500 to-primary-600 h-2 rounded-full transition-all" style={{ width: '74%' }} />
+                <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-secondary-500 to-secondary-600 h-2 rounded-full transition-all"
+                    style={{
+                      width: currentOrganization.subscription?.teamLimit
+                        ? `${Math.min(100, (stats.activeTeams / currentOrganization.subscription.teamLimit) * 100)}%`
+                        : '0%'
+                    }}
+                  />
                 </div>
-                <p className="text-xs text-primary-600 mt-1">+18% this week</p>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-neutral-700">Project Completion</span>
-                  <span className="text-sm font-semibold text-neutral-900">94%</span>
+                  <span className="text-sm text-neutral-700 dark:text-neutral-300">Plan</span>
+                  <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 capitalize">
+                    {currentOrganization.subscription?.plan ?? 'Free'}
+                  </span>
                 </div>
-                <div className="w-full bg-neutral-200 rounded-full h-2">
-                  <div className="bg-gradient-to-r from-secondary-500 to-secondary-600 h-2 rounded-full transition-all" style={{ width: '94%' }} />
-                </div>
-                <p className="text-xs text-secondary-600 mt-1">On-time delivery rate</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 capitalize">
+                  Status: {currentOrganization.subscription?.status ?? 'Unknown'}
+                </p>
               </div>
             </div>
           </Card>
@@ -482,7 +538,7 @@ export function OrganizationNew() {
 
         {/* Quick Actions */}
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-neutral-900 mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Quick Actions</h2>
           <div className="grid md:grid-cols-4 gap-4">
             <Button
               variant="outline"
@@ -520,6 +576,61 @@ export function OrganizationNew() {
         </Card>
       </div>
 
+      {/* Invite Dialog */}
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invite Member</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="colleague@example.com"
+                className="w-full px-4 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                Role
+              </label>
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value as 'admin' | 'member')}
+                className="w-full px-4 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="member">Member</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            {inviteError && (
+              <p className="text-sm text-red-600 dark:text-red-400">{inviteError}</p>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+              <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleInvite} disabled={inviteLoading || !inviteEmail.trim()}>
+                {inviteLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Mail className="w-4 h-4 mr-2" aria-hidden="true" />
+                )}
+                Send Invite
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Settings Dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent>
@@ -528,56 +639,61 @@ export function OrganizationNew() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                 Organization Name
               </label>
               <input
+                ref={nameRef}
                 type="text"
-                defaultValue={organization.name}
-                className="w-full px-4 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                defaultValue={currentOrganization.name}
+                className="w-full px-4 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                 Description
               </label>
               <textarea
-                defaultValue={organization.description}
+                ref={descRef}
+                defaultValue={currentOrganization.description}
                 rows={3}
-                className="w-full px-4 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                className="w-full px-4 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                 Website
               </label>
               <input
+                ref={websiteRef}
                 type="url"
-                defaultValue={organization.website}
-                className="w-full px-4 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                defaultValue={currentOrganization.website}
+                className="w-full px-4 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                 Industry
               </label>
               <input
+                ref={industryRef}
                 type="text"
-                defaultValue={organization.industry}
-                className="w-full px-4 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                defaultValue={currentOrganization.industry}
+                className="w-full px-4 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                 Organization Size
               </label>
               <select
-                defaultValue={organization.size}
-                className="w-full px-4 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                ref={sizeRef}
+                defaultValue={currentOrganization.size}
+                className="w-full px-4 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="startup">Startup (1-10 people)</option>
                 <option value="small">Small (11-50 people)</option>
@@ -587,12 +703,16 @@ export function OrganizationNew() {
               </select>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
+            <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-700">
               <Button variant="outline" onClick={() => setShowSettings(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setShowSettings(false)}>
-                <CheckCircle2 className="w-4 h-4 mr-2" aria-hidden="true" />
+              <Button onClick={handleSaveSettings} disabled={settingsSaving}>
+                {settingsSaving ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4 mr-2" aria-hidden="true" />
+                )}
                 Save Changes
               </Button>
             </div>

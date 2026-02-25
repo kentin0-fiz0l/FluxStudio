@@ -5,6 +5,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock dependencies
 const mockNavigate = vi.fn();
@@ -46,18 +47,35 @@ vi.mock('@/components/templates', () => ({
   DashboardLayout: ({ children }: any) => <div data-testid="dashboard-layout">{children}</div>,
 }));
 
+// Mock apiService
+vi.mock('@/services/apiService', () => ({
+  apiService: {
+    get: vi.fn().mockResolvedValue({ success: true, data: { files: [], total: 0 } }),
+    post: vi.fn().mockResolvedValue({ success: true, data: {} }),
+    patch: vi.fn().mockResolvedValue({ success: true, data: {} }),
+    makeRequest: vi.fn().mockResolvedValue({ success: true, data: {} }),
+  },
+}));
+
 import { Profile } from '../Profile';
 
 describe('Profile', () => {
+  let queryClient: QueryClient;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
   });
 
   const renderProfile = () => {
     return render(
-      <MemoryRouter>
-        <Profile />
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <Profile />
+        </MemoryRouter>
+      </QueryClientProvider>
     );
   };
 
