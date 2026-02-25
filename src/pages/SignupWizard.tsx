@@ -191,6 +191,7 @@ export function SignupWizard() {
 
     try {
       await signup(formData.email, formData.password, formData.name, formData.userType, referralCode);
+      eventTracker.trackEvent('signup_complete', { method: 'email', userType: formData.userType });
       nextStep(); // Move to success step
 
       // Redirect after showing success

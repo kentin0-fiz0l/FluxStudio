@@ -9,8 +9,8 @@
  * - OrbitControls for camera navigation
  */
 
-import { Suspense, useMemo, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Suspense, useMemo, useRef, useEffect } from 'react';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import {
   OrbitControls,
   TransformControls,
@@ -18,8 +18,9 @@ import {
   PerspectiveCamera,
 } from '@react-three/drei';
 import * as THREE from 'three';
-import type { Position, Performer } from '../../../services/formationTypes';
-import type { SceneObject, Scene3DTool } from '../../../services/scene3d/types';
+import type { Position, Performer, Keyframe, TransitionType } from '../../../services/formationTypes';
+import type { SceneObject, Scene3DTool, CameraPreset, FieldType } from '../../../services/scene3d/types';
+import { FIELD_DIMENSIONS } from '../../../services/scene3d/types';
 import { FieldMesh } from './FieldMesh';
 import { PerformerInstances } from './PerformerInstances';
 import { SceneObjectRenderer } from './SceneObjectRenderer';
@@ -46,6 +47,17 @@ interface Formation3DViewProps {
   showGrid: boolean;
   showLabels: boolean;
   showShadows: boolean;
+  /** Animation playback */
+  currentTime?: number;
+  keyframes?: Keyframe[];
+  isAnimating?: boolean;
+  /** Camera preset to animate to */
+  cameraPreset?: CameraPreset | null;
+  /** Field type */
+  fieldType?: FieldType;
+  /** Custom field dimensions (used when fieldType is 'custom') */
+  customFieldWidth?: number;
+  customFieldLength?: number;
   /** Callbacks */
   onSelectObject: (id: string | null) => void;
   onUpdateObjectPosition: (id: string, position: { x?: number; y?: number; z?: number }) => void;
@@ -55,16 +67,117 @@ interface Formation3DViewProps {
 // Constants
 // ============================================================================
 
-// World scale: 1 unit = 1 yard. Football field = 120 x 53.33 yards
-const FIELD_LENGTH = 120;
-const FIELD_WIDTH = 53.33;
+// Default world scale: 1 unit = 1 yard. Football field = 120 x 53.33 yards
+const DEFAULT_FIELD_LENGTH = 120;
+const DEFAULT_FIELD_WIDTH = 53.33;
+
+/** Resolve field dimensions from field type */
+function getFieldDimensions(
+  fieldType: FieldType = 'football',
+  customLength?: number,
+  customWidth?: number
+): { length: number; width: number } {
+  if (fieldType === 'custom') {
+    return {
+      length: customLength ?? DEFAULT_FIELD_LENGTH,
+      width: customWidth ?? DEFAULT_FIELD_WIDTH,
+    };
+  }
+  const dims = FIELD_DIMENSIONS[fieldType];
+  return { length: dims.length, width: dims.width };
+}
 
 /** Convert normalized 0-100 position to world coordinates */
-function posToWorld(x: number, y: number) {
+function posToWorld(x: number, y: number, fieldLength: number, fieldWidth: number) {
   return {
-    wx: (x / 100) * FIELD_LENGTH - FIELD_LENGTH / 2,
-    wz: (y / 100) * FIELD_WIDTH - FIELD_WIDTH / 2,
+    wx: (x / 100) * fieldLength - fieldLength / 2,
+    wz: (y / 100) * fieldWidth - fieldWidth / 2,
   };
+}
+
+// ============================================================================
+// Animation helpers (matches formationService easing/interpolation logic)
+// ============================================================================
+
+function applyEasing(t: number, easing: TransitionType | undefined): number {
+  switch (easing) {
+    case 'ease':
+      return t * t * (3 - 2 * t);
+    case 'ease-in':
+      return t * t;
+    case 'ease-out':
+      return t * (2 - t);
+    case 'ease-in-out':
+      return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    case 'linear':
+    default:
+      return t;
+  }
+}
+
+function interpolateRotation(from: number, to: number, t: number): number {
+  let diff = to - from;
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+  return (from + diff * t + 360) % 360;
+}
+
+function interpolatePositions(
+  keyframes: Keyframe[],
+  currentTime: number
+): Map<string, Position> {
+  if (keyframes.length === 0) return new Map();
+
+  let prevKeyframe = keyframes[0];
+  let nextKeyframe = keyframes[0];
+
+  for (let i = 0; i < keyframes.length; i++) {
+    if (keyframes[i].timestamp <= currentTime) {
+      prevKeyframe = keyframes[i];
+    }
+    if (keyframes[i].timestamp >= currentTime) {
+      nextKeyframe = keyframes[i];
+      break;
+    }
+  }
+
+  if (prevKeyframe.id === nextKeyframe.id || prevKeyframe.timestamp === currentTime) {
+    return new Map(prevKeyframe.positions);
+  }
+
+  const progress =
+    (currentTime - prevKeyframe.timestamp) /
+    (nextKeyframe.timestamp - prevKeyframe.timestamp);
+  const easedProgress = applyEasing(progress, nextKeyframe.transition ?? 'linear');
+
+  const result = new Map<string, Position>();
+  const performerIds = new Set([
+    ...prevKeyframe.positions.keys(),
+    ...nextKeyframe.positions.keys(),
+  ]);
+
+  for (const performerId of performerIds) {
+    const prevPos = prevKeyframe.positions.get(performerId);
+    const nextPos = nextKeyframe.positions.get(performerId);
+
+    if (prevPos && nextPos) {
+      result.set(performerId, {
+        x: prevPos.x + (nextPos.x - prevPos.x) * easedProgress,
+        y: prevPos.y + (nextPos.y - prevPos.y) * easedProgress,
+        rotation: interpolateRotation(
+          prevPos.rotation ?? 0,
+          nextPos.rotation ?? 0,
+          easedProgress
+        ),
+      });
+    } else if (prevPos) {
+      result.set(performerId, { ...prevPos });
+    } else if (nextPos) {
+      result.set(performerId, { ...nextPos });
+    }
+  }
+
+  return result;
 }
 
 // ============================================================================
@@ -82,9 +195,29 @@ export function Formation3DView({
   showGrid,
   showLabels,
   showShadows,
+  currentTime,
+  keyframes,
+  isAnimating,
+  cameraPreset,
+  fieldType = 'football',
+  customFieldWidth,
+  customFieldLength,
   onSelectObject,
   onUpdateObjectPosition,
 }: Formation3DViewProps) {
+  const { length: fieldLength, width: fieldWidth } = useMemo(
+    () => getFieldDimensions(fieldType, customFieldLength, customFieldWidth),
+    [fieldType, customFieldLength, customFieldWidth]
+  );
+
+  // When animating, interpolate positions from keyframes; otherwise use static positions
+  const activePositions = useMemo(() => {
+    if (isAnimating && keyframes && keyframes.length > 0 && currentTime !== undefined) {
+      return interpolatePositions(keyframes, currentTime);
+    }
+    return positions;
+  }, [isAnimating, keyframes, currentTime, positions]);
+
   const selectedObject = useMemo(
     () => sceneObjects.find((o) => o.id === selectedObjectId) ?? null,
     [sceneObjects, selectedObjectId]
@@ -113,6 +246,9 @@ export function Formation3DView({
           target={[0, 0, 0]}
         />
 
+        {/* Camera preset animator */}
+        {cameraPreset && <CameraPresetAnimator preset={cameraPreset} />}
+
         {/* Lighting */}
         <ambientLight intensity={0.6} />
         <directionalLight
@@ -131,20 +267,22 @@ export function Formation3DView({
         <Suspense fallback={<LoadingIndicator />}>
           {/* Field */}
           <FieldMesh
-            length={FIELD_LENGTH}
-            width={FIELD_WIDTH}
+            length={fieldLength}
+            width={fieldWidth}
+            fieldType={fieldType}
             showGrid={showGrid}
           />
 
           {/* Performers (instanced for performance) */}
           <PerformerInstances
-            positions={positions}
+            positions={activePositions}
             performers={performers}
             stageWidth={stageWidth}
             stageHeight={stageHeight}
-            fieldLength={FIELD_LENGTH}
-            fieldWidth={FIELD_WIDTH}
+            fieldLength={fieldLength}
+            fieldWidth={fieldWidth}
             showLabels={showLabels}
+            isAnimating={isAnimating}
           />
 
           {/* Scene Objects */}
@@ -155,8 +293,8 @@ export function Formation3DView({
               isSelected={obj.id === selectedObjectId}
               stageWidth={stageWidth}
               stageHeight={stageHeight}
-              fieldLength={FIELD_LENGTH}
-              fieldWidth={FIELD_WIDTH}
+              fieldLength={fieldLength}
+              fieldWidth={fieldWidth}
               onSelect={() => onSelectObject(obj.id)}
             />
           ))}
@@ -170,8 +308,8 @@ export function Formation3DView({
               mode={transformMode}
               stageWidth={stageWidth}
               stageHeight={stageHeight}
-              fieldLength={FIELD_LENGTH}
-              fieldWidth={FIELD_WIDTH}
+              fieldLength={fieldLength}
+              fieldWidth={fieldWidth}
               onUpdate={onUpdateObjectPosition}
             />
           )}
@@ -184,6 +322,40 @@ export function Formation3DView({
 // ============================================================================
 // Sub-components
 // ============================================================================
+
+/** Smoothly animates the camera to a preset position using lerp each frame */
+function CameraPresetAnimator({ preset }: { preset: CameraPreset }) {
+  const { camera } = useThree();
+  const controlsRef = useThree((state) => state.controls) as unknown as {
+    target: THREE.Vector3;
+    update: () => void;
+  } | null;
+  const targetPos = useRef(new THREE.Vector3(...preset.position));
+  const targetLookAt = useRef(new THREE.Vector3(...preset.target));
+  const progress = useRef(0);
+
+  useEffect(() => {
+    targetPos.current.set(...preset.position);
+    targetLookAt.current.set(...preset.target);
+    progress.current = 0;
+  }, [preset]);
+
+  useFrame((_, delta) => {
+    if (progress.current >= 1) return;
+
+    progress.current = Math.min(progress.current + delta * 2, 1);
+    const t = progress.current * progress.current * (3 - 2 * progress.current); // smoothstep
+
+    camera.position.lerp(targetPos.current, t * 0.1 + 0.02);
+
+    if (controlsRef) {
+      controlsRef.target.lerp(targetLookAt.current, t * 0.1 + 0.02);
+      controlsRef.update();
+    }
+  });
+
+  return null;
+}
 
 function LoadingIndicator() {
   return (
@@ -218,9 +390,9 @@ function TransformGizmo({
   const meshRef = useRef<any>(null!);
 
   const worldPos = useMemo(() => {
-    const { wx, wz } = posToWorld(object.position.x, object.position.y);
+    const { wx, wz } = posToWorld(object.position.x, object.position.y, fieldLength, fieldWidth);
     return new THREE.Vector3(wx, object.position.z || 0, wz);
-  }, [object.position]);
+  }, [object.position, fieldLength, fieldWidth]);
 
   return (
     <TransformControls

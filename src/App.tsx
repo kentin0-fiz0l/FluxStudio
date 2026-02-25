@@ -27,8 +27,10 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { useTheme } from './hooks/useTheme';
 import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 import { HelmetProvider } from 'react-helmet-async';
+import { CookieConsent } from './components/ui/CookieConsent';
 
 import { useAuth, useAuthInit } from '@/store/slices/authSlice';
+import { useFeatureFlag } from './hooks/useFeatureFlag';
 import { AssetsProvider } from './contexts/AssetsContext';
 
 // All pages lazy loaded for smaller initial bundle
@@ -60,6 +62,7 @@ const { Component: DesignBoardPage } = lazyLoadWithRetry(() => import('./pages/D
 // Lazy load non-critical pages and components
 const { Component: Signup } = lazyLoadWithRetry(() => import('./pages/Signup'));
 const { Component: SignupWizard } = lazyLoadWithRetry(() => import('./pages/SignupWizard'));
+const { Component: OnboardingV2 } = lazyLoadWithRetry(() => import('./pages/OnboardingV2'));
 const { Component: EmailVerification } = lazyLoadWithRetry(() => import('./pages/EmailVerification'));
 const { Component: ForgotPassword } = lazyLoadWithRetry(() => import('./pages/ForgotPassword'));
 const { Component: ResetPassword } = lazyLoadWithRetry(() => import('./pages/ResetPassword'));
@@ -142,6 +145,12 @@ function RootRedirect() {
 
   // If not authenticated, show the landing page
   return <LandingPage />;
+}
+
+// Feature-flag-gated signup: shows OnboardingV2 when `onboarding_v2` is enabled
+function SignupGate() {
+  const isV2 = useFeatureFlag('onboarding_v2');
+  return isV2 ? <OnboardingV2 /> : <SignupWizard />;
 }
 
 // OAuth callback routes wrapper - minimal providers (only auth init)
@@ -243,7 +252,7 @@ function AuthenticatedRoutes() {
                   <Route path="/landing" element={<LandingPage />} />
 
                   {/* Lazy-loaded auth pages */}
-                  <Route path="/signup" element={<SignupWizard />} />
+                  <Route path="/signup" element={<SignupGate />} />
                   <Route path="/signup/classic" element={<Signup />} />
                   <Route path="/verify-email" element={<EmailVerification />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -441,6 +450,7 @@ export default function App() {
         </Router>
       </PersistQueryClientProvider>
     </ErrorBoundary>
+    <CookieConsent />
     </HelmetProvider>
   );
 }

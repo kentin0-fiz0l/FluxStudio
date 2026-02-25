@@ -211,7 +211,7 @@ class AdvancedRateLimiter {
         res.set({
           'X-RateLimit-Limit': result.limit.toString(),
           'X-RateLimit-Remaining': result.remaining.toString(),
-          'X-RateLimit-Reset': new Date(result.reset).toISOString()
+          'X-RateLimit-Reset': Math.ceil(result.reset / 1000).toString()
         });
 
         if (!result.allowed) {
@@ -288,7 +288,7 @@ class AdvancedRateLimiter {
         res.set({
           'X-RateLimit-Limit': result.limit.toString(),
           'X-RateLimit-Remaining': result.remaining.toString(),
-          'X-RateLimit-Reset': new Date(result.reset).toISOString()
+          'X-RateLimit-Reset': Math.ceil(result.reset / 1000).toString()
         });
 
         if (!result.allowed) {

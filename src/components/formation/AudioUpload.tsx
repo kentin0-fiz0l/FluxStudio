@@ -5,7 +5,7 @@
  * Extracts audio duration and handles upload to storage.
  */
 
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Music,
@@ -16,14 +16,19 @@ import {
   Volume2,
   VolumeX,
   AlertCircle,
+  Activity,
+  Edit3,
 } from 'lucide-react';
 import { AudioTrack } from '../../services/formationService';
 import { analyzeAudio } from '../../services/audioAnalysis';
+
+type BpmSource = 'auto' | 'manual' | 'tap';
 
 interface AudioUploadProps {
   audioTrack?: AudioTrack | null;
   onUpload: (audioTrack: AudioTrack) => Promise<void>;
   onRemove: () => Promise<void>;
+  onBpmChange?: (bpm: number, source: BpmSource) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -32,6 +37,7 @@ export function AudioUpload({
   audioTrack,
   onUpload,
   onRemove,
+  onBpmChange,
   disabled = false,
   className = '',
 }: AudioUploadProps) {
@@ -47,6 +53,30 @@ export function AudioUpload({
   // Preview state
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+
+  // BPM override state
+  const [bpmSource, setBpmSource] = useState<BpmSource>('auto');
+  const [overrideBpm, setOverrideBpm] = useState<number | null>(null);
+
+  // Tap tempo state
+  const [, setTapTimestamps] = useState<number[]>([]);
+  const [tapCount, setTapCount] = useState(0);
+  const tapResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reset BPM state when audio track changes
+  useEffect(() => {
+    setBpmSource('auto');
+    setOverrideBpm(null);
+    setTapTimestamps([]);
+    setTapCount(0);
+  }, [audioTrack?.id]);
+
+  // Cleanup tap reset timer
+  useEffect(() => {
+    return () => {
+      if (tapResetTimerRef.current) clearTimeout(tapResetTimerRef.current);
+    };
+  }, []);
 
   // Extract audio duration from file
   const getAudioDuration = (file: File): Promise<number> => {
@@ -179,6 +209,53 @@ export function AudioUpload({
     setIsMuted(!isMuted);
   }, [isMuted]);
 
+  // Current effective BPM
+  const currentBpm = overrideBpm ?? audioTrack?.bpm;
+
+  // Handle manual BPM input change
+  const handleBpmInput = useCallback((value: number) => {
+    const clamped = Math.min(300, Math.max(40, value));
+    setOverrideBpm(clamped);
+    setBpmSource('manual');
+    onBpmChange?.(clamped, 'manual');
+  }, [onBpmChange]);
+
+  // Handle tap tempo
+  const handleTap = useCallback(() => {
+    const now = Date.now();
+
+    // Clear existing reset timer
+    if (tapResetTimerRef.current) clearTimeout(tapResetTimerRef.current);
+
+    // Reset timer - clear taps after 3 seconds of inactivity
+    tapResetTimerRef.current = setTimeout(() => {
+      setTapTimestamps([]);
+      setTapCount(0);
+    }, 3000);
+
+    setTapTimestamps(prev => {
+      const updated = [...prev, now];
+      const newCount = updated.length;
+      setTapCount(newCount);
+
+      if (newCount >= 4) {
+        // Calculate average interval from all taps
+        const intervals: number[] = [];
+        for (let i = 1; i < updated.length; i++) {
+          intervals.push(updated[i] - updated[i - 1]);
+        }
+        const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+        const calculatedBpm = Math.round(60000 / avgInterval);
+        const clamped = Math.min(300, Math.max(40, calculatedBpm));
+
+        setOverrideBpm(clamped);
+        setBpmSource('tap');
+        onBpmChange?.(clamped, 'tap');
+      }
+      return updated;
+    });
+  }, [onBpmChange]);
+
   // Format duration
   const formatDuration = (ms: number): string => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -206,6 +283,23 @@ export function AudioUpload({
               {formatDuration(audioTrack.duration)}
             </p>
           </div>
+
+          {/* BPM source badge */}
+          {currentBpm && (
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+              bpmSource === 'auto'
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                : bpmSource === 'tap'
+                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                  : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+            }`}>
+              {bpmSource === 'auto'
+                ? t('audio.bpmAuto', 'Auto-detected')
+                : bpmSource === 'tap'
+                  ? t('audio.bpmTap', 'Tap Tempo')
+                  : t('audio.bpmManual', 'Manual')}
+            </span>
+          )}
 
           {/* Preview controls */}
           <button
@@ -238,6 +332,54 @@ export function AudioUpload({
             )}
           </button>
         </div>
+
+        {/* BPM controls */}
+        {(audioTrack.bpm || overrideBpm) && (
+          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              {/* BPM display and input */}
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-gray-400" aria-hidden="true" />
+                <label className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('audio.bpm', 'BPM')}
+                </label>
+                <input
+                  type="number"
+                  min={40}
+                  max={300}
+                  value={currentBpm ?? ''}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val)) handleBpmInput(val);
+                  }}
+                  className="w-16 px-2 py-1 text-sm text-center bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  aria-label={t('audio.bpmInput', 'BPM value')}
+                />
+              </div>
+
+              {/* Confidence indicator (only for auto-detected) */}
+              {bpmSource === 'auto' && audioTrack.bpmConfidence != null && (
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  {Math.round(audioTrack.bpmConfidence * 100)}% {t('audio.confidence', 'confidence')}
+                </span>
+              )}
+
+              <div className="flex-1" />
+
+              {/* Tap Tempo button */}
+              <button
+                onClick={handleTap}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                aria-label={t('audio.tapTempo', 'Tap Tempo')}
+              >
+                <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
+                {tapCount > 0 && tapCount < 4
+                  ? `${t('audio.tap', 'Tap')} ${tapCount}/4...`
+                  : t('audio.tapTempo', 'Tap Tempo')}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Hidden audio element for preview */}
         <audio

@@ -570,6 +570,35 @@ export function SettingsSkeleton() {
   );
 }
 
+/**
+ * Widget Skeleton — lightweight placeholder for lazy-loaded analytics widgets.
+ * Matches the rough dimensions of ProjectHealthDashboard, DeadlineRiskPanel,
+ * and TeamWorkloadPanel to minimize layout shift during code-split loading.
+ */
+export function WidgetSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn('space-y-3 animate-pulse', className)}
+      role="status"
+      aria-busy="true"
+      aria-label="Loading widget"
+    >
+      {/* Title bar */}
+      <div className="flex items-center justify-between">
+        <Skeleton animation="shimmer" className="h-4 w-28" />
+        <Skeleton animation="shimmer" className="h-4 w-16" />
+      </div>
+      {/* Content block */}
+      <Skeleton animation="shimmer" className="h-32 w-full rounded-lg" />
+      {/* Secondary content */}
+      <div className="grid grid-cols-2 gap-2">
+        <Skeleton animation="shimmer" className="h-14 rounded" />
+        <Skeleton animation="shimmer" className="h-14 rounded" />
+      </div>
+    </div>
+  );
+}
+
 export function LoadingScreen({ type, className }: LoadingScreenProps) {
   const components = {
     dashboard: DashboardSkeleton,

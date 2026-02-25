@@ -137,7 +137,8 @@ describe('Payments Integration Tests', () => {
     });
 
     it('should return no subscription when none exists', async () => {
-      query.mockResolvedValueOnce({ rows: [] });
+      query.mockResolvedValueOnce({ rows: [] }); // subscription query
+      query.mockResolvedValueOnce({ rows: [] }); // trial check query
 
       const res = await request(app)
         .get('/api/payments/subscription')

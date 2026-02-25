@@ -169,6 +169,7 @@ export function FormationCollaborationProvider({
     clearCursor: yjsResult.clearCursor,
     setSelectedPerformers: yjsResult.setSelectedPerformers,
     setDraggingPerformer: yjsResult.setDraggingPerformer,
+    setActiveKeyframe: yjsResult.setActiveKeyframe,
     isPerformerBeingDragged: yjsResult.isPerformerBeingDragged,
 
     // Y.UndoManager
@@ -176,6 +177,10 @@ export function FormationCollaborationProvider({
     yRedo: yjsResult.yRedo,
     canYUndo: yjsResult.canYUndo,
     canYRedo: yjsResult.canYRedo,
+
+    // Conflict tracking
+    conflicts: yjsResult.conflicts,
+    clearConflict: yjsResult.clearConflict,
 
     // Additional collaboration features
     isCollaborative: enabled && yjsResult.isConnected,

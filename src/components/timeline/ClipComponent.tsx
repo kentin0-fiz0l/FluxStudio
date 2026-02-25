@@ -117,7 +117,7 @@ export function ClipComponent({
       }}
       onMouseDown={handleMoveMouseDown}
       onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e as any); } }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e as unknown as React.MouseEvent); } }}
     >
       {/* Clip background */}
       <div className={`absolute inset-0 ${colorClass} ${track.muted ? 'opacity-50' : ''}`} />

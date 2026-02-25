@@ -36,6 +36,29 @@ import {
 // Types
 // ============================================================================
 
+/** Conflict event types for UX-level conflict detection */
+export type ConflictType =
+  | 'simultaneous-move'    // Two users moving the same performer
+  | 'performer-deleted'    // Performer deleted while being dragged locally
+  | 'keyframe-deleted';    // Keyframe deleted while being edited locally
+
+/** Represents a detected UX-level conflict */
+export interface ConflictEvent {
+  /** Unique ID for this conflict event */
+  id: string;
+  /** The performer or keyframe involved */
+  entityId: string;
+  /** Type of conflict */
+  type: ConflictType;
+  /** When the conflict was detected */
+  timestamp: number;
+  /** Additional context (e.g., who caused the remote change) */
+  remoteUserId?: string;
+}
+
+/** Duration in ms before a conflict auto-clears */
+const CONFLICT_AUTO_CLEAR_MS = 3000;
+
 export interface UseFormationYjsOptions {
   /** Project ID containing the formation */
   projectId: string;
@@ -102,6 +125,8 @@ export interface UseFormationYjsResult {
   setSelectedPerformers: (performerIds: string[]) => void;
   /** Set performer being dragged */
   setDraggingPerformer: (performerId: string | null) => void;
+  /** Set the keyframe currently being edited locally */
+  setActiveKeyframe: (keyframeId: string | null) => void;
   /** Check if another user is dragging a performer */
   isPerformerBeingDragged: (performerId: string) => { dragging: boolean; by?: FormationAwarenessState };
 
@@ -114,6 +139,12 @@ export interface UseFormationYjsResult {
   canYUndo: boolean;
   /** Whether collaborative redo is available */
   canYRedo: boolean;
+
+  // Conflict tracking
+  /** Active conflict events (auto-clear after 3 seconds) */
+  conflicts: ConflictEvent[];
+  /** Manually clear a conflict event by ID */
+  clearConflict: (conflictId: string) => void;
 }
 
 // ============================================================================
@@ -139,6 +170,14 @@ export function useFormationYjs({
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
 
+  // Conflict tracking state
+  const [conflicts, setConflicts] = useState<ConflictEvent[]>([]);
+  const conflictTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Track which performer the local user is currently dragging (via awareness)
+  const localDraggingRef = useRef<string | null>(null);
+  // Track which keyframe the local user is currently editing (via awareness)
+  const localActiveKeyframeRef = useRef<string | null>(null);
+
   // Refs for Yjs instances
   const docRef = useRef<Y.Doc | null>(null);
   const providerRef = useRef<WebsocketProvider | null>(null);
@@ -151,6 +190,49 @@ export function useFormationYjs({
 
   // User awareness state
   const userColor = useMemo(() => getUserColor(user?.id || 'anonymous'), [user?.id]);
+
+  // ============================================================================
+  // Conflict Management Helpers
+  // ============================================================================
+
+  const addConflict = useCallback((entityId: string, type: ConflictType, remoteUserId?: string) => {
+    const conflict: ConflictEvent = {
+      id: `conflict-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      entityId,
+      type,
+      timestamp: Date.now(),
+      remoteUserId,
+    };
+
+    setConflicts((prev) => [...prev, conflict]);
+
+    // Auto-clear after CONFLICT_AUTO_CLEAR_MS
+    const timer = setTimeout(() => {
+      setConflicts((prev) => prev.filter((c) => c.id !== conflict.id));
+      conflictTimersRef.current.delete(conflict.id);
+    }, CONFLICT_AUTO_CLEAR_MS);
+
+    conflictTimersRef.current.set(conflict.id, timer);
+
+    return conflict;
+  }, []);
+
+  const clearConflict = useCallback((conflictId: string) => {
+    setConflicts((prev) => prev.filter((c) => c.id !== conflictId));
+    const timer = conflictTimersRef.current.get(conflictId);
+    if (timer) {
+      clearTimeout(timer);
+      conflictTimersRef.current.delete(conflictId);
+    }
+  }, []);
+
+  // Cleanup all conflict timers on unmount
+  useEffect(() => {
+    return () => {
+      conflictTimersRef.current.forEach((timer) => clearTimeout(timer));
+      conflictTimersRef.current.clear();
+    };
+  }, []);
 
   // ============================================================================
   // Initialize Yjs Document
@@ -324,6 +406,106 @@ export function useFormationYjs({
     performers.observeDeep(observer);
     keyframes.observeDeep(observer);
 
+    // ---------------------------------------------------------------
+    // Conflict Detection via Snapshots
+    // ---------------------------------------------------------------
+    // Before each remote update, snapshot the relevant state so we can
+    // compare after the update to detect conflicts with local interactions.
+
+    // Take a snapshot of performer IDs and keyframe IDs present in the doc
+    const snapshotPerformerIds = (): Set<string> => {
+      const ids = new Set<string>();
+      performers.forEach((_, key) => ids.add(key as string));
+      return ids;
+    };
+
+    const snapshotKeyframeIds = (): Set<string> => {
+      const ids = new Set<string>();
+      for (let i = 0; i < keyframes.length; i++) {
+        const kf = keyframes.get(i) as Y.Map<unknown>;
+        const id = kf.get('id') as string;
+        if (id) ids.add(id);
+      }
+      return ids;
+    };
+
+    let prevPerformerIds = snapshotPerformerIds();
+    let prevKeyframeIds = snapshotKeyframeIds();
+
+    // Conflict-aware observer that runs on every change (local or remote)
+    // Uses the update tracker origin to distinguish local vs remote
+    const conflictCheckObserver = () => {
+      const dragging = localDraggingRef.current;
+      const activeKeyframe = localActiveKeyframeRef.current;
+
+      if (!dragging && !activeKeyframe) {
+        // Update snapshots even when not interacting
+        prevPerformerIds = snapshotPerformerIds();
+        prevKeyframeIds = snapshotKeyframeIds();
+        return;
+      }
+
+      const currentPerformerIds = snapshotPerformerIds();
+      const currentKeyframeIds = snapshotKeyframeIds();
+
+      // Check if the performer we're dragging was deleted
+      if (dragging && prevPerformerIds.has(dragging) && !currentPerformerIds.has(dragging)) {
+        addConflict(dragging, 'performer-deleted');
+        // Cancel the local drag
+        localDraggingRef.current = null;
+        const currentState = wsProvider.awareness.getLocalState() || {};
+        wsProvider.awareness.setLocalState({
+          ...currentState,
+          draggingPerformerId: null,
+          lastActivity: Date.now(),
+        });
+      }
+
+      // Check if the active keyframe was deleted
+      if (activeKeyframe && prevKeyframeIds.has(activeKeyframe) && !currentKeyframeIds.has(activeKeyframe)) {
+        addConflict(activeKeyframe, 'keyframe-deleted');
+        localActiveKeyframeRef.current = null;
+        const currentState = wsProvider.awareness.getLocalState() || {};
+        wsProvider.awareness.setLocalState({
+          ...currentState,
+          activeKeyframeId: null,
+          lastActivity: Date.now(),
+        });
+      }
+
+      prevPerformerIds = currentPerformerIds;
+      prevKeyframeIds = currentKeyframeIds;
+    };
+
+    performers.observeDeep(conflictCheckObserver);
+    keyframes.observeDeep(conflictCheckObserver);
+
+    // Detect simultaneous move: when a remote update changes position of
+    // the performer we are currently dragging. We use doc.on('update') because
+    // it gives us origin information to distinguish local vs remote.
+    const simultaneousMoveTracker = (_update: Uint8Array, origin: unknown) => {
+      const dragging = localDraggingRef.current;
+      if (!dragging) return;
+
+      // Only check remote updates (origin is not null/undefined/'local')
+      const isLocal = origin === null || origin === undefined || origin === 'local';
+      if (isLocal) return;
+
+      // A remote update came in while we're dragging. We can't easily
+      // inspect the Yjs update contents without decoding, so instead we
+      // check awareness: if another user is also dragging the same performer,
+      // that's a simultaneous move conflict.
+      const states = wsProvider.awareness.getStates();
+      states.forEach((state, clientId) => {
+        if (clientId === wsProvider.awareness.clientID) return;
+        const awarenessState = state as FormationAwarenessState;
+        if (awarenessState.draggingPerformerId === dragging) {
+          addConflict(dragging, 'simultaneous-move', awarenessState.user?.id);
+        }
+      });
+    };
+    ydoc.on('update', simultaneousMoveTracker);
+
     // Setup Y.UndoManager for per-user undo/redo
     const undoManager = new Y.UndoManager([performers, keyframes], {
       trackedOrigins: new Set([null, undefined]),
@@ -345,9 +527,12 @@ export function useFormationYjs({
       undoManagerRef.current = null;
 
       ydoc.off('update', updateTracker);
+      ydoc.off('update', simultaneousMoveTracker);
       meta.unobserveDeep(observer);
       performers.unobserveDeep(observer);
       keyframes.unobserveDeep(observer);
+      performers.unobserveDeep(conflictCheckObserver);
+      keyframes.unobserveDeep(conflictCheckObserver);
 
       wsProvider.destroy();
       persistence.destroy();
@@ -806,11 +991,31 @@ export function useFormationYjs({
     const provider = providerRef.current;
     if (!provider) return;
 
+    // Track locally for conflict detection
+    localDraggingRef.current = performerId;
+
     // Use atomic state update for proper broadcast
     const currentState = provider.awareness.getLocalState() || {};
     provider.awareness.setLocalState({
       ...currentState,
       draggingPerformerId: performerId,
+      lastActivity: Date.now(),
+    });
+  }, []);
+
+  const setActiveKeyframe = useCallback((keyframeId: string | null) => {
+    const provider = providerRef.current;
+
+    // Track locally for conflict detection
+    localActiveKeyframeRef.current = keyframeId;
+
+    if (!provider) return;
+
+    // Broadcast to other users
+    const currentState = provider.awareness.getLocalState() || {};
+    provider.awareness.setLocalState({
+      ...currentState,
+      activeKeyframeId: keyframeId,
       lastActivity: Date.now(),
     });
   }, []);
@@ -867,6 +1072,7 @@ export function useFormationYjs({
     clearCursor,
     setSelectedPerformers,
     setDraggingPerformer,
+    setActiveKeyframe,
     isPerformerBeingDragged,
 
     // Y.UndoManager
@@ -874,6 +1080,10 @@ export function useFormationYjs({
     yRedo,
     canYUndo,
     canYRedo,
+
+    // Conflict tracking
+    conflicts,
+    clearConflict,
   };
 }
 

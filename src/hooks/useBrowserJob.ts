@@ -3,7 +3,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import apiService from '../services/api';
+import { apiService } from '../services/api';
 
 interface BrowserJob {
   id: string;
@@ -20,7 +20,7 @@ export function useBrowserJob(jobId: string | null) {
   return useQuery({
     queryKey: ['browser-job', jobId],
     queryFn: async () => {
-      const response = await (apiService as any).getJobStatus(jobId!);
+      const response = await apiService.getJobStatus(jobId!) as { data?: { job: BrowserJob } };
       return response.data?.job as BrowserJob;
     },
     enabled: !!jobId,

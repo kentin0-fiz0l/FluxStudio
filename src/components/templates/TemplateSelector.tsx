@@ -40,6 +40,7 @@ import {
   CreateFromTemplateOptions,
 } from '@/services/templates/types';
 import { cn } from '@/lib/utils';
+import { observability } from '@/services/observability';
 
 interface TemplateSelectorProps {
   onSelect: (options: CreateFromTemplateOptions) => void;
@@ -104,6 +105,13 @@ export function TemplateSelector({
 
   const handleCreate = () => {
     if (!selectedTemplate) return;
+
+    observability.analytics.track('template_used', {
+      templateId: selectedTemplate.id,
+      templateName: selectedTemplate.name,
+      category: selectedTemplate.category,
+      source: 'project_template_selector',
+    });
 
     onSelect({
       templateId: selectedTemplate.id,

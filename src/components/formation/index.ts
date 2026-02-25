@@ -11,6 +11,8 @@ export { ExportDialog } from './ExportDialog';
 export { AudioUpload } from './AudioUpload';
 export { PathOverlay } from './PathOverlay';
 export { TemplatePicker } from './TemplatePicker';
+export { TemplateGallery } from './TemplateGallery';
+export type { FormationTemplate, TemplateGalleryProps } from './TemplateGallery';
 export { FormationCursorOverlay } from './FormationCursorOverlay';
 export type { FormationCursorOverlayProps } from './FormationCursorOverlay';
 export { ViewToggle } from './ViewToggle';

@@ -12,7 +12,134 @@
  * - Detail level adapts to "clarity" (how focused vs uncertain the discussion is)
  */
 
+const Anthropic = require('@anthropic-ai/sdk');
 const { query } = require('../database/config');
+
+// =============================================================================
+// AI USAGE TRACKING & RATE LIMITING
+// =============================================================================
+
+/**
+ * In-memory AI usage log for cost tracking.
+ * Each entry: { userId, model, inputTokens, outputTokens, timestamp, endpoint }
+ * Can be persisted to DB later.
+ */
+const ai_usage_logs = [];
+
+/**
+ * Log token usage for an AI request
+ *
+ * @param {Object} params
+ * @param {string} params.userId - User who made the request
+ * @param {string} params.model - Model used (e.g. 'claude-sonnet-4-5-20250929')
+ * @param {number} params.inputTokens - Input tokens consumed
+ * @param {number} params.outputTokens - Output tokens consumed
+ * @param {string} [params.endpoint] - Which endpoint/feature triggered the call
+ */
+function logAiUsage({ userId, model, inputTokens, outputTokens, endpoint = 'summary' }) {
+  const entry = {
+    userId: userId || 'system',
+    model,
+    inputTokens: inputTokens || 0,
+    outputTokens: outputTokens || 0,
+    totalTokens: (inputTokens || 0) + (outputTokens || 0),
+    timestamp: new Date().toISOString(),
+    endpoint,
+  };
+  ai_usage_logs.push(entry);
+
+  // Keep log bounded to last 10,000 entries to prevent memory growth
+  if (ai_usage_logs.length > 10000) {
+    ai_usage_logs.splice(0, ai_usage_logs.length - 10000);
+  }
+
+  console.log(
+    `[AI Usage] user=${entry.userId} model=${entry.model} ` +
+    `input=${entry.inputTokens} output=${entry.outputTokens} ` +
+    `total=${entry.totalTokens} endpoint=${entry.endpoint}`
+  );
+}
+
+/**
+ * Get usage logs, optionally filtered by userId
+ *
+ * @param {string} [userId] - Filter by user
+ * @param {number} [limit=100] - Max entries to return
+ * @returns {Array} Usage log entries
+ */
+function getAiUsageLogs(userId, limit = 100) {
+  let logs = ai_usage_logs;
+  if (userId) {
+    logs = logs.filter(l => l.userId === userId);
+  }
+  return logs.slice(-limit);
+}
+
+/**
+ * In-memory rate limiter for AI summary requests.
+ * Map of userId -> array of request timestamps.
+ * 10 requests per minute per user.
+ */
+const summaryRateLimiter = new Map();
+const SUMMARY_RATE_LIMIT_MAX = 10;
+const SUMMARY_RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+
+/**
+ * Check if a user is rate limited for summary generation
+ *
+ * @param {string} userId
+ * @returns {{ allowed: boolean, retryAfterMs?: number, remaining: number }}
+ */
+function checkSummaryRateLimit(userId) {
+  if (!userId) return { allowed: true, remaining: SUMMARY_RATE_LIMIT_MAX };
+
+  const now = Date.now();
+  let timestamps = summaryRateLimiter.get(userId) || [];
+
+  // Remove timestamps outside the window
+  timestamps = timestamps.filter(t => now - t < SUMMARY_RATE_LIMIT_WINDOW_MS);
+  summaryRateLimiter.set(userId, timestamps);
+
+  if (timestamps.length >= SUMMARY_RATE_LIMIT_MAX) {
+    const oldestInWindow = timestamps[0];
+    const retryAfterMs = SUMMARY_RATE_LIMIT_WINDOW_MS - (now - oldestInWindow);
+    return {
+      allowed: false,
+      retryAfterMs,
+      remaining: 0,
+    };
+  }
+
+  return {
+    allowed: true,
+    remaining: SUMMARY_RATE_LIMIT_MAX - timestamps.length,
+  };
+}
+
+/**
+ * Record a rate limit hit for a user
+ * @param {string} userId
+ */
+function recordSummaryRequest(userId) {
+  if (!userId) return;
+  const timestamps = summaryRateLimiter.get(userId) || [];
+  timestamps.push(Date.now());
+  summaryRateLimiter.set(userId, timestamps);
+}
+
+// Periodically clean up stale rate limiter entries (every 5 minutes)
+const _rateLimiterCleanup = setInterval(() => {
+  const now = Date.now();
+  for (const [userId, timestamps] of summaryRateLimiter.entries()) {
+    const active = timestamps.filter(t => now - t < SUMMARY_RATE_LIMIT_WINDOW_MS);
+    if (active.length === 0) {
+      summaryRateLimiter.delete(userId);
+    } else {
+      summaryRateLimiter.set(userId, active);
+    }
+  }
+}, 5 * 60 * 1000);
+if (_rateLimiterCleanup.unref) _rateLimiterCleanup.unref();
 
 // =============================================================================
 // TYPES & CONSTANTS
@@ -435,17 +562,31 @@ class AnthropicAIProvider {
   constructor(apiKey) {
     this.name = 'ai-anthropic';
     this.apiKey = apiKey;
+    this.client = apiKey ? new Anthropic({ apiKey }) : null;
+    this.model = 'claude-sonnet-4-5-20250929';
   }
 
   isEnabled() {
-    return !!this.apiKey && process.env.AI_SUMMARIES_ENABLED === 'true';
+    return !!this.apiKey && !!this.client && process.env.AI_SUMMARIES_ENABLED === 'true';
   }
 
-  async generateSummary({ messages, projectMeta, pulseTone, clarityState }) {
+  async generateSummary({ messages, projectMeta, pulseTone, clarityState, userId }) {
     if (!this.isEnabled()) {
       // Fallback to disabled provider
       const disabled = new DisabledAIProvider();
       return disabled.generateSummary({ messages, projectMeta, pulseTone, clarityState });
+    }
+
+    // Check rate limit
+    const rateLimitResult = checkSummaryRateLimit(userId);
+    if (!rateLimitResult.allowed) {
+      const retryAfterSec = Math.ceil((rateLimitResult.retryAfterMs || 60000) / 1000);
+      return {
+        success: false,
+        error: `Rate limit exceeded. Try again in ${retryAfterSec} seconds.`,
+        retryAfter: retryAfterSec,
+        generatedBy: 'rate-limited',
+      };
     }
 
     const metrics = extractSignalMetrics(messages);
@@ -457,27 +598,28 @@ class AnthropicAIProvider {
     });
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1024,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userPrompt }],
-        }),
+      // Record the request for rate limiting
+      recordSummaryRequest(userId);
+
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
       });
 
-      if (!response.ok) {
-        throw new Error(`Anthropic API error: ${response.status}`);
-      }
+      const content = response.content?.[0]?.text || '{}';
 
-      const data = await response.json();
-      const content = data.content?.[0]?.text || '{}';
+      // Log token usage
+      const inputTokens = response.usage?.input_tokens || 0;
+      const outputTokens = response.usage?.output_tokens || 0;
+      logAiUsage({
+        userId,
+        model: this.model,
+        inputTokens,
+        outputTokens,
+        endpoint: 'summary',
+      });
 
       // Parse JSON response
       let summary;
@@ -501,20 +643,61 @@ class AnthropicAIProvider {
         pulseTone,
         clarityState,
         signalMetrics: metrics,
+        tokensUsed: { input: inputTokens, output: outputTokens },
       };
     } catch (error) {
-      console.error('[AI Summary] Anthropic API error:', error.message);
+      // Classify and handle specific API errors
+      const errorMessage = sanitizeApiError(error);
+      console.error('[AI Summary] Anthropic API error:', errorMessage);
 
       // Graceful fallback
       const disabled = new DisabledAIProvider();
       const fallback = await disabled.generateSummary({ messages, projectMeta, pulseTone, clarityState });
       return {
         ...fallback,
-        error: error.message,
+        error: errorMessage,
         generatedBy: 'disabled-fallback',
       };
     }
   }
+}
+
+/**
+ * Sanitize API errors to never expose the API key or sensitive details
+ *
+ * @param {Error} error
+ * @returns {string} Safe error message
+ */
+function sanitizeApiError(error) {
+  if (!error) return 'Unknown AI service error';
+
+  const message = error.message || '';
+  const status = error.status || error.statusCode;
+
+  // Handle specific Anthropic SDK error types
+  if (status === 401) {
+    return 'AI service authentication failed. Please check the API key configuration.';
+  }
+  if (status === 429) {
+    return 'AI service rate limit exceeded. Please try again later.';
+  }
+  if (status === 500 || status === 503) {
+    return 'AI service is temporarily unavailable. Please try again later.';
+  }
+  if (status === 529) {
+    return 'AI service is overloaded. Please try again later.';
+  }
+  if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+    return 'Unable to reach AI service. Please check network connectivity.';
+  }
+
+  // Strip any potential API key leaks from error messages
+  const sanitized = message
+    .replace(/sk-ant-[a-zA-Z0-9_-]+/g, '[REDACTED]')
+    .replace(/x-api-key[:\s]*[^\s]+/gi, 'x-api-key: [REDACTED]')
+    .replace(/api[_-]?key[:\s]*[^\s]+/gi, 'api_key: [REDACTED]');
+
+  return sanitized || 'AI service error';
 }
 
 // =============================================================================
@@ -547,9 +730,10 @@ class AISummaryService {
    * @param {string} [params.projectId]
    * @param {Object} [params.projectMeta] - {name, goal}
    * @param {Array} params.messages - Messages to summarize
+   * @param {string} [params.userId] - User requesting the summary (for rate limiting & tracking)
    * @returns {Promise<Object>} Summary result
    */
-  async generateSummary({ conversationId, projectId, projectMeta, messages }) {
+  async generateSummary({ conversationId, projectId, projectMeta, messages, userId }) {
     if (!messages || messages.length < THRESHOLDS.MIN_MESSAGES_FOR_SUMMARY) {
       return {
         success: false,
@@ -569,6 +753,7 @@ class AISummaryService {
       projectMeta,
       pulseTone,
       clarityState,
+      userId,
     });
 
     return {
@@ -696,4 +881,11 @@ module.exports = {
   derivePulseTone,
   buildSummaryPrompt,
   THRESHOLDS,
+  // Rate limiting & usage tracking
+  checkSummaryRateLimit,
+  recordSummaryRequest,
+  logAiUsage,
+  getAiUsageLogs,
+  ai_usage_logs,
+  sanitizeApiError,
 };

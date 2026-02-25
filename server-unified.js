@@ -34,6 +34,7 @@ const { config } = require('./config/environment');
 const { rateLimit, authRateLimit, printRateLimit, cors, helmet, validateInput, securityErrorHandler, auditLogger, traceIdMiddleware } = require('./middleware/security');
 const { csrfProtection, getCsrfToken } = require('./middleware/csrf');
 const { cachingMiddleware, staticAssetCaching, configuredApiCaching } = require('./middleware/caching');
+const { apiVersionMiddleware } = require('./middleware/apiVersion');
 const cookieParser = require('cookie-parser');
 
 // Import performance monitoring
@@ -351,6 +352,7 @@ app.use(ipRateLimiters.global());
 
 // Security middleware (applied first)
 app.use(traceIdMiddleware); // Generate unique trace ID for each request
+app.use(apiVersionMiddleware); // Set X-API-Version on every response
 app.use(helmet);
 app.use(cors);
 app.use(auditLogger);

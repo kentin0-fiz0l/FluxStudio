@@ -118,6 +118,15 @@ postgresql://username:password@host:5432/database_name?sslmode=require
 | `SMTP_PASS` | No | - | SMTP password |
 | `EMAIL_FROM` | No | `noreply@fluxstudio.art` | Default sender email address |
 
+### AI Services (Anthropic / Claude)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `ANTHROPIC_API_KEY` | No | - | Anthropic API key for Claude AI features (design review, code generation, summaries) |
+| `AI_SUMMARIES_ENABLED` | No | `false` | Enable AI-powered conversation summaries (`true` to enable) |
+
+> **Note**: AI endpoints will return helpful error messages when `ANTHROPIC_API_KEY` is not set. Some endpoints (like project structure generation) will fall back to local heuristics. The default model used is `claude-sonnet-4-5-20250929` for cost-effectiveness.
+
 ### External Services
 
 #### Stripe (Payments)

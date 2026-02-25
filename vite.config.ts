@@ -293,10 +293,11 @@
               return 'feature-admin';
             }
 
-            // Analytics components (dashboard widgets)
-            if (id.includes('/src/components/analytics/')) {
-              return 'feature-analytics';
-            }
+            // Analytics components — let Rollup handle naturally.
+            // Each analytics panel (ProjectHealthDashboard, DeadlineRiskPanel,
+            // TeamWorkloadPanel) is lazy-loaded via React.lazy() in ProjectDetail,
+            // so Vite splits them into separate chunks automatically.
+            // Manual grouping forced them into a single 300KB+ chunk.
 
             // Collaboration components (uses Yjs)
             if (id.includes('/src/components/collaboration/')) {

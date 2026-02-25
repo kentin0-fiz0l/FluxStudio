@@ -220,7 +220,7 @@ export function ScreenShare({
         tabIndex={0}
         className="flex-1 flex items-center justify-center relative"
         onClick={handleCanvasClick}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCanvasClick(e as any); } }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCanvasClick(e as unknown as React.MouseEvent<HTMLDivElement>); } }}
       >
         <video
           ref={videoRef}

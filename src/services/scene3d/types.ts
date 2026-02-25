@@ -192,6 +192,43 @@ export const DEFAULT_SCENE_SETTINGS: Scene3DSettings = {
 export type FormationViewMode = '2d' | '3d' | 'split';
 
 // ============================================================================
+// Camera Presets
+// ============================================================================
+
+export type CameraPresetId = 'press-box' | 'sideline' | 'corner' | 'audience';
+
+export interface CameraPreset {
+  id: CameraPresetId;
+  label: string;
+  position: [number, number, number];
+  target: [number, number, number];
+}
+
+export const CAMERA_PRESETS: CameraPreset[] = [
+  { id: 'press-box', label: 'Press Box', position: [0, 120, 0], target: [0, 0, 0] },
+  { id: 'sideline', label: 'Sideline', position: [0, 30, 80], target: [0, 0, 0] },
+  { id: 'corner', label: 'Corner', position: [60, 40, 40], target: [0, 0, 0] },
+  { id: 'audience', label: 'Audience POV', position: [0, 15, 60], target: [0, 5, 0] },
+];
+
+// ============================================================================
+// Field Types
+// ============================================================================
+
+export type FieldType = 'football' | 'indoor' | 'gymnasium' | 'custom';
+
+export interface FieldDimensions {
+  length: number;
+  width: number;
+}
+
+export const FIELD_DIMENSIONS: Record<Exclude<FieldType, 'custom'>, FieldDimensions> = {
+  football: { length: 120, width: 53.33 },
+  indoor: { length: 80, width: 40 },
+  gymnasium: { length: 31.33, width: 16.67 },  // 94x50 feet converted to yards
+};
+
+// ============================================================================
 // Poly Count Limits
 // ============================================================================
 

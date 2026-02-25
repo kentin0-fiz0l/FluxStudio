@@ -64,7 +64,7 @@ const DeadlineRiskPanel = React.lazy(() =>
 const TeamWorkloadPanel = React.lazy(() =>
   import('@/components/analytics/TeamWorkloadPanel').then(m => ({ default: m.TeamWorkloadPanel }))
 );
-import { ProjectDetailSkeleton } from '@/components/loading/LoadingStates';
+import { ProjectDetailSkeleton, WidgetSkeleton } from '@/components/loading/LoadingStates';
 
 const TabLoadingFallback = () => (
   <div className="flex items-center justify-center py-12">
@@ -469,17 +469,21 @@ export const ProjectDetail = () => {
           {activeTab === 'analytics' && (
             <div className="h-full overflow-y-auto p-6" role="tabpanel" id="analytics-panel" aria-labelledby="analytics-tab" tabIndex={0}>
               <div role="status" aria-live="polite" className="sr-only">Showing {tabLabels.analytics} tab</div>
-              <React.Suspense fallback={<TabLoadingFallback />}>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2">
-                    <ProjectHealthDashboard projectId={id || ''} />
+                    <React.Suspense fallback={<WidgetSkeleton />}>
+                      <ProjectHealthDashboard projectId={id || ''} />
+                    </React.Suspense>
                   </div>
                   <div className="space-y-6">
-                    <DeadlineRiskPanel projectId={id || ''} />
-                    <TeamWorkloadPanel teamId={project.teamId || project.organizationId || ''} />
+                    <React.Suspense fallback={<WidgetSkeleton />}>
+                      <DeadlineRiskPanel projectId={id || ''} />
+                    </React.Suspense>
+                    <React.Suspense fallback={<WidgetSkeleton />}>
+                      <TeamWorkloadPanel teamId={project.teamId || project.organizationId || ''} />
+                    </React.Suspense>
                   </div>
                 </div>
-              </React.Suspense>
             </div>
           )}
 

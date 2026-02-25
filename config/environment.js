@@ -88,6 +88,10 @@ const config = {
   SMTP_PASS: process.env.SMTP_PASS,
   EMAIL_FROM: process.env.EMAIL_FROM || 'noreply@fluxstudio.art',
 
+  // AI Services
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  AI_SUMMARIES_ENABLED: process.env.AI_SUMMARIES_ENABLED === 'true',
+
   // Monitoring
   SENTRY_DSN: process.env.SENTRY_DSN,
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
@@ -143,6 +147,7 @@ function initializeEnvironment() {
     delete safeConfig.GOOGLE_CLIENT_SECRET;
     delete safeConfig.APPLE_PRIVATE_KEY;
     delete safeConfig.SMTP_PASS;
+    delete safeConfig.ANTHROPIC_API_KEY;
 
     console.log('📋 Configuration:', JSON.stringify(safeConfig, null, 2));
   }

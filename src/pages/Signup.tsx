@@ -86,7 +86,7 @@ export function Signup() {
 
     try {
       await signup(email, password, name, 'designer');
-      observability.analytics.track('signup_completed', { method: 'email' });
+      observability.analytics.track('signup_complete', { method: 'email' });
       navigate(callbackUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');

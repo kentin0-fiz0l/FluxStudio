@@ -7,7 +7,7 @@ settings:
 overrides:
   '@types/react': ^18.3.18
   '@types/react-dom': ^18.3.5
-  tar: '>=7.5.8'
+  tar: ^7.5.8
   lodash: '>=4.17.23'
   minimatch: '>=10.2.1'
 
@@ -361,10 +361,10 @@ importers:
         specifier: ^3.3.1
         version: 3.4.0
       tar:
-        specifier: '>=7.5.8'
+        specifier: ^7.5.8
         version: 7.5.9
       three:
-        specifier: ^0.180.0
+        specifier: 0.180.0
         version: 0.180.0
       use-debounce:
         specifier: ^10.0.6
@@ -417,10 +417,13 @@ importers:
     devDependencies:
       '@axe-core/playwright':
         specifier: ^4.10.0
-        version: 4.11.0(playwright-core@1.57.0)
+        version: 4.11.0(playwright-core@1.58.2)
       '@eslint/js':
         specifier: ^9.37.0
         version: 9.39.2
+      '@playwright/test':
+        specifier: ^1.58.2
+        version: 1.58.2
       '@testing-library/dom':
         specifier: ^10.4.1
         version: 10.4.1
@@ -2317,6 +2320,11 @@ packages:
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
+
+  '@playwright/test@1.58.2':
+    resolution: {integrity: sha512-akea+6bHYBBfA9uQqSYmlJXn61cTa+jbO87xVLCWbTqbWadRVmhxlXATaOjOgcBaWU4ePo0wB41KMFv3o35IXA==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
@@ -5267,6 +5275,11 @@ packages:
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -6699,8 +6712,13 @@ packages:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
 
-  playwright-core@1.57.0:
-    resolution: {integrity: sha512-agTcKlMw/mjBWOnD6kFZttAAGHgi/Nw0CZ2o6JqWSbMlI219lAFLZZCyqByTsvVAJq5XA5H8cA6PrvBRpBWEuQ==}
+  playwright-core@1.58.2:
+    resolution: {integrity: sha512-yZkEtftgwS8CsfYo7nm0KE8jsvm6i/PTgVtB8DL726wNf6H2IMsDuxCpJj59KDaxCtSnrWan2AeDqM7JBaultg==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.58.2:
+    resolution: {integrity: sha512-vA30H8Nvkq/cPBnNw4Q8TWz1EJyqgpuinBcHET0YVJVFldr8JDNiU9LaWAE1KqSkRYazuaBhTpB5ZzShOezQ6A==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -8651,10 +8669,10 @@ snapshots:
 
   '@asamuzakjp/nwsapi@2.3.9': {}
 
-  '@axe-core/playwright@4.11.0(playwright-core@1.57.0)':
+  '@axe-core/playwright@4.11.0(playwright-core@1.58.2)':
     dependencies:
       axe-core: 4.11.1
-      playwright-core: 1.57.0
+      playwright-core: 1.58.2
 
   '@babel/code-frame@7.28.6':
     dependencies:
@@ -10480,6 +10498,10 @@ snapshots:
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
+
+  '@playwright/test@1.58.2':
+    dependencies:
+      playwright: 1.58.2
 
   '@polka/url@1.0.0-next.29': {}
 
@@ -13775,6 +13797,9 @@ snapshots:
 
   fs.realpath@1.0.0: {}
 
+  fsevents@2.3.2:
+    optional: true
+
   fsevents@2.3.3:
     optional: true
 
@@ -15456,7 +15481,13 @@ snapshots:
     dependencies:
       find-up: 4.1.0
 
-  playwright-core@1.57.0: {}
+  playwright-core@1.58.2: {}
+
+  playwright@1.58.2:
+    dependencies:
+      playwright-core: 1.58.2
+    optionalDependencies:
+      fsevents: 2.3.2
 
   pngjs@5.0.0: {}
 

@@ -76,6 +76,7 @@ export interface YjsKeyframe {
   timestamp: number;
   transition: TransitionType;
   duration: number;
+  beatBinding?: { beatIndex: number; snapResolution: 'beat' | 'half-beat' | 'measure' };
   // positions are stored as a nested Y.Map
 }
 
@@ -219,26 +220,38 @@ export function yMapToKeyframe(yMap: Y.Map<unknown>): Keyframe {
     });
   }
 
-  return {
+  const beatBindingRaw = yMap.get('beatBinding') as { beatIndex: number; snapResolution: 'beat' | 'half-beat' | 'measure' } | undefined;
+
+  const keyframe: Keyframe = {
     id: yMap.get('id') as string,
     timestamp: yMap.get('timestamp') as number,
     transition: (yMap.get('transition') as TransitionType) || 'linear',
     duration: yMap.get('duration') as number || 500,
     positions,
   };
+
+  if (beatBindingRaw) {
+    keyframe.beatBinding = beatBindingRaw;
+  }
+
+  return keyframe;
 }
 
 /**
  * Convert a Keyframe object to Yjs map entries
  */
 export function keyframeToYMapEntries(keyframe: Keyframe): [string, unknown][] {
-  return [
+  const entries: [string, unknown][] = [
     ['id', keyframe.id],
     ['timestamp', keyframe.timestamp],
     ['transition', keyframe.transition],
     ['duration', keyframe.duration],
     // positions are handled separately as a nested Y.Map
   ];
+  if (keyframe.beatBinding) {
+    entries.push(['beatBinding', keyframe.beatBinding]);
+  }
+  return entries;
 }
 
 /**

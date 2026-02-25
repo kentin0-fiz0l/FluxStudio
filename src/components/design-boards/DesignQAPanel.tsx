@@ -30,12 +30,12 @@ export function DesignQAPanel() {
     if (!baselineAssetId.trim() || !liveUrl.trim()) return;
 
     try {
-      const { default: apiService } = await import('../../services/api');
-      const result = await (apiService as any).runDesignQa(
+      const { apiService } = await import('../../services/api');
+      const result = await apiService.runDesignQa(
         liveUrl.trim(),
         baselineAssetId.trim(),
-      );
-      setJobId(result.data?.jobId);
+      ) as { data?: { jobId: string } };
+      setJobId(result.data?.jobId ?? null);
     } catch {
       // Error will be surfaced via the hook
     }

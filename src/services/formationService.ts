@@ -197,7 +197,7 @@ class FormationService {
     formationId: string,
     timestamp: number,
     positions?: Map<string, Position>,
-    options?: { transition?: Keyframe['transition']; duration?: number }
+    options?: { transition?: Keyframe['transition']; duration?: number; beatBinding?: Keyframe['beatBinding'] }
   ): Keyframe | undefined {
     const formation = this.formations.get(formationId);
     if (!formation) return undefined;
@@ -208,6 +208,7 @@ class FormationService {
       positions: positions ?? new Map(),
       transition: options?.transition ?? 'linear',
       duration: options?.duration,
+      beatBinding: options?.beatBinding,
     };
 
     const insertIndex = formation.keyframes.findIndex((kf) => kf.timestamp > timestamp);

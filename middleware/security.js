@@ -22,7 +22,7 @@ const createRateLimit = (options = {}) => {
       retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000) / 1000)
     },
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    legacyHeaders: true, // Enable `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers
     skip: (req) => {
       // Skip rate limiting for health checks and in development
       if (process.env.NODE_ENV === 'development') return true;

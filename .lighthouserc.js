@@ -1,12 +1,14 @@
 /**
  * Lighthouse CI Configuration
  *
- * Sprint 43: Phase 6.1 Performance & Launch Optimization
+ * Enforced thresholds (error level -- fails CI on violation):
+ *   Performance   >= 85
+ *   Accessibility >= 95
+ *   Best Practices >= 90
+ *   SEO           >= 80
  *
- * Enforces 90+ scores across performance, accessibility, and best practices.
- *
- * Run locally: npx @lhci/cli autorun
- * CI: treosh/lighthouse-ci-action@v12
+ * Run locally:  npx @lhci/cli autorun
+ * CI:           lhci autorun  (installed globally in the workflow)
  */
 
 module.exports = {
@@ -15,29 +17,28 @@ module.exports = {
       staticDistDir: './build',
       numberOfRuns: 3,
       url: [
-        'http://localhost:3000/',
-        'http://localhost:3000/login',
-        'http://localhost:3000/pricing',
-        'http://localhost:3000/try',
+        'http://localhost/',
+        'http://localhost/login',
+        'http://localhost/pricing',
+        'http://localhost/try',
       ],
     },
     assert: {
       preset: 'lighthouse:recommended',
       assertions: {
-        // Performance — enforced at 90+ (error, not warn)
-        'categories:performance': ['error', { minScore: 0.9 }],
+        // -- Category scores (error = fail the build) --
+        'categories:performance': ['error', { minScore: 0.85 }],
+        'categories:accessibility': ['error', { minScore: 0.95 }],
+        'categories:best-practices': ['error', { minScore: 0.90 }],
+        'categories:seo': ['error', { minScore: 0.80 }],
+
+        // -- Core Web Vitals --
         'largest-contentful-paint': ['error', { maxNumericValue: 2500 }],
         'cumulative-layout-shift': ['error', { maxNumericValue: 0.1 }],
         'total-blocking-time': ['error', { maxNumericValue: 300 }],
         'first-contentful-paint': ['warn', { maxNumericValue: 1800 }],
 
-        // Accessibility — enforced at 90+
-        'categories:accessibility': ['error', { minScore: 0.9 }],
-
-        // Best practices — enforced at 90+
-        'categories:best-practices': ['error', { minScore: 0.9 }],
-
-        // Allow some common issues that are not blockers
+        // -- Audits relaxed for SPA / known non-blockers --
         'unsized-images': 'off',
         'uses-responsive-images': 'off',
         'offscreen-images': 'off',

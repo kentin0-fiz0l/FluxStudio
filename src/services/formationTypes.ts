@@ -27,6 +27,7 @@ export interface Keyframe {
   positions: Map<string, Position>;
   transition?: TransitionType;
   duration?: number;
+  beatBinding?: { beatIndex: number; snapResolution: 'beat' | 'half-beat' | 'measure' };
 }
 
 export interface AudioTrack {

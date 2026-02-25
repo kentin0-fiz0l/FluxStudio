@@ -13,6 +13,7 @@
 const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { authenticateToken, rateLimitByUser } = require('../lib/auth/middleware');
+const { logAiUsage, getAiUsageLogs, sanitizeApiError } = require('../services/ai-summary-service');
 
 // Quota check middleware (Sprint 38)
 let checkAiQuota = (_req, _res, next) => next();
@@ -23,10 +24,73 @@ try {
 
 const router = express.Router();
 
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Default model for design services (cost-effective)
+const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
+
+// Initialize Anthropic client (handles missing API key gracefully)
+let anthropic = null;
+if (process.env.ANTHROPIC_API_KEY) {
+  anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  });
+} else {
+  console.warn('[AI] ANTHROPIC_API_KEY not configured. AI endpoints will return errors until set.');
+}
+
+/**
+ * Middleware to check that the Anthropic client is available.
+ * Returns a helpful error if the API key is not configured.
+ */
+function requireAnthropicClient(req, res, next) {
+  if (!anthropic) {
+    return res.status(503).json({
+      error: 'AI service not configured',
+      message: 'The ANTHROPIC_API_KEY environment variable is not set. Please configure it to enable AI features.',
+      code: 'AI_NOT_CONFIGURED',
+    });
+  }
+  next();
+}
+
+/**
+ * Handle Anthropic API errors with proper status codes and safe messages.
+ * Never exposes the API key in error responses.
+ *
+ * @param {Error} error - The caught error
+ * @param {Object} res - Express response
+ * @param {string} context - Context string for logging (e.g. 'Chat', 'Design review')
+ */
+function handleAnthropicError(error, res, context = 'AI') {
+  const safeMessage = sanitizeApiError(error);
+  console.error(`[${context}] Anthropic API error:`, safeMessage);
+
+  const status = error.status || error.statusCode;
+  if (status === 429) {
+    return res.status(429).json({
+      error: 'Rate limit exceeded',
+      message: safeMessage,
+      retryAfter: parseInt(error.headers?.['retry-after']) || 60,
+    });
+  }
+  if (status === 401) {
+    return res.status(503).json({
+      error: 'AI service configuration error',
+      message: safeMessage,
+      code: 'AI_AUTH_FAILED',
+    });
+  }
+  if (status === 529 || status === 503 || status === 500) {
+    return res.status(503).json({
+      error: 'AI service temporarily unavailable',
+      message: safeMessage,
+    });
+  }
+
+  return res.status(500).json({
+    error: 'AI service error',
+    message: safeMessage,
+  });
+}
 
 // In-memory conversation storage (replace with database in production)
 const conversations = new Map();
@@ -83,8 +147,8 @@ Status: ${project.status || 'Unknown'}`;
  * POST /api/ai/chat
  * Send message and stream response (SSE)
  */
-router.post('/chat', authenticateToken, rateLimitByUser(30, 60000), checkAiQuota, async (req, res) => {
-  const { message, context, conversationId, model = 'claude-sonnet-4-20250514' } = req.body;
+router.post('/chat', authenticateToken, requireAnthropicClient, rateLimitByUser(30, 60000), checkAiQuota, async (req, res) => {
+  const { message, context, conversationId, model = DEFAULT_MODEL } = req.body;
   const userId = req.user.id;
 
   if (!message || typeof message !== 'string') {
@@ -149,6 +213,15 @@ router.post('/chat', authenticateToken, rateLimitByUser(30, 60000), checkAiQuota
       }
     }
 
+    // Log token usage for cost tracking
+    logAiUsage({
+      userId,
+      model,
+      inputTokens,
+      outputTokens,
+      endpoint: 'chat',
+    });
+
     // Add assistant response to history
     conversation.messages.push({
       role: 'assistant',
@@ -165,10 +238,11 @@ router.post('/chat', authenticateToken, rateLimitByUser(30, 60000), checkAiQuota
     res.end();
 
   } catch (error) {
-    console.error('[AI] Chat error:', error);
+    const safeMessage = sanitizeApiError(error);
+    console.error('[AI] Chat error:', safeMessage);
     res.write(`data: ${JSON.stringify({
       type: 'error',
-      error: error.message || 'Failed to get AI response',
+      error: safeMessage,
     })}\n\n`);
     res.end();
   }
@@ -178,8 +252,9 @@ router.post('/chat', authenticateToken, rateLimitByUser(30, 60000), checkAiQuota
  * POST /api/ai/chat/sync
  * Non-streaming chat endpoint
  */
-router.post('/chat/sync', authenticateToken, rateLimitByUser(30, 60000), async (req, res) => {
-  const { message, context, model = 'claude-sonnet-4-20250514' } = req.body;
+router.post('/chat/sync', authenticateToken, requireAnthropicClient, rateLimitByUser(30, 60000), async (req, res) => {
+  const { message, context, model = DEFAULT_MODEL } = req.body;
+  const userId = req.user.id;
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'Message is required' });
@@ -196,20 +271,26 @@ router.post('/chat/sync', authenticateToken, rateLimitByUser(30, 60000), async (
     });
 
     const content = response.content[0]?.text || '';
-    const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+    const inputTokens = response.usage?.input_tokens || 0;
+    const outputTokens = response.usage?.output_tokens || 0;
+
+    // Log token usage for cost tracking
+    logAiUsage({
+      userId,
+      model,
+      inputTokens,
+      outputTokens,
+      endpoint: 'chat-sync',
+    });
 
     res.json({
       content,
-      tokensUsed,
+      tokensUsed: inputTokens + outputTokens,
       model: response.model,
     });
 
   } catch (error) {
-    console.error('[AI] Sync chat error:', error);
-    res.status(500).json({
-      error: 'Failed to get AI response',
-      details: error.message,
-    });
+    handleAnthropicError(error, res, 'AI Sync Chat');
   }
 });
 
@@ -282,8 +363,9 @@ router.delete('/conversations/:id', authenticateToken, (req, res) => {
  * POST /api/ai/design-review
  * Get AI feedback on a design
  */
-router.post('/design-review', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
+router.post('/design-review', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), async (req, res) => {
   const { description, imageUrl, aspects = ['overall', 'accessibility', 'usability'] } = req.body;
+  const userId = req.user.id;
 
   if (!description) {
     return res.status(400).json({ error: 'Description is required' });
@@ -299,10 +381,19 @@ ${imageUrl ? `Image URL: ${imageUrl}` : ''}
 Provide specific, actionable feedback for each aspect. Format your response with clear headings.`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: DEFAULT_MODEL,
       max_tokens: 2048,
       system: 'You are an expert UI/UX designer providing constructive feedback on designs. Be specific and actionable.',
       messages: [{ role: 'user', content: prompt }],
+    });
+
+    // Log token usage for cost tracking
+    logAiUsage({
+      userId,
+      model: DEFAULT_MODEL,
+      inputTokens: response.usage?.input_tokens || 0,
+      outputTokens: response.usage?.output_tokens || 0,
+      endpoint: 'design-review',
     });
 
     res.json({
@@ -311,11 +402,7 @@ Provide specific, actionable feedback for each aspect. Format your response with
     });
 
   } catch (error) {
-    console.error('[AI] Design review error:', error);
-    res.status(500).json({
-      error: 'Failed to review design',
-      details: error.message,
-    });
+    handleAnthropicError(error, res, 'Design Review');
   }
 });
 
@@ -323,8 +410,9 @@ Provide specific, actionable feedback for each aspect. Format your response with
  * POST /api/ai/generate-code
  * Generate React component code
  */
-router.post('/generate-code', authenticateToken, rateLimitByUser(20, 60000), async (req, res) => {
+router.post('/generate-code', authenticateToken, requireAnthropicClient, rateLimitByUser(20, 60000), async (req, res) => {
   const { description, componentType = 'component', style = 'modern' } = req.body;
+  const userId = req.user.id;
 
   if (!description) {
     return res.status(400).json({ error: 'Description is required' });
@@ -346,13 +434,22 @@ Requirements:
 Return ONLY the code, no explanations.`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: DEFAULT_MODEL,
       max_tokens: 4096,
       system: 'You are an expert React/TypeScript developer. Generate clean, well-typed, accessible components.',
       messages: [{ role: 'user', content: prompt }],
     });
 
     const code = response.content[0]?.text || '';
+
+    // Log token usage for cost tracking
+    logAiUsage({
+      userId,
+      model: DEFAULT_MODEL,
+      inputTokens: response.usage?.input_tokens || 0,
+      outputTokens: response.usage?.output_tokens || 0,
+      endpoint: 'generate-code',
+    });
 
     res.json({
       code,
@@ -361,11 +458,7 @@ Return ONLY the code, no explanations.`;
     });
 
   } catch (error) {
-    console.error('[AI] Code generation error:', error);
-    res.status(500).json({
-      error: 'Failed to generate code',
-      details: error.message,
-    });
+    handleAnthropicError(error, res, 'Code Generation');
   }
 });
 
@@ -378,6 +471,32 @@ router.get('/health', (req, res) => {
     status: 'healthy',
     service: 'ai-design-assistant',
     hasApiKey: !!process.env.ANTHROPIC_API_KEY,
+    defaultModel: DEFAULT_MODEL,
+    clientInitialized: !!anthropic,
+  });
+});
+
+/**
+ * GET /api/ai/usage
+ * Get AI usage logs for the authenticated user
+ */
+router.get('/usage', authenticateToken, (req, res) => {
+  const userId = req.user.id;
+  const limit = Math.min(parseInt(req.query.limit) || 100, 1000);
+  const logs = getAiUsageLogs(userId, limit);
+
+  // Calculate totals
+  const totals = logs.reduce((acc, log) => {
+    acc.totalInputTokens += log.inputTokens;
+    acc.totalOutputTokens += log.outputTokens;
+    acc.totalTokens += log.totalTokens;
+    acc.requestCount++;
+    return acc;
+  }, { totalInputTokens: 0, totalOutputTokens: 0, totalTokens: 0, requestCount: 0 });
+
+  res.json({
+    usage: logs,
+    totals,
   });
 });
 
@@ -388,6 +507,14 @@ router.get('/health', (req, res) => {
  */
 if (process.env.NODE_ENV !== 'production') {
   router.post('/test', async (req, res) => {
+    if (!anthropic) {
+      return res.status(503).json({
+        error: 'AI service not configured',
+        message: 'Set ANTHROPIC_API_KEY environment variable to enable AI features.',
+        code: 'AI_NOT_CONFIGURED',
+      });
+    }
+
     const { message, context } = req.body;
 
     if (!message || typeof message !== 'string') {
@@ -398,31 +525,37 @@ if (process.env.NODE_ENV !== 'production') {
       const systemPrompt = buildSystemPrompt(context);
 
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: DEFAULT_MODEL,
         max_tokens: 1024,
         system: systemPrompt,
         messages: [{ role: 'user', content: message }],
       });
 
       const content = response.content[0]?.text || '';
-      const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+      const inputTokens = response.usage?.input_tokens || 0;
+      const outputTokens = response.usage?.output_tokens || 0;
+
+      // Log token usage for cost tracking
+      logAiUsage({
+        userId: 'dev-test',
+        model: DEFAULT_MODEL,
+        inputTokens,
+        outputTokens,
+        endpoint: 'test',
+      });
 
       res.json({
         content,
-        tokensUsed,
+        tokensUsed: inputTokens + outputTokens,
         model: response.model,
         warning: 'This is a development-only endpoint. Do not use in production.',
       });
 
     } catch (error) {
-      console.error('[AI] Test endpoint error:', error);
-      res.status(500).json({
-        error: 'Failed to get AI response',
-        details: error.message,
-      });
+      handleAnthropicError(error, res, 'AI Test');
     }
   });
-  console.log('⚠️  AI test endpoint enabled (development mode only): POST /api/ai/test');
+  console.log('[AI] Test endpoint enabled (development mode only): POST /api/ai/test');
 }
 
 /**
@@ -433,11 +566,13 @@ if (process.env.NODE_ENV !== 'production') {
 router.post('/design-feedback/analyze', authenticateToken, rateLimitByUser(10, 60), async (req, res) => {
   try {
     const { imageUrl, context } = req.body;
+    const userId = req.user.id;
+
     if (!imageUrl) {
       return res.status(400).json({ error: 'imageUrl is required' });
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!anthropic) {
       return res.status(200).json({ success: true, data: null, mock: true });
     }
 
@@ -474,7 +609,7 @@ Be specific, actionable, and constructive in your feedback.`;
     else if (contentType.includes('webp')) mediaType = 'image/webp';
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: DEFAULT_MODEL,
       max_tokens: 2000,
       messages: [{
         role: 'user',
@@ -483,6 +618,15 @@ Be specific, actionable, and constructive in your feedback.`;
           { type: 'text', text: prompt },
         ],
       }],
+    });
+
+    // Log token usage for cost tracking
+    logAiUsage({
+      userId,
+      model: DEFAULT_MODEL,
+      inputTokens: response.usage?.input_tokens || 0,
+      outputTokens: response.usage?.output_tokens || 0,
+      endpoint: 'design-feedback-analyze',
     });
 
     const textContent = response.content.find(c => c.type === 'text');
@@ -498,8 +642,7 @@ Be specific, actionable, and constructive in your feedback.`;
     const parsed = JSON.parse(jsonMatch[0]);
     res.json({ success: true, data: parsed });
   } catch (error) {
-    console.error('[AI] Design feedback analysis error:', error);
-    res.status(500).json({ error: 'Failed to analyze design', details: error.message });
+    handleAnthropicError(error, res, 'Design Feedback Analysis');
   }
 });
 
@@ -509,9 +652,16 @@ Be specific, actionable, and constructive in your feedback.`;
  */
 router.post('/generate-project-structure', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
   const { description, category, complexity } = req.body;
+  const userId = req.user.id;
 
   if (!description || description.trim().length < 10) {
     return res.status(400).json({ error: 'Please provide a project description (at least 10 characters)' });
+  }
+
+  // Fall back to local generation if AI is not configured
+  if (!anthropic) {
+    const fallback = generateLocalStructure(description, category);
+    return res.json({ success: true, data: fallback, fallback: true });
   }
 
   try {
@@ -539,10 +689,19 @@ Rules:
 ${category ? `- The project category is: ${category}` : ''}`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: DEFAULT_MODEL,
       max_tokens: 1024,
       system: systemPrompt,
       messages: [{ role: 'user', content: description.trim() }],
+    });
+
+    // Log token usage for cost tracking
+    logAiUsage({
+      userId,
+      model: DEFAULT_MODEL,
+      inputTokens: response.usage?.input_tokens || 0,
+      outputTokens: response.usage?.output_tokens || 0,
+      endpoint: 'generate-project-structure',
     });
 
     const textContent = response.content.find(c => c.type === 'text');
@@ -558,7 +717,7 @@ ${category ? `- The project category is: ${category}` : ''}`;
     const suggestion = JSON.parse(jsonMatch[0]);
     res.json({ success: true, data: suggestion });
   } catch (error) {
-    console.error('[AI] Project structure generation error:', error);
+    console.error('[AI] Project structure generation error:', sanitizeApiError(error));
 
     // Fallback: generate locally if AI fails
     const fallback = generateLocalStructure(description, category);
@@ -570,8 +729,9 @@ ${category ? `- The project category is: ${category}` : ''}`;
  * POST /api/ai/generate-template
  * AI-generate a full project template from description
  */
-router.post('/generate-template', authenticateToken, rateLimitByUser(5, 60000), async (req, res) => {
+router.post('/generate-template', authenticateToken, requireAnthropicClient, rateLimitByUser(5, 60000), async (req, res) => {
   const { description, category, complexity } = req.body;
+  const userId = req.user.id;
 
   if (!description || description.trim().length < 10) {
     return res.status(400).json({ error: 'Please provide a template description (at least 10 characters)' });
@@ -612,10 +772,19 @@ Rules:
 ${category ? `- Category: ${category}` : ''}`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: DEFAULT_MODEL,
       max_tokens: 2048,
       system: systemPrompt,
       messages: [{ role: 'user', content: description.trim() }],
+    });
+
+    // Log token usage for cost tracking
+    logAiUsage({
+      userId,
+      model: DEFAULT_MODEL,
+      inputTokens: response.usage?.input_tokens || 0,
+      outputTokens: response.usage?.output_tokens || 0,
+      endpoint: 'generate-template',
     });
 
     const textContent = response.content.find(c => c.type === 'text');
@@ -631,8 +800,7 @@ ${category ? `- Category: ${category}` : ''}`;
     const template = JSON.parse(jsonMatch[0]);
     res.json({ success: true, data: { template, confidence: 0.85 } });
   } catch (error) {
-    console.error('[AI] Template generation error:', error);
-    res.status(500).json({ error: 'Failed to generate template', details: error.message });
+    handleAnthropicError(error, res, 'Template Generation');
   }
 });
 

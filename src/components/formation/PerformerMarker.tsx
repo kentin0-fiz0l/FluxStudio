@@ -39,7 +39,7 @@ interface PerformerMarkerProps {
 // MAIN COMPONENT
 // ============================================================================
 
-export function PerformerMarker({
+export const PerformerMarker = React.memo<PerformerMarkerProps>(function PerformerMarker({
   performer,
   position,
   isSelected = false,
@@ -55,7 +55,7 @@ export function PerformerMarker({
   onDragStart,
   onDragEnd,
   lockedByUser,
-}: PerformerMarkerProps) {
+}) {
   const { t } = useTranslation('common');
   const markerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -308,6 +308,6 @@ export function PerformerMarker({
       )}
     </div>
   );
-}
+});
 
 export default PerformerMarker;
