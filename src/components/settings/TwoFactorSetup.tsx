@@ -6,13 +6,7 @@
 
 import { useState } from 'react';
 import { ShieldCheck, ShieldOff, Loader2 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
-
-function getAuthHeaders() {
-  const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-}
+import { apiService } from '@/services/apiService';
 
 interface TwoFactorSetupProps {
   is2FAEnabled: boolean;
@@ -32,12 +26,9 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_URL}/api/2fa/setup`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const result = await apiService.post<{ qrCode: string; secret: string; error?: string }>('/api/2fa/setup');
+      const data = result.data;
+      if (!data) throw new Error('Setup failed');
       setQrCode(data.qrCode);
       setSecret(data.secret);
       setStep('verify');
@@ -52,14 +43,8 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_URL}/api/2fa/verify-setup`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ code }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setBackupCodes(data.backupCodes || []);
+      const result = await apiService.post<{ backupCodes?: string[] }>('/api/2fa/verify-setup', { code });
+      setBackupCodes(result.data?.backupCodes || []);
       setStep('idle');
       onStatusChange(true);
     } catch (err) {
@@ -73,13 +58,7 @@ export function TwoFactorSetup({ is2FAEnabled, onStatusChange }: TwoFactorSetupP
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_URL}/api/2fa/disable`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ code }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      await apiService.post('/api/2fa/disable', { code });
       setStep('idle');
       setCode('');
       setBackupCodes([]);

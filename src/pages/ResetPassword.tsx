@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, Eye, EyeOff, Loader, CheckCircle, AlertCircle, ShieldCheck } from 'lucide-react';
+import { apiService } from '@/services/apiService';
 
 export function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -64,30 +65,18 @@ export function ResetPassword() {
     setMessage('');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://fluxstudio.art'}/api/auth/reset-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token, password }),
-      });
+      const result = await apiService.post<{ message?: string }>('/auth/reset-password', { token, password });
+      const data = result.data;
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setStatus('success');
-        setMessage(data.message || 'Password reset successfully!');
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          navigate('/login');
-        }, 3000);
-      } else {
-        setStatus('error');
-        setMessage(data.message || 'Failed to reset password. Please try again.');
-      }
+      setStatus('success');
+      setMessage(data?.message || 'Password reset successfully!');
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
     } catch (_error) {
       setStatus('error');
-      setMessage('An error occurred. Please try again.');
+      setMessage(_error instanceof Error ? _error.message : 'An error occurred. Please try again.');
     }
   };
 

@@ -108,7 +108,7 @@ export function NewSongModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="presentation" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl p-6 w-96" onClick={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-label="New song" className="bg-white rounded-lg shadow-xl p-6 w-96" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-semibold mb-4">New Song</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">

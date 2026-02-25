@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import { useNotifications } from '../contexts/NotificationContext';
+import { useNotifications } from '@/store/slices/notificationSlice';
 import {
   MOMENTUM_STALL_NOTIFS_ENABLED,
   getLastProjectActivityAt,

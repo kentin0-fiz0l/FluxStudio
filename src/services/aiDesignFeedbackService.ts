@@ -5,6 +5,7 @@
  */
 
 import { createLogger } from '@/services/logging';
+import { apiService } from '@/services/apiService';
 
 const logger = createLogger('AIDesignFeedback');
 
@@ -134,50 +135,38 @@ class AIDesignFeedbackService {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/ai/design-feedback/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ imageUrl, context }),
-      });
+      const response = await apiService.post<DesignFeedbackApiResponse>(
+        '/ai/design-feedback/analyze',
+        { imageUrl, context }
+      );
 
       let analysis: DesignAnalysis;
 
-      if (response.ok) {
-        const result: DesignFeedbackApiResponse = await response.json();
+      const result = response.data as DesignFeedbackApiResponse;
 
-        if (result.mock) {
-          console.warn(
-            '[AIDesignFeedback] Backend returned mock response (ANTHROPIC_API_KEY not configured). Using simulated analysis.'
-          );
-          analysis = await this.simulateAIAnalysis(imageUrl, context);
-        } else if (result.success && result.data) {
-          const parsed = result.data;
-          analysis = {
-            id: `analysis-${Date.now()}`,
-            imageUrl,
-            analyzedAt: new Date(),
-            elements: parsed.elements ?? [],
-            overallScore: parsed.overallScore ?? 0.8,
-            strengths: parsed.strengths ?? [],
-            improvements: parsed.improvements ?? [],
-            brandAlignment: parsed.brandAlignment,
-            accessibilityScore: parsed.accessibilityScore,
-            moodAnalysis: parsed.moodAnalysis,
-          };
-        } else {
-          console.warn(
-            '[AIDesignFeedback] API returned no data. Using simulated analysis.',
-            result.error ?? ''
-          );
-          analysis = await this.simulateAIAnalysis(imageUrl, context);
-        }
+      if (result?.mock) {
+        console.warn(
+          '[AIDesignFeedback] Backend returned mock response (ANTHROPIC_API_KEY not configured). Using simulated analysis.'
+        );
+        analysis = await this.simulateAIAnalysis(imageUrl, context);
+      } else if (result?.success && result.data) {
+        const parsed = result.data;
+        analysis = {
+          id: `analysis-${Date.now()}`,
+          imageUrl,
+          analyzedAt: new Date(),
+          elements: parsed.elements ?? [],
+          overallScore: parsed.overallScore ?? 0.8,
+          strengths: parsed.strengths ?? [],
+          improvements: parsed.improvements ?? [],
+          brandAlignment: parsed.brandAlignment,
+          accessibilityScore: parsed.accessibilityScore,
+          moodAnalysis: parsed.moodAnalysis,
+        };
       } else {
         console.warn(
-          `[AIDesignFeedback] API request failed (HTTP ${response.status}). Using simulated analysis.`
+          '[AIDesignFeedback] API returned no data. Using simulated analysis.',
+          result?.error ?? ''
         );
         analysis = await this.simulateAIAnalysis(imageUrl, context);
       }

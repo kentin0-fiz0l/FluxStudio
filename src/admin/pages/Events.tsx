@@ -416,7 +416,7 @@ export function Events() {
       {/* Event Details Modal */}
       {selectedEvent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="presentation" onClick={() => setSelectedEvent(null)}>
-          <div className="bg-gray-800 rounded-xl border border-gray-700 max-w-2xl w-full max-h-[80vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-label="Event details" className="bg-gray-800 rounded-xl border border-gray-700 max-w-2xl w-full max-h-[80vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-700">
               <h2 className="text-xl font-semibold text-white">Event Details</h2>
             </div>

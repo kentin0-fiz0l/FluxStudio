@@ -146,6 +146,8 @@ function KeyframeMarker({
   return (
     <div
       ref={markerRef}
+      role="button"
+      tabIndex={0}
       className={`absolute top-0 h-full flex flex-col items-center cursor-pointer group ${
         isDragging ? 'z-50' : 'z-10'
       }`}
@@ -154,6 +156,7 @@ function KeyframeMarker({
         e.stopPropagation();
         onSelect();
       }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
       onMouseDown={handleMouseDown}
     >
       {/* Keyframe Diamond */}

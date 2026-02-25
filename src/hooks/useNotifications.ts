@@ -17,6 +17,7 @@ import {
   messagingSocketService,
   Notification as SocketNotification,
 } from '../services/messagingSocketService';
+import { apiService } from '@/services/apiService';
 import { hookLogger } from '../lib/logger';
 import { io, Socket } from 'socket.io-client';
 
@@ -367,15 +368,6 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
   const mountedRef = useRef(true);
   const isInitialLoadDone = useRef(false);
 
-  // Get auth token for REST calls
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('auth_token');
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    };
-  }, []);
-
   // Convert socket notification to local notification format
   const convertSocketNotification = useCallback((socketNotif: SocketNotification): Notification => {
     return {
@@ -402,27 +394,10 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     setError(null);
 
     try {
-      const res = await fetch(`/api/notifications?limit=${limit}&offset=0`, {
-        headers: getAuthHeaders(),
+      const result = await apiService.get<{ notifications: SocketNotification[] }>('/api/notifications', {
+        params: { limit: String(limit), offset: '0' },
       });
-
-      if (!res.ok) {
-        // If 401/403, don't fail - just use empty list
-        if (res.status === 401 || res.status === 403) {
-          notifLogger.warn('Auth error, using mock data');
-          if (mountedRef.current) {
-            const mockNotifs = generateMockNotifications(user.userType || 'designer');
-            setNotifications(mockNotifs);
-            setLastUpdated(new Date());
-            isInitialLoadDone.current = true;
-          }
-          return;
-        }
-        throw new Error(`Failed to load notifications: ${res.status}`);
-      }
-
-      const data = await res.json();
-      const list = (data.notifications || []).map((n: SocketNotification) => convertSocketNotification(n));
+      const list = (result.data?.notifications || []).map((n: SocketNotification) => convertSocketNotification(n));
 
       if (mountedRef.current) {
         setNotifications(list);
@@ -434,7 +409,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     } catch (err) {
       notifLogger.error('Error loading notifications', err);
       if (mountedRef.current) {
-        // Fallback to mock data on error
+        // Fallback to mock data on error (auth errors, network issues, etc.)
         const mockNotifs = generateMockNotifications(user.userType || 'designer');
         setNotifications(mockNotifs);
         setLastUpdated(new Date());
@@ -445,7 +420,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         setIsLoading(false);
       }
     }
-  }, [user, limit, getAuthHeaders, convertSocketNotification]);
+  }, [user, limit, convertSocketNotification]);
 
   // Load more notifications (pagination)
   const loadMore = useCallback(async () => {
@@ -454,16 +429,10 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     setIsLoading(true);
 
     try {
-      const res = await fetch(`/api/notifications?limit=${limit}&offset=${offset}`, {
-        headers: getAuthHeaders(),
+      const result = await apiService.get<{ notifications: SocketNotification[] }>('/api/notifications', {
+        params: { limit: String(limit), offset: String(offset) },
       });
-
-      if (!res.ok) {
-        throw new Error(`Failed to load more notifications: ${res.status}`);
-      }
-
-      const data = await res.json();
-      const list = (data.notifications || []).map((n: SocketNotification) => convertSocketNotification(n));
+      const list = (result.data?.notifications || []).map((n: SocketNotification) => convertSocketNotification(n));
 
       if (mountedRef.current) {
         setNotifications(prev => [...prev, ...list]);
@@ -480,7 +449,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         setIsLoading(false);
       }
     }
-  }, [user, isLoading, hasMore, limit, offset, getAuthHeaders, convertSocketNotification]);
+  }, [user, isLoading, hasMore, limit, offset, convertSocketNotification]);
 
   // Set up WebSocket event listeners
   useEffect(() => {
@@ -652,21 +621,14 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     );
 
     try {
-      const res = await fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-      });
-
-      if (!res.ok && res.status !== 404) {
-        notifLogger.warn('Failed to mark notification as read via REST');
-      }
+      await apiService.patch(`/api/notifications/${notificationId}/read`);
 
       // Also emit via socket for real-time sync
       messagingSocketService.markNotificationRead(notificationId);
     } catch (err) {
       notifLogger.error('Error marking notification as read', err);
     }
-  }, [getAuthHeaders]);
+  }, []);
 
   const markAllAsRead = useCallback(async () => {
     // Optimistically update local state
@@ -679,21 +641,14 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     );
 
     try {
-      const res = await fetch('/api/notifications/read-all', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-
-      if (!res.ok && res.status !== 404) {
-        notifLogger.warn('Failed to mark all notifications as read via REST');
-      }
+      await apiService.post('/api/notifications/read-all');
 
       // Also emit via socket for real-time sync
       messagingSocketService.markAllNotificationsRead();
     } catch (err) {
       notifLogger.error('Error marking all notifications as read', err);
     }
-  }, [getAuthHeaders]);
+  }, []);
 
   const markAsArchived = useCallback((notificationId: string) => {
     setNotifications(prev =>

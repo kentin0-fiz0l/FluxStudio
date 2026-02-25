@@ -12,7 +12,7 @@
  */
 
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
-import { getApiUrl } from '../utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 import { CACHE_STANDARD, CACHE_FREQUENT } from '@/lib/queryConfig';
 
 // Re-export useAuth for convenience
@@ -145,31 +145,18 @@ export const useActivitiesQuery = (
       if (params?.dateFrom) queryParams.append('dateFrom', params.dateFrom);
       if (params?.dateTo) queryParams.append('dateTo', params.dateTo);
 
-      const url = `${getApiUrl(`/api/projects/${projectId}/activities`)}?${queryParams.toString()}`;
+      const paramsObj: Record<string, string> = {};
+      queryParams.forEach((value, key) => { paramsObj[key] = value; });
 
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || errorData.message || 'Failed to fetch activities'
-        );
-      }
-
-      const result = await response.json();
+      const apiResult = await apiService.get<ActivitiesResponse>(`/projects/${projectId}/activities`, { params: paramsObj });
+      const result = apiResult.data;
 
       // Normalize response format
       return {
-        success: result.success ?? true,
-        activities: result.activities || [],
-        total: result.total || 0,
-        hasMore: result.hasMore || false,
+        success: result?.success ?? true,
+        activities: result?.activities || [],
+        total: result?.total || 0,
+        hasMore: result?.hasMore || false,
       };
     },
     enabled: !!projectId,
@@ -360,31 +347,18 @@ export const useDashboardActivities = (params?: { limit?: number; offset?: numbe
       if (params?.limit) queryParams.append('limit', params.limit.toString());
       if (params?.offset) queryParams.append('offset', params.offset.toString());
 
-      const url = `${getApiUrl('/api/projects/activities/recent')}?${queryParams.toString()}`;
+      const paramsObj: Record<string, string> = {};
+      queryParams.forEach((value, key) => { paramsObj[key] = value; });
 
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || errorData.message || 'Failed to fetch activities'
-        );
-      }
-
-      const result = await response.json();
+      const apiResult = await apiService.get<ActivitiesResponse>('/projects/activities/recent', { params: paramsObj });
+      const result = apiResult.data;
 
       // Normalize response format
       return {
-        success: result.success ?? true,
-        activities: result.activities || [],
-        total: result.total || 0,
-        hasMore: result.hasMore || false,
+        success: result?.success ?? true,
+        activities: result?.activities || [],
+        total: result?.total || 0,
+        hasMore: result?.hasMore || false,
       };
     },
     staleTime: CACHE_FREQUENT.staleTime,

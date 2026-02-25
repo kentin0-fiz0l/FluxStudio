@@ -5,7 +5,9 @@
  * Handles all CRUD operations for formations, performers, keyframes, and positions.
  */
 
-import { getApiUrl, getAuthToken } from '../utils/apiHelpers';
+import { getApiUrl } from '../utils/apiHelpers';
+import { apiService } from './apiService';
+import { buildApiUrl } from '../config/environment';
 import { Formation, Performer, Keyframe, Position, AudioTrack } from './formationService';
 import type { SceneObject } from './scene3d/types';
 
@@ -84,49 +86,40 @@ export interface FormationListItem {
   updatedAt: string;
 }
 
-// Helper to get CSRF token
-async function getCsrfToken(): Promise<string> {
-  const response = await fetch(getApiUrl('/api/csrf-token'), {
-    credentials: 'include'
-  });
-  const data = await response.json();
-  return data.csrfToken;
-}
-
-// Helper for API requests
+// Helper for API requests — delegates to centralized apiService
 async function apiRequest<T>(
   url: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = getAuthToken();
+  const method = (options.method || 'GET').toUpperCase();
+  const body = options.body ? JSON.parse(options.body as string) : undefined;
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> || {})
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  let result;
+  switch (method) {
+    case 'POST':
+      result = await apiService.post<T>(url, body);
+      break;
+    case 'PATCH':
+      result = await apiService.patch<T>(url, body);
+      break;
+    case 'DELETE':
+      result = await apiService.delete<T>(url);
+      break;
+    case 'PUT': {
+      // apiService has no PUT method — use makeRequest directly with full URL
+      const fullUrl = url.startsWith('http') ? url : buildApiUrl(url);
+      result = await apiService.makeRequest<T>(fullUrl, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      });
+      break;
+    }
+    default:
+      result = await apiService.get<T>(url);
+      break;
   }
 
-  // Get CSRF token for mutating requests
-  if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
-    const csrfToken = await getCsrfToken();
-    headers['X-CSRF-Token'] = csrfToken;
-  }
-
-  const response = await fetch(getApiUrl(url), {
-    ...options,
-    headers,
-    credentials: 'include'
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `API request failed: ${response.statusText}`);
-  }
-
-  return response.json();
+  return result.data as T;
 }
 
 // ============================================================================

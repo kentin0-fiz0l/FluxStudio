@@ -37,6 +37,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { apiService } from '@/services/apiService';
 
 // ============================================================================
 // Types
@@ -247,25 +248,14 @@ export function ConversationSummary({
       setIsLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('auth_token');
-      const url = projectId
-        ? `/api/projects/${projectId}/conversations/${conversationId}/summary`
-        : `/api/conversations/${conversationId}/summary`;
+      const endpoint = projectId
+        ? `/projects/${projectId}/conversations/${conversationId}/summary`
+        : `/conversations/${conversationId}/summary`;
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const result = await apiService.get<{ success?: boolean; summary?: SummaryData }>(endpoint);
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch summary');
-      }
-
-      const data = await response.json();
-      if (data.success && data.summary) {
-        setSummary(data.summary);
+      if (result.data?.success && result.data.summary) {
+        setSummary(result.data.summary);
       }
     } catch (err) {
       console.error('Error fetching summary:', err);
@@ -285,27 +275,14 @@ export function ConversationSummary({
       setIsGenerating(true);
       setError(null);
 
-      const token = localStorage.getItem('auth_token');
-      const url = projectId
-        ? `/api/projects/${projectId}/conversations/${conversationId}/summary/generate`
-        : `/api/conversations/${conversationId}/summary/generate`;
+      const endpoint = projectId
+        ? `/projects/${projectId}/conversations/${conversationId}/summary/generate`
+        : `/conversations/${conversationId}/summary/generate`;
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const result = await apiService.post<{ success?: boolean; summary?: SummaryData }>(endpoint);
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to generate summary');
-      }
-
-      const data = await response.json();
-      if (data.success && data.summary) {
-        setSummary(data.summary);
+      if (result.data?.success && result.data.summary) {
+        setSummary(result.data.summary);
       }
     } catch (err) {
       console.error('Error generating summary:', err);

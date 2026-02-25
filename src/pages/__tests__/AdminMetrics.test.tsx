@@ -41,6 +41,18 @@ vi.mock('@/components/ui/skeleton', () => ({
   Skeleton: ({ className }: any) => <div data-testid="skeleton" className={className} />,
 }));
 
+vi.mock('@/services/apiService', () => ({
+  apiService: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    makeRequest: vi.fn(),
+  },
+}));
+
+import { apiService } from '@/services/apiService';
+
 const mockMetricsData = {
   server: {
     current: { timestamp: '2025-01-01T00:00:00Z', requests: { total: 1000, errors: 5 }, redis: { total: 500 } },
@@ -83,10 +95,11 @@ import { AdminMetrics } from '../AdminMetrics';
 describe('AdminMetrics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(apiService.get).mockReset();
 
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockMetricsData),
+    vi.mocked(apiService.get).mockResolvedValue({
+      success: true,
+      data: mockMetricsData,
     });
   });
 
@@ -96,7 +109,7 @@ describe('AdminMetrics', () => {
   });
 
   test('shows loading skeletons initially', () => {
-    global.fetch = vi.fn().mockReturnValue(new Promise(() => {}));
+    vi.mocked(apiService.get).mockReturnValue(new Promise(() => {}));
     render(<MemoryRouter><AdminMetrics /></MemoryRouter>);
     const skeletons = screen.getAllByTestId('skeleton');
     expect(skeletons.length).toBeGreaterThan(0);
@@ -147,22 +160,14 @@ describe('AdminMetrics', () => {
   });
 
   test('shows error state when fetch fails', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      json: () => Promise.resolve({ error: 'Server error' }),
-    });
+    vi.mocked(apiService.get).mockRejectedValue(new Error('Failed to fetch metrics'));
 
     render(<MemoryRouter><AdminMetrics /></MemoryRouter>);
     expect(await screen.findByText('Failed to fetch metrics')).toBeInTheDocument();
   });
 
   test('shows admin access required on 403', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 403,
-      json: () => Promise.resolve({ error: 'Forbidden' }),
-    });
+    vi.mocked(apiService.get).mockRejectedValue(new Error('Admin access required'));
 
     render(<MemoryRouter><AdminMetrics /></MemoryRouter>);
     expect(await screen.findByText('Admin access required')).toBeInTheDocument();

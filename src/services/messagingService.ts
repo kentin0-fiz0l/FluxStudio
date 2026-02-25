@@ -19,6 +19,7 @@ import {
   ConsultationSession
 } from '../types/messaging';
 import { socketService } from './socketService';
+import { apiService } from '@/services/apiService';
 import { serviceLogger } from '../lib/logger';
 
 const msgServiceLogger = serviceLogger.child('MessagingService');
@@ -52,32 +53,28 @@ class MessagingService {
   }
 
   /**
-   * API helper for authenticated requests
+   * API helper for authenticated requests — delegates to apiService
    */
-  private async apiRequest(endpoint: string, options: RequestInit = {}) {
-    const url = `${this.apiBaseUrl}${endpoint}`;
-    // Check both possible token keys for compatibility
-    const authToken = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
+  private async apiRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const method = (options.method || 'GET').toUpperCase();
+    const body = options.body ? JSON.parse(options.body as string) : undefined;
 
-    if (!authToken) {
-      msgServiceLogger.warn('No auth token found in localStorage');
+    let result;
+    switch (method) {
+      case 'POST':
+        result = await apiService.post<T>(endpoint, body);
+        break;
+      case 'PUT':
+      case 'PATCH':
+        result = await apiService.patch<T>(endpoint, body);
+        break;
+      case 'DELETE':
+        result = await apiService.delete<T>(endpoint);
+        break;
+      default:
+        result = await apiService.get<T>(endpoint);
     }
-
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken || ''}`,
-        ...options.headers,
-      },
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
+    return result.data as T;
   }
 
   // ========================================

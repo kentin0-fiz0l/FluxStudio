@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiService } from '@/services/apiService';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -87,25 +88,14 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
 
     try {
       // Create project via API
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          name: projectName.trim(),
-          template: selectedTemplate,
-          status: 'planning',
-          priority: 'medium',
-        }),
+      const result = await apiService.post<{ data?: { id: string }; id?: string }>('/projects', {
+        name: projectName.trim(),
+        template: selectedTemplate,
+        status: 'planning',
+        priority: 'medium',
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create project');
-      }
-
-      const { data: project } = await response.json();
+      const project = result.data?.data || result.data;
 
       setStep('done');
 

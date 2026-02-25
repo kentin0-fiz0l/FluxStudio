@@ -12,7 +12,8 @@
  */
 
 import { useState, useRef, useCallback } from 'react';
-import type { PendingAttachment } from '@/components/messaging/types';
+import type { PendingAttachment, MessageAsset } from '@/components/messaging/types';
+import { apiService } from '@/services/apiService';
 
 interface UseFileUploadOptions {
   conversationId: string | null;
@@ -51,7 +52,6 @@ export function useFileUpload({
   const uploadFile = useCallback(async (file: File): Promise<void> => {
     if (!conversationId) return;
 
-    const token = localStorage.getItem('auth_token');
     const attachmentId = `attach-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     let preview: string | undefined;
 
@@ -74,24 +74,17 @@ export function useFileUpload({
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`/api/conversations/${conversationId}/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData
-      });
+      const result = await apiService.post<{ asset: MessageAsset }>(
+        `/conversations/${conversationId}/upload`,
+        formData
+      );
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const data = await response.json();
+      const uploadedAsset = result.data?.asset;
 
       // Update attachment with assetId and completed state
       setPendingAttachments(prev => prev.map(a =>
         a.id === attachmentId
-          ? { ...a, uploading: false, assetId: data.asset.id, asset: data.asset }
+          ? { ...a, uploading: false, assetId: uploadedAsset?.id, asset: uploadedAsset }
           : a
       ));
     } catch (error) {

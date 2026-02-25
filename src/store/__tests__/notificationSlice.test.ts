@@ -4,8 +4,21 @@ import { immer } from 'zustand/middleware/immer';
 
 vi.mock('../store', () => ({ useStore: vi.fn() }));
 
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+const mockApiService = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  delete: vi.fn(),
+  patch: vi.fn(),
+  login: vi.fn(),
+  signup: vi.fn(),
+  loginWithGoogle: vi.fn(),
+  logout: vi.fn(),
+  getMe: vi.fn(),
+}));
+
+vi.mock('../../services/apiService', () => ({
+  apiService: mockApiService,
+}));
 
 import { createNotificationSlice, type NotificationSlice } from '../slices/notificationSlice';
 import { createAuthSlice, type AuthSlice } from '../slices/authSlice';
@@ -28,7 +41,6 @@ describe('notificationSlice', () => {
     store = createTestStore();
     localStorage.clear();
     vi.clearAllMocks();
-    mockFetch.mockReset();
     vi.useFakeTimers();
   });
 
@@ -138,7 +150,7 @@ describe('notificationSlice', () => {
         { id: 'n1', isRead: false, title: 'A', userId: 'u1', type: 'info', readAt: null, createdAt: '' },
       ] as any[]);
 
-      mockFetch.mockResolvedValueOnce({ ok: true });
+      mockApiService.post.mockResolvedValueOnce({ success: true });
 
       await store.getState().notifications.markAsRead('n1');
 
@@ -153,7 +165,7 @@ describe('notificationSlice', () => {
         { id: 'n1', isRead: false, title: 'A', userId: 'u1', type: 'info', readAt: null, createdAt: '' },
       ] as any[]);
 
-      mockFetch.mockResolvedValueOnce({ ok: false });
+      mockApiService.post.mockRejectedValueOnce(new Error('Failed'));
 
       await store.getState().notifications.markAsRead('n1');
 
@@ -170,7 +182,7 @@ describe('notificationSlice', () => {
         { id: 'n2', isRead: false, title: 'B', userId: 'u1', type: 'info', readAt: null, createdAt: '' },
       ] as any[]);
 
-      mockFetch.mockResolvedValueOnce({ ok: true });
+      mockApiService.post.mockResolvedValueOnce({ success: true });
 
       await store.getState().notifications.markAllAsRead();
 
@@ -185,7 +197,7 @@ describe('notificationSlice', () => {
         { id: 'n1', isRead: false, title: 'A', userId: 'u1', type: 'info', readAt: null, createdAt: '' },
       ] as any[]);
 
-      mockFetch.mockResolvedValueOnce({ ok: true });
+      mockApiService.delete.mockResolvedValueOnce({ success: true });
 
       await store.getState().notifications.deleteNotification('n1');
 

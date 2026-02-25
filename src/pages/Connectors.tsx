@@ -47,7 +47,7 @@ import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/compo
 import { useAuth } from '@/store/slices/authSlice';
 import { useConnectors } from '@/store';
 import type { Connector, ConnectorFile, ConnectorProvider, ImportedFile } from '@/store';
-import { useNotifications } from '@/contexts/NotificationContext';
+import { useNotifications } from '@/store/slices/notificationSlice';
 import { cn } from '@/lib/utils';
 import { UniversalEmptyState } from '@/components/ui/UniversalEmptyState';
 

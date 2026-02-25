@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { useAuth } from '@/store/slices/authSlice';
-import { getApiUrl } from '../../utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 import { useAssetCore } from './AssetCoreContext';
 import type { AssetRelationContextValue, AssetRelation, RelationType } from './types';
 
@@ -15,7 +15,7 @@ const AssetRelationContext = React.createContext<AssetRelationContextValue | nul
 
 export function AssetRelationProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const { getToken } = useAssetCore();
+  useAssetCore(); // ensure context is available
 
   // Create relation
   const createRelation = React.useCallback(async (
@@ -25,28 +25,13 @@ export function AssetRelationProvider({ children }: { children: React.ReactNode 
     if (!user) throw new Error('Authentication required');
 
     try {
-      const token = getToken();
-      const response = await fetch(getApiUrl(`/assets/${assetId}/relations`), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create relation');
-      }
-
-      const result = await response.json();
-      return result.relation;
+      const result = await apiService.post<{ relation: AssetRelation }>(`/assets/${assetId}/relations`, data);
+      return result.data?.relation ?? null;
     } catch (error) {
       console.error('Error creating relation:', error);
       throw error;
     }
-  }, [user, getToken]);
+  }, [user]);
 
   // Get relations
   const getRelations = React.useCallback(async (
@@ -56,54 +41,30 @@ export function AssetRelationProvider({ children }: { children: React.ReactNode 
     if (!user) throw new Error('Authentication required');
 
     try {
-      const token = getToken();
-      const queryParams = new URLSearchParams();
-      if (options?.direction) queryParams.set('direction', options.direction);
-      if (options?.relationType) queryParams.set('relationType', options.relationType);
+      const params: Record<string, string> = {};
+      if (options?.direction) params.direction = options.direction;
+      if (options?.relationType) params.relationType = options.relationType;
 
-      const response = await fetch(getApiUrl(`/assets/${assetId}/relations?${queryParams.toString()}`), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to get relations');
-      }
-
-      const result = await response.json();
-      return result.relations || [];
+      const result = await apiService.get<{ relations: AssetRelation[] }>(`/assets/${assetId}/relations`, { params });
+      return result.data?.relations || [];
     } catch (error) {
       console.error('Error getting relations:', error);
       throw error;
     }
-  }, [user, getToken]);
+  }, [user]);
 
   // Delete relation
   const deleteRelation = React.useCallback(async (relationId: string): Promise<boolean> => {
     if (!user) throw new Error('Authentication required');
 
     try {
-      const token = getToken();
-      const response = await fetch(getApiUrl(`/assets/relations/${relationId}`), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete relation');
-      }
-
+      await apiService.delete(`/assets/relations/${relationId}`);
       return true;
     } catch (error) {
       console.error('Error deleting relation:', error);
       throw error;
     }
-  }, [user, getToken]);
+  }, [user]);
 
   const value: AssetRelationContextValue = {
     createRelation,

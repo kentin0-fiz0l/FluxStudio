@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { apiService } from '@/services/apiService';
 import { DashboardLayout } from '@/components/templates';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, Users, Gift, ArrowRight } from 'lucide-react';
@@ -32,23 +33,17 @@ export default function Referrals() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  const token = localStorage.getItem('auth_token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
   useEffect(() => {
     async function load() {
       try {
-        const [codeRes, statsRes] = await Promise.all([
-          fetch('/api/referrals/code', { headers }),
-          fetch('/api/referrals/stats', { headers }),
+        const [codeResult, statsResult] = await Promise.all([
+          apiService.get<{ success: boolean; code: string }>('/referrals/code'),
+          apiService.get<{ success: boolean; stats: ReferralStats; recentReferrals: RecentReferral[] }>('/referrals/stats'),
         ]);
-        const codeData = await codeRes.json();
-        const statsData = await statsRes.json();
-        if (codeData.success) setCode(codeData.code);
-        if (statsData.success) {
-          setStats(statsData.stats);
-          setRecentReferrals(statsData.recentReferrals || []);
+        if (codeResult.data?.success) setCode(codeResult.data.code);
+        if (statsResult.data?.success) {
+          setStats(statsResult.data.stats);
+          setRecentReferrals(statsResult.data.recentReferrals || []);
         }
       } catch {
         // Graceful failure

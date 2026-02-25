@@ -6,7 +6,7 @@
 
 import { StateCreator } from 'zustand';
 import { FluxStore } from '../store';
-import { getApiUrl } from '../../utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 
 // ============================================================================
 // Types
@@ -62,6 +62,8 @@ export interface NotificationState {
   loading: boolean;
   error: string | null;
   toastQueue: Notification[];
+  pushEnabled: boolean;
+  pushPermission: NotificationPermission;
 }
 
 export interface NotificationActions {
@@ -78,6 +80,8 @@ export interface NotificationActions {
   setNotifications: (notifications: Notification[]) => void;
   setUnreadCount: (count: number) => void;
   resetNotifications: () => void;
+  setPushEnabled: (enabled: boolean) => void;
+  setPushPermission: (permission: NotificationPermission) => void;
 }
 
 export interface NotificationSlice {
@@ -94,6 +98,8 @@ const initialState: NotificationState = {
   loading: false,
   error: null,
   toastQueue: [],
+  pushEnabled: false,
+  pushPermission: 'default',
 };
 
 // ============================================================================
@@ -116,13 +122,8 @@ export const createNotificationSlice: StateCreator<
       set((state) => { state.notifications.loading = true; });
 
       try {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(getApiUrl('/notifications'), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('Failed to fetch notifications');
-        const data = await response.json();
-        const notifs = data.notifications || [];
+        const result = await apiService.get<{ notifications: Notification[] }>('/notifications');
+        const notifs = result.data?.notifications || [];
         set((state) => {
           state.notifications.notifications = notifs;
           state.notifications.unreadCount = notifs.filter((n: Notification) => !n.isRead).length;
@@ -148,19 +149,7 @@ export const createNotificationSlice: StateCreator<
       }
 
       try {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(getApiUrl(`/notifications/${notificationId}/read`), {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok && notif) {
-          // Revert
-          set((state) => {
-            const n = state.notifications.notifications.find((x) => x.id === notificationId);
-            if (n) { n.isRead = false; n.readAt = null; }
-            state.notifications.unreadCount = state.notifications.notifications.filter((x) => !x.isRead).length;
-          });
-        }
+        await apiService.post(`/notifications/${notificationId}/read`);
       } catch {
         // Revert
         if (notif) {
@@ -175,35 +164,22 @@ export const createNotificationSlice: StateCreator<
 
     markAllAsRead: async () => {
       try {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(getApiUrl('/notifications/read'), {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ all: true }),
+        await apiService.post('/notifications/read', { all: true });
+        set((state) => {
+          state.notifications.notifications.forEach((n) => { n.isRead = true; });
+          state.notifications.unreadCount = 0;
         });
-        if (response.ok) {
-          set((state) => {
-            state.notifications.notifications.forEach((n) => { n.isRead = true; });
-            state.notifications.unreadCount = 0;
-          });
-        }
       } catch { /* ignore */ }
     },
 
     deleteNotification: async (notificationId) => {
       try {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(getApiUrl(`/notifications/${notificationId}`), {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
+        await apiService.delete(`/notifications/${notificationId}`);
+        set((state) => {
+          const removed = state.notifications.notifications.find((n) => n.id === notificationId);
+          state.notifications.notifications = state.notifications.notifications.filter((n) => n.id !== notificationId);
+          if (removed && !removed.isRead) state.notifications.unreadCount--;
         });
-        if (response.ok) {
-          set((state) => {
-            const removed = state.notifications.notifications.find((n) => n.id === notificationId);
-            state.notifications.notifications = state.notifications.notifications.filter((n) => n.id !== notificationId);
-            if (removed && !removed.isRead) state.notifications.unreadCount--;
-          });
-        }
       } catch { /* ignore */ }
     },
 
@@ -272,6 +248,14 @@ export const createNotificationSlice: StateCreator<
     resetNotifications: () => {
       set((state) => { Object.assign(state.notifications, initialState); });
     },
+
+    setPushEnabled: (enabled) => {
+      set((state) => { state.notifications.pushEnabled = enabled; });
+    },
+
+    setPushPermission: (permission) => {
+      set((state) => { state.notifications.pushPermission = permission; });
+    },
   },
 });
 
@@ -333,3 +317,99 @@ export const useNotifications = () => {
 };
 
 export const useNotification = useNotifications;
+
+// ============================================================================
+// Init Hook (replaces NotificationProvider)
+// ============================================================================
+
+import { useEffect, useRef } from 'react';
+
+interface SocketLike {
+  emit(event: string, ...args: unknown[]): void;
+  on(event: string, cb: (...args: unknown[]) => void): void;
+  off(event: string, cb: (...args: unknown[]) => void): void;
+}
+
+interface WindowWithSocket extends Window {
+  __messagingSocket?: SocketLike;
+}
+
+/**
+ * useNotificationInit - sets up WebSocket listeners and initial fetch.
+ * Call once in the provider tree (replaces NotificationProvider wrapper).
+ */
+export function useNotificationInit() {
+  const user = useStore((state) => state.auth.user);
+  const fetchNotifications = useStore((state) => state.notifications.fetchNotifications);
+  const handleNewNotification = useStore((state) => state.notifications.handleNewNotification);
+  const setUnreadCount = useStore((state) => state.notifications.setUnreadCount);
+  const markAllAsRead = useStore((state) => state.notifications.markAllAsRead);
+  const setPushPermission = useStore((state) => state.notifications.setPushPermission);
+  const setPushEnabled = useStore((state) => state.notifications.setPushEnabled);
+  const announcerRef = useRef<HTMLDivElement | null>(null);
+
+  // Fetch notifications on mount
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user, fetchNotifications]);
+
+  // Sync browser push permission state into the store on mount
+  useEffect(() => {
+    if (!user) return;
+    if (!('Notification' in window)) return;
+
+    let cancelled = false;
+    (async () => {
+      const { getPermissionState } = await import('@/utils/pushNotifications');
+      const state = await getPermissionState();
+      if (!cancelled) {
+        setPushPermission(state.permission);
+        setPushEnabled(state.permission === 'granted' && state.isSubscribed);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user, setPushPermission, setPushEnabled]);
+
+  // Set up Socket.IO listener
+  useEffect(() => {
+    if (!user) return;
+
+    const socket = (window as unknown as WindowWithSocket).__messagingSocket;
+    if (!socket) return;
+
+    socket.emit('notifications:subscribe');
+
+    const onNew = (...args: unknown[]) => handleNewNotification(args[0] as Notification);
+    const onCount = (...args: unknown[]) => {
+      const data = args[0] as { count: number };
+      setUnreadCount(data.count);
+    };
+    const onAllRead = () => markAllAsRead();
+
+    socket.on('notification:new', onNew);
+    socket.on('notifications:unread-count', onCount);
+    socket.on('notifications:all-marked-read', onAllRead);
+
+    return () => {
+      socket.off('notification:new', onNew);
+      socket.off('notifications:unread-count', onCount);
+      socket.off('notifications:all-marked-read', onAllRead);
+    };
+  }, [user, handleNewNotification, setUnreadCount, markAllAsRead]);
+
+  // Keyboard shortcut: Ctrl+Shift+N
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key === 'N') {
+        event.preventDefault();
+        window.location.href = '/notifications';
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return announcerRef;
+}

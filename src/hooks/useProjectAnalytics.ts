@@ -5,8 +5,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { getApiUrl } from '../utils/apiHelpers';
-import { useAuth } from '@/store/slices/authSlice';
+import { apiService } from '@/services/apiService';
 
 interface HealthBreakdownItem {
   score: number;
@@ -87,65 +86,46 @@ export interface RiskData {
   healthHistory: { date: string; score: number }[];
 }
 
-async function fetchJson<T>(url: string, token: string): Promise<T> {
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`Analytics fetch failed (${res.status})`);
-  return res.json();
+async function fetchJson<T>(endpoint: string): Promise<T> {
+  const result = await apiService.get<T>(endpoint);
+  return result.data as T;
 }
 
 export function useProjectHealth(projectId: string | undefined) {
-  const { token } = useAuth();
   return useQuery<ProjectHealth>({
     queryKey: ['analytics', 'health', projectId],
-    queryFn: () => fetchJson<ProjectHealth>(
-      getApiUrl(`/api/analytics/project/${projectId}/health`),
-      token!
-    ),
-    enabled: !!projectId && !!token,
+    queryFn: () => fetchJson<ProjectHealth>(`/analytics/project/${projectId}/health`),
+    enabled: !!projectId,
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
 }
 
 export function useProjectBurndown(projectId: string | undefined) {
-  const { token } = useAuth();
   return useQuery<BurndownData>({
     queryKey: ['analytics', 'burndown', projectId],
-    queryFn: () => fetchJson<BurndownData>(
-      getApiUrl(`/api/analytics/project/${projectId}/burndown`),
-      token!
-    ),
-    enabled: !!projectId && !!token,
+    queryFn: () => fetchJson<BurndownData>(`/analytics/project/${projectId}/burndown`),
+    enabled: !!projectId,
     refetchInterval: 120_000,
     staleTime: 60_000,
   });
 }
 
 export function useProjectVelocity(projectId: string | undefined) {
-  const { token } = useAuth();
   return useQuery<VelocityData>({
     queryKey: ['analytics', 'velocity', projectId],
-    queryFn: () => fetchJson<VelocityData>(
-      getApiUrl(`/api/analytics/project/${projectId}/velocity`),
-      token!
-    ),
-    enabled: !!projectId && !!token,
+    queryFn: () => fetchJson<VelocityData>(`/analytics/project/${projectId}/velocity`),
+    enabled: !!projectId,
     refetchInterval: 120_000,
     staleTime: 60_000,
   });
 }
 
 export function useProjectRisks(projectId: string | undefined) {
-  const { token } = useAuth();
   return useQuery<RiskData>({
     queryKey: ['analytics', 'risks', projectId],
-    queryFn: () => fetchJson<RiskData>(
-      getApiUrl(`/api/analytics/project/${projectId}/risks`),
-      token!
-    ),
-    enabled: !!projectId && !!token,
+    queryFn: () => fetchJson<RiskData>(`/analytics/project/${projectId}/risks`),
+    enabled: !!projectId,
     refetchInterval: 120_000,
     staleTime: 60_000,
   });

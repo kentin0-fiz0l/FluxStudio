@@ -14,7 +14,7 @@
 
 import * as React from 'react';
 import { useStore } from '../store/store';
-import { getApiUrl } from '../utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 
 // ============================================================================
 // Types (kept for backward compat imports)
@@ -149,16 +149,13 @@ export function useFiles(): FilesContextValue {
     linkFileToProject: assets.linkFileToProject as FilesContextValue['linkFileToProject'],
     unlinkFileFromProject: assets.unlinkFileFromProject as FilesContextValue['unlinkFileFromProject'],
     getFileById: async (fileId: string) => {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/files/${fileId}`), {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        if (response.status === 404) return null;
-        throw new Error('Failed to get file');
+      try {
+        const result = await apiService.get<{ file: unknown }>(`/files/${fileId}`);
+        return result.data?.file ?? null;
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('404')) return null;
+        throw err;
       }
-      const data = await response.json();
-      return data.file;
     },
     fetchStats: assets.fetchFileStats,
     setSelectedFile: assets.setSelectedFile as FilesContextValue['setSelectedFile'],

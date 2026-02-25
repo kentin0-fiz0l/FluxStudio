@@ -12,7 +12,7 @@ import { useAuth } from '@/store/slices/authSlice';
 import { Project } from '@/hooks/useProjects';
 import { AssetRecord } from '@/contexts/AssetsContext';
 import { useMetMap } from '@/contexts/MetMapContext';
-import { getApiUrl } from '@/utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 import { useMomentumStallNotification } from '@/hooks/useMomentumStallNotification';
 import { isRecoveryActive, clearRecovery } from '@/utils/momentumRecovery';
 import { ProjectNotFound } from './OverviewHelpers';
@@ -86,11 +86,17 @@ export default function ProjectOverview() {
       if (!projectId || !token) { setProjectLoading(false); return; }
       setProjectLoading(true); setProjectError(null);
       try {
-        const response = await fetch(getApiUrl(`/api/projects/${projectId}`), { headers: { 'Authorization': `Bearer ${token}` } });
-        if (!response.ok) { setProjectError(response.status === 404 ? 'not_found' : 'error'); setProjectLoading(false); return; }
-        const data = await response.json();
-        setProject(data.project || data);
-      } catch (error) { console.error('Failed to load project:', error); setProjectError('error'); }
+        const result = await apiService.get<{ project?: Project } & Project>(`/api/projects/${projectId}`);
+        const data = result.data;
+        setProject(data?.project || data as Project);
+      } catch (error) {
+        console.error('Failed to load project:', error);
+        if (error instanceof Error && error.message.includes('404')) {
+          setProjectError('not_found');
+        } else {
+          setProjectError('error');
+        }
+      }
       finally { setProjectLoading(false); }
     }
     loadProject();
@@ -102,17 +108,14 @@ export default function ProjectOverview() {
       if (!projectId || !token) { setMessagesLoading(false); return; }
       setMessagesLoading(true);
       try {
-        const convResponse = await fetch(getApiUrl(`/api/messaging/conversations?projectId=${projectId}&limit=5`), { headers: { 'Authorization': `Bearer ${token}` } });
-        if (!convResponse.ok) { setMessagesLoading(false); return; }
-        const convData = await convResponse.json();
-        const conversations = convData.conversations || [];
+        const convResult = await apiService.get<{ conversations: Array<{ id: string; name: string }> }>(`/api/messaging/conversations`, { params: { projectId, limit: '5' } });
+        const conversations = convResult.data?.conversations || [];
         const messages: RecentMessage[] = [];
         for (const conv of conversations.slice(0, 3)) {
-          const msgResponse = await fetch(getApiUrl(`/api/messaging/conversations/${conv.id}/messages?limit=2`), { headers: { 'Authorization': `Bearer ${token}` } });
-          if (msgResponse.ok) {
-            const msgData = await msgResponse.json();
-            messages.push(...(msgData.messages || []).map((m: Record<string, unknown>) => ({ id: m.id as string, content: m.content as string, authorName: (m.author as Record<string, unknown>)?.name as string || 'Unknown', authorAvatar: (m.author as Record<string, unknown>)?.avatar as string | undefined, conversationId: conv.id, conversationName: conv.name, createdAt: m.createdAt as string })));
-          }
+          try {
+            const msgResult = await apiService.get<{ messages: Array<Record<string, unknown>> }>(`/api/messaging/conversations/${conv.id}/messages`, { params: { limit: '2' } });
+            messages.push(...(msgResult.data?.messages || []).map((m: Record<string, unknown>) => ({ id: m.id as string, content: m.content as string, authorName: (m.author as Record<string, unknown>)?.name as string || 'Unknown', authorAvatar: (m.author as Record<string, unknown>)?.avatar as string | undefined, conversationId: conv.id, conversationName: conv.name, createdAt: m.createdAt as string })));
+          } catch { /* skip */ }
         }
         messages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setRecentMessages(messages.slice(0, 5));
@@ -128,8 +131,8 @@ export default function ProjectOverview() {
       if (!projectId || !token) { setAssetsLoading(false); return; }
       setAssetsLoading(true);
       try {
-        const response = await fetch(getApiUrl(`/api/projects/${projectId}/assets?limit=5`), { headers: { 'Authorization': `Bearer ${token}` } });
-        if (response.ok) { const data = await response.json(); setProjectAssets(data.assets || []); }
+        const result = await apiService.get<{ assets: AssetRecord[] }>(`/api/projects/${projectId}/assets`, { params: { limit: '5' } });
+        setProjectAssets(result.data?.assets || []);
       } catch (error) { console.error('Failed to load assets:', error); }
       finally { setAssetsLoading(false); }
     }
@@ -145,16 +148,15 @@ export default function ProjectOverview() {
       if (!projectId || !token) { setAiSummaryState('empty'); return; }
       setAiSummaryState('loading');
       try {
-        const convResponse = await fetch(getApiUrl(`/api/messaging/conversations?projectId=${projectId}&limit=10`), { headers: { 'Authorization': `Bearer ${token}` } });
-        if (!convResponse.ok) { setAiSummaryState('empty'); return; }
-        const convData = await convResponse.json();
-        const conversations = convData.conversations || [];
+        const convResult = await apiService.get<{ conversations: Array<{ id: string; name: string }> }>(`/api/messaging/conversations`, { params: { projectId, limit: '10' } });
+        const conversations = convResult.data?.conversations || [];
         if (conversations.length === 0) { setAiSummaryState('empty'); return; }
         const summaries: ConversationSummaryData[] = [];
         for (const conv of conversations) {
           try {
-            const summaryResponse = await fetch(getApiUrl(`/api/projects/${projectId}/conversations/${conv.id}/summary`), { headers: { 'Authorization': `Bearer ${token}` } });
-            if (summaryResponse.ok) { const summaryData = await summaryResponse.json(); if (summaryData.success && summaryData.summary) summaries.push({ ...summaryData.summary, conversationName: conv.name }); }
+            const summaryResult = await apiService.get<{ success: boolean; summary: ConversationSummaryData }>(`/api/projects/${projectId}/conversations/${conv.id}/summary`);
+            const summaryData = summaryResult.data;
+            if (summaryData?.success && summaryData.summary) summaries.push({ ...summaryData.summary, conversationName: conv.name });
           } catch { /* skip */ }
         }
         const aiDisabled = summaries.length > 0 && summaries.every(s => s.generatedBy === 'disabled' || s.generatedBy === 'disabled-fallback');

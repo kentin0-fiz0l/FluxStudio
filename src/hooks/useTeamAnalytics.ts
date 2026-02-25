@@ -5,8 +5,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { getApiUrl } from '../utils/apiHelpers';
-import { useAuth } from '@/store/slices/authSlice';
+import { apiService } from '@/services/apiService';
 
 export interface TeamMemberWorkload {
   userId: string;
@@ -45,18 +44,13 @@ export interface TeamWorkloadData {
 }
 
 export function useTeamWorkload(teamId: string | undefined) {
-  const { token } = useAuth();
   return useQuery<TeamWorkloadData>({
     queryKey: ['analytics', 'workload', teamId],
     queryFn: async () => {
-      const res = await fetch(
-        getApiUrl(`/api/analytics/team/${teamId}/workload`),
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!res.ok) throw new Error(`Workload fetch failed (${res.status})`);
-      return res.json();
+      const result = await apiService.get<TeamWorkloadData>(`/analytics/team/${teamId}/workload`);
+      return result.data as TeamWorkloadData;
     },
-    enabled: !!teamId && !!token,
+    enabled: !!teamId,
     refetchInterval: 60_000,
     staleTime: 30_000,
   });

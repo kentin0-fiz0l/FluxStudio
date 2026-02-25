@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { useAuth } from '@/store/slices/authSlice';
-import { getApiUrl } from '../../utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 import { useAssetCore } from './AssetCoreContext';
 import { useAssetList } from './AssetListContext';
 import type { AssetVersionContextValue, AssetVersion, AssetRecord } from './types';
@@ -16,7 +16,7 @@ const AssetVersionContext = React.createContext<AssetVersionContextValue | null>
 
 export function AssetVersionProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const { dispatch, getToken } = useAssetCore();
+  const { dispatch } = useAssetCore();
   const { getAssetById } = useAssetList();
 
   // Create version
@@ -27,22 +27,7 @@ export function AssetVersionProvider({ children }: { children: React.ReactNode }
     if (!user) throw new Error('Authentication required');
 
     try {
-      const token = getToken();
-      const response = await fetch(getApiUrl(`/assets/${assetId}/versions`), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create version');
-      }
-
-      const result = await response.json();
+      const result = await apiService.post<{ version: AssetVersion }>(`/assets/${assetId}/versions`, data);
 
       // Refresh the asset to get updated version info
       const updatedAsset = await getAssetById(assetId, { includeVersions: true });
@@ -50,37 +35,25 @@ export function AssetVersionProvider({ children }: { children: React.ReactNode }
         dispatch({ type: 'UPDATE_ASSET', payload: updatedAsset });
       }
 
-      return result.version;
+      return result.data?.version ?? null;
     } catch (error) {
       console.error('Error creating version:', error);
       throw error;
     }
-  }, [user, getToken, getAssetById, dispatch]);
+  }, [user, getAssetById, dispatch]);
 
   // Get versions
   const getVersions = React.useCallback(async (assetId: string): Promise<AssetVersion[]> => {
     if (!user) throw new Error('Authentication required');
 
     try {
-      const token = getToken();
-      const response = await fetch(getApiUrl(`/assets/${assetId}/versions`), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to get versions');
-      }
-
-      const result = await response.json();
-      return result.versions || [];
+      const result = await apiService.get<{ versions: AssetVersion[] }>(`/assets/${assetId}/versions`);
+      return result.data?.versions || [];
     } catch (error) {
       console.error('Error getting versions:', error);
       throw error;
     }
-  }, [user, getToken]);
+  }, [user]);
 
   // Revert to version
   const revertToVersion = React.useCallback(async (
@@ -90,27 +63,15 @@ export function AssetVersionProvider({ children }: { children: React.ReactNode }
     if (!user) throw new Error('Authentication required');
 
     try {
-      const token = getToken();
-      const response = await fetch(getApiUrl(`/assets/${assetId}/versions/${versionNumber}/revert`), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to revert');
-      }
-
-      const result = await response.json();
-      dispatch({ type: 'UPDATE_ASSET', payload: result.asset });
-      return result.asset;
+      const result = await apiService.post<{ asset: AssetRecord }>(`/assets/${assetId}/versions/${versionNumber}/revert`);
+      const asset = result.data?.asset;
+      if (asset) dispatch({ type: 'UPDATE_ASSET', payload: asset });
+      return asset ?? null;
     } catch (error) {
       console.error('Error reverting to version:', error);
       throw error;
     }
-  }, [user, getToken, dispatch]);
+  }, [user, dispatch]);
 
   const value: AssetVersionContextValue = {
     createVersion,

@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { LazyImage } from '@/components/LazyImage';
 import {
   Check,
   CheckCheck,
@@ -89,7 +90,7 @@ export const LinkPreviewCard: React.FC<{ preview: LinkPreview }> = ({ preview })
     className="block mt-2 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
   >
     {'image' in preview && (preview as { image?: string }).image && (
-      <img src={(preview as { image: string }).image} alt="" className="w-full h-32 object-cover" />
+      <LazyImage src={(preview as { image: string }).image} alt="" width={400} height={128} className="w-full h-32 object-cover" />
     )}
     <div className="p-3">
       <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 line-clamp-1">

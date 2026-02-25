@@ -4,6 +4,17 @@ import { immer } from 'zustand/middleware/immer';
 
 vi.mock('../store', () => ({ useStore: vi.fn() }));
 
+const mockApiService = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+}));
+
+vi.mock('../../services/apiService', () => ({
+  apiService: mockApiService,
+}));
+
 import { createProjectSlice, type ProjectSlice, type Project } from '../slices/projectSlice';
 
 function createTestStore() {
@@ -160,20 +171,20 @@ describe('projectSlice', () => {
 
   describe('fetchProjects', () => {
     it('should fetch and set projects on success', async () => {
-      localStorage.setItem('auth_token', 'tok');
-      global.fetch = vi.fn().mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ projects: [makeProject()] }),
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: { projects: [makeProject()] },
       });
 
       await store.getState().projects.fetchProjects();
 
       expect(store.getState().projects.projects).toHaveLength(1);
       expect(store.getState().projects.isLoading).toBe(false);
+      expect(mockApiService.get).toHaveBeenCalledWith('/projects');
     });
 
     it('should set error on failure', async () => {
-      global.fetch = vi.fn().mockResolvedValueOnce({ ok: false });
+      mockApiService.get.mockRejectedValueOnce(new Error('Failed to fetch projects'));
 
       await store.getState().projects.fetchProjects();
 

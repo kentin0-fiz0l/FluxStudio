@@ -34,36 +34,56 @@ vi.mock('../../lib/logger', () => ({
   },
 }));
 
-// Mock fetch globally
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+// Mock apiService instead of global fetch
+vi.mock('@/services/apiService', () => ({
+  apiService: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    makeRequest: vi.fn(),
+  },
+}));
 
+import { apiService } from '@/services/apiService';
 import { messagingService } from '../messagingService';
 import { fixtures } from './testHelpers';
 
-function mockApiResponse(data: any, status = 200) {
-  mockFetch.mockResolvedValueOnce({
-    ok: status >= 200 && status < 300,
-    status,
-    statusText: status === 200 ? 'OK' : 'Error',
-    json: () => Promise.resolve(data),
-  });
+/**
+ * Helper: mock a successful apiService response.
+ * apiRequest extracts result.data, so we wrap the payload.
+ */
+function mockApiGet(data: any) {
+  vi.mocked(apiService.get).mockResolvedValueOnce({ success: true, data });
 }
 
-function mockApiError(status = 500, message = 'Server Error') {
-  mockFetch.mockResolvedValueOnce({
-    ok: false,
-    status,
-    statusText: message,
-    json: () => Promise.resolve({ error: message }),
-  });
+function mockApiPost(data: any) {
+  vi.mocked(apiService.post).mockResolvedValueOnce({ success: true, data });
+}
+
+function mockApiPatch(data: any) {
+  vi.mocked(apiService.patch).mockResolvedValueOnce({ success: true, data });
+}
+
+function mockApiDelete(data: any = {}) {
+  vi.mocked(apiService.delete).mockResolvedValueOnce({ success: true, data });
+}
+
+function mockApiGetError(message = 'Server Error') {
+  vi.mocked(apiService.get).mockRejectedValueOnce(new Error(message));
+}
+
+function mockApiPostError(message = 'Server Error') {
+  vi.mocked(apiService.post).mockRejectedValueOnce(new Error(message));
+}
+
+function mockApiDeleteError(message = 'Server Error') {
+  vi.mocked(apiService.delete).mockRejectedValueOnce(new Error(message));
 }
 
 describe('MessagingService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
-    localStorage.setItem('auth_token', fixtures.authToken);
   });
 
   describe('setCurrentUser', () => {
@@ -81,7 +101,7 @@ describe('MessagingService', () => {
 
   describe('getConversations', () => {
     it('should fetch and transform conversations', async () => {
-      mockApiResponse({
+      mockApiGet({
         success: true,
         conversations: [
           {
@@ -100,29 +120,30 @@ describe('MessagingService', () => {
     });
 
     it('should handle filter parameters', async () => {
-      mockApiResponse({ conversations: [] });
+      mockApiGet({ conversations: [] });
       await messagingService.getConversations({ type: 'group' as any });
 
-      const url = mockFetch.mock.calls[0][0];
-      expect(url).toContain('type=group');
+      expect(apiService.get).toHaveBeenCalledWith(
+        expect.stringContaining('type=group')
+      );
     });
 
     it('should return empty array for invalid response', async () => {
-      mockApiResponse({ conversations: 'not-an-array' });
+      mockApiGet({ conversations: 'not-an-array' });
       const result = await messagingService.getConversations();
       expect(result).toEqual([]);
     });
 
     it('should handle participant objects that are already MessageUser', async () => {
       const participant = { id: 'u1', name: 'User 1', userType: 'designer' };
-      mockApiResponse({ conversations: [{ id: 'c1', participants: [participant] }] });
+      mockApiGet({ conversations: [{ id: 'c1', participants: [participant] }] });
 
       const result = await messagingService.getConversations();
       expect(result[0].participants[0]).toEqual(participant);
     });
 
     it('should filter out null participants', async () => {
-      mockApiResponse({ conversations: [{ id: 'c1', participants: [null, 'user-1', undefined] }] });
+      mockApiGet({ conversations: [{ id: 'c1', participants: [null, 'user-1', undefined] }] });
       const result = await messagingService.getConversations();
       expect(result[0].participants).toHaveLength(1);
     });
@@ -130,7 +151,7 @@ describe('MessagingService', () => {
 
   describe('getConversation', () => {
     it('should fetch a single conversation and transform participants', async () => {
-      mockApiResponse({ id: 'conv-1', participants: ['user-1'] });
+      mockApiGet({ id: 'conv-1', participants: ['user-1'] });
       const result = await messagingService.getConversation('conv-1');
       expect(result.id).toBe('conv-1');
       expect(result.participants[0]).toHaveProperty('id', 'user-1');
@@ -139,7 +160,7 @@ describe('MessagingService', () => {
 
   describe('createConversation', () => {
     it('should create conversation and join socket room', async () => {
-      mockApiResponse({ id: 'new-conv' });
+      mockApiPost({ id: 'new-conv' });
 
       const result = await messagingService.createConversation({
         type: 'group' as any,
@@ -149,43 +170,47 @@ describe('MessagingService', () => {
 
       expect(result.id).toBe('new-conv');
       expect(mockSocketService.joinConversation).toHaveBeenCalledWith('new-conv');
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(apiService.post).toHaveBeenCalledWith(
         expect.stringContaining('/conversations'),
-        expect.objectContaining({ method: 'POST' })
+        expect.objectContaining({ type: 'group' })
       );
     });
   });
 
   describe('updateConversation', () => {
     it('should send PATCH request', async () => {
-      mockApiResponse({ id: 'conv-1', name: 'Updated' });
+      mockApiPatch({ id: 'conv-1', name: 'Updated' });
       await messagingService.updateConversation('conv-1', { name: 'Updated' });
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(apiService.patch).toHaveBeenCalledWith(
         expect.stringContaining('/conversations/conv-1'),
-        expect.objectContaining({ method: 'PATCH' })
+        expect.objectContaining({ name: 'Updated' })
       );
     });
   });
 
   describe('getMessages', () => {
     it('should fetch messages for a conversation', async () => {
-      mockApiResponse({ messages: [{ id: 'msg-1', content: 'Hello' }] });
+      mockApiGet({ messages: [{ id: 'msg-1', content: 'Hello' }] });
       const result = await messagingService.getMessages('conv-1');
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('msg-1');
     });
 
     it('should pass pagination options', async () => {
-      mockApiResponse({ messages: [] });
+      mockApiGet({ messages: [] });
       await messagingService.getMessages('conv-1', { limit: 10, offset: 5 });
-      const url = mockFetch.mock.calls[0][0];
-      expect(url).toContain('limit=10');
-      expect(url).toContain('offset=5');
+
+      expect(apiService.get).toHaveBeenCalledWith(
+        expect.stringContaining('limit=10')
+      );
+      expect(apiService.get).toHaveBeenCalledWith(
+        expect.stringContaining('offset=5')
+      );
     });
 
     it('should return empty array for non-array response', async () => {
-      mockApiResponse({ messages: 'bad' });
+      mockApiGet({ messages: 'bad' });
       const result = await messagingService.getMessages('conv-1');
       expect(result).toEqual([]);
     });
@@ -193,14 +218,10 @@ describe('MessagingService', () => {
 
   describe('sendMessage', () => {
     it('should throw if user not authenticated', async () => {
-      // Create a fresh instance to test unauthenticated state
-      // The singleton may already have currentUser set from prior tests
-      // Instead, test that sendMessage requires user by checking the API call
-      // Since currentUser was set in a prior test, we verify the auth flow works
-      // by testing a fresh service behavior via the API call path
+      // Set up a user first (singleton may already have one from prior tests)
       const user = { id: 'u1', name: 'Test', userType: 'designer' as const, email: 't@t.com', avatar: '' };
       messagingService.setCurrentUser(user);
-      mockApiResponse({ id: 'msg-1', content: 'Hello' });
+      mockApiPost({ id: 'msg-1', content: 'Hello' });
 
       const result = await messagingService.sendMessage({
         conversationId: 'conv-1',
@@ -213,7 +234,7 @@ describe('MessagingService', () => {
     it('should send message via API and socket', async () => {
       const user = { id: 'u1', name: 'Test', userType: 'designer' as const, email: 't@t.com', avatar: '' };
       messagingService.setCurrentUser(user);
-      mockApiResponse({ id: 'msg-1', content: 'Hello' });
+      mockApiPost({ id: 'msg-1', content: 'Hello' });
 
       const result = await messagingService.sendMessage({
         conversationId: 'conv-1',
@@ -230,38 +251,38 @@ describe('MessagingService', () => {
 
   describe('editMessage', () => {
     it('should send PATCH request', async () => {
-      mockApiResponse({ id: 'msg-1', content: 'edited' });
+      mockApiPatch({ id: 'msg-1', content: 'edited' });
       await messagingService.editMessage('msg-1', 'edited');
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(apiService.patch).toHaveBeenCalledWith(
         expect.stringContaining('/messages/msg-1'),
-        expect.objectContaining({ method: 'PATCH' })
+        expect.objectContaining({ content: 'edited' })
       );
     });
   });
 
   describe('deleteMessage', () => {
     it('should send DELETE request', async () => {
-      mockApiResponse({});
+      mockApiDelete({});
       await messagingService.deleteMessage('msg-1');
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/messages/msg-1'),
-        expect.objectContaining({ method: 'DELETE' })
+      expect(apiService.delete).toHaveBeenCalledWith(
+        expect.stringContaining('/messages/msg-1')
       );
     });
   });
 
   describe('searchMessages', () => {
     it('should build search params from options', async () => {
-      mockApiResponse([]);
+      mockApiGet([]);
       await messagingService.searchMessages({ query: 'hello', conversationId: 'conv-1' } as any);
-      const url = mockFetch.mock.calls[0][0];
-      expect(url).toContain('query=hello');
+      expect(apiService.get).toHaveBeenCalledWith(
+        expect.stringContaining('query=hello')
+      );
     });
   });
 
   describe('markAsRead', () => {
     it('should call socket and API', async () => {
-      mockApiResponse({});
+      mockApiPost({});
       await messagingService.markAsRead('msg-1', 'conv-1');
       expect(mockSocketService.markMessageAsRead).toHaveBeenCalledWith('msg-1', 'conv-1');
     });
@@ -269,45 +290,47 @@ describe('MessagingService', () => {
 
   describe('addReaction / removeReaction', () => {
     it('should call socket and API for add', async () => {
-      mockApiResponse({});
-      await messagingService.addReaction('msg-1', 'conv-1', '👍');
-      expect(mockSocketService.addReaction).toHaveBeenCalledWith('msg-1', 'conv-1', '👍');
+      mockApiPost({});
+      await messagingService.addReaction('msg-1', 'conv-1', '\u{1F44D}');
+      expect(mockSocketService.addReaction).toHaveBeenCalledWith('msg-1', 'conv-1', '\u{1F44D}');
     });
 
     it('should call socket and API for remove', async () => {
-      mockApiResponse({});
-      await messagingService.removeReaction('msg-1', 'conv-1', '👍');
-      expect(mockSocketService.removeReaction).toHaveBeenCalledWith('msg-1', 'conv-1', '👍');
+      mockApiDelete({});
+      await messagingService.removeReaction('msg-1', 'conv-1', '\u{1F44D}');
+      expect(mockSocketService.removeReaction).toHaveBeenCalledWith('msg-1', 'conv-1', '\u{1F44D}');
     });
   });
 
   describe('notifications', () => {
     it('should fetch notifications', async () => {
-      mockApiResponse({ notifications: [{ id: 'n1' }] });
+      mockApiGet({ notifications: [{ id: 'n1' }] });
       const result = await messagingService.getNotifications();
       expect(result).toHaveLength(1);
     });
 
     it('should return empty array for invalid notifications response', async () => {
-      mockApiResponse({ notifications: 'bad' });
+      mockApiGet({ notifications: 'bad' });
       const result = await messagingService.getNotifications();
       expect(result).toEqual([]);
     });
 
     it('should mark notification as read', async () => {
-      mockApiResponse({});
+      mockApiPost({});
       await messagingService.markNotificationAsRead('n1');
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(apiService.post).toHaveBeenCalledWith(
         expect.stringContaining('/notifications/read'),
-        expect.objectContaining({ method: 'POST' })
+        expect.objectContaining({ ids: ['n1'] })
       );
     });
 
     it('should mark all notifications as read', async () => {
-      mockApiResponse({});
+      mockApiPost({});
       await messagingService.markAllNotificationsAsRead();
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(body.all).toBe(true);
+      expect(apiService.post).toHaveBeenCalledWith(
+        expect.stringContaining('/notifications/read'),
+        expect.objectContaining({ all: true })
+      );
     });
   });
 
@@ -348,19 +371,19 @@ describe('MessagingService', () => {
 
   describe('pinMessage / unpinMessage', () => {
     it('should pin and return true on success', async () => {
-      mockApiResponse({});
+      mockApiPost({});
       const result = await messagingService.pinMessage('conv-1', 'msg-1');
       expect(result).toBe(true);
     });
 
     it('should return false on pin failure', async () => {
-      mockApiError(500);
+      mockApiPostError('Server Error');
       const result = await messagingService.pinMessage('conv-1', 'msg-1');
       expect(result).toBe(false);
     });
 
     it('should unpin and return true on success', async () => {
-      mockApiResponse({});
+      mockApiDelete({});
       const result = await messagingService.unpinMessage('conv-1', 'msg-1');
       expect(result).toBe(true);
     });
@@ -368,25 +391,25 @@ describe('MessagingService', () => {
 
   describe('muteConversation / unmuteConversation', () => {
     it('should mute conversation', async () => {
-      mockApiResponse({});
+      mockApiPost({});
       const result = await messagingService.muteConversation('conv-1', 24);
       expect(result).toBe(true);
     });
 
     it('should return false on mute failure', async () => {
-      mockApiError(500);
+      mockApiPostError('Server Error');
       const result = await messagingService.muteConversation('conv-1');
       expect(result).toBe(false);
     });
 
     it('should unmute conversation', async () => {
-      mockApiResponse({});
+      mockApiDelete({});
       const result = await messagingService.unmuteConversation('conv-1');
       expect(result).toBe(true);
     });
 
     it('should get mute status', async () => {
-      mockApiResponse({ isMuted: true, mutedUntil: '2025-12-31T00:00:00Z' });
+      mockApiGet({ isMuted: true, mutedUntil: '2025-12-31T00:00:00Z' });
       const result = await messagingService.getMuteStatus('conv-1');
       expect(result.isMuted).toBe(true);
       expect(result.mutedUntil).toBeInstanceOf(Date);
@@ -395,33 +418,33 @@ describe('MessagingService', () => {
 
   describe('toggleReaction', () => {
     it('should toggle and return result', async () => {
-      mockApiResponse({ action: 'added', reactionCounts: [{ emoji: '👍', count: 1 }] });
-      const result = await messagingService.toggleReaction('msg-1', 'conv-1', '👍');
+      mockApiPost({ action: 'added', reactionCounts: [{ emoji: '\u{1F44D}', count: 1 }] });
+      const result = await messagingService.toggleReaction('msg-1', 'conv-1', '\u{1F44D}');
       expect(result?.action).toBe('added');
     });
 
     it('should return null on failure', async () => {
-      mockApiError(500);
-      const result = await messagingService.toggleReaction('msg-1', 'conv-1', '👍');
+      mockApiPostError('Server Error');
+      const result = await messagingService.toggleReaction('msg-1', 'conv-1', '\u{1F44D}');
       expect(result).toBeNull();
     });
   });
 
   describe('replyToMessage / forwardMessage', () => {
     it('should reply to message', async () => {
-      mockApiResponse({ message: { id: 'reply-1' } });
+      mockApiPost({ message: { id: 'reply-1' } });
       const result = await messagingService.replyToMessage('msg-1', 'conv-1', 'reply text');
       expect(result?.id).toBe('reply-1');
     });
 
     it('should return null on reply failure', async () => {
-      mockApiError(500);
+      mockApiPostError('Server Error');
       const result = await messagingService.replyToMessage('msg-1', 'conv-1', 'reply');
       expect(result).toBeNull();
     });
 
     it('should forward message', async () => {
-      mockApiResponse({ message: { id: 'fwd-1' } });
+      mockApiPost({ message: { id: 'fwd-1' } });
       const result = await messagingService.forwardMessage('msg-1', 'conv-2');
       expect(result?.id).toBe('fwd-1');
     });
@@ -429,14 +452,14 @@ describe('MessagingService', () => {
 
   describe('getMessageThread', () => {
     it('should return thread with message and replies', async () => {
-      mockApiResponse({ message: { id: 'msg-1' }, replies: [{ id: 'r1' }] });
+      mockApiGet({ message: { id: 'msg-1' }, replies: [{ id: 'r1' }] });
       const result = await messagingService.getMessageThread('msg-1');
       expect(result.message?.id).toBe('msg-1');
       expect(result.replies).toHaveLength(1);
     });
 
     it('should return defaults on failure', async () => {
-      mockApiError(500);
+      mockApiGetError('Server Error');
       const result = await messagingService.getMessageThread('msg-1');
       expect(result.message).toBeNull();
       expect(result.replies).toEqual([]);
@@ -445,7 +468,7 @@ describe('MessagingService', () => {
 
   describe('getUsers', () => {
     it('should fetch and transform users', async () => {
-      mockApiResponse({ users: [{ id: 'u1', name: 'User 1', email: 'u@e.com' }] });
+      mockApiGet({ users: [{ id: 'u1', name: 'User 1', email: 'u@e.com' }] });
       const result = await messagingService.getUsers('User');
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('User 1');
@@ -454,30 +477,31 @@ describe('MessagingService', () => {
 
   describe('getUserById', () => {
     it('should return user when found', async () => {
-      mockApiResponse({ user: { id: 'u1', name: 'User' } });
+      mockApiGet({ user: { id: 'u1', name: 'User' } });
       const result = await messagingService.getUserById('u1');
       expect(result?.id).toBe('u1');
     });
 
     it('should return null when user not found', async () => {
-      mockApiResponse({ user: null });
+      mockApiGet({ user: null });
       const result = await messagingService.getUserById('u999');
       expect(result).toBeNull();
     });
 
     it('should return null on error', async () => {
-      mockApiError(404);
+      mockApiGetError('Not found');
       const result = await messagingService.getUserById('u999');
       expect(result).toBeNull();
     });
   });
 
-  describe('API auth header', () => {
-    it('should include auth token from localStorage', async () => {
-      mockApiResponse({ conversations: [] });
+  describe('API uses apiService', () => {
+    it('should use apiService.get for fetching conversations', async () => {
+      mockApiGet({ conversations: [] });
       await messagingService.getConversations();
-      const headers = mockFetch.mock.calls[0][1].headers;
-      expect(headers.Authorization).toContain(fixtures.authToken);
+      expect(apiService.get).toHaveBeenCalledWith(
+        expect.stringContaining('/conversations')
+      );
     });
   });
 });

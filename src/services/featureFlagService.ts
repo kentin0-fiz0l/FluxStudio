@@ -7,7 +7,8 @@
  * Provides a subscribe/notify pattern for the React hook.
  */
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { apiService } from '@/services/apiService';
+
 const CACHE_TTL_MS = 60_000; // 60 seconds
 
 type FlagMap = Record<string, boolean>;
@@ -18,19 +19,10 @@ let fetchedAt = 0;
 let fetchPromise: Promise<FlagMap> | null = null;
 const listeners = new Set<Listener>();
 
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function fetchFlags(): Promise<FlagMap> {
   try {
-    const res = await fetch(`${API_URL}/api/admin/flags/evaluate`, {
-      headers: getAuthHeaders(),
-    });
-    if (!res.ok) return flags; // Keep stale values on error
-    const data = await res.json();
-    flags = data;
+    const result = await apiService.get<FlagMap>('/admin/flags/evaluate');
+    flags = result.data as FlagMap;
     fetchedAt = Date.now();
     notifyListeners();
     return flags;

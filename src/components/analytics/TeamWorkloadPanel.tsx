@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { AlertTriangle, Clock, User } from 'lucide-react';
+import { LazyImage } from '../LazyImage';
 import { useTeamWorkload, type TeamMemberWorkload, type Bottleneck } from '../../hooks/useTeamAnalytics';
 
 interface TeamWorkloadPanelProps {
@@ -42,7 +43,7 @@ const WorkloadBar = React.memo(function WorkloadBar({ member }: { member: TeamMe
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {member.avatar ? (
-            <img src={member.avatar} alt="" className="w-6 h-6 rounded-full" />
+            <LazyImage src={member.avatar} alt="" width={24} height={24} className="rounded-full" />
           ) : (
             <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
               <User className="w-3 h-3 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />

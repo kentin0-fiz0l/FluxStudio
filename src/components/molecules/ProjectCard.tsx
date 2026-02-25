@@ -20,6 +20,7 @@ import * as React from 'react';
 import { useMemo, useCallback } from 'react';
 import { Calendar, Users, MoreVertical, ExternalLink, Target } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Badge, Button } from '@/components/ui';
+import { LazyImage } from '@/components/LazyImage';
 import { cn, formatRelativeTime } from '@/lib/utils';
 
 export interface ProjectCardProject {
@@ -188,11 +189,10 @@ const ProjectCardInner = React.forwardRef<HTMLDivElement, ProjectCardProps>(
         {/* Thumbnail (if provided) */}
         {project.thumbnail && variant !== 'compact' && (
           <div className="relative aspect-video bg-neutral-100 rounded-t-lg overflow-hidden -m-6 mb-4">
-            <img
+            <LazyImage
               src={project.thumbnail}
               alt={`Thumbnail for ${project.name}`}
               className="w-full h-full object-cover"
-              loading="lazy"
             />
             <div className="absolute top-3 right-3">
               <Badge variant={STATUS_VARIANTS[project.status]} size="sm" dot>
@@ -286,12 +286,13 @@ const ProjectCardInner = React.forwardRef<HTMLDivElement, ProjectCardProps>(
               <div className="flex items-center gap-2">
                 <div className="flex -space-x-2">
                   {project.teamAvatars.slice(0, 4).map((avatar, index) => (
-                    <img
+                    <LazyImage
                       key={index}
                       src={avatar}
                       alt={`Team member ${index + 1}`}
-                      className="w-8 h-8 rounded-full border-2 border-white"
-                      loading="lazy"
+                      width={32}
+                      height={32}
+                      className="rounded-full border-2 border-white"
                     />
                   ))}
                   {project.teamAvatars.length > 4 && (

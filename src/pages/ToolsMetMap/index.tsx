@@ -13,14 +13,14 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/templates/DashboardLayout';
 import { useMetMap, Song, Section } from '../../contexts/MetMapContext';
-import { useNotification } from '../../contexts/NotificationContext';
+import { useNotification } from '@/store/slices/notificationSlice';
 import { useProjectContext } from '@/store';
 import { MobilePlaybackControls } from '../../components/metmap/MobilePlaybackControls';
 import { OfflineIndicator, NetworkStatusBadge } from '../../components/pwa/OfflineIndicator';
 import { usePWA } from '../../hooks/usePWA';
 import { ONBOARDING_STORAGE_KEYS, useFirstTimeExperience } from '../../hooks/useFirstTimeExperience';
 import { useAuth } from '@/store/slices/authSlice';
-import { getApiUrl } from '../../utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 
 // MetMap components
 import { TapTempo } from '../../components/metmap/TapTempo';
@@ -276,17 +276,13 @@ export default function ToolsMetMap() {
 
     async function loadFromAsset() {
       try {
-        const response = await fetch(
-          getApiUrl(`/assets/${assetId}/file`),
-          { headers: { 'Authorization': `Bearer ${token}` } }
-        );
+        const result = await apiService.get<{ song: { id: string; title: string; bpmDefault?: number; timeSignatureDefault?: string; sections?: Partial<Section>[] } }>(`/assets/${assetId}/file`);
+        const data = result.data;
 
-        if (!response.ok) {
+        if (!data) {
           showNotification({ type: 'error', title: 'Load Failed', message: 'Could not load MetMap session from asset' });
           return;
         }
-
-        const data = await response.json();
 
         if (!data.song?.id || !data.song?.title) {
           showNotification({ type: 'error', title: 'Invalid Format', message: 'This asset does not contain a valid MetMap session' });
@@ -494,17 +490,8 @@ export default function ToolsMetMap() {
     if (!projectId || !token) return;
 
     try {
-      const conversationsResponse = await fetch(
-        getApiUrl(`/api/messaging/conversations?projectId=${projectId}&limit=1`),
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
-
-      if (!conversationsResponse.ok) {
-        throw new Error('Could not find project chat');
-      }
-
-      const convData = await conversationsResponse.json();
-      const conversation = convData.conversations?.[0];
+      const convResult = await apiService.get<{ conversations: Array<{ id: string }> }>('/api/messaging/conversations', { params: { projectId, limit: '1' } });
+      const conversation = convResult.data?.conversations?.[0];
 
       if (!conversation) {
         showNotification({ type: 'warning', title: 'No Project Chat', message: 'Create a conversation in this project first to share MetMap sessions' });
@@ -514,21 +501,10 @@ export default function ToolsMetMap() {
       const messageContent = `🎵 Shared MetMap: **${currentSong?.title}**\n\n` +
         `${editedSections.length} sections • ${editedSections.reduce((sum, s) => sum + s.bars, 0)} bars • ${currentSong?.bpmDefault} BPM`;
 
-      const messageResponse = await fetch(
-        getApiUrl(`/api/messaging/conversations/${conversation.id}/messages`),
-        {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: messageContent,
-            attachments: [{ type: 'asset', assetId: asset.id, name: asset.name, mimeType: 'application/json' }]
-          })
-        }
-      );
-
-      if (!messageResponse.ok) {
-        throw new Error('Failed to send message');
-      }
+      await apiService.post(`/api/messaging/conversations/${conversation.id}/messages`, {
+        content: messageContent,
+        attachments: [{ type: 'asset', assetId: asset.id, name: asset.name, mimeType: 'application/json' }]
+      });
 
       showNotification({ type: 'success', title: 'Shared to Chat', message: `MetMap session shared to project chat` });
       navigate(`/messages?projectId=${projectId}&conversationId=${conversation.id}`);
@@ -558,14 +534,8 @@ export default function ToolsMetMap() {
     try {
       const formData = new FormData();
       formData.append('audio', file);
-      const url = getApiUrl(`/api/metmap/songs/${currentSong.id}/audio`);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      if (!res.ok) throw new Error('Upload failed');
-      const data = await res.json();
+      const result = await apiService.post<{ audioFileUrl: string }>(`/api/metmap/songs/${currentSong.id}/audio`, formData);
+      const data = result.data!;
       metmapDispatch({
         type: 'SET_SONG_AUDIO',
         payload: {
@@ -583,8 +553,7 @@ export default function ToolsMetMap() {
   const handleRemoveAudio = async () => {
     if (!currentSong) return;
     try {
-      const url = getApiUrl(`/api/metmap/songs/${currentSong.id}/audio`);
-      await fetch(url, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      await apiService.delete(`/api/metmap/songs/${currentSong.id}/audio`);
       metmapDispatch({ type: 'CLEAR_SONG_AUDIO', payload: currentSong.id });
       setAudioBuffer(null);
       showNotification({ type: 'success', title: 'Audio removed', message: 'Audio file removed from song' });
@@ -599,12 +568,7 @@ export default function ToolsMetMap() {
     try {
       const beatMap = await detectBeatsWithCache(audioBuffer);
       // Save to backend
-      const url = getApiUrl(`/api/metmap/songs/${currentSong.id}/beat-map`);
-      await fetch(url, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ beatMap, detectedBpm: beatMap.bpm, audioDurationSeconds: audioBuffer.duration }),
-      });
+      await apiService.patch(`/api/metmap/songs/${currentSong.id}/beat-map`, { beatMap, detectedBpm: beatMap.bpm, audioDurationSeconds: audioBuffer.duration });
       metmapDispatch({
         type: 'SET_SONG_BEAT_MAP',
         payload: { songId: currentSong.id, beatMap, detectedBpm: beatMap.bpm },
@@ -1334,9 +1298,12 @@ export default function ToolsMetMap() {
                       return (
                       <div
                         key={section.id || index}
+                        role="button"
+                        tabIndex={0}
                         className="relative"
                         onFocus={() => { setPresenceEditingSection(section.id || null); setCurrentEditingSection(section.id || null); }}
                         onClick={() => { setPresenceEditingSection(section.id || null); setCurrentEditingSection(section.id || null); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPresenceEditingSection(section.id || null); setCurrentEditingSection(section.id || null); } }}
                       >
                         {/* Presence: colored left border when a remote peer is editing */}
                         {editingPeer && (

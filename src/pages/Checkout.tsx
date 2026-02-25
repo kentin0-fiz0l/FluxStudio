@@ -4,13 +4,12 @@ import { motion } from 'framer-motion';
 import { CreditCard, Shield, Check, ArrowLeft, Loader, AlertCircle } from 'lucide-react';
 import { PricingTable } from '../components/payments/PricingTable';
 import { useAuth } from '@/store/slices/authSlice';
-
-const API_URL = import.meta.env.VITE_API_URL || 'https://fluxstudio.art';
+import { apiService } from '@/services/apiService';
 
 export function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [, setSelectedPlan] = useState<string | null>(null);
@@ -41,30 +40,15 @@ export function Checkout() {
     setSelectedPlan(tier.id);
 
     try {
-      const response = await fetch(`${API_URL}/api/payments/create-checkout-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          priceId: tier.priceId || `price_${tier.id}`,
-          mode: 'payment', // or 'subscription' for recurring
-          metadata: {
-            planName: tier.name
-          }
-        })
+      const result = await apiService.post<{ url?: string }>('/payments/create-checkout-session', {
+        priceId: tier.priceId || `price_${tier.id}`,
+        mode: 'payment',
+        metadata: { planName: tier.name }
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout session');
-      }
-
       // Redirect to Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url;
+      if (result.data?.url) {
+        window.location.href = result.data.url;
       } else {
         throw new Error('No checkout URL returned');
       }

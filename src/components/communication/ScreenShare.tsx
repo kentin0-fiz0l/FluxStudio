@@ -216,8 +216,11 @@ export function ScreenShare({
 
       {/* Screen Content */}
       <div
+        role="button"
+        tabIndex={0}
         className="flex-1 flex items-center justify-center relative"
         onClick={handleCanvasClick}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCanvasClick(e as any); } }}
       >
         <video
           ref={videoRef}

@@ -5,7 +5,7 @@
  * with full-text search, filtering, and result highlighting.
  */
 
-import { buildApiUrl } from '../config/environment';
+import { apiService } from './apiService';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -151,38 +151,22 @@ class SearchService {
   }
 
   /**
-   * Get auth headers for API requests
-   */
-  private getAuthHeaders(): Record<string, string> {
-    const token = localStorage.getItem('auth_token');
-    return {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-  }
-
-  /**
    * Perform server-side search via the unified search API endpoint.
    * Uses PostgreSQL full-text search for better relevance ranking.
    */
   async searchServer(searchQuery: SearchQuery): Promise<SearchResponse> {
     const { query, filters, limit = 20, offset = 0, sortBy = 'relevance', sortOrder = 'desc' } = searchQuery;
-    const params = new URLSearchParams({
+    const params: Record<string, string> = {
       q: query,
       limit: String(limit),
       offset: String(offset),
       sortBy,
       sortOrder,
-    });
-    if (filters?.types?.length) params.set('types', filters.types.join(','));
+    };
+    if (filters?.types?.length) params.types = filters.types.join(',');
 
-    const response = await fetch(buildApiUrl(`/api/search?${params}`), {
-      headers: this.getAuthHeaders(),
-    });
-
-    if (!response.ok) throw new Error('Server search failed');
-    const data = await response.json();
-    return data;
+    const result = await apiService.get<SearchResponse>('/api/search', { params });
+    return result.data!;
   }
 
   /**
@@ -279,14 +263,12 @@ class SearchService {
     }
 
     try {
-      const response = await fetch(buildApiUrl(`/api/projects?search=${encodeURIComponent(query)}&limit=${limit}`), {
-        headers: this.getAuthHeaders(),
+      const result = await apiService.get<{ projects?: ApiProjectRaw[] } | ApiProjectRaw[]>('/api/projects', {
+        params: { search: query, limit: String(limit) },
       });
 
-      if (!response.ok) return [];
-
-      const data = await response.json();
-      const projects = Array.isArray(data) ? data : data.projects || [];
+      const data = result.data;
+      const projects = Array.isArray(data) ? data : (data as { projects?: ApiProjectRaw[] })?.projects || [];
 
       return projects.map((project: ApiProjectRaw) => this.mapProjectToResult(project, query));
     } catch {
@@ -307,16 +289,14 @@ class SearchService {
     }
 
     try {
+      const params: Record<string, string> = { q: query, limit: String(limit) };
       const projectIds = filters?.projectIds?.join(',') || '';
-      const url = buildApiUrl(`/api/files/search?q=${encodeURIComponent(query)}&limit=${limit}${projectIds ? `&projects=${projectIds}` : ''}`);
-      const response = await fetch(url, {
-        headers: this.getAuthHeaders(),
-      });
+      if (projectIds) params.projects = projectIds;
 
-      if (!response.ok) return [];
+      const result = await apiService.get<{ files?: ApiFileRaw[] } | ApiFileRaw[]>('/api/files/search', { params });
 
-      const data = await response.json();
-      const files = Array.isArray(data) ? data : data.files || [];
+      const data = result.data;
+      const files = Array.isArray(data) ? data : (data as { files?: ApiFileRaw[] })?.files || [];
 
       return files.map((file: ApiFileRaw) => this.mapFileToResult(file, query));
     } catch {
@@ -337,16 +317,14 @@ class SearchService {
     }
 
     try {
+      const params: Record<string, string> = { q: query, limit: String(limit) };
       const projectIds = filters?.projectIds?.join(',') || '';
-      const url = buildApiUrl(`/api/tasks/search?q=${encodeURIComponent(query)}&limit=${limit}${projectIds ? `&projects=${projectIds}` : ''}`);
-      const response = await fetch(url, {
-        headers: this.getAuthHeaders(),
-      });
+      if (projectIds) params.projects = projectIds;
 
-      if (!response.ok) return [];
+      const result = await apiService.get<{ tasks?: ApiTaskRaw[] } | ApiTaskRaw[]>('/api/tasks/search', { params });
 
-      const data = await response.json();
-      const tasks = Array.isArray(data) ? data : data.tasks || [];
+      const data = result.data;
+      const tasks = Array.isArray(data) ? data : (data as { tasks?: ApiTaskRaw[] })?.tasks || [];
 
       return tasks.map((task: ApiTaskRaw) => this.mapTaskToResult(task, query));
     } catch {
@@ -367,15 +345,12 @@ class SearchService {
     }
 
     try {
-      const url = buildApiUrl(`/api/messages/search?q=${encodeURIComponent(query)}&limit=${limit}`);
-      const response = await fetch(url, {
-        headers: this.getAuthHeaders(),
+      const result = await apiService.get<{ success?: boolean; results?: ApiMessageRaw[] }>('/api/messages/search', {
+        params: { q: query, limit: String(limit) },
       });
 
-      if (!response.ok) return [];
-
-      const data = await response.json();
-      const messages = data.success ? data.results || [] : [];
+      const data = result.data;
+      const messages = data?.success ? data.results || [] : [];
 
       return messages.map((message: ApiMessageRaw) => this.mapMessageToResult(message, query));
     } catch {

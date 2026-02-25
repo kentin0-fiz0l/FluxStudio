@@ -4,6 +4,7 @@
 
 import { StateCreator } from 'zustand';
 import { FluxStore } from '../store';
+import { apiService } from '@/services/apiService';
 
 // ============================================================================
 // Types
@@ -172,21 +173,11 @@ export const createProjectSlice: StateCreator<
       });
 
       try {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch('/api/projects', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch projects');
-        }
-
-        const data = await response.json();
+        const result = await apiService.get<{ projects?: Project[] }>('/projects');
+        const data = result.data;
 
         set((state) => {
-          state.projects.projects = data.projects || data;
+          state.projects.projects = data?.projects || (data as unknown as Project[]) || [];
           state.projects.isLoading = false;
         });
       } catch (error) {

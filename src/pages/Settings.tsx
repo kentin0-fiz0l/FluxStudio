@@ -37,6 +37,13 @@ import { useTranslation } from 'react-i18next';
 import { toast } from '../lib/toast';
 import { apiService, type UserSettings } from '../services/apiService';
 import { TwoFactorSetup } from '@/components/settings/TwoFactorSetup';
+import {
+  isPushSupported,
+  getPermissionState,
+  subscribeToPush,
+  unsubscribeFromPush,
+  type PushPermissionState,
+} from '@/utils/pushNotifications';
 
 function Settings() {
   const { user, logout } = useAuth();
@@ -64,6 +71,10 @@ function Settings() {
   // Profile avatar
   const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null);
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Push notification browser permission state
+  const [pushPermission, setPushPermission] = React.useState<PushPermissionState | null>(null);
+  const [pushToggleLoading, setPushToggleLoading] = React.useState(false);
 
   const [isSaving, setIsSaving] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -118,6 +129,67 @@ function Settings() {
       fetchSettings();
     }
   }, [user]);
+
+  // Fetch browser push permission state
+  React.useEffect(() => {
+    let cancelled = false;
+    async function checkPush() {
+      const state = await getPermissionState();
+      if (!cancelled) {
+        setPushPermission(state);
+      }
+    }
+    checkPush();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Handle push notification toggle from the settings card
+  const handlePushToggle = React.useCallback(async (enabled: boolean) => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+
+    if (enabled) {
+      // If browser permission is not yet granted, request it and subscribe
+      if (!isPushSupported()) {
+        toast.error('Push notifications are not supported in this browser.');
+        return;
+      }
+
+      setPushToggleLoading(true);
+      try {
+        await subscribeToPush(token);
+        const newState = await getPermissionState();
+        setPushPermission(newState);
+        setNotifications(true);
+        toast.success('Push notifications enabled');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to enable push notifications';
+        if (message === 'Notification permission denied') {
+          const newState = await getPermissionState();
+          setPushPermission(newState);
+          toast.error('Browser notification permission was denied. Please allow notifications in your browser settings.');
+        } else {
+          toast.error(message);
+        }
+      } finally {
+        setPushToggleLoading(false);
+      }
+    } else {
+      // Unsubscribe
+      setPushToggleLoading(true);
+      try {
+        await unsubscribeFromPush(token);
+        const newState = await getPermissionState();
+        setPushPermission(newState);
+        setNotifications(false);
+        toast.success('Push notifications disabled');
+      } catch {
+        toast.error('Failed to disable push notifications');
+      } finally {
+        setPushToggleLoading(false);
+      }
+    }
+  }, []);
 
   // Detect changes from original settings
   React.useEffect(() => {
@@ -358,16 +430,41 @@ function Settings() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg min-h-[3.5rem]">
-                <div>
-                  <h3 className="font-medium text-neutral-900 dark:text-neutral-100">Push Notifications</h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-300">Receive notifications in browser</p>
+              <div className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg min-h-[3.5rem]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-neutral-900 dark:text-neutral-100">Push Notifications</h3>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-300">Receive notifications in browser</p>
+                  </div>
+                  <Switch
+                    checked={notifications && pushPermission?.permission === 'granted'}
+                    onCheckedChange={handlePushToggle}
+                    disabled={pushToggleLoading || (pushPermission !== null && !pushPermission.isSupported)}
+                    aria-label="Toggle push notifications"
+                  />
                 </div>
-                <Switch
-                  checked={notifications}
-                  onCheckedChange={setNotifications}
-                  aria-label="Toggle push notifications"
-                />
+                {/* Browser permission status indicator */}
+                {pushPermission && !pushPermission.isSupported && (
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
+                    Push notifications are not supported in this browser.
+                  </p>
+                )}
+                {pushPermission?.permission === 'denied' && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                    Browser notifications are blocked. Please update your browser settings to allow notifications for this site.
+                  </p>
+                )}
+                {pushPermission?.permission === 'granted' && pushPermission.isSubscribed && notifications && (
+                  <p className="text-xs text-success-600 dark:text-success-400 mt-2">
+                    Push notifications are active on this device.
+                  </p>
+                )}
+                {pushToggleLoading && (
+                  <p className="text-xs text-primary-600 dark:text-primary-400 mt-2 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                    Updating push notification settings...
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg min-h-[3.5rem]">

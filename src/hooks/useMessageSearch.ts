@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { apiService } from '@/services/apiService';
 import { queryKeys } from '../lib/queryClient';
 
 // ============================================================================
@@ -77,34 +78,19 @@ async function searchMessages(
   limit: number,
   offset: number
 ): Promise<{ results: MessageSearchResult[]; hasMore: boolean }> {
-  const token = localStorage.getItem('auth_token');
-  if (!token) throw new Error('Not authenticated');
-
-  const params = new URLSearchParams({
+  const params: Record<string, string> = {
     q: query.trim(),
     limit: String(limit),
     offset: String(offset),
-  });
+  };
 
-  if (conversationId) params.set('conversationId', conversationId);
+  if (conversationId) params.conversationId = conversationId;
 
-  const response = await fetch(`/api/messages/search?${params.toString()}`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  const result = await apiService.get<{ results: MessageSearchResult[]; success?: boolean; error?: string }>('/messages/search', { params });
+  const data = result.data;
+  if (data && 'success' in data && !data.success) throw new Error(data.error || 'Search failed');
 
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.error || 'Search failed');
-  }
-
-  const data = await response.json();
-  if (!data.success) throw new Error(data.error || 'Search failed');
-
-  const results = data.results || [];
+  const results = data?.results || [];
   return { results, hasMore: results.length >= limit };
 }
 

@@ -16,6 +16,7 @@ import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
 import { Printer, AlertCircle, ExternalLink, RefreshCw } from 'lucide-react';
 import { usePrinterStatus } from '@/hooks/usePrinterStatus';
+import { apiService } from '@/services/apiService';
 import PrinterStatusCard from './PrinterStatusCard';
 import TemperatureMonitor from './TemperatureMonitor';
 import CameraFeed from './CameraFeed';
@@ -65,20 +66,10 @@ export const PrintingDashboard: React.FC<PrintingDashboardProps> = ({ className 
     try {
       const endpoint =
         target === 'bed'
-          ? '/api/printing/temperature/bed'
-          : '/api/printing/temperature/hotend';
+          ? '/printing/temperature/bed'
+          : '/printing/temperature/hotend';
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ target: temperature }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to set ${target} temperature`);
-      }
+      await apiService.post(endpoint, { target: temperature });
 
       // Refresh status
       await refetchStatus();

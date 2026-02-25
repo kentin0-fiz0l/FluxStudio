@@ -36,6 +36,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/lib/toast';
 import { useAuth } from '@/store/slices/authSlice';
 import { cn } from '@/lib/utils';
+import { apiService } from '@/services/apiService';
 
 interface TiptapCollaborativeEditorProps {
   projectId: string;
@@ -91,20 +92,9 @@ export function TiptapCollaborativeEditor({
 
   const fetchDocument = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/documents/${documentId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch document');
-      }
-
-      const data = await response.json();
-      setDocument(data.document);
-      setTitle(data.document.title);
+      const result = await apiService.get<{ document: DocumentData }>(`/api/documents/${documentId}`);
+      setDocument(result.data!.document);
+      setTitle(result.data!.document.title);
     } catch (error) {
       console.error('Error fetching document:', error);
       toast.error('Failed to load document');
@@ -198,16 +188,7 @@ export function TiptapCollaborativeEditor({
 
     try {
       setIsSavingTitle(true);
-      const token = localStorage.getItem('token');
-
-      await fetch(`/api/documents/${documentId}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ title }),
-      });
+      await apiService.patch(`/api/documents/${documentId}`, { title });
 
       toast.success('Document title updated successfully');
     } catch (error) {

@@ -6,6 +6,7 @@
 
 import { StateCreator } from 'zustand';
 import { FluxStore } from '../store';
+import { apiService } from '@/services/apiService';
 import type {
   Organization,
   Team,
@@ -84,20 +85,27 @@ export interface OrgSlice {
 // Helpers
 // ============================================================================
 
-const API_BASE = '/api';
+/** Thin wrapper: delegates to apiService and unwraps .data */
+async function apiCall<T = unknown>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const method = (options.method || 'GET').toUpperCase();
+  const body = options.body ? JSON.parse(options.body as string) : undefined;
 
-async function apiCall(endpoint: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('auth_token');
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: token ? `Bearer ${token}` : '',
-      ...options.headers,
-    },
-  });
-  if (!response.ok) throw new Error(`API call failed: ${response.statusText}`);
-  return response.json();
+  let result;
+  switch (method) {
+    case 'POST':
+      result = await apiService.post<T>(endpoint, body);
+      break;
+    case 'PUT':
+    case 'PATCH':
+      result = await apiService.patch<T>(endpoint, body);
+      break;
+    case 'DELETE':
+      result = await apiService.delete<T>(endpoint);
+      break;
+    default:
+      result = await apiService.get<T>(endpoint);
+  }
+  return result.data as T;
 }
 
 function computeBreadcrumbs(
@@ -227,7 +235,7 @@ export const createOrgSlice: StateCreator<
     fetchOrganizations: async () => {
       set((state) => { state.org.isLoadingOrganizations = true; });
       try {
-        const data = await apiCall('/organizations');
+        const data = await apiCall<Organization[]>('/organizations');
         set((state) => { state.org.organizations = data; });
       } catch { /* ignore */ } finally {
         set((state) => { state.org.isLoadingOrganizations = false; });
@@ -237,7 +245,7 @@ export const createOrgSlice: StateCreator<
     fetchTeams: async (organizationId) => {
       set((state) => { state.org.isLoadingTeams = true; });
       try {
-        const data = await apiCall(`/organizations/${organizationId}/teams`);
+        const data = await apiCall<Team[]>(`/organizations/${organizationId}/teams`);
         set((state) => { state.org.teams = data; });
       } catch { /* ignore */ } finally {
         set((state) => { state.org.isLoadingTeams = false; });
@@ -250,7 +258,7 @@ export const createOrgSlice: StateCreator<
         const endpoint = teamId
           ? `/organizations/${organizationId}/teams/${teamId}/projects`
           : `/organizations/${organizationId}/projects`;
-        const data = await apiCall(endpoint);
+        const data = await apiCall<Project[]>(endpoint);
         set((state) => { state.org.projects = data; });
       } catch { /* ignore */ } finally {
         set((state) => { state.org.isLoadingProjects = false; });
@@ -260,7 +268,7 @@ export const createOrgSlice: StateCreator<
     fetchFiles: async (projectId) => {
       set((state) => { state.org.isLoadingFiles = true; });
       try {
-        const data = await apiCall(`/projects/${projectId}/files`);
+        const data = await apiCall<ProjectFile[]>(`/projects/${projectId}/files`);
         set((state) => { state.org.files = data; });
       } catch { /* ignore */ } finally {
         set((state) => { state.org.isLoadingFiles = false; });
@@ -268,13 +276,13 @@ export const createOrgSlice: StateCreator<
     },
 
     createOrganization: async (data) => {
-      const response = await apiCall('/organizations', { method: 'POST', body: JSON.stringify(data) });
+      const response = await apiCall<Organization>('/organizations', { method: 'POST', body: JSON.stringify(data) });
       await get().org.fetchOrganizations();
       return response;
     },
 
     updateOrganization: async (id, data) => {
-      const response = await apiCall(`/organizations/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      const response = await apiCall<Organization>(`/organizations/${id}`, { method: 'PUT', body: JSON.stringify(data) });
       await get().org.fetchOrganizations();
       return response;
     },
@@ -293,7 +301,7 @@ export const createOrgSlice: StateCreator<
     },
 
     createTeam: async (organizationId, data) => {
-      const response = await apiCall(`/organizations/${organizationId}/teams`, {
+      const response = await apiCall<Team>(`/organizations/${organizationId}/teams`, {
         method: 'POST',
         body: JSON.stringify({ ...data, organizationId }),
       });
@@ -302,7 +310,7 @@ export const createOrgSlice: StateCreator<
     },
 
     updateTeam: async (id, data) => {
-      const response = await apiCall(`/teams/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      const response = await apiCall<Team>(`/teams/${id}`, { method: 'PUT', body: JSON.stringify(data) });
       const org = get().org.currentOrganization;
       if (org) await get().org.fetchTeams(org.id);
       return response;
@@ -322,14 +330,14 @@ export const createOrgSlice: StateCreator<
       const endpoint = teamId
         ? `/teams/${teamId}/projects`
         : `/organizations/${data.organizationId}/projects`;
-      const response = await apiCall(endpoint, { method: 'POST', body: JSON.stringify(data) });
+      const response = await apiCall<Project>(endpoint, { method: 'POST', body: JSON.stringify(data) });
       const org = get().org.currentOrganization;
       if (org) await get().org.fetchProjects(org.id, get().org.currentTeam?.id);
       return response;
     },
 
     updateProject: async (id, data) => {
-      const response = await apiCall(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      const response = await apiCall<Project>(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) });
       const org = get().org.currentOrganization;
       if (org) await get().org.fetchProjects(org.id, get().org.currentTeam?.id);
       return response;
@@ -349,20 +357,13 @@ export const createOrgSlice: StateCreator<
       formData.append('file', file);
       if (metadata) formData.append('metadata', JSON.stringify(metadata));
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE}/projects/${projectId}/files`, {
-        method: 'POST',
-        headers: { Authorization: token ? `Bearer ${token}` : '' },
-        body: formData,
-      });
-      if (!response.ok) throw new Error(`File upload failed: ${response.statusText}`);
-      const result = await response.json();
+      const result = await apiService.post<ProjectFile>(`/projects/${projectId}/files`, formData);
       await get().org.fetchFiles(projectId);
-      return result;
+      return result.data as ProjectFile;
     },
 
     updateFile: async (id, data) => {
-      const response = await apiCall(`/files/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      const response = await apiCall<ProjectFile>(`/files/${id}`, { method: 'PUT', body: JSON.stringify(data) });
       const project = get().org.currentProject;
       if (project) await get().org.fetchFiles(project.id);
       return response;
@@ -374,12 +375,12 @@ export const createOrgSlice: StateCreator<
       if (project) await get().org.fetchFiles(project.id);
     },
 
-    getOrganizationStats: (id) => apiCall(`/organizations/${id}/stats`),
-    getTeamStats: (id) => apiCall(`/teams/${id}/stats`),
-    getProjectStats: (id) => apiCall(`/projects/${id}/stats`),
-    getOrganizationMembers: (id) => apiCall(`/organizations/${id}/members`),
-    getTeamMembers: (id) => apiCall(`/teams/${id}/members`),
-    getProjectMembers: (id) => apiCall(`/projects/${id}/members`),
+    getOrganizationStats: (id) => apiCall<OrganizationStats>(`/organizations/${id}/stats`),
+    getTeamStats: (id) => apiCall<TeamStats>(`/teams/${id}/stats`),
+    getProjectStats: (id) => apiCall<ProjectStats>(`/projects/${id}/stats`),
+    getOrganizationMembers: (id) => apiCall<OrganizationMember[]>(`/organizations/${id}/members`),
+    getTeamMembers: (id) => apiCall<TeamMember[]>(`/teams/${id}/members`),
+    getProjectMembers: (id) => apiCall<ProjectMember[]>(`/projects/${id}/members`),
 
     resetOrg: () => {
       set((state) => {

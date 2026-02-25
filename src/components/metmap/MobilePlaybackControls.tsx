@@ -160,6 +160,12 @@ export function MobilePlaybackControls({
         className="h-3 bg-neutral-700 rounded-full mb-6 cursor-pointer touch-none"
         onClick={handleProgressTouch}
         onTouchStart={handleProgressTouch}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); onSeekToBar(Math.min(totalBars, currentBar + 1)); }
+          else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); onSeekToBar(Math.max(1, currentBar - 1)); }
+          else if (e.key === 'Home') { e.preventDefault(); onSeekToBar(1); }
+          else if (e.key === 'End') { e.preventDefault(); onSeekToBar(totalBars); }
+        }}
         role="slider"
         aria-label="Playback progress"
         aria-valuemin={1}

@@ -8,6 +8,18 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createTestQueryClient } from '../../test/utils';
 
+const mockApiService = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+  makeRequest: vi.fn(),
+}));
+
+vi.mock('@/services/apiService', () => ({
+  apiService: mockApiService,
+}));
+
 function createWrapper() {
   const queryClient = createTestQueryClient();
   return function Wrapper({ children }: { children: React.ReactNode }) {
@@ -62,9 +74,6 @@ describe('useMessageSearch', () => {
   });
 
   it('should update query without immediate search', async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-
     const { useMessageSearch } = await import('../useMessageSearch');
     const { result } = renderHook(() => useMessageSearch(), { wrapper: createWrapper() });
 
@@ -74,14 +83,14 @@ describe('useMessageSearch', () => {
 
     expect(result.current.query).toBe('he');
     // Should not fetch yet (debounce)
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockApiService.get).not.toHaveBeenCalled();
   });
 
   it('should search after debounce', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true, results: mockResults }),
-    }));
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { success: true, results: mockResults },
+    });
 
     const { useMessageSearch } = await import('../useMessageSearch');
     const { result } = renderHook(() => useMessageSearch({ debounceDelay: 100 }), { wrapper: createWrapper() });
@@ -104,9 +113,6 @@ describe('useMessageSearch', () => {
   });
 
   it('should not search if query is too short', async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-
     const { useMessageSearch } = await import('../useMessageSearch');
     const { result } = renderHook(() => useMessageSearch({ debounceDelay: 50 }), { wrapper: createWrapper() });
 
@@ -118,15 +124,15 @@ describe('useMessageSearch', () => {
       vi.advanceTimersByTime(100);
     });
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockApiService.get).not.toHaveBeenCalled();
     expect(result.current.results).toEqual([]);
   });
 
   it('should handle search error', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      json: () => Promise.resolve({ error: 'Search failed' }),
-    }));
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { success: false, error: 'Search failed' },
+    });
 
     const { useMessageSearch } = await import('../useMessageSearch');
     const { result } = renderHook(() => useMessageSearch({ debounceDelay: 50 }), { wrapper: createWrapper() });
@@ -164,12 +170,6 @@ describe('useMessageSearch', () => {
   });
 
   it('should scope search to conversation', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true, results: mockResults }),
-    });
-    vi.stubGlobal('fetch', fetchMock);
-
     const { useMessageSearch } = await import('../useMessageSearch');
     renderHook(() => useMessageSearch({
       conversationId: 'conv-1',
@@ -177,6 +177,6 @@ describe('useMessageSearch', () => {
     }), { wrapper: createWrapper() });
 
     // The hook doesn't search until query is set - this just verifies initialization
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockApiService.get).not.toHaveBeenCalled();
   });
 });

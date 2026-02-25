@@ -197,7 +197,10 @@ export const TaskListWithModalExample: React.FC = () => {
         {tasks.map((task) => (
           <div
             key={task.id}
+            role="button"
+            tabIndex={0}
             onClick={() => handleOpenTask(task)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenTask(task); } }}
             className="p-4 border rounded cursor-pointer hover:bg-gray-50"
           >
             <h3 className="font-semibold">{task.title}</h3>

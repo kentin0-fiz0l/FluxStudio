@@ -22,13 +22,23 @@ vi.mock('@/lib/utils', () => ({
   cn: (...classes: any[]) => classes.filter(Boolean).join(' '),
 }));
 
+vi.mock('@/services/apiService', () => ({
+  apiService: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    makeRequest: vi.fn(),
+  },
+}));
+
+import { apiService } from '@/services/apiService';
 import Referrals from '../Referrals';
 
 describe('Referrals', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.restoreAllMocks();
-    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue('test-token');
+    vi.mocked(apiService.get).mockReset();
   });
 
   const renderPage = () => {
@@ -41,24 +51,26 @@ describe('Referrals', () => {
 
   test('renders loading state initially', () => {
     // Never resolve fetches so it stays in loading
-    global.fetch = vi.fn(() => new Promise(() => {})) as any;
+    vi.mocked(apiService.get).mockReturnValue(new Promise(() => {}));
     renderPage();
     const skeletons = screen.getAllByTestId('skeleton');
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
   test('renders without crashing after loading', async () => {
-    global.fetch = vi.fn()
+    vi.mocked(apiService.get)
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: true, code: 'ABC123' }),
+        success: true,
+        data: { success: true, code: 'ABC123' },
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
+        success: true,
+        data: {
           success: true,
           stats: { totalReferrals: 5, converted: 2, firstReferral: null, latestReferral: null },
           recentReferrals: [],
-        }),
-      }) as any;
+        },
+      });
 
     renderPage();
 
@@ -68,17 +80,19 @@ describe('Referrals', () => {
   });
 
   test('displays referral link card', async () => {
-    global.fetch = vi.fn()
+    vi.mocked(apiService.get)
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: true, code: 'ABC123' }),
+        success: true,
+        data: { success: true, code: 'ABC123' },
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
+        success: true,
+        data: {
           success: true,
           stats: { totalReferrals: 5, converted: 2, firstReferral: null, latestReferral: null },
           recentReferrals: [],
-        }),
-      }) as any;
+        },
+      });
 
     renderPage();
 
@@ -88,17 +102,19 @@ describe('Referrals', () => {
   });
 
   test('displays referral URL with code', async () => {
-    global.fetch = vi.fn()
+    vi.mocked(apiService.get)
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: true, code: 'ABC123' }),
+        success: true,
+        data: { success: true, code: 'ABC123' },
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
+        success: true,
+        data: {
           success: true,
           stats: { totalReferrals: 0, converted: 0, firstReferral: null, latestReferral: null },
           recentReferrals: [],
-        }),
-      }) as any;
+        },
+      });
 
     renderPage();
 
@@ -108,17 +124,19 @@ describe('Referrals', () => {
   });
 
   test('displays stats when available', async () => {
-    global.fetch = vi.fn()
+    vi.mocked(apiService.get)
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: true, code: 'ABC123' }),
+        success: true,
+        data: { success: true, code: 'ABC123' },
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
+        success: true,
+        data: {
           success: true,
           stats: { totalReferrals: 10, converted: 3, firstReferral: null, latestReferral: null },
           recentReferrals: [],
-        }),
-      }) as any;
+        },
+      });
 
     renderPage();
 
@@ -131,20 +149,22 @@ describe('Referrals', () => {
   });
 
   test('displays recent referrals list', async () => {
-    global.fetch = vi.fn()
+    vi.mocked(apiService.get)
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: true, code: 'ABC123' }),
+        success: true,
+        data: { success: true, code: 'ABC123' },
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
+        success: true,
+        data: {
           success: true,
           stats: { totalReferrals: 2, converted: 1, firstReferral: null, latestReferral: null },
           recentReferrals: [
             { name: 'Jane Doe', email: 'jane@test.com', signedUpAt: '2025-01-15', converted: true },
             { name: 'John Smith', email: null, signedUpAt: '2025-01-14', converted: false },
           ],
-        }),
-      }) as any;
+        },
+      });
 
     renderPage();
 
@@ -158,17 +178,19 @@ describe('Referrals', () => {
   });
 
   test('displays copy button for referral link', async () => {
-    global.fetch = vi.fn()
+    vi.mocked(apiService.get)
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: true, code: 'ABC123' }),
+        success: true,
+        data: { success: true, code: 'ABC123' },
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
+        success: true,
+        data: {
           success: true,
           stats: { totalReferrals: 0, converted: 0, firstReferral: null, latestReferral: null },
           recentReferrals: [],
-        }),
-      }) as any;
+        },
+      });
 
     renderPage();
 
@@ -178,17 +200,19 @@ describe('Referrals', () => {
   });
 
   test('renders inside dashboard layout', async () => {
-    global.fetch = vi.fn()
+    vi.mocked(apiService.get)
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: true, code: 'ABC123' }),
+        success: true,
+        data: { success: true, code: 'ABC123' },
       })
       .mockResolvedValueOnce({
-        json: () => Promise.resolve({
+        success: true,
+        data: {
           success: true,
           stats: { totalReferrals: 0, converted: 0, firstReferral: null, latestReferral: null },
           recentReferrals: [],
-        }),
-      }) as any;
+        },
+      });
 
     renderPage();
 

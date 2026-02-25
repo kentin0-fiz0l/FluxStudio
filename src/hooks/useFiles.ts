@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/store/slices/authSlice';
 import { getApiUrl } from '../utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 import { queryKeys } from '../lib/queryClient';
 import { toast } from '../lib/toast';
 import { useStore } from '../store/store';
@@ -68,19 +69,11 @@ export function useFiles(projectId?: string) {
   } = useQuery<FileRecord[], Error>({
     queryKey: queryKeys.files.list(projectId),
     queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      const url = projectId
-        ? getApiUrl(`/api/files?projectId=${projectId}`)
-        : getApiUrl('/api/files');
+      const params: Record<string, string> = {};
+      if (projectId) params.projectId = projectId;
 
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch files');
-
-      const result = await response.json();
-      return (result.files || []).filter(validateFile).map(normalizeFile);
+      const result = await apiService.get<{ files: unknown[] }>('/api/files', { params });
+      return (result.data?.files || []).filter(validateFile).map(normalizeFile);
     },
     enabled: !!user,
   });
@@ -129,15 +122,7 @@ export function useFiles(projectId?: string) {
   const deleteFileMutation = useMutation<void, Error, string, { previous: FileRecord[] | undefined }>({
     mutationFn: async (fileId) => {
       if (!user) throw new Error('Authentication required');
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/api/files/${fileId}`), {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete file');
-      }
+      await apiService.delete(`/api/files/${fileId}`);
     },
     onMutate: async (fileId) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.files.list(projectId) });
@@ -179,17 +164,8 @@ export function useFiles(projectId?: string) {
   >({
     mutationFn: async ({ fileId, updates }) => {
       if (!user) throw new Error('Authentication required');
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/api/files/${fileId}`), {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update file');
-      }
-      return await response.json();
+      const result = await apiService.patch<FileRecord>(`/files/${fileId}`, updates);
+      return result.data as FileRecord;
     },
     onMutate: async ({ fileId, updates }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.files.list(projectId) });
@@ -233,15 +209,8 @@ export function useFiles(projectId?: string) {
 
   const getFileById = useCallback(async (fileId: string) => {
     if (!user) throw new Error('Authentication required');
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(getApiUrl(`/api/files/${fileId}`), {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to fetch file');
-    }
-    return await response.json();
+    const result = await apiService.get(`/api/files/${fileId}`);
+    return result.data;
   }, [user]);
 
   const formatFileSize = useCallback((bytes: number) => {

@@ -169,6 +169,9 @@ export function TimelineCanvas({
   return (
     <div
       ref={canvasRef}
+      role="application"
+      tabIndex={0}
+      aria-label="Timeline canvas"
       className={`relative bg-gray-850 ${className}`}
       style={{
         width: Math.max(totalWidth, '100%' as unknown as number),
@@ -176,6 +179,7 @@ export function TimelineCanvas({
         minHeight: 200,
       }}
       onClick={handleCanvasClick}
+      onKeyDown={(e) => { if (e.key === ' ') e.preventDefault(); }}
     >
       {/* Track backgrounds */}
       {project.tracks.map((track, index) => {

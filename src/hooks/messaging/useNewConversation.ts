@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { MessageUser } from '@/components/messaging/types';
 import { getInitials } from '@/components/messaging';
+import { apiService } from '@/services/apiService';
 
 interface UseNewConversationOptions {
   currentUserId?: string;
@@ -60,26 +61,18 @@ export function useNewConversation({
   const fetchUsers = useCallback(async (search?: string) => {
     setLoadingUsers(true);
     try {
-      const token = localStorage.getItem('auth_token');
-      const url = search ? `/api/users?search=${encodeURIComponent(search)}` : '/api/users';
-      const res = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const users = (data.users || data || []).map((u: { id: string; name?: string; email?: string; avatar?: string; isOnline?: boolean }) => ({
-          id: u.id,
-          name: u.name || u.email?.split('@')[0] || 'Unknown',
-          avatar: u.avatar,
-          initials: getInitials(u.name || u.email?.split('@')[0] || 'U'),
-          isOnline: u.isOnline || false,
-        }));
-        // Filter out current user
-        setAvailableUsers(users.filter((u: MessageUser) => u.id !== currentUserId));
-      }
+      const endpoint = search ? `/users?search=${encodeURIComponent(search)}` : '/users';
+      const result = await apiService.get<{ users?: Array<{ id: string; name?: string; email?: string; avatar?: string; isOnline?: boolean }> }>(endpoint);
+      const data = result.data;
+      const users = (data?.users || []).map((u) => ({
+        id: u.id,
+        name: u.name || u.email?.split('@')[0] || 'Unknown',
+        avatar: u.avatar,
+        initials: getInitials(u.name || u.email?.split('@')[0] || 'U'),
+        isOnline: u.isOnline || false,
+      }));
+      // Filter out current user
+      setAvailableUsers(users.filter((u: MessageUser) => u.id !== currentUserId));
     } catch (error) {
       console.error('Failed to fetch users:', error);
     } finally {
@@ -127,26 +120,13 @@ export function useNewConversation({
         ? newConversationName || `Group with ${selectedUsers.map(u => u.name).join(', ')}`
         : null;
 
-      const token = localStorage.getItem('auth_token');
-      const res = await fetch('/api/conversations', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          isGroup,
-          memberIds: selectedUsers.map(u => u.id),
-        }),
+      const result = await apiService.post<{ conversation?: { id: string } }>('/conversations', {
+        name,
+        isGroup,
+        memberIds: selectedUsers.map(u => u.id),
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to create conversation');
-      }
-
-      const data = await res.json();
-      const conversationId = data.conversation?.id;
+      const conversationId = result.data?.conversation?.id;
 
       // Reset dialog state
       setShowNewConversation(false);

@@ -40,12 +40,15 @@ function PerformerRow({
   return (
     <div style={style}>
       <div
+        role="button"
+        tabIndex={0}
         className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${
           selectedPerformerIds.has(performer.id)
             ? 'bg-blue-50 dark:bg-blue-900/20'
             : 'hover:bg-gray-50 dark:hover:bg-gray-700'
         }`}
         onClick={() => onSelectPerformer(performer.id, false)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectPerformer(performer.id, false); } }}
       >
         <div
           className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"

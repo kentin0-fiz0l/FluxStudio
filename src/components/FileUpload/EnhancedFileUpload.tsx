@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import { apiService } from '@/services/apiService';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
@@ -119,18 +120,16 @@ export const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
         formData.append('socketId', socket.id);
       }
 
-      const response = await fetch('/api/files/upload-enhanced', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
+      const response = await apiService.post<UploadResult>(
+        '/files/upload-enhanced',
+        formData
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
+      if (!response.success) {
+        throw new Error(response.error || 'Upload failed');
       }
 
-      const result = await response.json();
+      const result = response.data as UploadResult;
 
       // Add to completed uploads
       setCompletedUploads(prev => [...prev, result]);

@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { FileBrowserProps, GCodeFile } from '@/types/printing';
 import { cn } from '@/lib/utils';
+import { apiService } from '@/services/apiService';
 
 /**
  * Project type
@@ -241,14 +242,11 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
   React.useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch('/projects');
-        if (response.ok) {
-          const data = await response.json();
-          setProjects(data.projects?.map((p: Record<string, unknown>) => ({
-            id: p.id,
-            title: p.title
-          })) || []);
-        }
+        const result = await apiService.get<{ projects: Array<{ id: string; title: string }> }>('/projects');
+        setProjects(result.data?.projects?.map((p) => ({
+          id: p.id,
+          title: p.title
+        })) || []);
       } catch (err) {
         console.error('Failed to fetch projects:', err);
       }
@@ -268,17 +266,14 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
 
     const fetchProjectFiles = async () => {
       try {
-        const response = await fetch(`/api/printing/projects/${selectedProject}/files`);
-        if (response.ok) {
-          const data = await response.json();
-          const fileMap = new Map<string, string>();
+        const result = await apiService.get<{ files: Array<{ filename: string }> }>(`/api/printing/projects/${selectedProject}/files`);
+        const fileMap = new Map<string, string>();
 
-          data.files?.forEach((f: { filename: string }) => {
-            fileMap.set(f.filename, selectedProject);
-          });
+        result.data?.files?.forEach((f) => {
+          fileMap.set(f.filename, selectedProject);
+        });
 
-          setProjectFiles(fileMap);
-        }
+        setProjectFiles(fileMap);
       } catch (err) {
         console.error('Failed to fetch project files:', err);
       }
@@ -293,24 +288,13 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
   const handleLinkToProject = async (filename: string, projectId: string) => {
     setLinkingFile(filename);
     try {
-      const response = await fetch(`/api/printing/files/${encodeURIComponent(filename)}/link`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project_id: projectId }),
-      });
-
-      if (response.ok) {
-        // Update local state
-        setProjectFiles(prev => new Map(prev).set(filename, projectId));
-        setLinkModalOpen(false);
-        setFileToLink(null);
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to link file');
-      }
+      await apiService.post(`/api/printing/files/${encodeURIComponent(filename)}/link`, { project_id: projectId });
+      setProjectFiles(prev => new Map(prev).set(filename, projectId));
+      setLinkModalOpen(false);
+      setFileToLink(null);
     } catch (err) {
       console.error('Failed to link file:', err);
-      alert('Failed to link file to project');
+      alert(err instanceof Error ? err.message : 'Failed to link file to project');
     } finally {
       setLinkingFile(null);
     }
@@ -322,22 +306,13 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
   const handleUnlinkFile = async (filename: string) => {
     setLinkingFile(filename);
     try {
-      const response = await fetch(`/api/printing/files/${encodeURIComponent(filename)}/link`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        // Update local state
-        const newMap = new Map(projectFiles);
-        newMap.delete(filename);
-        setProjectFiles(newMap);
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to unlink file');
-      }
+      await apiService.delete(`/api/printing/files/${encodeURIComponent(filename)}/link`);
+      const newMap = new Map(projectFiles);
+      newMap.delete(filename);
+      setProjectFiles(newMap);
     } catch (err) {
       console.error('Failed to unlink file:', err);
-      alert('Failed to unlink file');
+      alert(err instanceof Error ? err.message : 'Failed to unlink file');
     } finally {
       setLinkingFile(null);
     }

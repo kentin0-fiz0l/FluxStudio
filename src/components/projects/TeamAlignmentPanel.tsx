@@ -29,7 +29,7 @@ import {
 import { Card, CardContent, Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/store/slices/authSlice';
-import { useNotifications } from '@/contexts/NotificationContext';
+import { useNotifications } from '@/store/slices/notificationSlice';
 import {
   makeDecisionId,
   makeQuestionId,

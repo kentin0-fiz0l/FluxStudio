@@ -60,16 +60,7 @@ vi.mock('@/store/slices/notificationSlice', () => ({
   useNotification: vi.fn(),
 }));
 
-vi.mock('@/contexts/NotificationContext', () => ({
-  useNotifications: vi.fn(() => ({
-    state: { notifications: mockNotifications, loading: false, unreadCount: 1 },
-    fetchNotifications: vi.fn(),
-    markAsRead: vi.fn(),
-    markAllAsRead: vi.fn(),
-    deleteNotification: vi.fn(),
-  })),
-  Notification: {} as any,
-}));
+// NotificationContext mock removed — component now imports from @/store/slices/notificationSlice (mocked above)
 
 vi.mock('@/store', () => ({
   useActiveProject: vi.fn(() => null),

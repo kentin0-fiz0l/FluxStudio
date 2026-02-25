@@ -65,10 +65,21 @@ vi.mock('framer-motion', () => ({
   },
 }));
 
+vi.mock('@/services/apiService', () => ({
+  apiService: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    makeRequest: vi.fn(),
+  },
+}));
+
+import { apiService } from '@/services/apiService';
 import { Billing } from '../Billing';
 import { fetchUsage } from '@/services/usageService';
 
-function setupMocks(subscriptionData?: any, fetchOk = true) {
+function setupMocks(subscriptionData?: any, shouldReject = false) {
   vi.mocked(fetchUsage).mockResolvedValue({
     usage: {
       projects: { current: 3, limit: 5 },
@@ -81,24 +92,30 @@ function setupMocks(subscriptionData?: any, fetchOk = true) {
     plan: 'free',
   });
 
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: fetchOk,
-    json: () => Promise.resolve(subscriptionData ?? {
-      hasSubscription: true,
-      subscription: {
-        id: 'sub-1',
-        status: 'active',
-        currentPeriodEnd: '2025-12-31T00:00:00Z',
-        cancelledAt: null,
+  if (shouldReject) {
+    vi.mocked(apiService.get).mockRejectedValue(new Error('Failed to fetch subscription status'));
+  } else {
+    vi.mocked(apiService.get).mockResolvedValue({
+      success: true,
+      data: subscriptionData ?? {
+        hasSubscription: true,
+        subscription: {
+          id: 'sub-1',
+          status: 'active',
+          currentPeriodEnd: '2025-12-31T00:00:00Z',
+          cancelledAt: null,
+        },
+        canTrial: false,
       },
-      canTrial: false,
-    }),
-  });
+    });
+  }
 }
 
 describe('Billing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(apiService.get).mockReset();
+    vi.mocked(apiService.post).mockReset();
     setupMocks();
   });
 
@@ -108,7 +125,7 @@ describe('Billing', () => {
   });
 
   test('shows loading skeletons before data loads', () => {
-    global.fetch = vi.fn().mockReturnValue(new Promise(() => {}));
+    vi.mocked(apiService.get).mockReturnValue(new Promise(() => {}));
     render(<MemoryRouter><Billing /></MemoryRouter>);
     const skeletons = screen.getAllByTestId('skeleton');
     expect(skeletons.length).toBeGreaterThan(0);
@@ -151,7 +168,7 @@ describe('Billing', () => {
   });
 
   test('shows error state when subscription fetch fails', async () => {
-    setupMocks({ error: 'Server error' }, false);
+    setupMocks(undefined, true);
     render(<MemoryRouter><Billing /></MemoryRouter>);
     expect(await screen.findByText('Failed to fetch subscription status')).toBeInTheDocument();
   });

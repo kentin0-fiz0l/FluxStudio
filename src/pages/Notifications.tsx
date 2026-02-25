@@ -37,11 +37,12 @@ import {
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Card, CardContent, Badge, Button } from '@/components/ui';
 import { useAuth } from '@/store/slices/authSlice';
-import { useNotifications, Notification } from '@/contexts/NotificationContext';
+import { useNotifications } from '@/store/slices/notificationSlice';
+import type { Notification } from '@/store/slices/notificationSlice';
 import { useActiveProject } from '@/store';
 import { useProjectContext } from '@/store';
 import { cn } from '@/lib/utils';
-import { getApiUrl } from '@/utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 
 // =============================================================================
 // Constants
@@ -456,19 +457,9 @@ export default function Notifications() {
 
     setIsMarkingProjectRead(true);
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/projects/${currentProject.id}/notifications/read-all`), {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        // Refresh notifications
-        await fetchNotifications();
-      }
+      await apiService.post(`/projects/${currentProject.id}/notifications/read-all`);
+      // Refresh notifications
+      await fetchNotifications();
     } catch (error) {
       console.error('Failed to mark project notifications as read:', error);
     } finally {

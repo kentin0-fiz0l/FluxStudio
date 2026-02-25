@@ -11,7 +11,7 @@
  * - Backend registration
  */
 
-import { getApiUrl } from './apiHelpers';
+import { apiService } from '@/services/apiService';
 
 // VAPID public key (should match server's VAPID key pair)
 // This is a placeholder - in production, fetch from server or config
@@ -172,28 +172,17 @@ export async function unsubscribeFromPush(token: string): Promise<boolean> {
  */
 async function registerSubscriptionWithBackend(
   subscription: PushSubscription,
-  token: string
+  _token: string
 ): Promise<void> {
   const subscriptionData = subscription.toJSON();
 
-  const response = await fetch(getApiUrl('/api/push/subscribe'), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      endpoint: subscriptionData.endpoint,
-      keys: {
-        p256dh: subscriptionData.keys?.p256dh,
-        auth: subscriptionData.keys?.auth
-      }
-    })
+  await apiService.post('/push/subscribe', {
+    endpoint: subscriptionData.endpoint,
+    keys: {
+      p256dh: subscriptionData.keys?.p256dh,
+      auth: subscriptionData.keys?.auth
+    }
   });
-
-  if (!response.ok) {
-    throw new Error('Failed to register push subscription with backend');
-  }
 }
 
 /**
@@ -201,20 +190,13 @@ async function registerSubscriptionWithBackend(
  */
 async function unregisterSubscriptionFromBackend(
   subscription: PushSubscription,
-  token: string
+  _token: string
 ): Promise<void> {
   const subscriptionData = subscription.toJSON();
 
   try {
-    await fetch(getApiUrl('/api/push/unsubscribe'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        endpoint: subscriptionData.endpoint
-      })
+    await apiService.post('/push/unsubscribe', {
+      endpoint: subscriptionData.endpoint
     });
   } catch (error) {
     console.warn('Failed to unregister push subscription from backend:', error);

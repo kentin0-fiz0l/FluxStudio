@@ -4,6 +4,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { ThemeProvider } from './contexts/ThemeContext';
 import { RootProviders } from './components/providers';
 import { ToastContainer } from './components/notifications/ToastContainer';
+import { PushPermissionPrompt } from './components/notifications/PushPermissionPrompt';
 import { UpdateBanner } from './components/common/UpdateBanner';
 import { ProjectContextBar } from './components/projects/ProjectContextBar';
 import { MomentumCapture } from './components/momentum/MomentumCapture';
@@ -293,7 +294,7 @@ function AuthenticatedRoutes() {
                   <Route path="/projects/:id" element={<ProtectedRoute><ProjectsErrorBoundary><AssetsProvider><ProjectDetail /></AssetsProvider></ProjectsErrorBoundary></ProtectedRoute>} />
                   <Route path="/projects/:projectId/formations" element={<ProtectedRoute><Suspense fallback={<FormationEditorSkeleton />}><FormationEditor /></Suspense></ProtectedRoute>} />
                   <Route path="/projects/:projectId/formations/:formationId" element={<ProtectedRoute><Suspense fallback={<FormationEditorSkeleton />}><FormationEditor /></Suspense></ProtectedRoute>} />
-                  <Route path="/boards/:boardId" element={<ProtectedRoute><DesignBoardPage /></ProtectedRoute>} />
+                  <Route path="/boards/:boardId" element={<ProtectedRoute><Suspense fallback={<DefaultLoadingFallback message="Loading design board..." />}><DesignBoardPage /></Suspense></ProtectedRoute>} />
                   <Route path="/messages" element={<ProtectedRoute><MessagingErrorBoundary><MessagesNew /></MessagingErrorBoundary></ProtectedRoute>} />
                   <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -301,14 +302,14 @@ function AuthenticatedRoutes() {
                   <Route path="/settings/privacy" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
                   <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
                   <Route path="/connectors" element={<ProtectedRoute><ConnectorsErrorBoundary><Connectors /></ConnectorsErrorBoundary></ProtectedRoute>} />
-                  <Route path="/plugins" element={<ProtectedRoute><PluginManagerPage /></ProtectedRoute>} />
+                  <Route path="/plugins" element={<ProtectedRoute><Suspense fallback={<DefaultLoadingFallback message="Loading plugins..." />}><PluginManagerPage /></Suspense></ProtectedRoute>} />
                   <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
 
                   {/* Admin Routes */}
                   <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
                   <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
                   <Route path="/admin/audit" element={<ProtectedRoute><AdminAuditLogs /></ProtectedRoute>} />
-                  <Route path="/admin/metrics" element={<ProtectedRoute><AdminMetrics /></ProtectedRoute>} />
+                  <Route path="/admin/metrics" element={<ProtectedRoute><Suspense fallback={<DefaultLoadingFallback message="Loading metrics..." />}><AdminMetrics /></Suspense></ProtectedRoute>} />
                   <Route path="/tools" element={<ProtectedRoute><ToolsErrorBoundary><Tools /></ToolsErrorBoundary></ProtectedRoute>} />
                   <Route path="/tools/metmap" element={<ProtectedRoute><ToolsErrorBoundary><ToolsMetMap /></ToolsErrorBoundary></ProtectedRoute>} />
                   {/* /tools/files and /tools/assets now redirect to /projects (consolidated) */}
@@ -375,6 +376,10 @@ function AuthenticatedRoutes() {
       </GlobalQuickActions>
       {/* Global Toast Notifications */}
       <ToastContainer />
+      {/* Push Notification Permission Prompt - shows after 30s for eligible users */}
+      <AuthOnly>
+        <PushPermissionPrompt />
+      </AuthOnly>
       {/* SW Update Banner */}
       <UpdateBanner />
     </RootProviders>

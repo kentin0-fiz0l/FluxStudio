@@ -25,11 +25,18 @@ vi.mock('../../utils/apiHelpers', () => ({
   getApiUrl: vi.fn((path: string) => `http://localhost:3001${path}`),
 }));
 
+const mockApiService = vi.hoisted(() => ({
+  getOrganizations: vi.fn(),
+  createOrganization: vi.fn(),
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+  makeRequest: vi.fn(),
+}));
+
 vi.mock('../../services/apiService', () => ({
-  apiService: {
-    getOrganizations: vi.fn(),
-    createOrganization: vi.fn(),
-  },
+  apiService: mockApiService,
 }));
 
 const mockOrgs = [
@@ -143,10 +150,7 @@ describe('useOrganizations', () => {
       data: mockOrgs,
     });
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true }),
-    }));
+    mockApiService.post.mockResolvedValue({ success: true });
 
     const { result } = renderHook(() => useOrganizations(), { wrapper: createWrapper() });
 

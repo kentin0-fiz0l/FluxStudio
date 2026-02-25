@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { PrinterStatusCardProps, PrinterState } from '@/types/printing';
 import { cn } from '@/lib/utils';
+import { apiService } from '@/services/apiService';
 
 
 /**
@@ -83,11 +84,7 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
     setIsPausing(true);
     try {
       const endpoint = isPaused ? '/api/printing/job/resume' : '/api/printing/job/pause';
-      const response = await fetch(endpoint, { method: 'POST' });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${isPaused ? 'resume' : 'pause'} job`);
-      }
+      await apiService.post(endpoint);
 
       onRefresh?.();
     } catch (err) {
@@ -105,11 +102,7 @@ export const PrinterStatusCard: React.FC<PrinterStatusCardProps> = ({
 
     setIsCancelling(true);
     try {
-      const response = await fetch('/api/printing/job/cancel', { method: 'POST' });
-
-      if (!response.ok) {
-        throw new Error('Failed to cancel job');
-      }
+      await apiService.post('/api/printing/job/cancel');
 
       onRefresh?.();
     } catch (err) {

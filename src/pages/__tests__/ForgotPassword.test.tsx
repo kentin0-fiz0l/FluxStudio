@@ -13,12 +13,23 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => children,
 }));
 
+vi.mock('@/services/apiService', () => ({
+  apiService: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    makeRequest: vi.fn(),
+  },
+}));
+
+import { apiService } from '@/services/apiService';
 import { ForgotPassword } from '../ForgotPassword';
 
 describe('ForgotPassword', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.restoreAllMocks();
+    vi.mocked(apiService.post).mockReset();
   });
 
   const renderPage = () => {
@@ -67,10 +78,10 @@ describe('ForgotPassword', () => {
   });
 
   test('shows success state on successful submission', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ message: 'Password reset link sent to your email.' }),
-    }) as any;
+    vi.mocked(apiService.post).mockResolvedValueOnce({
+      success: true,
+      data: { message: 'Password reset link sent to your email.' },
+    });
 
     renderPage();
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
@@ -84,10 +95,7 @@ describe('ForgotPassword', () => {
   });
 
   test('shows error state on failed submission', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      json: () => Promise.resolve({ message: 'User not found' }),
-    }) as any;
+    vi.mocked(apiService.post).mockRejectedValueOnce(new Error('User not found'));
 
     renderPage();
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
@@ -96,7 +104,7 @@ describe('ForgotPassword', () => {
     fireEvent.click(screen.getByRole('button', { name: /send reset link/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('User not found')).toBeInTheDocument();
+      expect(screen.getByText('An error occurred. Please try again.')).toBeInTheDocument();
     });
   });
 

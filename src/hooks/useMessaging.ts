@@ -10,6 +10,7 @@ import { useEffect, useCallback } from 'react';
 import { useStore } from '../store/store';
 import { useAuth } from '@/store/slices/authSlice';
 import { messagingService } from '../services/messagingService';
+import { apiService } from '@/services/apiService';
 import { buildApiUrl } from '../config/environment';
 import { hookLogger } from '../lib/logger';
 import { toast } from '../lib/toast';
@@ -278,30 +279,18 @@ export function useMessaging(): UseMessagingReturn {
     const activeId = useStore.getState().messaging.activeConversationId;
     if (!activeId) throw new Error('No active conversation');
 
-    const token = localStorage.getItem('auth_token');
-    if (!token) throw new Error('Not authenticated');
-
     // Optimistic update — apply edit to Zustand immediately
     const prevMessages = [...(useStore.getState().messaging.messages[activeId] || [])];
     useStore.getState().messaging.updateMessage(messageId, { content, updatedAt: new Date().toISOString() });
 
     try {
-      const response = await fetch(
+      await apiService.makeRequest(
         buildApiUrl(`/conversations/${activeId}/messages/${messageId}`),
         {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
           body: JSON.stringify({ text: content }),
         }
       );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to edit message');
-      }
 
       useStore.getState().messaging.fetchMessages(activeId);
     } catch (err) {
@@ -318,26 +307,12 @@ export function useMessaging(): UseMessagingReturn {
     const activeId = useStore.getState().messaging.activeConversationId;
     if (!activeId) throw new Error('No active conversation');
 
-    const token = localStorage.getItem('auth_token');
-    if (!token) throw new Error('Not authenticated');
-
     // Optimistic update — remove message from Zustand immediately
     const prevMessages = [...(useStore.getState().messaging.messages[activeId] || [])];
     useStore.getState().messaging.deleteMessage(activeId, messageId);
 
     try {
-      const response = await fetch(
-        buildApiUrl(`/conversations/${activeId}/messages/${messageId}`),
-        {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to delete message');
-      }
+      await apiService.delete(`/conversations/${activeId}/messages/${messageId}`);
 
       useStore.getState().messaging.fetchMessages(activeId);
     } catch (err) {

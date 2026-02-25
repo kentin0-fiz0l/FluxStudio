@@ -7,7 +7,7 @@
 
 import React, { useRef, useState } from 'react';
 import { Song, Section } from '../../contexts/MetMapContext';
-import { getApiUrl } from '../../utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 import { exportMetMapVideo, exportMetMapGif, downloadBlob, type MetMapExportProgress } from '../../services/metmapExport';
 
 interface ExportImportProps {
@@ -219,21 +219,12 @@ ${exportData.sections}`;
       formData.append('tags', JSON.stringify(['metmap', 'timeline', 'music']));
       formData.append('role', 'metmap');
 
-      const response = await fetch(getApiUrl(`/projects/${projectId}/assets`), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
+      const result = await apiService.post<{ assets?: Array<{ id: string; name: string }> }>(
+        `/projects/${projectId}/assets`,
+        formData
+      );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create asset');
-      }
-
-      const result = await response.json();
-      const createdAsset = result.assets?.[0];
+      const createdAsset = result.data?.assets?.[0];
 
       if (createdAsset) {
         setLastCreatedAsset(createdAsset);

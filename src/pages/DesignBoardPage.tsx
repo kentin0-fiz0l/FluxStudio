@@ -11,7 +11,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/store/slices/authSlice';
-import { useNotification } from '../contexts/NotificationContext';
+import { apiService } from '@/services/apiService';
+import { useNotification } from '@/store/slices/notificationSlice';
 import {
   designBoardsSocketService,
   BoardNode,
@@ -429,17 +430,11 @@ export default function DesignBoardPage() {
 
     const fetchBoard = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(`/api/boards/${boardId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            setBoard(data.board);
-            setNodes(data.nodes);
-            setIsLoading(false);
-          }
+        const result = await apiService.get<{ success: boolean; board: typeof board; nodes: typeof nodes }>(`/boards/${boardId}`);
+        if (result.data?.success) {
+          setBoard(result.data.board);
+          setNodes(result.data.nodes);
+          setIsLoading(false);
         } else {
           showNotification({ type: 'error', title: 'Error', message: 'Failed to load board' });
           navigate(-1);
@@ -639,9 +634,13 @@ export default function DesignBoardPage() {
           {/* Canvas */}
           <div
             ref={canvasRef}
+            role="application"
+            tabIndex={0}
+            aria-label="Design board canvas"
             className="flex-1 bg-gray-50 overflow-auto relative"
             onMouseMove={handleCanvasMouseMove}
             onClick={handleCanvasClick}
+            onKeyDown={(e) => { if (e.key === ' ') e.preventDefault(); }}
           >
             {isLoading ? (
               <div className="flex items-center justify-center h-full">

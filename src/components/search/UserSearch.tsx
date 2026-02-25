@@ -499,6 +499,7 @@ function UserSearchItem({ user, showDetails = true, isHighlighted, onClick }: Us
     <div
       id={`user-result-${user.id}`}
       role="option"
+      tabIndex={-1}
       aria-selected={isHighlighted || false}
       onClick={onClick}
       className={cn(

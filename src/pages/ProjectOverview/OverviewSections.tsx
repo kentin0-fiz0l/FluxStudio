@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { SectionHeader, EmptySection, SectionSkeleton, SnapshotPulseIndicator } from './OverviewHelpers';
 import type { AggregatedSnapshot, RecentMessage, ActivityItem, NextStepState, NextStepStatus } from './types';
 import { formatRelativeTime } from './types';
+import { LazyImage } from '@/components/LazyImage';
 
 // ============================================================================
 // AI Snapshot Section
@@ -322,7 +323,7 @@ export const RecentAssetsSection: React.FC<{
             ) : (
               <div key={asset.id} className="p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors cursor-pointer">
                 <div className="w-full aspect-square bg-gray-100 rounded-md mb-2 flex items-center justify-center">
-                  {asset.thumbnailUrl ? <img src={asset.thumbnailUrl} alt={asset.name} className="w-full h-full object-cover rounded-md" /> : <FileText className="w-8 h-8 text-gray-400" aria-hidden="true" />}
+                  {asset.thumbnailUrl ? <LazyImage src={asset.thumbnailUrl} alt={asset.name} width={200} height={200} className="w-full h-full object-cover rounded-md" /> : <FileText className="w-8 h-8 text-gray-400" aria-hidden="true" />}
                 </div>
                 <p className="text-sm font-medium text-gray-900 truncate">{asset.name}</p>
                 <p className="text-xs text-gray-400">{formatRelativeTime(asset.createdAt)}</p>

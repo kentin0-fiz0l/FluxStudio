@@ -8,6 +8,7 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/store/slices/authSlice';
+import { apiService } from '@/services/apiService';
 import { queryKeys } from '../lib/queryClient';
 
 interface Channel {
@@ -49,24 +50,14 @@ export function useProjectChannel(projectId: string): UseProjectChannelReturn {
     queryFn: async () => {
       if (!projectId || !user) return null;
 
-      const token = localStorage.getItem('auth_token');
-      if (!token) throw new Error('Authentication required');
-
-      const response = await fetch(`/api/projects/${projectId}/channel`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.status === 404) return null;
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch project channel: ${response.statusText}`);
+      try {
+        const result = await apiService.get<{ channel: Channel | null }>(`/api/projects/${projectId}/channel`);
+        return result.data?.channel || null;
+      } catch (error) {
+        // Return null on 404 instead of throwing
+        if (error instanceof Error && error.message.includes('404')) return null;
+        throw error;
       }
-
-      const data = await response.json();
-      return data.channel || null;
     },
     enabled: !!projectId && !!user,
     staleTime: 5 * 60 * 1000, // channels don't change often
@@ -78,10 +69,10 @@ export function useProjectChannel(projectId: string): UseProjectChannelReturn {
     mutationFn: async ({ projectName, memberIds }) => {
       if (!projectId || !user) throw new Error('Project ID and user authentication required');
 
+      // Step 1: Create channel in messaging service (external URL — keep raw fetch)
       const token = localStorage.getItem('auth_token');
       if (!token) throw new Error('Authentication required');
 
-      // Step 1: Create channel in messaging service
       const messagingUrl = process.env.REACT_APP_MESSAGING_URL || 'http://localhost:3004';
       const createResponse = await fetch(`${messagingUrl}/api/channels`, {
         method: 'POST',
@@ -106,16 +97,9 @@ export function useProjectChannel(projectId: string): UseProjectChannelReturn {
       const newChannel: Channel = channelData.channel || channelData;
 
       // Step 2: Link channel to project
-      const linkResponse = await fetch(`/api/projects/${projectId}/channel`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ channelId: newChannel.id }),
-      });
-
-      if (!linkResponse.ok) {
+      try {
+        await apiService.post(`/api/projects/${projectId}/channel`, { channelId: newChannel.id });
+      } catch {
         console.warn('[useProjectChannel] Channel created but linking to project failed');
       }
 

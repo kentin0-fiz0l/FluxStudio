@@ -23,8 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/store/slices/authSlice';
-
-const API_URL = import.meta.env.VITE_API_URL || 'https://fluxstudio.art';
+import { apiService } from '@/services/apiService';
 
 type TicketCategory = 'general' | 'billing' | 'technical' | 'feature' | 'account';
 
@@ -46,7 +45,7 @@ const categories: { value: TicketCategory; label: string; description: string }[
 
 export function Support() {
   const navigate = useNavigate();
-  const { user, token, logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const [formData, setFormData] = useState<SupportFormData>({
     name: user?.name || '',
@@ -113,21 +112,7 @@ export function Support() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/support/ticket`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit support request');
-      }
-
+      await apiService.post('/support/ticket', formData);
       setSuccess(true);
     } catch (err) {
       console.error('Support submission error:', err);

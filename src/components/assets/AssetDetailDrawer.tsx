@@ -12,7 +12,7 @@
 import * as React from 'react';
 import { useAssets, AssetRecord, AssetVersion, AssetRelation, AssetMetadata, AssetTag, AssetComment, RelationType } from '../../contexts/AssetsContext';
 import { useFilesOptional } from '../../contexts/FilesContext';
-import { useNotifications } from '../../contexts/NotificationContext';
+import { useNotifications } from '@/store/slices/notificationSlice';
 import { createLogger } from '@/services/logging';
 
 import { AssetPreview } from './AssetPreview';

@@ -18,7 +18,7 @@ export { useAuth, useSession } from './slices/authSlice';
 export { useProjects, useActiveProject, useProjectContext, useCurrentProjectId, useRequiredProject } from './slices/projectSlice';
 export { useUI, useTheme, useSidebar, useWorkspace, useWorkingContext } from './slices/uiSlice';
 export { useOrganization, useOrg } from './slices/orgSlice';
-export { useNotifications, useNotification } from './slices/notificationSlice';
+export { useNotifications, useNotification, useNotificationInit } from './slices/notificationSlice';
 export { useMessagingStore, useMessagingStore as useMessaging } from './slices/messagingSlice';
 export { useOffline, useSyncStatus } from './slices/offlineSlice';
 export {

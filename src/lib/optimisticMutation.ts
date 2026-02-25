@@ -17,6 +17,7 @@
  */
 
 import { useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query';
+import { apiService } from '@/services/apiService';
 import { getApiUrl } from '../utils/apiHelpers';
 import { toast } from './toast';
 import { useStore } from '../store/store';
@@ -75,32 +76,29 @@ function isNetworkError(error: unknown): boolean {
   return false;
 }
 
-// Helper to make an authenticated API request
+// Helper to make an authenticated API request via apiService
 async function apiRequest<T>(
   endpoint: string,
   method: string,
   body?: unknown,
 ): Promise<T> {
-  const token = localStorage.getItem('auth_token');
-  const response = await fetch(getApiUrl(endpoint), {
-    method,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || errorData.error || `Request failed: ${response.status}`,
-    );
+  let result;
+  switch (method) {
+    case 'POST':
+      result = await apiService.post<T>(endpoint, body);
+      break;
+    case 'PUT':
+    case 'PATCH':
+      result = await apiService.patch<T>(endpoint, body);
+      break;
+    case 'DELETE':
+      result = await apiService.delete<T>(endpoint);
+      break;
+    default:
+      result = await apiService.get<T>(endpoint);
   }
-
-  const result = await response.json();
-  return result.task || result.data || result;
+  const data = result.data as Record<string, unknown> | undefined;
+  return ((data as Record<string, unknown>)?.task || data || result) as T;
 }
 
 // ============================================================================

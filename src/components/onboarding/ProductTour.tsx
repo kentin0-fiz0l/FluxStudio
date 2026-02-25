@@ -167,6 +167,7 @@ export function ProductTour({
             ? undefined
             : 'rgba(0, 0, 0, 0.7)',
         }}
+        role="presentation"
         onClick={handleSkip}
         aria-hidden="true"
       />

@@ -5,32 +5,33 @@
  * Most state now lives in the Zustand store (slices/).
  *
  * Remaining providers:
- * 1. AuthProvider - manages auth side effects (token refresh, etc.)
+ * 1. AuthProvider (useAuthInit hook) - manages auth side effects
  * 2. SocketProvider - singleton WebSocket connection (side-effect heavy)
- * 3. NotificationProvider - real-time notification listener
+ * 3. NotificationInit (useNotificationInit hook) - real-time notification listener
  * 4. MessagingSocketBridge - connects Socket.IO events to Zustand messaging slice
  * 5. SessionProvider - session tracking side effects
  * 6. OrganizationProvider - org sync side effects
  *
  * Removed (migrated to Zustand):
- * - WorkspaceProvider → uiSlice (workspace state)
- * - WorkingContextProvider → uiSlice (working context)
+ * - WorkspaceProvider → uiSlice
+ * - WorkingContextProvider → uiSlice
  * - ActiveProjectProvider → projectSlice
  * - ProjectProvider → projectSlice
  * - ConnectorsProvider → connectorSlice
  * - FilesProvider → assetSlice
  * - AssetsProvider → assetSlice
+ * - NotificationProvider → notificationSlice (useNotificationInit)
  * - MetMapProvider → kept as lazy-loaded context (tool-specific)
  */
 
 import React from 'react';
 import { SocketProvider } from '../../contexts/SocketContext';
-import { NotificationProvider } from '../../contexts/NotificationContext';
 import { RealtimeNotifications } from '../notifications/RealtimeNotifications';
 import { MessagingSocketBridge } from '../../contexts/MessagingContext';
 import { SessionProvider } from '../../contexts/SessionContext';
 import { OrganizationProvider } from '../../contexts/OrganizationContext';
 import { useAuth, useAuthInit } from '@/store/slices/authSlice';
+import { useNotificationInit } from '@/store/slices/notificationSlice';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -51,6 +52,7 @@ function CoreProviders({ children }: ProvidersProps) {
  */
 function RealtimeProviders({ children }: ProvidersProps) {
   const { isAuthenticated } = useAuth();
+  useNotificationInit();
 
   if (!isAuthenticated) {
     return <>{children}</>;
@@ -58,11 +60,9 @@ function RealtimeProviders({ children }: ProvidersProps) {
 
   return (
     <SocketProvider>
-      <NotificationProvider>
-        <RealtimeNotifications enabled={true} soundEnabled={true} />
-        <MessagingSocketBridge />
-        {children}
-      </NotificationProvider>
+      <RealtimeNotifications enabled={true} soundEnabled={true} />
+      <MessagingSocketBridge />
+      {children}
     </SocketProvider>
   );
 }

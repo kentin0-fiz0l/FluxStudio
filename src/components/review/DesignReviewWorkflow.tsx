@@ -432,6 +432,9 @@ export function DesignReviewWorkflow({
         <div className="flex-1 overflow-hidden bg-gray-100 relative">
           <div
             ref={imageRef}
+            role="application"
+            tabIndex={0}
+            aria-label="Design review canvas"
             className={cn(
               "w-full h-full flex items-center justify-center",
               isAddingAnnotation && "cursor-crosshair"
@@ -440,6 +443,7 @@ export function DesignReviewWorkflow({
               transform: `scale(${zoom}) translate(${panPosition.x}px, ${panPosition.y}px)`
             }}
             onClick={handleImageClick}
+            onKeyDown={(e) => { if (e.key === ' ') e.preventDefault(); }}
           >
             <div className="relative">
               <img

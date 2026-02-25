@@ -56,12 +56,23 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => children,
 }));
 
+vi.mock('@/services/apiService', () => ({
+  apiService: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    makeRequest: vi.fn(),
+  },
+}));
+
+import { apiService } from '@/services/apiService';
 import { Checkout } from '../Checkout';
 
 describe('Checkout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn();
+    vi.mocked(apiService.post).mockReset();
   });
 
   const renderCheckout = (initialEntries: string[] = ['/checkout']) => {
@@ -104,11 +115,10 @@ describe('Checkout', () => {
 
   describe('Plan Selection', () => {
     test('creates checkout session when selecting a plan', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ url: 'https://checkout.stripe.com/session' }),
+      vi.mocked(apiService.post).mockResolvedValueOnce({
+        success: true,
+        data: { url: 'https://checkout.stripe.com/session' },
       });
-      global.fetch = mockFetch;
 
       // Mock window.location
       const locationAssign = vi.fn();
@@ -123,24 +133,17 @@ describe('Checkout', () => {
       fireEvent.click(screen.getByTestId('select-starter'));
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/payments/create-checkout-session'),
+        expect(apiService.post).toHaveBeenCalledWith(
+          '/payments/create-checkout-session',
           expect.objectContaining({
-            method: 'POST',
-            headers: expect.objectContaining({
-              'Authorization': 'Bearer test-token',
-            }),
+            priceId: 'price_starter',
           })
         );
       });
     });
 
     test('shows error when checkout session creation fails', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: false,
-        json: () => Promise.resolve({ error: 'Payment processing failed' }),
-      });
-      global.fetch = mockFetch;
+      vi.mocked(apiService.post).mockRejectedValueOnce(new Error('Payment processing failed'));
 
       renderCheckout();
 
@@ -152,11 +155,7 @@ describe('Checkout', () => {
     });
 
     test('dismiss button clears error', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: false,
-        json: () => Promise.resolve({ error: 'Payment failed' }),
-      });
-      global.fetch = mockFetch;
+      vi.mocked(apiService.post).mockRejectedValueOnce(new Error('Payment failed'));
 
       renderCheckout();
 

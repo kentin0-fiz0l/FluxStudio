@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/store/slices/authSlice';
+import { apiService } from '@/services/apiService';
 import { SEOHead } from '../components/SEOHead';
 import { observability } from '@/services/observability';
 
@@ -66,14 +67,8 @@ export function Login() {
     setError('');
     setIsLoading(true);
     try {
-      const API_URL = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API_URL}/api/2fa/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tempToken, code: totpCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Verification failed');
+      const result = await apiService.post<{ accessToken?: string; token?: string; refreshToken?: string; error?: string }>('/2fa/verify', { tempToken, code: totpCode });
+      const data = result.data!;
       // Store tokens and log in
       if (loginWithToken) {
         await loginWithToken(data);

@@ -13,7 +13,8 @@
 import * as React from 'react';
 import { useActiveProject } from '@/store';
 import { useSession } from '@/contexts/SessionContext';
-import { useNotifications, Notification } from '@/contexts/NotificationContext';
+import { useNotifications } from '@/store/slices/notificationSlice';
+import type { Notification } from '@/store/slices/notificationSlice';
 import { useTasks, Task } from '@/hooks/useTasks';
 import { useAuth } from '@/store/slices/authSlice';
 

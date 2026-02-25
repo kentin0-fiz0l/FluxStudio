@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, XCircle, Mail, Loader, RefreshCw } from 'lucide-react';
+import { apiService } from '@/services/apiService';
 
 export function EmailVerification() {
   const [searchParams] = useSearchParams();
@@ -13,29 +14,15 @@ export function EmailVerification() {
 
   const verifyEmail = async (verificationToken: string) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://fluxstudio.art'}/api/auth/verify-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token: verificationToken }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setStatus('success');
-        setMessage('Email verified successfully! Redirecting to dashboard...');
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 3000);
-      } else {
-        setStatus('error');
-        setMessage(data.message || 'Verification failed. Please try again.');
-      }
-    } catch (_error) {
+      await apiService.post('/auth/verify-email', { token: verificationToken });
+      setStatus('success');
+      setMessage('Email verified successfully! Redirecting to dashboard...');
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 3000);
+    } catch (err) {
       setStatus('error');
-      setMessage('An error occurred during verification. Please try again.');
+      setMessage(err instanceof Error ? err.message : 'An error occurred during verification. Please try again.');
     }
   };
 
@@ -59,23 +46,9 @@ export function EmailVerification() {
     setMessage('Sending verification email...');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://fluxstudio.art'}/api/auth/resend-verification`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setStatus('resend');
-        setMessage('Verification email sent! Please check your inbox.');
-      } else {
-        setStatus('error');
-        setMessage(data.message || 'Failed to resend verification email.');
-      }
+      await apiService.post('/auth/resend-verification', { email });
+      setStatus('resend');
+      setMessage('Verification email sent! Please check your inbox.');
     } catch (_error) {
       setStatus('error');
       setMessage('An error occurred. Please try again.');

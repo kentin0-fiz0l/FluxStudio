@@ -16,7 +16,8 @@ import type {
   NotificationOptions,
 } from './types';
 import { toast } from '@/lib/toast';
-import { getApiUrl } from '@/utils/apiHelpers';
+import { apiService } from '@/services/apiService';
+import { buildApiUrl } from '@/config/environment';
 
 // ==================== Global Registries ====================
 
@@ -114,26 +115,25 @@ function requirePermission(plugin: PluginInstance, permission: PluginPermission,
   }
 }
 
-/**
- * Get the auth token from localStorage (same pattern as useAuth).
- */
-function getToken(): string {
-  const token = localStorage.getItem('auth_token');
-  if (!token) throw new Error('Not authenticated');
-  return token;
-}
-
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(getApiUrl(path), {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`,
-      ...(options?.headers || {}),
-    },
-  });
-  if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`);
-  return res.json();
+  const method = (options?.method || 'GET').toUpperCase();
+
+  if (method === 'GET') {
+    const result = await apiService.get<T>(path);
+    return result.data as T;
+  } else if (method === 'POST') {
+    const body = options?.body ? JSON.parse(options.body as string) : undefined;
+    const result = await apiService.post<T>(path, body);
+    return result.data as T;
+  } else if (method === 'DELETE') {
+    const result = await apiService.delete<T>(path);
+    return result.data as T;
+  } else {
+    // PUT, PATCH, etc. — use makeRequest with full URL
+    const fullUrl = buildApiUrl(path);
+    const result = await apiService.makeRequest<T>(fullUrl, options);
+    return result.data as T;
+  }
 }
 
 export function createPluginAPI(plugin: PluginInstance): FluxStudioAPI {

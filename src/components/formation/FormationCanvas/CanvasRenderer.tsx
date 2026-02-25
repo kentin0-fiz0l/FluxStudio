@@ -87,6 +87,9 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   return (
     <div
       ref={canvasRef}
+      role="application"
+      tabIndex={0}
+      aria-label="Formation canvas"
       className="relative bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto"
       style={{
         width: `${formation.stageWidth * 20 * zoom}px`,
@@ -96,6 +99,7 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
         touchAction: 'none',
       }}
       onClick={onCanvasClick}
+      onKeyDown={(e) => { if (e.key === ' ') e.preventDefault(); }}
       onPointerDown={onCanvasPointerDown}
       onPointerMove={(e) => { onCanvasMouseMove(e as unknown as React.MouseEvent); onCanvasPointerMove(e); }}
       onPointerUp={onCanvasPointerUp}

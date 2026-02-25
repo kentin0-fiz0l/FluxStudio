@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getApiUrl } from '../utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 import { useAuth } from '@/store/slices/authSlice';
 
 export interface MetMapSnapshot {
@@ -19,47 +19,25 @@ export interface MetMapSnapshot {
   createdAt: string;
 }
 
-async function fetchSnapshots(songId: string, token: string): Promise<MetMapSnapshot[]> {
-  const res = await fetch(getApiUrl(`/api/metmap/songs/${songId}/snapshots`), {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error('Failed to fetch snapshots');
-  const data = await res.json();
-  return data.snapshots || [];
+async function fetchSnapshots(songId: string): Promise<MetMapSnapshot[]> {
+  const result = await apiService.get<{ snapshots: MetMapSnapshot[] }>(`/api/metmap/songs/${songId}/snapshots`);
+  return result.data?.snapshots || [];
 }
 
 async function createSnapshotApi(
   songId: string,
-  token: string,
   body: { name: string; description?: string; sectionCount?: number; totalBars?: number }
 ): Promise<MetMapSnapshot> {
-  const res = await fetch(getApiUrl(`/api/metmap/songs/${songId}/snapshots`), {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error('Failed to create snapshot');
-  const data = await res.json();
-  return data.snapshot;
+  const result = await apiService.post<{ snapshot: MetMapSnapshot }>(`/api/metmap/songs/${songId}/snapshots`, body);
+  return result.data!.snapshot;
 }
 
-async function deleteSnapshotApi(songId: string, snapshotId: string, token: string): Promise<void> {
-  const res = await fetch(getApiUrl(`/api/metmap/songs/${songId}/snapshots/${snapshotId}`), {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error('Failed to delete snapshot');
+async function deleteSnapshotApi(songId: string, snapshotId: string): Promise<void> {
+  await apiService.delete(`/api/metmap/songs/${songId}/snapshots/${snapshotId}`);
 }
 
-async function restoreSnapshotApi(songId: string, snapshotId: string, token: string): Promise<void> {
-  const res = await fetch(getApiUrl(`/api/metmap/songs/${songId}/snapshots/${snapshotId}/restore`), {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error('Failed to restore snapshot');
+async function restoreSnapshotApi(songId: string, snapshotId: string): Promise<void> {
+  await apiService.post(`/api/metmap/songs/${songId}/snapshots/${snapshotId}/restore`);
 }
 
 export function useMetMapSnapshots(songId: string | undefined) {
@@ -70,24 +48,24 @@ export function useMetMapSnapshots(songId: string | undefined) {
 
   const { data: snapshots = [], isLoading } = useQuery({
     queryKey,
-    queryFn: () => fetchSnapshots(songId!, token!),
+    queryFn: () => fetchSnapshots(songId!),
     enabled: !!songId && !!token,
     staleTime: 30_000,
   });
 
   const createMutation = useMutation({
     mutationFn: (body: { name: string; description?: string; sectionCount?: number; totalBars?: number }) =>
-      createSnapshotApi(songId!, token!, body),
+      createSnapshotApi(songId!, body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (snapshotId: string) => deleteSnapshotApi(songId!, snapshotId, token!),
+    mutationFn: (snapshotId: string) => deleteSnapshotApi(songId!, snapshotId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
   const restoreMutation = useMutation({
-    mutationFn: (snapshotId: string) => restoreSnapshotApi(songId!, snapshotId, token!),
+    mutationFn: (snapshotId: string) => restoreSnapshotApi(songId!, snapshotId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 

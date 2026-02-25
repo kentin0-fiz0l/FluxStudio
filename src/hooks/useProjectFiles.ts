@@ -86,33 +86,11 @@ export interface UseProjectFilesReturn {
 }
 
 /**
- * Get auth token from localStorage
- */
-function getAuthToken(): string | null {
-  return localStorage.getItem('token');
-}
-
-/**
  * Fetch project files
  */
 async function fetchProjectFiles(projectId: string): Promise<ProjectFile[]> {
-  const token = getAuthToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(`/api/projects/${projectId}/files`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to fetch project files');
-  }
-
-  return response.json();
+  const result = await apiService.get<ProjectFile[]>(`/projects/${projectId}/files`);
+  return result.data as ProjectFile[];
 }
 
 /**
@@ -140,24 +118,8 @@ async function deleteProjectFile(
   projectId: string,
   fileId: string
 ): Promise<{ success: boolean; message: string }> {
-  const token = getAuthToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-
-  const response = await fetch(`/api/projects/${projectId}/files/${fileId}`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to delete file');
-  }
-
-  return response.json();
+  const result = await apiService.delete<{ success: boolean; message: string }>(`/projects/${projectId}/files/${fileId}`);
+  return result.data as { success: boolean; message: string };
 }
 
 /**

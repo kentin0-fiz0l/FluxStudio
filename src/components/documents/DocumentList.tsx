@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from '@/lib/toast';
+import { apiService } from '@/services/apiService';
 
 interface Document {
   id: number;
@@ -166,20 +167,8 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
   const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`/api/projects/${projectId}/documents`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch documents');
-      }
-
-      const data = await response.json();
-      setDocuments(data.documents || []);
+      const result = await apiService.get<{ documents: Document[] }>(`/api/projects/${projectId}/documents`);
+      setDocuments(result.data?.documents || []);
     } catch (error) {
       console.error('Error fetching documents:', error);
       toast.error('Failed to load documents');
@@ -194,30 +183,15 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
 
   async function handleCreateDocument() {
     try {
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`/api/projects/${projectId}/documents`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: 'Untitled Document',
-          documentType: 'rich-text',
-        }),
+      const result = await apiService.post<{ document: { id: number } }>(`/api/projects/${projectId}/documents`, {
+        title: 'Untitled Document',
+        documentType: 'rich-text',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create document');
-      }
-
-      const data = await response.json();
 
       toast.success('Document created - Opening your new document...');
 
       // Open the newly created document
-      onOpenDocument(data.document.id);
+      onOpenDocument(result.data!.document.id);
     } catch (error) {
       console.error('Error creating document:', error);
       toast.error('Failed to create document');
@@ -226,18 +200,7 @@ export function DocumentList({ projectId, onOpenDocument }: DocumentListProps) {
 
   async function handleDeleteDocument(document: Document) {
     try {
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`/api/documents/${document.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete document');
-      }
+      await apiService.delete(`/api/documents/${document.id}`);
 
       toast.success(`"${document.title}" has been archived`);
 

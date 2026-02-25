@@ -18,6 +18,7 @@ import {
   Target
 } from 'lucide-react';
 import { useMessaging } from '../../hooks/useMessaging';
+import { LazyImage } from '../LazyImage';
 import {
   Priority,
   MessageUser
@@ -215,7 +216,7 @@ function MilestoneCard({ milestone }: { milestone: ProjectMilestone }) {
               className="w-6 h-6 bg-gray-200 rounded-full border-2 border-white flex items-center justify-center"
             >
               {assignee.avatar ? (
-                <img src={assignee.avatar} alt={assignee.name} className="w-full h-full rounded-full object-cover" />
+                <LazyImage src={assignee.avatar} alt={assignee.name} width={24} height={24} className="rounded-full object-cover" />
               ) : (
                 <span className="text-xs font-medium text-gray-600">
                   {assignee.name.charAt(0)}
@@ -343,10 +344,12 @@ function ActivityFeed({ projectId }: { projectId: string }) {
         >
           <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
             {message.author.avatar ? (
-              <img
+              <LazyImage
                 src={message.author.avatar}
                 alt={message.author.name}
-                className="w-8 h-8 rounded-full object-cover"
+                width={32}
+                height={32}
+                className="rounded-full object-cover"
               />
             ) : (
               <span className="text-xs font-medium text-gray-600">

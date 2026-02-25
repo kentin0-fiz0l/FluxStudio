@@ -5,6 +5,7 @@
  */
 
 import { AssetRecord } from '../../contexts/AssetsContext';
+import { LazyImage } from '../LazyImage';
 
 // Asset type config
 export const assetTypeConfig: Record<string, { icon: string; label: string; color: string }> = {
@@ -49,8 +50,8 @@ export function AssetPreview({ asset, isEditing, editDescription, onEditDescript
       {/* Preview */}
       <div className="aspect-video bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden flex items-center justify-center">
         {asset.thumbnailUrl || asset.fileUrl ? (
-          <img
-            src={asset.thumbnailUrl || asset.fileUrl}
+          <LazyImage
+            src={(asset.thumbnailUrl || asset.fileUrl)!}
             alt={asset.name}
             className="max-w-full max-h-full object-contain"
           />

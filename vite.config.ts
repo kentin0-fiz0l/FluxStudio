@@ -7,7 +7,17 @@
 
   const isAnalyze = process.env.ANALYZE === 'true';
 
-  export default defineConfig({
+  export default defineConfig(async () => {
+    const visualizerPlugins = isAnalyze
+      ? [(await import('rollup-plugin-visualizer')).visualizer({
+          open: true,
+          filename: 'build/stats.html',
+          gzipSize: true,
+          brotliSize: true,
+        })]
+      : [];
+
+    return {
     plugins: [
       react(),
       VitePWA({
@@ -72,12 +82,7 @@
       compression({ algorithm: 'gzip', ext: '.gz', threshold: 1024 }),
       compression({ algorithm: 'brotliCompress', ext: '.br', threshold: 1024 }),
       // Bundle visualizer — run with ANALYZE=true vite build
-      ...(isAnalyze ? [
-        (async () => {
-          const { visualizer } = await import('rollup-plugin-visualizer');
-          return visualizer({ open: true, filename: 'build/stats.html', gzipSize: true, brotliSize: true }) as unknown as import('vite').Plugin;
-        })()
-      ] : []),
+      ...visualizerPlugins,
     ],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
@@ -226,6 +231,15 @@
               return;
             }
 
+            // === i18n locale bundles ===
+            // Non-English locales are lazy-loaded via dynamic import() in src/i18n/index.ts.
+            // Group each locale's JSON files into a single chunk so one network request
+            // fetches all namespaces for a language.
+            if (id.includes('/src/locales/') && !id.includes('/locales/en/')) {
+              const match = id.match(/\/locales\/([\w-]+)\//);
+              if (match) return `locale-${match[1]}`;
+            }
+
             // IMPORTANT: Fix circular dependencies by NOT splitting these into separate chunks
             // Services, contexts, and hooks are tightly coupled - keep them together
             // Pages that are frequently accessed together should NOT be in separate chunks
@@ -334,4 +348,5 @@
         },
       },
     },
+  };
   });

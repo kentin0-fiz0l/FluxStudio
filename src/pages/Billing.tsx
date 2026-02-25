@@ -14,6 +14,7 @@ import {
   Shield
 } from 'lucide-react';
 import { useAuth } from '@/store/slices/authSlice';
+import { apiService } from '@/services/apiService';
 import { DashboardLayout } from '../components/templates';
 import { UsageBar } from '../components/payments/UsageBar';
 import { fetchUsage } from '../services/usageService';
@@ -21,8 +22,6 @@ import { getPlan } from '../config/plans';
 import { Skeleton } from '../components/ui/skeleton';
 import type { UsageData } from '../services/usageService';
 import type { PlanId } from '../config/plans';
-
-const API_URL = import.meta.env.VITE_API_URL || 'https://fluxstudio.art';
 
 interface SubscriptionData {
   hasSubscription: boolean;
@@ -61,19 +60,8 @@ export function Billing() {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/api/payments/subscription`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch subscription status');
-      }
-
-      const data = await response.json();
-      setSubscription(data);
+      const result = await apiService.get<typeof subscription>('/payments/subscription');
+      setSubscription(result.data ?? null);
     } catch (err) {
       console.error('Error fetching subscription:', err);
       setError(err instanceof Error ? err.message : 'Failed to load billing information');
@@ -96,25 +84,12 @@ export function Billing() {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/api/payments/create-portal-session`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          returnUrl: `${window.location.origin}/billing`
-        })
+      const result = await apiService.post<{ url: string }>('/payments/create-portal-session', {
+        returnUrl: `${window.location.origin}/billing`
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to open billing portal');
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
+      if (result.data?.url) {
+        window.location.href = result.data.url;
       }
     } catch (err) {
       console.error('Error opening portal:', err);

@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getApiUrl } from '../utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 import { useAuth } from '@/store/slices/authSlice';
 
 export interface MetMapBranch {
@@ -22,49 +22,26 @@ export interface MetMapBranch {
   updatedAt: string;
 }
 
-async function fetchBranches(songId: string, token: string): Promise<MetMapBranch[]> {
-  const res = await fetch(getApiUrl(`/api/metmap/songs/${songId}/branches`), {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error('Failed to fetch branches');
-  const data = await res.json();
-  return data.branches || [];
+async function fetchBranches(songId: string): Promise<MetMapBranch[]> {
+  const result = await apiService.get<{ branches: MetMapBranch[] }>(`/api/metmap/songs/${songId}/branches`);
+  return result.data?.branches || [];
 }
 
 async function createBranchApi(
   songId: string,
-  token: string,
   body: { name: string; description?: string; sourceSnapshotId?: string }
 ): Promise<MetMapBranch> {
-  const res = await fetch(getApiUrl(`/api/metmap/songs/${songId}/branches`), {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error('Failed to create branch');
-  const data = await res.json();
-  return data.branch;
+  const result = await apiService.post<{ branch: MetMapBranch }>(`/api/metmap/songs/${songId}/branches`, body);
+  return result.data!.branch;
 }
 
-async function deleteBranchApi(songId: string, branchId: string, token: string): Promise<void> {
-  const res = await fetch(getApiUrl(`/api/metmap/songs/${songId}/branches/${branchId}`), {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error('Failed to delete branch');
+async function deleteBranchApi(songId: string, branchId: string): Promise<void> {
+  await apiService.delete(`/api/metmap/songs/${songId}/branches/${branchId}`);
 }
 
-async function mergeBranchApi(songId: string, branchId: string, token: string): Promise<MetMapBranch> {
-  const res = await fetch(getApiUrl(`/api/metmap/songs/${songId}/branches/${branchId}/merge`), {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error('Failed to merge branch');
-  const data = await res.json();
-  return data.branch;
+async function mergeBranchApi(songId: string, branchId: string): Promise<MetMapBranch> {
+  const result = await apiService.post<{ branch: MetMapBranch }>(`/api/metmap/songs/${songId}/branches/${branchId}/merge`);
+  return result.data!.branch;
 }
 
 export function useMetMapBranches(songId: string | undefined) {
@@ -75,24 +52,24 @@ export function useMetMapBranches(songId: string | undefined) {
 
   const { data: branches = [], isLoading } = useQuery({
     queryKey,
-    queryFn: () => fetchBranches(songId!, token!),
+    queryFn: () => fetchBranches(songId!),
     enabled: !!songId && !!token,
     staleTime: 30_000,
   });
 
   const createMutation = useMutation({
     mutationFn: (body: { name: string; description?: string; sourceSnapshotId?: string }) =>
-      createBranchApi(songId!, token!, body),
+      createBranchApi(songId!, body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (branchId: string) => deleteBranchApi(songId!, branchId, token!),
+    mutationFn: (branchId: string) => deleteBranchApi(songId!, branchId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
   const mergeMutation = useMutation({
-    mutationFn: (branchId: string) => mergeBranchApi(songId!, branchId, token!),
+    mutationFn: (branchId: string) => mergeBranchApi(songId!, branchId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 

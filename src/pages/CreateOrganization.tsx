@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, MapPin, Phone, Mail } from 'lucide-react';
+import { apiService } from '@/services/apiService';
 import { toast } from '../lib/toast';
 
 export function CreateOrganization() {
@@ -33,22 +34,13 @@ export function CreateOrganization() {
     setError(null);
 
     try {
-      const response = await fetch('/api/organizations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const result = await apiService.post<{ success: boolean; message?: string }>('/organizations', formData);
 
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        // Successfully created organization
+      if (result.data?.success) {
         toast.success(`Organization "${formData.name}" created successfully!`);
         navigate('/dashboard/organizations');
       } else {
-        const errorMsg = result.message || 'Failed to create organization';
+        const errorMsg = result.data?.message || 'Failed to create organization';
         setError(errorMsg);
         toast.error(errorMsg);
       }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserDirectory } from '../components/UserDirectory';
 import { SimpleHeader } from '../components/SimpleHeader';
 import { useAuth } from '@/store/slices/authSlice';
-import { buildApiUrl } from '../config/environment';
+import { apiService } from '@/services/apiService';
 import { toast } from '../lib/toast';
 
 export const Users: React.FC = () => {
@@ -26,32 +26,12 @@ export const Users: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
-
-      // Create or find existing direct conversation
-      const response = await fetch(buildApiUrl('/conversations'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          type: 'direct',
-          participantIds: [targetUserId],
-          name: '' // Direct conversations don't need a name
-        })
+      const result = await apiService.post<{ conversation?: { id: string }; id?: string }>('/conversations', {
+        type: 'direct',
+        participantIds: [targetUserId],
+        name: ''
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create conversation');
-      }
-
-      const result = await response.json();
-      const conversationId = result.conversation?.id || result.id;
+      const conversationId = result.data?.conversation?.id || result.data?.id;
 
       // Navigate to messages with the conversation selected
       navigate(`/messages?conversation=${conversationId}`);
@@ -78,30 +58,11 @@ export const Users: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
-
-      // Send connection request via notifications/activity system
-      const response = await fetch(buildApiUrl('/notifications'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          type: 'connection_request',
-          targetUserId,
-          message: `${user.name || user.email} wants to connect with you`
-        })
+      await apiService.post('/notifications', {
+        type: 'connection_request',
+        targetUserId,
+        message: `${user.name || user.email} wants to connect with you`
       });
-
-      if (!response.ok) {
-        // If notification endpoint doesn't exist, fall back to messaging
-        await handleMessage(targetUserId);
-        return;
-      }
 
       toast.success('Connection request sent!');
     } catch (error) {

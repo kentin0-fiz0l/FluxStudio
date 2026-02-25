@@ -33,6 +33,7 @@ import {
   Filter,
 } from 'lucide-react';
 import type { PrintJobHistoryItem, PrintJobStatus } from '../../types/printing';
+import { apiService } from '@/services/apiService';
 
 interface PrintHistoryProps {
   limit?: number;
@@ -117,17 +118,13 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
     try {
       // Use filter endpoint if project is selected
       const endpoint = selectedProjectId !== 'all'
-        ? `/api/printing/jobs/history/filter?project_id=${selectedProjectId}&limit=${limit}`
-        : `/api/printing/jobs/history?limit=${limit}`;
+        ? '/api/printing/jobs/history/filter'
+        : '/api/printing/jobs/history';
+      const params: Record<string, string> = { limit: String(limit) };
+      if (selectedProjectId !== 'all') params.project_id = selectedProjectId;
 
-      const response = await fetch(endpoint);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch print history');
-      }
-
-      const data = await response.json();
-      setHistory(data);
+      const result = await apiService.get<PrintJobHistoryItem[]>(endpoint, { params });
+      setHistory(result.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       console.error('Failed to fetch print history:', err);
@@ -138,14 +135,11 @@ export default function PrintHistory({ limit = 20, className = '' }: PrintHistor
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('/projects');
-      if (response.ok) {
-        const data = await response.json();
-        setProjects(data.projects?.map((p: Record<string, unknown>) => ({
-          id: p.id,
-          title: p.title
-        })) || []);
-      }
+      const result = await apiService.get<{ projects: Array<{ id: string; title: string }> }>('/projects');
+      setProjects(result.data?.projects?.map((p) => ({
+        id: p.id,
+        title: p.title
+      })) || []);
     } catch (err) {
       console.error('Failed to fetch projects:', err);
     }

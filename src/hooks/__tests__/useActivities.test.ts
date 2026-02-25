@@ -18,7 +18,19 @@ vi.mock('../../utils/apiHelpers', () => ({
   getApiUrl: vi.fn((path: string) => `http://localhost:3001${path}`),
 }));
 
-const mockActivitiesResponse = {
+const mockApiService = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+  makeRequest: vi.fn(),
+}));
+
+vi.mock('@/services/apiService', () => ({
+  apiService: mockApiService,
+}));
+
+const mockActivitiesData = {
   success: true,
   activities: [
     {
@@ -67,10 +79,10 @@ describe('useActivitiesQuery', () => {
   });
 
   it('should fetch activities for a project', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockActivitiesResponse),
-    }));
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: mockActivitiesData,
+    });
 
     const { useActivitiesQuery } = await import('../useActivities');
     const { result } = renderHook(
@@ -88,9 +100,6 @@ describe('useActivitiesQuery', () => {
   });
 
   it('should not fetch when projectId is undefined', async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-
     const { useActivitiesQuery } = await import('../useActivities');
     const { result } = renderHook(
       () => useActivitiesQuery(undefined),
@@ -100,14 +109,11 @@ describe('useActivitiesQuery', () => {
     // When enabled is false, query should not be loading/fetching
     expect(result.current.isLoading).toBe(false);
     expect(result.current.data).toBeUndefined();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockApiService.get).not.toHaveBeenCalled();
   });
 
   it('should handle API errors', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      json: () => Promise.resolve({ error: 'Not found' }),
-    }));
+    mockApiService.get.mockRejectedValue(new Error('Not found'));
 
     const { useActivitiesQuery } = await import('../useActivities');
     const { result } = renderHook(
@@ -120,11 +126,10 @@ describe('useActivitiesQuery', () => {
   });
 
   it('should pass query params to the API', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockActivitiesResponse),
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: mockActivitiesData,
     });
-    vi.stubGlobal('fetch', fetchMock);
 
     const { useActivitiesQuery } = await import('../useActivities');
     renderHook(
@@ -132,18 +137,19 @@ describe('useActivitiesQuery', () => {
       { wrapper: createWrapper() }
     );
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await waitFor(() => expect(mockApiService.get).toHaveBeenCalled());
 
-    const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain('limit=10');
-    expect(url).toContain('type=task.created');
+    const [endpoint, options] = mockApiService.get.mock.calls[0];
+    expect(endpoint).toContain('/projects/proj-1/activities');
+    expect(options?.params?.limit).toBe('10');
+    expect(options?.params?.type).toBe('task.created');
   });
 
   it('should normalize response with missing fields', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ activities: [] }),
-    }));
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { activities: [] },
+    });
 
     const { useActivitiesQuery } = await import('../useActivities');
     const { result } = renderHook(
@@ -170,10 +176,10 @@ describe('useRecentActivitiesQuery', () => {
       setItem: vi.fn(),
       removeItem: vi.fn(),
     });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockActivitiesResponse),
-    }));
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: mockActivitiesData,
+    });
   });
 
   it('should fetch recent activities with date filter', async () => {
@@ -196,28 +202,23 @@ describe('useUserActivitiesQuery', () => {
       setItem: vi.fn(),
       removeItem: vi.fn(),
     });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockActivitiesResponse),
-    }));
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: mockActivitiesData,
+    });
   });
 
   it('should fetch activities for a specific user', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockActivitiesResponse),
-    });
-    vi.stubGlobal('fetch', fetchMock);
-
     const { useUserActivitiesQuery } = await import('../useActivities');
     renderHook(
       () => useUserActivitiesQuery('proj-1', 'user-1'),
       { wrapper: createWrapper() }
     );
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain('userId=user-1');
+    await waitFor(() => expect(mockApiService.get).toHaveBeenCalled());
+    const [endpoint, options] = mockApiService.get.mock.calls[0];
+    expect(endpoint).toContain('/projects/proj-1/activities');
+    expect(options?.params?.userId).toBe('user-1');
   });
 });
 
@@ -232,10 +233,10 @@ describe('useDashboardActivities', () => {
   });
 
   it('should fetch dashboard activities', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockActivitiesResponse),
-    }));
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: mockActivitiesData,
+    });
 
     const { useDashboardActivities } = await import('../useActivities');
     const { result } = renderHook(
@@ -248,11 +249,10 @@ describe('useDashboardActivities', () => {
   });
 
   it('should pass pagination params', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockActivitiesResponse),
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: mockActivitiesData,
     });
-    vi.stubGlobal('fetch', fetchMock);
 
     const { useDashboardActivities } = await import('../useActivities');
     renderHook(
@@ -260,9 +260,10 @@ describe('useDashboardActivities', () => {
       { wrapper: createWrapper() }
     );
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain('limit=5');
-    expect(url).toContain('offset=10');
+    await waitFor(() => expect(mockApiService.get).toHaveBeenCalled());
+    const [endpoint, options] = mockApiService.get.mock.calls[0];
+    expect(endpoint).toBe('/projects/activities/recent');
+    expect(options?.params?.limit).toBe('5');
+    expect(options?.params?.offset).toBe('10');
   });
 });

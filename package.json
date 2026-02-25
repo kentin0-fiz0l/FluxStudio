@@ -233,7 +233,8 @@
             "db:migrate:create": "node database/migration-system.js create",
             "db:migrate:verify": "node database/migration-system.js verify",
             "db:migrate:dry-run": "DRY_RUN=true node database/migration-system.js run",
-            "cli": "node cli/bin/flux.js"
+            "lighthouse": "lhci autorun",
+        "cli": "node cli/bin/flux.js"
       },
       "overrides": {
             "tar": ">=7.5.8",

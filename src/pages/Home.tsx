@@ -21,6 +21,7 @@ import {
 
 import { useAuth } from '@/store/slices/authSlice';
 import { DailyBriefWidget } from '../components/agent/DailyBriefWidget';
+import { PushPermissionPrompt } from '../components/notifications/PushPermissionPrompt';
 
 export function Home() {
   const { user, logout } = useAuth();
@@ -298,6 +299,9 @@ export function Home() {
                 onStepComplete={markStepComplete}
               />
             )}
+
+            {/* Push Notification Permission Prompt */}
+            <PushPermissionPrompt />
 
             {/* AI Daily Brief */}
             <DailyBriefWidget />

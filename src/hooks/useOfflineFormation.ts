@@ -12,6 +12,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { db } from '@/services/db';
 import { useSyncStatus } from '@/store/slices/offlineSlice';
+import { apiService } from '@/services/apiService';
+import { buildApiUrl } from '@/config/environment';
 
 interface FormationData {
   id: string;
@@ -84,20 +86,15 @@ export function useOfflineFormation({ formationId, projectId, sandboxMode }: Off
       const dirty = await db.formations.where('dirty').equals(1).toArray();
       for (const f of dirty) {
         try {
-          const token = localStorage.getItem('auth_token');
-          if (!token) break;
+          const result = await apiService.makeRequest(
+            buildApiUrl(`/formations/${f.id}`),
+            {
+              method: 'PUT',
+              body: JSON.stringify(f.data),
+            }
+          );
 
-          const apiUrl = import.meta.env.VITE_API_URL || '';
-          const res = await fetch(`${apiUrl}/api/formations/${f.id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(f.data),
-          });
-
-          if (res.ok) {
+          if (result.success) {
             await db.formations.update(f.id, { dirty: 0 });
           }
         } catch {

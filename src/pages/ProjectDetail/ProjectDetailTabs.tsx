@@ -13,6 +13,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { LazyImage } from '@/components/LazyImage';
 import { Button, Card } from '@/components/ui';
 import { TaskListView } from '@/components/tasks/TaskListView';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
@@ -166,7 +167,7 @@ export const AssetsTabPanel: React.FC<{
           >
             <div className="aspect-square bg-neutral-100 relative overflow-hidden">
               {asset.thumbnailUrl ? (
-                <img src={asset.thumbnailUrl} alt={asset.name} className="w-full h-full object-cover" />
+                <LazyImage src={asset.thumbnailUrl} alt={asset.name} width={320} height={320} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <Layers className="w-12 h-12 text-neutral-300" aria-hidden="true" />

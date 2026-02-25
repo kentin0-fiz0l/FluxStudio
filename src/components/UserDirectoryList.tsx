@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { LazyImage } from '@/components/LazyImage';
 import {
   Users,
   MapPin,
@@ -108,7 +109,7 @@ const UserCard = React.memo(function UserCard({ user, viewMode, onConnect, onMes
             <div className="relative">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                 {user.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                  <LazyImage src={user.avatar} alt={user.name} width={48} height={48} className="w-full h-full rounded-full object-cover" />
                 ) : (
                   <span className="text-white font-medium text-sm">
                     {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
@@ -163,7 +164,7 @@ const UserCard = React.memo(function UserCard({ user, viewMode, onConnect, onMes
         <div className="relative inline-block mb-4">
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto">
             {user.avatar ? (
-              <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
+              <LazyImage src={user.avatar} alt={user.name} width={64} height={64} className="w-full h-full rounded-full object-cover" />
             ) : (
               <span className="text-white font-medium text-lg">
                 {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
@@ -268,7 +269,7 @@ export function UserDetailModal({ user, isOpen, onClose, onConnect, onMessage }:
             <div className="relative">
               <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                 {user.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                  <LazyImage src={user.avatar} alt={user.name} width={80} height={80} className="w-full h-full rounded-full object-cover" />
                 ) : (
                   <span className="text-white font-medium text-2xl">
                     {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}

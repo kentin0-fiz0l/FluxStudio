@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getApiUrl } from '../utils/apiHelpers';
 import { useAuth } from '@/store/slices/authSlice';
 import { apiService } from '../services/apiService';
+import { buildApiUrl } from '../config/environment';
 import { queryKeys } from '../lib/queryClient';
 
 export interface Organization {
@@ -106,17 +106,13 @@ export function useOrganizations() {
   const updateOrgMutation = useMutation<Organization, Error, { orgId: string; updates: Partial<Organization> }>({
     mutationFn: async ({ orgId, updates }) => {
       if (!user) throw new Error('Authentication required');
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/api/organizations/${orgId}`), {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update organization');
-      }
-      return await response.json();
+      // apiService has no PUT method — use makeRequest directly
+      const result = await apiService.makeRequest<Organization>(
+        buildApiUrl(`/api/organizations/${orgId}`),
+        { method: 'PUT', body: JSON.stringify(updates) }
+      );
+      if (!result.success) throw new Error(result.error || 'Failed to update organization');
+      return result.data as Organization;
     },
     onSuccess: (updatedOrg, { orgId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
@@ -129,17 +125,9 @@ export function useOrganizations() {
   const inviteMutation = useMutation<unknown, Error, { orgId: string; email: string; role: 'admin' | 'member'; message?: string }>({
     mutationFn: async ({ orgId, email, role, message }) => {
       if (!user) throw new Error('Authentication required');
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/api/organizations/${orgId}/invite`), {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, role, message }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to send invitation');
-      }
-      return await response.json();
+      const result = await apiService.post(`/api/organizations/${orgId}/invite`, { email, role, message });
+      if (!result.success) throw new Error(result.error || 'Failed to send invitation');
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
@@ -149,15 +137,8 @@ export function useOrganizations() {
   const leaveMutation = useMutation<void, Error, string>({
     mutationFn: async (orgId) => {
       if (!user) throw new Error('Authentication required');
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/api/organizations/${orgId}/leave`), {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to leave organization');
-      }
+      const result = await apiService.post(`/api/organizations/${orgId}/leave`);
+      if (!result.success) throw new Error(result.error || 'Failed to leave organization');
     },
     onSuccess: (_, orgId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });

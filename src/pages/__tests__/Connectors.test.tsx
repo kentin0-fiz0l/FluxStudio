@@ -117,8 +117,11 @@ vi.mock('@/store', () => ({
   })),
 }));
 
-vi.mock('@/contexts/NotificationContext', () => ({
+vi.mock('@/store/slices/notificationSlice', () => ({
   useNotifications: vi.fn(() => ({
+    addToast: vi.fn(),
+  })),
+  useNotification: vi.fn(() => ({
     addToast: vi.fn(),
   })),
 }));

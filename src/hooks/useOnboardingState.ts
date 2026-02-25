@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/store/slices/authSlice';
+import { apiService } from '@/services/apiService';
 import { eventTracker } from '@/services/analytics/eventTracking';
 
 export interface OnboardingStep {
@@ -140,15 +141,10 @@ export function useOnboardingState(): UseOnboardingStateReturn {
 
       try {
         // Try to fetch from backend
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch('/api/users/onboarding', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+        const result = await apiService.get<{ onboarding?: Record<string, unknown> }>('/users/onboarding');
 
-        if (response.ok) {
-          const data = await response.json();
+        if (result.data) {
+          const data = result.data;
           if (data.onboarding) {
             const backendState = data.onboarding;
             setState((prev) => ({

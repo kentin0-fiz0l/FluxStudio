@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, ArrowLeft, Loader, CheckCircle, AlertCircle } from 'lucide-react';
+import { apiService } from '@/services/apiService';
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -22,28 +23,16 @@ export function ForgotPassword() {
     setMessage('');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://fluxstudio.art'}/api/auth/forgot-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
+      const result = await apiService.post<{ useGoogle?: boolean; message?: string }>('/auth/forgot-password', { email });
+      const data = result.data;
 
-      const data = await response.json();
-
-      if (response.ok) {
-        if (data.useGoogle) {
-          setUseGoogle(true);
-          setStatus('error');
-          setMessage(data.message);
-        } else {
-          setStatus('success');
-          setMessage(data.message || 'Password reset link sent to your email.');
-        }
-      } else {
+      if (data?.useGoogle) {
+        setUseGoogle(true);
         setStatus('error');
-        setMessage(data.message || 'Failed to send reset email. Please try again.');
+        setMessage(data.message || '');
+      } else {
+        setStatus('success');
+        setMessage(data?.message || 'Password reset link sent to your email.');
       }
     } catch (_error) {
       setStatus('error');

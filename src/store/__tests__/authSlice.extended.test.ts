@@ -4,13 +4,13 @@ import { immer } from 'zustand/middleware/immer';
 
 vi.mock('../store', () => ({ useStore: vi.fn() }));
 
-const mockApiService = {
+const mockApiService = vi.hoisted(() => ({
   login: vi.fn(),
   signup: vi.fn(),
   loginWithGoogle: vi.fn(),
   logout: vi.fn(),
   getMe: vi.fn(),
-};
+}));
 
 vi.mock('../../services/apiService', () => ({
   apiService: mockApiService,

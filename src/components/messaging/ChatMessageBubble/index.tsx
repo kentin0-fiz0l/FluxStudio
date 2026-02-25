@@ -22,6 +22,7 @@ import {
 import { MessageActionsMenu } from '../MessageActionsMenu';
 import { InlineReplyPreview } from '../InlineReplyPreview';
 import { MarkdownMessage } from '../MarkdownMessage';
+import { LazyImage } from '../../LazyImage';
 import type { Message } from '../types';
 import { formatMessageTime, formatRelativeTime, formatFileSize, QUICK_REACTIONS } from '../utils';
 
@@ -232,16 +233,10 @@ function ChatMessageBubbleComponent({
                     className="block text-left"
                     title="View in Files"
                   >
-                    <img
+                    <LazyImage
                       src={message.asset.file.thumbnailUrl || message.asset.file.url}
                       alt={message.asset.name}
                       className="max-w-full max-h-64 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        if (target.src !== message.asset?.file.url) {
-                          target.src = message.asset?.file.url || '';
-                        }
-                      }}
                     />
                   </button>
                   <a
@@ -388,7 +383,7 @@ function ChatMessageBubbleComponent({
                   title={reader.name}
                 >
                   {reader.avatar ? (
-                    <img src={reader.avatar} alt={reader.name} className="w-full h-full object-cover" />
+                    <LazyImage src={reader.avatar} alt={reader.name} width={16} height={16} className="object-cover" />
                   ) : (
                     <div className="w-full h-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
                       <span className="text-[8px] font-medium text-primary-600 dark:text-primary-400">

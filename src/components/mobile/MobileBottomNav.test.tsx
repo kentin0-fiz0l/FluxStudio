@@ -33,7 +33,7 @@ vi.mock('@/hooks/useMessaging', () => ({
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, className, onClick, ...props }: any) => (
-      <div className={className} onClick={onClick} data-testid={props['data-testid']}>
+      <div role="button" tabIndex={0} className={className} onClick={onClick} onKeyDown={(e: any) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(); }} data-testid={props['data-testid']}>
         {children}
       </div>
     ),

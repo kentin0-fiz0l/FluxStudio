@@ -6,9 +6,10 @@
  */
 
 import { getApiUrl, getAuthToken } from '@/utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 
 // ============================================================================
-// CSRF Token Management
+// CSRF Token Management (only needed for streaming fetch calls)
 // ============================================================================
 
 let csrfToken: string | null = null;
@@ -26,16 +27,8 @@ async function fetchCsrfToken(): Promise<string> {
 
   csrfTokenPromise = (async () => {
     try {
-      const response = await fetch(getApiUrl('/api/csrf-token'), {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch CSRF token');
-      }
-
-      const data = await response.json();
-      csrfToken = data.csrfToken;
+      const result = await apiService.get<{ csrfToken: string }>('/api/csrf-token');
+      csrfToken = result.data?.csrfToken ?? null;
       return csrfToken!;
     } finally {
       csrfTokenPromise = null;
@@ -111,19 +104,11 @@ export interface CodeGenerationOptions {
 }
 
 // ============================================================================
-// Helper Functions
+// Helper Functions (only needed for streaming fetch calls)
 // ============================================================================
 
-function getHeaders(): Record<string, string> {
-  const token = getAuthToken();
-  return {
-    'Authorization': token ? `Bearer ${token}` : '',
-    'Content-Type': 'application/json',
-  };
-}
-
 /**
- * Get headers with CSRF token for POST/PUT/DELETE requests
+ * Get headers with CSRF token for streaming POST requests
  */
 async function getHeadersWithCsrf(): Promise<Record<string, string>> {
   const token = getAuthToken();
@@ -142,6 +127,7 @@ async function getHeadersWithCsrf(): Promise<Record<string, string>> {
 /**
  * Stream a chat message to the AI
  * Uses Server-Sent Events for real-time streaming
+ * NOTE: Kept as raw fetch because apiService does not support SSE streaming
  */
 export async function streamChat(
   message: string,
@@ -231,22 +217,8 @@ export async function chat(
   message: string,
   context?: AIContext
 ): Promise<{ content: string; tokensUsed: number }> {
-  const url = getApiUrl('/api/ai/chat/sync');
-  const headers = await getHeadersWithCsrf();
-
-  const response = await fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers,
-    body: JSON.stringify({ message, context }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(errorData.error || `HTTP ${response.status}`);
-  }
-
-  return response.json();
+  const result = await apiService.post<{ content: string; tokensUsed: number }>('/api/ai/chat/sync', { message, context });
+  return result.data!;
 }
 
 // ============================================================================
@@ -257,18 +229,8 @@ export async function chat(
  * List all conversations for the current user
  */
 export async function getConversations(): Promise<Conversation[]> {
-  const url = getApiUrl('/api/ai/conversations');
-
-  const response = await fetch(url, {
-    headers: getHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch conversations');
-  }
-
-  const data = await response.json();
-  return data.conversations || [];
+  const result = await apiService.get<{ conversations: Conversation[] }>('/api/ai/conversations');
+  return result.data?.conversations || [];
 }
 
 /**
@@ -280,36 +242,15 @@ export async function getConversation(id: string): Promise<{
   systemPrompt?: string;
   createdAt: string;
 }> {
-  const url = getApiUrl(`/api/ai/conversations/${id}`);
-
-  const response = await fetch(url, {
-    headers: getHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch conversation');
-  }
-
-  const data = await response.json();
-  return data.conversation;
+  const result = await apiService.get<{ conversation: { id: string; messages: Array<{ role: string; content: string }>; systemPrompt?: string; createdAt: string } }>(`/api/ai/conversations/${id}`);
+  return result.data!.conversation;
 }
 
 /**
  * Delete a conversation
  */
 export async function deleteConversation(id: string): Promise<void> {
-  const url = getApiUrl(`/api/ai/conversations/${id}`);
-  const headers = await getHeadersWithCsrf();
-
-  const response = await fetch(url, {
-    method: 'DELETE',
-    credentials: 'include',
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to delete conversation');
-  }
+  await apiService.delete(`/api/ai/conversations/${id}`);
 }
 
 // ============================================================================
@@ -323,22 +264,8 @@ export async function reviewDesign(options: DesignReviewOptions): Promise<{
   feedback: string;
   aspects: string[];
 }> {
-  const url = getApiUrl('/api/ai/design-review');
-  const headers = await getHeadersWithCsrf();
-
-  const response = await fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers,
-    body: JSON.stringify(options),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(errorData.error || 'Design review failed');
-  }
-
-  return response.json();
+  const result = await apiService.post<{ feedback: string; aspects: string[] }>('/api/ai/design-review', options);
+  return result.data!;
 }
 
 // ============================================================================
@@ -353,22 +280,8 @@ export async function generateCode(options: CodeGenerationOptions): Promise<{
   componentType: string;
   style: string;
 }> {
-  const url = getApiUrl('/api/ai/generate-code');
-  const headers = await getHeadersWithCsrf();
-
-  const response = await fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers,
-    body: JSON.stringify(options),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(errorData.error || 'Code generation failed');
-  }
-
-  return response.json();
+  const result = await apiService.post<{ code: string; componentType: string; style: string }>('/api/ai/generate-code', options);
+  return result.data!;
 }
 
 // ============================================================================
@@ -382,15 +295,12 @@ export async function checkHealth(): Promise<{
   status: string;
   hasApiKey: boolean;
 }> {
-  const url = getApiUrl('/api/ai/health');
-
-  const response = await fetch(url);
-
-  if (!response.ok) {
+  try {
+    const result = await apiService.get<{ status: string; hasApiKey: boolean }>('/api/ai/health');
+    return result.data!;
+  } catch {
     return { status: 'unhealthy', hasApiKey: false };
   }
-
-  return response.json();
 }
 
 // ============================================================================

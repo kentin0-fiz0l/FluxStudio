@@ -9,7 +9,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { getApiUrl } from '@/utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 import { queryKeys } from '@/lib/queryClient';
 
 export interface ProjectCounts {
@@ -39,19 +39,10 @@ export function useProjectCounts(projectId: string | undefined): UseProjectCount
     queryFn: async () => {
       if (!projectId) return null;
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl(`/projects/${projectId}/counts`), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) throw new Error(`Failed to fetch counts: ${response.status}`);
-
-      const data = await response.json();
-      if (data.success && data.counts) return data.counts;
-      throw new Error(data.error || 'Invalid response');
+      const result = await apiService.get<{ success: boolean; counts: ProjectCounts; error?: string }>(`/projects/${projectId}/counts`);
+      const data = result.data;
+      if (data?.success && data.counts) return data.counts;
+      throw new Error(data?.error || 'Invalid response');
     },
     enabled: !!projectId,
     staleTime: 2 * 60 * 1000, // 2 minutes

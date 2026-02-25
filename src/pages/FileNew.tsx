@@ -20,6 +20,7 @@ import { useProjects } from '../hooks/useProjects';
 import { useReportEntityFocus } from '../hooks/useWorkMomentumCapture';
 import { useProjectContext } from '@/store';
 import { toast } from '../lib/toast';
+import { LazyImage } from '@/components/LazyImage';
 import { cn, formatFileSize, formatRelativeTime } from '../lib/utils';
 import {
   Upload, Image, Video, Music, FileText, File, Archive, Code,
@@ -86,8 +87,8 @@ const FileCardItem: React.FC<FileCardItemProps> = ({ file, view, onPreview, onDo
       <Card interactive className="group cursor-pointer hover:shadow-md transition-shadow" onClick={() => onPreview(file)}>
         <CardContent className="p-4">
           <div className="aspect-video bg-neutral-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative">
-            {file.thumbnailUrl ? <img src={file.thumbnailUrl} alt={file.name} className="w-full h-full object-cover" />
-            : file.isImage && file.fileUrl ? <img src={file.fileUrl} alt={file.name} className="w-full h-full object-cover" />
+            {file.thumbnailUrl ? <LazyImage src={file.thumbnailUrl} alt={file.name} width={320} height={180} className="w-full h-full object-cover" />
+            : file.isImage && file.fileUrl ? <LazyImage src={file.fileUrl} alt={file.name} width={320} height={180} className="w-full h-full object-cover" />
             : <div className="text-neutral-400 scale-150">{icon}</div>}
             <div className="absolute top-2 left-2">
               <Badge variant="default" size="sm" className="flex items-center gap-1 bg-white/90">{sourceIcon}<span className="capitalize">{file.provider || file.source}</span></Badge>

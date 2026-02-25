@@ -15,7 +15,8 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Bell, MessageSquare, Briefcase, Building2, AlertCircle, Info, AlertTriangle, XCircle, Users } from 'lucide-react';
-import { useNotifications, Notification, NotificationType } from '@/contexts/NotificationContext';
+import { useNotifications } from '@/store/slices/notificationSlice';
+import type { Notification, NotificationType } from '@/store/slices/notificationSlice';
 import { cn } from '@/lib/utils';
 
 // Notification type icons (v2 messaging types + legacy)

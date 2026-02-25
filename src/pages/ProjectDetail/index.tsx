@@ -5,6 +5,7 @@
 
 import * as React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { apiService } from '@/services/apiService';
 import {
   LayoutDashboard,
   CheckSquare,
@@ -123,14 +124,8 @@ export const ProjectDetail = () => {
       if (activeTab !== 'boards' || !id) return;
       setBoardsLoading(true);
       try {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(`/api/projects/${id}/boards`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) setBoards(data.boards);
-        }
+        const result = await apiService.get<{ success: boolean; boards: typeof boards }>(`/projects/${id}/boards`);
+        if (result.data?.success) setBoards(result.data.boards);
       } catch (error) {
         console.error('Error fetching boards:', error);
       } finally {
@@ -143,19 +138,11 @@ export const ProjectDetail = () => {
   const handleCreateBoard = async () => {
     if (!newBoardName.trim() || !id) return;
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/projects/${id}/boards`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: newBoardName.trim() }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.board) {
-          setBoards((prev) => [...prev, data.board]);
-          setNewBoardName('');
-          setShowNewBoardInput(false);
-        }
+      const result = await apiService.post<{ success: boolean; board: typeof boards[0] }>(`/projects/${id}/boards`, { name: newBoardName.trim() });
+      if (result.data?.success && result.data.board) {
+        setBoards((prev) => [...prev, result.data!.board]);
+        setNewBoardName('');
+        setShowNewBoardInput(false);
       }
     } catch (error) {
       console.error('Error creating board:', error);

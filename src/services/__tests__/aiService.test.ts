@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-// testHelpers available if needed
 
+// Keep fetch mock for streaming tests (streamChat uses raw fetch)
 const fetchCtx = vi.hoisted(() => {
   const mockFetch = vi.fn();
   return { mockFetch };
@@ -16,8 +16,21 @@ vi.mock('@/utils/apiHelpers', () => ({
   getAuthToken: () => 'mock-token',
 }));
 
-// Replace global fetch
+// Mock apiService for non-streaming methods
+vi.mock('@/services/apiService', () => ({
+  apiService: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    makeRequest: vi.fn(),
+  },
+}));
+
+// Keep global fetch stub for streaming (streamChat uses raw fetch)
 vi.stubGlobal('fetch', fetchCtx.mockFetch);
+
+import { apiService } from '@/services/apiService';
 
 import {
   chat,
@@ -57,12 +70,18 @@ function mockFetchError(message: string, status = 500) {
 describe('aiService', () => {
   beforeEach(() => {
     fetchCtx.mockFetch.mockReset();
+    vi.mocked(apiService.get).mockReset();
+    vi.mocked(apiService.post).mockReset();
+    vi.mocked(apiService.delete).mockReset();
     clearCsrfToken();
   });
 
-  // Helper: mock CSRF token fetch (needed before every POST/PUT/DELETE)
+  // Helper: mock CSRF token fetch via apiService (needed for streamChat)
   function mockCsrf() {
-    mockFetchResponse({ csrfToken: 'csrf-123' });
+    vi.mocked(apiService.get).mockResolvedValueOnce({
+      success: true,
+      data: { csrfToken: 'csrf-123' },
+    });
   }
 
   describe('clearCsrfToken', () => {
@@ -75,38 +94,39 @@ describe('aiService', () => {
 
   describe('chat', () => {
     it('should send a message and return content', async () => {
-      mockCsrf();
-      mockFetchResponse({ content: 'Hello!', tokensUsed: 42 });
+      vi.mocked(apiService.post).mockResolvedValueOnce({
+        success: true,
+        data: { content: 'Hello!', tokensUsed: 42 },
+      });
 
       const result = await chat('Hi');
       expect(result).toEqual({ content: 'Hello!', tokensUsed: 42 });
     });
 
     it('should include context when provided', async () => {
-      mockCsrf();
-      mockFetchResponse({ content: 'resp', tokensUsed: 10 });
+      vi.mocked(apiService.post).mockResolvedValueOnce({
+        success: true,
+        data: { content: 'resp', tokensUsed: 10 },
+      });
 
       await chat('Hi', { project: { id: 'p1', name: 'Test' } });
 
-      const postCall = fetchCtx.mockFetch.mock.calls[1];
-      const body = JSON.parse(postCall[1].body);
-      expect(body.context).toEqual({ project: { id: 'p1', name: 'Test' } });
+      expect(apiService.post).toHaveBeenCalledWith(
+        '/api/ai/chat/sync',
+        expect.objectContaining({
+          context: { project: { id: 'p1', name: 'Test' } },
+        })
+      );
     });
 
     it('should throw on HTTP error', async () => {
-      mockCsrf();
-      mockFetchError('Rate limited', 429);
+      vi.mocked(apiService.post).mockRejectedValueOnce(new Error('Rate limited'));
 
       await expect(chat('Hi')).rejects.toThrow('Rate limited');
     });
 
-    it('should throw with fallback message when error JSON parsing fails', async () => {
-      mockCsrf();
-      fetchCtx.mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: () => Promise.reject(new Error('parse fail')),
-      });
+    it('should throw with fallback message when error', async () => {
+      vi.mocked(apiService.post).mockRejectedValueOnce(new Error('Request failed'));
 
       await expect(chat('Hi')).rejects.toThrow('Request failed');
     });
@@ -115,21 +135,27 @@ describe('aiService', () => {
   describe('getConversations', () => {
     it('should return list of conversations', async () => {
       const convos = [{ id: 'c1', title: 'Test' }];
-      mockFetchResponse({ conversations: convos });
+      vi.mocked(apiService.get).mockResolvedValueOnce({
+        success: true,
+        data: { conversations: convos },
+      });
 
       const result = await getConversations();
       expect(result).toEqual(convos);
     });
 
     it('should return empty array when no conversations field', async () => {
-      mockFetchResponse({});
+      vi.mocked(apiService.get).mockResolvedValueOnce({
+        success: true,
+        data: {},
+      });
 
       const result = await getConversations();
       expect(result).toEqual([]);
     });
 
     it('should throw on error', async () => {
-      mockFetchError('Unauthorized', 401);
+      vi.mocked(apiService.get).mockRejectedValueOnce(new Error('Failed to fetch conversations'));
 
       await expect(getConversations()).rejects.toThrow('Failed to fetch conversations');
     });
@@ -138,14 +164,17 @@ describe('aiService', () => {
   describe('getConversation', () => {
     it('should return a specific conversation', async () => {
       const convo = { id: 'c1', messages: [], createdAt: '2025-01-01' };
-      mockFetchResponse({ conversation: convo });
+      vi.mocked(apiService.get).mockResolvedValueOnce({
+        success: true,
+        data: { conversation: convo },
+      });
 
       const result = await getConversation('c1');
       expect(result).toEqual(convo);
     });
 
     it('should throw on error', async () => {
-      mockFetchError('Not found', 404);
+      vi.mocked(apiService.get).mockRejectedValueOnce(new Error('Failed to fetch conversation'));
 
       await expect(getConversation('invalid')).rejects.toThrow('Failed to fetch conversation');
     });
@@ -153,15 +182,16 @@ describe('aiService', () => {
 
   describe('deleteConversation', () => {
     it('should delete a conversation', async () => {
-      mockCsrf();
-      mockFetchResponse({});
+      vi.mocked(apiService.delete).mockResolvedValueOnce({
+        success: true,
+        data: {},
+      });
 
       await expect(deleteConversation('c1')).resolves.toBeUndefined();
     });
 
     it('should throw on error', async () => {
-      mockCsrf();
-      mockFetchError('Forbidden', 403);
+      vi.mocked(apiService.delete).mockRejectedValueOnce(new Error('Failed to delete conversation'));
 
       await expect(deleteConversation('c1')).rejects.toThrow('Failed to delete conversation');
     });
@@ -169,17 +199,18 @@ describe('aiService', () => {
 
   describe('reviewDesign', () => {
     it('should return design feedback', async () => {
-      mockCsrf();
       const feedback = { feedback: 'Looks great', aspects: ['usability'] };
-      mockFetchResponse(feedback);
+      vi.mocked(apiService.post).mockResolvedValueOnce({
+        success: true,
+        data: feedback,
+      });
 
       const result = await reviewDesign({ description: 'A landing page' });
       expect(result).toEqual(feedback);
     });
 
     it('should throw on error', async () => {
-      mockCsrf();
-      mockFetchError('Analysis failed', 500);
+      vi.mocked(apiService.post).mockRejectedValueOnce(new Error('Analysis failed'));
 
       await expect(reviewDesign({ description: 'test' })).rejects.toThrow('Analysis failed');
     });
@@ -187,17 +218,18 @@ describe('aiService', () => {
 
   describe('generateCode', () => {
     it('should return generated code', async () => {
-      mockCsrf();
       const codeResult = { code: '<Button />', componentType: 'button', style: 'modern' };
-      mockFetchResponse(codeResult);
+      vi.mocked(apiService.post).mockResolvedValueOnce({
+        success: true,
+        data: codeResult,
+      });
 
       const result = await generateCode({ description: 'A button' });
       expect(result).toEqual(codeResult);
     });
 
     it('should throw on error', async () => {
-      mockCsrf();
-      mockFetchError('Generation failed', 500);
+      vi.mocked(apiService.post).mockRejectedValueOnce(new Error('Generation failed'));
 
       await expect(generateCode({ description: 'test' })).rejects.toThrow('Generation failed');
     });
@@ -205,14 +237,17 @@ describe('aiService', () => {
 
   describe('checkHealth', () => {
     it('should return health status', async () => {
-      mockFetchResponse({ status: 'healthy', hasApiKey: true });
+      vi.mocked(apiService.get).mockResolvedValueOnce({
+        success: true,
+        data: { status: 'healthy', hasApiKey: true },
+      });
 
       const result = await checkHealth();
       expect(result).toEqual({ status: 'healthy', hasApiKey: true });
     });
 
     it('should return unhealthy on error', async () => {
-      mockFetchError('Down', 503);
+      vi.mocked(apiService.get).mockRejectedValueOnce(new Error('Down'));
 
       const result = await checkHealth();
       expect(result).toEqual({ status: 'unhealthy', hasApiKey: false });
@@ -290,18 +325,21 @@ describe('aiService', () => {
     });
   });
 
-  describe('CSRF token caching', () => {
-    it('should reuse cached CSRF token for subsequent requests', async () => {
+  describe('CSRF token caching for streaming', () => {
+    it('should reuse cached CSRF token for subsequent streaming requests', async () => {
+      // First streaming call: fetches CSRF via apiService, then raw fetch for stream
       mockCsrf();
-      mockFetchResponse({ content: 'a', tokensUsed: 1 });
-      await chat('first');
+      fetchCtx.mockFetch.mockRejectedValueOnce(new Error('stream1'));
+      try { await streamChat('first'); } catch { /* expected */ }
 
-      // Second call should not fetch CSRF again
-      mockFetchResponse({ content: 'b', tokensUsed: 1 });
-      await chat('second');
+      // Second streaming call: should NOT fetch CSRF again (cached)
+      fetchCtx.mockFetch.mockRejectedValueOnce(new Error('stream2'));
+      try { await streamChat('second'); } catch { /* expected */ }
 
-      // Only 3 fetch calls total: 1 csrf + 1 chat + 1 chat (no second csrf)
-      expect(fetchCtx.mockFetch).toHaveBeenCalledTimes(3);
+      // apiService.get should have been called only once for CSRF
+      expect(apiService.get).toHaveBeenCalledTimes(1);
+      // raw fetch should have been called twice (once per streamChat)
+      expect(fetchCtx.mockFetch).toHaveBeenCalledTimes(2);
     });
   });
 });

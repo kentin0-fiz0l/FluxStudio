@@ -261,6 +261,8 @@ export function AudioUpload({
   return (
     <div className={className}>
       <div
+        role="button"
+        tabIndex={0}
         className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
           dragActive
             ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20'
@@ -271,6 +273,8 @@ export function AudioUpload({
         onDragOver={handleDrag}
         onDrop={handleDrop}
         onClick={() => !disabled && !isUploading && fileInputRef.current?.click()}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!disabled && !isUploading) fileInputRef.current?.click(); } }}
+        aria-label="Upload audio file"
       >
         <input
           ref={fileInputRef}

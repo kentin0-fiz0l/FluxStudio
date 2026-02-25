@@ -9,6 +9,7 @@ import { IntegrationCard } from './IntegrationCard';
 import { Button } from '@/components/ui/button';
 import type { Integration } from '@/types/integrations';
 import { integrationService } from '@/services/integrationService';
+import { apiService } from '@/services/apiService';
 
 interface GitHubRepo {
   id: number;
@@ -71,21 +72,11 @@ export function GitHubIntegration() {
 
     try {
       const [owner, repo] = repoFullName.split('/');
-      const response = await fetch(
-        `/api/integrations/github/repos/${owner}/${repo}/issues`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
+      const result = await apiService.get<{ issues?: GitHubIssue[] }>(
+        `/integrations/github/repos/${owner}/${repo}/issues`
       );
 
-      if (!response.ok) {
-        throw new Error('Failed to load issues');
-      }
-
-      const data = await response.json();
-      setIssues(data.issues || []);
+      setIssues(result.data?.issues || []);
     } catch (error: unknown) {
       console.error('Failed to load GitHub issues:', error);
       setIssuesError(error instanceof Error ? error.message : 'Failed to load issues');
@@ -157,12 +148,15 @@ export function GitHubIntegration() {
             {repos.slice(0, 10).map((repo) => (
               <div
                 key={repo.id}
+                role="button"
+                tabIndex={0}
                 className={`p-3 rounded-lg transition-colors cursor-pointer ${
                   selectedRepo === repo.full_name
                     ? 'bg-primary-50 dark:bg-primary-900/20 border-2 border-primary-600'
                     : 'bg-neutral-50 dark:bg-neutral-800/50 hover:bg-neutral-100 dark:hover:bg-neutral-800 border-2 border-transparent'
                 }`}
                 onClick={() => handleRepoSelect(repo.full_name)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleRepoSelect(repo.full_name); } }}
               >
                 <div className="flex items-start gap-3">
                   <img

@@ -30,8 +30,12 @@ vi.mock('@/store/slices/authSlice', () => ({
   })),
 }));
 
-vi.mock('@/contexts/NotificationContext', () => ({
+vi.mock('@/store/slices/notificationSlice', () => ({
   useNotification: vi.fn(() => ({
+    showNotification: vi.fn(),
+    addNotification: vi.fn(),
+  })),
+  useNotifications: vi.fn(() => ({
     showNotification: vi.fn(),
     addNotification: vi.fn(),
   })),

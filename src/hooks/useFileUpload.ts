@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/store/slices/authSlice';
 import { getApiUrl } from '../utils/apiHelpers';
+import { apiService } from '@/services/apiService';
 
 export interface FileUpload {
   id: string;
@@ -169,18 +170,8 @@ export function useFileUpload() {
 
     setLoading(true);
     try {
-      const response = await fetch(getApiUrl('/api/files'), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch files');
-      }
-
-      const result = await response.json();
-      setFiles(result.files);
+      const result = await apiService.get<{ files: FileUpload[] }>('/api/files');
+      setFiles(result.data?.files || []);
     } catch (error) {
       console.error('Error fetching files:', error);
     } finally {
@@ -192,17 +183,7 @@ export function useFileUpload() {
     if (!token) return;
 
     try {
-      const response = await fetch(getApiUrl(`/api/files/${fileId}`), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete file');
-      }
-
+      await apiService.delete(`/api/files/${fileId}`);
       setFiles(prev => prev.filter(file => file.id !== fileId));
     } catch (error) {
       console.error('Error deleting file:', error);
@@ -214,20 +195,8 @@ export function useFileUpload() {
     if (!token) return;
 
     try {
-      const response = await fetch(getApiUrl(`/api/files/${fileId}`), {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updates)
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update file');
-      }
-
-      const updatedFile = await response.json();
+      const result = await apiService.patch<FileUpload>(`/api/files/${fileId}`, updates);
+      const updatedFile = result.data!;
       setFiles(prev => prev.map(file => file.id === fileId ? updatedFile : file));
       return updatedFile;
     } catch (error) {

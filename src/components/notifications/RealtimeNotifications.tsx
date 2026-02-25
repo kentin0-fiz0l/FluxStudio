@@ -10,9 +10,11 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import { useNotifications, type Notification } from '@/contexts/NotificationContext';
+import { useNotifications } from '@/store/slices/notificationSlice';
+import type { Notification } from '@/store/slices/notificationSlice';
 import { messagingSocketService } from '@/services/messagingSocketService';
 import { useAuth } from '@/store/slices/authSlice';
+import { showLocalNotification } from '@/utils/pushNotifications';
 
 interface RealtimeNotificationsProps {
   enabled?: boolean;
@@ -76,6 +78,15 @@ export function RealtimeNotifications({
         // Add to toast queue
         dispatch({ type: 'ADD_TOAST', payload: notification });
         playNotificationSound();
+
+        // Trigger browser push notification if tab is not focused
+        if (document.hidden) {
+          showLocalNotification(notification.title, {
+            body: notification.body || notification.message || '',
+            tag: notification.id,
+            data: { url: notification.actionUrl || '/notifications' },
+          }).catch(() => { /* permission may not be granted */ });
+        }
 
         // Auto-dismiss toast after 5 seconds
         setTimeout(() => {

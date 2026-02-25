@@ -12,6 +12,7 @@
 
 import { useState, useCallback } from 'react';
 import type { Message } from '@/components/messaging/types';
+import { apiService } from '@/services/apiService';
 
 interface UseThreadMessagesOptions {
   conversationId: string | null;
@@ -58,34 +59,25 @@ export function useThreadMessages({
     setIsLoadingThread(true);
 
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(
-        `/api/conversations/${conversationId}/threads/${messageId}/messages`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const result = await apiService.get<{ messages?: Array<{ id: string; text: string; createdAt: string; userId: string; userName?: string }> }>(
+        `/conversations/${conversationId}/threads/${messageId}/messages`
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        // Transform to Message format
-        const transformedMessages = (data.messages || []).map((m: { id: string; text: string; createdAt: string; userId: string; userName?: string }): Message => ({
-          id: m.id,
-          content: m.text,
-          timestamp: new Date(m.createdAt),
-          author: {
-            id: m.userId,
-            name: m.userName || 'Unknown',
-            initials: (m.userName || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
-          },
-          status: 'delivered',
-          isCurrentUser: m.userId === userId,
-        }));
-        setThreadMessages(transformedMessages);
-      }
+      const data = result.data;
+      // Transform to Message format
+      const transformedMessages = (data?.messages || []).map((m): Message => ({
+        id: m.id,
+        content: m.text,
+        timestamp: new Date(m.createdAt),
+        author: {
+          id: m.userId,
+          name: m.userName || 'Unknown',
+          initials: (m.userName || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+        },
+        status: 'delivered',
+        isCurrentUser: m.userId === userId,
+      }));
+      setThreadMessages(transformedMessages);
     } catch (error) {
       console.error('Failed to load thread messages:', error);
     } finally {

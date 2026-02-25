@@ -6,6 +6,7 @@
 
 import { AssetRecord, AssetVersion, AssetRelation, AssetComment, RelationType } from '../../contexts/AssetsContext';
 import { formatDate } from './AssetPreview';
+import { LazyImage } from '@/components/LazyImage';
 
 // Relation type labels
 export const relationTypeLabels: Record<RelationType, string> = {
@@ -131,7 +132,7 @@ export function VersionList({
           >
             <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
               {version.thumbnailUrl ? (
-                <img src={version.thumbnailUrl} alt={`Version ${version.versionNumber}`} className="w-full h-full object-cover" />
+                <LazyImage src={version.thumbnailUrl} alt={`Version ${version.versionNumber}`} width={48} height={48} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-300">
                   v{version.versionNumber}

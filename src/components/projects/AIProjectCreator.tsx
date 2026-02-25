@@ -34,6 +34,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { apiService } from '@/services/apiService';
 
 interface AISuggestion {
   name: string;
@@ -74,21 +75,10 @@ export function AIProjectCreator({
 
     setIsGenerating(true);
     try {
-      // Call AI API to generate suggestions
-      const response = await fetch('/api/ai/generate-project-structure', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ description: description.trim() }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSuggestions(data.suggestions);
+      const result = await apiService.post<{ suggestions: AISuggestion }>('/api/ai/generate-project-structure', { description: description.trim() });
+      if (result.data?.suggestions) {
+        setSuggestions(result.data.suggestions);
       } else {
-        // Fallback to local generation if API fails
         setSuggestions(generateLocalSuggestions(description));
       }
     } catch (_error) {
@@ -164,30 +154,21 @@ export function AIProjectCreator({
 
     setIsCreating(true);
     try {
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          name: projectName.trim(),
-          description: description.trim(),
-          folders: appliedSuggestions.folders ? suggestions?.folders : undefined,
-          tasks: appliedSuggestions.tasks ? suggestions?.tasks : undefined,
-          status: 'planning',
-          priority: 'medium',
-        }),
+      const result = await apiService.post<{ id: string }>('/api/projects', {
+        name: projectName.trim(),
+        description: description.trim(),
+        folders: appliedSuggestions.folders ? suggestions?.folders : undefined,
+        tasks: appliedSuggestions.tasks ? suggestions?.tasks : undefined,
+        status: 'planning',
+        priority: 'medium',
       });
 
-      if (response.ok) {
-        const { data: project } = await response.json();
-        onOpenChange(false);
-        if (onProjectCreated) {
-          onProjectCreated(project.id);
-        } else {
-          navigate(`/projects/${project.id}`);
-        }
+      const project = result.data!;
+      onOpenChange(false);
+      if (onProjectCreated) {
+        onProjectCreated(project.id);
+      } else {
+        navigate(`/projects/${project.id}`);
       }
     } catch (error) {
       console.error('Failed to create project:', error);

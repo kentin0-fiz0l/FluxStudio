@@ -49,7 +49,8 @@ interface AuditLog {
   userAgent?: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { apiService } from '@/services/apiService';
+import { buildApiUrl } from '@/config/environment';
 
 // Map resource_type → category for filtering
 function resourceToCategory(resourceType: string): AuditCategory {
@@ -83,12 +84,10 @@ export function AdminAuditLogs() {
       if (dateRange.start) params.set('startDate', dateRange.start);
       if (dateRange.end) params.set('endDate', dateRange.end + 'T23:59:59Z');
 
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/admin/audit-logs?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
+      const paramsObj: Record<string, string> = {};
+      params.forEach((value, key) => { paramsObj[key] = value; });
+      const result = await apiService.get<{ logs: Record<string, unknown>[]; pagination?: { total: number } }>('/admin/audit-logs', { params: paramsObj });
+      const data = result.data!;
 
       setLogs(
         (data.logs || []).map((log: Record<string, unknown>) => ({
@@ -131,13 +130,14 @@ export function AdminAuditLogs() {
 
   const handleExport = async (format: 'csv' | 'pdf' | 'excel') => {
     if (format !== 'csv') return;
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    // Keep raw fetch for blob download — apiService always parses JSON
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('auth_token');
     const params = new URLSearchParams();
     if (categoryFilter !== 'all') params.set('resource', categoryFilter);
     if (dateRange.start) params.set('startDate', dateRange.start);
     if (dateRange.end) params.set('endDate', dateRange.end + 'T23:59:59Z');
 
-    const res = await fetch(`${API_URL}/api/admin/audit-logs/export?${params}`, {
+    const res = await fetch(buildApiUrl(`/admin/audit-logs/export?${params}`), {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return;

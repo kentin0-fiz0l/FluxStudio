@@ -12,7 +12,7 @@ import { FormationCanvas } from '@/components/formation';
 import { FormationEditorErrorBoundary } from '@/components/error/ErrorBoundary';
 import { useRegisterShortcuts } from '@/contexts/KeyboardShortcutsContext';
 import { useAuth } from '@/store/slices/authSlice';
-import { useNotification } from '../contexts/NotificationContext';
+import { useNotification } from '@/store/slices/notificationSlice';
 import { Formation } from '../services/formationService';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui';

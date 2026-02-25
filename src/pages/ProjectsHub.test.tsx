@@ -108,7 +108,7 @@ vi.mock('@/components/templates', () => ({
 // Mock ProjectCard and loading skeleton
 vi.mock('@/components/molecules', () => ({
   ProjectCard: ({ project, onView }: any) => (
-    <div data-testid={`project-card-${project.id}`} onClick={onView}>
+    <div role="button" tabIndex={0} data-testid={`project-card-${project.id}`} onClick={onView} onKeyDown={(e: any) => { if (e.key === 'Enter' || e.key === ' ') onView?.(); }}>
       <h3>{project.name}</h3>
       <p>{project.description}</p>
     </div>

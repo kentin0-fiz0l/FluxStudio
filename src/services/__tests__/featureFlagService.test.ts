@@ -6,20 +6,18 @@
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-// Mock import.meta.env
-vi.stubEnv('VITE_API_URL', 'http://localhost:3001');
+// Mock apiService before importing the service
+vi.mock('@/services/apiService', () => ({
+  apiService: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    makeRequest: vi.fn(),
+  },
+}));
 
-// We need to mock fetch before importing the service
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
-
-// Mock localStorage
-const storage: Record<string, string> = { accessToken: 'test-token-123' };
-vi.stubGlobal('localStorage', {
-  getItem: vi.fn((key: string) => storage[key] || null),
-  setItem: vi.fn((key: string, value: string) => { storage[key] = value; }),
-  removeItem: vi.fn((key: string) => { delete storage[key]; }),
-});
+import { apiService } from '@/services/apiService';
 
 describe('featureFlagService', () => {
   beforeEach(() => {
@@ -32,28 +30,23 @@ describe('featureFlagService', () => {
   });
 
   it('fetches flags from API and caches them', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ 'new-dashboard': true, 'ai-copilot': false }),
+    vi.mocked(apiService.get).mockResolvedValueOnce({
+      success: true,
+      data: { 'new-dashboard': true, 'ai-copilot': false },
     });
 
     const { getFlags } = await import('../featureFlagService');
     const flags = await getFlags();
 
     expect(flags).toEqual({ 'new-dashboard': true, 'ai-copilot': false });
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/admin/flags/evaluate'),
-      expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: 'Bearer test-token-123' }),
-      })
-    );
+    expect(apiService.get).toHaveBeenCalledTimes(1);
+    expect(apiService.get).toHaveBeenCalledWith('/admin/flags/evaluate');
   });
 
   it('returns cached flags on subsequent calls within TTL', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ 'test-flag': true }),
+    vi.mocked(apiService.get).mockResolvedValueOnce({
+      success: true,
+      data: { 'test-flag': true },
     });
 
     const { getFlags } = await import('../featureFlagService');
@@ -62,14 +55,14 @@ describe('featureFlagService', () => {
     const second = await getFlags();
 
     expect(first).toEqual(second);
-    expect(mockFetch).toHaveBeenCalledTimes(1); // Only one fetch
+    expect(apiService.get).toHaveBeenCalledTimes(1); // Only one fetch
   });
 
   it('returns stale cache on network error', async () => {
-    mockFetch
+    vi.mocked(apiService.get)
       .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ 'cached-flag': true }),
+        success: true,
+        data: { 'cached-flag': true },
       });
 
     const { getFlags, refreshFlags } = await import('../featureFlagService');
@@ -78,7 +71,7 @@ describe('featureFlagService', () => {
     await getFlags();
 
     // Force refresh, but network fails
-    mockFetch.mockRejectedValueOnce(new Error('Network error'));
+    vi.mocked(apiService.get).mockRejectedValueOnce(new Error('Network error'));
     const flags = await refreshFlags();
 
     expect(flags).toEqual({ 'cached-flag': true }); // Stale cache returned
@@ -90,9 +83,9 @@ describe('featureFlagService', () => {
   });
 
   it('subscribe notifies listeners on flag changes', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ 'notify-flag': true }),
+    vi.mocked(apiService.get).mockResolvedValueOnce({
+      success: true,
+      data: { 'notify-flag': true },
     });
 
     const { getFlags, subscribe } = await import('../featureFlagService');

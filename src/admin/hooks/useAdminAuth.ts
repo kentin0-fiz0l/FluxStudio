@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { apiService } from '@/services/apiService';
 
 interface AdminUser {
   id: string;
@@ -89,20 +90,8 @@ export function useAdminAuth(): UseAdminAuthReturn {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login failed');
-      }
-
-      const data = await response.json();
+      const result = await apiService.post<{ user: { id: string; email: string; role: string }; token: string }>('/api/auth/login', credentials);
+      const data = result.data!;
 
       // Verify user has admin role
       if (!['admin', 'moderator', 'analyst'].includes(data.user?.role)) {
@@ -167,19 +156,8 @@ export function useAdminAuth(): UseAdminAuthReturn {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${currentToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Token refresh failed');
-      }
-
-      const data = await response.json();
+      const result = await apiService.post<{ token: string }>('/api/auth/refresh');
+      const data = result.data!;
 
       // Update stored token
       localStorage.setItem(TOKEN_KEY, data.token);
@@ -241,37 +219,28 @@ export function useAdminApi() {
       throw new Error('Not authenticated');
     }
 
-    const url = `${API_BASE_URL}${endpoint}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...options.headers,
-    };
-
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
+      const method = (options.method || 'GET').toUpperCase();
+      let result;
 
-      // Handle authentication errors
-      if (response.status === 401) {
-        logout();
-        throw new Error('Authentication expired');
+      if (method === 'GET') {
+        result = await apiService.get<T>(endpoint);
+      } else if (method === 'POST') {
+        result = await apiService.post<T>(endpoint, options.body ? JSON.parse(options.body as string) : undefined);
+      } else if (method === 'PATCH') {
+        result = await apiService.patch<T>(endpoint, options.body ? JSON.parse(options.body as string) : undefined);
+      } else if (method === 'DELETE') {
+        result = await apiService.delete<T>(endpoint);
+      } else {
+        result = await apiService.post<T>(endpoint, options.body ? JSON.parse(options.body as string) : undefined);
       }
 
-      // Handle other errors
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Request failed' }));
-        throw new Error(error.message || `HTTP ${response.status}`);
-      }
-
-      return await response.json();
+      return result.data as T;
     } catch (error) {
       console.error('API request failed:', error);
       throw error;
     }
-  }, [token, isAuthenticated, logout]);
+  }, [token, isAuthenticated]);
 
   return { apiRequest, isAuthenticated };
 }

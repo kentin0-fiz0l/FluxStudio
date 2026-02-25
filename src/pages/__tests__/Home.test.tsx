@@ -14,23 +14,18 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock('@/store/slices/authSlice', () => ({
-  useAuth: vi.fn(() => ({
-    user: mockUser,
-    logout: vi.fn(),
-    isAuthenticated: true,
-    isLoading: false,
-  })),
-}));
-
-vi.mock('@/store/slices/authSlice', () => ({
-  useAuth: vi.fn(() => ({
-    user: mockUser,
-    logout: vi.fn(),
-    isAuthenticated: true,
-    isLoading: false,
-  })),
-}));
+vi.mock('@/store/slices/authSlice', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    useAuth: vi.fn(() => ({
+      user: mockUser,
+      logout: vi.fn(),
+      isAuthenticated: true,
+      isLoading: false,
+    })),
+  };
+});
 
 vi.mock('@/hooks/useProjects', () => ({
   useProjects: vi.fn(() => ({
@@ -113,10 +108,6 @@ describe('Home', () => {
   test('redirects to login when user is null', async () => {
     const authSlice = await import('@/store/slices/authSlice');
     vi.mocked(authSlice.useAuth).mockReturnValue({
-      user: null, logout: vi.fn(), isAuthenticated: false, isLoading: false,
-    } as any);
-    const authCtx = await import('@/store/slices/authSlice');
-    vi.mocked(authCtx.useAuth).mockReturnValue({
       user: null, logout: vi.fn(), isAuthenticated: false, isLoading: false,
     } as any);
 

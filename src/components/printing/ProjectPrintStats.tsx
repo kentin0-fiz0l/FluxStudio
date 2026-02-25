@@ -21,6 +21,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { apiService } from '@/services/apiService';
 
 interface PrintStats {
   project_id: string;
@@ -168,16 +169,14 @@ export default function ProjectPrintStats({
       setError(null);
 
       try {
-        const response = await fetch(`/api/printing/projects/${projectId}/stats/detailed`);
+        const result = await apiService.get<PrintStats & { message?: string }>(
+          `/printing/projects/${projectId}/stats/detailed`
+        );
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch project print statistics');
-        }
-
-        const data = await response.json();
+        const data = result.data;
 
         // Handle case where no stats exist yet
-        if (data.message === 'No printing activity for this project yet') {
+        if (data?.message === 'No printing activity for this project yet') {
           setStats({
             project_id: projectId,
             total_prints: 0,
@@ -196,7 +195,7 @@ export default function ProjectPrintStats({
             success_rate: 0,
             failure_rate: 0,
           });
-        } else {
+        } else if (data) {
           setStats(data);
         }
       } catch (err) {

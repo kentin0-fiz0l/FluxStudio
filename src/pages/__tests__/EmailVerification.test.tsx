@@ -24,12 +24,23 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => children,
 }));
 
+vi.mock('@/services/apiService', () => ({
+  apiService: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    makeRequest: vi.fn(),
+  },
+}));
+
+import { apiService } from '@/services/apiService';
 import { EmailVerification } from '../EmailVerification';
 
 describe('EmailVerification', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.restoreAllMocks();
+    vi.mocked(apiService.post).mockReset();
   });
 
   const renderPage = (params = '') => {
@@ -46,7 +57,7 @@ describe('EmailVerification', () => {
   });
 
   test('displays verifying state when token is present', () => {
-    global.fetch = vi.fn(() => new Promise(() => {})) as any;
+    vi.mocked(apiService.post).mockReturnValue(new Promise(() => {}));
     renderPage('?token=abc123');
     expect(screen.getByText('Verifying Your Email')).toBeInTheDocument();
   });
@@ -58,10 +69,10 @@ describe('EmailVerification', () => {
   });
 
   test('displays success state on successful verification', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ message: 'Email verified successfully!' }),
-    }) as any;
+    vi.mocked(apiService.post).mockResolvedValueOnce({
+      success: true,
+      data: { message: 'Email verified successfully!' },
+    });
 
     renderPage('?token=valid-token');
 
@@ -71,10 +82,7 @@ describe('EmailVerification', () => {
   });
 
   test('displays error state on failed verification', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      json: () => Promise.resolve({ message: 'Token expired' }),
-    }) as any;
+    vi.mocked(apiService.post).mockRejectedValueOnce(new Error('Token expired'));
 
     renderPage('?token=expired-token');
 
@@ -85,10 +93,7 @@ describe('EmailVerification', () => {
   });
 
   test('displays resend button on error', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      json: () => Promise.resolve({ message: 'Token expired' }),
-    }) as any;
+    vi.mocked(apiService.post).mockRejectedValueOnce(new Error('Token expired'));
 
     renderPage('?token=expired-token');
 

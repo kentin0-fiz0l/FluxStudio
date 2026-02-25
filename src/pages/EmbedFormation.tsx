@@ -222,6 +222,13 @@ export default function EmbedFormation() {
               setCurrentTime(t);
               setPositions(getInterpolatedPositions(t));
             }}
+            onKeyDown={(e) => {
+              const step = duration / 20;
+              if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); const t = Math.min(duration, currentTime + step); setCurrentTime(t); setPositions(getInterpolatedPositions(t)); }
+              else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); const t = Math.max(0, currentTime - step); setCurrentTime(t); setPositions(getInterpolatedPositions(t)); }
+              else if (e.key === 'Home') { e.preventDefault(); setCurrentTime(0); setPositions(getInterpolatedPositions(0)); }
+              else if (e.key === 'End') { e.preventDefault(); setCurrentTime(duration); setPositions(getInterpolatedPositions(duration)); }
+            }}
           >
             <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${(currentTime / duration) * 100}%` }} />
           </div>

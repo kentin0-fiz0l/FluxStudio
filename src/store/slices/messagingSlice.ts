@@ -8,6 +8,7 @@
 import { StateCreator } from 'zustand';
 import { FluxStore } from '../store';
 import { storeLogger } from '@/services/logging';
+import { apiService } from '@/services/apiService';
 
 // ============================================================================
 // Types
@@ -392,15 +393,8 @@ export const createMessagingSlice: StateCreator<
       });
 
       try {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(`/api/conversations/${conversationId}/messages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ content: failedMsg.content, replyToId: failedMsg.replyToId }),
-        });
-        if (!response.ok) throw new Error('Failed to send message');
-        const serverMessage = await response.json();
-        get().messaging.replaceOptimisticMessage(tempId, serverMessage);
+        const result = await apiService.post<Message>(`/api/conversations/${conversationId}/messages`, { content: failedMsg.content, replyToId: failedMsg.replyToId });
+        get().messaging.replaceOptimisticMessage(tempId, result.data!);
       } catch (error) {
         storeLogger.error('Retry failed', error);
         get().messaging.markMessageFailed(conversationId, tempId);
@@ -416,15 +410,9 @@ export const createMessagingSlice: StateCreator<
       });
 
       try {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch('/api/conversations', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch conversations');
-
-        const data = await response.json();
-        const conversations = data.conversations || data;
+        const result = await apiService.get<{ conversations?: Conversation[] } | Conversation[]>('/api/conversations');
+        const data = result.data;
+        const conversations = Array.isArray(data) ? data : (data as { conversations?: Conversation[] })?.conversations || [];
         set((state) => {
           state.messaging.conversations = conversations;
           state.messaging.unreadCounts.messages = computeUnreadMessages(conversations);
@@ -446,16 +434,11 @@ export const createMessagingSlice: StateCreator<
       });
 
       try {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(`/api/conversations/${conversationId}/messages`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch messages');
-
-        const data = await response.json();
+        const result = await apiService.get<{ messages?: Message[] } | Message[]>(`/api/conversations/${conversationId}/messages`);
+        const data = result.data;
+        const messages = Array.isArray(data) ? data : (data as { messages?: Message[] })?.messages || [];
         set((state) => {
-          state.messaging.messages[conversationId] = data.messages || data;
+          state.messaging.messages[conversationId] = messages;
           state.messaging.loadingStates[`messages-${conversationId}`] = false;
         });
       } catch (error) {
@@ -484,21 +467,9 @@ export const createMessagingSlice: StateCreator<
       get().messaging.addMessage(optimisticMessage);
 
       try {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(`/api/conversations/${conversationId}/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ content, replyToId }),
-        });
-
-        if (!response.ok) throw new Error('Failed to send message');
-
-        const serverMessage = await response.json();
+        const result = await apiService.post<Message>(`/api/conversations/${conversationId}/messages`, { content, replyToId });
         // Replace the optimistic placeholder with the real server message
-        get().messaging.replaceOptimisticMessage(tempId, serverMessage);
+        get().messaging.replaceOptimisticMessage(tempId, result.data!);
       } catch (error) {
         storeLogger.error('Failed to send message', error);
         // Mark as failed so the UI can show retry

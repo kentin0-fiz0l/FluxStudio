@@ -14,6 +14,7 @@ import { DashboardLayout } from '../../components/templates';
 import { Button, Card } from '@/components/ui';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/store/slices/authSlice';
+import { apiService } from '@/services/apiService';
 import {
   Download,
   Trash2,
@@ -27,16 +28,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from '../../lib/toast';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
-
-function getAuthHeaders() {
-  const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-  return {
-    Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-}
+import { buildApiUrl } from '../../config/environment';
 
 interface ConsentState {
   marketing_emails: boolean;
@@ -80,19 +72,23 @@ function PrivacySettings() {
 
   async function loadConsents() {
     try {
-      const res = await fetch(`${API_URL}/api/compliance/consents`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error('Failed to load');
-      const data = await res.json();
+      const result = await apiService.get<{
+        consents: {
+          marketing_emails?: { granted: boolean };
+          analytics_tracking?: { granted: boolean };
+          third_party_sharing?: { granted: boolean };
+        };
+        deletionStatus?: DeletionStatus;
+      }>('/api/compliance/consents');
+      const data = result.data;
 
       setConsents({
-        marketing_emails: data.consents.marketing_emails?.granted ?? false,
-        analytics_tracking: data.consents.analytics_tracking?.granted ?? false,
-        third_party_sharing: data.consents.third_party_sharing?.granted ?? false,
+        marketing_emails: data?.consents.marketing_emails?.granted ?? false,
+        analytics_tracking: data?.consents.analytics_tracking?.granted ?? false,
+        third_party_sharing: data?.consents.third_party_sharing?.granted ?? false,
       });
 
-      if (data.deletionStatus) {
+      if (data?.deletionStatus) {
         setDeletionStatus(data.deletionStatus);
       }
     } catch {
@@ -107,22 +103,16 @@ function PrivacySettings() {
   async function handleRequestExport() {
     setIsExporting(true);
     try {
-      const res = await fetch(`${API_URL}/api/compliance/data-export`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-
-      if (res.status === 429) {
-        toast.error('You can only request one export every 24 hours.');
-        return;
-      }
-
-      if (!res.ok) throw new Error('Export request failed');
-      const data = await res.json();
-      setExportId(data.exportId);
+      const result = await apiService.post<{ exportId: string }>('/api/compliance/data-export');
+      setExportId(result.data?.exportId ?? null);
       toast.success('Data export is ready for download.');
-    } catch {
-      toast.error('Failed to request data export.');
+    } catch (error) {
+      // Check for rate limiting
+      if (error instanceof Error && error.message.includes('429')) {
+        toast.error('You can only request one export every 24 hours.');
+      } else {
+        toast.error('Failed to request data export.');
+      }
     } finally {
       setIsExporting(false);
     }
@@ -131,8 +121,10 @@ function PrivacySettings() {
   async function handleDownloadExport() {
     if (!exportId) return;
     try {
-      const res = await fetch(`${API_URL}/api/compliance/data-export/${exportId}/download`, {
-        headers: getAuthHeaders(),
+      // Keep raw fetch for blob download — apiService always parses JSON
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(buildApiUrl(`/api/compliance/data-export/${exportId}/download`), {
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();
@@ -153,17 +145,12 @@ function PrivacySettings() {
   async function handleRequestDeletion() {
     setIsRequestingDeletion(true);
     try {
-      const res = await fetch(`${API_URL}/api/compliance/delete-account`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ reason: deleteReason || undefined }),
-      });
-      if (!res.ok) throw new Error('Deletion request failed');
-      const data = await res.json();
+      const result = await apiService.post<{ gracePeriodEnds: string; requestedAt: string }>('/api/compliance/delete-account', { reason: deleteReason || undefined });
+      const data = result.data;
       setDeletionStatus({
         status: 'pending',
-        gracePeriodEnds: data.gracePeriodEnds,
-        requestedAt: data.requestedAt,
+        gracePeriodEnds: data?.gracePeriodEnds ?? null,
+        requestedAt: data?.requestedAt ?? null,
       });
       setShowDeleteConfirm(false);
       setDeleteReason('');
@@ -178,11 +165,7 @@ function PrivacySettings() {
   async function handleCancelDeletion() {
     setIsCancellingDeletion(true);
     try {
-      const res = await fetch(`${API_URL}/api/compliance/cancel-deletion`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error('Cancel failed');
+      await apiService.post('/api/compliance/cancel-deletion');
       setDeletionStatus(null);
       toast.success('Account deletion cancelled.');
     } catch {
@@ -200,12 +183,7 @@ function PrivacySettings() {
     setIsSavingConsents(true);
 
     try {
-      const res = await fetch(`${API_URL}/api/compliance/consents`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ consents: { [type]: granted } }),
-      });
-      if (!res.ok) throw new Error('Failed to save');
+      await apiService.post('/api/compliance/consents', { consents: { [type]: granted } });
       toast.success('Preference updated.');
     } catch {
       setConsents(prev => ({ ...prev, [type]: previous }));

@@ -23,13 +23,6 @@ vi.mock('@/store/slices/authSlice', () => ({
   })),
 }));
 
-vi.mock('@/store/slices/authSlice', () => ({
-  useAuth: vi.fn(() => ({
-    user: { id: 'user-1', name: 'Test User', email: 'test@example.com' },
-    isAuthenticated: true,
-  })),
-}));
-
 // Mock components with correct paths (relative to test file in __tests__)
 vi.mock('../../components/UserDirectory', () => ({
   UserDirectory: ({ currentUserId, onConnect, onMessage, onViewProfile }: any) => (
@@ -45,8 +38,14 @@ vi.mock('../../components/SimpleHeader', () => ({
   SimpleHeader: () => <div data-testid="simple-header">Header</div>,
 }));
 
-vi.mock('../../config/environment', () => ({
-  buildApiUrl: (path: string) => `http://localhost:3001${path}`,
+vi.mock('@/services/apiService', () => ({
+  apiService: {
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    makeRequest: vi.fn(),
+  },
 }));
 
 vi.mock('../../lib/toast', () => ({
@@ -57,6 +56,7 @@ vi.mock('../../lib/toast', () => ({
   },
 }));
 
+import { apiService } from '@/services/apiService';
 import { Users } from '../Users';
 
 describe('Users', () => {
@@ -94,11 +94,10 @@ describe('Users', () => {
   });
 
   test('handles message action', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ conversation: { id: 'conv-1' } }),
-    }) as any;
-    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue('test-token');
+    vi.mocked(apiService.post).mockResolvedValueOnce({
+      success: true,
+      data: { conversation: { id: 'conv-1' } },
+    });
 
     renderPage();
     fireEvent.click(screen.getByTestId('message-btn'));

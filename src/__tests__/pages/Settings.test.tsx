@@ -85,6 +85,14 @@ vi.mock('../../components/settings/TwoFactorSetup', () => ({
   ),
 }));
 
+// Mock push notification utilities to prevent async side effects
+vi.mock('@/utils/pushNotifications', () => ({
+  isPushSupported: vi.fn(() => false),
+  getPermissionState: vi.fn(() => Promise.resolve({ permission: 'default', isSupported: false, isSubscribed: false })),
+  subscribeToPush: vi.fn(),
+  unsubscribeFromPush: vi.fn(),
+}));
+
 import { useAuth } from '@/store/slices/authSlice';
 import { apiService } from '../../services/apiService';
 import { toast } from '../../lib/toast';
@@ -220,9 +228,9 @@ describe('Settings Page', () => {
         expect(apiService.getSettings).toHaveBeenCalled();
       });
 
-      // Find and toggle a setting to enable save
-      const notificationsSwitch = await screen.findByTestId('toggle-push-notifications');
-      await user.click(notificationsSwitch);
+      // Toggle email digest (a simple state toggle, not push notifications)
+      const emailDigestSwitch = await screen.findByTestId('toggle-email-digest');
+      await user.click(emailDigestSwitch);
 
       // Find and click save button
       const saveButton = screen.getByRole('button', { name: /save/i });
@@ -242,16 +250,16 @@ describe('Settings Page', () => {
         expect(apiService.getSettings).toHaveBeenCalled();
       });
 
-      // Toggle a setting
-      const notificationsSwitch = await screen.findByTestId('toggle-push-notifications');
-      await user.click(notificationsSwitch);
+      // Toggle email digest
+      const emailDigestSwitch = await screen.findByTestId('toggle-email-digest');
+      await user.click(emailDigestSwitch);
 
       // Click save
       const saveButton = screen.getByRole('button', { name: /save/i });
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('push notifications'));
+        expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('email digest'));
       });
     });
 
@@ -269,9 +277,9 @@ describe('Settings Page', () => {
         expect(apiService.getSettings).toHaveBeenCalled();
       });
 
-      // Toggle a setting
-      const notificationsSwitch = await screen.findByTestId('toggle-push-notifications');
-      await user.click(notificationsSwitch);
+      // Toggle email digest
+      const emailDigestSwitch = await screen.findByTestId('toggle-email-digest');
+      await user.click(emailDigestSwitch);
 
       // Click save
       const saveButton = screen.getByRole('button', { name: /save/i });
@@ -293,9 +301,9 @@ describe('Settings Page', () => {
         expect(apiService.getSettings).toHaveBeenCalled();
       });
 
-      // Toggle a setting to create a change
-      const notificationsSwitch = await screen.findByTestId('toggle-push-notifications');
-      await user.click(notificationsSwitch);
+      // Toggle email digest to create a change
+      const emailDigestSwitch = await screen.findByTestId('toggle-email-digest');
+      await user.click(emailDigestSwitch);
 
       // Save button should be active now
       const saveButton = screen.getByRole('button', { name: /save/i });

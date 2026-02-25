@@ -24,8 +24,7 @@ import {
 import { useAuth } from '@/store/slices/authSlice';
 import { DashboardLayout } from '../components/templates';
 import { Skeleton } from '../components/ui/skeleton';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { apiService } from '@/services/apiService';
 
 interface ServerMetrics {
   current: { timestamp: string; requests: { total: number; errors: number }; redis: { total: number } };
@@ -125,11 +124,8 @@ export function AdminMetrics() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_URL}/api/observability/metrics`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error(res.status === 403 ? 'Admin access required' : 'Failed to fetch metrics');
-      setData(await res.json());
+      const result = await apiService.get<MetricsData>('/observability/metrics');
+      setData(result.data ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load metrics');
     } finally {

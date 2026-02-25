@@ -6,6 +6,7 @@
 
 import { StateCreator } from 'zustand';
 import type { FluxStore } from '../store';
+import { apiService } from '@/services/apiService';
 import { observability } from '@/services/observability';
 
 // ============================================================================
@@ -408,15 +409,8 @@ export const createAuthSlice: StateCreator<
     },
 
     loginWithApple: async (): Promise<User> => {
-      const response = await fetch('/api/auth/apple', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Apple login failed');
-      }
-      const authData = await response.json();
+      const result = await apiService.post<{ user: User; accessToken?: string; token?: string; refreshToken?: string }>('/auth/apple');
+      const authData = result.data!;
       storeTokens(authData);
       set((state) => {
         state.auth.user = authData.user;

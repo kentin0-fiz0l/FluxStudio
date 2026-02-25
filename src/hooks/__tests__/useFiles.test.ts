@@ -19,6 +19,33 @@ vi.mock('../../utils/apiHelpers', () => ({
   getApiUrl: vi.fn((path: string) => `http://localhost:3001${path}`),
 }));
 
+const mockApiService = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+  makeRequest: vi.fn(),
+}));
+
+vi.mock('@/services/apiService', () => ({
+  apiService: mockApiService,
+}));
+
+// Mock store for offline queueAction
+vi.mock('../../store/store', () => ({
+  useStore: vi.fn((selector: (state: any) => any) => {
+    const mockState = {
+      offline: { queueAction: vi.fn() },
+    };
+    return selector(mockState);
+  }),
+}));
+
+// Mock toast
+vi.mock('../../lib/toast', () => ({
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
+
 const mockFiles = [
   {
     id: 'file-1',
@@ -67,10 +94,10 @@ describe('useFiles', () => {
   });
 
   it('should fetch files on mount', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ files: mockFiles }),
-    }));
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { files: mockFiles },
+    });
 
     const { result } = renderHook(() => useFiles(), { wrapper: createWrapper() });
 
@@ -80,24 +107,21 @@ describe('useFiles', () => {
   });
 
   it('should fetch files with projectId filter', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ files: mockFiles }),
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { files: mockFiles },
     });
-    vi.stubGlobal('fetch', fetchMock);
 
     renderHook(() => useFiles('proj-1'), { wrapper: createWrapper() });
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain('projectId=proj-1');
+    await waitFor(() => expect(mockApiService.get).toHaveBeenCalled());
+    const [endpoint, options] = mockApiService.get.mock.calls[0];
+    expect(endpoint).toBe('/api/files');
+    expect(options?.params?.projectId).toBe('proj-1');
   });
 
   it('should handle fetch error', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      json: () => Promise.resolve({}),
-    }));
+    mockApiService.get.mockRejectedValue(new Error('Failed to fetch files'));
 
     const { result } = renderHook(() => useFiles(), { wrapper: createWrapper() });
 
@@ -108,36 +132,26 @@ describe('useFiles', () => {
   it('should not fetch files when user is null', () => {
     mockUseAuth.mockReturnValue({ user: null as any });
 
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-
     renderHook(() => useFiles(), { wrapper: createWrapper() });
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockApiService.get).not.toHaveBeenCalled();
   });
 
   it('should delete a file and update state', async () => {
-    const remainingFiles = [mockFiles[1]];
-    const fetchMock = vi.fn()
-      // Initial fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ files: mockFiles }),
-      })
-      // DELETE request
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      })
-      // Refetch after invalidation
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ files: remainingFiles }),
-      });
-    vi.stubGlobal('fetch', fetchMock);
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { files: mockFiles },
+    });
+    mockApiService.delete.mockResolvedValue({ success: true });
 
     const { result } = renderHook(() => useFiles(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.files).toHaveLength(2));
+
+    // After delete + invalidation, return remaining files
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { files: [mockFiles[1]] },
+    });
 
     await act(async () => {
       await result.current.deleteFile('file-1');
@@ -148,10 +162,10 @@ describe('useFiles', () => {
   });
 
   it('should format file sizes correctly', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ files: [] }),
-    }));
+    mockApiService.get.mockResolvedValue({
+      success: true,
+      data: { files: [] },
+    });
 
     const { result } = renderHook(() => useFiles(), { wrapper: createWrapper() });
 
