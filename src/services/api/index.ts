@@ -8,6 +8,7 @@ import { organizationsApi } from './organizations';
 import { projectsApi } from './projects';
 import { messagesApi } from './messages';
 import { printingApi } from './printing';
+import { browserApi } from './browser';
 
 export type { ApiResponse, ApiError, UserSettings } from './base';
 export { ApiService } from './base';
@@ -20,6 +21,7 @@ export const apiService = Object.assign(baseService, {
   ...projectsApi(baseService),
   ...messagesApi(baseService),
   ...printingApi(baseService),
+  ...browserApi(baseService),
 });
 
 export default apiService;
