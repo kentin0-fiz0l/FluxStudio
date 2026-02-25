@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Plus, Grid, Download, Save, ZoomIn, ZoomOut,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
 import { useSyncStatus } from '@/store/slices/offlineSlice';
+import { observability } from '@/services/observability';
 
 type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block';
 
@@ -89,6 +91,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
   fingerMode = 'select', setFingerMode,
 }) => {
   const { t } = useTranslation('common');
+  const navigate = useNavigate();
   const [showViewOptions, setShowViewOptions] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const viewOptionsRef = useRef<HTMLDivElement>(null);
@@ -339,7 +342,10 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
           </>
         ) : (
           <button
-            onClick={() => {/* TODO: navigate to signup */}}
+            onClick={() => {
+              observability.analytics.track('signup_cta_clicked', { source: 'canvas_toolbar' });
+              navigate('/signup');
+            }}
             className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs bg-indigo-500 hover:bg-indigo-600 text-white transition-colors"
           >
             <Save className="w-3.5 h-3.5" aria-hidden="true" />

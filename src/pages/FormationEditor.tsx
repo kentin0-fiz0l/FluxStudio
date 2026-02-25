@@ -22,7 +22,10 @@ import { useScene3D } from '../hooks/useScene3D';
 import { ObjectEditorModal } from '../components/object-editor/ObjectEditorModal';
 import { PropLibraryPanel } from '../components/object-editor/PropLibraryPanel';
 import { ModelImporter } from '../components/object-editor/ModelImporter';
-import { PrimitiveBuilder } from '../components/object-editor/PrimitiveBuilder';
+// Lazy-load PrimitiveBuilder to avoid pulling Three.js/OrbitControls into the main chunk
+const PrimitiveBuilder = React.lazy(() =>
+  import('../components/object-editor/PrimitiveBuilder').then(m => ({ default: m.PrimitiveBuilder }))
+);
 import * as formationsApi from '../services/formationsApi';
 import { observability } from '@/services/observability';
 import type { ComposedPrimitive } from '../services/scene3d/types';
@@ -372,10 +375,12 @@ export default function FormationEditor() {
 
       {/* Primitive Builder Modal */}
       {isPrimitiveBuilderOpen && (
-        <PrimitiveBuilder
-          onSave={handleSaveCustom}
-          onClose={() => setPrimitiveBuilderOpen(false)}
-        />
+        <React.Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="text-white">Loading builder...</div></div>}>
+          <PrimitiveBuilder
+            onSave={handleSaveCustom}
+            onClose={() => setPrimitiveBuilderOpen(false)}
+          />
+        </React.Suspense>
       )}
     </DashboardLayout>
   );

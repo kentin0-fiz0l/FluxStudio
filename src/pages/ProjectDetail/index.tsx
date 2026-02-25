@@ -43,15 +43,34 @@ import { useProjectCounts } from '@/hooks/useProjectCounts';
 import { useActiveProject } from '@/store';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
-import { DocumentList } from '@/components/documents/DocumentList';
-import { TiptapCollaborativeEditor } from '@/components/documents/TiptapCollaborativeEditor';
-import { FormationsTab } from '@/components/projects/FormationsTab';
 import { useFormations } from '@/hooks/useFormations';
 
-import { ProjectHealthDashboard } from '@/components/analytics/ProjectHealthDashboard';
-import { DeadlineRiskPanel } from '@/components/analytics/DeadlineRiskPanel';
-import { TeamWorkloadPanel } from '@/components/analytics/TeamWorkloadPanel';
+// Lazy-load tab content that is conditionally rendered to reduce page-project-detail chunk size
+const DocumentList = React.lazy(() =>
+  import('@/components/documents/DocumentList').then(m => ({ default: m.DocumentList }))
+);
+const TiptapCollaborativeEditor = React.lazy(() =>
+  import('@/components/documents/TiptapCollaborativeEditor').then(m => ({ default: m.TiptapCollaborativeEditor }))
+);
+const FormationsTab = React.lazy(() =>
+  import('@/components/projects/FormationsTab').then(m => ({ default: m.FormationsTab }))
+);
+const ProjectHealthDashboard = React.lazy(() =>
+  import('@/components/analytics/ProjectHealthDashboard').then(m => ({ default: m.ProjectHealthDashboard }))
+);
+const DeadlineRiskPanel = React.lazy(() =>
+  import('@/components/analytics/DeadlineRiskPanel').then(m => ({ default: m.DeadlineRiskPanel }))
+);
+const TeamWorkloadPanel = React.lazy(() =>
+  import('@/components/analytics/TeamWorkloadPanel').then(m => ({ default: m.TeamWorkloadPanel }))
+);
 import { ProjectDetailSkeleton } from '@/components/loading/LoadingStates';
+
+const TabLoadingFallback = () => (
+  <div className="flex items-center justify-center py-12">
+    <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 import { PresenceIndicators, statusVariants, priorityVariants, TabPresenceIndicator } from './ProjectDetailHelpers';
 import type { TabUser } from './ProjectDetailHelpers';
 import { TasksTabPanel, AssetsTabPanel, BoardsTabPanel } from './ProjectDetailTabs';
@@ -393,13 +412,15 @@ export const ProjectDetail = () => {
           {activeTab === 'documents' && (
             <div className="h-full" role="tabpanel" id="documents-panel" aria-labelledby="documents-tab" tabIndex={0}>
               <div role="status" aria-live="polite" className="sr-only">Showing {tabLabels.documents} tab</div>
-              {activeDocumentId ? (
-                <TiptapCollaborativeEditor projectId={project.id} documentId={activeDocumentId} onBack={() => setActiveDocumentId(null)} />
-              ) : (
-                <div className="h-full overflow-y-auto p-6">
-                  <DocumentList projectId={project.id} onOpenDocument={setActiveDocumentId} />
-                </div>
-              )}
+              <React.Suspense fallback={<TabLoadingFallback />}>
+                {activeDocumentId ? (
+                  <TiptapCollaborativeEditor projectId={project.id} documentId={activeDocumentId} onBack={() => setActiveDocumentId(null)} />
+                ) : (
+                  <div className="h-full overflow-y-auto p-6">
+                    <DocumentList projectId={project.id} onOpenDocument={setActiveDocumentId} />
+                  </div>
+                )}
+              </React.Suspense>
             </div>
           )}
 
@@ -439,22 +460,26 @@ export const ProjectDetail = () => {
           {activeTab === 'formations' && (
             <div className="h-full overflow-y-auto p-6" role="tabpanel" id="formations-panel" aria-labelledby="formations-tab" tabIndex={0}>
               <div role="status" aria-live="polite" className="sr-only">Showing formations tab</div>
-              <FormationsTab projectId={id || ''} />
+              <React.Suspense fallback={<TabLoadingFallback />}>
+                <FormationsTab projectId={id || ''} />
+              </React.Suspense>
             </div>
           )}
 
           {activeTab === 'analytics' && (
             <div className="h-full overflow-y-auto p-6" role="tabpanel" id="analytics-panel" aria-labelledby="analytics-tab" tabIndex={0}>
               <div role="status" aria-live="polite" className="sr-only">Showing {tabLabels.analytics} tab</div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  <ProjectHealthDashboard projectId={id || ''} />
+              <React.Suspense fallback={<TabLoadingFallback />}>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <ProjectHealthDashboard projectId={id || ''} />
+                  </div>
+                  <div className="space-y-6">
+                    <DeadlineRiskPanel projectId={id || ''} />
+                    <TeamWorkloadPanel teamId={project.teamId || project.organizationId || ''} />
+                  </div>
                 </div>
-                <div className="space-y-6">
-                  <DeadlineRiskPanel projectId={id || ''} />
-                  <TeamWorkloadPanel teamId={project.teamId || project.organizationId || ''} />
-                </div>
-              </div>
+              </React.Suspense>
             </div>
           )}
 

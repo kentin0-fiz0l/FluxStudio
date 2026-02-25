@@ -578,5 +578,219 @@ describe('FormationService', () => {
       expect(result.performersCreated).toBe(2);
       expect(result.keyframesCreated).toBe(1);
     });
+
+    it('should apply template with scale, rotation, and mirror options', () => {
+      const f = formationService.createFormation('Test', 'proj-1');
+      formationService.addPerformer(f.id, { name: 'A', label: '1', color: '#f00' });
+      formationService.addPerformer(f.id, { name: 'B', label: '2', color: '#0f0' });
+
+      vi.mocked(templateRegistry.getTemplate).mockReturnValue({
+        id: 'tmpl-1',
+        name: 'Test Template',
+        parameters: { minPerformers: 1, maxPerformers: 10 },
+      } as any);
+      vi.mocked(templateRegistry.scaleTemplateForPerformers).mockReturnValue([
+        { x: 25, y: 50 },
+        { x: 75, y: 50 },
+      ]);
+
+      const result = formationService.applyTemplate({
+        formationId: f.id,
+        templateId: 'tmpl-1',
+        scale: 0.5,
+        rotation: 90,
+        centerX: 50,
+        centerY: 50,
+        mirror: 'horizontal',
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should replace existing keyframes when replaceExisting is true', () => {
+      const f = formationService.createFormation('Test', 'proj-1');
+      formationService.addPerformer(f.id, { name: 'A', label: '1', color: '#f00' });
+      formationService.addKeyframe(f.id, 2000);
+      formationService.addKeyframe(f.id, 4000);
+
+      vi.mocked(templateRegistry.getTemplate).mockReturnValue({
+        id: 'tmpl-1',
+        name: 'Test Template',
+        parameters: { minPerformers: 1, maxPerformers: 10 },
+      } as any);
+      vi.mocked(templateRegistry.scaleTemplateForPerformers).mockReturnValue([
+        { x: 50, y: 50 },
+      ]);
+
+      const result = formationService.applyTemplate({
+        formationId: f.id,
+        templateId: 'tmpl-1',
+        replaceExisting: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.keyframesCreated).toBe(1);
+    });
+
+    it('should insert at end when insertAt is "end"', () => {
+      const f = formationService.createFormation('Test', 'proj-1');
+      formationService.addPerformer(f.id, { name: 'A', label: '1', color: '#f00' });
+
+      vi.mocked(templateRegistry.getTemplate).mockReturnValue({
+        id: 'tmpl-1',
+        name: 'Test',
+        parameters: { minPerformers: 1, maxPerformers: 10 },
+      } as any);
+      vi.mocked(templateRegistry.scaleTemplateForPerformers).mockReturnValue([
+        { x: 50, y: 50 },
+      ]);
+
+      const result = formationService.applyTemplate({
+        formationId: f.id,
+        templateId: 'tmpl-1',
+        insertAt: 'end',
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should insert at a specific numeric timestamp', () => {
+      const f = formationService.createFormation('Test', 'proj-1');
+      formationService.addPerformer(f.id, { name: 'A', label: '1', color: '#f00' });
+
+      vi.mocked(templateRegistry.getTemplate).mockReturnValue({
+        id: 'tmpl-1',
+        name: 'Test',
+        parameters: { minPerformers: 1, maxPerformers: 10 },
+      } as any);
+      vi.mocked(templateRegistry.scaleTemplateForPerformers).mockReturnValue([
+        { x: 50, y: 50 },
+      ]);
+
+      const result = formationService.applyTemplate({
+        formationId: f.id,
+        templateId: 'tmpl-1',
+        insertAt: 3000,
+      });
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  // ============================================================================
+  // ADDITIONAL EDGE CASES
+  // ============================================================================
+
+  describe('edge cases', () => {
+    it('should handle empty formation with no keyframes for getPositionsAtTime', () => {
+      const f = formationService.createFormation('Test', 'proj-1', {
+        keyframes: [{ id: 'kf-only', timestamp: 0, positions: new Map(), transition: 'linear' }],
+      });
+      const positions = formationService.getPositionsAtTime(f.id, 500);
+      expect(positions.size).toBe(0);
+    });
+
+    it('should handle rotation interpolation wrapping around 360', () => {
+      const f = formationService.createFormation('Test', 'proj-1');
+      const p = formationService.addPerformer(f.id, { name: 'A', label: 'A', color: '#f00' });
+      f.keyframes[0].positions.set(p!.id, { x: 0, y: 0, rotation: 350 });
+      formationService.addKeyframe(f.id, 1000, new Map([[p!.id, { x: 100, y: 100, rotation: 10 }]]));
+
+      const positions = formationService.getPositionsAtTime(f.id, 500);
+      const pos = positions.get(p!.id);
+      expect(pos).toBeDefined();
+      // Should wrap around through 0/360 rather than going backwards
+      expect(pos!.rotation).toBeDefined();
+    });
+
+    it('should handle maximum performers (large formation)', () => {
+      const f = formationService.createFormation('Large', 'proj-1');
+      for (let i = 0; i < 100; i++) {
+        formationService.addPerformer(f.id, {
+          name: `P${i}`,
+          label: `${i}`,
+          color: '#000',
+        }, { x: i, y: i });
+      }
+
+      expect(f.performers.length).toBe(100);
+      const positions = formationService.getPositionsAtTime(f.id, 0);
+      expect(positions.size).toBe(100);
+    });
+
+    it('should handle getPerformerPath with performer not in any keyframe', () => {
+      const f = formationService.createFormation('Test', 'proj-1');
+      const p = formationService.addPerformer(f.id, { name: 'A', label: 'A', color: '#f00' });
+      // Don't set positions, add a second keyframe without positions
+      formationService.addKeyframe(f.id, 1000);
+
+      const path = formationService.getPerformerPath(f.id, p!.id);
+      // Should return just the last keyframe position if any, or empty
+      expect(Array.isArray(path)).toBe(true);
+    });
+
+    it('should handle easing types correctly in getPositionsAtTime', () => {
+      const f = formationService.createFormation('Test', 'proj-1');
+      const p = formationService.addPerformer(f.id, { name: 'A', label: 'A', color: '#f00' }, { x: 0, y: 0 });
+
+      formationService.addKeyframe(f.id, 1000, new Map([[p!.id, { x: 100, y: 100 }]]), { transition: 'ease-in' });
+
+      const positions = formationService.getPositionsAtTime(f.id, 500);
+      const pos = positions.get(p!.id);
+      expect(pos).toBeDefined();
+      // ease-in at t=0.5 should give t*t = 0.25, so x ~ 25
+      expect(pos!.x).toBeCloseTo(25, 0);
+    });
+
+    it('should handle ease-out easing', () => {
+      const f = formationService.createFormation('Test', 'proj-1');
+      const p = formationService.addPerformer(f.id, { name: 'A', label: 'A', color: '#f00' }, { x: 0, y: 0 });
+
+      formationService.addKeyframe(f.id, 1000, new Map([[p!.id, { x: 100, y: 100 }]]), { transition: 'ease-out' });
+
+      const positions = formationService.getPositionsAtTime(f.id, 500);
+      const pos = positions.get(p!.id);
+      expect(pos).toBeDefined();
+      // ease-out at t=0.5 should give t*(2-t) = 0.75, so x ~ 75
+      expect(pos!.x).toBeCloseTo(75, 0);
+    });
+
+    it('should handle ease-in-out easing', () => {
+      const f = formationService.createFormation('Test', 'proj-1');
+      const p = formationService.addPerformer(f.id, { name: 'A', label: 'A', color: '#f00' }, { x: 0, y: 0 });
+
+      formationService.addKeyframe(f.id, 1000, new Map([[p!.id, { x: 100, y: 100 }]]), { transition: 'ease-in-out' });
+
+      const positions = formationService.getPositionsAtTime(f.id, 500);
+      const pos = positions.get(p!.id);
+      expect(pos).toBeDefined();
+      // ease-in-out at t=0.5 should give 0.5
+      expect(pos!.x).toBeCloseTo(50, 0);
+    });
+
+    it('should handle "ease" easing (smooth step)', () => {
+      const f = formationService.createFormation('Test', 'proj-1');
+      const p = formationService.addPerformer(f.id, { name: 'A', label: 'A', color: '#f00' }, { x: 0, y: 0 });
+
+      formationService.addKeyframe(f.id, 1000, new Map([[p!.id, { x: 100, y: 100 }]]), { transition: 'ease' });
+
+      const positions = formationService.getPositionsAtTime(f.id, 500);
+      const pos = positions.get(p!.id);
+      expect(pos).toBeDefined();
+      // ease at t=0.5: t*t*(3-2*t) = 0.5
+      expect(pos!.x).toBeCloseTo(50, 0);
+    });
+
+    it('should extrapolate beyond last keyframe (no clamping)', () => {
+      const f = formationService.createFormation('Test', 'proj-1');
+      const p = formationService.addPerformer(f.id, { name: 'A', label: 'A', color: '#f00' }, { x: 10, y: 20 });
+      formationService.addKeyframe(f.id, 1000, new Map([[p!.id, { x: 100, y: 100 }]]));
+
+      const positions = formationService.getPositionsAtTime(f.id, 5000);
+      const pos = positions.get(p!.id);
+      expect(pos).toBeDefined();
+      // With time=5000 and keyframes at 0 and 1000, progress = 5.0 which extrapolates
+      expect(pos!.x).toBeGreaterThan(100);
+    });
   });
 });

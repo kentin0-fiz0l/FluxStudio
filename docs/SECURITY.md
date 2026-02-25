@@ -459,6 +459,14 @@ For security issues, contact: security@fluxstudio.art
 
 ---
 
+## Audit History
+
+| Date | Sprint | Report |
+|------|--------|--------|
+| 2026-02-24 | Sprint 49 | [SECURITY_AUDIT_S49.md](./SECURITY_AUDIT_S49.md) |
+
+---
+
 ## Related Documentation
 
 - [Environment Setup](./ENVIRONMENT_SETUP.md)

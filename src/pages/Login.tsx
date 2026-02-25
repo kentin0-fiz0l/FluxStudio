@@ -74,7 +74,7 @@ export function Login() {
         await loginWithToken(data);
       } else {
         // Fallback: store manually
-        localStorage.setItem('accessToken', data.accessToken || data.token);
+        localStorage.setItem('accessToken', data.accessToken || data.token || '');
         if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
         window.location.href = getPostLoginUrl(callbackUrl);
         return;

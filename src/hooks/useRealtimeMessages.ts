@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Message, MessageUser } from '../types/messaging';
-import { realtimeCollaborationService } from '../services/realtimeCollaborationService';
+import { realtimeCollaborationService } from '../services/collaboration';
 
 interface MessageUpdate {
   type: 'add' | 'update' | 'delete' | 'reaction';

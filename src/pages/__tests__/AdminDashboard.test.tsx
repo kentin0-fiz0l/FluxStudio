@@ -33,7 +33,7 @@ vi.mock('../../components/admin/SystemHealth', () => ({
 }));
 
 vi.mock('../../components/admin/UsageCharts', () => ({
-  UsageCharts: ({ onExport }: any) => (
+  UsageCharts: () => (
     <div data-testid="usage-charts">Usage Charts</div>
   ),
 }));

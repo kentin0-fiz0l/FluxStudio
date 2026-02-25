@@ -4,12 +4,18 @@
  * Main admin dashboard with overview metrics, system health, and navigation.
  */
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/store/slices/authSlice';
-import { SystemHealth } from '../../components/admin/SystemHealth';
-import { UsageCharts } from '../../components/admin/UsageCharts';
+
+// Lazy-load chart-heavy admin components to reduce feature-admin chunk size
+const SystemHealth = React.lazy(() =>
+  import('../../components/admin/SystemHealth').then(m => ({ default: m.SystemHealth }))
+);
+const UsageCharts = React.lazy(() =>
+  import('../../components/admin/UsageCharts').then(m => ({ default: m.UsageCharts }))
+);
 import {
   LayoutDashboard,
   Users,
@@ -212,14 +218,18 @@ export function AdminDashboard() {
 
           {/* System Health */}
           <div className="mb-8">
-            <SystemHealth />
+            <Suspense fallback={<div className="h-48 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 animate-pulse" />}>
+              <SystemHealth />
+            </Suspense>
           </div>
 
           {/* Analytics & Recent Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Usage Charts - 2 columns */}
             <div className="lg:col-span-2">
-              <UsageCharts onExport={handleExport} />
+              <Suspense fallback={<div className="h-64 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 animate-pulse" />}>
+                <UsageCharts onExport={handleExport} />
+              </Suspense>
             </div>
 
             {/* Recent Activity - 1 column */}

@@ -34,7 +34,6 @@ interface UseAdminAuthReturn extends AuthState {
   refreshToken: () => Promise<void>;
 }
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://fluxstudio.art';
 const TOKEN_KEY = 'admin_token';
 const USER_KEY = 'admin_user';
 
@@ -101,7 +100,7 @@ export function useAdminAuth(): UseAdminAuthReturn {
       const user: AdminUser = {
         id: data.user.id,
         email: data.user.email,
-        role: data.user.role,
+        role: data.user.role as AdminUser['role'],
         roleLevel: getRoleLevel(data.user.role),
       };
 
@@ -209,7 +208,7 @@ function getRoleLevel(role: string): number {
  * Hook to make authenticated API requests
  */
 export function useAdminApi() {
-  const { token, isAuthenticated, logout } = useAdminAuth();
+  const { token, isAuthenticated } = useAdminAuth();
 
   const apiRequest = useCallback(async <T = unknown>(
     endpoint: string,

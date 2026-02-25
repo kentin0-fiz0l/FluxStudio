@@ -150,7 +150,7 @@ export function useOnboardingState(): UseOnboardingStateReturn {
             setState((prev) => ({
               ...prev,
               ...backendState,
-              steps: backendState.steps || prev.steps,
+              steps: (backendState.steps as OnboardingStep[]) || prev.steps,
             }));
             saveState(backendState);
           }

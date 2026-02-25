@@ -102,9 +102,9 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
       // Wait briefly to show success state
       setTimeout(() => {
         if (onComplete) {
-          onComplete(project.id);
+          onComplete(project?.id ?? '');
         } else {
-          navigate(`/projects/${project.id}`);
+          navigate(`/projects/${project?.id ?? ''}`);
         }
       }, 1500);
     } catch (error) {

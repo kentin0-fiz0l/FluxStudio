@@ -151,7 +151,7 @@ export function useFiles(): FilesContextValue {
     getFileById: async (fileId: string) => {
       try {
         const result = await apiService.get<{ file: unknown }>(`/files/${fileId}`);
-        return result.data?.file ?? null;
+        return (result.data?.file as FileRecord) ?? null;
       } catch (err) {
         if (err instanceof Error && err.message.includes('404')) return null;
         throw err;

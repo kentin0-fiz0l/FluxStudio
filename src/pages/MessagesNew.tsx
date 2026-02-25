@@ -5,6 +5,7 @@
  * and the useMessagesPageState hook for all state management.
  */
 
+import { lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { Button, Card } from '@/components/ui';
@@ -40,10 +41,18 @@ import {
   ChatHeader,
   MessageListView,
 } from '../components/messaging';
-import { MessageSearchPanel } from '../components/messaging/MessageSearchPanel';
-import { ThreadPanel } from '../components/messaging/ThreadPanel';
-import { ConversationSummary } from '../components/messaging/ConversationSummary';
 import { useMessagesPageState } from '../hooks/useMessagesPageState';
+
+// Lazy-load conditionally rendered panels to reduce page-messages chunk size
+const MessageSearchPanel = lazy(() =>
+  import('../components/messaging/MessageSearchPanel').then(m => ({ default: m.MessageSearchPanel }))
+);
+const ThreadPanel = lazy(() =>
+  import('../components/messaging/ThreadPanel').then(m => ({ default: m.ThreadPanel }))
+);
+const ConversationSummary = lazy(() =>
+  import('../components/messaging/ConversationSummary').then(m => ({ default: m.ConversationSummary }))
+);
 
 function MessagesNew() {
   const navigate = useNavigate();
@@ -188,11 +197,13 @@ function MessagesNew() {
               )}
 
               {state.showMessageSearch && (
-                <MessageSearchPanel
-                  conversationId={state.selectedConversationId}
-                  onResultClick={state.handleSearchResultClick}
-                  onClose={() => state.setShowMessageSearch(false)}
-                />
+                <Suspense fallback={<div className="p-4 text-center text-sm text-neutral-500"><Loader2 className="w-4 h-4 animate-spin inline mr-2" />Loading search...</div>}>
+                  <MessageSearchPanel
+                    conversationId={state.selectedConversationId}
+                    onResultClick={state.handleSearchResultClick}
+                    onClose={() => state.setShowMessageSearch(false)}
+                  />
+                </Suspense>
               )}
 
               {state.showThreadHint && state.messages.length > 0 && (
@@ -263,38 +274,42 @@ function MessagesNew() {
 
         {/* Thread Panel */}
         {state.isThreadPanelOpen && state.activeThreadRootId && state.selectedConversation && (
-          <ThreadPanel
-            conversationId={state.selectedConversation.id}
-            rootMessage={{
-              id: state.activeThreadRootId,
-              userId: state.messages.find(m => m.id === state.activeThreadRootId)?.author.id || '',
-              conversationId: state.selectedConversation.id,
-              text: state.messages.find(m => m.id === state.activeThreadRootId)?.content || '',
-              userName: state.messages.find(m => m.id === state.activeThreadRootId)?.author.name,
-              createdAt: state.messages.find(m => m.id === state.activeThreadRootId)?.timestamp.toISOString() || new Date().toISOString(),
-            }}
-            messages={state.threadMessages.map(m => ({
-              id: m.id,
-              userId: m.author.id,
-              conversationId: state.selectedConversation!.id,
-              text: m.content,
-              userName: m.author.name,
-              createdAt: m.timestamp.toISOString(),
-            }))}
-            isLoading={state.isLoadingThread}
-            onClose={state.handleCloseThread}
-            onReply={state.handleThreadReply}
-            currentUserId={state.user?.id}
-          />
+          <Suspense fallback={null}>
+            <ThreadPanel
+              conversationId={state.selectedConversation.id}
+              rootMessage={{
+                id: state.activeThreadRootId,
+                userId: state.messages.find(m => m.id === state.activeThreadRootId)?.author.id || '',
+                conversationId: state.selectedConversation.id,
+                text: state.messages.find(m => m.id === state.activeThreadRootId)?.content || '',
+                userName: state.messages.find(m => m.id === state.activeThreadRootId)?.author.name,
+                createdAt: state.messages.find(m => m.id === state.activeThreadRootId)?.timestamp.toISOString() || new Date().toISOString(),
+              }}
+              messages={state.threadMessages.map(m => ({
+                id: m.id,
+                userId: m.author.id,
+                conversationId: state.selectedConversation!.id,
+                text: m.content,
+                userName: m.author.name,
+                createdAt: m.timestamp.toISOString(),
+              }))}
+              isLoading={state.isLoadingThread}
+              onClose={state.handleCloseThread}
+              onReply={state.handleThreadReply}
+              currentUserId={state.user?.id}
+            />
+          </Suspense>
         )}
 
         {/* Summary Panel */}
         {state.isSummaryPanelOpen && state.selectedConversation && (
-          <ConversationSummary
-            conversationId={state.selectedConversation.id}
-            projectId={state.selectedConversation.projectId}
-            onClose={() => state.setIsSummaryPanelOpen(false)}
-          />
+          <Suspense fallback={null}>
+            <ConversationSummary
+              conversationId={state.selectedConversation.id}
+              projectId={state.selectedConversation.projectId}
+              onClose={() => state.setIsSummaryPanelOpen(false)}
+            />
+          </Suspense>
         )}
       </div>
 

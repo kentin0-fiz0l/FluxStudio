@@ -17,7 +17,7 @@
  */
 
 import { userTestLogger } from '../userTestLogger';
-import { performanceMonitoring } from '../performanceMonitoring';
+import { performanceMonitoring } from '../monitoring';
 
 // ============================================================================
 // Types

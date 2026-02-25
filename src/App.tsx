@@ -15,7 +15,7 @@ import ErrorBoundary, {
   MessagingErrorBoundary,
   ConnectorsErrorBoundary,
 } from './components/error/ErrorBoundary';
-import { performanceMonitoring } from './services/performanceMonitoring';
+import { performanceMonitoring } from './services/monitoring';
 import { observability } from './services/observability';
 import { apiService } from './services/apiService';
 import { logger } from './lib/logger';

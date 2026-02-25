@@ -47,7 +47,6 @@ vi.mock('@/services/apiService', () => ({
 
 import { apiService } from '@/services/apiService';
 import { messagingService } from '../messagingService';
-import { fixtures } from './testHelpers';
 
 /**
  * Helper: mock a successful apiService response.
@@ -75,10 +74,6 @@ function mockApiGetError(message = 'Server Error') {
 
 function mockApiPostError(message = 'Server Error') {
   vi.mocked(apiService.post).mockRejectedValueOnce(new Error(message));
-}
-
-function mockApiDeleteError(message = 'Server Error') {
-  vi.mocked(apiService.delete).mockRejectedValueOnce(new Error(message));
 }
 
 describe('MessagingService', () => {

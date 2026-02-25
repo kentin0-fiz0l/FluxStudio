@@ -44,18 +44,6 @@ import {
   clearCsrfToken,
 } from '../aiService';
 
-function mockFetchResponse(data: any, status = 200) {
-  fetchCtx.mockFetch.mockResolvedValueOnce({
-    ok: status >= 200 && status < 300,
-    status,
-    statusText: status === 200 ? 'OK' : String(status),
-    json: () => Promise.resolve(data),
-    text: () => Promise.resolve(JSON.stringify(data)),
-    headers: new Headers({ 'content-type': 'application/json' }),
-    body: null,
-  });
-}
-
 function mockFetchError(message: string, status = 500) {
   fetchCtx.mockFetch.mockResolvedValueOnce({
     ok: false,
