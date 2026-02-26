@@ -7,9 +7,9 @@ CREATE TABLE IF NOT EXISTS feature_flags (
   description TEXT,
   enabled BOOLEAN DEFAULT false,
   rollout_percentage INT DEFAULT 100 CHECK (rollout_percentage >= 0 AND rollout_percentage <= 100),
-  user_allowlist UUID[] DEFAULT '{}',
+  user_allowlist TEXT[] DEFAULT '{}',
   metadata JSONB DEFAULT '{}',
-  created_by UUID REFERENCES users(id),
+  created_by TEXT REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
