@@ -97,10 +97,10 @@ export function OnboardingV2() {
 
   // Sprint 56: Check if beta invite gate is enabled
   useEffect(() => {
-    fetch('/api/admin/flags/evaluate')
+    fetch('/api/flags/beta-status')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data?.flags?.beta_invite_required) setBetaGateEnabled(true);
+        if (data?.betaInviteRequired) setBetaGateEnabled(true);
       })
       .catch(() => {});
   }, []);
