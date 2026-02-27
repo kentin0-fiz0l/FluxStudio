@@ -2,6 +2,12 @@
  * SaaS Subscription Plan Definitions
  *
  * Sprint 38: Phase 5.1 Monetization & Pricing
+ *
+ * Stripe price IDs are read from environment variables:
+ *   VITE_STRIPE_PRICE_PRO_MONTHLY
+ *   VITE_STRIPE_PRICE_PRO_YEARLY
+ *   VITE_STRIPE_PRICE_TEAM_MONTHLY
+ *   VITE_STRIPE_PRICE_TEAM_YEARLY
  */
 
 export type PlanId = 'free' | 'pro' | 'team';
@@ -55,8 +61,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     description: 'For professionals and power users',
     priceMonthly: 1200,  // $12/mo
     priceYearly: 12000,  // $120/yr ($10/mo, 2 months free)
-    stripePriceIdMonthly: 'price_pro_monthly',
-    stripePriceIdYearly: 'price_pro_yearly',
+    stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_PRO_MONTHLY || 'price_pro_monthly',
+    stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_PRO_YEARLY || 'price_pro_yearly',
     limits: {
       projects: -1,
       storageBytes: 10 * 1024 * 1024 * 1024, // 10 GB
@@ -80,8 +86,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     description: 'For teams that collaborate',
     priceMonthly: 2900,  // $29/seat/mo
     priceYearly: 29000,  // $290/seat/yr ($24.17/mo, 2 months free)
-    stripePriceIdMonthly: 'price_team_monthly',
-    stripePriceIdYearly: 'price_team_yearly',
+    stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_TEAM_MONTHLY || 'price_team_monthly',
+    stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_TEAM_YEARLY || 'price_team_yearly',
     limits: {
       projects: -1,
       storageBytes: 100 * 1024 * 1024 * 1024, // 100 GB
