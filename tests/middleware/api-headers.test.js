@@ -7,6 +7,7 @@
  *    are present on responses when rate limiting is active
  */
 
+/* global vi */
 const express = require('express');
 const request = require('supertest');
 
@@ -129,21 +130,21 @@ describe('Advanced Rate-Limiter Response Headers', () => {
 
   beforeEach(() => {
     // The advanced rate limiter uses Redis, so we stub the cache module
-    jest.resetModules();
+    vi.resetModules();
 
     // Create an in-memory store to replace Redis
     const store = {};
-    jest.doMock('../../lib/cache', () => ({
-      get: jest.fn(async (key) => store[key] || null),
-      set: jest.fn(async (key, value, _ttl) => { store[key] = value; }),
-      del: jest.fn(async (key) => { delete store[key]; }),
-      initializeCache: jest.fn(async () => {}),
-      getClient: jest.fn(() => null)
+    vi.doMock('../../lib/cache', () => ({
+      get: vi.fn(async (key) => store[key] || null),
+      set: vi.fn(async (key, value, _ttl) => { store[key] = value; }),
+      del: vi.fn(async (key) => { delete store[key]; }),
+      initializeCache: vi.fn(async () => {}),
+      getClient: vi.fn(() => null)
     }));
 
     // Stub the security logger to avoid file/network I/O
-    jest.doMock('../../lib/auth/securityLogger', () => ({
-      logEvent: jest.fn(async () => {}),
+    vi.doMock('../../lib/auth/securityLogger', () => ({
+      logEvent: vi.fn(async () => {}),
       SEVERITY: { WARNING: 'WARNING', INFO: 'INFO' }
     }));
 
@@ -155,7 +156,7 @@ describe('Advanced Rate-Limiter Response Headers', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   test('should include X-RateLimit-Limit header', async () => {

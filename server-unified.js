@@ -401,6 +401,8 @@ app.use(csrfProtection({
     '/api/auth/slack/callback',
     '/api/auth/login',
     '/api/auth/signup',
+    '/auth/saml',
+    '/api/auth/saml',
     '/health',
     '/monitoring',
     '/payments/webhooks/stripe',
@@ -635,6 +637,11 @@ app.use('/api', channelsRoutes);
 
 app.use('/', healthRoutes);
 app.use('/api', healthRoutes);
+
+// Sprint 61: SAML SSO routes
+const samlRoutes = require('./routes/saml');
+app.use('/auth/saml', samlRoutes);
+app.use('/api/auth/saml', samlRoutes);
 
 // Sprint 41: Enterprise & Compliance routes
 const adminAuditRoutes = require('./routes/admin-audit');

@@ -11,6 +11,7 @@
             "@dnd-kit/utilities": "^3.2.2",
             "@hookform/resolvers": "^5.2.2",
             "@modelcontextprotocol/sdk": "^1.26.0",
+            "@node-saml/node-saml": "^5.1.0",
             "@octokit/rest": "^22.0.0",
             "@paralleldrive/cuid2": "^2.2.2",
             "@radix-ui/react-accordion": "^1.2.3",

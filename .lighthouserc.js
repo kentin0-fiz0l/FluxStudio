@@ -2,10 +2,10 @@
  * Lighthouse CI Configuration
  *
  * Enforced thresholds (error level -- fails CI on violation):
- *   Performance   >= 85
+ *   Performance   >= 90
  *   Accessibility >= 95
  *   Best Practices >= 90
- *   SEO           >= 80
+ *   SEO           >= 90
  *
  * Run locally:  npx @lhci/cli autorun
  * CI:           lhci autorun  (installed globally in the workflow)
@@ -27,10 +27,10 @@ module.exports = {
       preset: 'lighthouse:recommended',
       assertions: {
         // -- Category scores (error = fail the build) --
-        'categories:performance': ['error', { minScore: 0.85 }],
+        'categories:performance': ['error', { minScore: 0.90 }],
         'categories:accessibility': ['error', { minScore: 0.95 }],
         'categories:best-practices': ['error', { minScore: 0.90 }],
-        'categories:seo': ['error', { minScore: 0.80 }],
+        'categories:seo': ['error', { minScore: 0.90 }],
 
         // -- Core Web Vitals --
         'largest-contentful-paint': ['error', { maxNumericValue: 2500 }],

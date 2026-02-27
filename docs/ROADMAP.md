@@ -126,10 +126,14 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 - IP-based rate limiting and abuse prevention ✅
 - First-run product tour (<30s to first creative action) ✅
 
-### 6.2 Enterprise SSO
-- SAML 2.0 with IdP discovery (Okta, Azure AD, OneLogin)
-- Just-in-time provisioning for enterprise users
-- Domain-verified SSO enforcement per organization
+### 6.2 Enterprise SSO (Sprint 61–62)
+- [x] Database schema: SAML configurations, verified domains, SSO audit events (Sprint 61)
+- [x] SAML service: config loading, SP metadata, AuthnRequest, assertion validation (Sprint 61)
+- [x] SAML routes: login initiation, ACS callback, metadata endpoint (Sprint 61)
+- [x] Domain verification service with DNS TXT lookup (Sprint 61)
+- [ ] Admin UI for SAML configuration and domain verification
+- [ ] Full IdP integration testing (Okta, Azure AD, OneLogin)
+- [ ] Production rollout and SSO enforcement per organization
 
 ### 6.3 Growth & Engagement (Sprint 44) ✅
 - User funnel analytics (signup → activation → retention) ✅
@@ -186,7 +190,7 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 | Provider Nesting | 13 levels | 1 level (Zustand) | 1 level ✅ |
 | Bundle Size | 1.07MB | ~650KB | <500KB |
 | Test Coverage | ~20% | ~55% (thresholds at 75%) | 75%+ |
-| Lighthouse Score | — | — | 90+ |
+| Lighthouse Score | — | 90+ enforced (CI) | 90+ ✅ |
 | Monthly Active Users | 0 | 0 | First 100 |
 
 ---
