@@ -32,6 +32,7 @@ export default defineConfig({
       'tests/smoke/**',  // Smoke tests use Playwright, not Vitest
       'tests/routes/**',  // Route tests use Jest, not Vitest
       'tests/unit/**',  // Unit tests in tests/ folder use Jest
+      'tests/lib/**',  // Backend lib tests use Jest
       '**/*.e2e.*',
       '**/*.spec.ts',
       '**/*.integration.*',  // Integration tests marked with .integration.

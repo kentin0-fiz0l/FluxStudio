@@ -131,7 +131,8 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 - [x] SAML service: config loading, SP metadata, AuthnRequest, assertion validation (Sprint 61)
 - [x] SAML routes: login initiation, ACS callback, metadata endpoint (Sprint 61)
 - [x] Domain verification service with DNS TXT lookup (Sprint 61)
-- [ ] Admin UI for SAML configuration and domain verification
+- [x] Admin UI for SAML configuration and domain verification (Sprint 62)
+- [x] Org SSO settings API routes with test coverage (Sprint 62)
 - [ ] Full IdP integration testing (Okta, Azure AD, OneLogin)
 - [ ] Production rollout and SSO enforcement per organization
 
@@ -188,7 +189,7 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 | Offline Capability | None | Partial (Dexie + SW) | Full sync |
 | Real-time Latency | ~200ms | ~80ms | <50ms |
 | Provider Nesting | 13 levels | 1 level (Zustand) | 1 level ✅ |
-| Bundle Size | 1.07MB | ~650KB | <500KB |
+| Bundle Size | 1.07MB | ~650KB (lazy vendor chunks excluded from CI hard limit) | <500KB |
 | Test Coverage | ~20% | ~55% (thresholds at 75%) | 75%+ |
 | Lighthouse Score | — | 90+ enforced (CI) | 90+ ✅ |
 | Monthly Active Users | 0 | 0 | First 100 |
@@ -222,4 +223,4 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 
 ---
 
-*Last Updated: February 2026*
+*Last Updated: February 2026 (Sprint 62)*

@@ -662,6 +662,11 @@ app.use('/api/2fa', twoFactorRoutes);
 app.use('/organizations/:orgId/roles', rolesRoutes);
 app.use('/api/organizations/:orgId/roles', rolesRoutes);
 
+// Sprint 62: Organization SSO settings routes
+const orgSsoRoutes = require('./routes/org-sso-settings');
+app.use('/organizations/:orgId/sso', orgSsoRoutes);
+app.use('/api/organizations/:orgId/sso', orgSsoRoutes);
+
 app.use('/sessions', sessionsRoutes);
 app.use('/api/sessions', sessionsRoutes);
 

@@ -28,17 +28,9 @@
  */
 
 import * as React from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
 import {
   Save,
   Trash2,
-  Bold,
-  Italic,
-  List,
-  ListOrdered,
-  Link as LinkIcon,
   Loader2,
   Check,
 } from 'lucide-react';
@@ -70,6 +62,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+
+const TaskDescriptionEditor = React.lazy(() =>
+  import('./TaskDescriptionEditor').then(m => ({ default: m.TaskDescriptionEditor }))
+);
 
 // ============================================================================
 // Type Definitions
@@ -138,110 +134,6 @@ function validateTask(
 }
 
 // ============================================================================
-// Rich Text Editor Toolbar Component
-// ============================================================================
-
-interface EditorToolbarProps {
-  editor: ReturnType<typeof import('@tiptap/react').useEditor> | null;
-}
-
-const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {
-  if (!editor) return null;
-
-  return (
-    <div
-      className="flex items-center gap-1 border-b border-neutral-200 p-2 bg-neutral-50"
-      role="toolbar"
-      aria-label="Text formatting toolbar"
-    >
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        className={cn(
-          'h-8 w-8',
-          editor.isActive('bold') && 'bg-neutral-200'
-        )}
-        aria-label="Bold"
-        aria-pressed={editor.isActive('bold')}
-      >
-        <Bold className="h-4 w-4" aria-hidden="true" />
-      </Button>
-
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        className={cn(
-          'h-8 w-8',
-          editor.isActive('italic') && 'bg-neutral-200'
-        )}
-        aria-label="Italic"
-        aria-pressed={editor.isActive('italic')}
-      >
-        <Italic className="h-4 w-4" aria-hidden="true" />
-      </Button>
-
-      <div className="w-px h-6 bg-neutral-300 mx-1" aria-hidden="true" />
-
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        className={cn(
-          'h-8 w-8',
-          editor.isActive('bulletList') && 'bg-neutral-200'
-        )}
-        aria-label="Bullet list"
-        aria-pressed={editor.isActive('bulletList')}
-      >
-        <List className="h-4 w-4" aria-hidden="true" />
-      </Button>
-
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        className={cn(
-          'h-8 w-8',
-          editor.isActive('orderedList') && 'bg-neutral-200'
-        )}
-        aria-label="Numbered list"
-        aria-pressed={editor.isActive('orderedList')}
-      >
-        <ListOrdered className="h-4 w-4" aria-hidden="true" />
-      </Button>
-
-      <div className="w-px h-6 bg-neutral-300 mx-1" aria-hidden="true" />
-
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={() => {
-          const url = window.prompt('Enter URL:');
-          if (url) {
-            editor.chain().focus().setLink({ href: url }).run();
-          }
-        }}
-        className={cn(
-          'h-8 w-8',
-          editor.isActive('link') && 'bg-neutral-200'
-        )}
-        aria-label="Insert link"
-        aria-pressed={editor.isActive('link')}
-      >
-        <LinkIcon className="h-4 w-4" aria-hidden="true" />
-      </Button>
-    </div>
-  );
-};
-
-// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -275,34 +167,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   const titleInputRef = React.useRef<HTMLInputElement>(null);
 
   // ============================================================================
-  // TipTap Editor Setup
-  // ============================================================================
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({
-        placeholder: 'Add task description...',
-      }),
-    ],
-    content: description,
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      setDescription(html);
-      // Count characters (strip HTML tags for accurate count)
-      const text = editor.getText();
-      setCharacterCount(text.length);
-    },
-    editorProps: {
-      attributes: {
-        class:
-          'prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4',
-        'aria-label': 'Task description editor',
-      },
-    },
-  });
-
-  // ============================================================================
   // Initialize Form Data from Task
   // ============================================================================
 
@@ -319,10 +183,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
           task.dueDate ? task.dueDate.split('T')[0] : ''
         );
 
-        // Update editor content
-        if (editor) {
-          editor.commands.setContent(task.description || '');
-        }
       } else {
         // Create mode - reset to defaults
         setTitle('');
@@ -331,10 +191,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
         setPriority('medium');
         setAssignedTo(null);
         setDueDate('');
-
-        if (editor) {
-          editor.commands.setContent('');
-        }
       }
 
       // Clear errors
@@ -345,7 +201,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
         titleInputRef.current?.focus();
       }, 100);
     }
-  }, [isOpen, task, editor]);
+  }, [isOpen, task]);
 
   // ============================================================================
   // Event Handlers
@@ -410,9 +266,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
         handleSave();
       }
 
-      // Escape to close (if not in editor)
-      if (e.key === 'Escape' && document.activeElement !== editor?.view.dom) {
-        handleClose();
+      // Escape to close (if not in a contenteditable editor)
+      if (e.key === 'Escape') {
+        const active = document.activeElement;
+        const isInEditor = active?.closest('.ProseMirror') !== null;
+        if (!isInEditor) {
+          handleClose();
+        }
       }
     };
 
@@ -420,7 +280,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isOpen, editor, handleClose, handleSave]);
+  }, [isOpen, handleClose, handleSave]);
 
   const handleDelete = async () => {
     if (!task) return;
@@ -528,25 +388,15 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             {/* Rich Text Editor */}
             <div>
               <Label htmlFor="task-description">Description</Label>
-              <div
-                className={cn(
-                  'border rounded-lg overflow-hidden',
-                  errors.description
-                    ? 'border-error-500'
-                    : 'border-neutral-300 focus-within:border-primary-500 focus-within:ring-3 focus-within:ring-primary-500/20'
-                )}
-              >
-                <EditorToolbar editor={editor} />
-                <EditorContent
-                  editor={editor}
-                  id="task-description"
-                  aria-invalid={!!errors.description}
-                  aria-describedby={
-                    errors.description ? 'description-error' : 'description-count'
-                  }
-                  className={cn(isSaving || isDeleting ? 'opacity-50 pointer-events-none' : '')}
+              <React.Suspense fallback={<div className="h-32 bg-neutral-100 animate-pulse rounded-lg" />}>
+                <TaskDescriptionEditor
+                  content={description}
+                  onContentChange={(html) => setDescription(html)}
+                  onCharacterCountChange={setCharacterCount}
+                  disabled={isSaving || isDeleting}
+                  error={errors.description}
                 />
-              </div>
+              </React.Suspense>
               <div className="flex justify-between mt-1">
                 {errors.description ? (
                   <span id="description-error" className="text-sm text-error-600">
