@@ -145,24 +145,24 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 - MetMap mobile layout (drawer sidebar, horizontal timeline) ✅
 - Trial eligibility tracking and touch drag polish ✅
 
-### 6.5 Formation Editor Polish & Collaboration (Sprint 46)
-- Rubber-band multi-select and snap-to-grid
-- Yjs live collaboration wiring (real-time formation co-editing)
-- Keyframe interpolation and 3D animation playback
-- Share & embed improvements (iframe embed, duplicate to account)
+### 6.5 Formation Editor Polish & Collaboration (Sprint 60) ✅
+- [x] Rubber-band multi-select and snap-to-grid
+- [x] Yjs live collaboration wiring (real-time formation co-editing)
+- [x] Keyframe interpolation and 3D animation playback
+- [x] Share & embed improvements (iframe embed, duplicate to account)
 
-### 6.6 Audio Sync & Performance (Sprint 47)
-- Audio-to-formation timeline binding with BPM detection
-- Synchronized playback (audio + formation animation)
-- Bundle size reduction (<300KB main chunk)
-- Lighthouse CI enforcement and Web Vitals pipeline
+### 6.6 Audio Sync & Performance (Sprint 60) ✅
+- [x] Audio-to-formation timeline binding with BPM detection
+- [x] Synchronized playback (audio + formation animation)
+- [x] Bundle size reduction (<300KB main chunk)
+- [x] Lighthouse CI enforcement and Web Vitals pipeline
 
-### 6.7 Mobile Creative Experience & User Acquisition (Sprint 48)
-- Touch-optimized formation canvas (pinch-to-zoom, pointer events)
-- MetMap mobile layout completion
-- /try sandbox conversion optimization
-- SEO programmatic landing pages and structured data
-- Admin metrics dashboard (real data)
+### 6.7 Mobile Creative Experience & User Acquisition (Sprint 60) ✅
+- [x] Touch-optimized formation canvas (pinch-to-zoom, pointer events)
+- [x] MetMap mobile layout completion
+- [x] /try sandbox conversion optimization
+- [x] SEO programmatic landing pages and structured data
+- [x] Admin metrics dashboard (real data)
 
 ---
 

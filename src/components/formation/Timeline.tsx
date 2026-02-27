@@ -5,7 +5,7 @@
  * keyframe markers, and scrubbing capability.
  */
 
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Play,
@@ -25,6 +25,9 @@ import type { DrillSettings } from '../../services/formationTypes';
 import { generateCountMarkers, timeToCount } from '../../utils/drillGeometry';
 import { useAudioPlayback } from '../../hooks/useAudioPlayback';
 
+// Lazy-load AudioSyncTimeline to avoid wavesurfer bundle impact when no audio
+const AudioSyncTimeline = lazy(() => import('./AudioSyncTimeline'));
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -38,6 +41,8 @@ interface TimelineProps {
   audioTrack?: AudioTrack | null;
   drillSettings?: DrillSettings;
   timeDisplayMode?: 'time' | 'counts';
+  snapResolution?: 'beat' | 'half-beat' | 'measure';
+  onSnapResolutionChange?: (resolution: 'beat' | 'half-beat' | 'measure') => void;
   onDrillSettingsChange?: (settings: DrillSettings) => void;
   onPlay: () => void;
   onPause: () => void;
@@ -225,6 +230,8 @@ export function Timeline({
   onKeyframeRemove,
   drillSettings,
   timeDisplayMode = 'time',
+  snapResolution = 'beat',
+  onSnapResolutionChange,
   onDrillSettingsChange,
   onKeyframeMove,
 }: TimelineProps) {
@@ -559,61 +566,65 @@ export function Timeline({
               })}
         </div>
 
-        {/* Timeline Bar */}
-        <div
-          ref={timelineRef}
-          className="relative h-16 bg-gray-200 dark:bg-gray-700 rounded-lg cursor-pointer overflow-hidden"
-          style={{ width: `${100 * zoom}%` }}
-          onMouseDown={handleTimelineMouseDown}
-        >
-          {/* Progress Bar */}
-          <div
-            className="absolute top-0 bottom-0 bg-blue-100 dark:bg-blue-900/50"
-            style={{ width: `${playheadPosition}%` }}
-          />
-
-          {/* Audio beat markers (from BPM detection) */}
-          {audioTrack?.bpm && audioTrack.bpm > 0 && (() => {
-            const beatInterval = 60000 / audioTrack.bpm;
-            const markers: React.ReactNode[] = [];
-            let beat = 0;
-            for (let t = 0; t < duration; t += beatInterval) {
-              beat++;
-              const pos = duration > 0 ? (t / duration) * 100 : 0;
-              const isDownbeat = beat % 4 === 1;
-              markers.push(
-                <div
-                  key={`beat-${beat}`}
-                  className={`absolute top-0 ${isDownbeat ? 'h-full bg-indigo-400/20' : 'h-1/3 bg-indigo-400/10'}`}
-                  style={{ left: `${pos}%`, width: '1px' }}
-                />
-              );
-            }
-            return markers;
-          })()}
-
-          {/* Keyframe Markers */}
-          {keyframes.map((keyframe, index) => (
-            <KeyframeMarker
-              key={keyframe.id}
-              keyframe={keyframe}
+        {/* Timeline Bar — AudioSyncTimeline (waveform + beat-snap) when audio present, basic bar otherwise */}
+        {audioTrack?.url ? (
+          <Suspense fallback={
+            <div className="relative h-24 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" style={{ width: `${100 * zoom}%` }} />
+          }>
+            <AudioSyncTimeline
+              audioUrl={audioTrack.url}
+              beatMap={null}
+              keyframes={keyframes}
+              currentTime={currentTime}
               duration={duration}
-              isSelected={selectedKeyframeId === keyframe.id}
-              isFirst={index === 0}
-              onSelect={() => onKeyframeSelect(keyframe.id)}
-              onMove={(timestamp) => onKeyframeMove(keyframe.id, timestamp)}
-              onRemove={() => onKeyframeRemove(keyframe.id)}
+              zoom={zoom * 50}
+              bpm={audioTrack.bpm || drillSettings?.bpm || 120}
+              snapResolution={snapResolution}
+              selectedKeyframeId={selectedKeyframeId}
+              isPlaying={playbackState.isPlaying}
+              onSeek={onSeek}
+              onKeyframeMove={onKeyframeMove}
+              onKeyframeAdd={onKeyframeAdd}
+              onKeyframeSelect={onKeyframeSelect}
+              onSnapResolutionChange={onSnapResolutionChange}
             />
-          ))}
-
-          {/* Playhead */}
+          </Suspense>
+        ) : (
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-50"
-            style={{ left: `${playheadPosition}%` }}
+            ref={timelineRef}
+            className="relative h-16 bg-gray-200 dark:bg-gray-700 rounded-lg cursor-pointer overflow-hidden"
+            style={{ width: `${100 * zoom}%` }}
+            onMouseDown={handleTimelineMouseDown}
           >
-            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-red-500 rounded-full" />
+            {/* Progress Bar */}
+            <div
+              className="absolute top-0 bottom-0 bg-blue-100 dark:bg-blue-900/50"
+              style={{ width: `${playheadPosition}%` }}
+            />
+
+            {/* Keyframe Markers */}
+            {keyframes.map((keyframe, index) => (
+              <KeyframeMarker
+                key={keyframe.id}
+                keyframe={keyframe}
+                duration={duration}
+                isSelected={selectedKeyframeId === keyframe.id}
+                isFirst={index === 0}
+                onSelect={() => onKeyframeSelect(keyframe.id)}
+                onMove={(timestamp) => onKeyframeMove(keyframe.id, timestamp)}
+                onRemove={() => onKeyframeRemove(keyframe.id)}
+              />
+            ))}
+
+            {/* Playhead */}
+            <div
+              className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-50"
+              style={{ left: `${playheadPosition}%` }}
+            >
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-red-500 rounded-full" />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Keyframe List */}

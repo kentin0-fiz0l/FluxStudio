@@ -9,7 +9,7 @@
  * Toolbar extracted to CanvasToolbar.tsx, PerformerPanel to PerformerPanel.tsx
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { Timeline } from '../Timeline';
@@ -32,6 +32,7 @@ export type { FormationCanvasProps };
 export function FormationCanvas(props: FormationCanvasProps) {
   const { formationId, projectId, onSave, sandboxMode = false, onPositionsChange } = props;
   const { t } = useTranslation('common');
+  const [snapResolution, setSnapResolution] = useState<'beat' | 'half-beat' | 'measure'>('beat');
 
   const state = useCanvasState(props);
 
@@ -269,6 +270,8 @@ export function FormationCanvas(props: FormationCanvasProps) {
         audioTrack={formation.audioTrack}
         drillSettings={drillSettings}
         timeDisplayMode={timeDisplayMode}
+        snapResolution={snapResolution}
+        onSnapResolutionChange={setSnapResolution}
         onDrillSettingsChange={setDrillSettings}
         onPlay={handlePlay}
         onPause={handlePause}
