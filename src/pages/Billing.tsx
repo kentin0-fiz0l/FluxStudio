@@ -299,6 +299,20 @@ export function Billing() {
               ) : (
                 <div className="space-y-3">
                   <p className="text-neutral-500 dark:text-neutral-400">No active subscription</p>
+                  {subscription?.canTrial && (
+                    <div className="p-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/40 dark:to-purple-950/40">
+                      <p className="text-sm font-medium text-neutral-900 dark:text-white mb-2">
+                        Start your 14-day free trial of Pro &mdash; no credit card required
+                      </p>
+                      <button
+                        onClick={() => navigate('/checkout?plan=pro&trial=true')}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all"
+                      >
+                        Start Free Trial
+                        <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
                   <button
                     onClick={() => navigate('/checkout')}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg font-medium hover:from-blue-600 hover:to-purple-600 transition-all"

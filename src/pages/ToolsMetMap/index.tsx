@@ -55,6 +55,9 @@ import { BranchSwitcher } from '../../components/metmap/BranchSwitcher';
 import { MetMapAIPanel } from '../../components/metmap/MetMapAIPanel';
 import { announceToScreenReader } from '../../utils/accessibility';
 
+// Drawer for mobile panels
+import { Drawer, DrawerContent } from '../../components/ui/drawer';
+
 // Decomposed sub-components
 import { useIsMobile, formatDuration, SongListItem, NewSongModal } from './MetMapHelpers';
 import { SectionRow, ChordGrid, PlaybackControls } from './MetMapComponents';
@@ -131,6 +134,8 @@ export default function ToolsMetMap() {
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [showPracticeStats, setShowPracticeStats] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
+  const [showSnapshotDrawer, setShowSnapshotDrawer] = useState(false);
+  const [showBranchDrawer, setShowBranchDrawer] = useState(false);
 
   // Audio timeline state
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
@@ -732,130 +737,230 @@ export default function ToolsMetMap() {
         )}
 
         {/* Left sidebar - Song list */}
-        <div className={`${
-          isMobile
-            ? `fixed inset-y-0 left-0 z-40 w-72 transform transition-transform duration-300 ease-in-out ${
-                showSongList ? 'translate-x-0' : '-translate-x-full'
-              }`
-            : 'w-72'
-        } border-r border-gray-200 bg-white flex flex-col`}>
-          {/* Header */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold text-gray-900">MetMap</h2>
-              <button
-                onClick={() => setShowNewSongModal(true)}
-                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                aria-label="New song"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mb-3">
-              Rehearse tempo + meter changes and map chord progressions — great for complex pieces.
-            </p>
-            <a
-              href="/projects"
-              className="inline-block text-xs text-indigo-600 hover:text-indigo-700 mb-3"
-            >
-              Organize this work in a project →
-            </a>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search songs..."
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
+        {isMobile ? (
+          <Drawer direction="left" open={showSongList} onOpenChange={setShowSongList}>
+            <DrawerContent className="w-72 h-full">
+              <div className="flex flex-col h-full">
+                {/* Header */}
+                <div className="p-4 border-b border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-lg font-semibold text-gray-900">MetMap</h2>
+                    <button
+                      onClick={() => setShowNewSongModal(true)}
+                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      aria-label="New song"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Rehearse tempo + meter changes and map chord progressions — great for complex pieces.
+                  </p>
+                  <a
+                    href="/projects"
+                    className="inline-block text-xs text-indigo-600 hover:text-indigo-700 mb-3"
+                  >
+                    Organize this work in a project →
+                  </a>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search songs..."
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
 
-          {/* Stats */}
-          {stats && (
-            <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500 flex gap-3">
-              <span>{stats.songCount} songs</span>
-              <span>{stats.practiceCount} sessions</span>
-              <span>{formatDuration(stats.totalPracticeMinutes)} practiced</span>
-            </div>
-          )}
+                {/* Stats */}
+                {stats && (
+                  <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500 flex gap-3">
+                    <span>{stats.songCount} songs</span>
+                    <span>{stats.practiceCount} sessions</span>
+                    <span>{formatDuration(stats.totalPracticeMinutes)} practiced</span>
+                  </div>
+                )}
 
-          {/* Song list */}
-          <div className="flex-1 overflow-y-auto">
-            {songsLoading && songs.length === 0 ? (
-              <div className="p-6 flex flex-col items-center justify-center text-gray-500">
-                <div className="animate-spin h-8 w-8 border-2 border-indigo-600 border-t-transparent rounded-full mb-3" />
-                <span className="text-sm">Loading songs...</span>
+                {/* Song list */}
+                <div className="flex-1 overflow-y-auto">
+                  {songsLoading && songs.length === 0 ? (
+                    <div className="p-6 flex flex-col items-center justify-center text-gray-500">
+                      <div className="animate-spin h-8 w-8 border-2 border-indigo-600 border-t-transparent rounded-full mb-3" />
+                      <span className="text-sm">Loading songs...</span>
+                    </div>
+                  ) : songs.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                        </svg>
+                      </div>
+                      <h3 className="text-sm font-medium text-gray-900 mb-1">No songs yet</h3>
+                      <p className="text-xs text-gray-500 mb-4">
+                        Map out tempo changes, time signatures, and chord progressions for practice.
+                      </p>
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => {
+                            const quickStartSections: Section[] = [
+                              { id: crypto.randomUUID(), name: 'Intro', bars: 4, timeSignature: '4/4', tempoStart: 120, orderIndex: 0, startBar: 1 },
+                              { id: crypto.randomUUID(), name: 'Verse', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 1, startBar: 5 },
+                              { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 2, startBar: 13 },
+                              { id: crypto.randomUUID(), name: 'Verse', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 3, startBar: 21 },
+                              { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 4, startBar: 29 },
+                              { id: crypto.randomUUID(), name: 'Bridge', bars: 4, timeSignature: '4/4', tempoStart: 100, orderIndex: 5, startBar: 37 },
+                              { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 6, startBar: 41 },
+                              { id: crypto.randomUUID(), name: 'Outro', bars: 4, timeSignature: '4/4', tempoStart: 120, orderIndex: 7, startBar: 49 },
+                            ];
+                            const quickStartSong: Partial<Song> = {
+                              title: 'My Song',
+                              projectId: undefined,
+                              bpmDefault: 120,
+                              timeSignatureDefault: '4/4',
+                              sectionCount: quickStartSections.length,
+                              totalBars: quickStartSections.reduce((sum, s) => sum + s.bars, 0),
+                              practiceCount: 0,
+                              sections: quickStartSections,
+                            };
+                            createSong(quickStartSong);
+                          }}
+                          className="w-full px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                          Quick Start (with template)
+                        </button>
+                        <button
+                          onClick={() => setShowNewSongModal(true)}
+                          className="w-full px-4 py-2 border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          Start from scratch
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    songs.map((song) => (
+                      <SongListItem
+                        key={song.id}
+                        song={song}
+                        isSelected={currentSong?.id === song.id}
+                        onClick={() => handleSelectSong(song)}
+                      />
+                    ))
+                  )}
+                </div>
               </div>
-            ) : songs.length === 0 ? (
-              <div className="p-6 text-center">
-                <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </DrawerContent>
+          </Drawer>
+        ) : (
+          <div className="w-72 border-r border-gray-200 bg-white flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-semibold text-gray-900">MetMap</h2>
+                <button
+                  onClick={() => setShowNewSongModal(true)}
+                  className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                  aria-label="New song"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                </div>
-                <h3 className="text-sm font-medium text-gray-900 mb-1">No songs yet</h3>
-                <p className="text-xs text-gray-500 mb-4">
-                  Map out tempo changes, time signatures, and chord progressions for practice.
-                </p>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => {
-                      const quickStartSections: Section[] = [
-                        { id: crypto.randomUUID(), name: 'Intro', bars: 4, timeSignature: '4/4', tempoStart: 120, orderIndex: 0, startBar: 1 },
-                        { id: crypto.randomUUID(), name: 'Verse', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 1, startBar: 5 },
-                        { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 2, startBar: 13 },
-                        { id: crypto.randomUUID(), name: 'Verse', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 3, startBar: 21 },
-                        { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 4, startBar: 29 },
-                        { id: crypto.randomUUID(), name: 'Bridge', bars: 4, timeSignature: '4/4', tempoStart: 100, orderIndex: 5, startBar: 37 },
-                        { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 6, startBar: 41 },
-                        { id: crypto.randomUUID(), name: 'Outro', bars: 4, timeSignature: '4/4', tempoStart: 120, orderIndex: 7, startBar: 49 },
-                      ];
-                      const quickStartSong: Partial<Song> = {
-                        title: 'My Song',
-                        projectId: undefined,
-                        bpmDefault: 120,
-                        timeSignatureDefault: '4/4',
-                        sectionCount: quickStartSections.length,
-                        totalBars: quickStartSections.reduce((sum, s) => sum + s.bars, 0),
-                        practiceCount: 0,
-                        sections: quickStartSections,
-                      };
-                      createSong(quickStartSong);
-                    }}
-                    className="w-full px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
-                  >
-                    Quick Start (with template)
-                  </button>
-                  <button
-                    onClick={() => setShowNewSongModal(true)}
-                    className="w-full px-4 py-2 border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Start from scratch
-                  </button>
-                </div>
+                </button>
               </div>
-            ) : (
-              songs.map((song) => (
-                <SongListItem
-                  key={song.id}
-                  song={song}
-                  isSelected={currentSong?.id === song.id}
-                  onClick={() => handleSelectSong(song)}
-                />
-              ))
-            )}
-          </div>
-        </div>
+              <p className="text-xs text-gray-500 mb-3">
+                Rehearse tempo + meter changes and map chord progressions — great for complex pieces.
+              </p>
+              <a
+                href="/projects"
+                className="inline-block text-xs text-indigo-600 hover:text-indigo-700 mb-3"
+              >
+                Organize this work in a project →
+              </a>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search songs..."
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
 
-        {/* Mobile sidebar backdrop */}
-        {isMobile && showSongList && (
-          <div
-            className="fixed inset-0 bg-black/40 z-30"
-            role="presentation"
-            onClick={() => setShowSongList(false)}
-            aria-hidden="true"
-          />
+            {/* Stats */}
+            {stats && (
+              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500 flex gap-3">
+                <span>{stats.songCount} songs</span>
+                <span>{stats.practiceCount} sessions</span>
+                <span>{formatDuration(stats.totalPracticeMinutes)} practiced</span>
+              </div>
+            )}
+
+            {/* Song list */}
+            <div className="flex-1 overflow-y-auto">
+              {songsLoading && songs.length === 0 ? (
+                <div className="p-6 flex flex-col items-center justify-center text-gray-500">
+                  <div className="animate-spin h-8 w-8 border-2 border-indigo-600 border-t-transparent rounded-full mb-3" />
+                  <span className="text-sm">Loading songs...</span>
+                </div>
+              ) : songs.length === 0 ? (
+                <div className="p-6 text-center">
+                  <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-1">No songs yet</h3>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Map out tempo changes, time signatures, and chord progressions for practice.
+                  </p>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        const quickStartSections: Section[] = [
+                          { id: crypto.randomUUID(), name: 'Intro', bars: 4, timeSignature: '4/4', tempoStart: 120, orderIndex: 0, startBar: 1 },
+                          { id: crypto.randomUUID(), name: 'Verse', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 1, startBar: 5 },
+                          { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 2, startBar: 13 },
+                          { id: crypto.randomUUID(), name: 'Verse', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 3, startBar: 21 },
+                          { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 4, startBar: 29 },
+                          { id: crypto.randomUUID(), name: 'Bridge', bars: 4, timeSignature: '4/4', tempoStart: 100, orderIndex: 5, startBar: 37 },
+                          { id: crypto.randomUUID(), name: 'Chorus', bars: 8, timeSignature: '4/4', tempoStart: 120, orderIndex: 6, startBar: 41 },
+                          { id: crypto.randomUUID(), name: 'Outro', bars: 4, timeSignature: '4/4', tempoStart: 120, orderIndex: 7, startBar: 49 },
+                        ];
+                        const quickStartSong: Partial<Song> = {
+                          title: 'My Song',
+                          projectId: undefined,
+                          bpmDefault: 120,
+                          timeSignatureDefault: '4/4',
+                          sectionCount: quickStartSections.length,
+                          totalBars: quickStartSections.reduce((sum, s) => sum + s.bars, 0),
+                          practiceCount: 0,
+                          sections: quickStartSections,
+                        };
+                        createSong(quickStartSong);
+                      }}
+                      className="w-full px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                      Quick Start (with template)
+                    </button>
+                    <button
+                      onClick={() => setShowNewSongModal(true)}
+                      className="w-full px-4 py-2 border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Start from scratch
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                songs.map((song) => (
+                  <SongListItem
+                    key={song.id}
+                    song={song}
+                    isSelected={currentSong?.id === song.id}
+                    onClick={() => handleSelectSong(song)}
+                  />
+                ))
+              )}
+            </div>
+          </div>
         )}
 
         {/* Main content + AI panel */}
@@ -907,18 +1012,63 @@ export default function ToolsMetMap() {
                       </div>
                     )}
                     {/* Branch switcher (Sprint 33) */}
-                    <BranchSwitcher
-                      branches={branches}
-                      snapshots={snapshots}
-                      activeBranchId={activeBranchId}
-                      currentUserId={user?.id || ''}
-                      onSwitchBranch={setActiveBranchId}
-                      onCreateBranch={createBranchMutation}
-                      onDeleteBranch={deleteBranchMutation}
-                      onMergeBranch={mergeBranchMutation}
-                      isCreating={isBranchCreating}
-                      isMerging={isBranchMerging}
-                    />
+                    {isMobile ? (
+                      <>
+                        <button
+                          onClick={() => setShowBranchDrawer(true)}
+                          className="p-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+                          aria-label="Branches"
+                          title="Branches"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </button>
+                        <Drawer direction="bottom" open={showBranchDrawer} onOpenChange={setShowBranchDrawer}>
+                          <DrawerContent className="max-h-[80vh] p-4">
+                            <BranchSwitcher
+                              branches={branches}
+                              snapshots={snapshots}
+                              activeBranchId={activeBranchId}
+                              currentUserId={user?.id || ''}
+                              onSwitchBranch={setActiveBranchId}
+                              onCreateBranch={createBranchMutation}
+                              onDeleteBranch={deleteBranchMutation}
+                              onMergeBranch={mergeBranchMutation}
+                              isCreating={isBranchCreating}
+                              isMerging={isBranchMerging}
+                            />
+                          </DrawerContent>
+                        </Drawer>
+                      </>
+                    ) : (
+                      <BranchSwitcher
+                        branches={branches}
+                        snapshots={snapshots}
+                        activeBranchId={activeBranchId}
+                        currentUserId={user?.id || ''}
+                        onSwitchBranch={setActiveBranchId}
+                        onCreateBranch={createBranchMutation}
+                        onDeleteBranch={deleteBranchMutation}
+                        onMergeBranch={mergeBranchMutation}
+                        isCreating={isBranchCreating}
+                        isMerging={isBranchMerging}
+                      />
+                    )}
+                    {/* Snapshot drawer trigger (mobile only) */}
+                    {isMobile && isCollabActive && (
+                      <button
+                        onClick={() => setShowSnapshotDrawer(true)}
+                        className="p-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+                        aria-label="Snapshots"
+                        title="Snapshots"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </button>
+                    )}
                     {hasUnsavedChanges && (
                       <span className="text-xs text-orange-500">Unsaved changes</span>
                     )}
@@ -1130,7 +1280,24 @@ export default function ToolsMetMap() {
                   )}
 
                   {/* Snapshot Panel (Sprint 33) */}
-                  {isCollabActive && (
+                  {isCollabActive && (isMobile ? (
+                    <Drawer direction="bottom" open={showSnapshotDrawer} onOpenChange={setShowSnapshotDrawer}>
+                      <DrawerContent className="max-h-[80vh] p-4">
+                        <SnapshotPanel
+                          snapshots={snapshots}
+                          isLoading={snapshotsLoading}
+                          currentUserId={user?.id || ''}
+                          sectionCount={editedSections.length}
+                          totalBars={totalBars}
+                          onCreateSnapshot={createSnapshotMutation}
+                          onDeleteSnapshot={deleteSnapshotMutation}
+                          onRestoreSnapshot={restoreSnapshotMutation}
+                          isCreating={isSnapshotCreating}
+                          isRestoring={isSnapshotRestoring}
+                        />
+                      </DrawerContent>
+                    </Drawer>
+                  ) : (
                     <SnapshotPanel
                       snapshots={snapshots}
                       isLoading={snapshotsLoading}
@@ -1143,7 +1310,7 @@ export default function ToolsMetMap() {
                       isCreating={isSnapshotCreating}
                       isRestoring={isSnapshotRestoring}
                     />
-                  )}
+                  ))}
 
                   {/* Keyframe Editor */}
                   {editedSections.length > 0 && (
@@ -1422,7 +1589,22 @@ export default function ToolsMetMap() {
         </div>
 
         {/* AI Co-Pilot Panel (Sprint 34) */}
-        {showAIPanel && currentSong && token && (
+        {currentSong && token && (isMobile ? (
+          <Drawer direction="bottom" open={showAIPanel} onOpenChange={setShowAIPanel}>
+            <DrawerContent className="max-h-[80vh]">
+              <MetMapAIPanel
+                songId={currentSong.id}
+                token={token}
+                sections={editedSections}
+                onClose={() => setShowAIPanel(false)}
+                onApplyChords={(sectionIndex, chords) => {
+                  snapshotAndUpdateChords(sectionIndex, chords);
+                  showNotification({ type: 'success', title: 'Chords Applied', message: `Applied AI chord suggestion to ${editedSections[sectionIndex]?.name || 'section'}` });
+                }}
+              />
+            </DrawerContent>
+          </Drawer>
+        ) : showAIPanel && (
           <MetMapAIPanel
             songId={currentSong.id}
             token={token}
@@ -1433,7 +1615,7 @@ export default function ToolsMetMap() {
               showNotification({ type: 'success', title: 'Chords Applied', message: `Applied AI chord suggestion to ${editedSections[sectionIndex]?.name || 'section'}` });
             }}
           />
-        )}
+        ))}
         </div>
       </div>}
 

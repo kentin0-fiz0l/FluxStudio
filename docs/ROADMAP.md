@@ -138,12 +138,12 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 - Referral and invite system ✅
 - Real-time notification delivery via Socket.IO ✅
 
-### 6.4 Production Polish (Sprint 45)
-- Web Vitals RUM pipeline (browser → backend → admin dashboard)
-- Admin metrics API (real endpoints replacing stubs)
-- Responsive dialogs and mobile shell fixes (<375px, iOS notch)
-- MetMap mobile layout (drawer sidebar, horizontal timeline)
-- Trial eligibility tracking and touch drag polish
+### 6.4 Production Polish (Sprint 59) ✅
+- Web Vitals RUM pipeline (browser → backend → admin dashboard) ✅
+- Admin metrics API (real endpoints replacing stubs) ✅
+- Responsive dialogs and mobile shell fixes (<375px, iOS notch) ✅
+- MetMap mobile layout (drawer sidebar, horizontal timeline) ✅
+- Trial eligibility tracking and touch drag polish ✅
 
 ### 6.5 Formation Editor Polish & Collaboration (Sprint 46)
 - Rubber-band multi-select and snap-to-grid
