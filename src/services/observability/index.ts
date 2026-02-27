@@ -169,18 +169,25 @@ class AnalyticsService {
     }
   }
 
-  /** Flush using sendBeacon (for page unload) */
+  /** Flush using fetch with keepalive (for page unload) */
   flushBeacon(): void {
     if (this.queue.length === 0) return;
     const token = localStorage.getItem('auth_token');
     if (!token) return;
 
     const batch = this.queue.splice(0, 50);
-    const blob = new Blob(
-      [JSON.stringify({ events: batch })],
-      { type: 'application/json' }
-    );
-    navigator.sendBeacon(`${API_URL}/api/observability/events`, blob);
+    fetch(`${API_URL}/api/observability/events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ events: batch }),
+      keepalive: true,
+    }).catch(() => {
+      // Re-queue on failure
+      this.queue.unshift(...batch);
+    });
   }
 
   /** Start auto-flush timer and page lifecycle hooks */

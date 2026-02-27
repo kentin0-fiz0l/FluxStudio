@@ -84,7 +84,7 @@ class CollaborationService {
   }
 
   private initializeSocket() {
-    const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+    const serverUrl = import.meta.env.VITE_SERVER_URL || window.location.origin;
 
     this.socket = io(serverUrl, {
       transports: ['websocket'],

@@ -69,7 +69,7 @@ export class CollaborationService {
   private initializeSocket(): void {
     const wsUrl = import.meta.env.VITE_WS_URL ||
                   process.env.REACT_APP_WS_URL ||
-                  'ws://localhost:3001';
+                  `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 
     try {
       this.socket = io(wsUrl, {

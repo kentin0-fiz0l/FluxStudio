@@ -92,6 +92,7 @@ const { Component: SearchResults } = lazyLoadWithRetry(() => import('./pages/Sea
 const { Component: AdminDashboard } = lazyLoadWithRetry(() => import('./pages/admin/Dashboard'));
 const { Component: AdminUsers } = lazyLoadWithRetry(() => import('./pages/admin/Users'));
 const { Component: AdminAuditLogs } = lazyLoadWithRetry(() => import('./pages/admin/AuditLogs'));
+const { Component: AdminFeedback } = lazyLoadWithRetry(() => import('./pages/admin/Feedback'));
 const { Component: AdminMetrics } = lazyLoadWithRetry(() => import('./pages/AdminMetrics'));
 const { Component: OrganizationDashboard } = lazyLoadWithRetry(() => import('./components/OrganizationDashboard'));
 const { Component: TeamDashboard } = lazyLoadWithRetry(() => import('./components/TeamDashboard'));
@@ -319,6 +320,7 @@ function AuthenticatedRoutes() {
                   <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
                   <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
                   <Route path="/admin/audit" element={<ProtectedRoute><AdminAuditLogs /></ProtectedRoute>} />
+                  <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedback /></ProtectedRoute>} />
                   <Route path="/admin/metrics" element={<ProtectedRoute><Suspense fallback={<DefaultLoadingFallback message="Loading metrics..." />}><AdminMetrics /></Suspense></ProtectedRoute>} />
                   <Route path="/tools" element={<ProtectedRoute><ToolsErrorBoundary><Tools /></ToolsErrorBoundary></ProtectedRoute>} />
                   <Route path="/tools/metmap" element={<ProtectedRoute><ToolsErrorBoundary><ToolsMetMap /></ToolsErrorBoundary></ProtectedRoute>} />

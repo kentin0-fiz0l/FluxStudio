@@ -248,7 +248,8 @@ export function useFormationYjs({
     const roomName = getFormationRoomName(projectId, formationId);
 
     // Setup WebSocket provider
-    const wsUrl = import.meta.env.VITE_COLLAB_URL || 'ws://localhost:4000';
+    const wsUrl = import.meta.env.VITE_COLLAB_URL ||
+              `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
     const token = localStorage.getItem('auth_token') || '';
 
     const wsProvider = new WebsocketProvider(wsUrl, roomName, ydoc, {
