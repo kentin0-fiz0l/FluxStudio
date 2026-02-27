@@ -22,6 +22,7 @@ import {
   Youtube,
 } from 'lucide-react';
 import { Logo3D } from '@/components/Logo3D';
+import { FEATURE_ANIMATIONS } from '@/components/landing/FeatureVideos';
 import { SkipLink } from '@/components/ui/SkipLink';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
@@ -599,6 +600,7 @@ export function Features() {
         >
           {FEATURES.map((feature) => {
             const Icon = feature.icon;
+            const FeatureAnimation = FEATURE_ANIMATIONS[feature.title];
             return (
               <motion.div
                 key={feature.title}
@@ -617,14 +619,23 @@ export function Features() {
                   aria-hidden="true"
                 />
 
-                <div
-                  className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}
-                >
-                  <Icon className="w-7 h-7 text-white" aria-hidden="true" />
+                {/* Animated micro-demo */}
+                {FeatureAnimation && (
+                  <div aria-hidden="true">
+                    <FeatureAnimation />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-4 mb-3">
+                  <div
+                    className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
+                  >
+                    <Icon className="w-6 h-6 text-white" aria-hidden="true" />
+                  </div>
+                  <h3 className="font-display text-xl font-semibold text-white">
+                    {feature.title}
+                  </h3>
                 </div>
-                <h3 className="font-display text-xl font-semibold text-white mb-3">
-                  {feature.title}
-                </h3>
                 <p className="text-neutral-400 font-sans leading-relaxed group-hover:text-neutral-300 transition-colors duration-300">
                   {feature.description}
                 </p>

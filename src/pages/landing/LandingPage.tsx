@@ -3,8 +3,9 @@
  *
  * Cherry-picked best sections:
  * - Header:       Editorial  (gradient logo, clean spacing)
- * - Hero:         Editorial  (asymmetric, section numbers, Logo3D)
- * - Features:     Bold       (bento grid, glassmorphism, varied cards)
+ * - Hero:         Editorial  (asymmetric, section numbers, animated product demo)
+ * - Showcase:     Custom     (tabbed product demos: collab, AI, project mgmt)
+ * - Features:     Bold       (bento grid, glassmorphism, animated micro-demos)
  * - Use Cases:    Editorial  (asymmetric alternating, numbered)
  * - Testimonials: Editorial  (decorative quotes, light bg contrast)
  * - Pricing:      Minimalist (comparison table, data-driven)
@@ -28,6 +29,7 @@ import { UseCases } from './EditorialLanding';
 import { Testimonials } from './EditorialLanding';
 import { Pricing } from './MinimalistLanding';
 import { CTAFooter } from './EditorialLanding';
+import { ProductShowcase } from '../../components/landing/ProductShowcase';
 import { SEOHead } from '../../components/SEOHead';
 
 const LANDING_STRUCTURED_DATA = {
@@ -57,6 +59,7 @@ export default function LandingPage() {
       <Header />
       <main id="main-content" tabIndex={-1}>
         <Hero />
+        <ProductShowcase />
         <Features />
         <UseCases />
         <Testimonials />

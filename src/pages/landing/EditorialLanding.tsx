@@ -16,7 +16,7 @@ import {
   Briefcase,
   ChevronRight,
 } from 'lucide-react';
-import { Logo3D } from '@/components/Logo3D';
+import { HeroDemo } from '@/components/landing/HeroDemo';
 import { SkipLink } from '@/components/ui/SkipLink';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import type { LucideIcon } from 'lucide-react';
@@ -561,14 +561,15 @@ export function Hero() {
             </motion.div>
           </div>
 
-          {/* Right: Logo3D with parallax */}
+          {/* Right: Animated product demo with parallax */}
           <motion.div
             className="lg:col-span-5 xl:col-span-5 hidden lg:flex items-center justify-center"
             style={{ y: prefersReduced ? 0 : parallaxY }}
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="scale-110 xl:scale-125">
-              <Logo3D variant="dark" />
-            </div>
+            <HeroDemo />
           </motion.div>
         </div>
       </div>
