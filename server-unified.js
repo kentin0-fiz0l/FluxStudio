@@ -678,14 +678,16 @@ const adminFlagsRoutes = require('./routes/admin-flags');
 const { featureFlagMiddleware, getFlag } = require('./lib/featureFlags');
 
 // Sprint 56: Public flag check for signup beta gate (no auth required)
-app.get('/api/flags/beta-status', async (_req, res) => {
+const betaStatusHandler = async (_req, res) => {
   try {
     const flag = await getFlag('beta_invite_required');
     res.json({ betaInviteRequired: !!(flag && flag.enabled) });
   } catch {
     res.json({ betaInviteRequired: false });
   }
-});
+};
+app.get('/flags/beta-status', betaStatusHandler);
+app.get('/api/flags/beta-status', betaStatusHandler);
 
 app.use(featureFlagMiddleware);
 app.use('/admin/flags', adminFlagsRoutes);
