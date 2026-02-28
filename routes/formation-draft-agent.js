@@ -21,6 +21,8 @@ const {
 } = require('../lib/agent/middleware');
 const draftService = require('../services/formation-draft-service');
 const { FormationDraftYjsClient } = require('../services/formation-draft-yjs-client');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('FormationDraftAgent');
 
 // Track active generation sessions for interrupt support
 const activeGenerations = new Map();
@@ -251,7 +253,7 @@ router.post('/generate',
       });
 
     } catch (error) {
-      console.error('[FormationDraftAgent] Generation error:', error);
+      log.error('Generation error', error);
       sendSSE(res, 'error', {
         message: error.message || 'Generation failed',
         retryable: true,
@@ -303,7 +305,7 @@ router.post('/session/:id/approve',
 
       res.json({ success: true, message: 'Plan approved' });
     } catch (error) {
-      console.error('[FormationDraftAgent] Approve error:', error);
+      log.error('Approve error', error);
       res.status(500).json({ error: 'Failed to approve plan' });
     }
   }
@@ -374,7 +376,7 @@ router.post('/session/:id/refine',
       sendSSE(res, 'done', { tokensUsed: result.tokensUsed });
       res.end();
     } catch (error) {
-      console.error('[FormationDraftAgent] Refine error:', error);
+      log.error('Refine error', error);
       sendSSE(res, 'error', { message: error.message, retryable: true });
       res.end();
     }
@@ -406,7 +408,7 @@ router.post('/session/:id/interrupt',
 
       res.json({ success: true, action });
     } catch (error) {
-      console.error('[FormationDraftAgent] Interrupt error:', error);
+      log.error('Interrupt error', error);
       res.status(500).json({ error: 'Failed to interrupt generation' });
     }
   }
@@ -443,7 +445,7 @@ router.get('/session/:id',
         },
       });
     } catch (error) {
-      console.error('[FormationDraftAgent] Get session error:', error);
+      log.error('Get session error', error);
       res.status(500).json({ error: 'Failed to get session' });
     }
   }

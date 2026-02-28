@@ -11,6 +11,10 @@
 const express = require('express');
 const { optionalAuth } = require('../lib/auth/middleware');
 const { validateInput } = require('../middleware/security');
+const { zodValidate } = require('../middleware/zodValidate');
+const { submitTicketSchema } = require('../lib/schemas');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Support');
 
 const router = express.Router();
 
@@ -19,7 +23,7 @@ let emailModule = null;
 try {
   emailModule = require('../lib/email/emailService');
 } catch (error) {
-  console.warn('Email service not available for support tickets');
+  log.warn('Email service not available for support tickets');
 }
 
 // Allowed categories
@@ -29,7 +33,7 @@ const VALID_CATEGORIES = ['general', 'billing', 'technical', 'feature', 'account
  * POST /api/support/ticket
  * Submit a support request
  */
-router.post('/ticket', optionalAuth, validateInput.sanitizeInput, async (req, res) => {
+router.post('/ticket', optionalAuth, validateInput.sanitizeInput, zodValidate(submitTicketSchema), async (req, res) => {
   try {
     const { name, email, category, subject, message } = req.body;
     const userId = req.user?.id || null;
@@ -108,13 +112,14 @@ The FluxStudio Team
           `.trim(),
         });
       } catch (emailError) {
-        console.error('Error sending support emails:', emailError);
+        log.error('Error sending support emails', emailError);
         // Continue - we still want to return success if ticket was logged
       }
     }
 
     // Log ticket submission (in production, you'd save this to database)
-    console.log(`[Support Ticket] ${ticketId} submitted:`, {
+    log.info('Ticket submitted', {
+      ticketId,
       category: validCategory,
       subject,
       email,
@@ -128,7 +133,7 @@ The FluxStudio Team
       message: 'Support request submitted successfully',
     });
   } catch (error) {
-    console.error('Support ticket error:', error);
+    log.error('Support ticket error', error);
     res.status(500).json({ error: 'Failed to submit support request' });
   }
 });

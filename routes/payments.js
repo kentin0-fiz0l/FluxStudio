@@ -16,6 +16,8 @@ const { paymentService, SERVICE_PRICING } = require('../lib/payments');
 const { query } = require('../database/config');
 const { zodValidate } = require('../middleware/zodValidate');
 const { createCheckoutSessionSchema, createPortalSessionSchema } = require('../lib/schemas/payments');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Payments');
 
 // Store auth helper for protected routes
 let authHelper = null;
@@ -45,7 +47,7 @@ router.post('/webhooks/stripe', async (req, res) => {
     const signature = req.headers['stripe-signature'];
 
     if (!signature) {
-      console.error('Webhook error: Missing stripe-signature header');
+      log.error('Webhook error: Missing stripe-signature header');
       return res.status(400).json({ error: 'Missing stripe-signature header' });
     }
 
@@ -54,10 +56,10 @@ router.post('/webhooks/stripe', async (req, res) => {
 
     const result = await paymentService.handleWebhook(payload, signature);
 
-    console.log(`Stripe webhook processed: ${result.type}`);
+    log.info('Stripe webhook processed', { type: result.type });
     res.json(result);
   } catch (error) {
-    console.error('Webhook processing error:', error.message);
+    log.error('Webhook processing error', error);
     // Return 400 for invalid webhooks so Stripe doesn't retry
     res.status(400).json({ error: error.message });
   }
@@ -118,7 +120,7 @@ router.post('/create-checkout-session', requireAuth, zodValidate(createCheckoutS
 
     res.json({ sessionId: session.id, url: session.url });
   } catch (error) {
-    console.error('Create checkout session error:', error);
+    log.error('Create checkout session error', error);
     res.status(500).json({ error: 'Failed to create checkout session' });
   }
 });
@@ -149,7 +151,7 @@ router.post('/create-portal-session', requireAuth, zodValidate(createPortalSessi
 
     res.json({ url: session.url });
   } catch (error) {
-    console.error('Create portal session error:', error);
+    log.error('Create portal session error', error);
     res.status(500).json({ error: 'Failed to create billing portal session' });
   }
 });
@@ -176,7 +178,7 @@ router.get('/pricing', (_req, res) => {
 
     res.json({ pricing: formattedPricing });
   } catch (error) {
-    console.error('Get pricing error:', error);
+    log.error('Get pricing error', error);
     res.status(500).json({ error: 'Failed to get pricing' });
   }
 });
@@ -227,7 +229,7 @@ router.get('/subscription', requireAuth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get subscription error:', error);
+    log.error('Get subscription error', error);
     res.status(500).json({ error: 'Failed to get subscription status' });
   }
 });
@@ -303,7 +305,7 @@ router.post('/create-payment-intent', requireAuth, async (req, res) => {
       invoice: result.invoice
     });
   } catch (error) {
-    console.error('Create payment intent error:', error);
+    log.error('Create payment intent error', error);
     res.status(500).json({ error: error.message || 'Failed to create payment intent' });
   }
 });

@@ -11,6 +11,8 @@
 
 const express = require('express');
 const { authenticateToken } = require('../lib/auth/middleware');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('MCP');
 
 const router = express.Router();
 
@@ -25,10 +27,10 @@ function getMcpManager() {
       mcpManager.initialize()
         .then(() => {
           mcpInitialized = true;
-          console.log('MCP Manager initialized successfully');
+          log.info('MCP Manager initialized successfully');
         })
         .catch(err => {
-          console.warn('MCP Manager initialization failed:', err.message);
+          log.warn('MCP Manager initialization failed', err);
         });
     }
   }
@@ -56,7 +58,7 @@ router.post('/query', authenticateToken, async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('MCP query error:', error);
+    log.error('MCP query error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -73,7 +75,7 @@ router.get('/tools', authenticateToken, async (req, res) => {
 
     res.json({ tools, available: true });
   } catch (error) {
-    console.error('MCP list tools error:', error);
+    log.error('MCP list tools error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -94,7 +96,7 @@ router.post('/cache/clear', authenticateToken, async (req, res) => {
 
     res.json({ message: 'MCP cache cleared successfully' });
   } catch (error) {
-    console.error('MCP cache clear error:', error);
+    log.error('MCP cache clear error', error);
     res.status(500).json({ message: error.message });
   }
 });

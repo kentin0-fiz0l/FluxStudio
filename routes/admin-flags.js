@@ -19,6 +19,8 @@ const { invalidateCache, evaluateAllFlags } = require('../lib/featureFlags');
 const { logAction } = require('../lib/auditLog');
 const { zodValidate } = require('../middleware/zodValidate');
 const { createFeatureFlagSchema, updateFeatureFlagSchema } = require('../lib/schemas');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('AdminFlags');
 
 router.use(authenticateToken);
 
@@ -43,7 +45,7 @@ router.get('/', requireAdmin, async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    console.error('List flags error:', err);
+    log.error('List flags error', err);
     res.status(500).json({ error: 'Failed to fetch feature flags' });
   }
 });
@@ -57,7 +59,7 @@ router.get('/evaluate', async (req, res) => {
     const flags = await evaluateAllFlags(req.user.id);
     res.json(flags);
   } catch (err) {
-    console.error('Evaluate flags error:', err);
+    log.error('Evaluate flags error', err);
     res.status(500).json({ error: 'Failed to evaluate feature flags' });
   }
 });
@@ -102,7 +104,7 @@ router.post('/', requireAdmin, zodValidate(createFeatureFlagSchema), async (req,
     if (err.code === '23505') {
       return res.status(409).json({ error: 'A flag with this name already exists' });
     }
-    console.error('Create flag error:', err);
+    log.error('Create flag error', err);
     res.status(500).json({ error: 'Failed to create feature flag' });
   }
 });
@@ -164,7 +166,7 @@ router.patch('/:id', requireAdmin, zodValidate(updateFeatureFlagSchema), async (
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Update flag error:', err);
+    log.error('Update flag error', err);
     res.status(500).json({ error: 'Failed to update feature flag' });
   }
 });
@@ -191,7 +193,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error('Delete flag error:', err);
+    log.error('Delete flag error', err);
     res.status(500).json({ error: 'Failed to delete feature flag' });
   }
 });

@@ -13,6 +13,8 @@ const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { zodValidate } = require('../middleware/zodValidate');
 const { updateUserSchema } = require('../lib/schemas/users');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Users');
 
 const router = express.Router();
 
@@ -119,7 +121,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     res.json({ users, total, page: parsedPage || 1, limit: parsedLimit });
   } catch (error) {
-    console.error('Error fetching users:', error);
+    log.error('Error fetching users', error);
     res.status(500).json({ message: 'Failed to fetch users' });
   }
 });
@@ -164,7 +166,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
 
     res.json({ user });
   } catch (error) {
-    console.error('Error fetching user:', error);
+    log.error('Error fetching user', error);
     res.status(500).json({ message: 'Failed to fetch user' });
   }
 });
@@ -232,7 +234,7 @@ router.patch('/:id', authenticateToken, zodValidate(updateUserSchema), async (re
       res.json({ user: { id: u.id, name: u.name, email: u.email, avatar: u.avatar, status: u.status || 'offline', role: u.userType || u.role } });
     }
   } catch (error) {
-    console.error('Error updating user:', error);
+    log.error('Error updating user', error);
     res.status(500).json({ message: 'Failed to update user' });
   }
 });
@@ -273,7 +275,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       res.json({ message: 'User deleted successfully' });
     }
   } catch (error) {
-    console.error('Error deleting user:', error);
+    log.error('Error deleting user', error);
     res.status(500).json({ message: 'Failed to delete user' });
   }
 });

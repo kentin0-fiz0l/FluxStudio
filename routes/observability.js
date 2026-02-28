@@ -13,6 +13,8 @@ const { query } = require('../database/config');
 const { authenticateToken } = require('../lib/auth/middleware');
 const performanceMetrics = require('../lib/monitoring/performanceMetrics');
 const { queryFunnel, FUNNEL_STAGES } = require('../lib/analytics/funnelTracker');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Observability');
 
 const router = express.Router();
 
@@ -84,7 +86,7 @@ router.post('/events', authenticateToken, async (req, res) => {
 
     res.json({ success: true, count: names.length });
   } catch (error) {
-    console.error('[Observability] Events ingestion error:', error);
+    log.error('Events ingestion error', error);
     res.status(500).json({ error: 'Failed to store events' });
   }
 });
@@ -111,7 +113,7 @@ router.post('/vitals', async (req, res) => {
         return res.status(400).json({ error: 'Invalid metric name' });
       }
 
-      console.log(`[Observability] Web Vital: ${name}=${body.value.toFixed(2)} (${body.rating}) url=${body.url || '/'}`);
+      log.info('Web Vital received', { name, value: body.value.toFixed(2), rating: body.rating, url: body.url || '/' });
 
       await ensureVitalsTable();
 
@@ -168,7 +170,7 @@ router.post('/vitals', async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('[Observability] Vitals ingestion error:', error);
+    log.error('Vitals ingestion error', error);
     res.status(500).json({ error: 'Failed to store vitals' });
   }
 });
@@ -226,7 +228,7 @@ router.get('/vitals/summary', authenticateToken, async (req, res) => {
       perPage: perPage.rows,
     });
   } catch (error) {
-    console.error('[Observability] Vitals summary error:', error);
+    log.error('Vitals summary error', error);
     res.status(500).json({ error: 'Failed to fetch vitals summary' });
   }
 });
@@ -331,7 +333,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
       funnel: funnelData,
     });
   } catch (error) {
-    console.error('[Observability] Metrics error:', error);
+    log.error('Metrics error', error);
     res.status(500).json({ error: 'Failed to fetch metrics' });
   }
 });
@@ -378,7 +380,7 @@ async function ensureVitalsTable() {
     await query('CREATE INDEX IF NOT EXISTS idx_web_vitals_created_at ON web_vitals (created_at)');
     vitalsTableReady = true;
   } catch (err) {
-    console.debug('[Observability] ensureVitalsTable:', err.message);
+    log.debug('ensureVitalsTable error', err);
   }
 }
 

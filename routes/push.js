@@ -15,12 +15,16 @@ const { v4: uuidv4 } = require('uuid');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { validateInput } = require('../middleware/security');
+const { zodValidate } = require('../middleware/zodValidate');
+const { pushSubscribeSchema, pushUnsubscribeSchema, pushPreferencesSchema } = require('../lib/schemas');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Push');
 
 /**
  * POST /api/push/subscribe
  * Subscribe to push notifications
  */
-router.post('/subscribe', authenticateToken, async (req, res) => {
+router.post('/subscribe', authenticateToken, zodValidate(pushSubscribeSchema), async (req, res) => {
   try {
     const { endpoint, keys } = req.body;
 
@@ -52,7 +56,7 @@ router.post('/subscribe', authenticateToken, async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error subscribing to push:', error);
+    log.error('Error subscribing to push', error);
     res.status(500).json({ error: 'Failed to subscribe to push notifications' });
   }
 });
@@ -61,7 +65,7 @@ router.post('/subscribe', authenticateToken, async (req, res) => {
  * POST /api/push/unsubscribe
  * Unsubscribe from push notifications
  */
-router.post('/unsubscribe', authenticateToken, async (req, res) => {
+router.post('/unsubscribe', authenticateToken, zodValidate(pushUnsubscribeSchema), async (req, res) => {
   try {
     const { endpoint } = req.body;
 
@@ -76,7 +80,7 @@ router.post('/unsubscribe', authenticateToken, async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error unsubscribing from push:', error);
+    log.error('Error unsubscribing from push', error);
     res.status(500).json({ error: 'Failed to unsubscribe from push notifications' });
   }
 });
@@ -116,7 +120,7 @@ router.get('/preferences', authenticateToken, async (req, res) => {
       quietHoursEnd: prefs.quiet_hours_end
     });
   } catch (error) {
-    console.error('Error getting notification preferences:', error);
+    log.error('Error getting notification preferences', error);
     res.status(500).json({ error: 'Failed to get notification preferences' });
   }
 });
@@ -125,7 +129,7 @@ router.get('/preferences', authenticateToken, async (req, res) => {
  * PUT /api/push/preferences
  * Update user's notification preferences
  */
-router.put('/preferences', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+router.put('/preferences', authenticateToken, validateInput.sanitizeInput, zodValidate(pushPreferencesSchema), async (req, res) => {
   try {
     const {
       pushEnabled,
@@ -164,7 +168,7 @@ router.put('/preferences', authenticateToken, validateInput.sanitizeInput, async
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error updating notification preferences:', error);
+    log.error('Error updating notification preferences', error);
     res.status(500).json({ error: 'Failed to update notification preferences' });
   }
 });
@@ -185,7 +189,7 @@ router.get('/status', authenticateToken, async (req, res) => {
       isSubscribed: parseInt(result.rows[0].count, 10) > 0
     });
   } catch (error) {
-    console.error('Error getting push status:', error);
+    log.error('Error getting push status', error);
     res.status(500).json({ error: 'Failed to get push status' });
   }
 });

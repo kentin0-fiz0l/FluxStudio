@@ -14,6 +14,10 @@ const fs = require('fs');
 const path = require('path');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { validateInput } = require('../middleware/security');
+const { zodValidate } = require('../middleware/zodValidate');
+const { createChannelSchema, createOrganizationSchema } = require('../lib/schemas');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Channels');
 
 const router = express.Router();
 
@@ -33,7 +37,7 @@ async function saveChannels(channels) {
 }
 
 // Create channel
-router.post('/channels', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+router.post('/channels', authenticateToken, validateInput.sanitizeInput, zodValidate(createChannelSchema), async (req, res) => {
   const { name, teamId, description } = req.body;
 
   if (!name || !teamId) {
@@ -82,13 +86,13 @@ router.get('/organizations', authenticateToken, async (req, res) => {
 
     res.json({ organizations });
   } catch (error) {
-    console.error('Error fetching organizations:', error);
+    log.error('Error fetching organizations', error);
     res.status(500).json({ message: 'Failed to fetch organizations', organizations: [] });
   }
 });
 
 // POST /organizations - Create organization
-router.post('/organizations', authenticateToken, async (req, res) => {
+router.post('/organizations', authenticateToken, zodValidate(createOrganizationSchema), async (req, res) => {
   try {
     const { name, description } = req.body;
 
@@ -113,7 +117,7 @@ router.post('/organizations', authenticateToken, async (req, res) => {
 
     res.json(newOrg);
   } catch (error) {
-    console.error('Error creating organization:', error);
+    log.error('Error creating organization', error);
     res.status(500).json({ message: 'Failed to create organization' });
   }
 });

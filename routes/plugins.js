@@ -9,6 +9,10 @@ const router = express.Router();
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { logAction } = require('../lib/auditLog');
+const { zodValidate } = require('../middleware/zodValidate');
+const { installPluginSchema, updatePluginSettingsSchema } = require('../lib/schemas');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Plugins');
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -41,7 +45,7 @@ router.get('/', async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Error listing plugins:', error);
+    log.error('Error listing plugins', error);
     res.status(500).json({ success: false, error: 'Failed to list plugins' });
   }
 });
@@ -49,7 +53,7 @@ router.get('/', async (req, res) => {
 /**
  * POST /api/plugins/install — Install a plugin
  */
-router.post('/install', async (req, res) => {
+router.post('/install', zodValidate(installPluginSchema), async (req, res) => {
   try {
     const { manifest } = req.body;
 
@@ -100,7 +104,7 @@ router.post('/install', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error installing plugin:', error);
+    log.error('Error installing plugin', error);
     res.status(500).json({ success: false, error: 'Failed to install plugin' });
   }
 });
@@ -124,7 +128,7 @@ router.post('/:pluginId/activate', async (req, res) => {
 
     res.json({ success: true, state: 'active' });
   } catch (error) {
-    console.error('Error activating plugin:', error);
+    log.error('Error activating plugin', error);
     res.status(500).json({ success: false, error: 'Failed to activate plugin' });
   }
 });
@@ -148,7 +152,7 @@ router.post('/:pluginId/deactivate', async (req, res) => {
 
     res.json({ success: true, state: 'inactive' });
   } catch (error) {
-    console.error('Error deactivating plugin:', error);
+    log.error('Error deactivating plugin', error);
     res.status(500).json({ success: false, error: 'Failed to deactivate plugin' });
   }
 });
@@ -170,7 +174,7 @@ router.delete('/:pluginId', async (req, res) => {
     logAction(req.user.id, 'uninstall', 'plugin', req.params.pluginId, {}, req);
     res.json({ success: true });
   } catch (error) {
-    console.error('Error uninstalling plugin:', error);
+    log.error('Error uninstalling plugin', error);
     res.status(500).json({ success: false, error: 'Failed to uninstall plugin' });
   }
 });
@@ -191,7 +195,7 @@ router.get('/:pluginId/settings', async (req, res) => {
 
     res.json({ success: true, settings: result.rows[0].settings });
   } catch (error) {
-    console.error('Error getting plugin settings:', error);
+    log.error('Error getting plugin settings', error);
     res.status(500).json({ success: false, error: 'Failed to get settings' });
   }
 });
@@ -199,7 +203,7 @@ router.get('/:pluginId/settings', async (req, res) => {
 /**
  * PUT /api/plugins/:pluginId/settings — Update plugin settings
  */
-router.put('/:pluginId/settings', async (req, res) => {
+router.put('/:pluginId/settings', zodValidate(updatePluginSettingsSchema), async (req, res) => {
   try {
     const { settings } = req.body;
 
@@ -221,7 +225,7 @@ router.put('/:pluginId/settings', async (req, res) => {
 
     res.json({ success: true, settings: result.rows[0].settings });
   } catch (error) {
-    console.error('Error updating plugin settings:', error);
+    log.error('Error updating plugin settings', error);
     res.status(500).json({ success: false, error: 'Failed to update settings' });
   }
 });

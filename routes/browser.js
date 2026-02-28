@@ -16,6 +16,8 @@
 const express = require('express');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Browser');
 
 const router = express.Router();
 
@@ -39,7 +41,7 @@ router.post('/link-preview', authenticateToken, async (req, res) => {
 
     res.status(201).json({ success: true, jobId: result.rows[0].id });
   } catch (error) {
-    console.error('Error creating link-preview job:', error);
+    log.error('Error creating link-preview job', error);
     res.status(500).json({ success: false, error: 'Failed to create job' });
   }
 });
@@ -67,7 +69,7 @@ router.post('/web-capture', authenticateToken, async (req, res) => {
 
     res.status(201).json({ success: true, jobId: result.rows[0].id });
   } catch (error) {
-    console.error('Error creating web-capture job:', error);
+    log.error('Error creating web-capture job', error);
     res.status(500).json({ success: false, error: 'Failed to create job' });
   }
 });
@@ -95,7 +97,7 @@ router.post('/pdf-export', authenticateToken, async (req, res) => {
 
     res.status(201).json({ success: true, jobId: result.rows[0].id });
   } catch (error) {
-    console.error('Error creating pdf-export job:', error);
+    log.error('Error creating pdf-export job', error);
     res.status(500).json({ success: false, error: 'Failed to create job' });
   }
 });
@@ -120,7 +122,7 @@ router.post('/thumbnail', authenticateToken, async (req, res) => {
 
     res.status(201).json({ success: true, jobId: result.rows[0].id });
   } catch (error) {
-    console.error('Error creating thumbnail job:', error);
+    log.error('Error creating thumbnail job', error);
     res.status(500).json({ success: false, error: 'Failed to create job' });
   }
 });
@@ -148,7 +150,7 @@ router.post('/design-qa', authenticateToken, async (req, res) => {
 
     res.status(201).json({ success: true, jobId: result.rows[0].id });
   } catch (error) {
-    console.error('Error creating design-qa job:', error);
+    log.error('Error creating design-qa job', error);
     res.status(500).json({ success: false, error: 'Failed to create job' });
   }
 });
@@ -173,7 +175,7 @@ router.get('/jobs/:id', authenticateToken, async (req, res) => {
 
     res.json({ success: true, job: result.rows[0] });
   } catch (error) {
-    console.error('Error fetching job status:', error);
+    log.error('Error fetching job status', error);
     res.status(500).json({ success: false, error: 'Failed to fetch job status' });
   }
 });

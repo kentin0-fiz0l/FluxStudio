@@ -16,6 +16,10 @@ const crypto = require('crypto');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { logAction } = require('../lib/auditLog');
+const { zodValidate } = require('../middleware/zodValidate');
+const { twoFactorCodeSchema, twoFactorVerifySchema } = require('../lib/schemas');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('TwoFactor');
 
 // Lazy-load otplib and qrcode (optional dependencies)
 let authenticator, toDataURL;
@@ -23,7 +27,7 @@ try {
   ({ authenticator } = require('otplib'));
   ({ toDataURL } = require('qrcode'));
 } catch {
-  console.warn('[2FA] otplib or qrcode not installed — 2FA endpoints will return 503');
+  log.warn('otplib or qrcode not installed — 2FA endpoints will return 503');
 }
 
 /**
@@ -72,7 +76,7 @@ router.post('/setup', authenticateToken, async (req, res) => {
       qrCode: qrCodeDataUrl,
     });
   } catch (error) {
-    console.error('[2FA] Setup failed:', error);
+    log.error('Setup failed', error);
     res.status(500).json({ error: 'Failed to set up 2FA' });
   }
 });
@@ -85,7 +89,7 @@ router.post('/setup', authenticateToken, async (req, res) => {
  * Verifies the TOTP code against the stored secret.
  * If valid, enables 2FA and generates backup codes.
  */
-router.post('/verify-setup', authenticateToken, async (req, res) => {
+router.post('/verify-setup', authenticateToken, zodValidate(twoFactorCodeSchema), async (req, res) => {
   if (!authenticator) {
     return res.status(503).json({ error: '2FA service not available' });
   }
@@ -144,7 +148,7 @@ router.post('/verify-setup', authenticateToken, async (req, res) => {
       message: 'Two-factor authentication enabled',
     });
   } catch (error) {
-    console.error('[2FA] Verify setup failed:', error);
+    log.error('Verify setup failed', error);
     res.status(500).json({ error: 'Failed to verify 2FA setup' });
   }
 });
@@ -156,7 +160,7 @@ router.post('/verify-setup', authenticateToken, async (req, res) => {
  *
  * Disables 2FA after verifying the current TOTP code.
  */
-router.post('/disable', authenticateToken, async (req, res) => {
+router.post('/disable', authenticateToken, zodValidate(twoFactorCodeSchema), async (req, res) => {
   if (!authenticator) {
     return res.status(503).json({ error: '2FA service not available' });
   }
@@ -203,7 +207,7 @@ router.post('/disable', authenticateToken, async (req, res) => {
 
     res.json({ success: true, message: 'Two-factor authentication disabled' });
   } catch (error) {
-    console.error('[2FA] Disable failed:', error);
+    log.error('Disable failed', error);
     res.status(500).json({ error: 'Failed to disable 2FA' });
   }
 });
@@ -216,7 +220,7 @@ router.post('/disable', authenticateToken, async (req, res) => {
  * Called during login when 2FA is required.
  * Validates the TOTP code (or backup code) and returns full auth tokens.
  */
-router.post('/verify', async (req, res) => {
+router.post('/verify', zodValidate(twoFactorVerifySchema), async (req, res) => {
   if (!authenticator) {
     return res.status(503).json({ error: '2FA service not available' });
   }
@@ -289,7 +293,7 @@ router.post('/verify', async (req, res) => {
       ...authResponse,
     });
   } catch (error) {
-    console.error('[2FA] Verify failed:', error);
+    log.error('Verify failed', error);
     res.status(500).json({ error: 'Failed to verify 2FA code' });
   }
 });

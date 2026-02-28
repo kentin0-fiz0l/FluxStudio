@@ -11,6 +11,8 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../database/config');
 const { authenticateToken } = require('../lib/auth/middleware');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Search');
 
 /**
  * GET /api/search
@@ -76,7 +78,7 @@ router.get('/', authenticateToken, async (req, res) => {
           facets.types.project++;
         }
       } catch (e) {
-        console.warn('Project search failed:', e.message);
+        log.warn('Project search failed', e);
       }
     }
 
@@ -123,7 +125,7 @@ router.get('/', authenticateToken, async (req, res) => {
           facets.types.file++;
         }
       } catch (e) {
-        console.warn('File search failed:', e.message);
+        log.warn('File search failed', e);
       }
     }
 
@@ -172,7 +174,7 @@ router.get('/', authenticateToken, async (req, res) => {
           facets.types.task++;
         }
       } catch (e) {
-        console.warn('Task search failed:', e.message);
+        log.warn('Task search failed', e);
       }
     }
 
@@ -217,7 +219,7 @@ router.get('/', authenticateToken, async (req, res) => {
           facets.types.message++;
         }
       } catch (e) {
-        console.warn('Message search failed:', e.message);
+        log.warn('Message search failed', e);
       }
     }
 
@@ -244,7 +246,7 @@ router.get('/', authenticateToken, async (req, res) => {
       searchTime: Date.now(),
     });
   } catch (error) {
-    console.error('Search error:', error);
+    log.error('Search error', error);
     res.status(500).json({ success: false, error: 'Search failed' });
   }
 });

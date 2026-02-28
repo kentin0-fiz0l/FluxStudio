@@ -15,6 +15,8 @@ const {
   forecastCompletion,
 } = require('../lib/analytics-scoring');
 const { ingestEvent, queryFunnel, queryRetention, FUNNEL_STAGES } = require('../lib/analytics/funnelTracker');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Analytics');
 
 const router = express.Router();
 
@@ -122,7 +124,7 @@ router.get('/project/:projectId/health', authenticateToken, async (req, res) => 
       },
     });
   } catch (error) {
-    console.error('[Analytics] Health error:', error);
+    log.error('Health error', error);
     res.status(500).json({ error: 'Failed to calculate health score' });
   }
 });
@@ -174,7 +176,7 @@ router.get('/project/:projectId/burndown', authenticateToken, async (req, res) =
 
     res.json({ projectId, totalTasks, burndown });
   } catch (error) {
-    console.error('[Analytics] Burndown error:', error);
+    log.error('Burndown error', error);
     res.status(500).json({ error: 'Failed to calculate burndown' });
   }
 });
@@ -215,7 +217,7 @@ router.get('/project/:projectId/velocity', authenticateToken, async (req, res) =
 
     res.json({ projectId, ...velocity, forecast, remainingTasks });
   } catch (error) {
-    console.error('[Analytics] Velocity error:', error);
+    log.error('Velocity error', error);
     res.status(500).json({ error: 'Failed to calculate velocity' });
   }
 });
@@ -318,7 +320,7 @@ router.get('/team/:teamId/workload', authenticateToken, async (req, res) => {
 
     res.json({ teamId, members, bottlenecks });
   } catch (error) {
-    console.error('[Analytics] Workload error:', error);
+    log.error('Workload error', error);
     res.status(500).json({ error: 'Failed to calculate workload' });
   }
 });
@@ -408,7 +410,7 @@ router.get('/project/:projectId/risks', authenticateToken, async (req, res) => {
       healthHistory,
     });
   } catch (error) {
-    console.error('[Analytics] Risks error:', error);
+    log.error('Risks error', error);
     res.status(500).json({ error: 'Failed to calculate risks' });
   }
 });
@@ -453,7 +455,7 @@ router.post('/events', async (req, res) => {
 
     res.status(201).json({ success: true, eventId: event.id });
   } catch (error) {
-    console.error('[Analytics] Ingest error:', error.message);
+    log.error('Ingest error', error);
     res.status(500).json({ error: 'Failed to record event' });
   }
 });
@@ -480,7 +482,7 @@ router.get('/funnel', authenticateToken, async (req, res) => {
 
     res.json({ success: true, funnel, retention, period: { startDate, endDate } });
   } catch (error) {
-    console.error('[Analytics] Funnel query error:', error.message);
+    log.error('Funnel query error', error);
     res.status(500).json({ error: 'Failed to query funnel data' });
   }
 });
