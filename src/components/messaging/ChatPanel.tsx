@@ -5,89 +5,15 @@
  */
 
 import React, { useMemo, forwardRef, useCallback } from 'react';
-import {
-  ArrowLeft,
-  Search,
-  Phone,
-  Video,
-  Pin,
-  MoreVertical,
-  X,
-  Sparkles,
-  MessageCircle,
-} from 'lucide-react';
+import { X, MessageCircle } from 'lucide-react';
 
 import { Card } from '@/components/ui';
-import { ChatAvatar } from './ChatMessageBubble';
+import { ChatHeader } from './ChatHeader';
 import { ChatMessageList } from './ChatMessageList';
 import type { ChatMessageListRef } from './ChatMessageList';
 import { PinnedMessagesPanel } from './PinnedMessagesPanel';
 import { ChatInputArea } from './ChatInputArea';
 import type { Message, Conversation } from './types';
-
-// ============================================================================
-// Helper Components (header-specific, kept local)
-// ============================================================================
-
-function ConversationHeaderPresence({
-  isOnline,
-  lastSeen,
-  isTyping,
-  isGroup,
-  memberCount,
-}: {
-  isOnline?: boolean;
-  lastSeen?: Date;
-  isTyping?: boolean;
-  isGroup?: boolean;
-  memberCount?: number;
-}) {
-  if (isTyping) {
-    return (
-      <p className="text-xs text-primary-600 dark:text-primary-400 animate-pulse">
-        typing...
-      </p>
-    );
-  }
-
-  if (isGroup && memberCount) {
-    return (
-      <p className="text-xs text-neutral-500 dark:text-neutral-400">
-        {memberCount} members
-      </p>
-    );
-  }
-
-  if (isOnline) {
-    return (
-      <p className="text-xs text-green-600 dark:text-green-400">Online</p>
-    );
-  }
-
-  if (lastSeen) {
-    return (
-      <p className="text-xs text-neutral-500 dark:text-neutral-400">
-        Last seen {formatLastSeen(lastSeen)}
-      </p>
-    );
-  }
-
-  return null;
-}
-
-function formatLastSeen(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-}
 
 export function EmptyChatState({ onStartConversation }: { onStartConversation: () => void }) {
   return (
@@ -174,6 +100,8 @@ export interface ChatPanelProps {
   onDismissThreadHint?: () => void;
   messageSearchPanel?: React.ReactNode;
   composer: React.ReactNode;
+  onMoreOptions?: () => void;
+  moreOptionsSlot?: React.ReactNode;
 }
 
 export interface ChatPanelRef {
@@ -219,6 +147,8 @@ export const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(function ChatP
     onDismissThreadHint,
     messageSearchPanel,
     composer,
+    onMoreOptions,
+    moreOptionsSlot,
   },
   ref
 ) {
@@ -247,93 +177,19 @@ export const ChatPanel = forwardRef<ChatPanelRef, ChatPanelProps>(function ChatP
 
   return (
     <Card className={cardClassName}>
-      {/* Chat Header */}
-      <div className="p-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between bg-white dark:bg-neutral-900">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onMobileBack}
-            className="md:hidden p-2 -ml-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
-          >
-            <ArrowLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
-          </button>
-          <ChatAvatar user={conversation.participant} size="md" showStatus />
-          <div>
-            <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">
-              {conversation.title}
-            </h3>
-            <ConversationHeaderPresence
-              isOnline={conversation.participant?.isOnline}
-              lastSeen={conversation.participant?.lastSeen}
-              isTyping={typingUsers.some((t) => t.userId === conversation.participant?.id)}
-              isGroup={conversation.type === 'group'}
-              memberCount={conversation.participants?.length}
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <button
-            onClick={onToggleMessageSearch}
-            className={`p-2 rounded-lg transition-colors ${
-              showMessageSearch
-                ? 'bg-primary-100 dark:bg-primary-900/30'
-                : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
-            }`}
-            title="Search messages (Ctrl+F)"
-          >
-            <Search
-              aria-hidden="true"
-              className={`w-5 h-5 ${
-                showMessageSearch ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'
-              }`}
-            />
-          </button>
-          <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="Voice call">
-            <Phone className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
-          </button>
-          <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="Video call">
-            <Video className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
-          </button>
-          <button
-            onClick={onTogglePinnedMessages}
-            className={`p-2 rounded-lg transition-colors ${
-              showPinnedMessages
-                ? 'bg-accent-100 dark:bg-accent-900/30'
-                : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
-            }`}
-            title="Pinned messages"
-          >
-            <Pin
-              aria-hidden="true"
-              className={`w-5 h-5 ${
-                showPinnedMessages ? 'text-accent-600' : 'text-neutral-600 dark:text-neutral-400'
-              }`}
-            />
-          </button>
-          <button
-            onClick={onToggleSummaryPanel}
-            className={`p-2 rounded-lg transition-colors ${
-              showSummaryPanel
-                ? 'bg-primary-100 dark:bg-primary-900/30'
-                : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
-            }`}
-            title="Conversation summary"
-          >
-            <Sparkles
-              aria-hidden="true"
-              className={`w-5 h-5 ${
-                showSummaryPanel ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'
-              }`}
-            />
-          </button>
-          <button
-            className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
-            title="More options"
-          >
-            <MoreVertical className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
+      <ChatHeader
+        conversation={conversation}
+        isTyping={typingUsers.some((t) => t.userId === conversation.participant?.id)}
+        onBack={onMobileBack}
+        showMessageSearch={showMessageSearch}
+        onToggleSearch={onToggleMessageSearch}
+        showPinnedMessages={showPinnedMessages}
+        onTogglePinned={onTogglePinnedMessages}
+        showSummary={showSummaryPanel}
+        onToggleSummary={onToggleSummaryPanel}
+        onMoreOptions={onMoreOptions}
+        moreOptionsSlot={moreOptionsSlot}
+      />
 
       {showPinnedMessages && (
         <PinnedMessagesPanel

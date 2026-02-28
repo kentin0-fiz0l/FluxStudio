@@ -20,6 +20,7 @@ const filesAdapter = require('../database/files-adapter');
 const assetsAdapter = require('../database/assets-adapter');
 const fileStorage = require('../storage');
 const { query } = require('../database/config');
+const presenceAdapter = require('../database/messaging/presence');
 
 // Try to load AI summary service (may not be available)
 let aiSummaryService = null;
@@ -186,6 +187,137 @@ router.patch('/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error updating conversation:', error);
     res.status(500).json({ success: false, error: 'Failed to update conversation' });
+  }
+});
+
+// ----- Mute / Archive / Leave -----
+
+/**
+ * POST /api/conversations/:id/mute
+ * Mute a conversation for the current user
+ */
+router.post('/:id/mute', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+    const { duration } = req.body; // hours
+
+    const mutedUntil = duration ? new Date(Date.now() + duration * 60 * 60 * 1000) : null;
+    const result = await presenceAdapter.muteConversation(conversationId, userId, mutedUntil);
+
+    if (!result) {
+      return res.status(404).json({ success: false, error: 'Conversation not found or not a member' });
+    }
+
+    res.json({ success: true, muted: true, mutedUntil });
+  } catch (error) {
+    console.error('Error muting conversation:', error);
+    res.status(500).json({ success: false, error: 'Failed to mute conversation' });
+  }
+});
+
+/**
+ * DELETE /api/conversations/:id/mute
+ * Unmute a conversation for the current user
+ */
+router.delete('/:id/mute', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+
+    const result = await presenceAdapter.unmuteConversation(conversationId, userId);
+
+    if (!result) {
+      return res.status(404).json({ success: false, error: 'Conversation not found or not a member' });
+    }
+
+    res.json({ success: true, muted: false });
+  } catch (error) {
+    console.error('Error unmuting conversation:', error);
+    res.status(500).json({ success: false, error: 'Failed to unmute conversation' });
+  }
+});
+
+/**
+ * GET /api/conversations/:id/mute
+ * Get mute status for the current user
+ */
+router.get('/:id/mute', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+
+    const status = await presenceAdapter.getMuteStatus(conversationId, userId);
+
+    if (!status) {
+      return res.status(404).json({ success: false, error: 'Not a member of this conversation' });
+    }
+
+    res.json({ success: true, ...status });
+  } catch (error) {
+    console.error('Error getting mute status:', error);
+    res.status(500).json({ success: false, error: 'Failed to get mute status' });
+  }
+});
+
+/**
+ * PATCH /api/conversations/:id/archive
+ * Archive a conversation
+ */
+router.patch('/:id/archive', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+    const archived = req.body.archived !== false; // default true
+
+    const existing = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    await query(
+      'UPDATE conversations SET is_archived = $1, updated_at = NOW() WHERE id = $2',
+      [archived, conversationId]
+    );
+
+    res.json({ success: true, archived });
+  } catch (error) {
+    console.error('Error updating conversation archive status:', error);
+    res.status(500).json({ success: false, error: 'Failed to update archive status' });
+  }
+});
+
+/**
+ * DELETE /api/conversations/:id/members/me
+ * Leave a conversation (remove self from members)
+ */
+router.delete('/:id/members/me', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+
+    const existing = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    const removed = await messagingConversationsAdapter.removeMember({
+      conversationId,
+      userId
+    });
+
+    res.json({ success: true, removed });
+  } catch (error) {
+    console.error('Error leaving conversation:', error);
+    res.status(500).json({ success: false, error: 'Failed to leave conversation' });
   }
 });
 

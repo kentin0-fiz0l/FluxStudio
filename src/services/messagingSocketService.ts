@@ -64,6 +64,15 @@ export interface ConversationMessage {
   // Thread summary (when applicable)
   threadReplyCount?: number;
   threadLastReplyAt?: string;
+  // Link previews (populated by backend)
+  linkPreviews?: Array<{
+    url: string;
+    title?: string;
+    description?: string;
+    imageUrl?: string;
+    siteName?: string;
+    faviconUrl?: string;
+  }>;
 }
 
 export interface Conversation {

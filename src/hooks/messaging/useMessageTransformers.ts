@@ -53,8 +53,8 @@ export function useMessageTransformers({
       } : undefined,
       unreadCount: summary.unreadCount || 0,
       isPinned: false,
-      isArchived: false,
-      isMuted: false,
+      isArchived: summary.isArchived || false,
+      isMuted: summary.isMuted || false,
       isTyping: typingUsers.some(t => t.conversationId === summary.id),
       typingUsers: typingUsers
         .filter(t => t.conversationId === summary.id)
@@ -109,6 +109,14 @@ export function useMessageTransformers({
       threadReplyCount: msg.threadReplyCount,
       threadRootMessageId: msg.threadRootMessageId,
       threadLastReplyAt: msg.threadLastReplyAt ? new Date(msg.threadLastReplyAt) : undefined,
+      linkPreviews: msg.linkPreviews?.map((lp: { url: string; title?: string; description?: string; imageUrl?: string; siteName?: string; faviconUrl?: string }) => ({
+        url: lp.url,
+        title: lp.title,
+        description: lp.description,
+        imageUrl: lp.imageUrl,
+        siteName: lp.siteName,
+        faviconUrl: lp.faviconUrl,
+      })),
     };
   }, [userId, pinnedMessageIds]);
 

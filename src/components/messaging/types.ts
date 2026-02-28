@@ -133,6 +133,8 @@ export interface ConversationListItem {
   organizationId: string | null;
   name: string | null;
   isGroup: boolean;
+  isArchived?: boolean;
+  isMuted?: boolean;
   createdAt: string;
   updatedAt: string;
   lastMessageAt: string | null;

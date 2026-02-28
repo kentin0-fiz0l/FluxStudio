@@ -127,6 +127,42 @@ async function listMessages({ conversationId, limit = 50, before = null, include
   const result = await query(queryText, params);
   const messages = result.rows.map(row => transformMessage(row));
 
+  // Fetch link previews for all messages
+  if (messages.length > 0) {
+    const messageIds = messages.map(m => m.id);
+    try {
+      const previewResult = await query(`
+        SELECT mlp.message_id, lp.url, lp.title, lp.description, lp.image_url, lp.site_name, lp.favicon_url
+        FROM message_link_previews mlp
+        JOIN link_previews lp ON mlp.link_preview_id = lp.id
+        WHERE mlp.message_id = ANY($1)
+        ORDER BY mlp.position
+      `, [messageIds]);
+
+      const previewsByMessage = {};
+      for (const row of previewResult.rows) {
+        if (!previewsByMessage[row.message_id]) {
+          previewsByMessage[row.message_id] = [];
+        }
+        previewsByMessage[row.message_id].push({
+          url: row.url,
+          title: row.title,
+          description: row.description,
+          imageUrl: row.image_url,
+          siteName: row.site_name,
+          faviconUrl: row.favicon_url,
+        });
+      }
+
+      for (const message of messages) {
+        message.linkPreviews = previewsByMessage[message.id] || [];
+      }
+    } catch (err) {
+      // link_previews table may not exist yet — skip silently
+      console.error('Failed to fetch link previews:', err.message);
+    }
+  }
+
   // Fetch reactions for all messages if requested
   if (includeReactions && messages.length > 0) {
     const messageIds = messages.map(m => m.id);

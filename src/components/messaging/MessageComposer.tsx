@@ -13,7 +13,7 @@
  * - Keyboard shortcuts
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import {
   Send,
   Paperclip,
@@ -21,7 +21,6 @@ import {
   X,
   File,
   Mic,
-  MicOff,
   Link2,
   Loader2,
   AlertCircle,
@@ -30,6 +29,10 @@ import {
 import type { PendingAttachment, ReplyContext } from './types';
 import { EMOJI_CATEGORIES } from './types';
 import { formatFileSize } from './utils';
+
+const VoiceRecorder = lazy(() =>
+  import('./VoiceRecorder').then(m => ({ default: m.VoiceRecorder }))
+);
 
 // ============================================================================
 // Helper Components
@@ -139,6 +142,8 @@ export interface MessageComposerProps {
   pendingAttachments?: PendingAttachment[];
   /** Called to remove an attachment */
   onRemoveAttachment?: (id: string) => void;
+  /** Called when voice recording is sent */
+  onSendVoice?: (file: File) => void;
 }
 
 export function MessageComposer({
@@ -152,7 +157,8 @@ export function MessageComposer({
   disabled,
   placeholder = 'Type a message...',
   pendingAttachments = [],
-  onRemoveAttachment
+  onRemoveAttachment,
+  onSendVoice,
 }: MessageComposerProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -432,28 +438,39 @@ export function MessageComposer({
           </button>
         ) : (
           <button
-            onClick={() => setIsRecording(!isRecording)}
-            className={`flex-shrink-0 p-2.5 rounded-full transition-colors ${
-              isRecording
-                ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-                : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
-            }`}
-            title={isRecording ? 'Stop recording' : 'Record voice message'}
+            onClick={() => setIsRecording(true)}
+            className="flex-shrink-0 p-2.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            title="Record voice message"
           >
-            {isRecording ? (
-              <MicOff className="w-5 h-5 text-white" aria-hidden="true" />
-            ) : (
-              <Mic className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
-            )}
+            <Mic className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
           </button>
         )}
       </div>
 
       {/* Keyboard hints */}
-      <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-2 text-center">
-        <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px] font-mono">Enter</kbd> to send,{' '}
-        <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px] font-mono">Shift+Enter</kbd> for new line
-      </p>
+      {!isRecording && (
+        <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-2 text-center">
+          <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px] font-mono">Enter</kbd> to send,{' '}
+          <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px] font-mono">Shift+Enter</kbd> for new line
+        </p>
+      )}
+
+      {/* Voice recorder overlay */}
+      {isRecording && onSendVoice && (
+        <div className="absolute inset-0 bg-white dark:bg-neutral-900 z-20 flex items-center">
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-neutral-400" /></div>}>
+            <div className="flex-1">
+              <VoiceRecorder
+                onSendVoice={(file) => {
+                  setIsRecording(false);
+                  onSendVoice(file);
+                }}
+                onCancel={() => setIsRecording(false)}
+              />
+            </div>
+          </Suspense>
+        </div>
+      )}
     </div>
   );
 }

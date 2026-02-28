@@ -118,10 +118,12 @@ async function getConversationsForUser({ userId, limit = 50, offset = 0, project
         c.project_id,
         c.name,
         c.is_group,
+        c.is_archived,
         c.created_at,
         c.updated_at,
         uc.last_read_message_id,
         uc.member_since,
+        COALESCE(cp.is_muted, false) as is_muted,
         MAX(m.created_at) as last_message_at,
         (
           SELECT SUBSTRING(m2.text, 1, 100)
@@ -143,9 +145,10 @@ async function getConversationsForUser({ userId, limit = 50, offset = 0, project
       FROM conversations c
       INNER JOIN user_convs uc ON c.id = uc.conversation_id
       LEFT JOIN messages m ON m.conversation_id = c.id
+      LEFT JOIN conversation_participants cp ON cp.conversation_id = c.id AND cp.user_id = $1
       ${projectFilter}
-      GROUP BY c.id, c.organization_id, c.project_id, c.name, c.is_group, c.created_at, c.updated_at,
-               uc.last_read_message_id, uc.member_since
+      GROUP BY c.id, c.organization_id, c.project_id, c.name, c.is_group, c.is_archived, c.created_at, c.updated_at,
+               uc.last_read_message_id, uc.member_since, cp.is_muted
     )
     SELECT *
     FROM conv_stats
@@ -159,6 +162,8 @@ async function getConversationsForUser({ userId, limit = 50, offset = 0, project
     projectId: row.project_id,
     name: row.name,
     isGroup: row.is_group,
+    isArchived: row.is_archived || false,
+    isMuted: row.is_muted || false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     lastMessageAt: row.last_message_at,

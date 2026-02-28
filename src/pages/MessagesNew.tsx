@@ -40,6 +40,7 @@ import {
   ChatSidebar,
   ChatHeader,
   MessageListView,
+  ConversationOptionsMenu,
 } from '../components/messaging';
 import { useMessagesPageState } from '../hooks/useMessagesPageState';
 
@@ -52,6 +53,9 @@ const ThreadPanel = lazy(() =>
 );
 const ConversationSummary = lazy(() =>
   import('../components/messaging/ConversationSummary').then(m => ({ default: m.ConversationSummary }))
+);
+const ConversationInfoPanel = lazy(() =>
+  import('../components/messaging/ConversationInfoPanel').then(m => ({ default: m.ConversationInfoPanel }))
 );
 
 function MessagesNew() {
@@ -161,6 +165,8 @@ function MessagesNew() {
           showMobileChat={state.showMobileChat}
           onlineCount={state.onlineCount}
           unreadCount={state.unreadCount}
+          onMuteConversation={state.handleMuteConversation}
+          onArchiveConversation={state.handleArchiveConversation}
         />
 
         {/* Chat Area */}
@@ -177,6 +183,22 @@ function MessagesNew() {
                 onTogglePinned={() => state.setShowPinnedMessages(!state.showPinnedMessages)}
                 showSummary={state.isSummaryPanelOpen}
                 onToggleSummary={() => state.setIsSummaryPanelOpen(!state.isSummaryPanelOpen)}
+                onMoreOptions={() => state.setIsOptionsMenuOpen(!state.isOptionsMenuOpen)}
+                moreOptionsSlot={
+                  <ConversationOptionsMenu
+                    conversation={state.selectedConversation}
+                    open={state.isOptionsMenuOpen}
+                    onOpenChange={state.setIsOptionsMenuOpen}
+                    onMute={() => state.handleMuteConversation()}
+                    onArchive={() => state.handleArchiveConversation()}
+                    onViewInfo={() => {
+                      state.setIsInfoPanelOpen(true);
+                      state.setIsOptionsMenuOpen(false);
+                    }}
+                    onLeave={state.selectedConversation.type === 'group' ? state.handleLeaveConversation : undefined}
+                    trigger={<span />}
+                  />
+                }
               />
 
               {state.showPinnedMessages && (
@@ -264,6 +286,7 @@ function MessagesNew() {
                   disabled={state.isSending || !state.realtime.isConnected}
                   pendingAttachments={state.pendingAttachments}
                   onRemoveAttachment={state.handleRemoveAttachment}
+                  onSendVoice={state.handleSendVoice}
                 />
               </div>
             </>
@@ -308,6 +331,18 @@ function MessagesNew() {
               conversationId={state.selectedConversation.id}
               projectId={state.selectedConversation.projectId}
               onClose={() => state.setIsSummaryPanelOpen(false)}
+            />
+          </Suspense>
+        )}
+
+        {/* Info Panel */}
+        {state.isInfoPanelOpen && state.selectedConversation && (
+          <Suspense fallback={null}>
+            <ConversationInfoPanel
+              conversation={state.selectedConversation}
+              onClose={() => state.setIsInfoPanelOpen(false)}
+              onMute={() => state.handleMuteConversation()}
+              onArchive={() => state.handleArchiveConversation()}
             />
           </Suspense>
         )}

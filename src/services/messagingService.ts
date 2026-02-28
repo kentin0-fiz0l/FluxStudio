@@ -610,10 +610,18 @@ class MessagingService {
   }
 
   /**
-   * Leave conversation
+   * Leave conversation (remove self from members via API + disconnect socket)
    */
-  leaveConversation(conversationId: string) {
-    socketService.leaveConversation(conversationId);
+  async leaveConversation(conversationId: string): Promise<boolean> {
+    try {
+      await this.apiRequest(`/conversations/${conversationId}/members/me`, {
+        method: 'DELETE'
+      });
+      socketService.leaveConversation(conversationId);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   // ========================================

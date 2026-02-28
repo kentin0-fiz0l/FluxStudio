@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { ChatAvatar as Avatar } from './ChatMessageBubble';
 import { ConversationHeaderPresence } from './PresenceIndicator';
+import { toast } from '@/lib/toast';
 import type { Conversation } from './types';
 
 export interface ChatHeaderProps {
@@ -41,6 +42,10 @@ export interface ChatHeaderProps {
   showSummary: boolean;
   /** Called when summary button is clicked */
   onToggleSummary: () => void;
+  /** Called when more options button is clicked — renders menu externally */
+  onMoreOptions?: () => void;
+  /** Optional slot to render a dropdown/menu anchored to the MoreVertical button */
+  moreOptionsSlot?: React.ReactNode;
 }
 
 export function ChatHeader({
@@ -53,6 +58,8 @@ export function ChatHeader({
   onTogglePinned,
   showSummary,
   onToggleSummary,
+  onMoreOptions,
+  moreOptionsSlot,
 }: ChatHeaderProps) {
   return (
     <div className="p-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between bg-white dark:bg-neutral-900">
@@ -86,10 +93,18 @@ export function ChatHeader({
         >
           <Search className={`w-5 h-5 ${showMessageSearch ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'}`} />
         </button>
-        <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="Voice call">
+        <button
+          onClick={() => toast.info('Voice calls coming soon')}
+          className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
+          title="Voice call"
+        >
           <Phone className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
-        <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="Video call">
+        <button
+          onClick={() => toast.info('Video calls coming soon')}
+          className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
+          title="Video call"
+        >
           <Video className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
         <button
@@ -106,9 +121,16 @@ export function ChatHeader({
         >
           <Sparkles className={`w-5 h-5 ${showSummary ? 'text-primary-600' : 'text-neutral-600 dark:text-neutral-400'}`} />
         </button>
-        <button className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="More options">
-          <MoreVertical className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={onMoreOptions}
+            className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg"
+            title="More options"
+          >
+            <MoreVertical className="w-5 h-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
+          </button>
+          {moreOptionsSlot}
+        </div>
       </div>
     </div>
   );

@@ -39,8 +39,12 @@ export type { ChatHeaderProps } from './ChatHeader';
 export { MessageListView } from './MessageListView';
 export type { MessageListViewProps, MessageListViewRef } from './MessageListView';
 
-// ThreadPanel is lazy-loaded directly where needed to reduce page-messages chunk size.
-// Do NOT re-export it here (barrel export prevents code-splitting).
+export { ConversationOptionsMenu } from './ConversationOptionsMenu';
+export type { ConversationOptionsMenuProps } from './ConversationOptionsMenu';
+
+// ThreadPanel, ConversationInfoPanel, and VoiceRecorder are lazy-loaded
+// directly where needed to reduce page-messages chunk size.
+// Do NOT re-export them here (barrel export prevents code-splitting).
 
 // Local types and utilities
 export {

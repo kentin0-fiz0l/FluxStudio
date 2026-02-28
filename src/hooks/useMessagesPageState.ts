@@ -19,6 +19,8 @@ import {
 } from './messaging';
 import { useReportEntityFocus } from './useWorkMomentumCapture';
 import { apiService } from '@/services/apiService';
+import { messagingService } from '@/services/messagingService';
+import { toast } from '@/lib/toast';
 
 import type {
   Message,
@@ -114,6 +116,8 @@ export function useMessagesPageState() {
   const [showPinnedMessages, setShowPinnedMessages] = useState(false);
   const [showMessageSearch, setShowMessageSearch] = useState(false);
   const [isSummaryPanelOpen, setIsSummaryPanelOpen] = useState(false);
+  const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
+  const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
 
   // Thread micro-hint
@@ -555,6 +559,74 @@ export function useMessagesPageState() {
     reportConversation(conversation.id);
   };
 
+  const handleMuteConversation = useCallback(async (conversationId?: string) => {
+    const targetId = conversationId || selectedConversationId;
+    if (!targetId) return;
+    const summary = conversationSummaries.find(c => c.id === targetId);
+    const currentlyMuted = summary?.isMuted;
+
+    try {
+      if (currentlyMuted) {
+        await messagingService.unmuteConversation(targetId);
+        toast.success('Notifications unmuted');
+      } else {
+        await messagingService.muteConversation(targetId);
+        toast.success('Notifications muted');
+      }
+      // Update local state
+      setConversationSummaries(prev =>
+        prev.map(c => c.id === targetId ? { ...c, isMuted: !currentlyMuted } : c)
+      );
+    } catch {
+      toast.error('Failed to update mute status');
+    }
+  }, [selectedConversationId, conversationSummaries]);
+
+  const handleArchiveConversation = useCallback(async (conversationId?: string) => {
+    const targetId = conversationId || selectedConversationId;
+    if (!targetId) return;
+    const summary = conversationSummaries.find(c => c.id === targetId);
+    const currentlyArchived = summary?.isArchived;
+
+    try {
+      await messagingService.archiveConversation(targetId, !currentlyArchived);
+      toast.success(currentlyArchived ? 'Conversation unarchived' : 'Conversation archived');
+      setConversationSummaries(prev =>
+        prev.map(c => c.id === targetId ? { ...c, isArchived: !currentlyArchived } : c)
+      );
+    } catch {
+      toast.error('Failed to update archive status');
+    }
+  }, [selectedConversationId, conversationSummaries]);
+
+  const handleLeaveConversation = useCallback(async () => {
+    if (!selectedConversationId) return;
+    const ok = await messagingService.leaveConversation(selectedConversationId);
+    if (ok) {
+      toast.success('Left conversation');
+      setConversationSummaries(prev => prev.filter(c => c.id !== selectedConversationId));
+      setSelectedConversationId(null);
+      setShowMobileChat(false);
+    } else {
+      toast.error('Failed to leave conversation');
+    }
+  }, [selectedConversationId]);
+
+  const handleSendVoice = useCallback(async (file: File) => {
+    if (!selectedConversationId) return;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await apiService.post(`/conversations/${selectedConversationId}/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      // Send a message referencing the voice file
+      realtime.sendMessage('[Voice message]');
+    } catch {
+      toast.error('Failed to send voice message');
+    }
+  }, [selectedConversationId, realtime]);
+
   return {
     // Auth
     user,
@@ -596,6 +668,10 @@ export function useMessagesPageState() {
     setShowMessageSearch,
     isSummaryPanelOpen,
     setIsSummaryPanelOpen,
+    isInfoPanelOpen,
+    setIsInfoPanelOpen,
+    isOptionsMenuOpen,
+    setIsOptionsMenuOpen,
 
     // Thread
     activeThreadRootId,
@@ -637,6 +713,10 @@ export function useMessagesPageState() {
     handleCancelForward,
     handleJumpToMessage,
     handleSearchResultClick,
+    handleMuteConversation,
+    handleArchiveConversation,
+    handleLeaveConversation,
+    handleSendVoice,
 
     // File upload
     pendingAttachments,

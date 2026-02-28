@@ -11,7 +11,7 @@
  * Extracted from MessagesNew.tsx for Phase 4.2 Technical Debt Resolution
  */
 
-import { Search, UserPlus, Star, BellOff, MessageCircle } from 'lucide-react';
+import { Search, UserPlus, Star, BellOff, Archive, MessageCircle } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConversationItem } from './ConversationSidebar';
@@ -47,6 +47,10 @@ export interface ChatSidebarProps {
   onlineCount: number;
   /** Total unread count */
   unreadCount: number;
+  /** Called when mute is toggled on a conversation */
+  onMuteConversation?: (conversationId: string) => void;
+  /** Called when archive is toggled on a conversation */
+  onArchiveConversation?: (conversationId: string) => void;
 }
 
 export function ChatSidebar({
@@ -64,8 +68,10 @@ export function ChatSidebar({
   showMobileChat,
   onlineCount,
   unreadCount,
+  onMuteConversation,
+  onArchiveConversation,
 }: ChatSidebarProps) {
-  const filters: ConversationFilter[] = ['all', 'unread', 'starred', 'muted'];
+  const filters: ConversationFilter[] = ['all', 'unread', 'archived', 'starred', 'muted'];
 
   return (
     <Card className={`w-full md:w-72 lg:w-96 flex-shrink-0 flex flex-col overflow-hidden border-0 md:border ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
@@ -108,6 +114,7 @@ export function ChatSidebar({
               }`}
             >
               {f === 'starred' && <Star className="w-3 h-3 inline mr-1" aria-hidden="true" />}
+              {f === 'archived' && <Archive className="w-3 h-3 inline mr-1" aria-hidden="true" />}
               {f === 'muted' && <BellOff className="w-3 h-3 inline mr-1" aria-hidden="true" />}
               {f.charAt(0).toUpperCase() + f.slice(1)}
               {f === 'unread' && unreadCount > 0 && (
@@ -168,6 +175,8 @@ export function ChatSidebar({
                     conversation={conversation}
                     isSelected={selectedConversation?.id === conversation.id}
                     onClick={() => onConversationClick(conversation)}
+                    onMute={onMuteConversation ? () => onMuteConversation(conversation.id) : undefined}
+                    onDelete={onArchiveConversation ? () => onArchiveConversation(conversation.id) : undefined}
                   />
                 ))}
                 {unread.length > 0 && read.length > 0 && (
@@ -185,6 +194,8 @@ export function ChatSidebar({
                     conversation={conversation}
                     isSelected={selectedConversation?.id === conversation.id}
                     onClick={() => onConversationClick(conversation)}
+                    onMute={onMuteConversation ? () => onMuteConversation(conversation.id) : undefined}
+                    onDelete={onArchiveConversation ? () => onArchiveConversation(conversation.id) : undefined}
                   />
                 ))}
               </>
