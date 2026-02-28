@@ -3,7 +3,7 @@
  * Handles real-time collaboration for design boards
  */
 
-import { io, Socket } from 'socket.io-client';
+import { BaseSocketService } from './BaseSocketService';
 
 export interface BoardNode {
   id: string;
@@ -43,49 +43,20 @@ export interface BoardUser {
 
 type EventCallback = (...args: unknown[]) => void;
 
-class DesignBoardsSocketService {
-  private socket: Socket | null = null;
-  private eventListeners: Map<string, Set<EventCallback>> = new Map();
-  private isConnected = false;
+class DesignBoardsSocketService extends BaseSocketService {
   private currentBoardId: string | null = null;
 
-  connect(): void {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      console.warn('[DesignBoardsSocket] No auth token, skipping connection');
-      return;
-    }
-
-    if (this.socket?.connected) {
-      return;
-    }
-
-    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-    this.socket = io(`${socketUrl}/design-boards`, {
-      path: '/api/socket.io',
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
-
-    this.setupEventHandlers();
+  constructor() {
+    super({ namespace: '/design-boards' });
   }
 
-  private setupEventHandlers(): void {
+  protected getSocketUrl(): string {
+    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    return `${socketUrl}${this.config.namespace}`;
+  }
+
+  protected setupDomainHandlers(): void {
     if (!this.socket) return;
-
-    this.socket.on('connect', () => {
-      this.isConnected = true;
-      this.emit('connect');
-    });
-
-    this.socket.on('disconnect', (_reason: string) => {
-      this.isConnected = false;
-      this.emit('disconnect');
-    });
 
     this.socket.on('error', (error: { message: string }) => {
       console.error('[DesignBoardsSocket] Error:', error);
@@ -145,9 +116,7 @@ class DesignBoardsSocketService {
     if (this.currentBoardId) {
       this.leaveBoard(this.currentBoardId);
     }
-    this.socket?.disconnect();
-    this.socket = null;
-    this.isConnected = false;
+    super.disconnect();
   }
 
   // Board actions
@@ -221,14 +190,6 @@ class DesignBoardsSocketService {
     return () => {
       this.eventListeners.get(event)?.delete(callback);
     };
-  }
-
-  private emit(event: string, ...args: unknown[]): void {
-    this.eventListeners.get(event)?.forEach(callback => callback(...args));
-  }
-
-  getConnectionStatus(): boolean {
-    return this.isConnected && this.socket?.connected === true;
   }
 }
 

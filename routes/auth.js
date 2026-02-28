@@ -28,6 +28,8 @@ const { config } = require('../config/environment');
 const { authRateLimit, validateInput } = require('../middleware/security');
 const { getCsrfToken } = require('../middleware/csrf');
 const { ipRateLimiters } = require('../lib/security/ipRateLimit');
+const { zodValidate } = require('../middleware/zodValidate');
+const { signupSchema, loginSchema } = require('../lib/schemas/auth');
 
 // Import helpers
 const { generateAuthResponse } = require('../lib/auth/authHelpers');
@@ -105,6 +107,7 @@ router.post('/signup',
   validateInput.email,
   validateInput.password,
   validateInput.sanitizeInput,
+  zodValidate(signupSchema),
   async (req, res) => {
     try {
       const { email, password, name, userType = 'client' } = req.body;
@@ -333,6 +336,7 @@ router.post('/login',
   authRateLimit,
   validateInput.email,
   validateInput.sanitizeInput,
+  zodValidate(loginSchema),
   async (req, res) => {
     try {
       const { email, password } = req.body;

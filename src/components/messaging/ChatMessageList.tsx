@@ -4,7 +4,7 @@
  * message grouping, typing indicators, and scroll management
  */
 
-import React, { useRef, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { MessageCircle, Pin, Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
 import { ChatAvatar } from './ChatMessageBubble';
 import type { Message } from './types';
@@ -66,51 +66,53 @@ function TypingIndicator({ users }: { users: string[] }) {
 // MessageBubbleWrapper
 // ============================================================================
 
+interface MessageHandlerRefs {
+  onReply: (message: Message) => void;
+  onEdit: (message: Message) => void;
+  onDelete: (messageId: string) => void;
+  onPin: (messageId: string) => void;
+  onCopy: (messageId: string) => void;
+  onForward: (message: Message) => void;
+  onReact: (messageId: string, emoji: string) => void;
+  onOpenThread: (messageId: string) => void;
+  onViewInFiles?: (assetId: string) => void;
+  onJumpToMessage: (messageId: string) => void;
+  onChangeEditingDraft: (draft: string) => void;
+  onSubmitEdit: () => void;
+  onCancelEdit: () => void;
+}
+
 interface MessageBubbleWrapperProps {
   message: Message;
-  onReply: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  onPin: () => void;
-  onCopy: () => void;
-  onJumpToMessage: (messageId: string) => void;
-  onForward: () => void;
-  onReact: (emoji: string) => void;
-  onOpenThread: () => void;
-  onViewInFiles?: (assetId: string) => void;
+  handlers: MessageHandlerRefs;
   isGrouped: boolean;
   currentUserId?: string;
   isPinned: boolean;
   isHighlighted: boolean;
   isEditing: boolean;
   editingDraft: string;
-  onChangeEditingDraft: (draft: string) => void;
-  onSubmitEdit: () => void;
-  onCancelEdit: () => void;
 }
 
 const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
   message,
-  onReply,
-  onEdit,
-  onDelete,
-  onPin,
-  onCopy: _onCopy,
-  onJumpToMessage,
-  onForward: _onForward,
-  onReact,
-  onOpenThread,
-  onViewInFiles: _onViewInFiles,
+  handlers,
   isGrouped,
   currentUserId,
   isPinned,
   isHighlighted,
   isEditing,
   editingDraft,
-  onChangeEditingDraft,
-  onSubmitEdit,
-  onCancelEdit,
 }: MessageBubbleWrapperProps) {
+  const onReply = useCallback(() => handlers.onReply(message), [handlers, message]);
+  const onEdit = useCallback(() => handlers.onEdit(message), [handlers, message]);
+  const onDelete = useCallback(() => handlers.onDelete(message.id), [handlers, message.id]);
+  const onPin = useCallback(() => handlers.onPin(message.id), [handlers, message.id]);
+  const onReact = useCallback((emoji: string) => handlers.onReact(message.id, emoji), [handlers, message.id]);
+  const onOpenThread = useCallback(() => handlers.onOpenThread(message.id), [handlers, message.id]);
+  const onJumpToMessage = handlers.onJumpToMessage;
+  const onChangeEditingDraft = handlers.onChangeEditingDraft;
+  const onSubmitEdit = handlers.onSubmitEdit;
+  const onCancelEdit = handlers.onCancelEdit;
   const isOwn = message.author.id === currentUserId;
 
   return (
@@ -332,6 +334,14 @@ export const ChatMessageList = forwardRef<ChatMessageListRef, ChatMessageListPro
       [messages]
     );
 
+    const handlerRefs = useMemo<MessageHandlerRefs>(() => ({
+      onReply, onEdit, onDelete, onPin, onCopy, onForward, onReact,
+      onOpenThread, onViewInFiles, onJumpToMessage, onChangeEditingDraft,
+      onSubmitEdit, onCancelEdit,
+    }), [onReply, onEdit, onDelete, onPin, onCopy, onForward, onReact,
+         onOpenThread, onViewInFiles, onJumpToMessage, onChangeEditingDraft,
+         onSubmitEdit, onCancelEdit]);
+
     useImperativeHandle(ref, () => ({
       scrollToBottom: () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -396,16 +406,7 @@ export const ChatMessageList = forwardRef<ChatMessageListRef, ChatMessageListPro
                   {showDateSeparator && <DateSeparator date={message.timestamp} />}
                   <MessageBubbleWrapper
                     message={enrichedMessage}
-                    onReply={() => onReply(message)}
-                    onEdit={() => onEdit(message)}
-                    onDelete={() => onDelete(message.id)}
-                    onPin={() => onPin(message.id)}
-                    onCopy={() => onCopy(message.id)}
-                    onJumpToMessage={onJumpToMessage}
-                    onForward={() => onForward(message)}
-                    onReact={(emoji) => onReact(message.id, emoji)}
-                    onOpenThread={() => onOpenThread(message.id)}
-                    onViewInFiles={onViewInFiles}
+                    handlers={handlerRefs}
                     isGrouped={isGrouped || false}
                     currentUserId={currentUserId}
                     isPinned={pinnedMessageIds.includes(message.id)}
@@ -414,9 +415,6 @@ export const ChatMessageList = forwardRef<ChatMessageListRef, ChatMessageListPro
                     }
                     isEditing={editingMessageId === message.id}
                     editingDraft={editingMessageId === message.id ? editingDraft : ''}
-                    onChangeEditingDraft={onChangeEditingDraft}
-                    onSubmitEdit={onSubmitEdit}
-                    onCancelEdit={onCancelEdit}
                   />
                 </React.Fragment>
               );

@@ -25,6 +25,7 @@ import { createAssetSlice, AssetSlice } from './slices/assetSlice';
 import { createConnectorSlice, ConnectorSlice } from './slices/connectorSlice';
 import { createScene3DSlice, Scene3DSlice } from './slices/scene3dSlice';
 import { createFormationDraftSlice, FormationDraftSlice } from './slices/formationDraftSlice';
+import { createSocketSlice, SocketSlice } from './slices/socketSlice';
 
 // ============================================================================
 // Combined Store Type
@@ -44,7 +45,8 @@ export type FluxStore = AuthSlice &
   AssetSlice &
   ConnectorSlice &
   Scene3DSlice &
-  FormationDraftSlice;
+  FormationDraftSlice &
+  SocketSlice;
 
 // ============================================================================
 // Store Creation
@@ -70,6 +72,7 @@ export const useStore = create<FluxStore>()(
           ...createConnectorSlice(...(args as Parameters<typeof createConnectorSlice>)),
           ...createScene3DSlice(...(args as Parameters<typeof createScene3DSlice>)),
           ...createFormationDraftSlice(...(args as Parameters<typeof createFormationDraftSlice>)),
+          ...createSocketSlice(...(args as Parameters<typeof createSocketSlice>)),
         })),
         {
           name: 'fluxstudio-store',
@@ -157,6 +160,9 @@ export const useScene3DStore = () => useStore((state) => state.scene3d);
 // Formation Draft
 export const useFormationDraftStore = () => useStore((state) => state.formationDraft);
 
+// Socket
+export const useSocketStoreRoot = () => useStore((state) => state.socket);
+
 // ============================================================================
 // Cross-Slice Selectors
 // ============================================================================
@@ -203,5 +209,10 @@ export const resetStore = () => {
     state.projects.projects = [];
     state.messaging.conversations = [];
     state.offline.pendingActions = [];
+    state.socket.isConnected = false;
+    state.socket.connectionError = null;
+    state.socket.typingUsers = {};
+    state.socket.onlineUsers = {};
+    state.socket.activeConversations = [];
   });
 };

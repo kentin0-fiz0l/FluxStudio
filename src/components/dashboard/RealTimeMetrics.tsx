@@ -25,7 +25,8 @@ import {
   Target,
   RefreshCw,
 } from 'lucide-react';
-import { useSocket } from '../../contexts/SocketContext';
+import { useStore } from '@/store/store';
+import { socketService } from '@/services/socketService';
 
 // Register ChartJS components
 ChartJS.register(
@@ -49,7 +50,7 @@ interface MetricData {
 }
 
 export function RealTimeMetrics() {
-  const { socket, isConnected } = useSocket();
+  const isConnected = useStore(s => s.socket.isConnected);
   const [metrics, setMetrics] = useState<MetricData[]>([
     { label: 'Active Users', value: 24, change: 12, trend: 'up' },
     { label: 'Projects', value: 156, change: 8, trend: 'up' },
@@ -127,7 +128,7 @@ export function RealTimeMetrics() {
 
   // Real-time updates via WebSocket
   useEffect(() => {
-    if (!socket || !isConnected) return;
+    if (!isConnected) return;
 
     const handleMetricsUpdate = (data: { metrics: Record<string, unknown> }) => {
       setMetrics(data.metrics as unknown as MetricData[]);
@@ -154,16 +155,16 @@ export function RealTimeMetrics() {
       }));
     };
 
-    socket.on('metrics:update', handleMetricsUpdate);
-    socket.on('activity:update', handleActivityUpdate);
-    socket.on('projects:status', handleProjectsStatus);
+    socketService.on('metrics:update', handleMetricsUpdate);
+    socketService.on('activity:update', handleActivityUpdate);
+    socketService.on('projects:status', handleProjectsStatus);
 
     return () => {
-      socket.off('metrics:update', handleMetricsUpdate);
-      socket.off('activity:update', handleActivityUpdate);
-      socket.off('projects:status', handleProjectsStatus);
+      socketService.off('metrics:update', handleMetricsUpdate);
+      socketService.off('activity:update', handleActivityUpdate);
+      socketService.off('projects:status', handleProjectsStatus);
     };
-  }, [socket, isConnected]);
+  }, [isConnected]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {

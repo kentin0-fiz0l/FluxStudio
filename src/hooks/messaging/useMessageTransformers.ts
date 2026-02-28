@@ -5,7 +5,7 @@
  * Extracted from MessagesNew.tsx for Phase 4.2 decomposition.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import type { Message, Conversation, ConversationListItem } from '@/components/messaging/types';
 import { ConversationMessage } from '@/services/messagingSocketService';
 import { getInitials } from '@/components/messaging';
@@ -32,6 +32,39 @@ export function useMessageTransformers({
   readStates = [],
   messageIds = [],
 }: UseMessageTransformersOptions) {
+
+  // Stabilize pinnedMessageIds: only update ref if content actually changed
+  const pinnedIdsRef = useRef<string[]>(pinnedMessageIds);
+  if (
+    pinnedMessageIds.length !== pinnedIdsRef.current.length ||
+    pinnedMessageIds.some((id, i) => id !== pinnedIdsRef.current[i])
+  ) {
+    pinnedIdsRef.current = pinnedMessageIds;
+  }
+  const stablePinnedIds = pinnedIdsRef.current;
+
+  // Stabilize readStates: only update ref if content actually changed
+  const readStatesRef = useRef<ReadState[]>(readStates);
+  if (
+    readStates.length !== readStatesRef.current.length ||
+    readStates.some((rs, i) => {
+      const prev = readStatesRef.current[i];
+      return !prev || rs.userId !== prev.userId || rs.lastReadMessageId !== prev.lastReadMessageId;
+    })
+  ) {
+    readStatesRef.current = readStates;
+  }
+  const stableReadStates = readStatesRef.current;
+
+  // Stabilize messageIds: only update ref if content actually changed
+  const messageIdsRef = useRef<string[]>(messageIds);
+  if (
+    messageIds.length !== messageIdsRef.current.length ||
+    messageIds.some((id, i) => id !== messageIdsRef.current[i])
+  ) {
+    messageIdsRef.current = messageIds;
+  }
+  const stableMessageIds = messageIdsRef.current;
 
   // Transform ConversationListItem to Conversation for UI
   const transformSummaryToConversation = useCallback((summary: ConversationListItem): Conversation => {
@@ -82,13 +115,13 @@ export function useMessageTransformers({
     const authorName = msg.author?.displayName || msg.author?.email?.split('@')[0] || msg.userName || 'Unknown';
 
     // Compute readBy: find users whose lastReadMessageId is at an index >= this message's index
-    const msgIndex = messageIds.indexOf(msg.id);
+    const msgIndex = stableMessageIds.indexOf(msg.id);
     const readBy: Array<{ id: string; name: string; avatar?: string }> = [];
     if (msgIndex >= 0) {
-      for (const rs of readStates) {
+      for (const rs of stableReadStates) {
         // Skip the current user's own read state
         if (rs.userId === userId) continue;
-        const readIndex = messageIds.indexOf(rs.lastReadMessageId);
+        const readIndex = stableMessageIds.indexOf(rs.lastReadMessageId);
         if (readIndex >= msgIndex) {
           readBy.push({
             id: rs.userId,
@@ -132,7 +165,7 @@ export function useMessageTransformers({
         file: msg.asset.file,
       } : undefined,
       reactions: msg.reactions || [],
-      isPinned: pinnedMessageIds.includes(msg.id),
+      isPinned: stablePinnedIds.includes(msg.id),
       isForwarded: false,
       isSystemMessage: msg.isSystemMessage,
       threadReplyCount: msg.threadReplyCount,
@@ -153,7 +186,7 @@ export function useMessageTransformers({
       } : undefined,
       readBy,
     };
-  }, [userId, pinnedMessageIds, readStates, messageIds]);
+  }, [userId, stablePinnedIds, stableReadStates, stableMessageIds]);
 
   // Transform multiple summaries to conversations
   const transformConversations = useCallback((summaries: ConversationListItem[]): Conversation[] => {

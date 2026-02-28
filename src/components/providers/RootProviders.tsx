@@ -32,6 +32,7 @@ import { SessionProvider } from '../../contexts/SessionContext';
 import { OrganizationProvider } from '../../contexts/OrganizationContext';
 import { useAuth, useAuthInit } from '@/store/slices/authSlice';
 import { useNotificationInit } from '@/store/slices/notificationSlice';
+import { useSocketBridge } from '@/hooks/useSocketBridge';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -53,6 +54,7 @@ function CoreProviders({ children }: ProvidersProps) {
 function RealtimeProviders({ children }: ProvidersProps) {
   const { isAuthenticated } = useAuth();
   useNotificationInit();
+  useSocketBridge();
 
   if (!isAuthenticated) {
     return <>{children}</>;

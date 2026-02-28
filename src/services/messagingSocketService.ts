@@ -3,8 +3,8 @@
  * Handles real-time messaging for conversations using the new conversation-based events
  */
 
-import { io, Socket } from 'socket.io-client';
 import { createLogger } from '@/services/logging';
+import { BaseSocketService } from './BaseSocketService';
 
 const logger = createLogger('MessagingSocket');
 
@@ -133,53 +133,15 @@ export interface ConversationPinsUpdatedPayload {
 
 type EventCallback = (...args: unknown[]) => void;
 
-class MessagingSocketService {
-  private socket: Socket | null = null;
-  private eventListeners: Map<string, Set<EventCallback>> = new Map();
-  private isConnected = false;
+class MessagingSocketService extends BaseSocketService {
   private currentConversationId: string | null = null;
 
-  connect(): void {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      logger.warn('No auth token, skipping connection');
-      return;
-    }
-
-    if (this.socket?.connected) {
-      return;
-    }
-
-    // Use environment-based detection instead of hostname check
-    const isDevelopment = import.meta.env.DEV;
-    const socketUrl = isDevelopment ? 'http://localhost:3001' : window.location.origin;
-
-    this.socket = io(`${socketUrl}/messaging`, {
-      path: '/api/socket.io',
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
-
-    this.setupEventHandlers();
+  constructor() {
+    super({ namespace: '/messaging' });
   }
 
-  private setupEventHandlers(): void {
+  protected setupDomainHandlers(): void {
     if (!this.socket) return;
-
-    this.socket.on('connect', () => {
-      logger.info('Connected');
-      this.isConnected = true;
-      this.emit('connect');
-    });
-
-    this.socket.on('disconnect', (reason: string) => {
-      logger.info('Disconnected', { reason });
-      this.isConnected = false;
-      this.emit('disconnect');
-    });
 
     this.socket.on('error', (error: { message: string }) => {
       logger.error('Error', error);
@@ -301,9 +263,7 @@ class MessagingSocketService {
     if (this.currentConversationId) {
       this.leaveConversation(this.currentConversationId);
     }
-    this.socket?.disconnect();
-    this.socket = null;
-    this.isConnected = false;
+    super.disconnect();
   }
 
   // ========================================
@@ -472,14 +432,6 @@ class MessagingSocketService {
     return () => {
       this.eventListeners.get(event)?.delete(callback);
     };
-  }
-
-  private emit(event: string, ...args: unknown[]): void {
-    this.eventListeners.get(event)?.forEach(callback => callback(...args));
-  }
-
-  getConnectionStatus(): boolean {
-    return this.isConnected && this.socket?.connected === true;
   }
 
   getCurrentConversationId(): string | null {

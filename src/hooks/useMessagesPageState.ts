@@ -375,8 +375,14 @@ export function useMessagesPageState() {
     });
   }, [conversations, filter, searchTerm, hasFocus, activeProject]);
 
-  const unreadCount = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
-  const onlineCount = conversations.filter(c => c.participant?.isOnline).length;
+  const unreadCount = useMemo(() =>
+    conversations.reduce((sum, c) => sum + c.unreadCount, 0),
+    [conversations]
+  );
+  const onlineCount = useMemo(() =>
+    conversations.filter(c => c.participant?.isOnline).length,
+    [conversations]
+  );
 
   // ========================================
   // EFFECTS
@@ -592,11 +598,11 @@ export function useMessagesPageState() {
     setThreadMessages(prev => [...prev, newMsg]);
   }, [selectedConversationId, activeThreadRootId, realtime, user]);
 
-  const handleConversationClick = (conversation: Conversation) => {
+  const handleConversationClick = useCallback((conversation: Conversation) => {
     setSelectedConversationId(conversation.id);
     setShowMobileChat(true);
     reportConversation(conversation.id);
-  };
+  }, [reportConversation]);
 
   const handleMuteConversation = useCallback(async (conversationId?: string) => {
     const targetId = conversationId || selectedConversationId;

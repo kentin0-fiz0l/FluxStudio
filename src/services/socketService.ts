@@ -3,9 +3,9 @@
  * Handles WebSocket connections, real-time messaging, and presence tracking
  */
 
-import { io, Socket } from 'socket.io-client';
 import { MessageUser, Message, UserPresence } from '../types/messaging';
 import { socketLogger } from '@/services/logging';
+import { BaseSocketService } from './BaseSocketService';
 
 // Project presence member
 export interface ProjectPresenceMember {
@@ -75,96 +75,30 @@ export interface SocketEvents {
   'notification:new': (notification: { id: string; type: string; title: string; message: string; timestamp: Date }) => void;
 }
 
-class SocketService {
-  private socket: Socket | null = null;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000;
-  private maxReconnectDelay = 30000;
-  private isConnected = false;
+class SocketService extends BaseSocketService {
   private authFailed = false;
   private currentUserId: string | null = null;
   private onlineListener: (() => void) | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  private eventListeners = new Map<string, Set<Function>>();
 
   constructor() {
-    // Don't auto-connect - wait for authentication
+    super({ namespace: '/messaging' });
   }
 
-  /**
-   * Initialize socket connection
-   * Updated for unified backend with /messaging namespace
-   */
-  private connect() {
-    // Don't connect without auth token (auth_token is the primary key used by AuthContext)
-    const authToken = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
-    if (!authToken) {
-      socketLogger.warn('No auth token found, skipping Socket.IO connection');
-      return;
-    }
-
-    // Use environment-based detection instead of hostname check
-    const isDevelopment = import.meta.env.DEV;
-    // Socket.IO server is at /api/socket.io path, namespace is /messaging
-    const socketUrl = isDevelopment ? 'http://localhost:3001' : window.location.origin;
-
-    socketLogger.info(`Connecting to Socket.IO at ${socketUrl}/messaging`);
-
-    // Connect to /messaging namespace on unified backend
-    this.socket = io(`${socketUrl}/messaging`, {
-      withCredentials: true,
-      transports: ['websocket', 'polling'],
-      autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: this.maxReconnectAttempts,
-      reconnectionDelay: this.reconnectDelay,
-      timeout: 20000,
-      path: '/api/socket.io', // Socket.IO path on DigitalOcean App Platform
-      auth: {
-        token: authToken
-      }
-    });
-
-    this.setupConnectionHandlers();
-  }
-
-  /**
-   * Set up connection event handlers
-   */
-  private setupConnectionHandlers() {
+  protected setupDomainHandlers(): void {
     if (!this.socket) return;
 
+    // Override base connect handler to add re-authentication
     this.socket.on('connect', () => {
       socketLogger.info('Connected to WebSocket server');
-      this.isConnected = true;
-      this.reconnectAttempts = 0;
-
-      // Re-authenticate if we have a user
       if (this.currentUserId && this.socket) {
-        this.socket.emit('user:join', {
-          userId: this.currentUserId
-        });
+        this.socket.emit('user:join', { userId: this.currentUserId });
         socketLogger.debug(`Re-authenticated user: ${this.currentUserId}`);
       }
-
-      this.emit('connect');
     });
 
-    this.socket.on('disconnect', (reason) => {
-      socketLogger.info('Disconnected from WebSocket server', { reason });
-      this.isConnected = false;
-      this.emit('disconnect');
-
-      // Attempt reconnection if not a manual disconnect
-      if (reason === 'io server disconnect') {
-        this.handleReconnection();
-      }
-    });
-
+    // Override base connect_error to handle auth failures
     this.socket.on('connect_error', (error) => {
       const errorMessage = error.message || '';
-      // Check if this is an auth error - stop reconnecting
       if (errorMessage.includes('unauthorized') ||
           errorMessage.includes('Authentication') ||
           errorMessage.includes('Invalid token') ||
@@ -174,24 +108,12 @@ class SocketService {
         this.disconnect();
         return;
       }
-      // Suppress noisy connect_error logs after the 3rd attempt
       if (this.reconnectAttempts < 3) {
         socketLogger.error('Connection error', error);
       } else if (this.reconnectAttempts % 3 === 0) {
         socketLogger.debug(`Connection error (attempt ${this.reconnectAttempts})`, error);
       }
-      this.handleReconnection();
     });
-
-    // Set up message event listeners
-    this.setupMessageHandlers();
-  }
-
-  /**
-   * Set up message and real-time event handlers
-   */
-  private setupMessageHandlers() {
-    if (!this.socket) return;
 
     // Message events
     this.socket.on('message:received', (message: Message) => {
@@ -248,11 +170,7 @@ class SocketService {
     });
   }
 
-  /**
-   * Handle reconnection attempts
-   */
-  private handleReconnection() {
-    // Don't reconnect if auth failed
+  protected handleReconnection(): void {
     if (this.authFailed) {
       socketLogger.warn('Not reconnecting due to authentication failure');
       return;
@@ -273,14 +191,14 @@ class SocketService {
       return;
     }
 
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+    if (this.reconnectAttempts < this.config.maxReconnectAttempts) {
       this.reconnectAttempts++;
       const delay = Math.min(
-        this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
-        this.maxReconnectDelay
+        this.config.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
+        this.config.maxReconnectDelay
       );
 
-      socketLogger.info(`Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
+      socketLogger.info(`Attempting reconnection ${this.reconnectAttempts}/${this.config.maxReconnectAttempts} in ${delay}ms`);
 
       setTimeout(() => {
         if (this.socket && !this.authFailed) {
@@ -289,7 +207,6 @@ class SocketService {
       }, delay);
     } else {
       socketLogger.error('Max reconnection attempts reached - falling back to REST API');
-      // Stop Socket.IO's built-in auto-reconnection as well
       if (this.socket) {
         this.socket.io.opts.reconnection = false;
         this.socket.disconnect();
@@ -302,16 +219,13 @@ class SocketService {
    */
   authenticateUser(userId: string, userData?: { name: string; userType: string }) {
     this.currentUserId = userId;
-    // Reset auth failed flag on new auth attempt
     this.authFailed = false;
     this.reconnectAttempts = 0;
 
-    // Initialize connection if not already connected
     if (!this.socket) {
       this.connect();
     }
 
-    // If socket is connected, authenticate immediately
     if (this.socket && this.isConnected) {
       this.socket.emit('user:join', {
         userId,
@@ -319,35 +233,22 @@ class SocketService {
       });
       socketLogger.info(`Authenticated user: ${userId}`);
     }
-    // Otherwise, authentication will happen in the connect handler
   }
 
-  /**
-   * Join a conversation room
-   */
   joinConversation(conversationId: string) {
     if (!this.socket || !this.currentUserId) return;
-
     this.socket.emit('conversation:join', conversationId, this.currentUserId);
     socketLogger.debug(`Joined conversation: ${conversationId}`);
   }
 
-  /**
-   * Leave a conversation room
-   */
   leaveConversation(conversationId: string) {
     if (!this.socket || !this.currentUserId) return;
-
     this.socket.emit('conversation:leave', conversationId, this.currentUserId);
     socketLogger.debug(`Left conversation: ${conversationId}`);
   }
 
-  /**
-   * Join a project room for presence tracking
-   */
   joinProject(projectId: string, userData?: { userName?: string }) {
     if (!this.socket || !this.currentUserId) return;
-
     this.socket.emit('project:join', projectId, {
       userId: this.currentUserId,
       userName: userData?.userName || 'Unknown',
@@ -355,12 +256,8 @@ class SocketService {
     socketLogger.debug(`Joined project: ${projectId}`);
   }
 
-  /**
-   * Leave a project room
-   */
   leaveProject(projectId: string, userData?: { userName?: string }) {
     if (!this.socket || !this.currentUserId) return;
-
     this.socket.emit('project:leave', projectId, {
       userId: this.currentUserId,
       userName: userData?.userName || 'Unknown',
@@ -368,9 +265,6 @@ class SocketService {
     socketLogger.debug(`Left project: ${projectId}`);
   }
 
-  /**
-   * Send a message in real-time
-   */
   sendMessage(messageData: {
     conversationId: string;
     content: string;
@@ -382,68 +276,42 @@ class SocketService {
     replyTo?: string;
   }) {
     if (!this.socket) return;
-
     this.socket.emit('message:send', messageData);
   }
 
-  /**
-   * Start typing indicator
-   */
   startTyping(conversationId: string) {
     if (!this.socket || !this.currentUserId) return;
-
     this.socket.emit('typing:start', conversationId, this.currentUserId);
   }
 
-  /**
-   * Stop typing indicator
-   */
   stopTyping(conversationId: string) {
     if (!this.socket || !this.currentUserId) return;
-
     this.socket.emit('typing:stop', conversationId, this.currentUserId);
   }
 
-  /**
-   * Add reaction to a message
-   */
   addReaction(messageId: string, conversationId: string, reaction: string) {
     if (!this.socket || !this.currentUserId) return;
-
     this.socket.emit('message:react', messageId, conversationId, reaction, this.currentUserId);
   }
 
-  /**
-   * Remove reaction from a message
-   */
   removeReaction(messageId: string, conversationId: string, reaction: string) {
     if (!this.socket || !this.currentUserId) return;
-
     this.socket.emit('message:unreact', messageId, conversationId, reaction, this.currentUserId);
   }
 
-  /**
-   * Mark message as read
-   */
   markMessageAsRead(messageId: string, conversationId: string) {
     if (!this.socket || !this.currentUserId) return;
-
     this.socket.emit('message:read', messageId, conversationId, this.currentUserId);
   }
 
-  /**
-   * Add event listener
-   */
-  on<K extends keyof SocketEvents>(event: K, callback: SocketEvents[K]) {
+  on<K extends keyof SocketEvents>(event: K, callback: SocketEvents[K]): () => void {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Set());
     }
     this.eventListeners.get(event)!.add(callback);
+    return () => { this.eventListeners.get(event)?.delete(callback); };
   }
 
-  /**
-   * Remove event listener
-   */
   off<K extends keyof SocketEvents>(event: K, callback: SocketEvents[K]) {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
@@ -451,48 +319,19 @@ class SocketService {
     }
   }
 
-  /**
-   * Emit event to listeners
-   */
-  private emit(event: string, ...args: unknown[]) {
-    const listeners = this.eventListeners.get(event);
-    if (listeners) {
-      listeners.forEach(callback => {
-        try {
-          callback(...args);
-        } catch (error) {
-          socketLogger.error(`Error in ${event} listener`, error);
-        }
-      });
-    }
-  }
-
-  /**
-   * Get connection status
-   */
   isSocketConnected(): boolean {
     return this.isConnected && this.socket?.connected === true;
   }
 
-  /**
-   * Disconnect socket
-   */
   disconnect() {
     if (this.onlineListener) {
       window.removeEventListener('online', this.onlineListener);
       this.onlineListener = null;
     }
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-      this.isConnected = false;
-      this.currentUserId = null;
-    }
+    this.currentUserId = null;
+    super.disconnect();
   }
 
-  /**
-   * Get current user ID
-   */
   getCurrentUserId(): string | null {
     return this.currentUserId;
   }

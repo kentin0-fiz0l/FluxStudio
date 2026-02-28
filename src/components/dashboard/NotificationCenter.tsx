@@ -18,7 +18,8 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
-import { useSocket } from '../../contexts/SocketContext';
+import { useStore } from '@/store/store';
+import { socketService } from '@/services/socketService';
 import { cn } from '../../lib/utils';
 
 interface Notification {
@@ -84,7 +85,7 @@ const createInitialNotifications = (): Notification[] => {
 };
 
 export function NotificationCenter() {
-  const { socket, isConnected } = useSocket();
+  const isConnected = useStore(s => s.socket.isConnected);
   const [notifications, setNotifications] = useState<Notification[]>(createInitialNotifications);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -92,7 +93,7 @@ export function NotificationCenter() {
 
   // Real-time notifications via WebSocket
   useEffect(() => {
-    if (!socket || !isConnected) return;
+    if (!isConnected) return;
 
     const handleNewNotification = (data: { id: string; type: string; title: string; message: string; timestamp: Date }) => {
       const notification: Notification = {
@@ -113,12 +114,12 @@ export function NotificationCenter() {
       }
     };
 
-    socket.on('notification:new', handleNewNotification);
+    socketService.on('notification:new', handleNewNotification);
 
     return () => {
-      socket.off('notification:new', handleNewNotification);
+      socketService.off('notification:new', handleNewNotification);
     };
-  }, [socket, isConnected]);
+  }, [isConnected]);
 
   // Request notification permission
   useEffect(() => {

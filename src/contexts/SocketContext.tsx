@@ -1,18 +1,21 @@
 /* eslint-disable react-refresh/only-export-components */
 /**
  * Socket.IO React Context for Real-time Communication
- * Provides WebSocket connection management and real-time messaging state
+ *
+ * Connection state (isConnected, typingUsers, onlineUsers) has been migrated
+ * to Zustand socketSlice (Sprint 65). This context now provides imperative
+ * socket methods (sendMessage, joinConversation, etc.) that delegate to
+ * socketService, while reading reactive state from the Zustand store.
  */
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { socketService, ProjectPresenceMember, PulseEvent } from '../services/socketService';
 import { useAuth } from '@/store/slices/authSlice';
-import { socketLogger } from '../lib/logger';
-import { toast } from '../lib/toast';
+import { useStore } from '@/store/store';
 import { Message, MessageUser, UserPresence } from '../types/messaging';
 
 interface SocketContextType {
-  // Connection state
+  // Connection state (from Zustand)
   isConnected: boolean;
   connectionError: string | null;
   socket: typeof import('../services/socketService').socketService | null;
@@ -82,132 +85,14 @@ interface SocketProviderProps {
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const { user } = useAuth();
 
-  // Connection state
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
+  // Connection state from Zustand (managed by useSocketBridge)
+  const isConnected = useStore(s => s.socket.isConnected);
+  const connectionError = useStore(s => s.socket.connectionError);
 
-  // Real-time state
+  // Local state for imperative collections (not migrated to Zustand)
   const [activeConversations] = useState(new Set<string>());
   const [typingUsers] = useState(new Map<string, Set<string>>());
   const [onlineUsers] = useState(new Map<string, UserPresence>());
-
-  // Typing timeout management
-  const typingTimeouts = useRef(new Map<string, NodeJS.Timeout>());
-
-  // Initialize socket connection when user is available
-  useEffect(() => {
-    if (user) {
-      socketService.authenticateUser(user.id, {
-        name: user.name || '',
-        userType: user.userType || 'designer'
-      });
-    }
-
-    return () => {
-      // Cleanup on unmount
-      socketService.disconnect();
-    };
-  }, [user]);
-
-  // Set up socket event listeners
-  useEffect(() => {
-    // Track whether we were previously connected (for reconnect detection)
-    let wasConnected = false;
-
-    // Connection events
-    const handleConnect = () => {
-      setIsConnected(true);
-      setConnectionError(null);
-      socketLogger.info('Socket connected');
-      if (wasConnected) {
-        toast.reconnected();
-      }
-      wasConnected = true;
-    };
-
-    const handleDisconnect = () => {
-      setIsConnected(false);
-      socketLogger.info('Socket disconnected');
-      if (wasConnected) {
-        toast.offline();
-      }
-    };
-
-    // Typing events
-    const handleTypingStarted = (data: { conversationId: string; userId: string; timestamp: Date }) => {
-      const { conversationId, userId } = data;
-
-      if (!typingUsers.has(conversationId)) {
-        typingUsers.set(conversationId, new Set());
-      }
-      typingUsers.get(conversationId)!.add(userId);
-
-      // Clear existing timeout for this user
-      const timeoutKey = `${conversationId}-${userId}`;
-      if (typingTimeouts.current.has(timeoutKey)) {
-        clearTimeout(typingTimeouts.current.get(timeoutKey)!);
-      }
-
-      // Set new timeout to auto-remove typing indicator
-      const timeout = setTimeout(() => {
-        if (typingUsers.has(conversationId)) {
-          typingUsers.get(conversationId)!.delete(userId);
-        }
-        typingTimeouts.current.delete(timeoutKey);
-      }, 5000);
-
-      typingTimeouts.current.set(timeoutKey, timeout);
-    };
-
-    const handleTypingStopped = (data: { conversationId: string; userId: string; timestamp: Date }) => {
-      const { conversationId, userId } = data;
-
-      if (typingUsers.has(conversationId)) {
-        typingUsers.get(conversationId)!.delete(userId);
-      }
-
-      // Clear timeout
-      const timeoutKey = `${conversationId}-${userId}`;
-      if (typingTimeouts.current.has(timeoutKey)) {
-        clearTimeout(typingTimeouts.current.get(timeoutKey)!);
-        typingTimeouts.current.delete(timeoutKey);
-      }
-    };
-
-    // Presence events
-    const handleUserOnline = (user: UserPresence) => {
-      onlineUsers.set(user.userId, { ...user, isOnline: true });
-    };
-
-    const handleUserOffline = (user: UserPresence) => {
-      onlineUsers.set(user.userId, { ...user, isOnline: false });
-    };
-
-    // Register event listeners
-    socketService.on('connect', handleConnect);
-    socketService.on('disconnect', handleDisconnect);
-    socketService.on('typing:started', handleTypingStarted);
-    socketService.on('typing:stopped', handleTypingStopped);
-    socketService.on('user:online', handleUserOnline);
-    socketService.on('user:offline', handleUserOffline);
-
-    // Copy ref value for cleanup
-    const timeouts = typingTimeouts.current;
-
-    // Cleanup function
-    return () => {
-      socketService.off('connect', handleConnect);
-      socketService.off('disconnect', handleDisconnect);
-      socketService.off('typing:started', handleTypingStarted);
-      socketService.off('typing:stopped', handleTypingStopped);
-      socketService.off('user:online', handleUserOnline);
-      socketService.off('user:offline', handleUserOffline);
-
-      // Clear all typing timeouts
-      timeouts.forEach(timeout => clearTimeout(timeout));
-      timeouts.clear();
-    };
-  }, [typingUsers, onlineUsers]);
 
   // Conversation management
   const joinConversation = useCallback((conversationId: string) => {
@@ -218,8 +103,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const leaveConversation = useCallback((conversationId: string) => {
     socketService.leaveConversation(conversationId);
     activeConversations.delete(conversationId);
-
-    // Clear typing indicators for this conversation
     typingUsers.delete(conversationId);
   }, [activeConversations, typingUsers]);
 
@@ -343,7 +226,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   }, []);
 
   const contextValue: SocketContextType = {
-    // Connection state
+    // Connection state (from Zustand)
     isConnected,
     connectionError,
 

@@ -171,6 +171,44 @@ describe('Payments Integration Tests', () => {
       expect(res.body.subscription.status).toBe('active');
     });
 
+    it('should return canTrial:false for user who used trial', async () => {
+      query.mockResolvedValueOnce({ rows: [] }); // no active subscription
+      query.mockResolvedValueOnce({
+        rows: [{ trial_used_at: '2025-06-01T00:00:00Z' }]
+      }); // trial was used
+
+      const res = await request(app)
+        .get('/api/payments/subscription')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body.hasSubscription).toBe(false);
+      expect(res.body.subscription).toBeNull();
+      expect(res.body.canTrial).toBe(false);
+    });
+
+    it('should return cancelled subscription details', async () => {
+      query.mockResolvedValueOnce({
+        rows: [{
+          stripe_subscription_id: 'sub_cancelled_456',
+          stripe_customer_id: 'cus_xyz',
+          status: 'active',
+          current_period_end: '2025-12-31T00:00:00Z',
+          cancelled_at: '2025-11-15T00:00:00Z'
+        }]
+      });
+
+      const res = await request(app)
+        .get('/api/payments/subscription')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body.hasSubscription).toBe(true);
+      expect(res.body.subscription.id).toBe('sub_cancelled_456');
+      expect(res.body.subscription.cancelledAt).toBe('2025-11-15T00:00:00Z');
+      expect(res.body.subscription.currentPeriodEnd).toBe('2025-12-31T00:00:00Z');
+    });
+
     it('should handle database errors gracefully', async () => {
       query.mockRejectedValueOnce(new Error('Database connection failed'));
 
@@ -201,7 +239,8 @@ describe('Payments Integration Tests', () => {
         .send({})
         .expect(400);
 
-      expect(res.body.error).toBe('Price ID is required');
+      expect(res.body.success).toBe(false);
+      expect(res.body.error).toBeDefined();
     });
 
     it('should return 404 when user not found in database', async () => {
@@ -277,6 +316,7 @@ describe('Payments Integration Tests', () => {
       const res = await request(app)
         .post('/api/payments/create-checkout-session')
         .set('Authorization', `Bearer ${token}`)
+        .send({ priceId: 'price_test_123' })
         .expect(500);
 
       expect(res.body.error).toBe('Failed to create checkout session');
@@ -340,6 +380,89 @@ describe('Payments Integration Tests', () => {
         .expect(200);
 
       expect(res.body.type).toBe('customer.subscription.created');
+    });
+
+    it('should pass payload and signature to handleWebhook', async () => {
+      const testPayload = { type: 'checkout.session.completed', data: { object: { id: 'cs_123' } } };
+      paymentService.handleWebhook.mockResolvedValueOnce({
+        received: true,
+        type: 'checkout.session.completed'
+      });
+
+      await request(app)
+        .post('/api/payments/webhooks/stripe')
+        .set('stripe-signature', 'sig_test_abc')
+        .send(testPayload)
+        .expect(200);
+
+      expect(paymentService.handleWebhook).toHaveBeenCalledWith(
+        expect.anything(),
+        'sig_test_abc'
+      );
+    });
+
+    it('should handle checkout.session.completed event', async () => {
+      paymentService.handleWebhook.mockResolvedValueOnce({
+        received: true,
+        type: 'checkout.session.completed'
+      });
+
+      const res = await request(app)
+        .post('/api/payments/webhooks/stripe')
+        .set('stripe-signature', 'valid_sig')
+        .send({ type: 'checkout.session.completed' })
+        .expect(200);
+
+      expect(res.body.received).toBe(true);
+      expect(res.body.type).toBe('checkout.session.completed');
+    });
+
+    it('should handle customer.subscription.updated event', async () => {
+      paymentService.handleWebhook.mockResolvedValueOnce({
+        received: true,
+        type: 'customer.subscription.updated'
+      });
+
+      const res = await request(app)
+        .post('/api/payments/webhooks/stripe')
+        .set('stripe-signature', 'valid_sig')
+        .send({ type: 'customer.subscription.updated' })
+        .expect(200);
+
+      expect(res.body.received).toBe(true);
+      expect(res.body.type).toBe('customer.subscription.updated');
+    });
+
+    it('should handle customer.subscription.deleted event', async () => {
+      paymentService.handleWebhook.mockResolvedValueOnce({
+        received: true,
+        type: 'customer.subscription.deleted'
+      });
+
+      const res = await request(app)
+        .post('/api/payments/webhooks/stripe')
+        .set('stripe-signature', 'valid_sig')
+        .send({ type: 'customer.subscription.deleted' })
+        .expect(200);
+
+      expect(res.body.received).toBe(true);
+      expect(res.body.type).toBe('customer.subscription.deleted');
+    });
+
+    it('should handle invoice.payment_succeeded event', async () => {
+      paymentService.handleWebhook.mockResolvedValueOnce({
+        received: true,
+        type: 'invoice.payment_succeeded'
+      });
+
+      const res = await request(app)
+        .post('/api/payments/webhooks/stripe')
+        .set('stripe-signature', 'valid_sig')
+        .send({ type: 'invoice.payment_succeeded' })
+        .expect(200);
+
+      expect(res.body.received).toBe(true);
+      expect(res.body.type).toBe('invoice.payment_succeeded');
     });
   });
 
@@ -408,6 +531,7 @@ describe('Payments Integration Tests', () => {
       const res = await request(app)
         .post('/api/payments/create-portal-session')
         .set('Authorization', `Bearer ${token}`)
+        .send({ returnUrl: 'https://example.com/billing' })
         .expect(500);
 
       expect(res.body.error).toBe('Failed to create billing portal session');

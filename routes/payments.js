@@ -14,6 +14,8 @@ const express = require('express');
 const router = express.Router();
 const { paymentService, SERVICE_PRICING } = require('../lib/payments');
 const { query } = require('../database/config');
+const { zodValidate } = require('../middleware/zodValidate');
+const { createCheckoutSessionSchema, createPortalSessionSchema } = require('../lib/schemas/payments');
 
 // Store auth helper for protected routes
 let authHelper = null;
@@ -65,7 +67,7 @@ router.post('/webhooks/stripe', async (req, res) => {
  * Create Checkout Session
  * POST /api/payments/create-checkout-session
  */
-router.post('/create-checkout-session', requireAuth, async (req, res) => {
+router.post('/create-checkout-session', requireAuth, zodValidate(createCheckoutSessionSchema), async (req, res) => {
   try {
     const { priceId, mode = 'subscription', successUrl, cancelUrl, metadata = {} } = req.body;
     const userId = req.user.id;
@@ -125,7 +127,7 @@ router.post('/create-checkout-session', requireAuth, async (req, res) => {
  * Create Customer Portal Session
  * POST /api/payments/create-portal-session
  */
-router.post('/create-portal-session', requireAuth, async (req, res) => {
+router.post('/create-portal-session', requireAuth, zodValidate(createPortalSessionSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const { returnUrl } = req.body;

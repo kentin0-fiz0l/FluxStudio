@@ -12,8 +12,9 @@
  * - Graceful degradation when WebSocket unavailable
  */
 
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { createLogger } from '@/services/logging';
+import { BaseSocketService } from './BaseSocketService';
 
 const logger = createLogger('TaskSocket');
 
@@ -65,139 +66,51 @@ export type TaskEventListener = (payload: TaskUpdatePayload) => void;
 export type TaskDeleteListener = (payload: TaskDeletePayload) => void;
 export type PresenceListener = (payload: PresenceUpdatePayload) => void;
 
-class TaskSocketService {
-  private socket: Socket | null = null;
+class TaskSocketService extends BaseSocketService {
   private currentProjectId: string | null = null;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000; // Start at 1 second
-  private isConnected = false;
   private currentUserId: string | null = null;
   private currentUserName: string | null = null;
 
-  // Store event listeners for cleanup
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  private eventListeners = new Map<string, Set<Function>>();
-
-  /**
-   * Initialize and connect to the Socket.IO server
-   *
-   * @param authToken - JWT token for authentication
-   * @param userId - Current user's ID
-   * @param userName - Current user's name
-   */
-  connect(authToken: string, userId: string, userName: string) {
-    // Prevent duplicate connections
-    if (this.socket?.connected) {
-      logger.debug('Task socket already connected');
-      return;
-    }
-
-    this.currentUserId = userId;
-    this.currentUserName = userName;
-
-    // Use environment-based detection instead of hostname check
-    const isDevelopment = import.meta.env.DEV;
-    const serverUrl = isDevelopment
-      ? import.meta.env.VITE_SOCKET_URL || 'http://localhost:3002'
-      : `${window.location.origin}/api`;
-
-    logger.info(`Connecting to task socket server: ${serverUrl}`);
-
-    // Initialize socket connection
-    this.socket = io(serverUrl, {
-      auth: { token: authToken },
-      transports: ['websocket', 'polling'], // Try WebSocket first, fallback to polling
-      autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: this.maxReconnectAttempts,
-      reconnectionDelay: this.reconnectDelay,
-      timeout: 20000,
-      withCredentials: true,
-      path: '/api/socket.io', // Socket.IO path on DigitalOcean App Platform
-    });
-
-    this.setupConnectionHandlers();
-    this.setupTaskEventHandlers();
+  constructor() {
+    // Task socket uses '/' namespace with a different URL resolution
+    super({ namespace: '', maxReconnectDelay: 30000 });
   }
 
   /**
-   * Set up connection lifecycle event handlers
+   * Override getSocketUrl for task-specific URL resolution.
    */
-  private setupConnectionHandlers() {
+  protected getSocketUrl(): string {
+    const isDevelopment = import.meta.env.DEV;
+    return isDevelopment
+      ? (import.meta.env.VITE_SOCKET_URL as string) || 'http://localhost:3002'
+      : `${window.location.origin}/api`;
+  }
+
+  protected setupDomainHandlers(): void {
     if (!this.socket) return;
 
-    // Connection established
+    // Re-join project room on reconnect
     this.socket.on('connect', () => {
       logger.info('Task socket connected successfully');
-      this.isConnected = true;
-      this.reconnectAttempts = 0;
-
-      // Re-join project room if we were in one
       if (this.currentProjectId) {
         logger.debug(`Re-joining project room: ${this.currentProjectId}`);
         this.joinProject(this.currentProjectId);
       }
     });
 
-    // Connection lost
-    this.socket.on('disconnect', (reason) => {
-      logger.info(`Task socket disconnected: ${reason}`);
-      this.isConnected = false;
-
-      // Auto-reconnect unless it was a manual disconnect
-      if (reason === 'io server disconnect') {
-        this.handleReconnection();
-      }
+    // Additional reconnection lifecycle events
+    this.socket.on('reconnect_attempt', (attemptNumber: number) => {
+      logger.info(`Task socket reconnection attempt ${attemptNumber}/${this.config.maxReconnectAttempts}`);
     });
 
-    // Connection error
-    this.socket.on('connect_error', (error) => {
-      logger.error('Task socket connection error', { message: error.message });
-      this.handleReconnection();
-    });
-
-    // Reconnection attempt
-    this.socket.on('reconnect_attempt', (attemptNumber) => {
-      logger.info(`Task socket reconnection attempt ${attemptNumber}/${this.maxReconnectAttempts}`);
-    });
-
-    // Reconnection successful
-    this.socket.on('reconnect', (attemptNumber) => {
+    this.socket.on('reconnect', (attemptNumber: number) => {
       logger.info(`Task socket reconnected after ${attemptNumber} attempts`);
       this.reconnectAttempts = 0;
     });
 
-    // Reconnection failed
     this.socket.on('reconnect_failed', () => {
       logger.error('Task socket reconnection failed - max attempts reached');
-      // Continue with degraded functionality (no real-time updates)
     });
-  }
-
-  /**
-   * Handle reconnection with exponential backoff
-   */
-  private handleReconnection() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-
-      logger.info(`Scheduling reconnection in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-
-      setTimeout(() => {
-        if (this.socket && !this.socket.connected) {
-          this.socket.connect();
-        }
-      }, delay);
-    }
-  }
-
-  /**
-   * Set up task-specific event handlers
-   */
-  private setupTaskEventHandlers() {
-    if (!this.socket) return;
 
     // Task created by another user
     this.socket.on('task:created', (payload: TaskUpdatePayload) => {
@@ -230,22 +143,82 @@ class TaskSocketService {
   }
 
   /**
-   * Join a project room to receive real-time updates
-   *
-   * @param projectId - The project ID to join
+   * Initialize and connect to the Socket.IO server.
+   * Custom signature: accepts authToken, userId, userName directly.
    */
+  connect(authToken?: string | undefined, userId?: string, userName?: string): void {
+    // If called with no args, delegate to base
+    if (!authToken) {
+      super.connect();
+      return;
+    }
+
+    if (this.socket?.connected) {
+      logger.debug('Task socket already connected');
+      return;
+    }
+
+    this.currentUserId = userId ?? null;
+    this.currentUserName = userName ?? null;
+
+    logger.info(`Connecting to task socket server: ${this.getSocketUrl()}`);
+
+    this.socket = io(this.getSocketUrl(), {
+      auth: { token: authToken },
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: this.config.maxReconnectAttempts,
+      reconnectionDelay: this.config.reconnectDelay,
+      timeout: 20000,
+      withCredentials: true,
+      path: this.config.path,
+    });
+
+    // Use base handlers + domain handlers
+    // We call setupBaseHandlers indirectly via the private method
+    // Since setupBaseHandlers is private in base, we replicate the base connect pattern
+    this.setupBaseHandlersManually();
+    this.setupDomainHandlers();
+  }
+
+  /**
+   * Replicate the base handler setup since we override connect() fully.
+   */
+  private setupBaseHandlersManually(): void {
+    if (!this.socket) return;
+
+    this.socket.on('connect', () => {
+      this.isConnected = true;
+      this.reconnectAttempts = 0;
+      this.emit('connect');
+    });
+
+    this.socket.on('disconnect', (reason) => {
+      logger.info(`Task socket disconnected: ${reason}`);
+      this.isConnected = false;
+      this.emit('disconnect');
+      if (reason === 'io server disconnect') {
+        this.handleReconnection();
+      }
+    });
+
+    this.socket.on('connect_error', (error) => {
+      logger.error('Task socket connection error', { message: error.message });
+      this.handleReconnection();
+    });
+  }
+
   joinProject(projectId: string) {
     if (!this.socket || !this.isConnected) {
       logger.warn('Cannot join project: socket not connected');
       return;
     }
 
-    // Leave previous project room if exists
     if (this.currentProjectId && this.currentProjectId !== projectId) {
       this.leaveProject(this.currentProjectId);
     }
 
-    // Join new project room
     this.socket.emit('join:project', {
       projectId,
       userId: this.currentUserId,
@@ -256,11 +229,6 @@ class TaskSocketService {
     logger.debug(`Joined project room: ${projectId}`);
   }
 
-  /**
-   * Leave a project room
-   *
-   * @param projectId - The project ID to leave
-   */
   leaveProject(projectId: string) {
     if (!this.socket) return;
 
@@ -276,135 +244,62 @@ class TaskSocketService {
     logger.debug(`Left project room: ${projectId}`);
   }
 
-  /**
-   * Emit task created event (broadcast to other users in room)
-   *
-   * @param projectId - The project ID
-   * @param task - The created task
-   */
   emitTaskCreated(projectId: string, task: Task) {
     if (!this.socket || !this.isConnected) {
       logger.warn('Cannot emit task:created - socket not connected');
       return;
     }
-
-    this.socket.emit('task:created', {
-      projectId,
-      task,
-    });
+    this.socket.emit('task:created', { projectId, task });
   }
 
-  /**
-   * Emit task updated event (broadcast to other users in room)
-   *
-   * @param projectId - The project ID
-   * @param task - The updated task
-   */
   emitTaskUpdated(projectId: string, task: Task) {
     if (!this.socket || !this.isConnected) {
       logger.warn('Cannot emit task:updated - socket not connected');
       return;
     }
-
-    this.socket.emit('task:updated', {
-      projectId,
-      task,
-    });
+    this.socket.emit('task:updated', { projectId, task });
   }
 
-  /**
-   * Emit task deleted event (broadcast to other users in room)
-   *
-   * @param projectId - The project ID
-   * @param taskId - The deleted task ID
-   */
   emitTaskDeleted(projectId: string, taskId: string) {
     if (!this.socket || !this.isConnected) {
       logger.warn('Cannot emit task:deleted - socket not connected');
       return;
     }
-
-    this.socket.emit('task:deleted', {
-      projectId,
-      taskId,
-    });
+    this.socket.emit('task:deleted', { projectId, taskId });
   }
 
-  /**
-   * Subscribe to task created events
-   *
-   * @param callback - Function to call when task is created
-   */
   onTaskCreated(callback: TaskEventListener) {
     this.addEventListener('task:created', callback);
   }
 
-  /**
-   * Subscribe to task updated events
-   *
-   * @param callback - Function to call when task is updated
-   */
   onTaskUpdated(callback: TaskEventListener) {
     this.addEventListener('task:updated', callback);
   }
 
-  /**
-   * Subscribe to task deleted events
-   *
-   * @param callback - Function to call when task is deleted
-   */
   onTaskDeleted(callback: TaskDeleteListener) {
     this.addEventListener('task:deleted', callback);
   }
 
-  /**
-   * Subscribe to presence updates
-   *
-   * @param callback - Function to call when presence changes
-   */
   onPresenceUpdate(callback: PresenceListener) {
     this.addEventListener('presence:update', callback);
   }
 
-  /**
-   * Unsubscribe from task created events
-   *
-   * @param callback - The callback to remove
-   */
   offTaskCreated(callback: TaskEventListener) {
     this.removeEventListener('task:created', callback);
   }
 
-  /**
-   * Unsubscribe from task updated events
-   *
-   * @param callback - The callback to remove
-   */
   offTaskUpdated(callback: TaskEventListener) {
     this.removeEventListener('task:updated', callback);
   }
 
-  /**
-   * Unsubscribe from task deleted events
-   *
-   * @param callback - The callback to remove
-   */
   offTaskDeleted(callback: TaskDeleteListener) {
     this.removeEventListener('task:deleted', callback);
   }
 
-  /**
-   * Unsubscribe from presence updates
-   *
-   * @param callback - The callback to remove
-   */
   offPresenceUpdate(callback: PresenceListener) {
     this.removeEventListener('presence:update', callback);
   }
 
-  /**
-   * Add an event listener
-   */
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private addEventListener(event: string, callback: Function) {
     if (!this.eventListeners.has(event)) {
@@ -413,9 +308,6 @@ class TaskSocketService {
     this.eventListeners.get(event)!.add(callback);
   }
 
-  /**
-   * Remove an event listener
-   */
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private removeEventListener(event: string, callback: Function) {
     const listeners = this.eventListeners.get(event);
@@ -424,51 +316,20 @@ class TaskSocketService {
     }
   }
 
-  /**
-   * Emit event to all registered listeners
-   */
-  private emit(event: string, ...args: unknown[]) {
-    const listeners = this.eventListeners.get(event);
-    if (listeners) {
-      listeners.forEach((callback) => {
-        try {
-          callback(...args);
-        } catch (error) {
-          logger.error(`Error in ${event} listener`, error);
-        }
-      });
-    }
-  }
-
-  /**
-   * Check if socket is connected
-   */
   isSocketConnected(): boolean {
     return this.isConnected && this.socket?.connected === true;
   }
 
-  /**
-   * Get current project ID
-   */
   getCurrentProjectId(): string | null {
     return this.currentProjectId;
   }
 
-  /**
-   * Disconnect from socket server
-   * Cleans up all listeners and leaves all rooms
-   */
   disconnect() {
     if (this.currentProjectId) {
       this.leaveProject(this.currentProjectId);
     }
 
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
-
-    this.isConnected = false;
+    super.disconnect();
     this.currentUserId = null;
     this.currentUserName = null;
     this.currentProjectId = null;

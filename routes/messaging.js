@@ -15,6 +15,8 @@
 const express = require('express');
 const multer = require('multer');
 const { authenticateToken } = require('../lib/auth/middleware');
+const { zodValidate } = require('../middleware/zodValidate');
+const { createConversationSchema, createMessageSchema } = require('../lib/schemas/messaging');
 const messagingConversationsAdapter = require('../database/messaging-conversations-adapter');
 const filesAdapter = require('../database/files-adapter');
 const assetsAdapter = require('../database/assets-adapter');
@@ -104,7 +106,7 @@ router.get('/', authenticateToken, async (req, res) => {
  * POST /api/conversations
  * Create a new conversation
  */
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, zodValidate(createConversationSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const { name, isGroup, memberUserIds, organizationId, projectId } = req.body;
@@ -712,7 +714,7 @@ router.post('/:id/voice-message', authenticateToken, fileUpload.single('file'), 
  * POST /api/conversations/:id/messages
  * Create a message in a conversation
  */
-router.post('/:id/messages', authenticateToken, async (req, res) => {
+router.post('/:id/messages', authenticateToken, zodValidate(createMessageSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const conversationId = req.params.id;
