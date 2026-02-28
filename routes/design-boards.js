@@ -16,6 +16,8 @@ const { authenticateToken } = require('../lib/auth/middleware');
 const designBoardsAdapter = require('../database/design-boards-adapter');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('DesignBoards');
+const { zodValidate } = require('../middleware/zodValidate');
+const { createBoardSchema, updateBoardSchema, createNodeSchema, bulkPositionSchema } = require('../lib/schemas/design-boards');
 
 const router = express.Router();
 
@@ -44,7 +46,7 @@ router.get('/projects/:projectId/boards', authenticateToken, async (req, res) =>
  * POST /api/projects/:projectId/boards
  * Create a new board
  */
-router.post('/projects/:projectId/boards', authenticateToken, async (req, res) => {
+router.post('/projects/:projectId/boards', authenticateToken, zodValidate(createBoardSchema), async (req, res) => {
   try {
     const { projectId } = req.params;
     const { name, description, organizationId } = req.body;
@@ -119,7 +121,7 @@ router.get('/:boardId', authenticateToken, async (req, res) => {
  * PATCH /api/boards/:boardId
  * Update board metadata
  */
-router.patch('/:boardId', authenticateToken, async (req, res) => {
+router.patch('/:boardId', authenticateToken, zodValidate(updateBoardSchema), async (req, res) => {
   try {
     const { boardId } = req.params;
     const { name, description, isArchived, thumbnailAssetId } = req.body;
@@ -177,7 +179,7 @@ router.delete('/:boardId', authenticateToken, async (req, res) => {
  * POST /api/boards/:boardId/nodes
  * Create a node on a board
  */
-router.post('/:boardId/nodes', authenticateToken, async (req, res) => {
+router.post('/:boardId/nodes', authenticateToken, zodValidate(createNodeSchema), async (req, res) => {
   try {
     const { boardId } = req.params;
     const { type, assetId, x, y, width, height, zIndex, rotation, locked, data } = req.body;
@@ -324,7 +326,7 @@ router.delete('/:boardId/nodes/:nodeId', authenticateToken, async (req, res) => 
  * POST /api/boards/:boardId/nodes/bulk-position
  * Bulk update node positions
  */
-router.post('/:boardId/nodes/bulk-position', authenticateToken, async (req, res) => {
+router.post('/:boardId/nodes/bulk-position', authenticateToken, zodValidate(bulkPositionSchema), async (req, res) => {
   try {
     const { boardId } = req.params;
     const { updates } = req.body;

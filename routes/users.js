@@ -11,6 +11,8 @@
 const express = require('express');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
+const { zodValidate } = require('../middleware/zodValidate');
+const { updateUserSchema } = require('../lib/schemas/users');
 
 const router = express.Router();
 
@@ -168,7 +170,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
 });
 
 // Update user (admin only)
-router.patch('/:id', authenticateToken, async (req, res) => {
+router.patch('/:id', authenticateToken, zodValidate(updateUserSchema), async (req, res) => {
   try {
     if (req.user.userType !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });

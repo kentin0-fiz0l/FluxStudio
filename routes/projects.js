@@ -15,6 +15,8 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Projects');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { validateInput } = require('../middleware/security');
 const { zodValidate } = require('../middleware/zodValidate');
@@ -32,7 +34,7 @@ let projectsAdapter = null;
 try {
   projectsAdapter = require('../database/projects-adapter');
 } catch (error) {
-  console.warn('Projects adapter not available, using file-based storage');
+  log.warn('Projects adapter not available, using file-based storage');
 }
 
 // Activity logger for tracking user actions
@@ -40,7 +42,7 @@ let activityLogger = null;
 try {
   activityLogger = require('../lib/activityLogger');
 } catch (error) {
-  console.warn('Activity logger not available');
+  log.warn('Activity logger not available');
 }
 
 // Audit logger (Sprint 41: Enterprise & Compliance)
@@ -125,7 +127,7 @@ router.get('/', authenticateToken, async (req, res) => {
             }));
           } catch (batchError) {
             // If batch query fails, fall back to N+1 (slower but works)
-            console.warn('Batch unread query failed, falling back to N+1:', batchError.message);
+            log.warn('Batch unread query failed, falling back to N+1', batchError.message);
             const projectsWithUnread = await Promise.all(
               projects.map(async (project) => {
                 const unreadCount = await projectsAdapter.getProjectUnreadCount(project.id, userId);
@@ -151,7 +153,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     res.json({ success: true, projects, total: projects.length });
   } catch (error) {
-    console.error('Get projects error:', error);
+    log.error('Get projects error', error);
     res.status(500).json({ error: 'Failed to fetch projects' });
   }
 });
@@ -194,7 +196,7 @@ router.get('/:projectId', authenticateToken, async (req, res) => {
 
     res.json({ success: true, project });
   } catch (error) {
-    console.error('Get project error:', error);
+    log.error('Get project error', error);
     res.status(500).json({ error: 'Failed to fetch project' });
   }
 });
@@ -251,7 +253,7 @@ router.post('/', authenticateToken, validateInput.sanitizeInput, checkProjectQuo
             [templateId, JSON.stringify({ templateVariables: templateVariables || {} }), newProject.id]
           );
         } catch (tmplErr) {
-          console.warn('Could not store template reference:', tmplErr.message);
+          log.warn('Could not store template reference', tmplErr.message);
         }
       }
 
@@ -312,7 +314,7 @@ router.post('/', authenticateToken, validateInput.sanitizeInput, checkProjectQuo
 
     res.status(201).json({ success: true, project: newProject });
   } catch (error) {
-    console.error('Create project error:', error);
+    log.error('Create project error', error);
     res.status(500).json({ error: 'Failed to create project' });
   }
 });
@@ -353,7 +355,7 @@ router.put('/:projectId', authenticateToken, validateInput.sanitizeInput, zodVal
 
     res.json({ success: true, project: updatedProject });
   } catch (error) {
-    console.error('Update project error:', error);
+    log.error('Update project error', error);
     res.status(500).json({ error: 'Failed to update project' });
   }
 });
@@ -381,7 +383,7 @@ router.delete('/:projectId', authenticateToken, async (req, res) => {
 
     res.json({ success: true, message: 'Project deleted successfully' });
   } catch (error) {
-    console.error('Delete project error:', error);
+    log.error('Delete project error', error);
     res.status(500).json({ error: 'Failed to delete project' });
   }
 });
@@ -406,7 +408,7 @@ router.get('/:projectId/activity', authenticateToken, async (req, res) => {
 
     res.json({ success: true, activity, total: activity.length });
   } catch (error) {
-    console.error('Get project activity error:', error);
+    log.error('Get project activity error', error);
     res.status(500).json({ error: 'Failed to fetch project activity' });
   }
 });
@@ -428,7 +430,7 @@ router.get('/:projectId/conversation', authenticateToken, async (req, res) => {
 
     res.json({ success: true, conversation });
   } catch (error) {
-    console.error('Get project conversation error:', error);
+    log.error('Get project conversation error', error);
     res.status(500).json({ error: 'Failed to fetch project conversation' });
   }
 });
@@ -449,7 +451,7 @@ router.get('/:projectId/members', authenticateToken, async (req, res) => {
 
     res.json({ success: true, members, total: members.length });
   } catch (error) {
-    console.error('Get project members error:', error);
+    log.error('Get project members error', error);
     res.status(500).json({ error: 'Failed to fetch project members' });
   }
 });
@@ -473,7 +475,7 @@ router.post('/:projectId/members', authenticateToken, validateInput.sanitizeInpu
 
     res.json({ success: true, message: 'Member added successfully' });
   } catch (error) {
-    console.error('Add project member error:', error);
+    log.error('Add project member error', error);
     res.status(500).json({ error: 'Failed to add project member' });
   }
 });
@@ -492,7 +494,7 @@ router.delete('/:projectId/members/:userId', authenticateToken, async (req, res)
 
     res.json({ success: true, message: 'Member removed successfully' });
   } catch (error) {
-    console.error('Remove project member error:', error);
+    log.error('Remove project member error', error);
     res.status(500).json({ error: 'Failed to remove project member' });
   }
 });
@@ -516,7 +518,7 @@ router.put('/:projectId/members/:userId', authenticateToken, validateInput.sanit
 
     res.json({ success: true, message: 'Member role updated successfully' });
   } catch (error) {
-    console.error('Update project member role error:', error);
+    log.error('Update project member role error', error);
     res.status(500).json({ error: 'Failed to update member role' });
   }
 });
@@ -542,7 +544,7 @@ router.get('/activities/recent', authenticateToken, async (req, res) => {
 
     res.json({ success: true, activities, total: activities.length });
   } catch (error) {
-    console.error('Get recent activities error:', error);
+    log.error('Get recent activities error', error);
     res.status(500).json({ error: 'Failed to fetch recent activities' });
   }
 });
@@ -599,7 +601,7 @@ router.get('/:projectId/counts', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get project counts error:', error);
+    log.error('Get project counts error', error);
     res.status(500).json({ success: false, error: 'Failed to fetch project counts' });
   }
 });

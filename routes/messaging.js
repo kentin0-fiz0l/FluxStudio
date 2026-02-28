@@ -14,6 +14,8 @@
 
 const express = require('express');
 const multer = require('multer');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Messaging');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { zodValidate } = require('../middleware/zodValidate');
 const { createConversationSchema, createMessageSchema } = require('../lib/schemas/messaging');
@@ -29,7 +31,7 @@ let aiSummaryService = null;
 try {
   aiSummaryService = require('../services/ai-summary-service').aiSummaryService;
 } catch (error) {
-  console.warn('AI summary service not available');
+  log.warn('AI summary service not available');
 }
 
 // Try to load projects adapter for project metadata
@@ -37,7 +39,7 @@ let projectsAdapter = null;
 try {
   projectsAdapter = require('../database/projects-adapter');
 } catch (error) {
-  console.warn('Projects adapter not available for messaging');
+  log.warn('Projects adapter not available for messaging');
 }
 
 // Try to load activity logger for audit trails
@@ -45,7 +47,7 @@ let activityLogger = null;
 try {
   activityLogger = require('../lib/activityLogger');
 } catch (error) {
-  console.warn('Activity logger not available for messaging');
+  log.warn('Activity logger not available for messaging');
 }
 
 const router = express.Router();
@@ -97,7 +99,7 @@ router.get('/', authenticateToken, async (req, res) => {
       filter: { projectId }
     });
   } catch (error) {
-    console.error('Error listing conversations:', error);
+    log.error('Error listing conversations', error);
     res.status(500).json({ success: false, error: 'Failed to list conversations' });
   }
 });
@@ -130,7 +132,7 @@ router.post('/', authenticateToken, zodValidate(createConversationSchema), async
 
     res.status(201).json({ success: true, conversation });
   } catch (error) {
-    console.error('Error creating conversation:', error);
+    log.error('Error creating conversation', error);
     res.status(500).json({ success: false, error: 'Failed to create conversation' });
   }
 });
@@ -155,7 +157,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
     res.json({ success: true, conversation });
   } catch (error) {
-    console.error('Error getting conversation:', error);
+    log.error('Error getting conversation', error);
     res.status(500).json({ success: false, error: 'Failed to get conversation' });
   }
 });
@@ -187,7 +189,7 @@ router.patch('/:id', authenticateToken, async (req, res) => {
 
     res.json({ success: true, conversation: updated });
   } catch (error) {
-    console.error('Error updating conversation:', error);
+    log.error('Error updating conversation', error);
     res.status(500).json({ success: false, error: 'Failed to update conversation' });
   }
 });
@@ -213,7 +215,7 @@ router.post('/:id/mute', authenticateToken, async (req, res) => {
 
     res.json({ success: true, muted: true, mutedUntil });
   } catch (error) {
-    console.error('Error muting conversation:', error);
+    log.error('Error muting conversation', error);
     res.status(500).json({ success: false, error: 'Failed to mute conversation' });
   }
 });
@@ -235,7 +237,7 @@ router.delete('/:id/mute', authenticateToken, async (req, res) => {
 
     res.json({ success: true, muted: false });
   } catch (error) {
-    console.error('Error unmuting conversation:', error);
+    log.error('Error unmuting conversation', error);
     res.status(500).json({ success: false, error: 'Failed to unmute conversation' });
   }
 });
@@ -257,7 +259,7 @@ router.get('/:id/mute', authenticateToken, async (req, res) => {
 
     res.json({ success: true, ...status });
   } catch (error) {
-    console.error('Error getting mute status:', error);
+    log.error('Error getting mute status', error);
     res.status(500).json({ success: false, error: 'Failed to get mute status' });
   }
 });
@@ -288,7 +290,7 @@ router.patch('/:id/archive', authenticateToken, async (req, res) => {
 
     res.json({ success: true, archived });
   } catch (error) {
-    console.error('Error updating conversation archive status:', error);
+    log.error('Error updating conversation archive status', error);
     res.status(500).json({ success: false, error: 'Failed to update archive status' });
   }
 });
@@ -318,7 +320,7 @@ router.delete('/:id/members/me', authenticateToken, async (req, res) => {
 
     res.json({ success: true, removed });
   } catch (error) {
-    console.error('Error leaving conversation:', error);
+    log.error('Error leaving conversation', error);
     res.status(500).json({ success: false, error: 'Failed to leave conversation' });
   }
 });
@@ -344,7 +346,7 @@ router.post('/:id/members', authenticateToken, async (req, res) => {
 
     res.status(201).json({ success: true, member });
   } catch (error) {
-    console.error('Error adding member:', error);
+    log.error('Error adding member', error);
     res.status(500).json({ success: false, error: 'Failed to add member' });
   }
 });
@@ -365,7 +367,7 @@ router.delete('/:id/members/:userId', authenticateToken, async (req, res) => {
 
     res.json({ success: true, removed });
   } catch (error) {
-    console.error('Error removing member:', error);
+    log.error('Error removing member', error);
     res.status(500).json({ success: false, error: 'Failed to remove member' });
   }
 });
@@ -392,7 +394,7 @@ router.post('/:id/read', authenticateToken, async (req, res) => {
 
     res.json({ success: true, updated });
   } catch (error) {
-    console.error('Error updating last read:', error);
+    log.error('Error updating last read', error);
     res.status(500).json({ success: false, error: 'Failed to update last read' });
   }
 });
@@ -433,7 +435,7 @@ router.get('/:id/messages', authenticateToken, async (req, res) => {
       pagination: { limit, before }
     });
   } catch (error) {
-    console.error('Error listing messages:', error);
+    log.error('Error listing messages', error);
     res.status(500).json({ success: false, error: 'Failed to list messages' });
   }
 });
@@ -511,7 +513,7 @@ router.post('/:id/upload', authenticateToken, fileUpload.single('file'), async (
 
         thumbnailUrl = `/files/${previewResult.storageKey}`;
       } catch (previewError) {
-        console.error('Preview generation error:', previewError);
+        log.error('Preview generation error', previewError);
       }
     }
 
@@ -555,7 +557,7 @@ router.post('/:id/upload', authenticateToken, fileUpload.single('file'), async (
       }
     });
   } catch (error) {
-    console.error('Error uploading conversation file:', error);
+    log.error('Error uploading conversation file', error);
     res.status(500).json({ success: false, error: 'Failed to upload file' });
   }
 });
@@ -664,7 +666,7 @@ router.post('/:id/voice-message', authenticateToken, fileUpload.single('file'), 
       );
     } catch (vmErr) {
       // voice_messages table may not exist yet - log but don't fail the request
-      console.warn('Could not insert voice_messages record:', vmErr.message);
+      log.warn('Could not insert voice_messages record', vmErr.message);
     }
 
     // Broadcast via WebSocket
@@ -705,7 +707,7 @@ router.post('/:id/voice-message', authenticateToken, fileUpload.single('file'), 
       }
     });
   } catch (error) {
-    console.error('Error creating voice message:', error);
+    log.error('Error creating voice message', error);
     res.status(500).json({ success: false, error: 'Failed to create voice message' });
   }
 });
@@ -767,14 +769,14 @@ router.post('/:id/messages', authenticateToken, zodValidate(createMessageSchema)
             ['link_preview', JSON.stringify({ url, messageId: message.id, conversationId }), userId]
           );
         } catch (err) {
-          console.error('Failed to queue link preview:', err.message);
+          log.error('Failed to queue link preview', err);
         }
       }
     }
 
     res.status(201).json({ success: true, message });
   } catch (error) {
-    console.error('Error creating message:', error);
+    log.error('Error creating message', error);
     res.status(500).json({ success: false, error: 'Failed to create message' });
   }
 });
@@ -799,7 +801,7 @@ router.get('/:id/pins', authenticateToken, async (req, res) => {
     const pins = await messagingConversationsAdapter.listPinnedMessages({ conversationId, limit: 20 });
     return res.json({ success: true, pins });
   } catch (error) {
-    console.error('Error listing pins:', error);
+    log.error('Error listing pins', error);
     return res.status(500).json({ success: false, error: 'Failed to list pinned messages' });
   }
 });
@@ -829,7 +831,7 @@ router.get('/:conversationId/read-states', authenticateToken, async (req, res) =
       conversationId
     });
   } catch (error) {
-    console.error('Error fetching read states:', error);
+    log.error('Error fetching read states', error);
     return res.status(500).json({ success: false, error: 'Failed to fetch read states' });
   }
 });
@@ -878,7 +880,7 @@ router.post('/:conversationId/read', authenticateToken, async (req, res) => {
       readState
     });
   } catch (error) {
-    console.error('Error marking conversation as read:', error);
+    log.error('Error marking conversation as read', error);
     return res.status(500).json({ success: false, error: 'Failed to mark as read' });
   }
 });
@@ -915,7 +917,7 @@ router.get('/:conversationId/threads/:threadRootMessageId/messages', authenticat
       threadRootMessageId
     });
   } catch (error) {
-    console.error('Error fetching thread messages:', error);
+    log.error('Error fetching thread messages', error);
     return res.status(500).json({ success: false, error: 'Failed to fetch thread messages' });
   }
 });
@@ -949,7 +951,7 @@ router.get('/:conversationId/threads/:threadRootMessageId/summary', authenticate
       threadRootMessageId
     });
   } catch (error) {
-    console.error('Error fetching thread summary:', error);
+    log.error('Error fetching thread summary', error);
     return res.status(500).json({ success: false, error: 'Failed to fetch thread summary' });
   }
 });
@@ -1003,7 +1005,7 @@ router.get('/:conversationId/summary', authenticateToken, async (req, res) => {
       aiEnabled: aiSummaryService.isEnabled()
     });
   } catch (error) {
-    console.error('Error fetching conversation summary:', error);
+    log.error('Error fetching conversation summary', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch conversation summary'
@@ -1088,7 +1090,7 @@ router.post('/:conversationId/summary/generate', authenticateToken, async (req, 
       aiEnabled: aiSummaryService.isEnabled()
     });
   } catch (error) {
-    console.error('Error generating conversation summary:', error);
+    log.error('Error generating conversation summary', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate conversation summary'
@@ -1181,7 +1183,7 @@ router.put('/:conversationId/messages/:messageId', authenticateToken, async (req
 
     res.json({ success: true, message: updatedMessage });
   } catch (error) {
-    console.error('Error editing message:', error);
+    log.error('Error editing message', error);
     res.status(500).json({ success: false, error: 'Failed to edit message' });
   }
 });
@@ -1262,7 +1264,7 @@ router.delete('/:conversationId/messages/:messageId', authenticateToken, async (
 
     res.json({ success: true, messageId, deleted: true });
   } catch (error) {
-    console.error('Error deleting message:', error);
+    log.error('Error deleting message', error);
     res.status(500).json({ success: false, error: 'Failed to delete message' });
   }
 });
@@ -1297,7 +1299,7 @@ messagesRouter.delete('/:id', authenticateToken, async (req, res) => {
 
     res.json({ success: true, deleted: true });
   } catch (error) {
-    console.error('Error deleting message:', error);
+    log.error('Error deleting message', error);
     res.status(500).json({ success: false, error: 'Failed to delete message' });
   }
 });
@@ -1347,7 +1349,7 @@ messagesRouter.patch('/:messageId', authenticateToken, async (req, res) => {
       message: updated
     });
   } catch (error) {
-    console.error('Error editing message:', error);
+    log.error('Error editing message', error);
     if (error.message && error.message.includes('Unauthorized')) {
       return res.status(403).json({ success: false, error: error.message });
     }
@@ -1402,7 +1404,7 @@ messagesRouter.post('/:messageId/reactions', authenticateToken, async (req, res)
       reactions: result.reactions
     });
   } catch (error) {
-    console.error('Error adding reaction:', error);
+    log.error('Error adding reaction', error);
     res.status(500).json({ success: false, error: 'Failed to add reaction' });
   }
 });
@@ -1446,7 +1448,7 @@ messagesRouter.delete('/:messageId/reactions/:emoji', authenticateToken, async (
       reactions: result.reactions
     });
   } catch (error) {
-    console.error('Error removing reaction:', error);
+    log.error('Error removing reaction', error);
     res.status(500).json({ success: false, error: 'Failed to remove reaction' });
   }
 });
@@ -1483,7 +1485,7 @@ messagesRouter.get('/:messageId/reactions', authenticateToken, async (req, res) 
       reactions: result.reactions
     });
   } catch (error) {
-    console.error('Error listing reactions:', error);
+    log.error('Error listing reactions', error);
     res.status(500).json({ success: false, error: 'Failed to list reactions' });
   }
 });
@@ -1521,7 +1523,7 @@ messagesRouter.post('/:messageId/pin', authenticateToken, async (req, res) => {
       pins
     });
   } catch (error) {
-    console.error('Error pinning message:', error);
+    log.error('Error pinning message', error);
     return res.status(500).json({ success: false, error: 'Failed to pin message' });
   }
 });
@@ -1557,7 +1559,7 @@ messagesRouter.delete('/:messageId/pin', authenticateToken, async (req, res) => 
       pins
     });
   } catch (error) {
-    console.error('Error unpinning message:', error);
+    log.error('Error unpinning message', error);
     return res.status(500).json({ success: false, error: 'Failed to unpin message' });
   }
 });
@@ -1599,7 +1601,7 @@ messagesRouter.get('/search', authenticateToken, async (req, res) => {
       pagination: { limit, offset }
     });
   } catch (error) {
-    console.error('Error searching messages:', error);
+    log.error('Error searching messages', error);
     return res.status(500).json({ success: false, error: 'Failed to search messages' });
   }
 });

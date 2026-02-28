@@ -24,6 +24,8 @@ const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 
 // Import configuration
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Auth');
 const { config } = require('../config/environment');
 const { authRateLimit, validateInput } = require('../middleware/security');
 const { getCsrfToken } = require('../middleware/csrf');
@@ -47,7 +49,7 @@ try {
   const { query } = require('../database/config');
   dbQuery = query;
 } catch (e) {
-  console.log('Database query not available for email verification');
+  log.info('Database query not available for email verification');
 }
 
 // Database/file hybrid support (imported from parent scope)
@@ -243,7 +245,7 @@ router.post('/signup',
             WHERE id = $3
           `, [verificationToken, verificationExpires, newUser.id]);
         } catch (dbError) {
-          console.warn('Could not update verification columns in database:', dbError.message);
+          log.warn('Could not update verification columns in database', dbError.message);
         }
       }
 
@@ -251,13 +253,13 @@ router.post('/signup',
       emailService.sendVerificationEmail(email, verificationToken, name)
         .then(sent => {
           if (sent) {
-            console.log('Verification email sent to:', email);
+            log.info('Verification email sent to:', email);
           } else {
-            console.warn('Failed to send verification email to:', email);
+            log.warn('Failed to send verification email to:', email);
           }
         })
         .catch(err => {
-          console.error('Error sending verification email:', err.message);
+          log.error('Error sending verification email', err);
         });
 
       // Generate token pair with device tracking (Week 2 Security Sprint)
@@ -311,7 +313,7 @@ router.post('/signup',
         message: 'Account created! Please check your email to verify your account.'
       });
     } catch (error) {
-      console.error('Signup error:', error);
+      log.error('Signup error', error);
 
       // Capture error in Sentry with auth context (Sprint 13 Day 2)
       captureAuthError(error, {
@@ -425,7 +427,7 @@ router.post('/login',
             });
           }
         } catch (e) {
-          console.warn('[Auth] 2FA check failed, proceeding without:', e.message);
+          log.warn('2FA check failed, proceeding without', e.message);
         }
       }
 
@@ -441,7 +443,7 @@ router.post('/login',
       // Return auth response with access + refresh tokens
       res.json(authResponse);
     } catch (error) {
-      console.error('Login error:', error);
+      log.error('Login error', error);
 
       // Capture error in Sentry with auth context (Sprint 13 Day 2)
       captureAuthError(error, {
@@ -471,7 +473,7 @@ router.get('/me', requireAuth, async (req, res) => {
     const { password: _, ...userWithoutPassword } = user;
     res.json(userWithoutPassword);
   } catch (error) {
-    console.error('Error fetching current user:', error);
+    log.error('Error fetching current user', error);
     res.status(500).json({ message: 'Failed to fetch user data' });
   }
 });
@@ -485,8 +487,7 @@ router.post('/logout', requireAuth, (req, res) => {
 // Google OAuth endpoint
 router.post('/google', async (req, res) => {
   try {
-    console.log('Google OAuth request received:', {
-      body: req.body,
+    log.info('Google OAuth request received', {
       hasCredential: !!req.body.credential,
       credentialLength: req.body.credential ? req.body.credential.length : 0,
       clientId: GOOGLE_CLIENT_ID
@@ -495,12 +496,12 @@ router.post('/google', async (req, res) => {
     const { credential } = req.body;
 
     if (!credential) {
-      console.log('No credential provided in request');
+      log.info('No credential provided in request');
       return res.status(400).json({ message: 'Google credential is required' });
     }
 
     // Verify the Google ID token
-    console.log('Attempting to verify Google ID token...');
+    log.info('Attempting to verify Google ID token...');
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: GOOGLE_CLIENT_ID,
@@ -508,10 +509,10 @@ router.post('/google', async (req, res) => {
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, email_verified } = payload;
-    console.log('Google token verified successfully:', { email, name, email_verified });
+    log.info('Google token verified successfully', { email, name, email_verified });
 
     if (!email_verified) {
-      console.log('Email not verified by Google');
+      log.info('Email not verified by Google');
       return res.status(400).json({ message: 'Google email not verified' });
     }
 
@@ -521,14 +522,14 @@ router.post('/google', async (req, res) => {
 
     if (user) {
       // User exists, update Google ID if not set
-      console.log('Existing user found:', user.email);
+      log.info('Existing user found', user.email);
       if (!user.googleId) {
         user.googleId = googleId;
         await authHelper.saveUsers(users);
       }
     } else {
       // Create new user with UUID (Week 2 - compatible with database)
-      console.log('Creating new user for:', email);
+      log.info('Creating new user for', email);
       user = {
         id: uuidv4(),
         email,
@@ -546,7 +547,7 @@ router.post('/google', async (req, res) => {
     const authResponse = USE_DATABASE
       ? await generateAuthResponse(user, req)
       : simpleAuthResponse(user);
-    console.log('User authentication successful:', user.email);
+    log.info('User authentication successful', user.email);
 
     // Log successful OAuth authentication
     await securityLogger.logOAuthSuccess(user.id, 'google', req, {
@@ -578,7 +579,7 @@ router.post('/google', async (req, res) => {
     }
 
     // Log error without sensitive data
-    console.error(`[GoogleOAuth] Auth failed (${errorType}): ${error.message}`);
+    log.error(`Google OAuth auth failed (${errorType})`, error);
 
     // Log failed OAuth attempt
     await securityLogger.logOAuthFailure('google', error.message, req, {
@@ -594,7 +595,7 @@ router.post('/google', async (req, res) => {
 // Google OAuth redirect callback endpoint (for redirect flow to bypass COOP)
 router.post('/google/callback', async (req, res) => {
   try {
-    console.log('[GoogleOAuth] Received redirect callback:', {
+    log.info('Google OAuth received redirect callback', {
       hasCredential: !!req.body?.credential,
       hasCsrfToken: !!req.body?.g_csrf_token,
       hasCsrfCookie: !!req.cookies?.g_csrf_token,
@@ -610,7 +611,7 @@ router.post('/google/callback', async (req, res) => {
     // The JWT signature verification with Google's public keys is sufficient security
     const cookieCsrfToken = req.cookies?.g_csrf_token;
     if (!g_csrf_token || !cookieCsrfToken || g_csrf_token !== cookieCsrfToken) {
-      console.log('[GoogleOAuth] CSRF token mismatch (expected in redirect mode):', {
+      log.info('Google OAuth CSRF token mismatch (expected in redirect mode)', {
         hasFormToken: !!g_csrf_token,
         hasCookieToken: !!cookieCsrfToken,
         tokensMatch: g_csrf_token === cookieCsrfToken
@@ -619,18 +620,18 @@ router.post('/google/callback', async (req, res) => {
     }
 
     if (!credential) {
-      console.log('[GoogleOAuth] No credential in redirect callback. Request body keys:', Object.keys(req.body || {}));
+      log.info('Google OAuth no credential in redirect callback', { bodyKeys: Object.keys(req.body || {}) });
       return res.redirect(`${config.FRONTEND_URL || 'https://fluxstudio.art'}/login?error=no_credential`);
     }
 
     // Check if Google client is configured
     if (!googleClient) {
-      console.error('Google OAuth client not configured - GOOGLE_CLIENT_ID may be missing');
+      log.error('Google OAuth client not configured - GOOGLE_CLIENT_ID may be missing');
       return res.redirect(`${config.FRONTEND_URL || 'https://fluxstudio.art'}/login?error=google_not_configured`);
     }
 
     // Log credential details for debugging
-    console.log('[GoogleOAuth] Credential details:', {
+    log.debug('Google OAuth credential details', {
       credentialType: typeof credential,
       credentialLength: credential?.length,
       credentialPrefix: credential?.substring(0, 50),
@@ -645,8 +646,8 @@ router.post('/google/callback', async (req, res) => {
       if (parts.length === 3) {
         const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
         const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
-        console.log('[GoogleOAuth] JWT Header:', header);
-        console.log('[GoogleOAuth] JWT Payload:', {
+        log.debug('Google OAuth JWT Header', header);
+        log.debug('Google OAuth JWT Payload', {
           iss: payload.iss,
           aud: payload.aud,
           exp: payload.exp,
@@ -655,16 +656,16 @@ router.post('/google/callback', async (req, res) => {
           email_verified: payload.email_verified,
           azp: payload.azp
         });
-        console.log('[GoogleOAuth] Expected audience:', GOOGLE_CLIENT_ID);
-        console.log('[GoogleOAuth] Token audience matches:', payload.aud === GOOGLE_CLIENT_ID);
-        console.log('[GoogleOAuth] Token expired:', Date.now() / 1000 > payload.exp);
+        log.debug('Google OAuth expected audience', GOOGLE_CLIENT_ID);
+        log.debug('Google OAuth token audience matches', payload.aud === GOOGLE_CLIENT_ID);
+        log.debug('Google OAuth token expired', Date.now() / 1000 > payload.exp);
       }
     } catch (decodeError) {
-      console.error('[GoogleOAuth] Failed to decode JWT:', decodeError.message);
+      log.error('Google OAuth failed to decode JWT', decodeError);
     }
 
     // Verify the Google ID token
-    console.log('[GoogleOAuth] Calling verifyIdToken...');
+    log.info('Google OAuth calling verifyIdToken...');
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: GOOGLE_CLIENT_ID,
@@ -672,7 +673,7 @@ router.post('/google/callback', async (req, res) => {
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, email_verified } = payload;
-    console.log('Google token verified successfully:', { email, name, email_verified });
+    log.info('Google token verified successfully', { email, name, email_verified });
 
     if (!email_verified) {
       return res.redirect(`${config.FRONTEND_URL || 'https://fluxstudio.art'}/login?error=email_not_verified`);
@@ -725,11 +726,7 @@ router.post('/google/callback', async (req, res) => {
 
   } catch (error) {
     // Log detailed error for debugging
-    console.error('[GoogleOAuth] Redirect callback failed:', {
-      message: error.message,
-      name: error.name,
-      code: error.code,
-      stack: error.stack?.split('\n').slice(0, 3).join('\n'),
+    log.error('Google OAuth redirect callback failed', error, {
       clientIdSet: !!GOOGLE_CLIENT_ID,
       clientIdLength: GOOGLE_CLIENT_ID?.length,
       hasCredential: !!req.body?.credential,
@@ -844,7 +841,7 @@ router.post('/verify-email',
 
       res.json({ message: 'Email verified successfully', verified: true });
     } catch (error) {
-      console.error('Email verification error:', error);
+      log.error('Email verification error', error);
       captureAuthError(error, {
         endpoint: '/api/auth/verify-email',
         ipAddress: req.ip
@@ -932,7 +929,7 @@ router.post('/resend-verification',
 
       res.json({ message: 'Verification email sent. Please check your inbox.' });
     } catch (error) {
-      console.error('Resend verification error:', error);
+      log.error('Resend verification error', error);
       captureAuthError(error, {
         endpoint: '/api/auth/resend-verification',
         email: req.body.email,
@@ -1036,7 +1033,7 @@ router.post('/forgot-password',
 
       res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
     } catch (error) {
-      console.error('Forgot password error:', error);
+      log.error('Forgot password error', error);
       captureAuthError(error, {
         endpoint: '/api/auth/forgot-password',
         email: req.body.email,
@@ -1131,7 +1128,7 @@ router.post('/reset-password',
 
       res.json({ message: 'Password reset successfully. You can now log in with your new password.' });
     } catch (error) {
-      console.error('Reset password error:', error);
+      log.error('Reset password error', error);
       captureAuthError(error, {
         endpoint: '/api/auth/reset-password',
         ipAddress: req.ip
@@ -1156,7 +1153,7 @@ router.post('/apple', async (req, res) => {
       error: 'OAuth not yet implemented'
     });
   } catch (error) {
-    console.error('Apple OAuth error:', error);
+    log.error('Apple OAuth error', error);
     res.status(500).json({ message: 'Apple authentication error' });
   }
 });
@@ -1205,7 +1202,7 @@ router.get('/settings', requireAuth, async (req, res) => {
           });
         }
       } catch (dbError) {
-        console.error('Database error fetching settings:', dbError);
+        log.error('Database error fetching settings', dbError);
         // Fall through to file-based storage
       }
     }
@@ -1245,7 +1242,7 @@ router.get('/settings', requireAuth, async (req, res) => {
       settings
     });
   } catch (error) {
-    console.error('Error fetching user settings:', error);
+    log.error('Error fetching user settings', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch settings'
@@ -1307,7 +1304,7 @@ router.put('/settings', requireAuth, async (req, res) => {
           }
         }
       } catch (dbError) {
-        console.error('Database error updating settings:', dbError);
+        log.error('Database error updating settings', dbError);
         // Fall through to file-based storage
       }
     }
@@ -1338,7 +1335,7 @@ router.put('/settings', requireAuth, async (req, res) => {
       message: 'Settings saved successfully'
     });
   } catch (error) {
-    console.error('Error updating user settings:', error);
+    log.error('Error updating user settings', error);
     res.status(500).json({
       success: false,
       error: 'Failed to save settings'

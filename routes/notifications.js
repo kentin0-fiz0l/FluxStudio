@@ -11,7 +11,11 @@
  */
 
 const express = require('express');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Notifications');
 const { authenticateToken } = require('../lib/auth/middleware');
+const { zodValidate } = require('../middleware/zodValidate');
+const { updateNotificationPreferencesSchema } = require('../lib/schemas/notifications');
 const { validateInput } = require('../middleware/security');
 const messagingConversationsAdapter = require('../database/messaging-conversations-adapter');
 const notificationService = require('../services/notification-service');
@@ -47,7 +51,7 @@ router.get('/', authenticateToken, async (req, res) => {
       filter: { projectId, onlyUnread }
     });
   } catch (error) {
-    console.error('Error listing notifications:', error);
+    log.error('Error listing notifications', error);
     res.status(500).json({ success: false, error: 'Failed to list notifications' });
   }
 });
@@ -72,7 +76,7 @@ router.patch('/:id/read', authenticateToken, async (req, res) => {
 
     res.json({ success: true, notification });
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    log.error('Error marking notification as read', error);
     res.status(500).json({ success: false, error: 'Failed to mark notification as read' });
   }
 });
@@ -97,7 +101,7 @@ router.post('/:id/read', authenticateToken, async (req, res) => {
 
     res.json({ success: true, notification });
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    log.error('Error marking notification as read', error);
     res.status(500).json({ success: false, error: 'Failed to mark notification as read' });
   }
 });
@@ -114,7 +118,7 @@ router.post('/read-all', authenticateToken, async (req, res) => {
 
     res.json({ success: true, updatedCount: count });
   } catch (error) {
-    console.error('Error marking all notifications as read:', error);
+    log.error('Error marking all notifications as read', error);
     res.status(500).json({ success: false, error: 'Failed to mark all notifications as read' });
   }
 });
@@ -131,7 +135,7 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
 
     res.json({ success: true, count });
   } catch (error) {
-    console.error('Error getting unread notification count:', error);
+    log.error('Error getting unread notification count', error);
     res.status(500).json({ success: false, error: 'Failed to get unread count' });
   }
 });
@@ -146,7 +150,7 @@ router.get('/preferences', authenticateToken, async (req, res) => {
     const preferences = await notificationService.getUserPreferences(userId);
     res.json({ success: true, preferences });
   } catch (error) {
-    console.error('Error getting notification preferences:', error);
+    log.error('Error getting notification preferences', error);
     res.status(500).json({ success: false, error: 'Failed to get preferences' });
   }
 });
@@ -155,7 +159,7 @@ router.get('/preferences', authenticateToken, async (req, res) => {
  * PUT /api/notifications/preferences
  * Update user notification preferences
  */
-router.put('/preferences', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+router.put('/preferences', authenticateToken, zodValidate(updateNotificationPreferencesSchema), validateInput.sanitizeInput, async (req, res) => {
   try {
     const userId = req.user.id;
     const updates = req.body;
@@ -163,7 +167,7 @@ router.put('/preferences', authenticateToken, validateInput.sanitizeInput, async
     const preferences = await notificationService.updateUserPreferences(userId, updates);
     res.json({ success: true, preferences });
   } catch (error) {
-    console.error('Error updating notification preferences:', error);
+    log.error('Error updating notification preferences', error);
     res.status(500).json({ success: false, error: 'Failed to update preferences' });
   }
 });
@@ -192,7 +196,7 @@ router.post('/projects/:projectId/read-all', authenticateToken, async (req, res)
       projectId
     });
   } catch (error) {
-    console.error('Error marking project notifications as read:', error);
+    log.error('Error marking project notifications as read', error);
     res.status(500).json({ success: false, error: 'Failed to mark notifications as read' });
   }
 });
@@ -263,7 +267,7 @@ router.get('/projects/:projectId', authenticateToken, async (req, res) => {
       filter: { projectId, onlyUnread, category }
     });
   } catch (error) {
-    console.error('Error getting project notifications:', error);
+    log.error('Error getting project notifications', error);
     res.status(500).json({ success: false, error: 'Failed to get project notifications' });
   }
 });

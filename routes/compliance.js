@@ -14,8 +14,12 @@
  */
 
 const express = require('express');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Compliance');
 const router = express.Router();
 const { authenticateToken } = require('../lib/auth/middleware');
+const { zodValidate } = require('../middleware/zodValidate');
+const { deleteAccountComplianceSchema, updateConsentsSchema } = require('../lib/schemas/compliance');
 const { query } = require('../database/config');
 const {
   exportUserData,
@@ -76,7 +80,7 @@ router.post('/data-export', async (req, res) => {
       throw exportError;
     }
   } catch (error) {
-    console.error('[Compliance] Data export request failed:', error);
+    log.error('Data export request failed', error);
     res.status(500).json({ error: 'Failed to create data export' });
   }
 });
@@ -102,7 +106,7 @@ router.get('/data-export/:id', async (req, res) => {
       downloadedAt: exportReq.downloaded_at,
     });
   } catch (error) {
-    console.error('[Compliance] Export status check failed:', error);
+    log.error('Export status check failed', error);
     res.status(500).json({ error: 'Failed to check export status' });
   }
 });
@@ -141,7 +145,7 @@ router.get('/data-export/:id/download', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename=fluxstudio-data-export.json');
     res.json(data);
   } catch (error) {
-    console.error('[Compliance] Export download failed:', error);
+    log.error('Export download failed', error);
     res.status(500).json({ error: 'Failed to download export' });
   }
 });
@@ -150,7 +154,7 @@ router.get('/data-export/:id/download', async (req, res) => {
 // POST /delete-account — Request account deletion
 // ========================================
 
-router.post('/delete-account', async (req, res) => {
+router.post('/delete-account', zodValidate(deleteAccountComplianceSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const { reason } = req.body;
@@ -169,7 +173,7 @@ router.post('/delete-account', async (req, res) => {
       requestedAt: deletionReq.created_at,
     });
   } catch (error) {
-    console.error('[Compliance] Delete account request failed:', error);
+    log.error('Delete account request failed', error);
     res.status(500).json({ error: 'Failed to schedule account deletion' });
   }
 });
@@ -192,7 +196,7 @@ router.post('/cancel-deletion', async (req, res) => {
       message: 'Account deletion has been cancelled.',
     });
   } catch (error) {
-    console.error('[Compliance] Cancel deletion failed:', error);
+    log.error('Cancel deletion failed', error);
     res.status(500).json({ error: 'Failed to cancel deletion' });
   }
 });
@@ -237,7 +241,7 @@ router.get('/consents', async (req, res) => {
       } : null,
     });
   } catch (error) {
-    console.error('[Compliance] Get consents failed:', error);
+    log.error('Get consents failed', error);
     res.status(500).json({ error: 'Failed to retrieve consent settings' });
   }
 });
@@ -246,7 +250,7 @@ router.get('/consents', async (req, res) => {
 // PUT /consents — Update consent preferences
 // ========================================
 
-router.put('/consents', async (req, res) => {
+router.put('/consents', zodValidate(updateConsentsSchema), async (req, res) => {
   try {
     const { consents } = req.body;
     if (!consents || typeof consents !== 'object') {
@@ -279,7 +283,7 @@ router.put('/consents', async (req, res) => {
       updated: updates,
     });
   } catch (error) {
-    console.error('[Compliance] Update consents failed:', error);
+    log.error('Update consents failed', error);
     res.status(500).json({ error: 'Failed to update consent preferences' });
   }
 });

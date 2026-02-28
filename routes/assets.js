@@ -13,7 +13,11 @@
 
 const express = require('express');
 const multer = require('multer');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Assets');
 const { authenticateToken } = require('../lib/auth/middleware');
+const { zodValidate } = require('../middleware/zodValidate');
+const { createAssetSchema, updateAssetSchema, createAssetVersionSchema, setPrimaryVersionSchema, linkProjectAssetSchema } = require('../lib/schemas/assets');
 const assetsAdapter = require('../database/assets-adapter');
 const { determineAssetKind } = require('../database/assets-adapter');
 const filesAdapter = require('../database/files-adapter');
@@ -54,7 +58,7 @@ router.get('/', authenticateToken, async (req, res) => {
       total: result.total
     });
   } catch (error) {
-    console.error('Error listing assets:', error);
+    log.error('Error listing assets', error);
     res.status(500).json({ success: false, error: 'Failed to list assets' });
   }
 });
@@ -68,7 +72,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const stats = await assetsAdapter.getAssetStats(req.user.id);
     res.json({ success: true, stats });
   } catch (error) {
-    console.error('Error getting asset stats:', error);
+    log.error('Error getting asset stats', error);
     res.status(500).json({ success: false, error: 'Failed to get stats' });
   }
 });
@@ -77,7 +81,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
  * POST /api/assets
  * Create asset from existing file
  */
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, zodValidate(createAssetSchema), async (req, res) => {
   try {
     const { fileId, name, kind, description, tags } = req.body;
 
@@ -121,7 +125,7 @@ router.post('/', authenticateToken, async (req, res) => {
 
     res.status(201).json({ success: true, asset: fullAsset });
   } catch (error) {
-    console.error('Error creating asset:', error);
+    log.error('Error creating asset', error);
     res.status(500).json({ success: false, error: 'Failed to create asset' });
   }
 });
@@ -142,7 +146,7 @@ router.get('/:assetId', authenticateToken, async (req, res) => {
 
     res.json({ success: true, asset });
   } catch (error) {
-    console.error('Error getting asset:', error);
+    log.error('Error getting asset', error);
     res.status(500).json({ success: false, error: 'Failed to get asset' });
   }
 });
@@ -151,7 +155,7 @@ router.get('/:assetId', authenticateToken, async (req, res) => {
  * PATCH /api/assets/:assetId
  * Update asset metadata
  */
-router.patch('/:assetId', authenticateToken, async (req, res) => {
+router.patch('/:assetId', authenticateToken, zodValidate(updateAssetSchema), async (req, res) => {
   try {
     const { assetId } = req.params;
     const { name, description, tags, status, kind } = req.body;
@@ -170,7 +174,7 @@ router.patch('/:assetId', authenticateToken, async (req, res) => {
 
     res.json({ success: true, asset });
   } catch (error) {
-    console.error('Error updating asset:', error);
+    log.error('Error updating asset', error);
     res.status(500).json({ success: false, error: 'Failed to update asset' });
   }
 });
@@ -191,7 +195,7 @@ router.delete('/:assetId', authenticateToken, async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting asset:', error);
+    log.error('Error deleting asset', error);
     res.status(500).json({ success: false, error: 'Failed to delete asset' });
   }
 });
@@ -200,7 +204,7 @@ router.delete('/:assetId', authenticateToken, async (req, res) => {
  * POST /api/assets/:assetId/versions
  * Create new version
  */
-router.post('/:assetId/versions', authenticateToken, async (req, res) => {
+router.post('/:assetId/versions', authenticateToken, zodValidate(createAssetVersionSchema), async (req, res) => {
   try {
     const { assetId } = req.params;
     const { fileId, label, makePrimary } = req.body;
@@ -232,7 +236,7 @@ router.post('/:assetId/versions', authenticateToken, async (req, res) => {
 
     res.status(201).json({ success: true, version });
   } catch (error) {
-    console.error('Error creating version:', error);
+    log.error('Error creating version', error);
     res.status(500).json({ success: false, error: 'Failed to create version' });
   }
 });
@@ -241,7 +245,7 @@ router.post('/:assetId/versions', authenticateToken, async (req, res) => {
  * POST /api/assets/:assetId/primary
  * Set primary version
  */
-router.post('/:assetId/primary', authenticateToken, async (req, res) => {
+router.post('/:assetId/primary', authenticateToken, zodValidate(setPrimaryVersionSchema), async (req, res) => {
   try {
     const { assetId } = req.params;
     const { versionId } = req.body;
@@ -256,7 +260,7 @@ router.post('/:assetId/primary', authenticateToken, async (req, res) => {
     const asset = await assetsAdapter.getAssetById(assetId);
     res.json({ success: true, asset });
   } catch (error) {
-    console.error('Error setting primary version:', error);
+    log.error('Error setting primary version', error);
     res.status(500).json({ success: false, error: error.message || 'Failed to set primary version' });
   }
 });
@@ -272,7 +276,7 @@ router.get('/:assetId/versions', authenticateToken, async (req, res) => {
     const versions = await assetsAdapter.getAssetVersions(assetId);
     res.json({ success: true, versions });
   } catch (error) {
-    console.error('Error getting versions:', error);
+    log.error('Error getting versions', error);
     res.status(500).json({ success: false, error: 'Failed to get versions' });
   }
 });
@@ -288,7 +292,7 @@ router.get('/:assetId/projects', authenticateToken, async (req, res) => {
     const projects = await assetsAdapter.getAssetProjects(assetId);
     res.json({ success: true, projects });
   } catch (error) {
-    console.error('Error getting asset projects:', error);
+    log.error('Error getting asset projects', error);
     res.status(500).json({ success: false, error: 'Failed to get projects' });
   }
 });
@@ -349,7 +353,7 @@ router.get('/:assetId/file', authenticateToken, async (req, res) => {
 
     stream.pipe(res);
   } catch (error) {
-    console.error('Error serving asset file:', error);
+    log.error('Error serving asset file', error);
     res.status(500).json({ error: 'Failed to serve asset file' });
   }
 });
@@ -358,7 +362,7 @@ router.get('/:assetId/file', authenticateToken, async (req, res) => {
  * POST /api/projects/:projectId/assets
  * Upload files as assets OR attach existing asset
  */
-router.post('/projects/:projectId/assets', authenticateToken, fileUpload.array('files', 10), async (req, res) => {
+router.post('/projects/:projectId/assets', authenticateToken, zodValidate(linkProjectAssetSchema), fileUpload.array('files', 10), async (req, res) => {
   try {
     const { projectId } = req.params;
     const { assetId, role = 'reference', sortOrder = 0, description, tags } = req.body;
@@ -429,7 +433,7 @@ router.post('/projects/:projectId/assets', authenticateToken, fileUpload.array('
 
             fileRecord.thumbnailUrl = `/files/storage/${previewResult.storageKey}`;
           } catch (previewError) {
-            console.error('Preview generation error:', previewError);
+            log.error('Preview generation error', previewError);
           }
         }
 
@@ -476,7 +480,7 @@ router.post('/projects/:projectId/assets', authenticateToken, fileUpload.array('
 
         createdAssets.push(asset);
       } catch (fileError) {
-        console.error('Error processing file:', file.originalname, fileError);
+        log.error('Error processing file', fileError, { filename: file.originalname });
         errors.push({ filename: file.originalname, error: fileError.message });
       }
     }
@@ -491,7 +495,7 @@ router.post('/projects/:projectId/assets', authenticateToken, fileUpload.array('
       errors: errors.length > 0 ? errors : undefined
     });
   } catch (error) {
-    console.error('Error creating/attaching project assets:', error);
+    log.error('Error creating/attaching project assets', error);
     res.status(500).json({ success: false, error: 'Failed to process assets' });
   }
 });
@@ -508,7 +512,7 @@ router.delete('/projects/:projectId/assets/:assetId', authenticateToken, async (
 
     res.json({ success: true, message: 'Asset detached from project' });
   } catch (error) {
-    console.error('Error detaching asset from project:', error);
+    log.error('Error detaching asset from project', error);
     res.status(500).json({ success: false, error: 'Failed to detach asset' });
   }
 });
@@ -524,7 +528,7 @@ router.get('/projects/:projectId/assets', authenticateToken, async (req, res) =>
     const assets = await assetsAdapter.getProjectAssets(projectId);
     res.json({ success: true, assets });
   } catch (error) {
-    console.error('Error getting project assets:', error);
+    log.error('Error getting project assets', error);
     res.status(500).json({ success: false, error: 'Failed to get project assets' });
   }
 });

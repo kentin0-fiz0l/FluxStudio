@@ -14,14 +14,18 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Teams');
 const { authenticateToken } = require('../lib/auth/middleware');
+const { zodValidate } = require('../middleware/zodValidate');
+const { createTeamSchema, updateTeamSchema, inviteTeamMemberSchema, updateTeamMemberRoleSchema } = require('../lib/schemas/teams');
 
 // Try to load activity logger for audit trails
 let activityLogger = null;
 try {
   activityLogger = require('../lib/activityLogger');
 } catch (error) {
-  console.warn('Activity logger not available for teams');
+  log.warn('Activity logger not available for teams');
 }
 
 const router = express.Router();
@@ -61,7 +65,7 @@ async function getUsers() {
  * POST /teams
  * Create a new team
  */
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, zodValidate(createTeamSchema), async (req, res) => {
   try {
     const { name, description } = req.body;
 
@@ -95,7 +99,7 @@ router.post('/', authenticateToken, async (req, res) => {
       team: newTeam
     });
   } catch (error) {
-    console.error('Create team error:', error);
+    log.error('Create team error', error);
     res.status(500).json({ message: 'Error creating team' });
   }
 });
@@ -113,7 +117,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     res.json({ teams: userTeams });
   } catch (error) {
-    console.error('Get teams error:', error);
+    log.error('Get teams error', error);
     res.status(500).json({ message: 'Error retrieving teams' });
   }
 });
@@ -139,7 +143,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
     res.json(team);
   } catch (error) {
-    console.error('Get team error:', error);
+    log.error('Get team error', error);
     res.status(500).json({ message: 'Error retrieving team' });
   }
 });
@@ -148,7 +152,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
  * PUT /teams/:id
  * Update team
  */
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, zodValidate(updateTeamSchema), async (req, res) => {
   try {
     const teams = await getTeams();
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
@@ -175,7 +179,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     await saveTeams(teams);
     res.json(teams[teamIndex]);
   } catch (error) {
-    console.error('Update team error:', error);
+    log.error('Update team error', error);
     res.status(500).json({ message: 'Error updating team' });
   }
 });
@@ -204,7 +208,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Team deleted successfully' });
   } catch (error) {
-    console.error('Delete team error:', error);
+    log.error('Delete team error', error);
     res.status(500).json({ message: 'Error deleting team' });
   }
 });
@@ -213,7 +217,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
  * POST /teams/:id/invite
  * Invite member to team
  */
-router.post('/:id/invite', authenticateToken, async (req, res) => {
+router.post('/:id/invite', authenticateToken, zodValidate(inviteTeamMemberSchema), async (req, res) => {
   try {
     const { email, role = 'member' } = req.body;
 
@@ -267,7 +271,7 @@ router.post('/:id/invite', authenticateToken, async (req, res) => {
       invite
     });
   } catch (error) {
-    console.error('Invite member error:', error);
+    log.error('Invite member error', error);
     res.status(500).json({ message: 'Error sending invitation' });
   }
 });
@@ -323,7 +327,7 @@ router.post('/:id/accept-invite', authenticateToken, async (req, res) => {
       team: teams[teamIndex]
     });
   } catch (error) {
-    console.error('Accept invitation error:', error);
+    log.error('Accept invitation error', error);
     res.status(500).json({ message: 'Error accepting invitation' });
   }
 });
@@ -378,7 +382,7 @@ router.delete('/:id/members/:userId', authenticateToken, async (req, res) => {
       message: 'Member removed successfully'
     });
   } catch (error) {
-    console.error('Remove member error:', error);
+    log.error('Remove member error', error);
     res.status(500).json({ message: 'Error removing member' });
   }
 });
@@ -387,7 +391,7 @@ router.delete('/:id/members/:userId', authenticateToken, async (req, res) => {
  * PUT /teams/:id/members/:userId
  * Update member role
  */
-router.put('/:id/members/:userId', authenticateToken, async (req, res) => {
+router.put('/:id/members/:userId', authenticateToken, zodValidate(updateTeamMemberRoleSchema), async (req, res) => {
   try {
     const { role } = req.body;
     const validRoles = ['owner', 'admin', 'member'];
@@ -427,7 +431,7 @@ router.put('/:id/members/:userId', authenticateToken, async (req, res) => {
       member: teams[teamIndex].members[targetMemberIndex]
     });
   } catch (error) {
-    console.error('Update role error:', error);
+    log.error('Update role error', error);
     res.status(500).json({ message: 'Error updating role' });
   }
 });
@@ -455,7 +459,7 @@ router.get('/:id/invites', authenticateToken, async (req, res) => {
       invites: team.invites || []
     });
   } catch (error) {
-    console.error('Get invites error:', error);
+    log.error('Get invites error', error);
     res.status(500).json({ message: 'Error retrieving invitations' });
   }
 });
@@ -488,7 +492,7 @@ router.delete('/:id/invites/:inviteId', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Invitation cancelled' });
   } catch (error) {
-    console.error('Cancel invitation error:', error);
+    log.error('Cancel invitation error', error);
     res.status(500).json({ message: 'Error cancelling invitation' });
   }
 });

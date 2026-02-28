@@ -13,6 +13,8 @@
 
 const express = require('express');
 const crypto = require('crypto');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Integrations');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { zodValidate } = require('../middleware/zodValidate');
@@ -44,7 +46,7 @@ function getGitHubSyncService() {
         });
       }
     } catch (error) {
-      console.warn('GitHub Sync Service not available:', error.message);
+      log.warn('GitHub Sync Service not available', error.message);
     }
   }
   return githubSyncService;
@@ -66,7 +68,7 @@ async function getProjects() {
       `);
       return result.rows;
     } catch (error) {
-      console.error('Error getting projects from database:', error);
+      log.error('Error getting projects from database', error);
       return [];
     }
   }
@@ -82,7 +84,7 @@ async function saveProjects(projects) {
   const USE_DATABASE = process.env.USE_DATABASE === 'true';
 
   if (USE_DATABASE) {
-    console.warn('saveProjects() called in database mode - use individual project operations instead');
+    log.warn('saveProjects() called in database mode - use individual project operations instead');
     return true;
   }
   const PROJECTS_FILE = path.join(__dirname, '..', 'projects.json');
@@ -107,7 +109,7 @@ router.get('/:provider/auth', authenticateToken, async (req, res) => {
       provider
     });
   } catch (error) {
-    console.error(`OAuth init error (${req.params.provider}):`, error);
+    log.error(`OAuth init error (${req.params.provider})`, error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -127,7 +129,7 @@ router.get('/:provider/callback', async (req, res) => {
     // Redirect to frontend callback page
     res.redirect(`https://fluxstudio.art/auth/callback/${provider}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`);
   } catch (error) {
-    console.error(`OAuth callback error (${req.params.provider}):`, error);
+    log.error(`OAuth callback error (${req.params.provider})`, error);
     res.redirect(`https://fluxstudio.art/auth/callback/${provider}?error=${encodeURIComponent(error.message)}`);
   }
 });
@@ -160,7 +162,7 @@ router.post('/:provider/callback', zodValidate(oauthCallbackSchema), async (req,
       }
     });
   } catch (error) {
-    console.error(`OAuth callback error (${req.params.provider}):`, error);
+    log.error(`OAuth callback error (${req.params.provider})`, error);
     res.status(500).json({
       success: false,
       message: error.message || 'OAuth callback failed'
@@ -176,10 +178,10 @@ router.get('/', authenticateToken, async (req, res) => {
   } catch (error) {
     // Handle missing table gracefully (migrations not run)
     if (error.code === '42P01' || error.message?.includes('does not exist')) {
-      console.warn('OAuth integrations table does not exist - returning empty array');
+      log.warn('OAuth integrations table does not exist - returning empty array');
       return res.json({ integrations: [] });
     }
-    console.error('Get integrations error:', error);
+    log.error('Get integrations error', error);
     res.status(500).json({ message: 'Error retrieving integrations' });
   }
 });
@@ -195,7 +197,7 @@ router.delete('/:provider', authenticateToken, async (req, res) => {
       provider
     });
   } catch (error) {
-    console.error(`Disconnect integration error (${req.params.provider}):`, error);
+    log.error(`Disconnect integration error (${req.params.provider})`, error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -229,7 +231,7 @@ router.get('/figma/files', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Figma files error:', error);
+    log.error('Figma files error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -244,7 +246,7 @@ router.get('/figma/files/:fileKey', authenticateToken, async (req, res) => {
 
     res.json(file);
   } catch (error) {
-    console.error('Figma file details error:', error);
+    log.error('Figma file details error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -259,7 +261,7 @@ router.get('/figma/comments/:fileKey', authenticateToken, async (req, res) => {
 
     res.json({ comments });
   } catch (error) {
-    console.error('Figma comments error:', error);
+    log.error('Figma comments error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -285,7 +287,7 @@ router.post('/figma/webhook', async (req, res) => {
     const FigmaService = require('../src/services/figmaService').default;
     const webhook = FigmaService.parseWebhook(req.body);
 
-    console.log('Figma webhook received:', webhook);
+    log.info('Figma webhook received', webhook);
 
     await query(
       `INSERT INTO integration_webhooks (provider, event_type, event_id, payload, ip_address, signature_valid)
@@ -302,7 +304,7 @@ router.post('/figma/webhook', async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Figma webhook error:', error);
+    log.error('Figma webhook error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -321,7 +323,7 @@ router.get('/slack/channels', authenticateToken, async (req, res) => {
 
     res.json({ channels });
   } catch (error) {
-    console.error('Slack channels error:', error);
+    log.error('Slack channels error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -342,7 +344,7 @@ router.post('/slack/message', authenticateToken, zodValidate(slackMessageSchema)
 
     res.json({ message });
   } catch (error) {
-    console.error('Slack post message error:', error);
+    log.error('Slack post message error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -363,7 +365,7 @@ router.post('/slack/project-update', authenticateToken, zodValidate(slackProject
 
     res.json({ message });
   } catch (error) {
-    console.error('Slack project update error:', error);
+    log.error('Slack project update error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -396,7 +398,7 @@ router.post('/slack/webhook', async (req, res) => {
 
     const webhook = SlackService.parseWebhook(req.body);
 
-    console.log('Slack webhook received:', webhook);
+    log.info('Slack webhook received', webhook);
 
     await query(
       `INSERT INTO integration_webhooks (provider, event_type, payload, ip_address, signature_valid)
@@ -412,7 +414,7 @@ router.post('/slack/webhook', async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Slack webhook error:', error);
+    log.error('Slack webhook error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -438,7 +440,7 @@ router.get('/github/repositories', authenticateToken, async (req, res) => {
 
     res.json({ repositories: data });
   } catch (error) {
-    console.error('GitHub repositories error:', error);
+    log.error('GitHub repositories error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -455,7 +457,7 @@ router.get('/github/repositories/:owner/:repo', authenticateToken, async (req, r
 
     res.json(data);
   } catch (error) {
-    console.error('GitHub repository error:', error);
+    log.error('GitHub repository error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -481,7 +483,7 @@ router.get('/github/repositories/:owner/:repo/issues', authenticateToken, async 
 
     res.json({ issues: data });
   } catch (error) {
-    console.error('GitHub issues error:', error);
+    log.error('GitHub issues error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -502,7 +504,7 @@ router.get('/github/repositories/:owner/:repo/issues/:issue_number', authenticat
 
     res.json(data);
   } catch (error) {
-    console.error('GitHub issue error:', error);
+    log.error('GitHub issue error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -531,7 +533,7 @@ router.post('/github/repositories/:owner/:repo/issues', authenticateToken, zodVa
 
     res.json(data);
   } catch (error) {
-    console.error('GitHub create issue error:', error);
+    log.error('GitHub create issue error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -558,7 +560,7 @@ router.patch('/github/repositories/:owner/:repo/issues/:issue_number', authentic
 
     res.json(data);
   } catch (error) {
-    console.error('GitHub update issue error:', error);
+    log.error('GitHub update issue error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -585,7 +587,7 @@ router.post('/github/repositories/:owner/:repo/issues/:issue_number/comments', a
 
     res.json(data);
   } catch (error) {
-    console.error('GitHub add comment error:', error);
+    log.error('GitHub add comment error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -610,7 +612,7 @@ router.get('/github/repositories/:owner/:repo/pulls', authenticateToken, async (
 
     res.json({ pulls: data });
   } catch (error) {
-    console.error('GitHub pull requests error:', error);
+    log.error('GitHub pull requests error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -634,7 +636,7 @@ router.get('/github/repositories/:owner/:repo/commits', authenticateToken, async
 
     res.json({ commits: data });
   } catch (error) {
-    console.error('GitHub commits error:', error);
+    log.error('GitHub commits error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -656,7 +658,7 @@ router.get('/github/repositories/:owner/:repo/branches', authenticateToken, asyn
 
     res.json({ branches });
   } catch (error) {
-    console.error('GitHub branches error:', error);
+    log.error('GitHub branches error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -679,7 +681,7 @@ router.get('/github/repositories/:owner/:repo/collaborators', authenticateToken,
 
     res.json({ collaborators });
   } catch (error) {
-    console.error('GitHub collaborators error:', error);
+    log.error('GitHub collaborators error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -726,7 +728,7 @@ router.post('/github/repositories/:owner/:repo/link', authenticateToken, zodVali
       project: projects[projectIndex]
     });
   } catch (error) {
-    console.error('GitHub link repository error:', error);
+    log.error('GitHub link repository error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -748,7 +750,7 @@ router.get('/github/user', authenticateToken, async (req, res) => {
       public_repos: data.public_repos
     });
   } catch (error) {
-    console.error('GitHub user error:', error);
+    log.error('GitHub user error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -768,7 +770,7 @@ router.post('/github/webhook', async (req, res) => {
       }
     }
 
-    console.log('GitHub webhook received:', {
+    log.info('GitHub webhook received', {
       event,
       action: req.body.action,
       repository: req.body.repository?.full_name
@@ -790,19 +792,19 @@ router.post('/github/webhook', async (req, res) => {
 
     const syncService = getGitHubSyncService();
     if (syncService && event === 'issues') {
-      console.log(`GitHub issue ${req.body.action}: ${req.body.issue?.title}`);
+      log.info(`GitHub issue ${req.body.action}: ${req.body.issue?.title}`);
 
       setImmediate(async () => {
         try {
           await syncService.processWebhookEvent(req.body);
-          console.log('GitHub issue webhook processed successfully');
+          log.info('GitHub issue webhook processed successfully');
         } catch (error) {
-          console.error('Error processing GitHub issue webhook:', error);
+          log.error('Error processing GitHub issue webhook', error);
         }
       });
     }
   } catch (error) {
-    console.error('GitHub webhook error:', error);
+    log.error('GitHub webhook error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -826,7 +828,7 @@ router.post('/github/sync/:linkId', authenticateToken, async (req, res) => {
       ...result
     });
   } catch (error) {
-    console.error('GitHub manual sync error:', error);
+    log.error('GitHub manual sync error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -851,7 +853,7 @@ router.post('/github/sync/start', authenticateToken, async (req, res) => {
       interval: syncService.syncInterval
     });
   } catch (error) {
-    console.error('GitHub start auto-sync error:', error);
+    log.error('GitHub start auto-sync error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -875,7 +877,7 @@ router.post('/github/sync/stop', authenticateToken, async (req, res) => {
       message: 'Auto-sync stopped successfully'
     });
   } catch (error) {
-    console.error('GitHub stop auto-sync error:', error);
+    log.error('GitHub stop auto-sync error', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -911,7 +913,7 @@ router.get('/github/sync/status/:linkId', authenticateToken, async (req, res) =>
       isAutoSyncRunning: syncService.isRunning
     });
   } catch (error) {
-    console.error('GitHub sync status error:', error);
+    log.error('GitHub sync status error', error);
     res.status(500).json({ message: error.message });
   }
 });

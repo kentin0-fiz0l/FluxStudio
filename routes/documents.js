@@ -10,6 +10,8 @@
  */
 
 const express = require('express');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Documents');
 const { authenticateToken, rateLimitByUser } = require('../lib/auth/middleware');
 const documentsAdapter = require('../database/documents-adapter');
 
@@ -39,7 +41,7 @@ router.get('/projects/:projectId/documents', authenticateToken, async (req, res)
       count: documents.length
     });
   } catch (error) {
-    console.error('Error listing documents:', error);
+    log.error('Error listing documents', error);
 
     if (error.message.includes('access')) {
       return res.status(403).json({
@@ -76,7 +78,7 @@ router.post('/projects/:projectId/documents', authenticateToken, rateLimitByUser
       document
     });
   } catch (error) {
-    console.error('Error creating document:', error);
+    log.error('Error creating document', error);
 
     if (error.message.includes('access')) {
       return res.status(403).json({
@@ -108,7 +110,7 @@ router.get('/documents/:documentId', authenticateToken, async (req, res) => {
       document
     });
   } catch (error) {
-    console.error('Error getting document:', error);
+    log.error('Error getting document', error);
 
     if (error.message.includes('not found') || error.message.includes('access denied')) {
       return res.status(404).json({
@@ -141,7 +143,7 @@ router.patch('/documents/:documentId', authenticateToken, async (req, res) => {
       document
     });
   } catch (error) {
-    console.error('Error updating document:', error);
+    log.error('Error updating document', error);
 
     if (error.message.includes('Viewers cannot edit')) {
       return res.status(403).json({
@@ -180,7 +182,7 @@ router.delete('/documents/:documentId', authenticateToken, async (req, res) => {
       message: 'Document archived successfully'
     });
   } catch (error) {
-    console.error('Error deleting document:', error);
+    log.error('Error deleting document', error);
 
     if (error.message.includes('Insufficient permissions')) {
       return res.status(403).json({
@@ -226,7 +228,7 @@ router.get('/documents/:documentId/versions', authenticateToken, async (req, res
       count: versions.length
     });
   } catch (error) {
-    console.error('Error getting document versions:', error);
+    log.error('Error getting document versions', error);
 
     if (error.message.includes('not found') || error.message.includes('access denied')) {
       return res.status(404).json({
@@ -261,7 +263,7 @@ router.get('/documents/:documentId/versions/:versionNumber', authenticateToken, 
     res.setHeader('Content-Type', 'application/octet-stream');
     res.send(snapshot);
   } catch (error) {
-    console.error('Error getting version snapshot:', error);
+    log.error('Error getting version snapshot', error);
 
     if (error.message.includes('not found') || error.message.includes('access denied')) {
       return res.status(404).json({
@@ -370,7 +372,7 @@ function extractTextFromSnapshot(snapshot) {
 
     return '';
   } catch (error) {
-    console.warn('Could not extract text from snapshot:', error.message);
+    log.warn('Could not extract text from snapshot', error.message);
     return '';
   }
 }
@@ -445,7 +447,7 @@ router.get('/documents/:documentId/versions/:v1/diff/:v2', authenticateToken, as
       );
       text1 = extractTextFromSnapshot(snapshot1);
     } catch (err) {
-      console.warn(`Could not load snapshot for version ${v1}:`, err.message);
+      log.warn(`Could not load snapshot for version ${v1}`, err.message);
     }
 
     try {
@@ -456,7 +458,7 @@ router.get('/documents/:documentId/versions/:v1/diff/:v2', authenticateToken, as
       );
       text2 = extractTextFromSnapshot(snapshot2);
     } catch (err) {
-      console.warn(`Could not load snapshot for version ${v2}:`, err.message);
+      log.warn(`Could not load snapshot for version ${v2}`, err.message);
     }
 
     // Compute diff
@@ -482,7 +484,7 @@ router.get('/documents/:documentId/versions/:v1/diff/:v2', authenticateToken, as
       }
     });
   } catch (error) {
-    console.error('Error computing diff:', error);
+    log.error('Error computing diff', error);
 
     res.status(500).json({
       success: false,

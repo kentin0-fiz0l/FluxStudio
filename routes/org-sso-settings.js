@@ -15,12 +15,16 @@
  */
 
 const express = require('express');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('OrgSSOSettings');
 const router = express.Router({ mergeParams: true });
 const { authenticateToken } = require('../lib/auth/middleware');
 const { requirePermission } = require('../lib/auth/permissions');
 const { query } = require('../database/config');
 const samlService = require('../lib/auth/samlService');
 const domainVerification = require('../lib/auth/domainVerification');
+const { zodValidate } = require('../middleware/zodValidate');
+const { updateSSOSettingsSchema, testSSOConnectionSchema, addSSODomainSchema } = require('../lib/schemas/org-sso-settings');
 
 router.use(authenticateToken);
 
@@ -59,7 +63,7 @@ router.get('/', requirePermission('settings.manage'), async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('[SSO Settings] Get config failed:', error);
+    log.error('Get config failed', error);
     res.status(500).json({ error: 'Failed to get SSO configuration' });
   }
 });
@@ -68,7 +72,7 @@ router.get('/', requirePermission('settings.manage'), async (req, res) => {
 // PUT / — Create or update SAML configuration
 // ---------------------------------------------------------------------------
 
-router.put('/', requirePermission('settings.manage'), async (req, res) => {
+router.put('/', requirePermission('settings.manage'), zodValidate(updateSSOSettingsSchema), async (req, res) => {
   try {
     const { orgId } = req.params;
     const {
@@ -140,7 +144,7 @@ router.put('/', requirePermission('settings.manage'), async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('[SSO Settings] Upsert config failed:', error);
+    log.error('Upsert config failed', error);
     res.status(500).json({ error: 'Failed to save SSO configuration' });
   }
 });
@@ -166,7 +170,7 @@ router.delete('/', requirePermission('settings.manage'), async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('[SSO Settings] Disable failed:', error);
+    log.error('Disable failed', error);
     res.status(500).json({ error: 'Failed to disable SSO' });
   }
 });
@@ -182,7 +186,7 @@ router.get('/metadata', requirePermission('settings.manage'), async (req, res) =
     res.set('Content-Type', 'application/xml');
     res.send(xml);
   } catch (error) {
-    console.error('[SSO Settings] Metadata generation failed:', error);
+    log.error('Metadata generation failed', error);
     res.status(404).json({ error: 'SSO configuration not found or inactive' });
   }
 });
@@ -191,7 +195,7 @@ router.get('/metadata', requirePermission('settings.manage'), async (req, res) =
 // POST /test-connection — Test IdP connectivity
 // ---------------------------------------------------------------------------
 
-router.post('/test-connection', requirePermission('settings.manage'), async (req, res) => {
+router.post('/test-connection', requirePermission('settings.manage'), zodValidate(testSSOConnectionSchema), async (req, res) => {
   try {
     const { url } = req.body;
 
@@ -221,7 +225,7 @@ router.post('/test-connection', requirePermission('settings.manage'), async (req
 
     res.json({ success: true, reachable, statusCode });
   } catch (error) {
-    console.error('[SSO Settings] Test connection failed:', error);
+    log.error('Test connection failed', error);
     res.status(500).json({ error: 'Failed to test connection' });
   }
 });
@@ -236,7 +240,7 @@ router.get('/domains', requirePermission('settings.manage'), async (req, res) =>
     const domains = await domainVerification.getVerifiedDomains(orgId);
     res.json({ success: true, domains });
   } catch (error) {
-    console.error('[SSO Settings] List domains failed:', error);
+    log.error('List domains failed', error);
     res.status(500).json({ error: 'Failed to list domains' });
   }
 });
@@ -245,7 +249,7 @@ router.get('/domains', requirePermission('settings.manage'), async (req, res) =>
 // POST /domains — Start domain verification
 // ---------------------------------------------------------------------------
 
-router.post('/domains', requirePermission('settings.manage'), async (req, res) => {
+router.post('/domains', requirePermission('settings.manage'), zodValidate(addSSODomainSchema), async (req, res) => {
   try {
     const { orgId } = req.params;
     const { domain } = req.body;
@@ -262,7 +266,7 @@ router.post('/domains', requirePermission('settings.manage'), async (req, res) =
     const result = await domainVerification.createVerification(orgId, domain, req.user.id);
     res.json({ success: true, ...result });
   } catch (error) {
-    console.error('[SSO Settings] Create domain verification failed:', error);
+    log.error('Create domain verification failed', error);
     res.status(500).json({ error: 'Failed to start domain verification' });
   }
 });
@@ -276,7 +280,7 @@ router.post('/domains/:domainId/verify', requirePermission('settings.manage'), a
     const result = await domainVerification.checkVerification(req.params.domainId);
     res.json({ success: true, ...result });
   } catch (error) {
-    console.error('[SSO Settings] DNS check failed:', error);
+    log.error('DNS check failed', error);
     res.status(500).json({ error: 'Failed to check domain verification' });
   }
 });
@@ -301,7 +305,7 @@ router.delete('/domains/:domainId', requirePermission('settings.manage'), async 
 
     res.json({ success: true });
   } catch (error) {
-    console.error('[SSO Settings] Delete domain failed:', error);
+    log.error('Delete domain failed', error);
     res.status(500).json({ error: 'Failed to delete domain' });
   }
 });
@@ -349,7 +353,7 @@ router.get('/events', requirePermission('settings.manage'), async (req, res) => 
       pagination: { page, limit, total },
     });
   } catch (error) {
-    console.error('[SSO Settings] List events failed:', error);
+    log.error('List events failed', error);
     res.status(500).json({ error: 'Failed to list SSO events' });
   }
 });
