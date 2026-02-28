@@ -209,6 +209,7 @@ export const MessageListView = forwardRef<MessageListViewRef, MessageListViewPro
                 onChangeEditingDraft={onChangeEditingDraft}
                 onSubmitEdit={onSubmitEdit}
                 onCancelEdit={onCancelEdit}
+                readBy={enrichedMessage.readBy}
               />
             </React.Fragment>
           );

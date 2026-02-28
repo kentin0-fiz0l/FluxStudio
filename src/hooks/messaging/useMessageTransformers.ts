@@ -10,16 +10,27 @@ import type { Message, Conversation, ConversationListItem } from '@/components/m
 import { ConversationMessage } from '@/services/messagingSocketService';
 import { getInitials } from '@/components/messaging';
 
+export interface ReadState {
+  userId: string;
+  userName?: string;
+  avatarUrl?: string;
+  lastReadMessageId: string;
+}
+
 export interface UseMessageTransformersOptions {
   userId?: string;
   pinnedMessageIds: string[];
   typingUsers: Array<{ conversationId: string; userId: string; userEmail?: string }>;
+  readStates?: ReadState[];
+  messageIds?: string[];
 }
 
 export function useMessageTransformers({
   userId,
   pinnedMessageIds,
   typingUsers,
+  readStates = [],
+  messageIds = [],
 }: UseMessageTransformersOptions) {
 
   // Transform ConversationListItem to Conversation for UI
@@ -70,6 +81,24 @@ export function useMessageTransformers({
     const content = msg.content || msg.text || '';
     const authorName = msg.author?.displayName || msg.author?.email?.split('@')[0] || msg.userName || 'Unknown';
 
+    // Compute readBy: find users whose lastReadMessageId is at an index >= this message's index
+    const msgIndex = messageIds.indexOf(msg.id);
+    const readBy: Array<{ id: string; name: string; avatar?: string }> = [];
+    if (msgIndex >= 0) {
+      for (const rs of readStates) {
+        // Skip the current user's own read state
+        if (rs.userId === userId) continue;
+        const readIndex = messageIds.indexOf(rs.lastReadMessageId);
+        if (readIndex >= msgIndex) {
+          readBy.push({
+            id: rs.userId,
+            name: rs.userName || 'User',
+            avatar: rs.avatarUrl,
+          });
+        }
+      }
+    }
+
     return {
       id: msg.id,
       content,
@@ -117,8 +146,14 @@ export function useMessageTransformers({
         siteName: lp.siteName,
         faviconUrl: lp.faviconUrl,
       })),
+      voiceMessage: msg.voiceMessage ? {
+        duration: msg.voiceMessage.duration,
+        url: msg.voiceMessage.url,
+        waveform: msg.voiceMessage.waveform || [],
+      } : undefined,
+      readBy,
     };
-  }, [userId, pinnedMessageIds]);
+  }, [userId, pinnedMessageIds, readStates, messageIds]);
 
   // Transform multiple summaries to conversations
   const transformConversations = useCallback((summaries: ConversationListItem[]): Conversation[] => {

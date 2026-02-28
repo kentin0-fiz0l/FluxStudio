@@ -926,6 +926,18 @@ class MessagingService {
     }
   }
 
+  /**
+   * Get read states for all members in a conversation
+   */
+  async getReadStates(conversationId: string): Promise<Array<{ userId: string; userName?: string; avatarUrl?: string; lastReadMessageId: string }>> {
+    try {
+      const response = await this.apiRequest(`/conversations/${conversationId}/read-states`);
+      return response.readStates || [];
+    } catch {
+      return [];
+    }
+  }
+
   // ========================================
   // FILE UPLOAD
   // ========================================

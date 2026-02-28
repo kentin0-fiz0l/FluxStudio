@@ -51,6 +51,10 @@ export interface ChatSidebarProps {
   onMuteConversation?: (conversationId: string) => void;
   /** Called when archive is toggled on a conversation */
   onArchiveConversation?: (conversationId: string) => void;
+  /** Called when pin is toggled on a conversation */
+  onPinConversation?: (conversationId: string) => void;
+  /** Called when mark as read is clicked on a conversation */
+  onMarkAsRead?: (conversationId: string) => void;
 }
 
 export function ChatSidebar({
@@ -70,6 +74,8 @@ export function ChatSidebar({
   unreadCount,
   onMuteConversation,
   onArchiveConversation,
+  onPinConversation,
+  onMarkAsRead,
 }: ChatSidebarProps) {
   const filters: ConversationFilter[] = ['all', 'unread', 'archived', 'starred', 'muted'];
 
@@ -175,8 +181,11 @@ export function ChatSidebar({
                     conversation={conversation}
                     isSelected={selectedConversation?.id === conversation.id}
                     onClick={() => onConversationClick(conversation)}
+                    onPin={onPinConversation ? () => onPinConversation(conversation.id) : undefined}
                     onMute={onMuteConversation ? () => onMuteConversation(conversation.id) : undefined}
                     onDelete={onArchiveConversation ? () => onArchiveConversation(conversation.id) : undefined}
+                    onArchive={onArchiveConversation ? () => onArchiveConversation(conversation.id) : undefined}
+                    onMarkAsRead={onMarkAsRead ? () => onMarkAsRead(conversation.id) : undefined}
                   />
                 ))}
                 {unread.length > 0 && read.length > 0 && (
@@ -194,8 +203,11 @@ export function ChatSidebar({
                     conversation={conversation}
                     isSelected={selectedConversation?.id === conversation.id}
                     onClick={() => onConversationClick(conversation)}
+                    onPin={onPinConversation ? () => onPinConversation(conversation.id) : undefined}
                     onMute={onMuteConversation ? () => onMuteConversation(conversation.id) : undefined}
                     onDelete={onArchiveConversation ? () => onArchiveConversation(conversation.id) : undefined}
+                    onArchive={onArchiveConversation ? () => onArchiveConversation(conversation.id) : undefined}
+                    onMarkAsRead={onMarkAsRead ? () => onMarkAsRead(conversation.id) : undefined}
                   />
                 ))}
               </>

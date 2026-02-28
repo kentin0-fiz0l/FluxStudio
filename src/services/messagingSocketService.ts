@@ -73,6 +73,12 @@ export interface ConversationMessage {
     siteName?: string;
     faviconUrl?: string;
   }>;
+  // Voice message data
+  voiceMessage?: {
+    duration: number;
+    url: string;
+    waveform?: number[];
+  };
 }
 
 export interface Conversation {

@@ -559,6 +559,156 @@ router.post('/:id/upload', authenticateToken, fileUpload.single('file'), async (
 });
 
 /**
+ * POST /api/conversations/:id/voice-message
+ * Upload a voice recording and create a message + voice_messages record
+ */
+router.post('/:id/voice-message', authenticateToken, fileUpload.single('file'), async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+    const duration = parseFloat(req.body.duration) || 0;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No audio file uploaded' });
+    }
+
+    const conversation = await messagingConversationsAdapter.getConversationById({
+      conversationId,
+      userId
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    const file = req.file;
+
+    // Save file to storage
+    const storageResult = await fileStorage.saveFile({
+      buffer: file.buffer,
+      mimeType: file.mimetype,
+      userId: userId,
+      originalName: file.originalname || 'voice-message.webm'
+    });
+
+    // Create file record
+    const fileRecord = await filesAdapter.createFile({
+      userId: userId,
+      organizationId: conversation.organizationId || null,
+      projectId: null,
+      source: 'voice',
+      name: file.originalname || 'voice-message.webm',
+      originalName: file.originalname || 'voice-message.webm',
+      mimeType: file.mimetype,
+      extension: storageResult.extension,
+      sizeBytes: storageResult.sizeBytes,
+      storageKey: storageResult.storageKey,
+      fileUrl: `/files/${storageResult.storageKey}`,
+      metadata: {
+        hash: storageResult.hash,
+        conversationId: conversationId,
+        type: 'voice'
+      }
+    });
+
+    // Create asset from file
+    const asset = await assetsAdapter.createAsset({
+      organizationId: conversation.organizationId || null,
+      ownerId: userId,
+      name: file.originalname || 'Voice message',
+      kind: 'audio',
+      primaryFileId: fileRecord.id,
+      description: 'Voice message',
+      tags: ['voice-message']
+    });
+
+    // Create the message with the asset
+    let message = await messagingConversationsAdapter.createMessage({
+      conversationId,
+      userId,
+      text: '',
+      assetId: asset.id,
+      replyToMessageId: null,
+      projectId: null,
+      isSystemMessage: false
+    });
+
+    // Attach asset data to message for the response
+    message = {
+      ...message,
+      asset: {
+        id: asset.id,
+        name: asset.name,
+        kind: 'audio',
+        ownerId: userId,
+        createdAt: asset.createdAt,
+        file: {
+          id: fileRecord.id,
+          name: fileRecord.name,
+          originalName: file.originalname || 'voice-message.webm',
+          mimeType: file.mimetype,
+          sizeBytes: storageResult.sizeBytes,
+          url: fileRecord.fileUrl,
+          storageKey: storageResult.storageKey
+        }
+      }
+    };
+
+    // Create voice_messages record for duration/waveform
+    try {
+      await query(
+        'INSERT INTO voice_messages (message_id, file_id, duration, created_at) VALUES ($1, $2, $3, NOW())',
+        [message.id, fileRecord.id, duration]
+      );
+    } catch (vmErr) {
+      // voice_messages table may not exist yet - log but don't fail the request
+      console.warn('Could not insert voice_messages record:', vmErr.message);
+    }
+
+    // Broadcast via WebSocket
+    if (messagingNamespace) {
+      // Look up user info for the broadcast
+      let userName = null;
+      let userAvatar = null;
+      try {
+        const userResult = await query('SELECT name, avatar_url FROM users WHERE id = $1', [userId]);
+        if (userResult.rows[0]) {
+          userName = userResult.rows[0].name;
+          userAvatar = userResult.rows[0].avatar_url;
+        }
+      } catch { /* ignore */ }
+
+      messagingNamespace.to(`conversation:${conversationId}`).emit('conversation:new-message', {
+        conversationId,
+        message: {
+          ...message,
+          userName,
+          userAvatar,
+          voiceMessage: {
+            duration,
+            url: fileRecord.fileUrl,
+          }
+        }
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: {
+        ...message,
+        voiceMessage: {
+          duration,
+          url: fileRecord.fileUrl,
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error creating voice message:', error);
+    res.status(500).json({ success: false, error: 'Failed to create voice message' });
+  }
+});
+
+/**
  * POST /api/conversations/:id/messages
  * Create a message in a conversation
  */

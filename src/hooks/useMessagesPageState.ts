@@ -74,6 +74,9 @@ export function useMessagesPageState() {
   const [threadMessages, setThreadMessages] = useState<Message[]>([]);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
 
+  // Read receipt states (declared early so handleReadReceipt can reference setReadStates)
+  const [readStates, setReadStates] = useState<Array<{ userId: string; userName?: string; avatarUrl?: string; lastReadMessageId: string }>>([]);
+
   const handleThreadSummaryUpdate = useCallback((data: { threadRootMessageId: string }) => {
     if (!isThreadPanelOpen || activeThreadRootId !== data.threadRootMessageId) {
       setThreadHighlightId(data.threadRootMessageId);
@@ -83,16 +86,37 @@ export function useMessagesPageState() {
     }
   }, [isThreadPanelOpen, activeThreadRootId]);
 
+  const handleReadReceipt = useCallback((data: { conversationId: string; userId: string; messageId: string; userName?: string; avatarUrl?: string }) => {
+    setReadStates(prev => {
+      const existing = prev.find(rs => rs.userId === data.userId);
+      if (existing) {
+        return prev.map(rs =>
+          rs.userId === data.userId
+            ? { ...rs, lastReadMessageId: data.messageId, userName: data.userName || rs.userName, avatarUrl: data.avatarUrl || rs.avatarUrl }
+            : rs
+        );
+      }
+      return [...prev, { userId: data.userId, userName: data.userName, avatarUrl: data.avatarUrl, lastReadMessageId: data.messageId }];
+    });
+  }, []);
+
   const realtime = useConversationRealtime({
     conversationId: selectedConversationId || undefined,
     autoConnect: true,
     onNewMessage: handleNewMessage,
     onThreadSummaryUpdate: handleThreadSummaryUpdate,
+    onReadReceipt: handleReadReceipt,
   });
 
   // ========================================
   // MESSAGE TRANSFORMERS
   // ========================================
+  // Build stable message ID list for read receipt computation
+  const realtimeMessageIds = useMemo(() =>
+    realtime.messages.map(m => m.id),
+    [realtime.messages]
+  );
+
   const {
     transformSummaryToConversation,
     transformRealtimeMessage,
@@ -100,6 +124,8 @@ export function useMessagesPageState() {
     userId: user?.id,
     pinnedMessageIds: realtime.pinnedMessageIds,
     typingUsers: realtime.typingUsers,
+    readStates,
+    messageIds: realtimeMessageIds,
   });
 
   const messages: Message[] = useMemo(() =>
@@ -430,6 +456,19 @@ export function useMessagesPageState() {
     lastReadMessageIdRef.current = null;
   }, [selectedConversationId]);
 
+  // Fetch read states when conversation changes
+  useEffect(() => {
+    if (!selectedConversationId) {
+      setReadStates([]);
+      return;
+    }
+    let cancelled = false;
+    messagingService.getReadStates(selectedConversationId).then(states => {
+      if (!cancelled) setReadStates(states);
+    });
+    return () => { cancelled = true; };
+  }, [selectedConversationId]);
+
   // Keyboard shortcut for search (Ctrl+F / Cmd+F)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -599,6 +638,34 @@ export function useMessagesPageState() {
     }
   }, [selectedConversationId, conversationSummaries]);
 
+  const handlePinConversation = useCallback(async (conversationId?: string) => {
+    const targetId = conversationId || selectedConversationId;
+    if (!targetId) return;
+    const summary = conversationSummaries.find(c => c.id === targetId);
+    const currentlyPinned = summary?.isPinned;
+
+    // Toggle pin in local state (no backend pin API for conversations — local-only)
+    setConversationSummaries(prev =>
+      prev.map(c => c.id === targetId ? { ...c, isPinned: !currentlyPinned } : c)
+    );
+    toast.success(currentlyPinned ? 'Conversation unpinned' : 'Conversation pinned');
+  }, [selectedConversationId, conversationSummaries]);
+
+  const handleMarkAsRead = useCallback(async (conversationId?: string) => {
+    const targetId = conversationId || selectedConversationId;
+    if (!targetId) return;
+
+    setConversationSummaries(prev =>
+      prev.map(c => c.id === targetId ? { ...c, unreadCount: 0 } : c)
+    );
+
+    // If there are messages, mark the last one as read
+    if (targetId === selectedConversationId && messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      realtime.markAsRead(lastMsg.id);
+    }
+  }, [selectedConversationId, messages, realtime]);
+
   const handleLeaveConversation = useCallback(async () => {
     if (!selectedConversationId) return;
     const ok = await messagingService.leaveConversation(selectedConversationId);
@@ -615,17 +682,29 @@ export function useMessagesPageState() {
   const handleSendVoice = useCallback(async (file: File) => {
     if (!selectedConversationId) return;
     try {
+      // Get audio duration from file
+      let duration = 0;
+      try {
+        const audioCtx = new AudioContext();
+        const arrayBuffer = await file.arrayBuffer();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        duration = audioBuffer.duration;
+        audioCtx.close();
+      } catch {
+        // Duration extraction failed — send 0
+      }
+
       const formData = new FormData();
       formData.append('file', file);
-      await apiService.post(`/conversations/${selectedConversationId}/upload`, formData, {
+      formData.append('duration', String(duration));
+      await apiService.post(`/conversations/${selectedConversationId}/voice-message`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      // Send a message referencing the voice file
-      realtime.sendMessage('[Voice message]');
+      // The backend creates the message and broadcasts via WebSocket — no need to send a text placeholder
     } catch {
       toast.error('Failed to send voice message');
     }
-  }, [selectedConversationId, realtime]);
+  }, [selectedConversationId]);
 
   return {
     // Auth
@@ -715,6 +794,8 @@ export function useMessagesPageState() {
     handleSearchResultClick,
     handleMuteConversation,
     handleArchiveConversation,
+    handlePinConversation,
+    handleMarkAsRead,
     handleLeaveConversation,
     handleSendVoice,
 

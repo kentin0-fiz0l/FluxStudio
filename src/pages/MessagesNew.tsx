@@ -167,6 +167,8 @@ function MessagesNew() {
           unreadCount={state.unreadCount}
           onMuteConversation={state.handleMuteConversation}
           onArchiveConversation={state.handleArchiveConversation}
+          onPinConversation={state.handlePinConversation}
+          onMarkAsRead={state.handleMarkAsRead}
         />
 
         {/* Chat Area */}

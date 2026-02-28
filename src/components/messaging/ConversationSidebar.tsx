@@ -23,9 +23,17 @@ import {
   Zap,
   Coffee,
   Rocket,
+  Archive,
+  CheckCheck,
 } from 'lucide-react';
 
 import { Card, Badge, Button } from '@/components/ui';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { ChatAvatar } from './ChatMessageBubble';
 import type { Conversation, ConversationFilter } from './types';
 import { formatTime } from './utils';
@@ -64,15 +72,19 @@ export interface ConversationItemProps {
   onPin?: () => void;
   onMute?: () => void;
   onDelete?: () => void;
+  onArchive?: () => void;
+  onMarkAsRead?: () => void;
 }
 
 const SWIPE_THRESHOLD = 60;
 
-export const ConversationItem = React.memo(function ConversationItem({ conversation, isSelected, onClick, onPin, onMute, onDelete }: ConversationItemProps) {
+export const ConversationItem = React.memo(function ConversationItem({ conversation, isSelected, onClick, onPin, onMute, onDelete, onArchive, onMarkAsRead }: ConversationItemProps) {
   const touchStartX = useRef(0);
   const touchCurrentX = useRef(0);
   const contentRef = useRef<HTMLDivElement>(null);
   const [swiped, setSwiped] = useState(false);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -111,6 +123,12 @@ export const ConversationItem = React.memo(function ConversationItem({ conversat
     setSwiped(false);
   }, []);
 
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setContextMenuOpen(true);
+  }, []);
+
   return (
     <div className="relative overflow-hidden">
       {/* Swipe-revealed actions */}
@@ -138,6 +156,44 @@ export const ConversationItem = React.memo(function ConversationItem({ conversat
         </button>
       </div>
 
+      {/* Desktop context menu */}
+      <DropdownMenu open={contextMenuOpen} onOpenChange={setContextMenuOpen}>
+        <DropdownMenuContent
+          className="w-48"
+          style={{ position: 'fixed', left: contextMenuPos.x, top: contextMenuPos.y }}
+          side="bottom"
+          align="start"
+        >
+          {onPin && (
+            <DropdownMenuItem onClick={() => { onPin(); setContextMenuOpen(false); }}>
+              <Pin className="w-4 h-4 mr-2" aria-hidden="true" />
+              {conversation.isPinned ? 'Unpin' : 'Pin'}
+            </DropdownMenuItem>
+          )}
+          {onMute && (
+            <DropdownMenuItem onClick={() => { onMute(); setContextMenuOpen(false); }}>
+              <BellOff className="w-4 h-4 mr-2" aria-hidden="true" />
+              {conversation.isMuted ? 'Unmute' : 'Mute'}
+            </DropdownMenuItem>
+          )}
+          {onArchive && (
+            <DropdownMenuItem onClick={() => { onArchive(); setContextMenuOpen(false); }}>
+              <Archive className="w-4 h-4 mr-2" aria-hidden="true" />
+              {conversation.isArchived ? 'Unarchive' : 'Archive'}
+            </DropdownMenuItem>
+          )}
+          {onMarkAsRead && conversation.unreadCount > 0 && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => { onMarkAsRead(); setContextMenuOpen(false); }}>
+                <CheckCheck className="w-4 h-4 mr-2" aria-hidden="true" />
+                Mark as Read
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       {/* Main content — slides left on swipe */}
       <div
         ref={contentRef}
@@ -148,6 +204,7 @@ export const ConversationItem = React.memo(function ConversationItem({ conversat
       >
         <button
           onClick={() => { if (swiped) { closeSwipe(); } else { onClick(); } }}
+          onContextMenu={handleContextMenu}
           className={`w-full p-4 min-h-[64px] border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 text-left transition-colors touch-manipulation ${
             isSelected ? 'bg-primary-50 dark:bg-primary-900/20 border-l-4 border-l-primary-600' : ''
           }`}

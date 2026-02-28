@@ -104,6 +104,7 @@ export interface Message {
   threadReplyCount?: number;
   threadRootMessageId?: string | null;
   threadLastReplyAt?: Date;
+  readBy?: Array<{ id: string; name: string; avatar?: string }>;
 }
 
 // Conversation for UI display
@@ -135,6 +136,7 @@ export interface ConversationListItem {
   isGroup: boolean;
   isArchived?: boolean;
   isMuted?: boolean;
+  isPinned?: boolean;
   createdAt: string;
   updatedAt: string;
   lastMessageAt: string | null;
