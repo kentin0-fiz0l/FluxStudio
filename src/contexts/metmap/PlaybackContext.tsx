@@ -13,7 +13,7 @@
  */
 
 import * as React from 'react';
-import { useNotification } from '../NotificationContext';
+import { useNotification } from '../../store/slices/notificationSlice';
 import { useMetMapCore } from './MetMapCoreContext';
 import type { PlaybackContextValue, PlaybackMode, Section } from './types';
 import { getBeatsPerBar, calculateGlobalBeat, secondsToGlobalBeat, globalBeatToSeconds } from './types';

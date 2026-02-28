@@ -17,6 +17,8 @@ const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { invalidateCache, evaluateAllFlags } = require('../lib/featureFlags');
 const { logAction } = require('../lib/auditLog');
+const { zodValidate } = require('../middleware/zodValidate');
+const { createFeatureFlagSchema, updateFeatureFlagSchema } = require('../lib/schemas');
 
 router.use(authenticateToken);
 
@@ -64,7 +66,7 @@ router.get('/evaluate', async (req, res) => {
  * POST /api/admin/flags
  * Create a new feature flag (admin only)
  */
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireAdmin, zodValidate(createFeatureFlagSchema), async (req, res) => {
   try {
     const { name, description, enabled, rollout_percentage, user_allowlist, metadata } = req.body;
 
@@ -109,7 +111,7 @@ router.post('/', requireAdmin, async (req, res) => {
  * PATCH /api/admin/flags/:id
  * Update a feature flag (admin only)
  */
-router.patch('/:id', requireAdmin, async (req, res) => {
+router.patch('/:id', requireAdmin, zodValidate(updateFeatureFlagSchema), async (req, res) => {
   try {
     const { id } = req.params;
     const { enabled, description, rollout_percentage, user_allowlist, metadata } = req.body;

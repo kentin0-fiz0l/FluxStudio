@@ -15,6 +15,8 @@ const router = express.Router();
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { logAction } = require('../lib/auditLog');
+const { zodValidate } = require('../middleware/zodValidate');
+const { deleteAccountSchema } = require('../lib/schemas');
 
 router.use(authenticateToken);
 
@@ -105,7 +107,7 @@ router.get('/export', async (req, res) => {
  * GDPR Article 17 — Right to erasure.
  * Schedules account deletion after a 30-day cooling-off period.
  */
-router.post('/delete', async (req, res) => {
+router.post('/delete', zodValidate(deleteAccountSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const { reason } = req.body;

@@ -13,6 +13,8 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
+const { zodValidate } = require('../middleware/zodValidate');
+const { createCustomTemplateSchema } = require('../lib/schemas');
 
 const router = express.Router();
 
@@ -433,7 +435,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
  * POST /api/templates/custom
  * Save a custom template
  */
-router.post('/custom', authenticateToken, async (req, res) => {
+router.post('/custom', authenticateToken, zodValidate(createCustomTemplateSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const { name, description, category, structure, variables, sourceProjectId } = req.body;

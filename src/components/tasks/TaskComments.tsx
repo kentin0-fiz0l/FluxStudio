@@ -26,23 +26,9 @@
  */
 
 import * as React from 'react';
-import { List, RowComponentProps } from 'react-window';
-import { AutoSizer } from 'react-virtualized-auto-sizer';
-import { MessageCircle, Send, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { sanitizeComment } from '@/lib/sanitize';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import {
   useCommentsQuery,
   useCreateCommentMutation,
@@ -51,16 +37,18 @@ import {
   type Comment,
 } from '@/hooks/useComments';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import {
+  VirtualizedCommentList,
+  MentionAutocomplete,
+  extractMentions,
+  type TeamMember,
+} from './comments';
 
 // ============================================================================
 // Type Definitions
 // ============================================================================
 
-export interface TeamMember {
-  id: string;
-  name: string;
-  email: string;
-}
+export type { TeamMember } from './comments';
 
 export interface TaskCommentsProps {
   projectId: string;
@@ -72,354 +60,6 @@ export interface TaskCommentsProps {
     email: string;
   };
 }
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Format relative time from ISO date string
- * Examples: "Just now", "5m ago", "2h ago", "3d ago", "Mar 15, 2024"
- */
-const formatRelativeTime = (isoDate: string): string => {
-  const now = new Date();
-  const date = new Date(isoDate);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return 'Just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-
-  // For dates older than a week, show full date
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-  });
-};
-
-/**
- * Get initials from name for avatar
- * Examples: "John Doe" => "JD", "Alice" => "A"
- */
-const getInitials = (name: string): string => {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase();
-};
-
-/**
- * Get consistent color for user based on their ID
- * Uses HSL color space for visually distinct colors
- */
-const getUserColor = (userId: string): string => {
-  const colors = [
-    'bg-blue-500',
-    'bg-green-500',
-    'bg-purple-500',
-    'bg-pink-500',
-    'bg-orange-500',
-    'bg-teal-500',
-    'bg-indigo-500',
-    'bg-red-500',
-  ];
-  const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return colors[hash % colors.length];
-};
-
-/**
- * Render markdown with @mention highlighting
- * Supports: **bold**, *italic*, `code`, [links](url), @mentions
- */
-const renderMarkdown = (text: string): string => {
-  let rendered = text;
-
-  // Bold: **text**
-  rendered = rendered.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-  // Italic: *text* (but not ** from bold)
-  rendered = rendered.replace(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g, '<em>$1</em>');
-
-  // Code: `text`
-  rendered = rendered.replace(/`([^`]+)`/g, '<code class="bg-neutral-100 text-neutral-900 px-1 py-0.5 rounded text-sm font-mono">$1</code>');
-
-  // Links: [text](url)
-  rendered = rendered.replace(
-    /\[(.*?)\]\((.*?)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-primary-600 hover:text-primary-700 underline">$1</a>'
-  );
-
-  // Mentions: @username
-  rendered = rendered.replace(
-    /@(\w+)/g,
-    '<span class="text-primary-600 font-semibold bg-primary-50 px-1 rounded">@$1</span>'
-  );
-
-  // Line breaks
-  rendered = rendered.replace(/\n/g, '<br/>');
-
-  return rendered;
-};
-
-/**
- * Extract @mentions from text
- * Returns array of usernames mentioned
- */
-const extractMentions = (text: string, teamMembers: TeamMember[]): string[] => {
-  const mentionPattern = /@(\w+)/g;
-  const matches = Array.from(text.matchAll(mentionPattern));
-  const mentionedNames = matches.map((match) => match[1].toLowerCase());
-
-  // Map mentioned names to user IDs
-  const mentionedUserIds: string[] = [];
-  teamMembers.forEach((member) => {
-    const nameLower = member.name.toLowerCase().replace(/\s+/g, '');
-    if (mentionedNames.some((mention) => nameLower.includes(mention))) {
-      mentionedUserIds.push(member.id);
-    }
-  });
-
-  return mentionedUserIds;
-};
-
-// ============================================================================
-// Comment Item Component
-// ============================================================================
-
-interface CommentItemProps {
-  comment: Comment;
-  currentUserId: string;
-  onEdit: (comment: Comment) => void;
-  onDelete: (commentId: string) => void;
-}
-
-const CommentItem: React.FC<CommentItemProps> = ({
-  comment,
-  currentUserId,
-  onEdit,
-  onDelete,
-}) => {
-  const isOwnComment = comment.createdBy === currentUserId;
-  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
-
-  return (
-    <>
-      <div className="flex gap-3 group">
-        {/* Avatar */}
-        <Avatar className="h-8 w-8 flex-shrink-0">
-          <AvatarFallback className={cn('text-white text-sm', getUserColor(comment.author.id))}>
-            {getInitials(comment.author.name)}
-          </AvatarFallback>
-        </Avatar>
-
-        {/* Comment Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className="font-semibold text-neutral-900 text-sm">
-              {comment.author.name}
-            </span>
-            <span className="text-xs text-neutral-500">
-              {formatRelativeTime(comment.createdAt)}
-            </span>
-            {comment.updatedAt && (
-              <span className="text-xs text-neutral-400 italic">(edited)</span>
-            )}
-          </div>
-
-          {/* Comment Body with Markdown */}
-          <div
-            className="text-sm text-neutral-700 break-words prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: sanitizeComment(renderMarkdown(comment.content)) }}
-          />
-
-          {/* Actions (visible on hover for own comments) */}
-          {isOwnComment && (
-            <div className="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={() => onEdit(comment)}
-                className="text-xs text-neutral-600 hover:text-primary-600 flex items-center gap-1"
-                aria-label="Edit comment"
-              >
-                <Edit2 className="h-3 w-3" aria-hidden="true" />
-                Edit
-              </button>
-              <button
-                onClick={() => setShowDeleteDialog(true)}
-                className="text-xs text-neutral-600 hover:text-error-600 flex items-center gap-1"
-                aria-label="Delete comment"
-              >
-                <Trash2 className="h-3 w-3" aria-hidden="true" />
-                Delete
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Comment?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this comment? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                onDelete(comment.id);
-                setShowDeleteDialog(false);
-              }}
-              className="bg-error-600 hover:bg-error-700"
-            >
-              Delete Comment
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
-  );
-};
-
-// ============================================================================
-// Mention Autocomplete Component
-// ============================================================================
-
-interface MentionAutocompleteProps {
-  suggestions: TeamMember[];
-  selectedIndex: number;
-  onSelect: (member: TeamMember) => void;
-  position: { top: number; left: number };
-}
-
-const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
-  suggestions,
-  selectedIndex,
-  onSelect,
-  position,
-}) => {
-  if (suggestions.length === 0) return null;
-
-  return (
-    <div
-      className="absolute z-50 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-48 overflow-y-auto"
-      style={{ top: position.top, left: position.left }}
-      role="listbox"
-      aria-label="Mention suggestions"
-    >
-      {suggestions.map((member, index) => (
-        <button
-          key={member.id}
-          onClick={() => onSelect(member)}
-          className={cn(
-            'w-full px-3 py-2 text-left hover:bg-neutral-100 flex items-center gap-2',
-            index === selectedIndex && 'bg-primary-50'
-          )}
-          role="option"
-          aria-selected={index === selectedIndex}
-        >
-          <Avatar className="h-6 w-6">
-            <AvatarFallback className={cn('text-white text-xs', getUserColor(member.id))}>
-              {getInitials(member.name)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-neutral-900 truncate">
-              {member.name}
-            </div>
-            <div className="text-xs text-neutral-500 truncate">{member.email}</div>
-          </div>
-        </button>
-      ))}
-    </div>
-  );
-};
-
-// ============================================================================
-// Virtualized Comment List
-// ============================================================================
-
-const COMMENT_ROW_HEIGHT = 100;
-
-interface CommentRowProps {
-  comments: Comment[];
-  currentUserId: string;
-  onEdit: (comment: Comment) => void;
-  onDelete: (commentId: string) => void;
-}
-
-function CommentRowComponent({
-  index,
-  style,
-  comments,
-  currentUserId,
-  onEdit,
-  onDelete,
-}: RowComponentProps<CommentRowProps>): React.ReactElement | null {
-  const comment = comments[index];
-  if (!comment) return null;
-
-  return (
-    <div style={style}>
-      <div className="pb-4">
-        <CommentItem
-          comment={comment}
-          currentUserId={currentUserId}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      </div>
-    </div>
-  );
-}
-
-interface VirtualizedCommentListProps {
-  comments: Comment[];
-  currentUserId: string;
-  onEdit: (comment: Comment) => void;
-  onDelete: (commentId: string) => void;
-}
-
-const VirtualizedCommentList: React.FC<VirtualizedCommentListProps> = ({
-  comments,
-  currentUserId,
-  onEdit,
-  onDelete,
-}) => {
-  const rowProps = React.useMemo(() => ({
-    comments,
-    currentUserId,
-    onEdit,
-    onDelete,
-  }), [comments, currentUserId, onEdit, onDelete]);
-
-  const totalEstimatedHeight = Math.min(
-    comments.length * COMMENT_ROW_HEIGHT,
-    500
-  );
-
-  return (
-    <div style={{ height: totalEstimatedHeight }}>
-      <AutoSizer
-        renderProp={({ height, width }) => (
-          <List
-            style={{ height: height ?? 0, width: width ?? 0 }}
-            rowComponent={CommentRowComponent}
-            rowCount={comments.length}
-            rowHeight={COMMENT_ROW_HEIGHT}
-            rowProps={rowProps}
-            overscanCount={5}
-          />
-        )}
-      />
-    </div>
-  );
-};
 
 // ============================================================================
 // Main Component
@@ -510,7 +150,6 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
     const match = beforeCursor.match(/@(\w*)$/);
 
     if (match) {
-      // Show mention suggestions
       const searchTerm = match[1].toLowerCase();
       const suggestions = teamMembers.filter(
         (member) =>
@@ -521,11 +160,9 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
       setShowMentions(true);
       setSelectedMentionIndex(0);
 
-      // Calculate position for mention dropdown
       if (textareaRef.current) {
         const textarea = textareaRef.current;
         const { offsetTop, offsetLeft } = textarea;
-        // Position below the textarea
         setMentionPosition({
           top: offsetTop + textarea.offsetHeight,
           left: offsetLeft,
@@ -552,10 +189,9 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
       setInputValue(newText);
       setShowMentions(false);
 
-      // Set cursor position after mention
       setTimeout(() => {
         if (textareaRef.current) {
-          const newCursorPos = match.index! + mentionText.length + 2; // +2 for @ and space
+          const newCursorPos = match.index! + mentionText.length + 2;
           textareaRef.current.selectionStart = newCursorPos;
           textareaRef.current.selectionEnd = newCursorPos;
           textareaRef.current.focus();
@@ -570,7 +206,6 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (showMentions) {
-      // Handle mention navigation
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedMentionIndex((prev) =>
@@ -589,7 +224,6 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
         setShowMentions(false);
       }
     } else {
-      // Cmd+Enter or Ctrl+Enter to submit
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
         handleSubmit();
@@ -607,7 +241,6 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
     const mentions = extractMentions(inputValue, teamMembers);
 
     if (editingComment) {
-      // Update existing comment
       await updateCommentMutation.mutateAsync({
         commentId: editingComment.id,
         updates: {
@@ -617,7 +250,6 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
       });
       setEditingComment(null);
     } else {
-      // Create new comment
       await createCommentMutation.mutateAsync({
         content: inputValue.trim(),
         mentions,
@@ -688,7 +320,6 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
 
     setInputValue(newText);
 
-    // Set cursor position
     setTimeout(() => {
       if (textareaRef.current) {
         const newPos = start + cursorOffset;

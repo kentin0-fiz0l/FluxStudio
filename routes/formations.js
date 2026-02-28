@@ -14,6 +14,8 @@ const express = require('express');
 const { authenticateToken } = require('../lib/auth/middleware');
 const formationsAdapter = require('../database/formations-adapter');
 const sceneObjectsAdapter = require('../database/scene-objects-adapter');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Formations');
 
 const router = express.Router();
 
@@ -33,7 +35,7 @@ router.get('/projects/:projectId/formations', authenticateToken, async (req, res
 
     res.json({ success: true, formations });
   } catch (error) {
-    console.error('Error listing formations:', error);
+    log.error('Error listing formations', error);
     res.status(500).json({ success: false, error: 'Failed to list formations' });
   }
 });
@@ -63,7 +65,7 @@ router.post('/projects/:projectId/formations', authenticateToken, async (req, re
 
     res.status(201).json({ success: true, formation });
   } catch (error) {
-    console.error('Error creating formation:', error);
+    log.error('Error creating formation', error);
     res.status(500).json({ success: false, error: 'Failed to create formation' });
   }
 });
@@ -83,7 +85,7 @@ router.get('/formations/:formationId', authenticateToken, async (req, res) => {
 
     res.json({ success: true, formation });
   } catch (error) {
-    console.error('Error getting formation:', error);
+    log.error('Error getting formation', error);
     res.status(500).json({ success: false, error: 'Failed to get formation' });
   }
 });
@@ -114,7 +116,7 @@ router.patch('/formations/:formationId', authenticateToken, async (req, res) => 
 
     res.json({ success: true, formation: updatedFormation });
   } catch (error) {
-    console.error('Error updating formation:', error);
+    log.error('Error updating formation', error);
     res.status(500).json({ success: false, error: 'Failed to update formation' });
   }
 });
@@ -136,7 +138,7 @@ router.delete('/formations/:formationId', authenticateToken, async (req, res) =>
 
     res.json({ success: true, message: 'Formation deleted' });
   } catch (error) {
-    console.error('Error deleting formation:', error);
+    log.error('Error deleting formation', error);
     res.status(500).json({ success: false, error: 'Failed to delete formation' });
   }
 });
@@ -163,7 +165,7 @@ router.put('/formations/:formationId/save', authenticateToken, async (req, res) 
 
     res.json({ success: true, formation });
   } catch (error) {
-    console.error('Error saving formation:', error);
+    log.error('Error saving formation', error);
     res.status(500).json({ success: false, error: 'Failed to save formation' });
   }
 });
@@ -199,7 +201,7 @@ router.post('/formations/:formationId/audio', authenticateToken, async (req, res
 
     res.json({ success: true, formation: updatedFormation, audioTrack });
   } catch (error) {
-    console.error('Error uploading audio:', error);
+    log.error('Error uploading audio', error);
     res.status(500).json({ success: false, error: 'Failed to upload audio' });
   }
 });
@@ -221,7 +223,7 @@ router.delete('/formations/:formationId/audio', authenticateToken, async (req, r
 
     res.json({ success: true, formation: updatedFormation, message: 'Audio removed' });
   } catch (error) {
-    console.error('Error removing audio:', error);
+    log.error('Error removing audio', error);
     res.status(500).json({ success: false, error: 'Failed to remove audio' });
   }
 });
@@ -256,7 +258,7 @@ router.post('/formations/:formationId/performers', authenticateToken, async (req
 
     res.status(201).json({ success: true, performer });
   } catch (error) {
-    console.error('Error adding performer:', error);
+    log.error('Error adding performer', error);
     res.status(500).json({ success: false, error: 'Failed to add performer' });
   }
 });
@@ -283,7 +285,7 @@ router.patch('/formations/:formationId/performers/:performerId', authenticateTok
 
     res.json({ success: true, performer });
   } catch (error) {
-    console.error('Error updating performer:', error);
+    log.error('Error updating performer', error);
     res.status(500).json({ success: false, error: 'Failed to update performer' });
   }
 });
@@ -300,7 +302,7 @@ router.delete('/formations/:formationId/performers/:performerId', authenticateTo
 
     res.json({ success: true, message: 'Performer deleted' });
   } catch (error) {
-    console.error('Error deleting performer:', error);
+    log.error('Error deleting performer', error);
     res.status(500).json({ success: false, error: 'Failed to delete performer' });
   }
 });
@@ -330,7 +332,7 @@ router.post('/formations/:formationId/keyframes', authenticateToken, async (req,
 
     res.status(201).json({ success: true, keyframe });
   } catch (error) {
-    console.error('Error adding keyframe:', error);
+    log.error('Error adding keyframe', error);
     res.status(500).json({ success: false, error: 'Failed to add keyframe' });
   }
 });
@@ -356,7 +358,7 @@ router.patch('/formations/:formationId/keyframes/:keyframeId', authenticateToken
 
     res.json({ success: true, keyframe });
   } catch (error) {
-    console.error('Error updating keyframe:', error);
+    log.error('Error updating keyframe', error);
     res.status(500).json({ success: false, error: 'Failed to update keyframe' });
   }
 });
@@ -373,7 +375,7 @@ router.delete('/formations/:formationId/keyframes/:keyframeId', authenticateToke
 
     res.json({ success: true, message: 'Keyframe deleted' });
   } catch (error) {
-    console.error('Error deleting keyframe:', error);
+    log.error('Error deleting keyframe', error);
     res.status(500).json({ success: false, error: 'Failed to delete keyframe' });
   }
 });
@@ -403,7 +405,7 @@ router.put('/formations/:formationId/keyframes/:keyframeId/positions/:performerI
 
     res.json({ success: true, position });
   } catch (error) {
-    console.error('Error setting position:', error);
+    log.error('Error setting position', error);
     res.status(500).json({ success: false, error: 'Failed to set position' });
   }
 });
@@ -420,7 +422,7 @@ router.get('/formations/:formationId/scene-objects', authenticateToken, async (r
     const objects = await sceneObjectsAdapter.listByFormation(formationId);
     res.json({ success: true, sceneObjects: objects });
   } catch (error) {
-    console.error('Error listing scene objects:', error);
+    log.error('Error listing scene objects', error);
     res.status(500).json({ success: false, error: 'Failed to list scene objects' });
   }
 });
@@ -445,7 +447,7 @@ router.post('/formations/:formationId/scene-objects', authenticateToken, async (
 
     res.status(201).json({ success: true, sceneObject: object });
   } catch (error) {
-    console.error('Error creating scene object:', error);
+    log.error('Error creating scene object', error);
     res.status(500).json({ success: false, error: 'Failed to create scene object' });
   }
 });
@@ -469,7 +471,7 @@ router.patch('/formations/:formationId/scene-objects/:objectId', authenticateTok
 
     res.json({ success: true, sceneObject: object });
   } catch (error) {
-    console.error('Error updating scene object:', error);
+    log.error('Error updating scene object', error);
     res.status(500).json({ success: false, error: 'Failed to update scene object' });
   }
 });
@@ -484,7 +486,7 @@ router.delete('/formations/:formationId/scene-objects/:objectId', authenticateTo
     await sceneObjectsAdapter.remove(objectId);
     res.json({ success: true, message: 'Scene object deleted' });
   } catch (error) {
-    console.error('Error deleting scene object:', error);
+    log.error('Error deleting scene object', error);
     res.status(500).json({ success: false, error: 'Failed to delete scene object' });
   }
 });
@@ -505,7 +507,7 @@ router.put('/formations/:formationId/scene-objects', authenticateToken, async (r
     const result = await sceneObjectsAdapter.bulkSync(formationId, objects);
     res.json({ success: true, sceneObjects: result });
   } catch (error) {
-    console.error('Error bulk syncing scene objects:', error);
+    log.error('Error bulk syncing scene objects', error);
     res.status(500).json({ success: false, error: 'Failed to sync scene objects' });
   }
 });
@@ -543,7 +545,7 @@ router.get('/formations/:formationId/share', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching shared formation:', error);
+    log.error('Error fetching shared formation', error);
     res.status(500).json({ success: false, error: 'Failed to fetch formation' });
   }
 });
@@ -566,7 +568,7 @@ router.post('/formations/:formationId/share', authenticateToken, async (req, res
 
     res.json({ success: true, shareUrl });
   } catch (error) {
-    console.error('Error generating share link:', error);
+    log.error('Error generating share link', error);
     res.status(500).json({ success: false, error: 'Failed to generate share link' });
   }
 });
@@ -621,7 +623,7 @@ async function handleShareOG(req, res) {
         .replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${url}" />`);
     }
   } catch (err) {
-    console.error('Error fetching formation for OG tags:', err.message);
+    log.error('Error fetching formation for OG tags', { error: err.message });
     // Serve default index.html on error — still works as SPA
   }
 
@@ -706,7 +708,7 @@ router.get('/og/:formationId.png', async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=86400'); // 24h cache
     res.send(png);
   } catch (err) {
-    console.error('Error generating OG image:', err.message);
+    log.error('Error generating OG image', { error: err.message });
     res.status(500).send('Error generating image');
   }
 });
@@ -752,7 +754,7 @@ router.get('/og-image.png', async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=604800'); // 7-day cache
     res.send(png);
   } catch (err) {
-    console.error('Error generating default OG image:', err.message);
+    log.error('Error generating default OG image', { error: err.message });
     res.status(500).send('Error generating image');
   }
 });

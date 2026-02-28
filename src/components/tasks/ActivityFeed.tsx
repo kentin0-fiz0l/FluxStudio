@@ -23,30 +23,14 @@
 import * as React from 'react';
 import {
   Activity as ActivityIcon,
-  PlusCircle,
-  Edit,
-  Trash2,
-  CheckCircle2,
-  MessageSquare,
-  UserPlus,
-  UserMinus,
-  Flag,
-  Check as FlagCheck,
   Filter,
   ChevronDown,
   Loader2,
-  Clock,
-  Upload,
-  FileText,
-  LayoutGrid,
-  Archive,
-  Settings,
   Wifi,
 } from 'lucide-react';
-import { cn, formatRelativeTime } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
   SelectContent,
@@ -59,54 +43,22 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useActivitiesQuery } from '@/hooks/useActivities';
 import { useRealtimeActivities } from '@/hooks/useRealtimeActivities';
+import {
+  ActivityItem,
+  ActivityFeedSkeleton,
+  EmptyState,
+  groupActivitiesByDate,
+  type ActivityType,
+  type Activity,
+} from './activity';
 
 // ============================================================================
-// Type Definitions
+// Re-exports for backward compatibility
 // ============================================================================
 
-export type ActivityType =
-  | 'task.created'
-  | 'task.updated'
-  | 'task.deleted'
-  | 'task.completed'
-  | 'comment.created'
-  | 'comment.deleted'
-  | 'member.added'
-  | 'member.removed'
-  | 'milestone.created'
-  | 'milestone.completed'
-  | 'file.uploaded'
-  | 'file.deleted'
-  | 'formation.created'
-  | 'formation.updated'
-  | 'project.updated'
-  | 'project.archived'
-  | 'message.sent';
-
-export interface Activity {
-  id: string;
-  projectId: string;
-  type: ActivityType;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  userAvatar?: string;
-  entityType: 'task' | 'comment' | 'project' | 'milestone' | 'member' | 'file' | 'formation';
-  entityId: string;
-  entityTitle?: string;
-  action: string;
-  metadata?: {
-    field?: string;
-    oldValue?: string;
-    newValue?: string;
-    preview?: string;
-  };
-  timestamp: string;
-  createdAt?: string;
-}
+export type { ActivityType, Activity } from './activity';
 
 export interface ActivityFeedProps {
   projectId: string;
@@ -116,376 +68,6 @@ export interface ActivityFeedProps {
   realtime?: boolean;
   className?: string;
 }
-
-// ============================================================================
-// Activity Icon and Color Mapping
-// ============================================================================
-
-// Icon map defined at module level to avoid recreation during render
-const ACTIVITY_ICON_MAP: Record<ActivityType, React.ElementType> = {
-  'task.created': PlusCircle,
-  'task.updated': Edit,
-  'task.deleted': Trash2,
-  'task.completed': CheckCircle2,
-  'comment.created': MessageSquare,
-  'comment.deleted': Trash2,
-  'member.added': UserPlus,
-  'member.removed': UserMinus,
-  'milestone.created': Flag,
-  'milestone.completed': FlagCheck,
-  'file.uploaded': Upload,
-  'file.deleted': FileText,
-  'formation.created': LayoutGrid,
-  'formation.updated': LayoutGrid,
-  'project.updated': Settings,
-  'project.archived': Archive,
-  'message.sent': MessageSquare,
-};
-
-// Color map defined at module level to avoid recreation during render
-const ACTIVITY_COLOR_MAP: Record<ActivityType, string> = {
-  'task.created': 'text-blue-600 bg-blue-100',
-  'task.updated': 'text-purple-600 bg-purple-100',
-  'task.deleted': 'text-red-600 bg-red-100',
-  'task.completed': 'text-success-600 bg-success-100',
-  'comment.created': 'text-accent-600 bg-accent-100',
-  'comment.deleted': 'text-red-600 bg-red-100',
-  'member.added': 'text-primary-600 bg-primary-100',
-  'member.removed': 'text-orange-600 bg-orange-100',
-  'milestone.created': 'text-secondary-600 bg-secondary-100',
-  'milestone.completed': 'text-success-600 bg-success-100',
-  'file.uploaded': 'text-green-600 bg-green-100',
-  'file.deleted': 'text-red-600 bg-red-100',
-  'formation.created': 'text-indigo-600 bg-indigo-100',
-  'formation.updated': 'text-indigo-600 bg-indigo-100',
-  'project.updated': 'text-gray-600 bg-gray-100',
-  'project.archived': 'text-amber-600 bg-amber-100',
-  'message.sent': 'text-cyan-600 bg-cyan-100',
-};
-
-const getActivityColor = (type: ActivityType): string => {
-  return ACTIVITY_COLOR_MAP[type] || 'text-neutral-600 bg-neutral-100';
-};
-
-// Dedicated component to render activity type icons - avoids dynamic component creation during render
-const ActivityTypeIcon: React.FC<{ type: ActivityType; className?: string }> = ({ type, className }) => {
-  const Icon = ACTIVITY_ICON_MAP[type] || ActivityIcon;
-  return <Icon className={className} aria-hidden="true" />;
-};
-
-// ============================================================================
-// Activity Description Component
-// ============================================================================
-
-interface ActivityDescriptionProps {
-  activity: Activity;
-}
-
-const ActivityDescription: React.FC<ActivityDescriptionProps> = ({ activity }) => {
-  const { type, userName, entityTitle, metadata } = activity;
-
-  const renderStatusBadge = (value: string) => (
-    <Badge variant="secondary" className="mx-1 text-xs">
-      {value}
-    </Badge>
-  );
-
-  switch (type) {
-    case 'task.created':
-      return (
-        <span className="text-sm text-neutral-700">
-          <strong className="font-semibold text-neutral-900">{userName}</strong> created task{' '}
-          <span className="font-medium text-primary-600">"{entityTitle}"</span>
-        </span>
-      );
-
-    case 'task.updated':
-      if (metadata?.field === 'status') {
-        return (
-          <span className="text-sm text-neutral-700">
-            <strong className="font-semibold text-neutral-900">{userName}</strong> moved{' '}
-            <span className="font-medium">"{entityTitle}"</span> from{' '}
-            {renderStatusBadge(metadata.oldValue || '')} to{' '}
-            {renderStatusBadge(metadata.newValue || '')}
-          </span>
-        );
-      }
-      if (metadata?.field === 'priority') {
-        return (
-          <span className="text-sm text-neutral-700">
-            <strong className="font-semibold text-neutral-900">{userName}</strong> changed priority of{' '}
-            <span className="font-medium">"{entityTitle}"</span> from{' '}
-            {renderStatusBadge(metadata.oldValue || '')} to{' '}
-            {renderStatusBadge(metadata.newValue || '')}
-          </span>
-        );
-      }
-      if (metadata?.field === 'assignedTo') {
-        return (
-          <span className="text-sm text-neutral-700">
-            <strong className="font-semibold text-neutral-900">{userName}</strong> assigned{' '}
-            <span className="font-medium">"{entityTitle}"</span> to{' '}
-            <strong>{metadata.newValue || 'Unassigned'}</strong>
-          </span>
-        );
-      }
-      return (
-        <span className="text-sm text-neutral-700">
-          <strong className="font-semibold text-neutral-900">{userName}</strong> updated{' '}
-          <span className="font-medium">"{entityTitle}"</span>
-        </span>
-      );
-
-    case 'task.completed':
-      return (
-        <span className="text-sm text-neutral-700">
-          <strong className="font-semibold text-neutral-900">{userName}</strong> completed{' '}
-          <span className="font-medium text-success-600">"{entityTitle}"</span>
-        </span>
-      );
-
-    case 'task.deleted':
-      return (
-        <span className="text-sm text-neutral-700">
-          <strong className="font-semibold text-neutral-900">{userName}</strong> deleted task{' '}
-          <span className="font-medium text-error-600">"{entityTitle}"</span>
-        </span>
-      );
-
-    case 'comment.created':
-      return (
-        <div className="text-sm">
-          <span className="text-neutral-700">
-            <strong className="font-semibold text-neutral-900">{userName}</strong> commented on{' '}
-            <span className="font-medium">"{entityTitle}"</span>
-          </span>
-          {metadata?.preview && (
-            <p className="text-xs text-neutral-600 mt-1 italic pl-4 border-l-2 border-neutral-200">
-              "{metadata.preview}"
-            </p>
-          )}
-        </div>
-      );
-
-    case 'comment.deleted':
-      return (
-        <span className="text-sm text-neutral-700">
-          <strong className="font-semibold text-neutral-900">{userName}</strong> deleted a comment on{' '}
-          <span className="font-medium">"{entityTitle}"</span>
-        </span>
-      );
-
-    case 'member.added':
-      return (
-        <span className="text-sm text-neutral-700">
-          <strong className="font-semibold text-neutral-900">{userName}</strong> added{' '}
-          <strong className="text-primary-600">{metadata?.newValue}</strong> to the project
-        </span>
-      );
-
-    case 'milestone.created':
-      return (
-        <span className="text-sm text-neutral-700">
-          <strong className="font-semibold text-neutral-900">{userName}</strong> created milestone{' '}
-          <span className="font-medium text-secondary-600">"{entityTitle}"</span>
-        </span>
-      );
-
-    case 'milestone.completed':
-      return (
-        <span className="text-sm text-neutral-700">
-          <strong className="font-semibold text-neutral-900">{userName}</strong> completed milestone{' '}
-          <span className="font-medium text-success-600">"{entityTitle}"</span>
-        </span>
-      );
-
-    case 'message.sent':
-      return (
-        <div className="text-sm">
-          <span className="text-neutral-700">
-            <strong className="font-semibold text-neutral-900">{userName}</strong> sent a message
-            {entityTitle && <> in <span className="font-medium">"{entityTitle}"</span></>}
-          </span>
-          {metadata?.preview && (
-            <p className="text-xs text-neutral-600 mt-1 italic pl-4 border-l-2 border-neutral-200">
-              "{metadata.preview}"
-            </p>
-          )}
-        </div>
-      );
-
-    default:
-      return (
-        <span className="text-sm text-neutral-700">
-          <strong className="font-semibold text-neutral-900">{userName}</strong> performed an action
-        </span>
-      );
-  }
-};
-
-// ============================================================================
-// Date Grouping Utility
-// ============================================================================
-
-const isSameDay = (date1: Date, date2: Date): boolean => {
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
-  );
-};
-
-const groupActivitiesByDate = (activities: Activity[]): [string, Activity[]][] => {
-  const grouped = new Map<string, Activity[]>();
-
-  activities.forEach((activity) => {
-    const date = new Date(activity.timestamp);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    let label: string;
-    if (isSameDay(date, today)) {
-      label = 'Today';
-    } else if (isSameDay(date, yesterday)) {
-      label = 'Yesterday';
-    } else {
-      label = date.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    }
-
-    if (!grouped.has(label)) {
-      grouped.set(label, []);
-    }
-    grouped.get(label)!.push(activity);
-  });
-
-  return Array.from(grouped.entries());
-};
-
-// ============================================================================
-// Activity Item Component
-// ============================================================================
-
-interface ActivityItemProps {
-  activity: Activity;
-  compact?: boolean;
-}
-
-const ActivityItem: React.FC<ActivityItemProps> = ({ activity, compact = false }) => {
-  const colorClass = getActivityColor(activity.type);
-  const [showFullTimestamp, setShowFullTimestamp] = React.useState(false);
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const absoluteTime = new Date(activity.timestamp).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-
-  return (
-    <div
-      className={cn(
-        'flex gap-3 py-3 animate-fadeIn',
-        !compact && 'px-4 hover:bg-neutral-50 rounded-lg transition-colors'
-      )}
-    >
-      {/* Avatar */}
-      {!compact && (
-        <Avatar className="h-8 w-8 flex-shrink-0">
-          {activity.userAvatar ? (
-            <AvatarImage src={activity.userAvatar} alt={activity.userName} />
-          ) : null}
-          <AvatarFallback className="text-xs bg-primary-100 text-primary-700">
-            {getInitials(activity.userName)}
-          </AvatarFallback>
-        </Avatar>
-      )}
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start gap-2">
-          {/* Icon */}
-          <div
-            className={cn(
-              'flex items-center justify-center rounded-full p-1.5 flex-shrink-0',
-              colorClass
-            )}
-          >
-            <ActivityTypeIcon type={activity.type} className="h-3.5 w-3.5" />
-          </div>
-
-          {/* Description */}
-          <div className="flex-1 min-w-0">
-            <ActivityDescription activity={activity} />
-          </div>
-        </div>
-
-        {/* Timestamp */}
-        <div className="flex items-center gap-1 mt-1 ml-8">
-          <Clock className="h-3 w-3 text-neutral-400" aria-hidden="true" />
-          <span
-            className="text-xs text-neutral-500 cursor-help"
-            onMouseEnter={() => setShowFullTimestamp(true)}
-            onMouseLeave={() => setShowFullTimestamp(false)}
-            title={absoluteTime}
-          >
-            {showFullTimestamp ? absoluteTime : formatRelativeTime(activity.timestamp)}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ============================================================================
-// Loading Skeleton
-// ============================================================================
-
-const ActivityFeedSkeleton: React.FC = () => (
-  <div className="space-y-4">
-    {[1, 2, 3].map((i) => (
-      <div key={i} className="flex gap-3 px-4 py-3">
-        <Skeleton className="h-8 w-8 rounded-full" />
-        <div className="flex-1 space-y-2">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-1/4" />
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
-// ============================================================================
-// Empty State
-// ============================================================================
-
-const EmptyState: React.FC = () => (
-  <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-    <div className="rounded-full bg-neutral-100 p-4 mb-4">
-      <ActivityIcon className="h-8 w-8 text-neutral-400" aria-hidden="true" />
-    </div>
-    <h3 className="text-lg font-semibold text-neutral-900 mb-2">No activity yet</h3>
-    <p className="text-sm text-neutral-600 max-w-sm">
-      Project activity will appear here once team members start creating tasks, adding comments, or
-      making updates.
-    </p>
-  </div>
-);
 
 // ============================================================================
 // Main Component
@@ -508,7 +90,6 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
   const [page, setPage] = React.useState(1);
   const itemsPerPage = maxItems;
 
-  // Quick filter chip options
   type QuickFilterType = 'all' | 'tasks' | 'comments' | 'members';
   const [quickFilter, setQuickFilter] = React.useState<QuickFilterType>('all');
 
@@ -537,7 +118,6 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     offset: (page - 1) * itemsPerPage,
   });
 
-  // Transform and filter activities from API to match component's expected type
   const activities: Activity[] = (activitiesData?.activities || [])
     .filter((a): a is typeof a & { timestamp: string; userId: string; userName: string; entityType: string } =>
       !!(a.timestamp || a.createdAt) && !!a.userId && !!a.userName
@@ -564,7 +144,6 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
   // Filtering
   // ============================================================================
 
-  // Apply date range filter on client side
   const filteredActivities = React.useMemo(() => {
     if (dateRange === 'all') return activities;
 
@@ -586,7 +165,6 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     return activities.filter((activity) => new Date(activity.timestamp) >= cutoff);
   }, [activities, dateRange]);
 
-  // Get unique users for filter
   const uniqueUsers = React.useMemo(() => {
     const users = new Map<string, { id: string; name: string }>();
     activities.forEach((activity) => {
@@ -617,11 +195,10 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
 
   const hasActiveFilters = filterType !== 'all' || filterUserId !== 'all' || dateRange !== 'all';
 
-  // Apply quick filter to activity type
   React.useEffect(() => {
     switch (quickFilter) {
       case 'tasks':
-        setFilterType('all'); // Will show all task types
+        setFilterType('all');
         break;
       case 'comments':
         setFilterType('comment.created');
@@ -635,7 +212,6 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     setPage(1);
   }, [quickFilter]);
 
-  // Filter activities by quick filter (for 'tasks' which includes multiple types)
   const quickFilteredActivities = React.useMemo(() => {
     if (quickFilter === 'tasks') {
       return filteredActivities.filter((a) => a.type.startsWith('task.'));
@@ -643,7 +219,6 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     return filteredActivities;
   }, [filteredActivities, quickFilter]);
 
-  // Group activities by date (use quickFilteredActivities)
   const groupedActivities = React.useMemo(
     () => groupActivitiesByDate(quickFilteredActivities),
     [quickFilteredActivities]

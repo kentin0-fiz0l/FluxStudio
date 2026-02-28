@@ -16,6 +16,8 @@ const { authenticateToken } = require('../lib/auth/middleware');
 const { requirePermission, PERMISSIONS } = require('../lib/auth/permissions');
 const { query } = require('../database/config');
 const { logAction } = require('../lib/auditLog');
+const { zodValidate } = require('../middleware/zodValidate');
+const { createRoleSchema, updateRoleSchema } = require('../lib/schemas');
 
 router.use(authenticateToken);
 
@@ -59,7 +61,7 @@ router.get('/', requirePermission('settings.manage'), async (req, res) => {
  *
  * Body: { name, slug, permissions: string[] }
  */
-router.post('/', requirePermission('settings.manage'), async (req, res) => {
+router.post('/', requirePermission('settings.manage'), zodValidate(createRoleSchema), async (req, res) => {
   try {
     const { orgId } = req.params;
     const { name, slug, permissions } = req.body;
@@ -108,7 +110,7 @@ router.post('/', requirePermission('settings.manage'), async (req, res) => {
  *
  * Body: { name?, permissions? }
  */
-router.put('/:slug', requirePermission('settings.manage'), async (req, res) => {
+router.put('/:slug', requirePermission('settings.manage'), zodValidate(updateRoleSchema), async (req, res) => {
   try {
     const { orgId, slug } = req.params;
     const { name, permissions } = req.body;

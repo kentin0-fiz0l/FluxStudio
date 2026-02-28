@@ -15,6 +15,8 @@ const express = require('express');
 const crypto = require('crypto');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
+const { zodValidate } = require('../middleware/zodValidate');
+const { oauthCallbackSchema, slackMessageSchema, slackProjectUpdateSchema, githubCreateIssueSchema, githubLinkRepoSchema } = require('../lib/schemas');
 
 const router = express.Router();
 
@@ -131,7 +133,7 @@ router.get('/:provider/callback', async (req, res) => {
 });
 
 // OAuth callback handler (POST - for frontend OAuth callback page)
-router.post('/:provider/callback', async (req, res) => {
+router.post('/:provider/callback', zodValidate(oauthCallbackSchema), async (req, res) => {
   try {
     const { provider } = req.params;
     const { code, state } = req.body;
@@ -324,7 +326,7 @@ router.get('/slack/channels', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/slack/message', authenticateToken, async (req, res) => {
+router.post('/slack/message', authenticateToken, zodValidate(slackMessageSchema), async (req, res) => {
   try {
     const { channel, text, blocks } = req.body;
 
@@ -345,7 +347,7 @@ router.post('/slack/message', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/slack/project-update', authenticateToken, async (req, res) => {
+router.post('/slack/project-update', authenticateToken, zodValidate(slackProjectUpdateSchema), async (req, res) => {
   try {
     const { channel, projectName, updateType, details } = req.body;
 
@@ -505,7 +507,7 @@ router.get('/github/repositories/:owner/:repo/issues/:issue_number', authenticat
   }
 });
 
-router.post('/github/repositories/:owner/:repo/issues', authenticateToken, async (req, res) => {
+router.post('/github/repositories/:owner/:repo/issues', authenticateToken, zodValidate(githubCreateIssueSchema), async (req, res) => {
   try {
     const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'github');
     const { Octokit } = require('@octokit/rest');
@@ -682,7 +684,7 @@ router.get('/github/repositories/:owner/:repo/collaborators', authenticateToken,
   }
 });
 
-router.post('/github/repositories/:owner/:repo/link', authenticateToken, async (req, res) => {
+router.post('/github/repositories/:owner/:repo/link', authenticateToken, zodValidate(githubLinkRepoSchema), async (req, res) => {
   try {
     const { owner, repo } = req.params;
     const { projectId } = req.body;

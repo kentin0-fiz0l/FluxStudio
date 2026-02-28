@@ -21,6 +21,8 @@ const { validateUploadedFiles } = require('../lib/fileValidator');
 const filesAdapter = require('../database/files-adapter');
 const fileStorage = require('../storage');
 const { query } = require('../database/config');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Files');
 
 const router = express.Router();
 
@@ -29,7 +31,7 @@ let activityLogger = null;
 try {
   activityLogger = require('../lib/activityLogger');
 } catch (error) {
-  console.warn('Activity logger not available');
+  log.warn('Activity logger not available');
 }
 
 // Audit logger (Sprint 41: Enterprise & Compliance)
@@ -57,7 +59,7 @@ async function canUserAccessProject(userId, projectId) {
     `, [projectId, userId]);
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error checking project access:', error);
+    log.error('Error checking project access', error);
     return false;
   }
 }
@@ -120,7 +122,7 @@ router.get('/', authenticateToken, async (req, res) => {
       totalPages: result.totalPages
     });
   } catch (error) {
-    console.error('Error listing files:', error);
+    log.error('Error listing files', error);
     res.status(500).json({ error: 'Failed to list files' });
   }
 });
@@ -140,7 +142,7 @@ router.get('/:fileId', authenticateToken, async (req, res) => {
 
     res.json({ success: true, file });
   } catch (error) {
-    console.error('Error getting file:', error);
+    log.error('Error getting file', error);
     res.status(500).json({ error: 'Failed to get file' });
   }
 });
@@ -217,7 +219,7 @@ router.post('/upload', authenticateToken, fileUpload.array('files', 10), validat
       message: `${uploadedFiles.length} file(s) uploaded successfully`
     });
   } catch (error) {
-    console.error('Error uploading files:', error);
+    log.error('Error uploading files', error);
     res.status(500).json({ error: 'Failed to upload files' });
   }
 });
@@ -252,7 +254,7 @@ router.delete('/:fileId', authenticateToken, async (req, res) => {
     logAction(userId, 'delete', 'file', fileId, { name: file.originalName }, req);
     res.json({ success: true, message: 'File deleted successfully' });
   } catch (error) {
-    console.error('Error deleting file:', error);
+    log.error('Error deleting file', error);
     res.status(500).json({ error: 'Failed to delete file' });
   }
 });
@@ -269,7 +271,7 @@ router.get('/:fileId/projects', authenticateToken, async (req, res) => {
     const projects = await filesAdapter.getFileProjects(fileId);
     res.json({ success: true, projects });
   } catch (error) {
-    console.error('Error getting file projects:', error);
+    log.error('Error getting file projects', error);
     res.status(500).json({ error: 'Failed to get file projects' });
   }
 });
@@ -304,7 +306,7 @@ router.post('/:fileId/attach', authenticateToken, async (req, res) => {
 
     res.json({ success: true, message: 'File attached to project' });
   } catch (error) {
-    console.error('Error attaching file to project:', error);
+    log.error('Error attaching file to project', error);
     res.status(500).json({ error: 'Failed to attach file to project' });
   }
 });
@@ -321,7 +323,7 @@ router.delete('/:fileId/attach/:projectId', authenticateToken, async (req, res) 
 
     res.json({ success: true, message: 'File detached from project' });
   } catch (error) {
-    console.error('Error detaching file from project:', error);
+    log.error('Error detaching file from project', error);
     res.status(500).json({ error: 'Failed to detach file from project' });
   }
 });
@@ -347,7 +349,7 @@ router.get('/project-files/:projectId', authenticateToken, async (req, res) => {
       hasMore: result.hasMore
     });
   } catch (error) {
-    console.error('Error getting project files:', error);
+    log.error('Error getting project files', error);
     res.status(500).json({ error: 'Failed to get project files' });
   }
 });
@@ -381,7 +383,7 @@ router.post('/projects/:projectId/attach-file', authenticateToken, async (req, r
 
     res.json({ success: true, message: 'File attached to project', file });
   } catch (error) {
-    console.error('Error attaching file to project:', error);
+    log.error('Error attaching file to project', error);
     res.status(500).json({ error: 'Failed to attach file to project' });
   }
 });
@@ -398,7 +400,7 @@ router.delete('/projects/:projectId/files/:fileId/detach', authenticateToken, as
 
     res.json({ success: true, message: 'File detached from project' });
   } catch (error) {
-    console.error('Error detaching file from project:', error);
+    log.error('Error detaching file from project', error);
     res.status(500).json({ error: 'Failed to detach file from project' });
   }
 });
@@ -449,7 +451,7 @@ router.get('/projects/:projectId/files', authenticateToken, async (req, res) => 
     res.json(files);
 
   } catch (error) {
-    console.error('Failed to get project files:', error.message);
+    log.error('Failed to get project files', { error: error.message });
     res.status(500).json({
       error: 'Failed to get project files',
       message: error.message
@@ -539,7 +541,7 @@ router.post('/projects/:projectId/files/upload',
             });
           }
         } catch (linkError) {
-          console.error('File link error:', linkError.message);
+          log.error('File link error', { error: linkError.message });
         }
       }
 
@@ -550,7 +552,7 @@ router.post('/projects/:projectId/files/upload',
       });
 
     } catch (error) {
-      console.error('File upload error:', error.message);
+      log.error('File upload error', { error: error.message });
       res.status(500).json({
         error: 'File upload failed',
         message: error.message
@@ -595,7 +597,7 @@ router.delete('/projects/:projectId/files/:fileId', csrfProtection, authenticate
     });
 
   } catch (error) {
-    console.error('File deletion error:', error.message);
+    log.error('File deletion error', { error: error.message });
     res.status(500).json({
       error: 'Failed to delete file',
       message: error.message
@@ -629,7 +631,7 @@ router.get('/storage/*storageKey', authenticateToken, async (req, res) => {
 
     stream.pipe(res);
   } catch (error) {
-    console.error('Error serving file:', error);
+    log.error('Error serving file', error);
     res.status(500).json({ error: 'Failed to serve file' });
   }
 });

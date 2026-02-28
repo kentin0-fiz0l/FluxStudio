@@ -17,6 +17,8 @@ const { validateInput } = require('../middleware/security');
 const connectorsAdapter = require('../database/connectors-adapter');
 const oauthManager = require('../lib/oauth-manager');
 const filesAdapter = require('../database/files-adapter');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Connectors');
 
 const router = express.Router();
 
@@ -38,9 +40,9 @@ async function createNotification(userId, data) {
   try {
     // This would typically be handled by the notification service
     // For now, just log it
-    console.log(`Notification for user ${userId}:`, data.title);
+    log.info('Notification created', { userId, title: data.title });
   } catch (error) {
-    console.error('Error creating notification:', error);
+    log.error('Error creating notification', error);
   }
 }
 
@@ -68,7 +70,7 @@ router.get('/list', authenticateToken, async (req, res) => {
 
     res.json({ success: true, connectors });
   } catch (error) {
-    console.error('Error getting connectors list:', error);
+    log.error('Error getting connectors list', error);
     res.status(500).json({ error: 'Failed to get connectors list' });
   }
 });
@@ -89,7 +91,7 @@ router.get('/:provider/auth-url', authenticateToken, async (req, res) => {
 
     res.json({ success: true, url, stateToken });
   } catch (error) {
-    console.error('Error generating OAuth URL:', error);
+    log.error('Error generating OAuth URL', error);
     res.status(500).json({ error: error.message || 'Failed to generate authorization URL' });
   }
 });
@@ -104,7 +106,7 @@ router.get('/:provider/callback', async (req, res) => {
     const { code, state, error: oauthError, error_description } = req.query;
 
     if (oauthError) {
-      console.error(`OAuth error for ${provider}:`, oauthError, error_description);
+      log.error('OAuth error', { provider, error: oauthError, description: error_description });
       return res.redirect(`/connectors?error=${encodeURIComponent(oauthError)}&provider=${provider}`);
     }
 
@@ -125,7 +127,7 @@ router.get('/:provider/callback', async (req, res) => {
 
     res.redirect(`/connectors?success=true&provider=${provider}`);
   } catch (error) {
-    console.error('OAuth callback error:', error);
+    log.error('OAuth callback error', error);
     res.redirect(`/connectors?error=${encodeURIComponent(error.message)}`);
   }
 });
@@ -140,7 +142,7 @@ router.delete('/:provider', authenticateToken, async (req, res) => {
     await connectorsAdapter.disconnectConnector(req.user.id, provider);
     res.json({ success: true });
   } catch (error) {
-    console.error('Error disconnecting connector:', error);
+    log.error('Error disconnecting connector', error);
     res.status(500).json({ error: 'Failed to disconnect connector' });
   }
 });
@@ -161,7 +163,7 @@ router.get('/:provider/status', authenticateToken, async (req, res) => {
       info: connectorInfo
     });
   } catch (error) {
-    console.error('Error getting connector status:', error);
+    log.error('Error getting connector status', error);
     res.status(500).json({ error: 'Failed to get connector status' });
   }
 });
@@ -205,7 +207,7 @@ router.get('/:provider/files', authenticateToken, async (req, res) => {
 
     res.json({ success: true, files });
   } catch (error) {
-    console.error(`Error getting ${req.params.provider} files:`, error);
+    log.error('Error getting provider files', { provider: req.params.provider, error: error.message });
     res.status(500).json({ error: error.message || 'Failed to get files' });
   }
 });
@@ -253,7 +255,7 @@ router.post('/:provider/import', authenticateToken, validateInput.sanitizeInput,
         }
       });
     } catch (unifiedFileError) {
-      console.error('Error creating unified file entry:', unifiedFileError);
+      log.error('Error creating unified file entry', unifiedFileError);
       // Non-fatal - connector file is still created
     }
 
@@ -266,7 +268,7 @@ router.post('/:provider/import', authenticateToken, validateInput.sanitizeInput,
 
     res.json({ success: true, file: importedFile });
   } catch (error) {
-    console.error(`Error importing from ${req.params.provider}:`, error);
+    log.error('Error importing from provider', { provider: req.params.provider, error: error.message });
     res.status(500).json({ error: error.message || 'Failed to import file' });
   }
 });
@@ -288,7 +290,7 @@ router.get('/files', authenticateToken, async (req, res) => {
 
     res.json({ success: true, files });
   } catch (error) {
-    console.error('Error getting connector files:', error);
+    log.error('Error getting connector files', error);
     res.status(500).json({ error: 'Failed to get files' });
   }
 });
@@ -321,7 +323,7 @@ router.post('/files/:fileId/link', authenticateToken, validateInput.sanitizeInpu
 
     res.json({ success: true, file });
   } catch (error) {
-    console.error('Error linking file to project:', error);
+    log.error('Error linking file to project', error);
     res.status(500).json({ error: 'Failed to link file' });
   }
 });
@@ -341,7 +343,7 @@ router.delete('/files/:fileId', authenticateToken, async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting connector file:', error);
+    log.error('Error deleting connector file', error);
     res.status(500).json({ error: 'Failed to delete file' });
   }
 });
@@ -356,7 +358,7 @@ router.get('/sync-jobs', authenticateToken, async (req, res) => {
     const jobs = await connectorsAdapter.getSyncJobs(req.user.id, provider, parseInt(limit));
     res.json({ success: true, jobs });
   } catch (error) {
-    console.error('Error getting sync jobs:', error);
+    log.error('Error getting sync jobs', error);
     res.status(500).json({ error: 'Failed to get sync jobs' });
   }
 });
@@ -379,7 +381,7 @@ router.post('/:provider/sync', authenticateToken, async (req, res) => {
 
     res.json({ success: true, job });
   } catch (error) {
-    console.error('Error triggering sync:', error);
+    log.error('Error triggering sync', error);
     res.status(500).json({ error: 'Failed to trigger sync' });
   }
 });
@@ -396,7 +398,7 @@ router.post('/:provider/refresh', authenticateToken, async (req, res) => {
 
     res.json({ success: true, refreshed });
   } catch (error) {
-    console.error('Error refreshing token:', error);
+    log.error('Error refreshing token', error);
     res.status(500).json({ error: 'Failed to refresh token' });
   }
 });

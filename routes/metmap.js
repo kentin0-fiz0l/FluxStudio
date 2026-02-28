@@ -13,6 +13,8 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('MetMap');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { v4: uuidv4 } = require('uuid');
 const metmapAdapter = require('../database/metmap-adapter');
@@ -50,7 +52,7 @@ router.get('/songs', authenticateToken, async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('Error getting songs:', error);
+    log.error('Error getting songs', error);
     res.status(500).json({ error: 'Failed to get songs' });
   }
 });
@@ -64,7 +66,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const stats = await metmapAdapter.getStatsForUser(req.user.id);
     res.json(stats);
   } catch (error) {
-    console.error('Error getting MetMap stats:', error);
+    log.error('Error getting stats', error);
     res.status(500).json({ error: 'Failed to get stats' });
   }
 });
@@ -91,7 +93,7 @@ router.post('/songs', authenticateToken, async (req, res) => {
 
     res.status(201).json({ song });
   } catch (error) {
-    console.error('Error creating song:', error);
+    log.error('Error creating song', error);
     res.status(500).json({ error: 'Failed to create song' });
   }
 });
@@ -111,7 +113,7 @@ router.get('/songs/:songId', authenticateToken, async (req, res) => {
 
     res.json({ song });
   } catch (error) {
-    console.error('Error getting song:', error);
+    log.error('Error getting song', error);
     res.status(500).json({ error: 'Failed to get song' });
   }
 });
@@ -139,7 +141,7 @@ router.put('/songs/:songId', authenticateToken, async (req, res) => {
 
     res.json({ song });
   } catch (error) {
-    console.error('Error updating song:', error);
+    log.error('Error updating song', error);
     res.status(500).json({ error: 'Failed to update song' });
   }
 });
@@ -159,7 +161,7 @@ router.delete('/songs/:songId', authenticateToken, async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting song:', error);
+    log.error('Error deleting song', error);
     res.status(500).json({ error: 'Failed to delete song' });
   }
 });
@@ -201,7 +203,7 @@ router.post('/songs/:songId/audio', authenticateToken, audioUpload.single('audio
 
     res.json({ song: updated, audioFileUrl: audioUrl });
   } catch (error) {
-    console.error('Error uploading song audio:', error);
+    log.error('Error uploading song audio', error);
     res.status(500).json({ error: 'Failed to upload audio' });
   }
 });
@@ -221,7 +223,7 @@ router.delete('/songs/:songId/audio', authenticateToken, async (req, res) => {
 
     res.json({ song: updated });
   } catch (error) {
-    console.error('Error removing song audio:', error);
+    log.error('Error removing song audio', error);
     res.status(500).json({ error: 'Failed to remove audio' });
   }
 });
@@ -247,7 +249,7 @@ router.put('/songs/:songId/beat-map', authenticateToken, async (req, res) => {
 
     res.json({ song: updated });
   } catch (error) {
-    console.error('Error saving beat map:', error);
+    log.error('Error saving beat map', error);
     res.status(500).json({ error: 'Failed to save beat map' });
   }
 });
@@ -271,7 +273,7 @@ router.get('/songs/:songId/sections', authenticateToken, async (req, res) => {
 
     res.json({ sections });
   } catch (error) {
-    console.error('Error getting sections:', error);
+    log.error('Error getting sections', error);
     res.status(500).json({ error: 'Failed to get sections' });
   }
 });
@@ -297,7 +299,7 @@ router.put('/songs/:songId/sections', authenticateToken, async (req, res) => {
 
     res.json({ sections: updatedSections });
   } catch (error) {
-    console.error('Error upserting sections:', error);
+    log.error('Error upserting sections', error);
     res.status(500).json({ error: 'Failed to update sections' });
   }
 });
@@ -317,7 +319,7 @@ router.delete('/sections/:sectionId', authenticateToken, async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting section:', error);
+    log.error('Error deleting section', error);
     res.status(500).json({ error: 'Failed to delete section' });
   }
 });
@@ -341,7 +343,7 @@ router.get('/songs/:songId/chords', authenticateToken, async (req, res) => {
 
     res.json({ chords });
   } catch (error) {
-    console.error('Error getting chords:', error);
+    log.error('Error getting chords', error);
     res.status(500).json({ error: 'Failed to get chords' });
   }
 });
@@ -374,7 +376,7 @@ router.put('/sections/:sectionId/chords', authenticateToken, async (req, res) =>
 
     res.json({ chords: updatedChords });
   } catch (error) {
-    console.error('Error upserting chords:', error);
+    log.error('Error upserting chords', error);
     res.status(500).json({ error: 'Failed to update chords' });
   }
 });
@@ -394,7 +396,7 @@ router.delete('/chords/:chordId', authenticateToken, async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting chord:', error);
+    log.error('Error deleting chord', error);
     res.status(500).json({ error: 'Failed to delete chord' });
   }
 });
@@ -420,7 +422,7 @@ router.post('/songs/:songId/practice', authenticateToken, async (req, res) => {
 
     res.status(201).json({ session });
   } catch (error) {
-    console.error('Error starting practice session:', error);
+    log.error('Error starting practice session', error);
     res.status(500).json({ error: 'Failed to start practice session' });
   }
 });
@@ -442,7 +444,7 @@ router.post('/practice/:sessionId/end', authenticateToken, async (req, res) => {
 
     res.json({ session });
   } catch (error) {
-    console.error('Error ending practice session:', error);
+    log.error('Error ending practice session', error);
     res.status(500).json({ error: 'Failed to end practice session' });
   }
 });
@@ -467,7 +469,7 @@ router.get('/songs/:songId/practice-history', authenticateToken, async (req, res
 
     res.json(result);
   } catch (error) {
-    console.error('Error getting practice history:', error);
+    log.error('Error getting practice history', error);
     res.status(500).json({ error: 'Failed to get practice history' });
   }
 });
@@ -488,7 +490,7 @@ router.get('/songs/:songId/tracks', authenticateToken, async (req, res) => {
     }
     res.json({ tracks });
   } catch (error) {
-    console.error('Error getting tracks:', error);
+    log.error('Error getting tracks', error);
     res.status(500).json({ error: 'Failed to get tracks' });
   }
 });
@@ -521,7 +523,7 @@ router.post('/songs/:songId/tracks', authenticateToken, audioUpload.single('audi
     }
     res.status(201).json({ track });
   } catch (error) {
-    console.error('Error creating track:', error);
+    log.error('Error creating track', error);
     res.status(500).json({ error: 'Failed to create track' });
   }
 });
@@ -541,7 +543,7 @@ router.put('/tracks/:trackId', authenticateToken, async (req, res) => {
     }
     res.json({ track });
   } catch (error) {
-    console.error('Error updating track:', error);
+    log.error('Error updating track', error);
     res.status(500).json({ error: 'Failed to update track' });
   }
 });
@@ -561,12 +563,12 @@ router.delete('/tracks/:trackId', authenticateToken, async (req, res) => {
       try {
         await fileStorage.deleteFile(deleted.audio_key);
       } catch (e) {
-        console.warn('Failed to delete track audio from S3:', e.message);
+        log.warn('Failed to delete track audio from S3', { error: e.message });
       }
     }
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting track:', error);
+    log.error('Error deleting track', error);
     res.status(500).json({ error: 'Failed to delete track' });
   }
 });
@@ -587,7 +589,7 @@ router.put('/tracks/:trackId/reorder', authenticateToken, async (req, res) => {
     }
     res.json({ track });
   } catch (error) {
-    console.error('Error reordering track:', error);
+    log.error('Error reordering track', error);
     res.status(500).json({ error: 'Failed to reorder track' });
   }
 });
@@ -608,7 +610,7 @@ router.put('/tracks/:trackId/beat-map', authenticateToken, async (req, res) => {
     }
     res.json({ track });
   } catch (error) {
-    console.error('Error updating track beat map:', error);
+    log.error('Error updating track beat map', error);
     res.status(500).json({ error: 'Failed to update beat map' });
   }
 });
@@ -629,7 +631,7 @@ router.get('/songs/:songId/snapshots', authenticateToken, async (req, res) => {
     }
     res.json({ snapshots });
   } catch (error) {
-    console.error('Error getting snapshots:', error);
+    log.error('Error getting snapshots', error);
     res.status(500).json({ error: 'Failed to get snapshots' });
   }
 });
@@ -663,7 +665,7 @@ router.post('/songs/:songId/snapshots', authenticateToken, async (req, res) => {
 
     res.status(201).json({ snapshot });
   } catch (error) {
-    console.error('Error creating snapshot:', error);
+    log.error('Error creating snapshot', error);
     res.status(500).json({ error: 'Failed to create snapshot' });
   }
 });
@@ -680,7 +682,7 @@ router.delete('/songs/:songId/snapshots/:id', authenticateToken, async (req, res
     }
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting snapshot:', error);
+    log.error('Error deleting snapshot', error);
     res.status(500).json({ error: 'Failed to delete snapshot' });
   }
 });
@@ -701,7 +703,7 @@ router.post('/songs/:songId/snapshots/:id/restore', authenticateToken, async (re
 
     res.json({ success: true, snapshot: { id: snapshot.id, name: snapshot.name } });
   } catch (error) {
-    console.error('Error restoring snapshot:', error);
+    log.error('Error restoring snapshot', error);
     res.status(500).json({ error: 'Failed to restore snapshot' });
   }
 });
@@ -722,7 +724,7 @@ router.get('/songs/:songId/branches', authenticateToken, async (req, res) => {
     }
     res.json({ branches });
   } catch (error) {
-    console.error('Error getting branches:', error);
+    log.error('Error getting branches', error);
     res.status(500).json({ error: 'Failed to get branches' });
   }
 });
@@ -752,7 +754,7 @@ router.post('/songs/:songId/branches', authenticateToken, async (req, res) => {
 
     res.status(201).json({ branch });
   } catch (error) {
-    console.error('Error creating branch:', error);
+    log.error('Error creating branch', error);
     res.status(500).json({ error: 'Failed to create branch' });
   }
 });
@@ -769,7 +771,7 @@ router.delete('/songs/:songId/branches/:id', authenticateToken, async (req, res)
     }
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting branch:', error);
+    log.error('Error deleting branch', error);
     res.status(500).json({ error: 'Failed to delete branch' });
   }
 });
@@ -786,7 +788,7 @@ router.post('/songs/:songId/branches/:id/merge', authenticateToken, async (req, 
     }
     res.json({ success: true, branch: merged });
   } catch (error) {
-    console.error('Error merging branch:', error);
+    log.error('Error merging branch', error);
     res.status(500).json({ error: 'Failed to merge branch' });
   }
 });

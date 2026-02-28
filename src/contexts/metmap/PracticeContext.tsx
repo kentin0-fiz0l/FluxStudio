@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { useAuth } from '@/store/slices/authSlice';
-import { useNotification } from '../NotificationContext';
+import { useNotification } from '../../store/slices/notificationSlice';
 import { useMetMapCore } from './MetMapCoreContext';
 import type { PracticeContextValue, PracticeSession, PracticeSettings, MetMapStats } from './types';
 

@@ -14,6 +14,8 @@
 const express = require('express');
 const { authenticateToken } = require('../lib/auth/middleware');
 const designBoardsAdapter = require('../database/design-boards-adapter');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('DesignBoards');
 
 const router = express.Router();
 
@@ -33,7 +35,7 @@ router.get('/projects/:projectId/boards', authenticateToken, async (req, res) =>
 
     res.json({ success: true, boards });
   } catch (error) {
-    console.error('Error listing boards:', error);
+    log.error('Error listing boards', error);
     res.status(500).json({ success: false, error: 'Failed to list boards' });
   }
 });
@@ -69,7 +71,7 @@ router.post('/projects/:projectId/boards', authenticateToken, async (req, res) =
 
     res.status(201).json({ success: true, board });
   } catch (error) {
-    console.error('Error creating board:', error);
+    log.error('Error creating board', error);
     res.status(500).json({ success: false, error: 'Failed to create board' });
   }
 });
@@ -86,7 +88,7 @@ router.get('/projects/:projectId/boards/stats', authenticateToken, async (req, r
 
     res.json({ success: true, stats });
   } catch (error) {
-    console.error('Error getting board stats:', error);
+    log.error('Error getting board stats', error);
     res.status(500).json({ success: false, error: 'Failed to get board stats' });
   }
 });
@@ -108,7 +110,7 @@ router.get('/:boardId', authenticateToken, async (req, res) => {
 
     res.json({ success: true, board, nodes });
   } catch (error) {
-    console.error('Error getting board:', error);
+    log.error('Error getting board', error);
     res.status(500).json({ success: false, error: 'Failed to get board' });
   }
 });
@@ -144,7 +146,7 @@ router.patch('/:boardId', authenticateToken, async (req, res) => {
 
     res.json({ success: true, board: updatedBoard });
   } catch (error) {
-    console.error('Error updating board:', error);
+    log.error('Error updating board', error);
     res.status(500).json({ success: false, error: 'Failed to update board' });
   }
 });
@@ -166,7 +168,7 @@ router.delete('/:boardId', authenticateToken, async (req, res) => {
 
     res.json({ success: true, message: 'Board deleted' });
   } catch (error) {
-    console.error('Error deleting board:', error);
+    log.error('Error deleting board', error);
     res.status(500).json({ success: false, error: 'Failed to delete board' });
   }
 });
@@ -222,7 +224,7 @@ router.post('/:boardId/nodes', authenticateToken, async (req, res) => {
 
     res.status(201).json({ success: true, node });
   } catch (error) {
-    console.error('Error creating node:', error);
+    log.error('Error creating node', error);
     res.status(500).json({ success: false, error: 'Failed to create node' });
   }
 });
@@ -244,7 +246,7 @@ router.get('/:boardId/nodes', authenticateToken, async (req, res) => {
 
     res.json({ success: true, nodes });
   } catch (error) {
-    console.error('Error getting nodes:', error);
+    log.error('Error getting nodes', error);
     res.status(500).json({ success: false, error: 'Failed to get nodes' });
   }
 });
@@ -279,7 +281,7 @@ router.patch('/:boardId/nodes/:nodeId', authenticateToken, async (req, res) => {
 
     res.json({ success: true, node: updatedNode });
   } catch (error) {
-    console.error('Error updating node:', error);
+    log.error('Error updating node', error);
     res.status(500).json({ success: false, error: 'Failed to update node' });
   }
 });
@@ -313,7 +315,7 @@ router.delete('/:boardId/nodes/:nodeId', authenticateToken, async (req, res) => 
 
     res.json({ success: true, message: 'Node deleted' });
   } catch (error) {
-    console.error('Error deleting node:', error);
+    log.error('Error deleting node', error);
     res.status(500).json({ success: false, error: 'Failed to delete node' });
   }
 });
@@ -355,7 +357,7 @@ router.post('/:boardId/nodes/bulk-position', authenticateToken, async (req, res)
 
     res.json({ success: true, nodes: updatedNodes });
   } catch (error) {
-    console.error('Error bulk updating nodes:', error);
+    log.error('Error bulk updating nodes', error);
     res.status(500).json({ success: false, error: 'Failed to bulk update nodes' });
   }
 });
@@ -381,7 +383,7 @@ router.get('/:boardId/events', authenticateToken, async (req, res) => {
 
     res.json({ success: true, events });
   } catch (error) {
-    console.error('Error getting board events:', error);
+    log.error('Error getting board events', error);
     res.status(500).json({ success: false, error: 'Failed to get board events' });
   }
 });

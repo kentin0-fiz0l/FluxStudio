@@ -14,6 +14,8 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { authenticateToken, rateLimitByUser } = require('../lib/auth/middleware');
 const { logAiUsage, getAiUsageLogs, sanitizeApiError } = require('../services/ai-summary-service');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('AI');
 
 // Quota check middleware (Sprint 38)
 let checkAiQuota = (_req, _res, next) => next();
@@ -34,7 +36,7 @@ if (process.env.ANTHROPIC_API_KEY) {
     apiKey: process.env.ANTHROPIC_API_KEY,
   });
 } else {
-  console.warn('[AI] ANTHROPIC_API_KEY not configured. AI endpoints will return errors until set.');
+  log.warn('ANTHROPIC_API_KEY not configured. AI endpoints will return errors until set.');
 }
 
 /**
@@ -62,7 +64,7 @@ function requireAnthropicClient(req, res, next) {
  */
 function handleAnthropicError(error, res, context = 'AI') {
   const safeMessage = sanitizeApiError(error);
-  console.error(`[${context}] Anthropic API error:`, safeMessage);
+  log.error('Anthropic API error', { context, error: safeMessage });
 
   const status = error.status || error.statusCode;
   if (status === 429) {
@@ -239,7 +241,7 @@ router.post('/chat', authenticateToken, requireAnthropicClient, rateLimitByUser(
 
   } catch (error) {
     const safeMessage = sanitizeApiError(error);
-    console.error('[AI] Chat error:', safeMessage);
+    log.error('Chat error', { error: safeMessage });
     res.write(`data: ${JSON.stringify({
       type: 'error',
       error: safeMessage,
@@ -555,7 +557,7 @@ if (process.env.NODE_ENV !== 'production') {
       handleAnthropicError(error, res, 'AI Test');
     }
   });
-  console.log('[AI] Test endpoint enabled (development mode only): POST /api/ai/test');
+  log.info('Test endpoint enabled (development mode only): POST /api/ai/test');
 }
 
 /**
@@ -717,7 +719,7 @@ ${category ? `- The project category is: ${category}` : ''}`;
     const suggestion = JSON.parse(jsonMatch[0]);
     res.json({ success: true, data: suggestion });
   } catch (error) {
-    console.error('[AI] Project structure generation error:', sanitizeApiError(error));
+    log.error('Project structure generation error', { error: sanitizeApiError(error) });
 
     // Fallback: generate locally if AI fails
     const fallback = generateLocalStructure(description, category);

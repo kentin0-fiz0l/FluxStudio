@@ -10,6 +10,8 @@
 
 const express = require('express');
 const { authenticateToken, requireAdmin } = require('../lib/auth/middleware');
+const { zodValidate } = require('../middleware/zodValidate');
+const { submitFeedbackSchema } = require('../lib/schemas');
 
 const router = express.Router();
 
@@ -28,7 +30,7 @@ const VALID_TYPES = ['bug', 'feature', 'general'];
  * POST /api/feedback
  * Submit feedback from the in-app widget
  */
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, zodValidate(submitFeedbackSchema), async (req, res) => {
   try {
     const { type, message } = req.body;
 

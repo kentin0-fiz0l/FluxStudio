@@ -17,6 +17,8 @@ const fs = require('fs');
 const path = require('path');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { validateInput } = require('../middleware/security');
+const { zodValidate } = require('../middleware/zodValidate');
+const { createProjectSchema, updateProjectSchema, addProjectMemberSchema, updateProjectMemberRoleSchema } = require('../lib/schemas');
 const { query } = require('../database/config');
 const { ingestEvent } = require('../lib/analytics/funnelTracker');
 
@@ -208,7 +210,7 @@ try {
   checkProjectQuota = checkQuota('projects');
 } catch { /* quotaCheck may not be available yet */ }
 
-router.post('/', authenticateToken, validateInput.sanitizeInput, checkProjectQuota, async (req, res) => {
+router.post('/', authenticateToken, validateInput.sanitizeInput, checkProjectQuota, zodValidate(createProjectSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const {
@@ -319,7 +321,7 @@ router.post('/', authenticateToken, validateInput.sanitizeInput, checkProjectQuo
  * PUT /api/projects/:projectId
  * Update a project
  */
-router.put('/:projectId', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+router.put('/:projectId', authenticateToken, validateInput.sanitizeInput, zodValidate(updateProjectSchema), async (req, res) => {
   try {
     const { projectId } = req.params;
     const userId = req.user.id;
@@ -456,7 +458,7 @@ router.get('/:projectId/members', authenticateToken, async (req, res) => {
  * POST /api/projects/:projectId/members
  * Add member to project
  */
-router.post('/:projectId/members', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+router.post('/:projectId/members', authenticateToken, validateInput.sanitizeInput, zodValidate(addProjectMemberSchema), async (req, res) => {
   try {
     const { projectId } = req.params;
     const { userId: memberUserId, role = 'contributor' } = req.body;
@@ -499,7 +501,7 @@ router.delete('/:projectId/members/:userId', authenticateToken, async (req, res)
  * PUT /api/projects/:projectId/members/:userId
  * Update member role
  */
-router.put('/:projectId/members/:userId', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+router.put('/:projectId/members/:userId', authenticateToken, validateInput.sanitizeInput, zodValidate(updateProjectMemberRoleSchema), async (req, res) => {
   try {
     const { projectId, userId: memberUserId } = req.params;
     const { role } = req.body;

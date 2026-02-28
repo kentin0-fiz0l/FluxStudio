@@ -15,6 +15,8 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../lib/auth/middleware');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('AgentAPI');
 const {
   agentPermissions,
   auditLog,
@@ -57,7 +59,7 @@ router.get('/search_projects',
         count: results.length,
       });
     } catch (error) {
-      console.error('[AgentAPI] search_projects error:', error);
+      log.error('search_projects error', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to search projects',
@@ -91,7 +93,7 @@ router.get('/list_projects',
         count: projects.length,
       });
     } catch (error) {
-      console.error('[AgentAPI] list_projects error:', error);
+      log.error('list_projects error', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to list projects',
@@ -127,7 +129,7 @@ router.get('/get_project/:id',
         data: project,
       });
     } catch (error) {
-      console.error('[AgentAPI] get_project error:', error);
+      log.error('get_project error', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to get project',
@@ -160,7 +162,7 @@ router.get('/activity_feed',
         count: activity.length,
       });
     } catch (error) {
-      console.error('[AgentAPI] activity_feed error:', error);
+      log.error('activity_feed error', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to get activity feed',
@@ -189,7 +191,7 @@ router.get('/what_changed',
         data: changes,
       });
     } catch (error) {
-      console.error('[AgentAPI] what_changed error:', error);
+      log.error('what_changed error', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to get changes',
@@ -216,7 +218,7 @@ router.get('/daily_brief',
         data: brief,
       });
     } catch (error) {
-      console.error('[AgentAPI] daily_brief error:', error);
+      log.error('daily_brief error', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to generate daily brief',
@@ -271,7 +273,7 @@ router.post('/chat',
       res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
       res.end();
     } catch (error) {
-      console.error('[AgentAPI] chat error:', error);
+      log.error('chat error', error);
       res.write(`data: ${JSON.stringify({ type: 'error', error: error.message || 'Chat failed' })}\n\n`);
       res.end();
     }
@@ -299,7 +301,7 @@ router.post('/session',
         data: session,
       });
     } catch (error) {
-      console.error('[AgentAPI] create_session error:', error);
+      log.error('create_session error', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to create session',
@@ -330,7 +332,7 @@ router.get('/session/:id',
         data: session,
       });
     } catch (error) {
-      console.error('[AgentAPI] get_session error:', error);
+      log.error('get_session error', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to get session',
@@ -359,7 +361,7 @@ router.get('/pending_actions',
         count: actions.length,
       });
     } catch (error) {
-      console.error('[AgentAPI] pending_actions error:', error);
+      log.error('pending_actions error', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to get pending actions',
@@ -383,7 +385,7 @@ router.post('/pending_action/:id/approve',
         message: 'Action approved',
       });
     } catch (error) {
-      console.error('[AgentAPI] approve_action error:', error);
+      log.error('approve_action error', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to approve action',
@@ -407,7 +409,7 @@ router.post('/pending_action/:id/reject',
         message: 'Action rejected',
       });
     } catch (error) {
-      console.error('[AgentAPI] reject_action error:', error);
+      log.error('reject_action error', error);
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to reject action',

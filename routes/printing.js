@@ -16,6 +16,8 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Printing');
 const multer = require('multer');
 const FormData = require('form-data');
 const path = require('path');
@@ -102,7 +104,7 @@ async function proxyToFluxPrint(req, res, endpoint, method = 'GET') {
     const response = await axios(config);
     res.status(response.status).json(response.data);
   } catch (error) {
-    console.error(`FluxPrint proxy error (${endpoint}):`, error.message);
+    log.error('FluxPrint proxy error', { endpoint, error: error.message });
     if (error.code === 'ECONNREFUSED') {
       res.status(503).json({
         error: 'FluxPrint service unavailable',
@@ -139,7 +141,7 @@ async function canUserAccessProject(userId, projectId) {
 
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error checking project access:', error);
+    log.error('Error checking project access', error);
     return false;
   }
 }
@@ -238,13 +240,13 @@ router.post('/queue', printRateLimit, checkFluxPrintEnabled, authenticateToken, 
           metadata: metadata || {},
         });
       } catch (logError) {
-        console.error('Failed to log print job:', logError.message);
+        log.error('Failed to log print job', { error: logError.message });
       }
     }
 
     res.status(response.status).json(response.data);
   } catch (error) {
-    console.error('FluxPrint queue POST error:', error.message);
+    log.error('FluxPrint queue POST error', { error: error.message });
     res.status(500).json({ error: 'Failed to add job to queue', message: error.message });
   }
 });
@@ -318,13 +320,13 @@ router.post('/files/upload', checkFluxPrintEnabled, authenticateToken, upload.ar
           response.data.linked_to_project = project_id;
         }
       } catch (linkError) {
-        console.error('Auto-link error (non-fatal):', linkError.message);
+        log.error('Auto-link error (non-fatal)', { error: linkError.message });
       }
     }
 
     res.status(response.status).json(response.data);
   } catch (error) {
-    console.error('FluxPrint file upload error:', error.message);
+    log.error('FluxPrint file upload error', { error: error.message });
     res.status(500).json({ error: 'File upload failed', message: error.message });
   }
 });
@@ -354,7 +356,7 @@ router.get('/camera/stream', checkFluxPrintEnabled, async (req, res) => {
     response.data.pipe(res);
 
     response.data.on('error', (error) => {
-      console.error('Camera stream error:', error.message);
+      log.error('Camera stream error', { error: error.message });
       if (!res.headersSent) {
         res.status(500).json({ error: 'Camera stream error' });
       }
@@ -364,7 +366,7 @@ router.get('/camera/stream', checkFluxPrintEnabled, async (req, res) => {
       response.data.destroy();
     });
   } catch (error) {
-    console.error('FluxPrint camera stream error:', error.message);
+    log.error('FluxPrint camera stream error', { error: error.message });
     if (!res.headersSent) {
       res.status(503).json({ error: 'Camera stream unavailable', message: error.message });
     }
@@ -380,7 +382,7 @@ router.get('/jobs/active', async (req, res) => {
     const activeJobs = await printJobLogger.getActiveJobs();
     res.json(activeJobs);
   } catch (error) {
-    console.error('Failed to get active jobs:', error.message);
+    log.error('Failed to get active jobs', { error: error.message });
     res.status(500).json({ error: 'Failed to get active jobs', message: error.message });
   }
 });
@@ -391,7 +393,7 @@ router.get('/jobs/history', async (req, res) => {
     const history = await printJobLogger.getJobHistory(limit);
     res.json(history);
   } catch (error) {
-    console.error('Failed to get job history:', error.message);
+    log.error('Failed to get job history', { error: error.message });
     res.status(500).json({ error: 'Failed to get job history', message: error.message });
   }
 });
@@ -429,7 +431,7 @@ router.get('/jobs/history/filter', authenticateToken, async (req, res) => {
     const result = await query(queryText, queryParams);
     res.json(result.rows);
   } catch (error) {
-    console.error('Failed to get filtered job history:', error);
+    log.error('Failed to get filtered job history', error);
     res.status(500).json({ error: 'Failed to get filtered job history', message: error.message });
   }
 });
@@ -445,7 +447,7 @@ router.get('/jobs/:jobId', async (req, res) => {
       res.status(404).json({ error: 'Print job not found' });
     }
   } catch (error) {
-    console.error('Failed to get print job:', error.message);
+    log.error('Failed to get print job', { error: error.message });
     res.status(500).json({ error: 'Failed to get print job', message: error.message });
   }
 });
@@ -466,7 +468,7 @@ router.post('/jobs/:jobId/link', async (req, res) => {
       res.status(404).json({ error: 'Print job not found' });
     }
   } catch (error) {
-    console.error('Failed to link job to project:', error.message);
+    log.error('Failed to link job to project', { error: error.message });
     res.status(500).json({ error: 'Failed to link job to project', message: error.message });
   }
 });
@@ -488,7 +490,7 @@ router.patch('/jobs/:jobId/status', async (req, res) => {
 
     res.json({ success: true, jobId, status });
   } catch (error) {
-    console.error('Failed to update job status:', error.message);
+    log.error('Failed to update job status', { error: error.message });
     res.status(500).json({ error: 'Failed to update job status', message: error.message });
   }
 });
@@ -517,7 +519,7 @@ router.post('/jobs/sync/:fluxprintQueueId', async (req, res) => {
       res.status(404).json({ error: 'Print job not found' });
     }
   } catch (error) {
-    console.error('Failed to sync job status:', error.message);
+    log.error('Failed to sync job status', { error: error.message });
     res.status(500).json({ error: 'Failed to sync job status', message: error.message });
   }
 });
@@ -532,7 +534,7 @@ router.get('/projects/:projectId/stats', async (req, res) => {
     const stats = await printJobLogger.getProjectStats(projectId);
     res.json(stats || { message: 'No print jobs found for this project' });
   } catch (error) {
-    console.error('Failed to get project stats:', error.message);
+    log.error('Failed to get project stats', { error: error.message });
     res.status(500).json({ error: 'Failed to get project stats', message: error.message });
   }
 });
@@ -558,7 +560,7 @@ router.get('/projects/:projectId/stats/detailed', authenticateToken, async (req,
 
     res.json(result.rows[0]);
   } catch (error) {
-    console.error('Failed to get detailed project stats:', error);
+    log.error('Failed to get detailed project stats', error);
     res.status(500).json({ error: 'Failed to get detailed project stats', message: error.message });
   }
 });
@@ -600,7 +602,7 @@ router.get('/projects/:projectId/files', authenticateToken, async (req, res) => 
       offset
     });
   } catch (error) {
-    console.error('Failed to get project files:', error);
+    log.error('Failed to get project files', error);
     res.status(500).json({ error: 'Failed to get project files', message: error.message });
   }
 });
@@ -657,7 +659,7 @@ router.post('/files/:filename/link', authenticateToken, async (req, res) => {
 
     res.status(201).json({ success: true, file: result.rows[0] });
   } catch (error) {
-    console.error('Failed to link file to project:', error);
+    log.error('Failed to link file to project', error);
     res.status(500).json({ error: 'Failed to link file to project', message: error.message });
   }
 });
@@ -695,7 +697,7 @@ router.delete('/files/:filename/link', authenticateToken, async (req, res) => {
     await query('DELETE FROM printing_files WHERE filename = $1', [filename]);
     res.json({ success: true, message: 'File unlinked from project' });
   } catch (error) {
-    console.error('Failed to unlink file:', error);
+    log.error('Failed to unlink file', error);
     res.status(500).json({ error: 'Failed to unlink file', message: error.message });
   }
 });
@@ -831,7 +833,7 @@ router.post('/quick-print', printRateLimit, csrfProtection, authenticateToken, a
         `, [createId(), projectId, filename, userId]);
       }
     } catch (linkError) {
-      console.error('File linking error (non-fatal):', linkError.message);
+      log.error('File linking error (non-fatal)', { error: linkError.message });
     }
 
     // Calculate estimate
@@ -859,7 +861,7 @@ router.post('/quick-print', printRateLimit, csrfProtection, authenticateToken, a
       message: 'Print job queued successfully'
     });
   } catch (error) {
-    console.error('Quick print error:', error.message);
+    log.error('Quick print error', { error: error.message });
     res.status(500).json({ error: 'Failed to queue print job', message: error.message });
   }
 });
@@ -906,13 +908,13 @@ router.post('/estimate', authenticateToken, async (req, res) => {
         throw new Error('Slicer API unavailable');
       }
     } catch (_slicerError) {
-      console.log('Slicer API unavailable, using rough estimate');
+      log.info('Slicer API unavailable, using rough estimate');
       estimate = calculateEstimate(material, quality, copies);
     }
 
     res.json(estimate);
   } catch (error) {
-    console.error('Estimate calculation error:', error.message);
+    log.error('Estimate calculation error', { error: error.message });
     res.status(500).json({ error: 'Failed to calculate estimate', message: error.message });
   }
 });
