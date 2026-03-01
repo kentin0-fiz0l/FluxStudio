@@ -13,6 +13,8 @@ const express = require('express');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('MCP');
+const { zodValidate } = require('../middleware/zodValidate');
+const { mcpQuerySchema } = require('../lib/schemas');
 
 const router = express.Router();
 
@@ -38,13 +40,9 @@ function getMcpManager() {
 }
 
 // Execute natural language database query
-router.post('/query', authenticateToken, async (req, res) => {
+router.post('/query', authenticateToken, zodValidate(mcpQuerySchema), async (req, res) => {
   try {
     const { query: naturalLanguageQuery } = req.body;
-
-    if (!naturalLanguageQuery) {
-      return res.status(400).json({ message: 'Query is required' });
-    }
 
     const manager = getMcpManager();
     if (!mcpInitialized) {

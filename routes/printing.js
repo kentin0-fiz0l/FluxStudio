@@ -28,6 +28,8 @@ const { printRateLimit, rateLimit } = require('../middleware/security');
 const { csrfProtection } = require('../middleware/csrf');
 const { validateUploadedFiles } = require('../lib/fileValidator');
 const printJobLogger = require('../services/printJobLogger');
+const { zodValidate } = require('../middleware/zodValidate');
+const { printFileLinkSchema, printJobLinkSchema, printJobStatusSchema, printJobSyncSchema, quickPrintSchema, printEstimateSchema } = require('../lib/schemas');
 
 // FluxPrint service configuration
 const FLUXPRINT_URL = process.env.FLUXPRINT_SERVICE_URL || 'http://localhost:5001';
@@ -40,8 +42,6 @@ const upload = multer({
 });
 
 // Constants
-const VALID_MATERIALS = ['PLA', 'PETG', 'ABS', 'TPU', 'NYLON'];
-const VALID_QUALITIES = ['draft', 'standard', 'high', 'ultra'];
 const PRINTABLE_EXTENSIONS = ['stl', 'obj', 'gltf', 'glb', 'gcode', '3mf'];
 
 const MATERIAL_COSTS = {
@@ -452,14 +452,10 @@ router.get('/jobs/:jobId', async (req, res) => {
   }
 });
 
-router.post('/jobs/:jobId/link', async (req, res) => {
+router.post('/jobs/:jobId/link', zodValidate(printJobLinkSchema), async (req, res) => {
   try {
     const { jobId } = req.params;
     const { project_id, file_id } = req.body;
-
-    if (!project_id) {
-      return res.status(400).json({ error: 'project_id is required' });
-    }
 
     const linked = await printJobLogger.linkToProject(jobId, project_id, file_id);
     if (linked) {
@@ -473,14 +469,10 @@ router.post('/jobs/:jobId/link', async (req, res) => {
   }
 });
 
-router.patch('/jobs/:jobId/status', async (req, res) => {
+router.patch('/jobs/:jobId/status', zodValidate(printJobStatusSchema), async (req, res) => {
   try {
     const { jobId } = req.params;
     const { status, progress, error_message } = req.body;
-
-    if (!status) {
-      return res.status(400).json({ error: 'status is required' });
-    }
 
     await printJobLogger.updateJobStatus(jobId, status, progress, { error_message });
 
@@ -495,14 +487,10 @@ router.patch('/jobs/:jobId/status', async (req, res) => {
   }
 });
 
-router.post('/jobs/sync/:fluxprintQueueId', async (req, res) => {
+router.post('/jobs/sync/:fluxprintQueueId', zodValidate(printJobSyncSchema), async (req, res) => {
   try {
     const { fluxprintQueueId } = req.params;
     const { status, progress } = req.body;
-
-    if (!status) {
-      return res.status(400).json({ error: 'status is required' });
-    }
 
     const updated = await printJobLogger.updateJobByFluxPrintId(
       parseInt(fluxprintQueueId),
@@ -611,15 +599,11 @@ router.get('/projects/:projectId/files', authenticateToken, async (req, res) => 
 // FILE LINKING
 // ========================================
 
-router.post('/files/:filename/link', authenticateToken, async (req, res) => {
+router.post('/files/:filename/link', authenticateToken, zodValidate(printFileLinkSchema), async (req, res) => {
   try {
     const { filename } = req.params;
     const { project_id, file_id, metadata, notes } = req.body;
     const userId = req.user.id;
-
-    if (!project_id) {
-      return res.status(400).json({ error: 'project_id is required' });
-    }
 
     if (filename.includes('/') || filename.includes('\\')) {
       return res.status(400).json({ error: 'Invalid filename' });
@@ -706,24 +690,10 @@ router.delete('/files/:filename/link', authenticateToken, async (req, res) => {
 // QUICK PRINT
 // ========================================
 
-router.post('/quick-print', printRateLimit, csrfProtection, authenticateToken, async (req, res) => {
+router.post('/quick-print', printRateLimit, csrfProtection, authenticateToken, zodValidate(quickPrintSchema), async (req, res) => {
   try {
     const { filename, projectId, config } = req.body;
     const userId = req.user.id;
-
-    // Validation
-    if (!filename) {
-      return res.status(400).json({ error: 'filename is required' });
-    }
-    if (!projectId) {
-      return res.status(400).json({ error: 'projectId is required' });
-    }
-    if (!config || !config.material || !config.quality) {
-      return res.status(400).json({
-        error: 'config with material and quality is required',
-        example: { material: 'PLA', quality: 'standard', copies: 1, supports: false, infill: 20 }
-      });
-    }
 
     // Check project access and role
     const projectAccessQuery = await query(`
@@ -761,14 +731,6 @@ router.post('/quick-print', printRateLimit, csrfProtection, authenticateToken, a
         error: 'File type not supported for printing',
         supported: PRINTABLE_EXTENSIONS
       });
-    }
-
-    // Validate material and quality
-    if (!VALID_MATERIALS.includes(config.material)) {
-      return res.status(400).json({ error: 'Invalid material', valid: VALID_MATERIALS });
-    }
-    if (!VALID_QUALITIES.includes(config.quality)) {
-      return res.status(400).json({ error: 'Invalid quality preset', valid: VALID_QUALITIES });
     }
 
     // Queue job with FluxPrint
@@ -870,20 +832,9 @@ router.post('/quick-print', printRateLimit, csrfProtection, authenticateToken, a
 // ESTIMATE
 // ========================================
 
-router.post('/estimate', authenticateToken, async (req, res) => {
+router.post('/estimate', authenticateToken, zodValidate(printEstimateSchema), async (req, res) => {
   try {
     const { filename, material, quality, copies = 1 } = req.body;
-
-    if (!filename) return res.status(400).json({ error: 'filename is required' });
-    if (!material) return res.status(400).json({ error: 'material is required' });
-    if (!quality) return res.status(400).json({ error: 'quality is required' });
-
-    if (!VALID_MATERIALS.includes(material)) {
-      return res.status(400).json({ error: 'Invalid material', valid: VALID_MATERIALS });
-    }
-    if (!VALID_QUALITIES.includes(quality)) {
-      return res.status(400).json({ error: 'Invalid quality preset', valid: VALID_QUALITIES });
-    }
 
     // Try to get accurate estimate from FluxPrint slicer API
     let estimate;

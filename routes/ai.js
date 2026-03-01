@@ -16,6 +16,8 @@ const { authenticateToken, rateLimitByUser } = require('../lib/auth/middleware')
 const { logAiUsage, getAiUsageLogs, sanitizeApiError } = require('../services/ai-summary-service');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('AI');
+const { zodValidate } = require('../middleware/zodValidate');
+const { aiChatSchema, aiChatSyncSchema, aiDesignReviewSchema, aiGenerateCodeSchema, aiDesignFeedbackSchema, aiGenerateProjectStructureSchema, aiGenerateTemplateSchema } = require('../lib/schemas');
 
 // Quota check middleware (Sprint 38)
 let checkAiQuota = (_req, _res, next) => next();
@@ -149,13 +151,9 @@ Status: ${project.status || 'Unknown'}`;
  * POST /api/ai/chat
  * Send message and stream response (SSE)
  */
-router.post('/chat', authenticateToken, requireAnthropicClient, rateLimitByUser(30, 60000), checkAiQuota, async (req, res) => {
+router.post('/chat', authenticateToken, requireAnthropicClient, rateLimitByUser(30, 60000), checkAiQuota, zodValidate(aiChatSchema), async (req, res) => {
   const { message, context, conversationId, model = DEFAULT_MODEL } = req.body;
   const userId = req.user.id;
-
-  if (!message || typeof message !== 'string') {
-    return res.status(400).json({ error: 'Message is required' });
-  }
 
   // Set SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
@@ -254,13 +252,9 @@ router.post('/chat', authenticateToken, requireAnthropicClient, rateLimitByUser(
  * POST /api/ai/chat/sync
  * Non-streaming chat endpoint
  */
-router.post('/chat/sync', authenticateToken, requireAnthropicClient, rateLimitByUser(30, 60000), async (req, res) => {
+router.post('/chat/sync', authenticateToken, requireAnthropicClient, rateLimitByUser(30, 60000), zodValidate(aiChatSyncSchema), async (req, res) => {
   const { message, context, model = DEFAULT_MODEL } = req.body;
   const userId = req.user.id;
-
-  if (!message || typeof message !== 'string') {
-    return res.status(400).json({ error: 'Message is required' });
-  }
 
   try {
     const systemPrompt = buildSystemPrompt(context);
@@ -365,13 +359,9 @@ router.delete('/conversations/:id', authenticateToken, (req, res) => {
  * POST /api/ai/design-review
  * Get AI feedback on a design
  */
-router.post('/design-review', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), async (req, res) => {
+router.post('/design-review', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), zodValidate(aiDesignReviewSchema), async (req, res) => {
   const { description, imageUrl, aspects = ['overall', 'accessibility', 'usability'] } = req.body;
   const userId = req.user.id;
-
-  if (!description) {
-    return res.status(400).json({ error: 'Description is required' });
-  }
 
   try {
     const aspectsText = aspects.join(', ');
@@ -412,13 +402,9 @@ Provide specific, actionable feedback for each aspect. Format your response with
  * POST /api/ai/generate-code
  * Generate React component code
  */
-router.post('/generate-code', authenticateToken, requireAnthropicClient, rateLimitByUser(20, 60000), async (req, res) => {
+router.post('/generate-code', authenticateToken, requireAnthropicClient, rateLimitByUser(20, 60000), zodValidate(aiGenerateCodeSchema), async (req, res) => {
   const { description, componentType = 'component', style = 'modern' } = req.body;
   const userId = req.user.id;
-
-  if (!description) {
-    return res.status(400).json({ error: 'Description is required' });
-  }
 
   try {
     const prompt = `Generate a React TypeScript component based on this description:
@@ -565,14 +551,10 @@ if (process.env.NODE_ENV !== 'production') {
  * Analyze a design image using Claude Vision
  * Body: { imageUrl: string, context?: { projectType, industry, targetAudience, brandGuidelines, focusAreas } }
  */
-router.post('/design-feedback/analyze', authenticateToken, rateLimitByUser(10, 60), async (req, res) => {
+router.post('/design-feedback/analyze', authenticateToken, rateLimitByUser(10, 60), zodValidate(aiDesignFeedbackSchema), async (req, res) => {
   try {
     const { imageUrl, context } = req.body;
     const userId = req.user.id;
-
-    if (!imageUrl) {
-      return res.status(400).json({ error: 'imageUrl is required' });
-    }
 
     if (!anthropic) {
       return res.status(200).json({ success: true, data: null, mock: true });
@@ -652,13 +634,9 @@ Be specific, actionable, and constructive in your feedback.`;
  * POST /api/ai/generate-project-structure
  * Generate project structure from natural language description
  */
-router.post('/generate-project-structure', authenticateToken, rateLimitByUser(10, 60000), async (req, res) => {
+router.post('/generate-project-structure', authenticateToken, rateLimitByUser(10, 60000), zodValidate(aiGenerateProjectStructureSchema), async (req, res) => {
   const { description, category, complexity } = req.body;
   const userId = req.user.id;
-
-  if (!description || description.trim().length < 10) {
-    return res.status(400).json({ error: 'Please provide a project description (at least 10 characters)' });
-  }
 
   // Fall back to local generation if AI is not configured
   if (!anthropic) {
@@ -731,13 +709,9 @@ ${category ? `- The project category is: ${category}` : ''}`;
  * POST /api/ai/generate-template
  * AI-generate a full project template from description
  */
-router.post('/generate-template', authenticateToken, requireAnthropicClient, rateLimitByUser(5, 60000), async (req, res) => {
+router.post('/generate-template', authenticateToken, requireAnthropicClient, rateLimitByUser(5, 60000), zodValidate(aiGenerateTemplateSchema), async (req, res) => {
   const { description, category, complexity } = req.body;
   const userId = req.user.id;
-
-  if (!description || description.trim().length < 10) {
-    return res.status(400).json({ error: 'Please provide a template description (at least 10 characters)' });
-  }
 
   try {
     const systemPrompt = `You are a project template generator for FluxStudio.
