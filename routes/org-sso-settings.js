@@ -85,17 +85,6 @@ router.put('/', requirePermission('settings.manage'), zodValidate(updateSSOSetti
       defaultRole,
     } = req.body;
 
-    if (!idpSsoUrl || !entityId) {
-      return res.status(400).json({ error: 'idpSsoUrl and entityId are required' });
-    }
-
-    // Validate idpSsoUrl is a valid URL
-    try {
-      new URL(idpSsoUrl);
-    } catch {
-      return res.status(400).json({ error: 'idpSsoUrl must be a valid URL' });
-    }
-
     const result = await query(
       `INSERT INTO saml_configurations (
         organization_id, idp_sso_url, sp_entity_id, idp_certificate,
@@ -199,16 +188,6 @@ router.post('/test-connection', requirePermission('settings.manage'), zodValidat
   try {
     const { url } = req.body;
 
-    if (!url) {
-      return res.status(400).json({ error: 'url is required' });
-    }
-
-    try {
-      new URL(url);
-    } catch {
-      return res.status(400).json({ error: 'url must be a valid URL' });
-    }
-
     let reachable = false;
     let statusCode = null;
 
@@ -253,15 +232,6 @@ router.post('/domains', requirePermission('settings.manage'), zodValidate(addSSO
   try {
     const { orgId } = req.params;
     const { domain } = req.body;
-
-    if (!domain) {
-      return res.status(400).json({ error: 'domain is required' });
-    }
-
-    // Validate domain format
-    if (!/^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain)) {
-      return res.status(400).json({ error: 'Invalid domain format' });
-    }
 
     const result = await domainVerification.createVerification(orgId, domain, req.user.id);
     res.json({ success: true, ...result });

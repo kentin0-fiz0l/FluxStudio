@@ -23,10 +23,19 @@ import {
 import { cn } from '../../lib/utils';
 import { observability } from '../../services/observability';
 import { createLogger } from '../../lib/logger';
+import { PageErrorFallback } from './fallbacks/PageErrorFallback';
+import { InlineErrorFallback } from './fallbacks/InlineErrorFallback';
 
 // Re-export ErrorFallback for convenience
 export { ErrorFallback } from '../ErrorFallback';
 export type { ErrorFallbackProps } from '../ErrorFallback';
+
+// Re-export extracted components
+export { PageErrorFallback } from './fallbacks/PageErrorFallback';
+export type { PageErrorFallbackProps } from './fallbacks/PageErrorFallback';
+export { InlineErrorFallback } from './fallbacks/InlineErrorFallback';
+export type { InlineErrorFallbackProps } from './fallbacks/InlineErrorFallback';
+export { RouteErrorBoundary } from './RouteErrorBoundary';
 
 const boundaryLogger = createLogger('ErrorBoundary');
 
@@ -422,18 +431,12 @@ export function MessagingErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
       isolateComponent
-      onError={(error) => {
-        boundaryLogger.error('Messaging error', error);
-        // Log messaging-specific metrics
-      }}
+      onError={(error) => boundaryLogger.error('Messaging error', error)}
       fallback={
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-          <AlertTitle>Messaging Unavailable</AlertTitle>
-          <AlertDescription>
-            Unable to load messaging. Please refresh the page or try again later.
-          </AlertDescription>
-        </Alert>
+        <InlineErrorFallback
+          title="Messaging Unavailable"
+          message="Unable to load messaging. Please refresh the page or try again later."
+        />
       }
     >
       {children}
@@ -445,18 +448,12 @@ export function WorkflowErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
       isolateComponent
-      onError={(error) => {
-        boundaryLogger.error('Workflow error', error);
-        // Log workflow-specific metrics
-      }}
+      onError={(error) => boundaryLogger.error('Workflow error', error)}
       fallback={
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-          <AlertTitle>Workflow Engine Error</AlertTitle>
-          <AlertDescription>
-            Workflow features are temporarily unavailable. Core functionality remains accessible.
-          </AlertDescription>
-        </Alert>
+        <InlineErrorFallback
+          title="Workflow Engine Error"
+          message="Workflow features are temporarily unavailable. Core functionality remains accessible."
+        />
       }
     >
       {children}
@@ -469,18 +466,13 @@ export function CollaborationErrorBoundary({ children }: { children: ReactNode }
     <ErrorBoundary
       isolateComponent
       retryable={true}
-      onError={(error) => {
-        boundaryLogger.error('Collaboration error', error);
-        // Log collaboration-specific metrics
-      }}
+      onError={(error) => boundaryLogger.error('Collaboration error', error)}
       fallback={
-        <Alert>
-          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-          <AlertTitle>Collaboration Features Limited</AlertTitle>
-          <AlertDescription>
-            Real-time collaboration is temporarily unavailable. You can continue working normally.
-          </AlertDescription>
-        </Alert>
+        <InlineErrorFallback
+          title="Collaboration Features Limited"
+          message="Real-time collaboration is temporarily unavailable. You can continue working normally."
+          variant="default"
+        />
       }
     >
       {children}
@@ -492,33 +484,16 @@ export function CollaborationErrorBoundary({ children }: { children: ReactNode }
 export function FilesErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
-      onError={(error) => {
-        boundaryLogger.error('Files page error', error);
-      }}
+      onError={(error) => boundaryLogger.error('Files page error', error)}
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 rounded-full bg-orange-100 mx-auto mb-4 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-orange-600" aria-hidden="true" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Files Unavailable</h3>
-              <p className="text-gray-600 mb-4">
-                We're having trouble loading your files. Please try again.
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button onClick={() => window.location.reload()}>
-                  <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
-                  Reload
-                </Button>
-                <Button variant="outline" onClick={() => window.location.href = '/projects'}>
-                  <Home className="h-4 w-4 mr-2" aria-hidden="true" />
-                  Projects
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <PageErrorFallback
+          iconBgColor="bg-orange-100"
+          icon={<AlertTriangle className="h-6 w-6 text-orange-600" aria-hidden="true" />}
+          title="Files Unavailable"
+          message="We're having trouble loading your files. Please try again."
+          primaryAction={{ label: 'Reload', onClick: () => window.location.reload(), icon: <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+          secondaryAction={{ label: 'Projects', onClick: () => { window.location.href = '/projects'; }, icon: <Home className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+        />
       }
     >
       {children}
@@ -529,32 +504,16 @@ export function FilesErrorBoundary({ children }: { children: ReactNode }) {
 export function ToolsErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
-      onError={(error) => {
-        boundaryLogger.error('Tools page error', error);
-      }}
+      onError={(error) => boundaryLogger.error('Tools page error', error)}
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 rounded-full bg-purple-100 mx-auto mb-4 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-purple-600" aria-hidden="true" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Tools Unavailable</h3>
-              <p className="text-gray-600 mb-4">
-                We're having trouble loading this tool. Please try again.
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button onClick={() => window.location.reload()}>
-                  <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
-                  Reload
-                </Button>
-                <Button variant="outline" onClick={() => window.location.href = '/tools'}>
-                  All Tools
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <PageErrorFallback
+          iconBgColor="bg-purple-100"
+          icon={<AlertTriangle className="h-6 w-6 text-purple-600" aria-hidden="true" />}
+          title="Tools Unavailable"
+          message="We're having trouble loading this tool. Please try again."
+          primaryAction={{ label: 'Reload', onClick: () => window.location.reload(), icon: <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+          secondaryAction={{ label: 'All Tools', onClick: () => { window.location.href = '/tools'; } }}
+        />
       }
     >
       {children}
@@ -565,33 +524,16 @@ export function ToolsErrorBoundary({ children }: { children: ReactNode }) {
 export function ProjectsErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
-      onError={(error) => {
-        boundaryLogger.error('Projects page error', error);
-      }}
+      onError={(error) => boundaryLogger.error('Projects page error', error)}
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 rounded-full bg-blue-100 mx-auto mb-4 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-blue-600" aria-hidden="true" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Projects Unavailable</h3>
-              <p className="text-gray-600 mb-4">
-                We're having trouble loading your projects. Please try again.
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button onClick={() => window.location.reload()}>
-                  <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
-                  Reload
-                </Button>
-                <Button variant="outline" onClick={() => window.location.href = '/'}>
-                  <Home className="h-4 w-4 mr-2" aria-hidden="true" />
-                  Home
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <PageErrorFallback
+          iconBgColor="bg-blue-100"
+          icon={<AlertTriangle className="h-6 w-6 text-blue-600" aria-hidden="true" />}
+          title="Projects Unavailable"
+          message="We're having trouble loading your projects. Please try again."
+          primaryAction={{ label: 'Reload', onClick: () => window.location.reload(), icon: <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+          secondaryAction={{ label: 'Home', onClick: () => { window.location.href = '/'; }, icon: <Home className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+        />
       }
     >
       {children}
@@ -604,9 +546,7 @@ export function FormationEditorErrorBoundary({ children }: { children: ReactNode
     <ErrorBoundary
       isolateComponent
       retryable
-      onError={(error) => {
-        boundaryLogger.error('Formation editor error', error);
-      }}
+      onError={(error) => boundaryLogger.error('Formation editor error', error)}
       fallback={
         <div className="flex flex-col items-center justify-center h-full min-h-[200px] bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 p-6 text-center">
           <AlertTriangle className="h-8 w-8 text-orange-500 mb-3" aria-hidden="true" />
@@ -631,9 +571,7 @@ export function AIErrorBoundary({ children }: { children: ReactNode }) {
     <ErrorBoundary
       isolateComponent
       retryable
-      onError={(error) => {
-        boundaryLogger.error('AI panel error', error);
-      }}
+      onError={(error) => boundaryLogger.error('AI panel error', error)}
       fallback={
         <div className="flex flex-col items-center justify-center p-6 text-center">
           <AlertTriangle className="h-6 w-6 text-yellow-500 mb-2" aria-hidden="true" />
@@ -658,17 +596,13 @@ export function FileUploadErrorBoundary({ children }: { children: ReactNode }) {
     <ErrorBoundary
       isolateComponent
       retryable
-      onError={(error) => {
-        boundaryLogger.error('File upload error', error);
-      }}
+      onError={(error) => boundaryLogger.error('File upload error', error)}
       fallback={
-        <Alert>
-          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-          <AlertTitle>Upload Error</AlertTitle>
-          <AlertDescription>
-            File upload failed. Please try uploading again.
-          </AlertDescription>
-        </Alert>
+        <InlineErrorFallback
+          title="Upload Error"
+          message="File upload failed. Please try uploading again."
+          variant="default"
+        />
       }
     >
       {children}
@@ -676,108 +610,20 @@ export function FileUploadErrorBoundary({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * RouteErrorBoundary - for use with React Router's errorElement
- * Catches errors during route rendering/loading and shows a recovery UI.
- */
-export function RouteErrorBoundary() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let routeError: any = null;
-  try {
-    // Dynamic import to avoid hard dependency when component is used outside router
-    // useRouteError is only available inside a RouterProvider context
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- dynamic require to avoid hard dependency outside router context
-    const { useRouteError } = require('react-router-dom');
-    routeError = useRouteError(); // eslint-disable-line react-hooks/rules-of-hooks -- intentionally conditional: only available inside RouterProvider
-  } catch {
-    // Not inside a router context
-  }
-
-  const error = routeError instanceof Error ? routeError : new Error(String(routeError ?? 'Unknown route error'));
-  const is404 = routeError && typeof routeError === 'object' && 'status' in routeError && routeError.status === 404;
-
-  if (is404) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <div className="text-6xl font-bold text-gray-300 dark:text-gray-600 mb-4">404</div>
-            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Page Not Found</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              The page you're looking for doesn't exist or has been moved.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <Button onClick={() => window.history.back()}>Go Back</Button>
-              <Button variant="outline" onClick={() => { window.location.href = '/dashboard'; }}>
-                <Home className="h-4 w-4 mr-2" aria-hidden="true" />
-                Dashboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg">
-        <CardContent className="p-6 text-center">
-          <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900 mx-auto mb-4 flex items-center justify-center">
-            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">
-            Something went wrong
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {error.message || 'An unexpected error occurred while loading this page.'}
-          </p>
-          <div className="flex gap-3 justify-center">
-            <Button onClick={() => window.location.reload()}>
-              <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
-              Reload
-            </Button>
-            <Button variant="outline" onClick={() => { window.location.href = '/dashboard'; }}>
-              <Home className="h-4 w-4 mr-2" aria-hidden="true" />
-              Dashboard
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 export function ConnectorsErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
-      onError={(error) => {
-        boundaryLogger.error('Connectors page error', error);
-      }}
+      onError={(error) => boundaryLogger.error('Connectors page error', error)}
       fallback={
-        <div className="min-h-screen bg-gray-50 dark:bg-neutral-950 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mx-auto mb-4 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2 text-neutral-900 dark:text-white">Integrations Unavailable</h3>
-              <p className="text-neutral-600 dark:text-neutral-400 mb-4">
-                We're having trouble loading your integrations. Your connected services are not affected.
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button onClick={() => window.location.reload()}>
-                  <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
-                  Reload
-                </Button>
-                <Button variant="outline" onClick={() => { window.location.href = '/projects'; }}>
-                  <Home className="h-4 w-4 mr-2" aria-hidden="true" />
-                  Projects
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <PageErrorFallback
+          wrapperClassName="min-h-screen bg-gray-50 dark:bg-neutral-950 flex items-center justify-center p-4"
+          iconBgColor="bg-blue-100 dark:bg-blue-900/30"
+          icon={<AlertTriangle className="h-6 w-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
+          title="Integrations Unavailable"
+          message="We're having trouble loading your integrations. Your connected services are not affected."
+          primaryAction={{ label: 'Reload', onClick: () => window.location.reload(), icon: <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+          secondaryAction={{ label: 'Projects', onClick: () => { window.location.href = '/projects'; }, icon: <Home className="h-4 w-4 mr-2" aria-hidden="true" /> }}
+        />
       }
     >
       {children}
