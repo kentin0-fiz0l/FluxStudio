@@ -23,6 +23,8 @@ const fileStorage = require('../storage');
 const { query } = require('../database/config');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Files');
+const { zodValidate } = require('../middleware/zodValidate');
+const { attachFileSchema, attachFileByProjectSchema } = require('../lib/schemas');
 
 const router = express.Router();
 
@@ -280,14 +282,10 @@ router.get('/:fileId/projects', authenticateToken, async (req, res) => {
  * POST /api/files/:fileId/attach
  * Attach file to project (via project_files join table - allows many-to-many)
  */
-router.post('/:fileId/attach', authenticateToken, async (req, res) => {
+router.post('/:fileId/attach', authenticateToken, zodValidate(attachFileSchema), async (req, res) => {
   try {
     const { fileId } = req.params;
     const { projectId, role = 'reference', notes } = req.body;
-
-    if (!projectId) {
-      return res.status(400).json({ error: 'projectId is required' });
-    }
 
     // Verify file exists and user has access
     const file = await filesAdapter.getFileById(fileId, req.user.id);
@@ -358,14 +356,10 @@ router.get('/project-files/:projectId', authenticateToken, async (req, res) => {
  * POST /api/projects/:projectId/attach-file
  * Attach existing file to project (alternative route matching REST conventions)
  */
-router.post('/projects/:projectId/attach-file', authenticateToken, async (req, res) => {
+router.post('/projects/:projectId/attach-file', authenticateToken, zodValidate(attachFileByProjectSchema), async (req, res) => {
   try {
     const { projectId } = req.params;
     const { fileId, role = 'reference', notes } = req.body;
-
-    if (!fileId) {
-      return res.status(400).json({ error: 'fileId is required' });
-    }
 
     // Verify file exists
     const file = await filesAdapter.getFileById(fileId, req.user.id);

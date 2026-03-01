@@ -15,6 +15,8 @@ const performanceMetrics = require('../lib/monitoring/performanceMetrics');
 const { queryFunnel, FUNNEL_STAGES } = require('../lib/analytics/funnelTracker');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Observability');
+const { zodValidate } = require('../middleware/zodValidate');
+const { observabilityEventsSchema } = require('../lib/schemas');
 
 const router = express.Router();
 
@@ -46,17 +48,9 @@ setInterval(() => {
 // POST /events — Batched analytics events
 // ========================================
 
-router.post('/events', authenticateToken, async (req, res) => {
+router.post('/events', authenticateToken, zodValidate(observabilityEventsSchema), async (req, res) => {
   try {
     const { events } = req.body;
-
-    if (!Array.isArray(events) || events.length === 0) {
-      return res.status(400).json({ error: 'events must be a non-empty array' });
-    }
-
-    if (events.length > 50) {
-      return res.status(400).json({ error: 'Maximum 50 events per batch' });
-    }
 
     const userId = req.user.id;
 

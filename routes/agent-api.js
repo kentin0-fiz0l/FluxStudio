@@ -17,6 +17,8 @@ const router = express.Router();
 const { authenticateToken } = require('../lib/auth/middleware');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('AgentAPI');
+const { zodValidate } = require('../middleware/zodValidate');
+const { agentChatSchema, agentSessionSchema } = require('../lib/schemas');
 const {
   agentPermissions,
   auditLog,
@@ -238,15 +240,9 @@ router.get('/daily_brief',
 router.post('/chat',
   authenticateToken,
   agentRateLimit(20, 60000),
+  zodValidate(agentChatSchema),
   async (req, res) => {
     const { message, sessionId, projectId } = req.body;
-
-    if (!message) {
-      return res.status(400).json({
-        error: 'Bad request',
-        message: 'Message is required',
-      });
-    }
 
     // Set up SSE
     res.setHeader('Content-Type', 'text/event-stream');
@@ -290,6 +286,7 @@ router.post('/chat',
  */
 router.post('/session',
   authenticateToken,
+  zodValidate(agentSessionSchema),
   async (req, res) => {
     try {
       const { projectId } = req.body;

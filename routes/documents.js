@@ -14,6 +14,8 @@ const { createLogger } = require('../lib/logger');
 const log = createLogger('Documents');
 const { authenticateToken, rateLimitByUser } = require('../lib/auth/middleware');
 const documentsAdapter = require('../database/documents-adapter');
+const { zodValidate } = require('../middleware/zodValidate');
+const { createDocumentSchema, updateDocumentSchema } = require('../lib/schemas');
 
 const router = express.Router();
 
@@ -61,7 +63,7 @@ router.get('/projects/:projectId/documents', authenticateToken, async (req, res)
  * POST /api/projects/:projectId/documents
  * Create a new document
  */
-router.post('/projects/:projectId/documents', authenticateToken, rateLimitByUser(20, 60000), async (req, res) => {
+router.post('/projects/:projectId/documents', authenticateToken, rateLimitByUser(20, 60000), zodValidate(createDocumentSchema), async (req, res) => {
   try {
     const { projectId } = req.params;
     const userId = req.user.id;
@@ -130,7 +132,7 @@ router.get('/documents/:documentId', authenticateToken, async (req, res) => {
  * PATCH /api/documents/:documentId
  * Update document metadata (title, type, archived status)
  */
-router.patch('/documents/:documentId', authenticateToken, async (req, res) => {
+router.patch('/documents/:documentId', authenticateToken, zodValidate(updateDocumentSchema), async (req, res) => {
   try {
     const { documentId } = req.params;
     const userId = req.user.id;

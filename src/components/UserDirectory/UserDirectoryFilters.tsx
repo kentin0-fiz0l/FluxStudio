@@ -10,33 +10,8 @@ import {
   List,
   ChevronDown,
 } from 'lucide-react';
-import { cn } from '../lib/utils';
-
-interface UserDirectoryFiltersProps {
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  viewMode: 'grid' | 'list';
-  onViewModeChange: (mode: 'grid' | 'list') => void;
-  sortValue: string;
-  onSortChange: (sortBy: string, direction: string) => void;
-  showFilters: boolean;
-  onToggleFilters: () => void;
-  hasActiveFilters: boolean;
-  activeFilterCount: number;
-  filterOptions: {
-    roles: string[];
-    locations: string[];
-    organizations: string[];
-  };
-  filters: {
-    roles: string[];
-    locations: string[];
-    organizations: string[];
-    isOnline?: boolean;
-  };
-  onToggleFilter: (type: 'roles' | 'locations' | 'organizations' | 'skills' | 'isOnline', value: string | boolean) => void;
-  onClearFilters: () => void;
-}
+import { cn } from '../../lib/utils';
+import type { UserDirectoryFiltersProps } from './user-directory-types';
 
 export function UserDirectoryFilters({
   searchQuery,

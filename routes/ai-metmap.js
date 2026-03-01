@@ -12,6 +12,8 @@ const metmapAdapter = require('../database/metmap-adapter');
 const { buildMetMapContext } = require('../lib/metmap-ai-context');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('AIMetMap');
+const { zodValidate } = require('../middleware/zodValidate');
+const { analyzeSongSchema, suggestChordsSchema, practiceInsightsSchema } = require('../lib/schemas');
 
 const router = express.Router();
 
@@ -112,12 +114,8 @@ async function streamAnalysis(req, res, systemPrompt, userMessage) {
  * POST /api/ai/metmap/analyze-song
  * Comprehensive song analysis — structure, harmony, arrangement feedback.
  */
-router.post('/analyze-song', authenticateToken, rateLimitByUser(15, 60000), async (req, res) => {
+router.post('/analyze-song', authenticateToken, rateLimitByUser(15, 60000), zodValidate(analyzeSongSchema), async (req, res) => {
   const { songId, focus = 'all' } = req.body;
-
-  if (!songId) {
-    return res.status(400).json({ error: 'songId is required' });
-  }
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(503).json({ error: 'AI service not configured' });
@@ -160,12 +158,8 @@ ${focusMap[focus] || focusMap.all}`;
  * POST /api/ai/metmap/suggest-chords
  * Context-aware chord suggestions for a specific section.
  */
-router.post('/suggest-chords', authenticateToken, rateLimitByUser(15, 60000), async (req, res) => {
+router.post('/suggest-chords', authenticateToken, rateLimitByUser(15, 60000), zodValidate(suggestChordsSchema), async (req, res) => {
   const { songId, sectionId, style, request } = req.body;
-
-  if (!songId) {
-    return res.status(400).json({ error: 'songId is required' });
-  }
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(503).json({ error: 'AI service not configured' });
@@ -237,12 +231,8 @@ Please suggest 2-3 chord progression options for this section.`;
  * POST /api/ai/metmap/practice-insights
  * Analyze practice history and provide coaching feedback.
  */
-router.post('/practice-insights', authenticateToken, rateLimitByUser(15, 60000), async (req, res) => {
+router.post('/practice-insights', authenticateToken, rateLimitByUser(15, 60000), zodValidate(practiceInsightsSchema), async (req, res) => {
   const { songId } = req.body;
-
-  if (!songId) {
-    return res.status(400).json({ error: 'songId is required' });
-  }
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(503).json({ error: 'AI service not configured' });

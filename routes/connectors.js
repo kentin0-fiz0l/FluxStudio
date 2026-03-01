@@ -19,6 +19,8 @@ const oauthManager = require('../lib/oauth-manager');
 const filesAdapter = require('../database/files-adapter');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Connectors');
+const { zodValidate } = require('../middleware/zodValidate');
+const { connectorImportSchema, connectorLinkSchema } = require('../lib/schemas');
 
 const router = express.Router();
 
@@ -216,14 +218,10 @@ router.get('/:provider/files', authenticateToken, async (req, res) => {
  * POST /connectors/:provider/import
  * Import file from connector
  */
-router.post('/:provider/import', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+router.post('/:provider/import', authenticateToken, zodValidate(connectorImportSchema), async (req, res) => {
   try {
     const { provider } = req.params;
     const { fileId, projectId, organizationId } = req.body;
-
-    if (!fileId) {
-      return res.status(400).json({ error: 'fileId is required' });
-    }
 
     // Check if connected
     const isConnected = await connectorsAdapter.isConnected(req.user.id, provider);
@@ -299,14 +297,10 @@ router.get('/files', authenticateToken, async (req, res) => {
  * POST /connectors/files/:fileId/link
  * Link imported file to project
  */
-router.post('/files/:fileId/link', authenticateToken, validateInput.sanitizeInput, async (req, res) => {
+router.post('/files/:fileId/link', authenticateToken, zodValidate(connectorLinkSchema), async (req, res) => {
   try {
     const { fileId } = req.params;
     const { projectId } = req.body;
-
-    if (!projectId) {
-      return res.status(400).json({ error: 'projectId is required' });
-    }
 
     const file = await connectorsAdapter.linkFileToProject(fileId, projectId, req.user.id);
 

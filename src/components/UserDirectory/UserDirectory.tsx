@@ -1,23 +1,14 @@
 /**
  * UserDirectory - Thin shell component composing extracted sub-components
- *
- * State management: useUserDirectory hook
- * Search/Filter UI: UserDirectoryFilters
- * User cards + modal: UserDirectoryList + UserDetailModal
  */
 
 import { Users, Grid3X3, List } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { useUserDirectory } from '../hooks/useUserDirectory';
+import { cn } from '../../lib/utils';
+import { useUserDirectory } from '../../hooks/useUserDirectory';
 import { UserDirectoryFilters } from './UserDirectoryFilters';
-import { UserDirectoryList, UserDetailModal } from './UserDirectoryList';
-
-interface UserDirectoryProps {
-  currentUserId?: string;
-  onConnect?: (userId: string) => void;
-  onMessage?: (userId: string) => void;
-  onViewProfile?: (userId: string) => void;
-}
+import { UserDirectoryList } from './UserDirectoryList';
+import { UserDetailModal } from './UserDetailModal';
+import type { UserDirectoryProps } from './user-directory-types';
 
 export const UserDirectory: React.FC<UserDirectoryProps> = ({
   currentUserId = '1',
