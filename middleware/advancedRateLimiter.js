@@ -15,6 +15,8 @@
 
 const cache = require('../lib/cache');
 const securityLogger = require('../lib/auth/securityLogger');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('RateLimiter');
 
 class AdvancedRateLimiter {
   constructor() {
@@ -46,7 +48,7 @@ class AdvancedRateLimiter {
    */
   addToWhitelist(ipAddress) {
     this.whitelist.add(ipAddress);
-    console.log(`✅ IP added to whitelist: ${ipAddress}`);
+    log.info('IP added to whitelist', { ipAddress });
   }
 
   /**
@@ -55,7 +57,7 @@ class AdvancedRateLimiter {
    */
   removeFromWhitelist(ipAddress) {
     this.whitelist.delete(ipAddress);
-    console.log(`✅ IP removed from whitelist: ${ipAddress}`);
+    log.info('IP removed from whitelist', { ipAddress });
   }
 
   /**
@@ -126,7 +128,7 @@ class AdvancedRateLimiter {
         retryAfter: allowed ? 0 : Math.ceil((resetTime - now) / 1000)
       };
     } catch (error) {
-      console.error('Rate limit check error:', error);
+      log.error('Rate limit check error', error);
       // Fail open - allow request if Redis is down
       return {
         allowed: true,
@@ -245,7 +247,7 @@ class AdvancedRateLimiter {
         // Rate limit passed
         next();
       } catch (error) {
-        console.error('Rate limiter middleware error:', error);
+        log.error('Rate limiter middleware error', error);
         // Fail open - allow request if error occurs
         next();
       }
@@ -315,7 +317,7 @@ class AdvancedRateLimiter {
 
         next();
       } catch (error) {
-        console.error('Custom rate limiter error:', error);
+        log.error('Custom rate limiter error', error);
         next();
       }
     };
@@ -354,7 +356,7 @@ class AdvancedRateLimiter {
         isWhitelisted: this.isWhitelisted(ipAddress)
       };
     } catch (error) {
-      console.error('Error getting rate limit status:', error);
+      log.error('Error getting rate limit status', error);
       return null;
     }
   }
@@ -372,9 +374,9 @@ class AdvancedRateLimiter {
       const cacheKey = `ratelimit:sliding:${key}`;
 
       await cache.del(cacheKey);
-      console.log(`✅ Rate limit reset for ${ipAddress} on ${endpoint}`);
+      log.info('Rate limit reset', { ipAddress, endpoint });
     } catch (error) {
-      console.error('Error resetting rate limit:', error);
+      log.error('Error resetting rate limit', error);
     }
   }
 }

@@ -6,6 +6,8 @@
  */
 
 const Sentry = require('@sentry/node');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('ErrorHandler');
 
 /**
  * Custom API Error class for consistent error handling
@@ -208,11 +210,10 @@ const errorHandler = (err, req, res, next) => {
 
   // Log based on severity
   if (error.statusCode >= 500 || errorClass === 'programming') {
-    console.error('SERVER ERROR:', JSON.stringify({
+    log.error('SERVER ERROR', err, {
       ...logContext,
-      stack: err.stack,
       originalError: err.message
-    }));
+    });
 
     // Report to Sentry
     try {
@@ -232,7 +233,7 @@ const errorHandler = (err, req, res, next) => {
       // Sentry not available, continue
     }
   } else if (error.statusCode >= 400) {
-    console.warn('CLIENT ERROR:', JSON.stringify(logContext));
+    log.warn('CLIENT ERROR', logContext);
   }
 
   // Don't leak error details in production for 500 errors

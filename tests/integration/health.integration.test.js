@@ -166,7 +166,7 @@ describe('Health Route Integration Tests', () => {
         .set('x-admin-secret', 'wrong-secret')
         .expect(403);
 
-      expect(res.body.error).toBe('Unauthorized');
+      expect(res.body.error).toBe('Database already initialized. JWT_SECRET required for re-initialization.');
     });
 
     it('should return 403 with missing secret when users table exists', async () => {
@@ -178,7 +178,7 @@ describe('Health Route Integration Tests', () => {
         .post('/admin/init-database')
         .expect(403);
 
-      expect(res.body.error).toBe('Unauthorized');
+      expect(res.body.error).toBe('Database already initialized. JWT_SECRET required for re-initialization.');
     });
   });
 });

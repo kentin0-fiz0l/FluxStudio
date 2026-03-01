@@ -41,7 +41,7 @@ router.post('/channels', authenticateToken, validateInput.sanitizeInput, zodVali
   const { name, teamId, description } = req.body;
 
   if (!name || !teamId) {
-    return res.status(400).json({ message: 'Name and team ID are required' });
+    return res.status(400).json({ success: false, error: 'Name and team ID are required', code: 'MISSING_FIELDS' });
   }
 
   const channels = await getChannels();
@@ -87,7 +87,7 @@ router.get('/organizations', authenticateToken, async (req, res) => {
     res.json({ organizations });
   } catch (error) {
     log.error('Error fetching organizations', error);
-    res.status(500).json({ message: 'Failed to fetch organizations', organizations: [] });
+    res.status(500).json({ success: false, error: 'Failed to fetch organizations', code: 'FETCH_ORGANIZATIONS_ERROR' });
   }
 });
 
@@ -97,7 +97,7 @@ router.post('/organizations', authenticateToken, zodValidate(createOrganizationS
     const { name, description } = req.body;
 
     if (!name) {
-      return res.status(400).json({ message: 'Organization name is required' });
+      return res.status(400).json({ success: false, error: 'Organization name is required', code: 'MISSING_FIELDS' });
     }
 
     const teams = JSON.parse(fs.readFileSync(TEAMS_FILE, 'utf8')).teams || [];
@@ -118,7 +118,7 @@ router.post('/organizations', authenticateToken, zodValidate(createOrganizationS
     res.json(newOrg);
   } catch (error) {
     log.error('Error creating organization', error);
-    res.status(500).json({ message: 'Failed to create organization' });
+    res.status(500).json({ success: false, error: 'Failed to create organization', code: 'CREATE_ORGANIZATION_ERROR' });
   }
 });
 

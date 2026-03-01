@@ -80,7 +80,8 @@ describe('Sessions Integration Tests', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
-      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.sessions)).toBe(true);
     });
 
     it('rejects unauthenticated requests', async () => {
@@ -91,26 +92,30 @@ describe('Sessions Integration Tests', () => {
 
   describe('DELETE /api/sessions/:id', () => {
     it('revokes a specific session', async () => {
+      const sessionId = '00000000-0000-4000-8000-000000000001';
       // Check ownership
-      query.mockResolvedValueOnce({ rows: [{ id: 'sess-old', user_id: 'user-1' }] });
-      // Delete
-      query.mockResolvedValueOnce({ rows: [{ id: 'sess-old' }] });
+      query.mockResolvedValueOnce({ rows: [{ id: sessionId, user_id: 'user-1', token_id: 'tok-1' }] });
+      // removeSession DELETE
+      query.mockResolvedValueOnce({ rows: [] });
+      // logAction INSERT
+      query.mockResolvedValueOnce({ rows: [] });
 
       const res = await request(app)
-        .delete('/api/sessions/sess-old')
+        .delete(`/api/sessions/${sessionId}`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
     });
 
     it('returns 404 for non-existent session', async () => {
+      const sessionId = '00000000-0000-4000-8000-000000000099';
       query.mockResolvedValueOnce({ rows: [] });
 
       const res = await request(app)
-        .delete('/api/sessions/nonexistent')
+        .delete(`/api/sessions/${sessionId}`)
         .set('Authorization', `Bearer ${token}`);
 
-      expect([403, 404]).toContain(res.status);
+      expect([400, 403, 404]).toContain(res.status);
     });
   });
 

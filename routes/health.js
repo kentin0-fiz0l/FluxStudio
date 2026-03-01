@@ -111,10 +111,12 @@ router.get('/health', async (req, res) => {
     res.status(statusCode).json(health);
   } catch (err) {
     res.status(503).json({
+      success: false,
+      error: 'Health check failed',
+      code: 'HEALTH_CHECK_ERROR',
       status: 'unhealthy',
       service: 'unified-backend',
       timestamp: new Date().toISOString(),
-      error: err.message
     });
   }
 });
@@ -144,8 +146,9 @@ router.get('/admin/db-status', async (req, res) => {
 
   } catch (err) {
     res.status(500).json({
+      success: false,
       error: 'Failed to check database status',
-      message: err.message
+      code: 'DB_STATUS_ERROR',
     });
   }
 });
@@ -172,9 +175,9 @@ router.post('/admin/init-database', async (req, res) => {
 
     if (!isAuthorized) {
       return res.status(403).json({
-        error: 'Unauthorized',
-        message: 'Database already initialized. JWT_SECRET required for re-initialization.',
-        currentTables: tableNames
+        success: false,
+        error: 'Database already initialized. JWT_SECRET required for re-initialization.',
+        code: 'UNAUTHORIZED',
       });
     }
 
@@ -212,9 +215,9 @@ router.post('/admin/init-database', async (req, res) => {
   } catch (err) {
     log.error('Database initialization failed', err);
     res.status(500).json({
+      success: false,
       error: 'Database initialization failed',
-      message: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+      code: 'DB_INIT_ERROR',
     });
   }
 });

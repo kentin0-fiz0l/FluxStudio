@@ -15,6 +15,8 @@
 const jwt = require('jsonwebtoken');
 const securityLogger = require('../lib/auth/securityLogger');
 const cache = require('../lib/cache');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('AdminAuth');
 
 /**
  * Admin roles and their permissions
@@ -139,7 +141,7 @@ async function checkAdminRateLimit(userId, path) {
       remaining: maxRequests - requests.length
     };
   } catch (error) {
-    console.error('Admin rate limit check error:', error);
+    log.error('Admin rate limit check error', error);
     // On error, allow request (fail open for admin actions)
     return { allowed: true, current: 0, limit: maxRequests };
   }
@@ -291,7 +293,7 @@ const adminAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Admin auth middleware error:', error);
+    log.error('Admin auth middleware error', error);
 
     // Log the error
     try {
@@ -303,7 +305,7 @@ const adminAuth = async (req, res, next) => {
         ipAddress: req.ip
       });
     } catch (logError) {
-      console.error('Failed to log admin auth error:', logError);
+      log.error('Failed to log admin auth error', logError);
     }
 
     return res.status(500).json({
@@ -339,8 +341,7 @@ async function createAdminToken(email, role = 'admin') {
     { expiresIn: '7d' } // Admin tokens last 7 days
   );
 
-  console.log(`\nAdmin token created for ${email} (${role}).`);
-  console.log('Token length:', token.length, '| Prefix:', token.substring(0, 20) + '...');
+  log.info('Admin token created', { email, role, tokenLength: token.length });
 
   return token;
 }

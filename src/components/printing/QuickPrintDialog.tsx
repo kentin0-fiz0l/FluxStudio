@@ -21,7 +21,6 @@ import {
   DialogFooter,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import { Slider } from '../ui/slider';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -30,13 +29,10 @@ import { Alert, AlertDescription } from '../ui/alert';
 import {
   Printer,
   Clock,
-  Layers,
-  Zap,
   CheckCircle2,
   AlertCircle,
   ChevronDown,
   ChevronUp,
-  Sparkles,
   Rocket,
 } from 'lucide-react';
 import { config } from '@/config/environment';
@@ -45,290 +41,12 @@ import {
   type QuickPrintConfig,
   type MaterialType,
   type QualityPreset,
-  type MaterialInfo,
-  type QualityPresetInfo,
-  type PrintEstimate,
 } from '@/types/printing';
-import { cn } from '@/lib/utils';
 
-// ============================================================================
-// Material Catalog (Designer-Friendly)
-// ============================================================================
-
-const MATERIALS: MaterialInfo[] = [
-  {
-    id: 'PLA',
-    name: 'PLA',
-    description: 'Standard plastic, easy to print',
-    color: 'bg-blue-500',
-    properties: ['Biodegradable', 'Rigid', 'Smooth finish'],
-    costPerGram: 0.02,
-    hotendTemp: 200,
-    bedTemp: 60,
-  },
-  {
-    id: 'PETG',
-    name: 'PETG',
-    description: 'Strong and flexible',
-    color: 'bg-purple-500',
-    properties: ['Durable', 'Heat-resistant', 'Flexible'],
-    costPerGram: 0.025,
-    hotendTemp: 230,
-    bedTemp: 80,
-  },
-  {
-    id: 'ABS',
-    name: 'ABS',
-    description: 'Engineering-grade, very strong',
-    color: 'bg-orange-500',
-    properties: ['Very strong', 'Heat-resistant', 'Post-processable'],
-    costPerGram: 0.022,
-    hotendTemp: 240,
-    bedTemp: 100,
-  },
-  {
-    id: 'TPU',
-    name: 'TPU (Flexible)',
-    description: 'Rubber-like, stretchy material',
-    color: 'bg-green-500',
-    properties: ['Flexible', 'Shock-absorbent', 'Wear-resistant'],
-    costPerGram: 0.035,
-    hotendTemp: 220,
-    bedTemp: 50,
-  },
-  {
-    id: 'NYLON',
-    name: 'Nylon',
-    description: 'High-strength, professional',
-    color: 'bg-gray-500',
-    properties: ['Very strong', 'Flexible', 'Wear-resistant'],
-    costPerGram: 0.04,
-    hotendTemp: 250,
-    bedTemp: 90,
-  },
-];
-
-// ============================================================================
-// Quality Presets (Designer-Friendly)
-// ============================================================================
-
-const QUALITY_PRESETS: QualityPresetInfo[] = [
-  {
-    id: 'draft',
-    name: 'Quick Draft',
-    description: 'Fast prints for testing ideas',
-    layerHeight: 0.3,
-    infillPercentage: 10,
-    speedMultiplier: 1.5,
-    timeMultiplier: 0.6,
-    recommended: false,
-  },
-  {
-    id: 'standard',
-    name: 'Standard Quality',
-    description: 'Great for most uses',
-    layerHeight: 0.2,
-    infillPercentage: 20,
-    speedMultiplier: 1.0,
-    timeMultiplier: 1.0,
-    recommended: true,
-  },
-  {
-    id: 'high',
-    name: 'High Detail',
-    description: 'Smooth finish, fine features',
-    layerHeight: 0.12,
-    infillPercentage: 30,
-    speedMultiplier: 0.8,
-    timeMultiplier: 1.4,
-    recommended: false,
-  },
-  {
-    id: 'ultra',
-    name: 'Exhibition Quality',
-    description: 'Perfect for client presentations',
-    layerHeight: 0.08,
-    infillPercentage: 40,
-    speedMultiplier: 0.6,
-    timeMultiplier: 1.8,
-    recommended: false,
-  },
-];
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Format time in human-readable form
- */
-function formatPrintTime(hours: number, minutes: number): string {
-  if (hours === 0) {
-    return `${minutes}min`;
-  }
-  if (minutes === 0) {
-    return `${hours}h`;
-  }
-  return `${hours}h ${minutes}min`;
-}
-
-/**
- * Calculate print estimate based on config
- */
-function calculateEstimate(
-  fileSize: number = 1000000,
-  material: MaterialType,
-  quality: QualityPreset,
-  copies: number
-): PrintEstimate {
-  // Simplified estimation (in real app, this would call an API)
-  const qualityInfo = QUALITY_PRESETS.find(q => q.id === quality)!;
-  const materialInfo = MATERIALS.find(m => m.id === material)!;
-
-  // Base time estimate (rough approximation)
-  const baseMinutes = (fileSize / 50000) * qualityInfo.timeMultiplier;
-  const totalMinutes = baseMinutes * copies;
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = Math.round(totalMinutes % 60);
-
-  // Material estimate (rough approximation)
-  const baseGrams = fileSize / 40000;
-  const materialGrams = Math.round(baseGrams * (qualityInfo.infillPercentage / 20) * copies);
-  const materialCost = materialGrams * materialInfo.costPerGram;
-
-  return {
-    timeHours: hours,
-    timeMinutes: minutes,
-    materialGrams,
-    materialCost,
-    totalCost: materialCost,
-    confidence: fileSize > 500000 ? 'medium' : 'high',
-  };
-}
-
-// ============================================================================
-// Material Card Component
-// ============================================================================
-
-interface MaterialCardProps {
-  material: MaterialInfo;
-  selected: boolean;
-  onClick: () => void;
-}
-
-const MaterialCard: React.FC<MaterialCardProps> = ({ material, selected, onClick }) => {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'relative w-full p-4 rounded-lg border-2 transition-all text-left',
-        'hover:shadow-md hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2',
-        selected
-          ? 'border-primary-600 bg-primary-50 shadow-md'
-          : 'border-neutral-200 bg-white hover:border-neutral-300'
-      )}
-      role="radio"
-      aria-checked={selected}
-      aria-label={`${material.name} material - ${material.description}. Cost: $${material.costPerGram.toFixed(2)} per gram`}
-      tabIndex={selected ? 0 : -1}
-    >
-      {selected && (
-        <div className="absolute top-2 right-2">
-          <CheckCircle2 className="h-5 w-5 text-primary-600" aria-hidden="true" />
-        </div>
-      )}
-
-      <div className="flex items-start gap-3 mb-2">
-        <div className={cn('w-4 h-4 rounded-full mt-0.5', material.color)} />
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-neutral-900 text-sm mb-0.5">
-            {material.name}
-          </h3>
-          <p className="text-xs text-neutral-600 mb-2">
-            {material.description}
-          </p>
-          <div className="flex flex-wrap gap-1">
-            {material.properties.slice(0, 2).map((prop, idx) => (
-              <Badge key={idx} variant="outline" size="sm" className="text-xs">
-                {prop}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="text-xs text-neutral-500 mt-2">
-        ${material.costPerGram.toFixed(2)}/gram
-      </div>
-    </button>
-  );
-};
-
-// ============================================================================
-// Quality Preset Card Component
-// ============================================================================
-
-interface QualityCardProps {
-  preset: QualityPresetInfo;
-  selected: boolean;
-  onClick: () => void;
-}
-
-const QualityCard: React.FC<QualityCardProps> = ({ preset, selected, onClick }) => {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'relative w-full p-4 rounded-lg border-2 transition-all text-left',
-        'hover:shadow-md hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2',
-        selected
-          ? 'border-primary-600 bg-primary-50 shadow-md'
-          : 'border-neutral-200 bg-white hover:border-neutral-300'
-      )}
-      role="radio"
-      aria-checked={selected}
-      aria-label={`${preset.name} quality - ${preset.description}. Layer height: ${preset.layerHeight}mm`}
-      tabIndex={selected ? 0 : -1}
-    >
-      {selected && (
-        <div className="absolute top-2 right-2">
-          <CheckCircle2 className="h-5 w-5 text-primary-600" aria-hidden="true" />
-        </div>
-      )}
-
-      {preset.recommended && !selected && (
-        <div className="absolute top-2 right-2">
-          <Badge variant="default" size="sm" className="text-xs">
-            <Sparkles className="h-3 w-3 mr-1" aria-hidden="true" />
-            Recommended
-          </Badge>
-        </div>
-      )}
-
-      <h3 className="font-semibold text-neutral-900 text-sm mb-1 pr-8">
-        {preset.name}
-      </h3>
-      <p className="text-xs text-neutral-600 mb-3">
-        {preset.description}
-      </p>
-
-      <div className="flex items-center gap-4 text-xs text-neutral-500">
-        <div className="flex items-center gap-1">
-          <Layers className="h-3 w-3" aria-hidden="true" />
-          {preset.layerHeight}mm
-        </div>
-        <div className="flex items-center gap-1">
-          <Zap className="h-3 w-3" aria-hidden="true" />
-          {preset.speedMultiplier}x
-        </div>
-      </div>
-    </button>
-  );
-};
-
-// ============================================================================
-// Main Component
-// ============================================================================
+import { MATERIALS, QUALITY_PRESETS } from './quickprint/constants';
+import { MaterialCard } from './quickprint/MaterialCard';
+import { QualityCard } from './quickprint/QualityCard';
+import { formatPrintTime, calculateEstimate } from './quickprint/printEstimates';
 
 export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
   isOpen,
@@ -340,10 +58,7 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
   estimate: providedEstimate,
   analysis,
 }) => {
-  // ============================================================================
   // State
-  // ============================================================================
-
   const [material, setMaterial] = useState<MaterialType>('PLA');
   const [quality, setQuality] = useState<QualityPreset>('standard');
   const [copies, setCopies] = useState<number>(1);
@@ -356,15 +71,12 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
   // Calculate estimate
   const estimate = providedEstimate || calculateEstimate(fileSize || 1000000, material, quality, copies);
 
-  // ============================================================================
   // Handlers
-  // ============================================================================
-
   const handlePrint = async () => {
     setIsPrinting(true);
 
     try {
-      const config: QuickPrintConfig = {
+      const printConfig: QuickPrintConfig = {
         material,
         quality,
         copies,
@@ -373,11 +85,10 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
         notes,
       };
 
-      await onPrint(config);
+      await onPrint(printConfig);
       onClose();
     } catch (error) {
       console.error('Print error:', error);
-      // Error handling would show toast notification
     } finally {
       setIsPrinting(false);
     }
@@ -404,10 +115,6 @@ export const QuickPrintDialog: React.FC<QuickPrintDialogProps> = ({
       setIsPrinting(false);
     }
   }, [isOpen]);
-
-  // ============================================================================
-  // Render
-  // ============================================================================
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

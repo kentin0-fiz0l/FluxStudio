@@ -18,9 +18,10 @@ const {
   revokeAllSessions,
 } = require('../lib/auth/sessionManager');
 const { logAction } = require('../lib/auditLog');
-const { z } = require('zod');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Sessions');
+const { zodValidateParams } = require('../middleware/zodValidateParams');
+const { revokeSessionParamsSchema } = require('../lib/schemas');
 
 router.use(authenticateToken);
 
@@ -46,7 +47,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     log.error('List failed', error);
-    res.status(500).json({ error: 'Failed to list sessions' });
+    res.status(500).json({ success: false, error: 'Failed to list sessions', code: 'LIST_SESSIONS_ERROR' });
   }
 });
 
@@ -55,17 +56,8 @@ router.get('/', async (req, res) => {
  *
  * Revoke a specific session by its database ID.
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', zodValidateParams(revokeSessionParamsSchema), async (req, res) => {
   try {
-    const paramResult = z.string().uuid('Must be a valid UUID').safeParse(req.params.id);
-    if (!paramResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: paramResult.error.issues[0].message,
-        field: 'id',
-      });
-    }
-
     const { query: dbQuery } = require('../database/config');
 
     // Verify session belongs to user
@@ -75,7 +67,7 @@ router.delete('/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Session not found' });
+      return res.status(404).json({ success: false, error: 'Session not found', code: 'SESSION_NOT_FOUND' });
     }
 
     await removeSession(result.rows[0].token_id);
@@ -84,7 +76,7 @@ router.delete('/:id', async (req, res) => {
     res.json({ success: true, message: 'Session revoked' });
   } catch (error) {
     log.error('Revoke failed', error);
-    res.status(500).json({ error: 'Failed to revoke session' });
+    res.status(500).json({ success: false, error: 'Failed to revoke session', code: 'REVOKE_SESSION_ERROR' });
   }
 });
 
@@ -101,7 +93,7 @@ router.delete('/', async (req, res) => {
     res.json({ success: true, message: 'All other sessions revoked' });
   } catch (error) {
     log.error('Revoke all failed', error);
-    res.status(500).json({ error: 'Failed to revoke sessions' });
+    res.status(500).json({ success: false, error: 'Failed to revoke sessions', code: 'REVOKE_ALL_SESSIONS_ERROR' });
   }
 });
 

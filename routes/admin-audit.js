@@ -14,13 +14,15 @@ const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('AdminAudit');
+const { zodValidateQuery } = require('../middleware/zodValidateQuery');
+const { listAuditLogsQuerySchema, exportAuditLogsQuerySchema } = require('../lib/schemas');
 
 // All routes require authentication + admin role
 router.use(authenticateToken);
 
 function requireAdmin(req, res, next) {
   if (req.user.userType !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
+    return res.status(403).json({ success: false, error: 'Admin access required', code: 'ADMIN_REQUIRED' });
   }
   next();
 }
@@ -40,7 +42,7 @@ router.use(requireAdmin);
  *   page      — page number (default 1)
  *   limit     — rows per page (default 50, max 200)
  */
-router.get('/', async (req, res) => {
+router.get('/', zodValidateQuery(listAuditLogsQuerySchema), async (req, res) => {
   try {
     const {
       action,
@@ -132,7 +134,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     log.error('List failed', error);
-    res.status(500).json({ error: 'Failed to fetch audit logs' });
+    res.status(500).json({ success: false, error: 'Failed to fetch audit logs', code: 'FETCH_AUDIT_LOGS_ERROR' });
   }
 });
 
@@ -141,7 +143,7 @@ router.get('/', async (req, res) => {
  *
  * Returns CSV of filtered audit logs (same filters as list endpoint).
  */
-router.get('/export', async (req, res) => {
+router.get('/export', zodValidateQuery(exportAuditLogsQuerySchema), async (req, res) => {
   try {
     const { action, resource, userId, startDate, endDate } = req.query;
 
@@ -205,7 +207,7 @@ router.get('/export', async (req, res) => {
     res.send(header + rows);
   } catch (error) {
     log.error('Export failed', error);
-    res.status(500).json({ error: 'Failed to export audit logs' });
+    res.status(500).json({ success: false, error: 'Failed to export audit logs', code: 'EXPORT_AUDIT_LOGS_ERROR' });
   }
 });
 

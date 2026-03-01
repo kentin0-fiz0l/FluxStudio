@@ -149,7 +149,7 @@ router.get('/', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Get usage error', error);
-    res.status(500).json({ error: 'Failed to get usage' });
+    res.status(500).json({ success: false, error: 'Failed to get usage', code: 'GET_USAGE_ERROR' });
   }
 });
 
@@ -176,7 +176,7 @@ router.get('/limits', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Get limits error', error);
-    res.status(500).json({ error: 'Failed to get limits' });
+    res.status(500).json({ success: false, error: 'Failed to get limits', code: 'GET_LIMITS_ERROR' });
   }
 });
 

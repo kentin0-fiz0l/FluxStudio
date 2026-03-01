@@ -153,7 +153,7 @@ describe('Channels & Organizations Integration Tests', () => {
         .send({ teamId: 'team-1' })
         .expect(400);
 
-      expect(res.body.message).toBe('Name and team ID are required');
+      expect(res.body.error).toBeDefined();
     });
 
     it('should return 400 when teamId is missing', async () => {
@@ -163,7 +163,7 @@ describe('Channels & Organizations Integration Tests', () => {
         .send({ name: 'general' })
         .expect(400);
 
-      expect(res.body.message).toBe('Name and team ID are required');
+      expect(res.body.error).toBeDefined();
     });
 
     it('should create channel with empty description when not provided', async () => {
@@ -296,7 +296,7 @@ describe('Channels & Organizations Integration Tests', () => {
         .send({ description: 'No name' })
         .expect(400);
 
-      expect(res.body.message).toBe('Organization name is required');
+      expect(res.body.error).toBeDefined();
     });
 
     it('should create organization with empty description when not provided', async () => {

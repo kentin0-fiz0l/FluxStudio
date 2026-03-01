@@ -15,6 +15,8 @@ const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Referrals');
+const { zodValidateParams } = require('../middleware/zodValidateParams');
+const { validateReferralCodeParamsSchema } = require('../lib/schemas');
 
 const router = express.Router();
 
@@ -64,7 +66,7 @@ router.get('/code', authenticateToken, async (req, res) => {
     res.json({ success: true, code });
   } catch (error) {
     log.error('Code generation error', error);
-    res.status(500).json({ error: 'Failed to generate referral code' });
+    res.status(500).json({ success: false, error: 'Failed to generate referral code', code: 'REFERRAL_CODE_ERROR' });
   }
 });
 
@@ -117,7 +119,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Stats error', error);
-    res.status(500).json({ error: 'Failed to fetch referral stats' });
+    res.status(500).json({ success: false, error: 'Failed to fetch referral stats', code: 'REFERRAL_STATS_ERROR' });
   }
 });
 
@@ -125,7 +127,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
  * GET /api/referrals/validate/:code
  * Public endpoint — validate a referral code before signup.
  */
-router.get('/validate/:code', async (req, res) => {
+router.get('/validate/:code', zodValidateParams(validateReferralCodeParamsSchema), async (req, res) => {
   try {
     const result = await query(
       `SELECT rc.code, u.name AS referrer_name
@@ -146,7 +148,7 @@ router.get('/validate/:code', async (req, res) => {
     });
   } catch (error) {
     log.error('Validate error', error);
-    res.status(500).json({ error: 'Failed to validate code' });
+    res.status(500).json({ success: false, error: 'Failed to validate code', code: 'REFERRAL_VALIDATE_ERROR' });
   }
 });
 

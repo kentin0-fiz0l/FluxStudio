@@ -14,6 +14,11 @@ import { formationsApi } from './formations';
 import { teamsApi } from './teams';
 import { aiApi } from './ai';
 import { connectorsApi } from './connectors';
+import { notificationsApi } from './notifications';
+import { analyticsApi } from './analytics';
+import { sessionsApi } from './sessions';
+import { assetsApi } from './assets';
+import { documentsApi } from './documents';
 
 export type { ApiResponse, ApiError, UserSettings } from './base';
 export { ApiService } from './base';
@@ -32,6 +37,11 @@ export const apiService = Object.assign(baseService, {
   ...teamsApi(baseService),
   ...aiApi(baseService),
   ...connectorsApi(baseService),
+  ...notificationsApi(baseService),
+  ...analyticsApi(baseService),
+  ...sessionsApi(baseService),
+  ...assetsApi(baseService),
+  ...documentsApi(baseService),
 });
 
 export default apiService;

@@ -6,6 +6,8 @@
 
 const { query } = require('../database/config');
 const usageRoutes = require('../routes/usage');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('QuotaCheck');
 
 /**
  * Create middleware that checks a specific resource quota before allowing the request
@@ -71,7 +73,7 @@ function checkQuota(resource) {
 
       next();
     } catch (error) {
-      console.error('Quota check error:', error);
+      log.error('Quota check error', error);
       // Don't block on quota check failures — let the request through
       next();
     }

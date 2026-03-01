@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle,
-  Clock,
   AlertCircle,
   Calendar,
   User,
@@ -13,99 +11,19 @@ import {
   Trash2,
   PlayCircle,
   PauseCircle,
-  RotateCcw
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Progress } from '../ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useAuth } from '@/store/slices/authSlice';
 import { cn } from '../../lib/utils';
 
-interface Milestone {
-  id: string;
-  name: string;
-  description?: string;
-  due_date?: string;
-  completed_at?: string;
-  assigned_to?: string;
-  order_index: number;
-  is_required: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  description?: string;
-  status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  project_type: string;
-  service_category: string;
-  service_tier: string;
-  start_date?: string;
-  due_date?: string;
-  completion_date?: string;
-  milestones?: Milestone[];
-  progress?: number;
-}
-
-interface ProjectWorkflowProps {
-  project: Project;
-  onProjectUpdate?: (project: Project) => void;
-  onMilestoneUpdate?: (milestone: Milestone) => void;
-  isEditable?: boolean;
-}
-
-const statusConfig = {
-  planning: {
-    label: 'Planning',
-    color: 'bg-blue-500',
-    textColor: 'text-blue-700',
-    bgColor: 'bg-blue-50',
-    icon: Clock
-  },
-  active: {
-    label: 'Active',
-    color: 'bg-green-500',
-    textColor: 'text-green-700',
-    bgColor: 'bg-green-50',
-    icon: PlayCircle
-  },
-  'on-hold': {
-    label: 'On Hold',
-    color: 'bg-yellow-500',
-    textColor: 'text-yellow-700',
-    bgColor: 'bg-yellow-50',
-    icon: PauseCircle
-  },
-  completed: {
-    label: 'Completed',
-    color: 'bg-gray-500',
-    textColor: 'text-gray-700',
-    bgColor: 'bg-gray-50',
-    icon: CheckCircle
-  },
-  cancelled: {
-    label: 'Cancelled',
-    color: 'bg-red-500',
-    textColor: 'text-red-700',
-    bgColor: 'bg-red-50',
-    icon: RotateCcw
-  }
-};
-
-const priorityConfig = {
-  low: { label: 'Low', color: 'bg-blue-500' },
-  medium: { label: 'Medium', color: 'bg-yellow-500' },
-  high: { label: 'High', color: 'bg-orange-500' },
-  urgent: { label: 'Urgent', color: 'bg-red-500' }
-};
+import type { ProjectWorkflowProps } from './workflow/types';
+import { statusConfig, priorityConfig } from './workflow/constants';
+import { ProjectEditForm } from './workflow/ProjectEditForm';
+import { MilestoneForm } from './workflow/MilestoneForm';
+import { useProjectWorkflow } from '../../hooks/useProjectWorkflow';
 
 export function ProjectWorkflow({
   project,
@@ -113,105 +31,28 @@ export function ProjectWorkflow({
   onMilestoneUpdate,
   isEditable = false
 }: ProjectWorkflowProps) {
-  const { user: _user } = useAuth();
-  const [milestones, setMilestones] = useState<Milestone[]>(project.milestones || []);
-  const [isEditingProject, setIsEditingProject] = useState(false);
-  const [editingMilestone, setEditingMilestone] = useState<Milestone | null>(null);
-  const [isCreatingMilestone, setIsCreatingMilestone] = useState(false);
+  const {
+    milestones,
+    isEditingProject,
+    setIsEditingProject,
+    editingMilestone,
+    setEditingMilestone,
+    isCreatingMilestone,
+    setIsCreatingMilestone,
+    completedMilestones,
+    totalMilestones,
+    progress,
+    toggleMilestoneCompletion,
+    updateProjectStatus,
+    createMilestone,
+    saveMilestoneEdit,
+    formatDate,
+    isOverdue
+  } = useProjectWorkflow({ project, onProjectUpdate, onMilestoneUpdate, isEditable });
 
   const statusInfo = statusConfig[project.status];
   const priorityInfo = priorityConfig[project.priority];
   const StatusIcon = statusInfo.icon;
-
-  // Calculate project progress
-  const completedMilestones = milestones.filter(m => m.completed_at).length;
-  const totalMilestones = milestones.length;
-  const progress = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
-
-  // Handle milestone completion toggle
-  const toggleMilestoneCompletion = async (milestone: Milestone) => {
-    if (!isEditable) return;
-
-    try {
-      const updatedMilestone: Milestone = {
-        ...milestone,
-        completed_at: milestone.completed_at ? undefined : new Date().toISOString()
-      };
-
-      // Update local state
-      setMilestones(prev =>
-        prev.map(m => m.id === milestone.id ? updatedMilestone : m)
-      );
-
-      // Call API to update milestone
-      if (onMilestoneUpdate) {
-        onMilestoneUpdate(updatedMilestone);
-      }
-    } catch (error) {
-      console.error('Failed to update milestone:', error);
-    }
-  };
-
-  // Handle project status change
-  const updateProjectStatus = async (newStatus: Project['status']) => {
-    if (!isEditable) return;
-
-    try {
-      const updatedProject = {
-        ...project,
-        status: newStatus,
-        completion_date: newStatus === 'completed' ? new Date().toISOString() : project.completion_date
-      };
-
-      if (onProjectUpdate) {
-        onProjectUpdate(updatedProject);
-      }
-    } catch (error) {
-      console.error('Failed to update project status:', error);
-    }
-  };
-
-  // Create new milestone
-  const createMilestone = async (milestoneData: Partial<Milestone>) => {
-    try {
-      const newMilestone: Milestone = {
-        id: `milestone-${Date.now()}`,
-        name: milestoneData.name || '',
-        description: milestoneData.description || '',
-        due_date: milestoneData.due_date,
-        assigned_to: milestoneData.assigned_to,
-        order_index: milestones.length,
-        is_required: milestoneData.is_required || true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      setMilestones(prev => [...prev, newMilestone]);
-      setIsCreatingMilestone(false);
-
-      if (onMilestoneUpdate) {
-        onMilestoneUpdate(newMilestone);
-      }
-    } catch (error) {
-      console.error('Failed to create milestone:', error);
-    }
-  };
-
-  // Format date for display
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'No date set';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  // Check if date is overdue
-  const isOverdue = (dateString?: string) => {
-    if (!dateString) return false;
-    return new Date(dateString) < new Date() && project.status !== 'completed';
-  };
 
   return (
     <div className="space-y-6">
@@ -447,13 +288,7 @@ export function ProjectWorkflow({
                               <MilestoneForm
                                 milestone={milestone}
                                 onSave={(updatedMilestone) => {
-                                  setMilestones(prev =>
-                                    prev.map(m => m.id === milestone.id ? { ...milestone, ...updatedMilestone } : m)
-                                  );
-                                  setEditingMilestone(null);
-                                  if (onMilestoneUpdate) {
-                                    onMilestoneUpdate({ ...milestone, ...updatedMilestone });
-                                  }
+                                  saveMilestoneEdit(milestone.id, updatedMilestone);
                                 }}
                                 onCancel={() => setEditingMilestone(null)}
                               />
@@ -530,185 +365,4 @@ export function ProjectWorkflow({
   );
 }
 
-// Project Edit Form Component
-function ProjectEditForm({
-  project,
-  onSave,
-  onCancel
-}: {
-  project: Project;
-  onSave: (project: Project) => void;
-  onCancel: () => void;
-}) {
-  const [formData, setFormData] = useState({
-    name: project.name,
-    description: project.description || '',
-    status: project.status,
-    priority: project.priority,
-    start_date: project.start_date || '',
-    due_date: project.due_date || ''
-  });
-
-  const handleSave = () => {
-    onSave({
-      ...project,
-      ...formData
-    });
-  };
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <label className="text-sm font-medium">Project Name</label>
-        <Input
-          value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          placeholder="Enter project name"
-        />
-      </div>
-
-      <div>
-        <label className="text-sm font-medium">Description</label>
-        <Textarea
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="Enter project description"
-          rows={3}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-sm font-medium">Status</label>
-          <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as Project['status'] }))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="planning">Planning</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="on-hold">On Hold</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium">Priority</label>
-          <Select value={formData.priority} onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as Project['priority'] }))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="urgent">Urgent</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-sm font-medium">Start Date</label>
-          <Input
-            type="date"
-            value={formData.start_date}
-            onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium">Due Date</label>
-          <Input
-            type="date"
-            value={formData.due_date}
-            onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-2 pt-4">
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={handleSave}>Save Changes</Button>
-      </div>
-    </div>
-  );
-}
-
-// Milestone Form Component
-function MilestoneForm({
-  milestone,
-  onSave,
-  onCancel
-}: {
-  milestone: Milestone | null;
-  onSave: (milestone: Partial<Milestone>) => void;
-  onCancel: () => void;
-}) {
-  const [formData, setFormData] = useState({
-    name: milestone?.name || '',
-    description: milestone?.description || '',
-    due_date: milestone?.due_date || '',
-    assigned_to: milestone?.assigned_to || '',
-    is_required: milestone?.is_required ?? true
-  });
-
-  const handleSave = () => {
-    if (!formData.name.trim()) return;
-    onSave(formData);
-  };
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <label className="text-sm font-medium">Milestone Name *</label>
-        <Input
-          value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          placeholder="Enter milestone name"
-        />
-      </div>
-
-      <div>
-        <label className="text-sm font-medium">Description</label>
-        <Textarea
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="Enter milestone description"
-          rows={3}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-sm font-medium">Due Date</label>
-          <Input
-            type="date"
-            value={formData.due_date}
-            onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium">Assigned To</label>
-          <Input
-            value={formData.assigned_to}
-            onChange={(e) => setFormData(prev => ({ ...prev, assigned_to: e.target.value }))}
-            placeholder="Enter assignee name"
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-2 pt-4">
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={handleSave} disabled={!formData.name.trim()}>
-          {milestone ? 'Update' : 'Create'} Milestone
-        </Button>
-      </div>
-    </div>
-  );
-}
 export default ProjectWorkflow;
