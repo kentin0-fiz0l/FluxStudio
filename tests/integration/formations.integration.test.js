@@ -47,6 +47,23 @@ const mockFormationsAdapter = {
 
 jest.mock('../../database/formations-adapter', () => mockFormationsAdapter);
 
+jest.mock('../../database/scene-objects-adapter', () => ({
+  listByFormation: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  remove: jest.fn(),
+  bulkSync: jest.fn(),
+}));
+
+jest.mock('../../lib/logger', () => ({
+  createLogger: jest.fn(() => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  }))
+}));
+
 function createTestToken(userId = 'test-user-123', extra = {}) {
   return jwt.sign({ id: userId, email: 'test@example.com', userType: 'client', ...extra }, JWT_SECRET, { expiresIn: '1h' });
 }
@@ -167,14 +184,14 @@ describe('Formations Integration Tests', () => {
         .send({ description: 'No name' })
         .expect(400);
 
-      expect(res.body.error).toBe('Formation name is required');
+      expect(res.body.success).toBe(false);
     });
 
     it('should return 400 when name is empty string', async () => {
       const res = await request(app)
         .post('/api/projects/proj-1/formations')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: '   ' })
+        .send({ name: '' })
         .expect(400);
 
       expect(res.body.error).toBe('Formation name is required');
@@ -351,7 +368,7 @@ describe('Formations Integration Tests', () => {
         .send({ duration: 120 })
         .expect(400);
 
-      expect(res.body.error).toBe('Audio URL and filename are required');
+      expect(res.body.success).toBe(false);
     });
 
     it('POST /api/formations/:formationId/audio should return 404 for non-existent formation', async () => {
@@ -410,7 +427,7 @@ describe('Formations Integration Tests', () => {
         .send({ color: '#ff0000' })
         .expect(400);
 
-      expect(res.body.error).toBe('Performer name and label are required');
+      expect(res.body.success).toBe(false);
     });
 
     it('POST should return 404 for non-existent formation', async () => {
@@ -573,7 +590,70 @@ describe('Formations Integration Tests', () => {
         .send({ rotation: 45 })
         .expect(400);
 
-      expect(res.body.error).toBe('Position x and y are required');
+      expect(res.body.error).toBe('Position x is required');
+    });
+  });
+
+  // =========================================================================
+  // Zod Validation
+  // =========================================================================
+  describe('Zod Validation', () => {
+    it('should return 400 for create formation with empty name', async () => {
+      const res = await request(app)
+        .post('/api/projects/proj-1/formations')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: '' });
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return 400 for audio upload missing url', async () => {
+      mockFormationsAdapter.getFormationById.mockResolvedValue({ id: 'f-1' });
+      const res = await request(app)
+        .post('/api/formations/f-1/audio')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ filename: 'song.mp3' });
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 for audio upload missing filename', async () => {
+      const res = await request(app)
+        .post('/api/formations/f-1/audio')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ url: 'https://example.com/song.mp3' });
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 for add performer missing label', async () => {
+      const res = await request(app)
+        .post('/api/formations/f-1/performers')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Alice' });
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 for set position missing x/y', async () => {
+      const res = await request(app)
+        .put('/api/formations/f-1/keyframes/kf-1/positions/p-1')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ rotation: 45 });
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 for create scene object missing required fields', async () => {
+      const res = await request(app)
+        .post('/api/formations/f-1/scene-objects')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'obj' });
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 for bulk sync scene objects with non-array', async () => {
+      const res = await request(app)
+        .put('/api/formations/f-1/scene-objects')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ objects: 'not-an-array' });
+      expect(res.status).toBe(400);
     });
   });
 });

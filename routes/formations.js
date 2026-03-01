@@ -16,6 +16,21 @@ const formationsAdapter = require('../database/formations-adapter');
 const sceneObjectsAdapter = require('../database/scene-objects-adapter');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Formations');
+const { zodValidate } = require('../middleware/zodValidate');
+const {
+  createFormationSchema,
+  updateFormationSchema,
+  saveFormationSchema,
+  formationAudioSchema,
+  addPerformerSchema,
+  updatePerformerSchema,
+  addKeyframeSchema,
+  updateKeyframeSchema,
+  setPositionSchema,
+  createSceneObjectSchema,
+  updateSceneObjectSchema,
+  bulkSyncSceneObjectsSchema,
+} = require('../lib/schemas');
 
 const router = express.Router();
 
@@ -44,14 +59,10 @@ router.get('/projects/:projectId/formations', authenticateToken, async (req, res
  * POST /api/projects/:projectId/formations
  * Create a new formation
  */
-router.post('/projects/:projectId/formations', authenticateToken, async (req, res) => {
+router.post('/projects/:projectId/formations', authenticateToken, zodValidate(createFormationSchema), async (req, res) => {
   try {
     const { projectId } = req.params;
     const { name, description, stageWidth, stageHeight, gridSize } = req.body;
-
-    if (!name || name.trim().length === 0) {
-      return res.status(400).json({ success: false, error: 'Formation name is required' });
-    }
 
     const formation = await formationsAdapter.createFormation({
       projectId,
@@ -94,7 +105,7 @@ router.get('/formations/:formationId', authenticateToken, async (req, res) => {
  * PATCH /api/formations/:formationId
  * Update formation metadata
  */
-router.patch('/formations/:formationId', authenticateToken, async (req, res) => {
+router.patch('/formations/:formationId', authenticateToken, zodValidate(updateFormationSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { name, description, stageWidth, stageHeight, gridSize, isArchived, audioTrack } = req.body;
@@ -147,7 +158,7 @@ router.delete('/formations/:formationId', authenticateToken, async (req, res) =>
  * PUT /api/formations/:formationId/save
  * Bulk save formation data (performers, keyframes, positions)
  */
-router.put('/formations/:formationId/save', authenticateToken, async (req, res) => {
+router.put('/formations/:formationId/save', authenticateToken, zodValidate(saveFormationSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { name, performers, keyframes } = req.body;
@@ -176,14 +187,10 @@ router.put('/formations/:formationId/save', authenticateToken, async (req, res) 
  * POST /api/formations/:formationId/audio
  * Upload audio track for a formation
  */
-router.post('/formations/:formationId/audio', authenticateToken, async (req, res) => {
+router.post('/formations/:formationId/audio', authenticateToken, zodValidate(formationAudioSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { id, url, filename, duration } = req.body;
-
-    if (!url || !filename) {
-      return res.status(400).json({ success: false, error: 'Audio URL and filename are required' });
-    }
 
     const formation = await formationsAdapter.getFormationById(formationId);
     if (!formation) {
@@ -234,14 +241,10 @@ router.delete('/formations/:formationId/audio', authenticateToken, async (req, r
  * POST /api/formations/:formationId/performers
  * Add a performer to a formation
  */
-router.post('/formations/:formationId/performers', authenticateToken, async (req, res) => {
+router.post('/formations/:formationId/performers', authenticateToken, zodValidate(addPerformerSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { name, label, color, groupName } = req.body;
-
-    if (!name || !label) {
-      return res.status(400).json({ success: false, error: 'Performer name and label are required' });
-    }
 
     const formation = await formationsAdapter.getFormationById(formationId);
     if (!formation) {
@@ -267,7 +270,7 @@ router.post('/formations/:formationId/performers', authenticateToken, async (req
  * PATCH /api/formations/:formationId/performers/:performerId
  * Update a performer
  */
-router.patch('/formations/:formationId/performers/:performerId', authenticateToken, async (req, res) => {
+router.patch('/formations/:formationId/performers/:performerId', authenticateToken, zodValidate(updatePerformerSchema), async (req, res) => {
   try {
     const { performerId } = req.params;
     const { name, label, color, groupName } = req.body;
@@ -313,7 +316,7 @@ router.delete('/formations/:formationId/performers/:performerId', authenticateTo
  * POST /api/formations/:formationId/keyframes
  * Add a keyframe to a formation
  */
-router.post('/formations/:formationId/keyframes', authenticateToken, async (req, res) => {
+router.post('/formations/:formationId/keyframes', authenticateToken, zodValidate(addKeyframeSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { timestampMs, transition, duration } = req.body;
@@ -341,7 +344,7 @@ router.post('/formations/:formationId/keyframes', authenticateToken, async (req,
  * PATCH /api/formations/:formationId/keyframes/:keyframeId
  * Update a keyframe
  */
-router.patch('/formations/:formationId/keyframes/:keyframeId', authenticateToken, async (req, res) => {
+router.patch('/formations/:formationId/keyframes/:keyframeId', authenticateToken, zodValidate(updateKeyframeSchema), async (req, res) => {
   try {
     const { keyframeId } = req.params;
     const { timestampMs, transition, duration } = req.body;
@@ -386,14 +389,10 @@ router.delete('/formations/:formationId/keyframes/:keyframeId', authenticateToke
  * PUT /api/formations/:formationId/keyframes/:keyframeId/positions/:performerId
  * Set performer position at a keyframe
  */
-router.put('/formations/:formationId/keyframes/:keyframeId/positions/:performerId', authenticateToken, async (req, res) => {
+router.put('/formations/:formationId/keyframes/:keyframeId/positions/:performerId', authenticateToken, zodValidate(setPositionSchema), async (req, res) => {
   try {
     const { keyframeId, performerId } = req.params;
     const { x, y, rotation } = req.body;
-
-    if (x === undefined || y === undefined) {
-      return res.status(400).json({ success: false, error: 'Position x and y are required' });
-    }
 
     const position = await formationsAdapter.setPosition({
       keyframeId,
@@ -431,14 +430,10 @@ router.get('/formations/:formationId/scene-objects', authenticateToken, async (r
  * POST /api/formations/:formationId/scene-objects
  * Create a single scene object
  */
-router.post('/formations/:formationId/scene-objects', authenticateToken, async (req, res) => {
+router.post('/formations/:formationId/scene-objects', authenticateToken, zodValidate(createSceneObjectSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { id, name, type, position, source, attachedToPerformerId, visible, locked, layer } = req.body;
-
-    if (!name || !type || !position || !source) {
-      return res.status(400).json({ success: false, error: 'name, type, position, and source are required' });
-    }
 
     const object = await sceneObjectsAdapter.create({
       formationId, id, name, type, position, source,
@@ -456,7 +451,7 @@ router.post('/formations/:formationId/scene-objects', authenticateToken, async (
  * PATCH /api/formations/:formationId/scene-objects/:objectId
  * Update a scene object
  */
-router.patch('/formations/:formationId/scene-objects/:objectId', authenticateToken, async (req, res) => {
+router.patch('/formations/:formationId/scene-objects/:objectId', authenticateToken, zodValidate(updateSceneObjectSchema), async (req, res) => {
   try {
     const { objectId } = req.params;
     const { name, type, position, source, attachedToPerformerId, visible, locked, layer } = req.body;
@@ -495,14 +490,10 @@ router.delete('/formations/:formationId/scene-objects/:objectId', authenticateTo
  * PUT /api/formations/:formationId/scene-objects
  * Bulk sync all scene objects (primary save path)
  */
-router.put('/formations/:formationId/scene-objects', authenticateToken, async (req, res) => {
+router.put('/formations/:formationId/scene-objects', authenticateToken, zodValidate(bulkSyncSceneObjectsSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
     const { objects } = req.body;
-
-    if (!Array.isArray(objects)) {
-      return res.status(400).json({ success: false, error: 'objects array is required' });
-    }
 
     const result = await sceneObjectsAdapter.bulkSync(formationId, objects);
     res.json({ success: true, sceneObjects: result });

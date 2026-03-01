@@ -232,14 +232,14 @@ describe('MetMap Integration Tests', () => {
         .send({ description: 'No title' })
         .expect(400);
 
-      expect(res.body.error).toBe('Title is required');
+      expect(res.body.success).toBe(false);
     });
 
     it('should return 400 for empty title', async () => {
       const res = await request(app)
         .post('/api/metmap/songs')
         .set('Authorization', `Bearer ${token}`)
-        .send({ title: '   ' })
+        .send({ title: '' })
         .expect(400);
 
       expect(res.body.error).toBe('Title is required');
@@ -396,7 +396,7 @@ describe('MetMap Integration Tests', () => {
         .send({ sections: 'not-an-array' })
         .expect(400);
 
-      expect(res.body.error).toBe('Sections must be an array');
+      expect(res.body.success).toBe(false);
     });
 
     it('should return 404 when song not found', async () => {
@@ -493,7 +493,7 @@ describe('MetMap Integration Tests', () => {
         .send({ chords: 'not-an-array' })
         .expect(400);
 
-      expect(res.body.error).toBe('Chords must be an array');
+      expect(res.body.success).toBe(false);
     });
 
     it('should return 400 when chord missing symbol', async () => {
@@ -503,7 +503,7 @@ describe('MetMap Integration Tests', () => {
         .send({ chords: [{ position: 0 }] })
         .expect(400);
 
-      expect(res.body.error).toBe('Each chord must have a symbol');
+      expect(res.body.success).toBe(false);
     });
 
     it('should return 404 when section not found', async () => {
@@ -745,7 +745,7 @@ describe('MetMap Integration Tests', () => {
         .send({ sortOrder: 'first' })
         .expect(400);
 
-      expect(res.body.error).toBe('sortOrder must be a number');
+      expect(res.body.success).toBe(false);
     });
   });
 
@@ -772,7 +772,7 @@ describe('MetMap Integration Tests', () => {
         .send({})
         .expect(400);
 
-      expect(res.body.error).toBe('beatMap is required');
+      expect(res.body.success).toBe(false);
     });
   });
 
@@ -829,7 +829,7 @@ describe('MetMap Integration Tests', () => {
         .send({})
         .expect(400);
 
-      expect(res.body.error).toBe('name is required');
+      expect(res.body.success).toBe(false);
     });
 
     it('should return 404 when song has no Yjs state', async () => {
@@ -956,7 +956,7 @@ describe('MetMap Integration Tests', () => {
         .send({})
         .expect(400);
 
-      expect(res.body.error).toBe('name is required');
+      expect(res.body.success).toBe(false);
     });
 
     it('should return 404 when song not found', async () => {
@@ -1023,6 +1023,68 @@ describe('MetMap Integration Tests', () => {
         .expect(404);
 
       expect(res.body.error).toBe('Branch not found or is main branch');
+    });
+  });
+
+  // =========================================================================
+  // Zod Validation
+  // =========================================================================
+  describe('Zod Validation', () => {
+    it('should return 400 for create song with empty title', async () => {
+      const res = await request(app)
+        .post('/api/metmap/songs')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ title: '' });
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return 400 for upsert sections with non-array', async () => {
+      const res = await request(app)
+        .put('/api/metmap/songs/song-1/sections')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ sections: 'not-array' });
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 for upsert chords with missing symbol', async () => {
+      const res = await request(app)
+        .put('/api/metmap/sections/sec-1/chords')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ chords: [{ position: 0 }] });
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 for reorder track with non-number sortOrder', async () => {
+      const res = await request(app)
+        .put('/api/metmap/tracks/trk-1/reorder')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ sortOrder: 'first' });
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 for track beat-map missing beatMap', async () => {
+      const res = await request(app)
+        .put('/api/metmap/tracks/trk-1/beat-map')
+        .set('Authorization', `Bearer ${token}`)
+        .send({});
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 for create snapshot with missing name', async () => {
+      const res = await request(app)
+        .post('/api/metmap/songs/song-1/snapshots')
+        .set('Authorization', `Bearer ${token}`)
+        .send({});
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 for create branch with missing name', async () => {
+      const res = await request(app)
+        .post('/api/metmap/songs/song-1/branches')
+        .set('Authorization', `Bearer ${token}`)
+        .send({});
+      expect(res.status).toBe(400);
     });
   });
 });

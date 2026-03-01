@@ -19,6 +19,21 @@ const { authenticateToken } = require('../lib/auth/middleware');
 const { v4: uuidv4 } = require('uuid');
 const metmapAdapter = require('../database/metmap-adapter');
 const { fileStorage } = require('../lib/storage');
+const { zodValidate } = require('../middleware/zodValidate');
+const {
+  createSongSchema,
+  updateSongSchema,
+  songBeatMapSchema,
+  upsertSectionsSchema,
+  upsertChordsSchema,
+  startPracticeSchema,
+  endPracticeSchema,
+  updateTrackSchema,
+  reorderTrackSchema,
+  trackBeatMapSchema,
+  createSnapshotSchema,
+  createBranchSchema,
+} = require('../lib/schemas');
 
 const audioUpload = multer({
   storage: multer.memoryStorage(),
@@ -75,13 +90,9 @@ router.get('/stats', authenticateToken, async (req, res) => {
  * POST /api/metmap/songs
  * Create a new song
  */
-router.post('/songs', authenticateToken, async (req, res) => {
+router.post('/songs', authenticateToken, zodValidate(createSongSchema), async (req, res) => {
   try {
     const { title, description, projectId, bpmDefault, timeSignatureDefault } = req.body;
-
-    if (!title || title.trim().length === 0) {
-      return res.status(400).json({ error: 'Title is required' });
-    }
 
     const song = await metmapAdapter.createSong(req.user.id, {
       title: title.trim(),
@@ -122,7 +133,7 @@ router.get('/songs/:songId', authenticateToken, async (req, res) => {
  * PUT /api/metmap/songs/:songId
  * Update a song
  */
-router.put('/songs/:songId', authenticateToken, async (req, res) => {
+router.put('/songs/:songId', authenticateToken, zodValidate(updateSongSchema), async (req, res) => {
   try {
     const { songId } = req.params;
     const { title, description, projectId, bpmDefault, timeSignatureDefault } = req.body;
@@ -232,7 +243,7 @@ router.delete('/songs/:songId/audio', authenticateToken, async (req, res) => {
  * PUT /api/metmap/songs/:songId/beat-map
  * Save detected beat map for a song
  */
-router.put('/songs/:songId/beat-map', authenticateToken, async (req, res) => {
+router.put('/songs/:songId/beat-map', authenticateToken, zodValidate(songBeatMapSchema), async (req, res) => {
   try {
     const { songId } = req.params;
     const { beatMap, detectedBpm, audioDurationSeconds } = req.body;
@@ -282,14 +293,10 @@ router.get('/songs/:songId/sections', authenticateToken, async (req, res) => {
  * PUT /api/metmap/songs/:songId/sections
  * Bulk upsert sections
  */
-router.put('/songs/:songId/sections', authenticateToken, async (req, res) => {
+router.put('/songs/:songId/sections', authenticateToken, zodValidate(upsertSectionsSchema), async (req, res) => {
   try {
     const { songId } = req.params;
     const { sections } = req.body;
-
-    if (!Array.isArray(sections)) {
-      return res.status(400).json({ error: 'Sections must be an array' });
-    }
 
     const updatedSections = await metmapAdapter.upsertSections(songId, req.user.id, sections);
 
@@ -352,21 +359,10 @@ router.get('/songs/:songId/chords', authenticateToken, async (req, res) => {
  * PUT /api/metmap/sections/:sectionId/chords
  * Bulk upsert chords for a section
  */
-router.put('/sections/:sectionId/chords', authenticateToken, async (req, res) => {
+router.put('/sections/:sectionId/chords', authenticateToken, zodValidate(upsertChordsSchema), async (req, res) => {
   try {
     const { sectionId } = req.params;
     const { chords } = req.body;
-
-    if (!Array.isArray(chords)) {
-      return res.status(400).json({ error: 'Chords must be an array' });
-    }
-
-    // Validate chords have symbols
-    for (const chord of chords) {
-      if (!chord.symbol || chord.symbol.trim().length === 0) {
-        return res.status(400).json({ error: 'Each chord must have a symbol' });
-      }
-    }
 
     const updatedChords = await metmapAdapter.upsertChords(sectionId, req.user.id, chords);
 
@@ -409,7 +405,7 @@ router.delete('/chords/:chordId', authenticateToken, async (req, res) => {
  * POST /api/metmap/songs/:songId/practice
  * Start a practice session
  */
-router.post('/songs/:songId/practice', authenticateToken, async (req, res) => {
+router.post('/songs/:songId/practice', authenticateToken, zodValidate(startPracticeSchema), async (req, res) => {
   try {
     const { songId } = req.params;
     const { settings } = req.body;
@@ -431,7 +427,7 @@ router.post('/songs/:songId/practice', authenticateToken, async (req, res) => {
  * POST /api/metmap/practice/:sessionId/end
  * End a practice session
  */
-router.post('/practice/:sessionId/end', authenticateToken, async (req, res) => {
+router.post('/practice/:sessionId/end', authenticateToken, zodValidate(endPracticeSchema), async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { notes } = req.body;
@@ -532,7 +528,7 @@ router.post('/songs/:songId/tracks', authenticateToken, audioUpload.single('audi
  * PUT /api/metmap/tracks/:trackId
  * Update track metadata
  */
-router.put('/tracks/:trackId', authenticateToken, async (req, res) => {
+router.put('/tracks/:trackId', authenticateToken, zodValidate(updateTrackSchema), async (req, res) => {
   try {
     const { name, volume, pan, muted, solo } = req.body;
     const track = await metmapAdapter.updateTrack(req.params.trackId, req.user.id, {
@@ -577,12 +573,9 @@ router.delete('/tracks/:trackId', authenticateToken, async (req, res) => {
  * PUT /api/metmap/tracks/:trackId/reorder
  * Change sort_order
  */
-router.put('/tracks/:trackId/reorder', authenticateToken, async (req, res) => {
+router.put('/tracks/:trackId/reorder', authenticateToken, zodValidate(reorderTrackSchema), async (req, res) => {
   try {
     const { sortOrder } = req.body;
-    if (typeof sortOrder !== 'number') {
-      return res.status(400).json({ error: 'sortOrder must be a number' });
-    }
     const track = await metmapAdapter.reorderTrack(req.params.trackId, req.user.id, sortOrder);
     if (!track) {
       return res.status(404).json({ error: 'Track not found' });
@@ -598,12 +591,9 @@ router.put('/tracks/:trackId/reorder', authenticateToken, async (req, res) => {
  * PUT /api/metmap/tracks/:trackId/beat-map
  * Store beat detection results for a track
  */
-router.put('/tracks/:trackId/beat-map', authenticateToken, async (req, res) => {
+router.put('/tracks/:trackId/beat-map', authenticateToken, zodValidate(trackBeatMapSchema), async (req, res) => {
   try {
     const { beatMap } = req.body;
-    if (!beatMap) {
-      return res.status(400).json({ error: 'beatMap is required' });
-    }
     const track = await metmapAdapter.updateTrackBeatMap(req.params.trackId, req.user.id, beatMap);
     if (!track) {
       return res.status(404).json({ error: 'Track not found' });
@@ -640,14 +630,10 @@ router.get('/songs/:songId/snapshots', authenticateToken, async (req, res) => {
  * POST /api/metmap/songs/:songId/snapshots
  * Create a snapshot from the current Yjs state
  */
-router.post('/songs/:songId/snapshots', authenticateToken, async (req, res) => {
+router.post('/songs/:songId/snapshots', authenticateToken, zodValidate(createSnapshotSchema), async (req, res) => {
   try {
     const { songId } = req.params;
     const { name, description, sectionCount, totalBars } = req.body;
-
-    if (!name || typeof name !== 'string') {
-      return res.status(400).json({ error: 'name is required' });
-    }
 
     // Get current Yjs state from the song
     const yjsState = await metmapAdapter.getYjsState(songId);
@@ -733,14 +719,10 @@ router.get('/songs/:songId/branches', authenticateToken, async (req, res) => {
  * POST /api/metmap/songs/:songId/branches
  * Create a branch (optionally from a snapshot)
  */
-router.post('/songs/:songId/branches', authenticateToken, async (req, res) => {
+router.post('/songs/:songId/branches', authenticateToken, zodValidate(createBranchSchema), async (req, res) => {
   try {
     const { songId } = req.params;
     const { name, description, sourceSnapshotId } = req.body;
-
-    if (!name || typeof name !== 'string') {
-      return res.status(400).json({ error: 'name is required' });
-    }
 
     const branch = await metmapAdapter.createBranch(songId, req.user.id, {
       name: name.trim(),

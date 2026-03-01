@@ -143,6 +143,55 @@ export type PrintConfigInput = z.infer<typeof printConfigSchema>;
 export type QuickPrintInput = z.infer<typeof quickPrintSchema>;
 
 // ============================================================================
+// Printing Extended Schemas
+// ============================================================================
+
+export const printFileLinkSchema = z.object({
+  project_id: z.string().uuid('Invalid project ID'),
+  file_id: z.string().uuid().optional(),
+  metadata: z.record(z.unknown()).optional(),
+  notes: z.string().max(1000, 'Notes too long').optional(),
+});
+
+export const printJobLinkSchema = z.object({
+  project_id: z.string().uuid('Invalid project ID'),
+  file_id: z.string().uuid().optional(),
+});
+
+export const printJobStatusUpdateSchema = z.object({
+  status: z.enum(['queued', 'printing', 'completed', 'failed', 'cancelled']),
+  progress: z.number().min(0).max(100).optional(),
+  error_message: z.string().optional(),
+});
+
+export const printEstimateSchema = z.object({
+  filename: z.string().min(1, 'Filename required'),
+  material: z.enum(['PLA', 'PETG', 'ABS', 'TPU', 'NYLON']),
+  quality: z.enum(['draft', 'standard', 'high', 'ultra']),
+  copies: z.number().int().min(1).optional(),
+});
+
+export type PrintFileLinkInput = z.infer<typeof printFileLinkSchema>;
+export type PrintJobLinkInput = z.infer<typeof printJobLinkSchema>;
+export type PrintJobStatusUpdateInput = z.infer<typeof printJobStatusUpdateSchema>;
+export type PrintEstimateInput = z.infer<typeof printEstimateSchema>;
+
+// ============================================================================
+// Messaging Extended Schemas
+// ============================================================================
+
+export const editMessageSchema = z.object({
+  content: z.string().min(1, 'Content required').max(10000, 'Message too long'),
+});
+
+export const addReactionSchema = z.object({
+  emoji: z.string().min(1, 'Emoji required').max(10, 'Emoji too long'),
+});
+
+export type EditMessageInput = z.infer<typeof editMessageSchema>;
+export type AddReactionInput = z.infer<typeof addReactionSchema>;
+
+// ============================================================================
 // Validation Helper
 // ============================================================================
 
