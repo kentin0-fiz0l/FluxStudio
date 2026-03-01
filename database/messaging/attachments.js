@@ -4,6 +4,8 @@
  */
 
 const { query } = require('../config');
+const { createLogger } = require('../../lib/logger');
+const log = createLogger('DB:Msg:Attachments');
 
 function transformAttachment(dbAttachment) {
   return {
@@ -68,7 +70,7 @@ async function addAttachment(messageId, attachmentData) {
     );
     return result.rows[0];
   } catch (error) {
-    console.error('Error adding attachment:', error);
+    log.error('Error adding attachment', error);
     throw error;
   }
 }
@@ -81,7 +83,7 @@ async function getAttachments(messageId) {
     );
     return result.rows;
   } catch (error) {
-    console.error('Error getting attachments:', error);
+    log.error('Error getting attachments', error);
     return [];
   }
 }
@@ -96,7 +98,7 @@ async function getLinkPreview(url) {
     );
     return result.rows.length > 0 ? transformLinkPreview(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error getting link preview:', error);
+    log.error('Error getting link preview', error);
     return null;
   }
 }
@@ -116,7 +118,7 @@ async function saveLinkPreview(previewData) {
     );
     return result.rows.length > 0 ? transformLinkPreview(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error saving link preview:', error);
+    log.error('Error saving link preview', error);
     return null;
   }
 }
@@ -132,7 +134,7 @@ async function linkPreviewToMessage(messageId, linkPreviewId, position = 0) {
     );
     return true;
   } catch (error) {
-    console.error('Error linking preview to message:', error);
+    log.error('Error linking preview to message', error);
     return false;
   }
 }
@@ -148,7 +150,7 @@ async function getMessageLinkPreviews(messageId) {
     );
     return result.rows.map(transformLinkPreview);
   } catch (error) {
-    console.error('Error getting message link previews:', error);
+    log.error('Error getting message link previews', error);
     return [];
   }
 }
@@ -166,7 +168,7 @@ async function createVoiceMessage(messageId, voiceData) {
     );
     return result.rows.length > 0 ? transformVoiceMessage(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error creating voice message:', error);
+    log.error('Error creating voice message', error);
     return null;
   }
 }
@@ -179,7 +181,7 @@ async function getVoiceMessage(messageId) {
     );
     return result.rows.length > 0 ? transformVoiceMessage(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error getting voice message:', error);
+    log.error('Error getting voice message', error);
     return null;
   }
 }

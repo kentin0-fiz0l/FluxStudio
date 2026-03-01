@@ -14,6 +14,8 @@
 
 const { query, transaction } = require('./config');
 const { v4: uuidv4, validate: uuidValidate } = require('uuid');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('DB:Files');
 
 /**
  * Determine file_type from mime_type
@@ -656,7 +658,7 @@ class FilesAdapter {
 
       return true;
     } catch (error) {
-      console.error('Error attaching file to project:', error);
+      log.error('Error attaching file to project', error);
       throw error;
     }
   }
@@ -675,7 +677,7 @@ class FilesAdapter {
       );
       return true;
     } catch (error) {
-      console.error('Error detaching file from project:', error);
+      log.error('Error detaching file from project', error);
       throw error;
     }
   }
@@ -726,7 +728,7 @@ class FilesAdapter {
         hasMore: offset + result.rows.length < total
       };
     } catch (error) {
-      console.error('Error getting project files:', error);
+      log.error('Error getting project files', error);
       return { files: [], total: 0, limit, offset, hasMore: false };
     }
   }
@@ -755,7 +757,7 @@ class FilesAdapter {
         attachedAt: row.attached_at
       }));
     } catch (error) {
-      console.error('Error getting file projects:', error);
+      log.error('Error getting file projects', error);
       return [];
     }
   }
@@ -777,7 +779,7 @@ class FilesAdapter {
       }
       return true;
     } catch (error) {
-      console.error('Error updating file sort order:', error);
+      log.error('Error updating file sort order', error);
       throw error;
     }
   }

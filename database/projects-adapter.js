@@ -4,6 +4,8 @@
  */
 
 const { query, generateCuid } = require('./config');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('DB:Projects');
 
 // Map frontend status values to Prisma enum values
 const STATUS_MAP = {
@@ -76,7 +78,7 @@ class ProjectsAdapter {
       const result = await query(sql, params);
       return result.rows.map(this.transformProject);
     } catch (error) {
-      console.error('Error getting projects:', error);
+      log.error('Error getting projects', error);
       return [];
     }
   }
@@ -106,7 +108,7 @@ class ProjectsAdapter {
       if (result.rows.length === 0) return null;
       return this.transformProject(result.rows[0]);
     } catch (error) {
-      console.error('Error getting project by ID:', error);
+      log.error('Error getting project by ID', error);
       return null;
     }
   }
@@ -158,7 +160,7 @@ class ProjectsAdapter {
 
       return this.transformProject(result.rows[0]);
     } catch (error) {
-      console.error('Error creating project:', error);
+      log.error('Error creating project', error);
       throw error;
     }
   }
@@ -199,7 +201,7 @@ class ProjectsAdapter {
 
       return result.rows.length > 0 ? this.transformProject(result.rows[0]) : null;
     } catch (error) {
-      console.error('Error updating project:', error);
+      log.error('Error updating project', error);
       throw error;
     }
   }
@@ -215,7 +217,7 @@ class ProjectsAdapter {
       `, [projectId]);
       return true;
     } catch (error) {
-      console.error('Error deleting project:', error);
+      log.error('Error deleting project', error);
       return false;
     }
   }
@@ -243,7 +245,7 @@ class ProjectsAdapter {
         joinedAt: row.joined_at
       }));
     } catch (error) {
-      console.error('Error getting project members:', error);
+      log.error('Error getting project members', error);
       return [];
     }
   }
@@ -264,7 +266,7 @@ class ProjectsAdapter {
 
       return true;
     } catch (error) {
-      console.error('Error adding project member:', error);
+      log.error('Error adding project member', error);
       return false;
     }
   }
@@ -317,7 +319,7 @@ class ProjectsAdapter {
         } : null
       }));
     } catch (error) {
-      console.error('Error getting project activity:', error);
+      log.error('Error getting project activity', error);
       return [];
     }
   }
@@ -367,7 +369,7 @@ class ProjectsAdapter {
 
       return result.rows[0];
     } catch (error) {
-      console.error('Error getting/creating project conversation:', error);
+      log.error('Error getting/creating project conversation', error);
       throw error;
     }
   }
@@ -390,7 +392,7 @@ class ProjectsAdapter {
 
       return parseInt(result.rows[0]?.unread_count || 0, 10);
     } catch (error) {
-      console.error('Error getting project unread count:', error);
+      log.error('Error getting project unread count', error);
       return 0;
     }
   }

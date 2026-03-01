@@ -6,6 +6,8 @@
 const { query } = require('../config');
 const { v4: uuidv4 } = require('uuid');
 const { transformMember } = require('./core');
+const { createLogger } = require('../../lib/logger');
+const log = createLogger('DB:Conv:Members');
 
 /**
  * Add a member to a conversation
@@ -32,7 +34,7 @@ async function addMember({ conversationId, userId, role = 'member' }) {
 
     return transformMember(result.rows[0]);
   } catch (error) {
-    console.error('Error adding member:', error);
+    log.error('Error adding member', error);
     throw error;
   }
 }

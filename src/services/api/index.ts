@@ -9,6 +9,11 @@ import { projectsApi } from './projects';
 import { messagesApi } from './messages';
 import { printingApi } from './printing';
 import { browserApi } from './browser';
+import { filesApi } from './files';
+import { formationsApi } from './formations';
+import { teamsApi } from './teams';
+import { aiApi } from './ai';
+import { connectorsApi } from './connectors';
 
 export type { ApiResponse, ApiError, UserSettings } from './base';
 export { ApiService } from './base';
@@ -22,6 +27,11 @@ export const apiService = Object.assign(baseService, {
   ...messagesApi(baseService),
   ...printingApi(baseService),
   ...browserApi(baseService),
+  ...filesApi(baseService),
+  ...formationsApi(baseService),
+  ...teamsApi(baseService),
+  ...aiApi(baseService),
+  ...connectorsApi(baseService),
 });
 
 export default apiService;

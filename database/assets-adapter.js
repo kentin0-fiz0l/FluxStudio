@@ -13,6 +13,8 @@
 
 const { query, transaction } = require('./config');
 const { v4: uuidv4 } = require('uuid');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('DB:Assets');
 
 /**
  * Determine asset kind from mime type
@@ -293,7 +295,7 @@ class AssetsAdapter {
 
       return true;
     } catch (error) {
-      console.error('Error attaching asset to project:', error);
+      log.error('Error attaching asset to project', error);
       throw error;
     }
   }
@@ -312,7 +314,7 @@ class AssetsAdapter {
       );
       return true;
     } catch (error) {
-      console.error('Error detaching asset from project:', error);
+      log.error('Error detaching asset from project', error);
       throw error;
     }
   }

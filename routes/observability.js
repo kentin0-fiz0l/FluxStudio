@@ -69,7 +69,7 @@ router.post('/events', authenticateToken, zodValidate(observabilityEventsSchema)
     }
 
     if (names.length === 0) {
-      return res.status(400).json({ error: 'No valid events in batch' });
+      return res.status(400).json({ success: false, error: 'No valid events in batch', code: 'EMPTY_BATCH' });
     }
 
     await query(
@@ -81,7 +81,7 @@ router.post('/events', authenticateToken, zodValidate(observabilityEventsSchema)
     res.json({ success: true, count: names.length });
   } catch (error) {
     log.error('Events ingestion error', error);
-    res.status(500).json({ error: 'Failed to store events' });
+    res.status(500).json({ success: false, error: 'Failed to store events', code: 'INTERNAL_ERROR' });
   }
 });
 
@@ -93,7 +93,7 @@ router.post('/vitals', async (req, res) => {
   try {
     const ip = req.ip || req.connection?.remoteAddress || 'unknown';
     if (!checkVitalsRateLimit(ip)) {
-      return res.status(429).json({ error: 'Rate limit exceeded' });
+      return res.status(429).json({ success: false, error: 'Rate limit exceeded', code: 'RATE_LIMITED' });
     }
 
     const body = req.body;
@@ -104,20 +104,15 @@ router.post('/vitals', async (req, res) => {
       const name = String(body.name).substring(0, 20);
       const ALLOWED_METRICS = ['CLS', 'FID', 'LCP', 'INP', 'TTFB', 'FCP'];
       if (!ALLOWED_METRICS.includes(name)) {
-        return res.status(400).json({ error: 'Invalid metric name' });
+        return res.status(400).json({ success: false, error: 'Invalid metric name', code: 'INVALID_METRIC' });
       }
 
       log.info('Web Vital received', { name, value: body.value.toFixed(2), rating: body.rating, url: body.url || '/' });
-
-      await ensureVitalsTable();
 
       // Map the metric name to the appropriate column
       const columnMap = { LCP: 'lcp', FCP: 'fcp', FID: 'fid', CLS: 'cls', TTFB: 'ttfb', INP: 'inp' };
       const column = columnMap[name];
       if (column) {
-        // Ensure inp column exists (added for web-vitals v4+)
-        await ensureInpColumn();
-
         await query(
           `INSERT INTO web_vitals (session_id, url, ${column})
            VALUES ($1, $2, $3)`,
@@ -136,10 +131,8 @@ router.post('/vitals', async (req, res) => {
     const { sessionId, url, vitals, viewport, connectionType, userAgent, performanceScore } = body;
 
     if (!sessionId || !vitals) {
-      return res.status(400).json({ error: 'sessionId and vitals are required' });
+      return res.status(400).json({ success: false, error: 'sessionId and vitals are required', code: 'MISSING_FIELDS' });
     }
-
-    await ensureVitalsTable();
 
     await query(
       `INSERT INTO web_vitals
@@ -165,7 +158,7 @@ router.post('/vitals', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     log.error('Vitals ingestion error', error);
-    res.status(500).json({ error: 'Failed to store vitals' });
+    res.status(500).json({ success: false, error: 'Failed to store vitals', code: 'INTERNAL_ERROR' });
   }
 });
 
@@ -176,11 +169,10 @@ router.post('/vitals', async (req, res) => {
 router.get('/vitals/summary', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return res.status(403).json({ success: false, error: 'Admin access required', code: 'ADMIN_REQUIRED' });
     }
 
     const hours = Math.min(parseInt(req.query.hours) || 24, 168); // max 7 days
-    await ensureVitalsTable();
 
     const result = await query(
       `SELECT
@@ -223,7 +215,7 @@ router.get('/vitals/summary', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Vitals summary error', error);
-    res.status(500).json({ error: 'Failed to fetch vitals summary' });
+    res.status(500).json({ success: false, error: 'Failed to fetch vitals summary', code: 'INTERNAL_ERROR' });
   }
 });
 
@@ -235,7 +227,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
   try {
     // Admin check
     if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return res.status(403).json({ success: false, error: 'Admin access required', code: 'ADMIN_REQUIRED' });
     }
 
     const minutes = parseInt(req.query.minutes) || 60;
@@ -244,7 +236,6 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     const current = performanceMetrics.getCurrentMetrics();
 
     // Recent Web Vitals aggregation (last 24h)
-    await ensureVitalsTable();
     const vitalsResult = await query(
       `SELECT
         COUNT(*) as total_sessions,
@@ -328,54 +319,8 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Metrics error', error);
-    res.status(500).json({ error: 'Failed to fetch metrics' });
+    res.status(500).json({ success: false, error: 'Failed to fetch metrics', code: 'INTERNAL_ERROR' });
   }
 });
-
-// ========================================
-// Auto-create web_vitals table if missing
-// ========================================
-let vitalsTableReady = false;
-let inpColumnReady = false;
-
-async function ensureInpColumn() {
-  if (inpColumnReady) return;
-  try {
-    await query(`ALTER TABLE web_vitals ADD COLUMN IF NOT EXISTS inp DOUBLE PRECISION`);
-    inpColumnReady = true;
-  } catch (err) {
-    // Column may already exist or ALTER not supported — safe to ignore
-    inpColumnReady = true;
-  }
-}
-
-async function ensureVitalsTable() {
-  if (vitalsTableReady) return;
-  try {
-    await query(`
-      CREATE TABLE IF NOT EXISTS web_vitals (
-        id SERIAL PRIMARY KEY,
-        session_id VARCHAR(255) NOT NULL,
-        url VARCHAR(2048) DEFAULT '/',
-        lcp DOUBLE PRECISION,
-        fcp DOUBLE PRECISION,
-        fid DOUBLE PRECISION,
-        cls DOUBLE PRECISION,
-        ttfb DOUBLE PRECISION,
-        tti DOUBLE PRECISION,
-        connection_type VARCHAR(50) DEFAULT 'unknown',
-        user_agent VARCHAR(512),
-        viewport_width INTEGER,
-        viewport_height INTEGER,
-        performance_score INTEGER,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    await query('CREATE INDEX IF NOT EXISTS idx_web_vitals_created_at ON web_vitals (created_at)');
-    vitalsTableReady = true;
-  } catch (err) {
-    log.debug('ensureVitalsTable error', err);
-  }
-}
 
 module.exports = router;

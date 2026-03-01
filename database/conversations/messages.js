@@ -6,6 +6,8 @@
 const { query, transaction } = require('../config');
 const { v4: uuidv4 } = require('uuid');
 const { getConversationById } = require('./core');
+const { createLogger } = require('../../lib/logger');
+const log = createLogger('DB:Conv:Messages');
 
 function transformMessage(row) {
   if (!row) return null;
@@ -159,7 +161,7 @@ async function listMessages({ conversationId, limit = 50, before = null, include
       }
     } catch (err) {
       // link_previews table may not exist yet — skip silently
-      console.error('Failed to fetch link previews:', err.message);
+      log.error('Failed to fetch link previews', { error: err.message });
     }
   }
 

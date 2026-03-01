@@ -6,6 +6,8 @@
 const { query } = require('../config');
 const { v4: uuidv4 } = require('uuid');
 const { getMessageById } = require('./messages');
+const { createLogger } = require('../../lib/logger');
+const log = createLogger('DB:Conv:Reactions');
 
 /**
  * Add a reaction to a message
@@ -30,7 +32,7 @@ async function addReaction({ messageId, userId, emoji }) {
     // Return aggregated reactions
     return await listReactionsForMessage({ messageId });
   } catch (error) {
-    console.error('Error adding reaction:', error);
+    log.error('Error adding reaction', error);
     throw error;
   }
 }
@@ -48,7 +50,7 @@ async function removeReaction({ messageId, userId, emoji }) {
     // Return aggregated reactions
     return await listReactionsForMessage({ messageId });
   } catch (error) {
-    console.error('Error removing reaction:', error);
+    log.error('Error removing reaction', error);
     throw error;
   }
 }

@@ -26,7 +26,7 @@ router.use(authenticateToken);
 
 function requireAdmin(req, res, next) {
   if (req.user.userType !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
+    return res.status(403).json({ success: false, error: 'Admin access required', code: 'ADMIN_REQUIRED' });
   }
   next();
 }
@@ -46,7 +46,7 @@ router.get('/', requireAdmin, async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     log.error('List flags error', err);
-    res.status(500).json({ error: 'Failed to fetch feature flags' });
+    res.status(500).json({ success: false, error: 'Failed to fetch feature flags', code: 'INTERNAL_ERROR' });
   }
 });
 
@@ -60,7 +60,7 @@ router.get('/evaluate', async (req, res) => {
     res.json(flags);
   } catch (err) {
     log.error('Evaluate flags error', err);
-    res.status(500).json({ error: 'Failed to evaluate feature flags' });
+    res.status(500).json({ success: false, error: 'Failed to evaluate feature flags', code: 'INTERNAL_ERROR' });
   }
 });
 
@@ -73,12 +73,12 @@ router.post('/', requireAdmin, zodValidate(createFeatureFlagSchema), async (req,
     const { name, description, enabled, rollout_percentage, user_allowlist, metadata } = req.body;
 
     if (!name || typeof name !== 'string') {
-      return res.status(400).json({ error: 'Flag name is required' });
+      return res.status(400).json({ success: false, error: 'Flag name is required', code: 'MISSING_NAME' });
     }
 
     // Validate name format: lowercase, hyphens, alphanumeric
     if (!/^[a-z0-9-]+$/.test(name)) {
-      return res.status(400).json({ error: 'Flag name must be lowercase alphanumeric with hyphens only' });
+      return res.status(400).json({ success: false, error: 'Flag name must be lowercase alphanumeric with hyphens only', code: 'INVALID_NAME_FORMAT' });
     }
 
     const result = await query(
@@ -102,10 +102,10 @@ router.post('/', requireAdmin, zodValidate(createFeatureFlagSchema), async (req,
     res.status(201).json(result.rows[0]);
   } catch (err) {
     if (err.code === '23505') {
-      return res.status(409).json({ error: 'A flag with this name already exists' });
+      return res.status(409).json({ success: false, error: 'A flag with this name already exists', code: 'DUPLICATE_FLAG' });
     }
     log.error('Create flag error', err);
-    res.status(500).json({ error: 'Failed to create feature flag' });
+    res.status(500).json({ success: false, error: 'Failed to create feature flag', code: 'INTERNAL_ERROR' });
   }
 });
 
@@ -133,7 +133,7 @@ router.patch('/:id', requireAdmin, zodValidate(updateFeatureFlagSchema), async (
     }
     if (typeof rollout_percentage === 'number') {
       if (rollout_percentage < 0 || rollout_percentage > 100) {
-        return res.status(400).json({ error: 'rollout_percentage must be 0-100' });
+        return res.status(400).json({ success: false, error: 'rollout_percentage must be 0-100', code: 'INVALID_ROLLOUT' });
       }
       updates.push(`rollout_percentage = $${idx++}`);
       params.push(rollout_percentage);
@@ -148,7 +148,7 @@ router.patch('/:id', requireAdmin, zodValidate(updateFeatureFlagSchema), async (
     }
 
     if (updates.length === 0) {
-      return res.status(400).json({ error: 'No valid fields to update' });
+      return res.status(400).json({ success: false, error: 'No valid fields to update', code: 'MISSING_FIELDS' });
     }
 
     params.push(id);
@@ -158,7 +158,7 @@ router.patch('/:id', requireAdmin, zodValidate(updateFeatureFlagSchema), async (
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Feature flag not found' });
+      return res.status(404).json({ success: false, error: 'Feature flag not found', code: 'FLAG_NOT_FOUND' });
     }
 
     invalidateCache(result.rows[0].name);
@@ -167,7 +167,7 @@ router.patch('/:id', requireAdmin, zodValidate(updateFeatureFlagSchema), async (
     res.json(result.rows[0]);
   } catch (err) {
     log.error('Update flag error', err);
-    res.status(500).json({ error: 'Failed to update feature flag' });
+    res.status(500).json({ success: false, error: 'Failed to update feature flag', code: 'INTERNAL_ERROR' });
   }
 });
 
@@ -185,7 +185,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Feature flag not found' });
+      return res.status(404).json({ success: false, error: 'Feature flag not found', code: 'FLAG_NOT_FOUND' });
     }
 
     invalidateCache(result.rows[0].name);
@@ -194,7 +194,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     log.error('Delete flag error', err);
-    res.status(500).json({ error: 'Failed to delete feature flag' });
+    res.status(500).json({ success: false, error: 'Failed to delete feature flag', code: 'INTERNAL_ERROR' });
   }
 });
 

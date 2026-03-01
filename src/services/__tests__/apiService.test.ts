@@ -349,10 +349,10 @@ describe('ApiService', () => {
         };
         mockFetch.mockResolvedValueOnce(mockResponse);
 
-        const result = await apiService.getFiles('project-1');
+        const result = await apiService.getFiles({ projectId: 'project-1' });
 
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/projects/project-1/files',
+          'http://localhost:3001/api/files?projectId=project-1',
           expect.any(Object)
         );
         expect(result.success).toBe(true);
@@ -370,12 +370,14 @@ describe('ApiService', () => {
           .mockResolvedValueOnce(mockResponse);
 
         const file = new File(['content'], 'test.png', { type: 'image/png' });
-        const result = await apiService.uploadFile('project-1', file);
+        const formData = new FormData();
+        formData.append('file', file);
+        const result = await apiService.uploadFile(formData);
 
         expect(result.success).toBe(true);
         // Verify FormData was sent
         expect(mockFetch).toHaveBeenLastCalledWith(
-          'http://localhost:3001/api/projects/project-1/files',
+          'http://localhost:3001/api/files/upload',
           expect.objectContaining({
             method: 'POST',
             body: expect.any(FormData),

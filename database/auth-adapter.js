@@ -4,6 +4,8 @@
  */
 
 const { userQueries, organizationQueries, query, generateCuid } = require('./config');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('DB:Auth');
 
 class AuthAdapter {
 
@@ -14,7 +16,7 @@ class AuthAdapter {
       const result = await query('SELECT * FROM users WHERE is_active = true ORDER BY "createdAt" DESC');
       return result.rows.map(this.transformUser);
     } catch (error) {
-      console.error('Error getting users:', error);
+      log.error('Error getting users', error);
       // Fallback to empty array to maintain compatibility
       return [];
     }
@@ -25,7 +27,7 @@ class AuthAdapter {
       const result = await userQueries.findById(id);
       return result.rows.length > 0 ? this.transformUser(result.rows[0]) : null;
     } catch (error) {
-      console.error('Error getting user by ID:', error);
+      log.error('Error getting user by ID', error);
       return null;
     }
   }
@@ -35,7 +37,7 @@ class AuthAdapter {
       const result = await userQueries.findByEmail(email);
       return result.rows.length > 0 ? this.transformUser(result.rows[0]) : null;
     } catch (error) {
-      console.error('Error getting user by email:', error);
+      log.error('Error getting user by email', error);
       return null;
     }
   }
@@ -57,13 +59,13 @@ class AuthAdapter {
       try {
         await this.createDefaultOrganization(newUser.id, newUser.name, newUser.email);
       } catch (orgError) {
-        console.warn('Could not create default organization for user (non-critical):', orgError.message);
+        log.warn('Could not create default organization for user (non-critical)', { error: orgError.message });
         // Continue - user was created successfully, org can be created later
       }
 
       return newUser;
     } catch (error) {
-      console.error('Error creating user:', error);
+      log.error('Error creating user', error);
       throw error;
     }
   }
@@ -85,7 +87,7 @@ class AuthAdapter {
       const result = await userQueries.update(id, dbUpdates);
       return result.rows.length > 0 ? this.transformUser(result.rows[0]) : null;
     } catch (error) {
-      console.error('Error updating user:', error);
+      log.error('Error updating user', error);
       throw error;
     }
   }
@@ -93,7 +95,7 @@ class AuthAdapter {
   async saveUsers(users) {
     // This method exists for backwards compatibility
     // In database mode, individual user operations are preferred
-    console.warn('saveUsers() called - this method is deprecated in database mode');
+    log.warn('saveUsers() called - this method is deprecated in database mode');
     // For now, just return success - individual user operations handle persistence
     return true;
   }
@@ -148,7 +150,7 @@ class AuthAdapter {
 
       return orgId;
     } catch (error) {
-      console.error('Error creating default organization:', error);
+      log.error('Error creating default organization', error);
       throw error;
     }
   }
@@ -159,13 +161,13 @@ class AuthAdapter {
       const result = await query('SELECT * FROM files ORDER BY created_at DESC');
       return result.rows.map(this.transformFile);
     } catch (error) {
-      console.error('Error getting files:', error);
+      log.error('Error getting files', error);
       return [];
     }
   }
 
   async saveFiles(files) {
-    console.warn('saveFiles() called - this method is deprecated in database mode');
+    log.warn('saveFiles() called - this method is deprecated in database mode');
     return true;
   }
 
@@ -204,13 +206,13 @@ class AuthAdapter {
       const result = await query('SELECT * FROM teams ORDER BY created_at DESC');
       return result.rows;
     } catch (error) {
-      console.error('Error getting teams:', error);
+      log.error('Error getting teams', error);
       return [];
     }
   }
 
   async saveTeams(teams) {
-    console.warn('saveTeams() called - this method is deprecated in database mode');
+    log.warn('saveTeams() called - this method is deprecated in database mode');
     return true;
   }
 
@@ -225,7 +227,7 @@ class AuthAdapter {
         userCount: parseInt(result.rows[0].user_count)
       };
     } catch (error) {
-      console.error('Database health check failed:', error);
+      log.error('Database health check failed', error);
       return {
         status: 'error',
         database: 'disconnected',

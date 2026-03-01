@@ -4,6 +4,8 @@
  */
 
 const { query } = require('../config');
+const { createLogger } = require('../../lib/logger');
+const log = createLogger('DB:Msg:Presence');
 
 async function updateUserPresence(userId, conversationId, _status = 'active') {
   try {
@@ -16,7 +18,7 @@ async function updateUserPresence(userId, conversationId, _status = 'active') {
     );
     return true;
   } catch (error) {
-    console.error('Error updating user presence:', error);
+    log.error('Error updating user presence', error);
     return false;
   }
 }
@@ -41,7 +43,7 @@ async function getUserPresence(userId, conversationId = null) {
     const result = await query(queryText, params);
     return result.rows;
   } catch (error) {
-    console.error('Error getting user presence:', error);
+    log.error('Error getting user presence', error);
     return [];
   }
 }
@@ -60,7 +62,7 @@ async function updateTypingStatus(userId, conversationId, isTyping = false) {
     );
     return true;
   } catch (error) {
-    console.error('Error updating typing status:', error);
+    log.error('Error updating typing status', error);
     return false;
   }
 }
@@ -76,7 +78,7 @@ async function markMessageAsRead(userId, conversationId, _messageId = null) {
     );
     return true;
   } catch (error) {
-    console.error('Error marking message as read:', error);
+    log.error('Error marking message as read', error);
     return false;
   }
 }
@@ -93,7 +95,7 @@ async function muteConversation(conversationId, userId, mutedUntil = null) {
     );
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error muting conversation:', error);
+    log.error('Error muting conversation', error);
     return false;
   }
 }
@@ -109,7 +111,7 @@ async function unmuteConversation(conversationId, userId) {
     );
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error unmuting conversation:', error);
+    log.error('Error unmuting conversation', error);
     return false;
   }
 }
@@ -125,7 +127,7 @@ async function updateNotificationPreference(conversationId, userId, preference) 
     );
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error updating notification preference:', error);
+    log.error('Error updating notification preference', error);
     return false;
   }
 }
@@ -152,7 +154,7 @@ async function getMuteStatus(conversationId, userId) {
       notificationPreference: row.notification_preference
     };
   } catch (error) {
-    console.error('Error getting mute status:', error);
+    log.error('Error getting mute status', error);
     return null;
   }
 }

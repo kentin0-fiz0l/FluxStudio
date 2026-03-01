@@ -15,6 +15,8 @@
 
 const { query, transaction } = require('./config');
 const { v4: uuidv4 } = require('uuid');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('DB:MetMap');
 
 // ==================== SONGS ====================
 
@@ -87,7 +89,7 @@ async function getSongsForUser(userId, options = {}) {
       hasMore: offset + result.rows.length < total
     };
   } catch (error) {
-    console.error('Error getting songs for user:', error);
+    log.error('Error getting songs for user', error);
     throw error;
   }
 }
@@ -147,7 +149,7 @@ async function getSongById(songId, userId) {
 
     return song;
   } catch (error) {
-    console.error('Error getting song by ID:', error);
+    log.error('Error getting song by ID', error);
     throw error;
   }
 }
@@ -178,7 +180,7 @@ async function createSong(userId, data) {
 
     return transformSong(result.rows[0]);
   } catch (error) {
-    console.error('Error creating song:', error);
+    log.error('Error creating song', error);
     throw error;
   }
 }
@@ -221,7 +223,7 @@ async function updateSong(songId, userId, changes) {
     if (result.rows.length === 0) return null;
     return transformSong(result.rows[0]);
   } catch (error) {
-    console.error('Error updating song:', error);
+    log.error('Error updating song', error);
     throw error;
   }
 }
@@ -243,7 +245,7 @@ async function deleteSong(songId, userId) {
 
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error deleting song:', error);
+    log.error('Error deleting song', error);
     throw error;
   }
 }
@@ -274,7 +276,7 @@ async function getSections(songId, userId) {
 
     return result.rows.map(transformSection);
   } catch (error) {
-    console.error('Error getting sections:', error);
+    log.error('Error getting sections', error);
     throw error;
   }
 }
@@ -360,7 +362,7 @@ async function upsertSections(songId, userId, sectionsArray) {
       return upsertedSections;
     });
   } catch (error) {
-    console.error('Error upserting sections:', error);
+    log.error('Error upserting sections', error);
     throw error;
   }
 }
@@ -390,7 +392,7 @@ async function deleteSection(sectionId, userId) {
     }
     return false;
   } catch (error) {
-    console.error('Error deleting section:', error);
+    log.error('Error deleting section', error);
     throw error;
   }
 }
@@ -423,7 +425,7 @@ async function getChordsForSong(songId, userId) {
 
     return result.rows.map(transformChord);
   } catch (error) {
-    console.error('Error getting chords for song:', error);
+    log.error('Error getting chords for song', error);
     throw error;
   }
 }
@@ -494,7 +496,7 @@ async function upsertChords(sectionId, userId, chordsArray) {
       return upsertedChords;
     });
   } catch (error) {
-    console.error('Error upserting chords:', error);
+    log.error('Error upserting chords', error);
     throw error;
   }
 }
@@ -520,7 +522,7 @@ async function deleteChord(chordId, userId) {
 
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error deleting chord:', error);
+    log.error('Error deleting chord', error);
     throw error;
   }
 }
@@ -553,7 +555,7 @@ async function createPracticeSession(songId, userId, settings = {}) {
 
     return transformPracticeSession(result.rows[0]);
   } catch (error) {
-    console.error('Error creating practice session:', error);
+    log.error('Error creating practice session', error);
     throw error;
   }
 }
@@ -578,7 +580,7 @@ async function endPracticeSession(sessionId, userId, notes = null) {
     if (result.rows.length === 0) return null;
     return transformPracticeSession(result.rows[0]);
   } catch (error) {
-    console.error('Error ending practice session:', error);
+    log.error('Error ending practice session', error);
     throw error;
   }
 }
@@ -623,7 +625,7 @@ async function getPracticeHistory(songId, userId, pagination = {}) {
       hasMore: offset + result.rows.length < total
     };
   } catch (error) {
-    console.error('Error getting practice history:', error);
+    log.error('Error getting practice history', error);
     throw error;
   }
 }
@@ -653,7 +655,7 @@ async function getStatsForUser(userId) {
       totalPracticeMinutes: Math.round(parseFloat(row.total_practice_seconds) / 60)
     };
   } catch (error) {
-    console.error('Error getting stats:', error);
+    log.error('Error getting stats', error);
     throw error;
   }
 }
@@ -749,7 +751,7 @@ async function setSongAudio(songId, userId, { audioFileUrl, audioDurationSeconds
     );
     return result.rows[0] ? transformSong(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error setting song audio:', error);
+    log.error('Error setting song audio', error);
     throw error;
   }
 }
@@ -769,7 +771,7 @@ async function clearSongAudio(songId, userId) {
     );
     return result.rows[0] ? transformSong(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error clearing song audio:', error);
+    log.error('Error clearing song audio', error);
     throw error;
   }
 }
@@ -788,7 +790,7 @@ async function setSongBeatMap(songId, userId, { beatMap, detectedBpm, audioDurat
     );
     return result.rows[0] ? transformSong(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error setting song beat map:', error);
+    log.error('Error setting song beat map', error);
     throw error;
   }
 }
@@ -814,7 +816,7 @@ async function getTracksForSong(songId, userId) {
     );
     return result.rows.map(transformTrack);
   } catch (error) {
-    console.error('Error getting tracks:', error);
+    log.error('Error getting tracks', error);
     throw error;
   }
 }
@@ -856,7 +858,7 @@ async function createTrack(songId, userId, trackData) {
     );
     return transformTrack(result.rows[0]);
   } catch (error) {
-    console.error('Error creating track:', error);
+    log.error('Error creating track', error);
     throw error;
   }
 }
@@ -891,7 +893,7 @@ async function updateTrack(trackId, userId, changes) {
     );
     return result.rows[0] ? transformTrack(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error updating track:', error);
+    log.error('Error updating track', error);
     throw error;
   }
 }
@@ -910,7 +912,7 @@ async function deleteTrack(trackId, userId) {
     if (result.rows.length === 0) return null;
     return result.rows[0];
   } catch (error) {
-    console.error('Error deleting track:', error);
+    log.error('Error deleting track', error);
     throw error;
   }
 }
@@ -929,7 +931,7 @@ async function reorderTrack(trackId, userId, newOrder) {
     );
     return result.rows[0] ? transformTrack(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error reordering track:', error);
+    log.error('Error reordering track', error);
     throw error;
   }
 }
@@ -948,7 +950,7 @@ async function updateTrackBeatMap(trackId, userId, beatMap) {
     );
     return result.rows[0] ? transformTrack(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error updating track beat map:', error);
+    log.error('Error updating track beat map', error);
     throw error;
   }
 }
@@ -998,7 +1000,7 @@ async function getSnapshotsForSong(songId, userId) {
     );
     return result.rows.map(transformSnapshot);
   } catch (error) {
-    console.error('Error getting snapshots:', error);
+    log.error('Error getting snapshots', error);
     throw error;
   }
 }
@@ -1017,7 +1019,7 @@ async function createSnapshot(songId, userId, { name, description, yjsState, sec
     );
     return transformSnapshot(result.rows[0]);
   } catch (error) {
-    console.error('Error creating snapshot:', error);
+    log.error('Error creating snapshot', error);
     throw error;
   }
 }
@@ -1038,7 +1040,7 @@ async function getSnapshot(snapshotId, userId) {
       yjsState: row.yjs_state, // Buffer (BYTEA)
     };
   } catch (error) {
-    console.error('Error getting snapshot:', error);
+    log.error('Error getting snapshot', error);
     throw error;
   }
 }
@@ -1054,7 +1056,7 @@ async function deleteSnapshot(snapshotId, userId) {
     );
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error deleting snapshot:', error);
+    log.error('Error deleting snapshot', error);
     throw error;
   }
 }
@@ -1098,7 +1100,7 @@ async function getBranchesForSong(songId, userId) {
     );
     return result.rows.map(transformBranch);
   } catch (error) {
-    console.error('Error getting branches:', error);
+    log.error('Error getting branches', error);
     throw error;
   }
 }
@@ -1133,7 +1135,7 @@ async function createBranch(songId, userId, { name, description, sourceSnapshotI
     );
     return transformBranch(result.rows[0]);
   } catch (error) {
-    console.error('Error creating branch:', error);
+    log.error('Error creating branch', error);
     throw error;
   }
 }
@@ -1151,7 +1153,7 @@ async function getBranch(branchId, userId) {
       yjsState: row.yjs_state,
     };
   } catch (error) {
-    console.error('Error getting branch:', error);
+    log.error('Error getting branch', error);
     throw error;
   }
 }
@@ -1167,7 +1169,7 @@ async function deleteBranch(branchId, userId) {
     );
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error deleting branch:', error);
+    log.error('Error deleting branch', error);
     throw error;
   }
 }
@@ -1196,7 +1198,7 @@ async function mergeBranch(branchId, userId) {
     );
     return transformBranch(updated.rows[0]);
   } catch (error) {
-    console.error('Error merging branch:', error);
+    log.error('Error merging branch', error);
     throw error;
   }
 }
@@ -1212,7 +1214,7 @@ async function saveBranchYjsState(branchId, state) {
     );
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error saving branch Yjs state:', error);
+    log.error('Error saving branch Yjs state', error);
     throw error;
   }
 }
@@ -1226,7 +1228,7 @@ async function getBranchYjsState(branchId) {
     if (result.rows.length === 0) return null;
     return result.rows[0].yjs_state;
   } catch (error) {
-    console.error('Error getting branch Yjs state:', error);
+    log.error('Error getting branch Yjs state', error);
     throw error;
   }
 }
@@ -1262,7 +1264,7 @@ async function getYjsState(songId) {
     if (result.rows.length === 0) return null;
     return result.rows[0].yjs_state; // Buffer (BYTEA)
   } catch (error) {
-    console.error('Error getting Yjs state:', error);
+    log.error('Error getting Yjs state', error);
     throw error;
   }
 }
@@ -1278,7 +1280,7 @@ async function saveYjsState(songId, state) {
     );
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error saving Yjs state:', error);
+    log.error('Error saving Yjs state', error);
     throw error;
   }
 }

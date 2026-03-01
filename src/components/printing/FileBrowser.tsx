@@ -20,195 +20,20 @@ import {
   SelectValue,
 } from '../ui/select';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
-import {
   FileText,
   Upload,
-  Trash2,
-  Plus,
   AlertCircle,
   Search,
   HardDrive,
-  Link as LinkIcon,
   Folder,
-  X,
 } from 'lucide-react';
-import { FileBrowserProps, GCodeFile } from '@/types/printing';
+import { FileBrowserProps } from '@/types/printing';
 import { cn } from '@/lib/utils';
-import { apiService } from '@/services/apiService';
-
-/**
- * Project type
- */
-interface Project {
-  id: string;
-  title: string;
-}
-
-/**
- * Format file size in human-readable format
- */
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B';
-
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
-};
-
-/**
- * Format date
- */
-const formatDate = (timestamp: number): string => {
-  const date = new Date(timestamp * 1000);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return date.toLocaleDateString();
-};
-
-/**
- * File Item Component
- */
-interface FileItemProps {
-  file: GCodeFile;
-  onAddToQueue: (filename: string) => void;
-  onDelete: (filename: string) => void;
-  onLinkToProject?: (filename: string) => void;
-  onUnlink?: (filename: string) => void;
-  isAdding: boolean;
-  isDeleting: boolean;
-  projectName?: string | null;
-  isLinked?: boolean;
-}
-
-const FileItem: React.FC<FileItemProps> = React.memo(({
-  file,
-  onAddToQueue,
-  onDelete,
-  onLinkToProject,
-  onUnlink,
-  isAdding,
-  isDeleting,
-  projectName,
-  isLinked,
-}) => {
-  const estimatedTime = file.gcodeAnalysis?.estimatedPrintTime;
-
-  return (
-    <div className="group p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:shadow-md transition-shadow">
-      <div className="flex items-start gap-3">
-        {/* Icon */}
-        <div className="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg flex items-center justify-center">
-          <FileText className="h-5 w-5" aria-hidden="true" />
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                  {file.display || file.name}
-                </h4>
-                {isLinked && projectName && (
-                  <Badge variant="outline" size="sm" className="flex items-center gap-1 shrink-0">
-                    <Folder className="h-3 w-3" aria-hidden="true" />
-                    <span className="max-w-[100px] truncate">{projectName}</span>
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-3 mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                <span>{formatFileSize(file.size)}</span>
-                <span>•</span>
-                <span>{formatDate(file.date)}</span>
-                {estimatedTime && (
-                  <>
-                    <span>•</span>
-                    <span>
-                      ~{Math.round(estimatedTime / 60)}m print
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <Badge variant="default" size="sm">
-              {file.origin}
-            </Badge>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => onAddToQueue(file.name)}
-              disabled={isAdding || isDeleting}
-              loading={isAdding}
-              className="text-xs h-7"
-            >
-              <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
-              Add to Queue
-            </Button>
-
-            {!isLinked && onLinkToProject && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onLinkToProject(file.name)}
-                disabled={isAdding || isDeleting}
-                className="text-xs h-7"
-              >
-                <LinkIcon className="h-3 w-3 mr-1" aria-hidden="true" />
-                Link to Project
-              </Button>
-            )}
-
-            {isLinked && onUnlink && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onUnlink(file.name)}
-                disabled={isAdding || isDeleting}
-                className="text-xs h-7"
-              >
-                <X className="h-3 w-3 mr-1" aria-hidden="true" />
-                Unlink
-              </Button>
-            )}
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onDelete(file.name)}
-              disabled={isAdding || isDeleting}
-              className="text-xs h-7"
-            >
-              <Trash2 className="h-3 w-3 mr-1" aria-hidden="true" />
-              Delete
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
-
-FileItem.displayName = 'FileItem';
+import { useFileBrowser } from '@/hooks/useFileBrowser';
+import { formatFileSize } from './file-browser/utils';
+import { FileItem } from './file-browser/FileItem';
+import { FileDeleteDialog } from './file-browser/FileDeleteDialog';
+import { FileLinkDialog } from './file-browser/FileLinkDialog';
 
 export const FileBrowser: React.FC<FileBrowserProps> = ({
   files,
@@ -219,221 +44,34 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
   onAddToQueue,
   className = '',
 }) => {
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
-  const [deleteFile, setDeleteFile] = React.useState<string | null>(null);
-  const [addingFile, setAddingFile] = React.useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  // Phase 3D: Project integration state
-  const [projects, setProjects] = React.useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = React.useState<string | null>(null);
-  const [projectFiles, setProjectFiles] = React.useState<Map<string, string>>(new Map());
-  const [linkingFile, setLinkingFile] = React.useState<string | null>(null);
-  const [linkModalOpen, setLinkModalOpen] = React.useState(false);
-  const [fileToLink, setFileToLink] = React.useState<string | null>(null);
-
-  const fileList = React.useMemo(() => files?.files || [], [files?.files]);
-  const hasFiles = fileList.length > 0;
-
-  /**
-   * Fetch user's projects on mount
-   */
-  React.useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const result = await apiService.get<{ projects: Array<{ id: string; title: string }> }>('/projects');
-        setProjects(result.data?.projects?.map((p) => ({
-          id: p.id,
-          title: p.title
-        })) || []);
-      } catch (err) {
-        console.error('Failed to fetch projects:', err);
-      }
-    };
-
-    fetchProjects();
-  }, []);
-
-  /**
-   * Fetch project files when a project is selected
-   */
-  React.useEffect(() => {
-    if (!selectedProject || selectedProject === 'all') {
-      setProjectFiles(new Map());
-      return;
-    }
-
-    const fetchProjectFiles = async () => {
-      try {
-        const result = await apiService.get<{ files: Array<{ filename: string }> }>(`/api/printing/projects/${selectedProject}/files`);
-        const fileMap = new Map<string, string>();
-
-        result.data?.files?.forEach((f) => {
-          fileMap.set(f.filename, selectedProject);
-        });
-
-        setProjectFiles(fileMap);
-      } catch (err) {
-        console.error('Failed to fetch project files:', err);
-      }
-    };
-
-    fetchProjectFiles();
-  }, [selectedProject]);
-
-  /**
-   * Link file to project handler
-   */
-  const handleLinkToProject = async (filename: string, projectId: string) => {
-    setLinkingFile(filename);
-    try {
-      await apiService.post(`/api/printing/files/${encodeURIComponent(filename)}/link`, { project_id: projectId });
-      setProjectFiles(prev => new Map(prev).set(filename, projectId));
-      setLinkModalOpen(false);
-      setFileToLink(null);
-    } catch (err) {
-      console.error('Failed to link file:', err);
-      alert(err instanceof Error ? err.message : 'Failed to link file to project');
-    } finally {
-      setLinkingFile(null);
-    }
-  };
-
-  /**
-   * Unlink file from project
-   */
-  const handleUnlinkFile = async (filename: string) => {
-    setLinkingFile(filename);
-    try {
-      await apiService.delete(`/api/printing/files/${encodeURIComponent(filename)}/link`);
-      const newMap = new Map(projectFiles);
-      newMap.delete(filename);
-      setProjectFiles(newMap);
-    } catch (err) {
-      console.error('Failed to unlink file:', err);
-      alert(err instanceof Error ? err.message : 'Failed to unlink file');
-    } finally {
-      setLinkingFile(null);
-    }
-  };
-
-  /**
-   * Open link modal for a file
-   */
-  const handleOpenLinkModal = (filename: string) => {
-    setFileToLink(filename);
-    setLinkModalOpen(true);
-  };
-
-  /**
-   * Filter files based on search query and project selection
-   */
-  const filteredFiles = React.useMemo(() => {
-    let filtered = fileList;
-
-    // Filter by project if selected
-    if (selectedProject && selectedProject !== 'all') {
-      filtered = filtered.filter(file => projectFiles.has(file.name));
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((file) =>
-        (file.display || file.name).toLowerCase().includes(query)
-      );
-    }
-
-    return filtered;
-  }, [fileList, searchQuery, selectedProject, projectFiles]);
-
-  /**
-   * Handle file upload
-   */
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = event.target.files;
-    if (!selectedFiles || selectedFiles.length === 0 || !onUpload) return;
-
-    // Validate file types
-    const invalidFiles = Array.from(selectedFiles).filter(
-      (file) => !file.name.toLowerCase().endsWith('.gcode')
-    );
-
-    if (invalidFiles.length > 0) {
-      alert('Only .gcode files are allowed');
-      return;
-    }
-
-    setUploadProgress(0);
-    try {
-      // Simulate progress (in real implementation, use XHR or fetch with progress)
-      const interval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev === null || prev >= 90) {
-            clearInterval(interval);
-            return prev;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      await onUpload(Array.from(selectedFiles));
-
-      setUploadProgress(100);
-      setTimeout(() => setUploadProgress(null), 1000);
-    } catch (err) {
-      console.error('Upload error:', err);
-      alert('Failed to upload files');
-      setUploadProgress(null);
-    }
-
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  /**
-   * Handle delete file
-   */
-  const handleDelete = async (filename: string) => {
-    if (!onDelete) return;
-
-    setDeleteFile(filename);
-    try {
-      await onDelete(filename);
-    } catch (err) {
-      console.error('Delete error:', err);
-      alert('Failed to delete file');
-    } finally {
-      setDeleteFile(null);
-    }
-  };
-
-  /**
-   * Handle add to queue
-   */
-  const handleAddToQueue = async (filename: string) => {
-    if (!onAddToQueue) return;
-
-    setAddingFile(filename);
-    try {
-      await onAddToQueue(filename);
-    } catch (err) {
-      console.error('Add to queue error:', err);
-      alert('Failed to add file to queue');
-    } finally {
-      setAddingFile(null);
-    }
-  };
-
-  /**
-   * Trigger file input
-   */
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
+  const {
+    searchQuery,
+    setSearchQuery,
+    uploadProgress,
+    deleteFile,
+    setDeleteFile,
+    addingFile,
+    fileInputRef,
+    projects,
+    selectedProject,
+    setSelectedProject,
+    projectFiles,
+    linkingFile,
+    linkModalOpen,
+    setLinkModalOpen,
+    fileToLink,
+    setFileToLink,
+    fileList,
+    hasFiles,
+    filteredFiles,
+    handleLinkToProject,
+    handleUnlinkFile,
+    handleOpenLinkModal,
+    handleFileSelect,
+    handleDelete,
+    handleAddToQueue,
+    handleUploadClick,
+  } = useFileBrowser({ files, onUpload, onDelete, onAddToQueue });
 
   // Loading state
   if (loading) {
@@ -645,83 +283,25 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
       />
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deleteFile} onOpenChange={() => setDeleteFile(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete File</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete "{deleteFile}"? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteFile(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                if (deleteFile) handleDelete(deleteFile);
-              }}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FileDeleteDialog
+        filename={deleteFile}
+        onClose={() => setDeleteFile(null)}
+        onConfirm={handleDelete}
+      />
 
       {/* Link to Project Dialog */}
-      <Dialog open={linkModalOpen} onOpenChange={setLinkModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Link File to Project</DialogTitle>
-            <DialogDescription>
-              Select a project to organize "{fileToLink}"
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Project</label>
-              <Select
-                onValueChange={(projectId) => {
-                  if (fileToLink) {
-                    handleLinkToProject(fileToLink, projectId);
-                  }
-                }}
-                disabled={!!linkingFile}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a project..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      <div className="flex items-center gap-2">
-                        <Folder className="h-4 w-4" aria-hidden="true" />
-                        {project.title}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setLinkModalOpen(false);
-                setFileToLink(null);
-              }}
-              disabled={!!linkingFile}
-            >
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FileLinkDialog
+        open={linkModalOpen}
+        onOpenChange={setLinkModalOpen}
+        filename={fileToLink}
+        projects={projects}
+        isLinking={!!linkingFile}
+        onLink={handleLinkToProject}
+        onCancel={() => {
+          setLinkModalOpen(false);
+          setFileToLink(null);
+        }}
+      />
     </>
   );
 };

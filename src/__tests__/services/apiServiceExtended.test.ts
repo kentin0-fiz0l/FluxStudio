@@ -328,11 +328,11 @@ describe('ApiService Extended Tests', () => {
         json: () => Promise.resolve([{ id: 'team-1', name: 'Engineering' }]),
       });
 
-      const result = await apiService.getTeams('org-1');
+      const result = await apiService.getTeams();
 
       expect(result.success).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/organizations/org-1/teams',
+        'http://localhost:3001/api/teams',
         expect.any(Object)
       );
     });
@@ -345,7 +345,7 @@ describe('ApiService Extended Tests', () => {
           json: () => Promise.resolve({ id: 'team-2', name: 'Design' }),
         });
 
-      const result = await apiService.createTeam('org-1', { name: 'Design' });
+      const result = await apiService.createTeam({ name: 'Design' });
 
       expect(result.success).toBe(true);
     });

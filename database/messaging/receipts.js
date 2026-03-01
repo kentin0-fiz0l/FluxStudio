@@ -4,6 +4,8 @@
  */
 
 const { query } = require('../config');
+const { createLogger } = require('../../lib/logger');
+const log = createLogger('DB:Msg:Receipts');
 
 function transformReceipt(dbReceipt) {
   return {
@@ -32,7 +34,7 @@ async function createDeliveryReceipt(messageId, userId, status = 'delivered') {
     );
     return result.rows.length > 0 ? transformReceipt(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error creating delivery receipt:', error);
+    log.error('Error creating delivery receipt', error);
     return null;
   }
 }
@@ -50,7 +52,7 @@ async function markMessageRead(messageId, userId) {
     );
     return result.rows.length > 0 ? transformReceipt(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error marking message read:', error);
+    log.error('Error marking message read', error);
     return null;
   }
 }
@@ -67,7 +69,7 @@ async function getMessageReceipts(messageId) {
     );
     return result.rows.map(transformReceipt);
   } catch (error) {
-    console.error('Error getting message receipts:', error);
+    log.error('Error getting message receipts', error);
     return [];
   }
 }
@@ -98,7 +100,7 @@ async function getMessageDeliveryStatus(messageId, totalParticipants) {
 
     return { status, deliveredCount, readCount, totalParticipants };
   } catch (error) {
-    console.error('Error getting message delivery status:', error);
+    log.error('Error getting message delivery status', error);
     return { status: 'sent', deliveredCount: 0, readCount: 0, totalParticipants };
   }
 }

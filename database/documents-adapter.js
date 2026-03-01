@@ -4,6 +4,8 @@
  */
 
 const { query, generateCuid } = require('./config');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('DB:Documents');
 
 class DocumentsAdapter {
   /**
@@ -52,7 +54,7 @@ class DocumentsAdapter {
       const result = await query(sql, params);
       return result.rows.map(this.transformDocument);
     } catch (error) {
-      console.error('Error getting project documents:', error);
+      log.error('Error getting project documents', error);
       throw error;
     }
   }
@@ -105,7 +107,7 @@ class DocumentsAdapter {
 
       return this.transformDocument(result.rows[0]);
     } catch (error) {
-      console.error('Error creating document:', error);
+      log.error('Error creating document', error);
       throw error;
     }
   }
@@ -137,7 +139,7 @@ class DocumentsAdapter {
 
       return this.transformDocument(result.rows[0]);
     } catch (error) {
-      console.error('Error getting document:', error);
+      log.error('Error getting document', error);
       throw error;
     }
   }
@@ -162,7 +164,7 @@ class DocumentsAdapter {
 
       return this.transformDocument(result.rows[0]);
     } catch (error) {
-      console.error('Error getting document by room_id:', error);
+      log.error('Error getting document by room_id', error);
       throw error;
     }
   }
@@ -210,7 +212,7 @@ class DocumentsAdapter {
 
       return result.rows.length > 0 ? this.transformDocument(result.rows[0]) : null;
     } catch (error) {
-      console.error('Error updating document metadata:', error);
+      log.error('Error updating document metadata', error);
       throw error;
     }
   }
@@ -238,7 +240,7 @@ class DocumentsAdapter {
 
       return true;
     } catch (error) {
-      console.error('Error deleting document:', error);
+      log.error('Error deleting document', error);
       throw error;
     }
   }
@@ -282,7 +284,7 @@ class DocumentsAdapter {
         diffSize: row.diff ? row.diff.length : 0
       }));
     } catch (error) {
-      console.error('Error getting document versions:', error);
+      log.error('Error getting document versions', error);
       throw error;
     }
   }
@@ -311,7 +313,7 @@ class DocumentsAdapter {
 
       return result.rows[0];
     } catch (error) {
-      console.error('Error creating version snapshot:', error);
+      log.error('Error creating version snapshot', error);
       throw error;
     }
   }
@@ -338,7 +340,7 @@ class DocumentsAdapter {
 
       return result.rows[0].snapshot;
     } catch (error) {
-      console.error('Error getting version snapshot:', error);
+      log.error('Error getting version snapshot', error);
       throw error;
     }
   }

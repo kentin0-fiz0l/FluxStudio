@@ -4,6 +4,8 @@
  */
 
 const { query } = require('../config');
+const { createLogger } = require('../../lib/logger');
+const log = createLogger('DB:Msg:Reactions');
 
 // Basic reactions
 async function addReaction(messageId, userId, reaction) {
@@ -16,7 +18,7 @@ async function addReaction(messageId, userId, reaction) {
     );
     return true;
   } catch (error) {
-    console.error('Error adding reaction:', error);
+    log.error('Error adding reaction', error);
     return false;
   }
 }
@@ -29,7 +31,7 @@ async function removeReaction(messageId, userId, reaction) {
     );
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error removing reaction:', error);
+    log.error('Error removing reaction', error);
     return false;
   }
 }
@@ -45,7 +47,7 @@ async function getReactions(messageId) {
     );
     return result.rows;
   } catch (error) {
-    console.error('Error getting reactions:', error);
+    log.error('Error getting reactions', error);
     return [];
   }
 }
@@ -71,7 +73,7 @@ async function getReactionCounts(messageId) {
       userNames: row.user_names
     }));
   } catch (error) {
-    console.error('Error getting reaction counts:', error);
+    log.error('Error getting reaction counts', error);
     return [];
   }
 }
@@ -91,7 +93,7 @@ async function toggleReaction(messageId, userId, reaction) {
       return { action: 'added', reaction };
     }
   } catch (error) {
-    console.error('Error toggling reaction:', error);
+    log.error('Error toggling reaction', error);
     return null;
   }
 }
@@ -109,7 +111,7 @@ async function pinMessage(messageId, conversationId, userId) {
     );
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
-    console.error('Error pinning message:', error);
+    log.error('Error pinning message', error);
     return null;
   }
 }
@@ -122,7 +124,7 @@ async function unpinMessage(messageId, conversationId) {
     );
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error unpinning message:', error);
+    log.error('Error unpinning message', error);
     return false;
   }
 }
@@ -144,7 +146,7 @@ async function getPinnedMessages(conversationId, limit = 20) {
     );
     return result.rows;
   } catch (error) {
-    console.error('Error getting pinned messages:', error);
+    log.error('Error getting pinned messages', error);
     return [];
   }
 }

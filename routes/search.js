@@ -13,23 +13,21 @@ const { query } = require('../database/config');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Search');
+const { zodValidateQuery } = require('../middleware/zodValidateQuery');
+const { searchQuerySchema } = require('../lib/schemas');
 
 /**
  * GET /api/search
  * Full-text search across projects, files, tasks, messages
  * Query params: q (required), types (comma-separated), limit, offset, sortBy, sortOrder
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, zodValidateQuery(searchQuerySchema), async (req, res) => {
   try {
-    const { q, types, limit = 20, offset = 0, sortBy = 'relevance', sortOrder = 'desc' } = req.query;
-
-    if (!q || typeof q !== 'string' || q.trim().length === 0) {
-      return res.status(400).json({ success: false, error: 'Search query is required' });
-    }
+    const { q, types, limit, offset, sortBy, sortOrder } = req.query;
 
     const searchQuery = q.trim();
-    const maxLimit = Math.min(parseInt(limit) || 20, 100);
-    const searchOffset = parseInt(offset) || 0;
+    const maxLimit = limit;
+    const searchOffset = offset;
     const userId = req.user.id;
 
     // Parse requested types

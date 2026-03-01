@@ -5,6 +5,8 @@
 
 const { query, messagingQueries } = require('../config');
 const { transformMessage, updateConversationActivity } = require('./core');
+const { createLogger } = require('../../lib/logger');
+const log = createLogger('DB:Msg:Threads');
 
 function transformThread(dbThread) {
   return {
@@ -32,7 +34,7 @@ async function createThread(rootMessageId, conversationId, threadTitle = null) {
     );
     return result.rows[0];
   } catch (error) {
-    console.error('Error creating thread:', error);
+    log.error('Error creating thread', error);
     throw error;
   }
 }
@@ -50,7 +52,7 @@ async function getThreads(conversationId, limit = 20) {
     );
     return result.rows;
   } catch (error) {
-    console.error('Error getting threads:', error);
+    log.error('Error getting threads', error);
     return [];
   }
 }
@@ -59,7 +61,7 @@ async function getMessageThread(parentMessageId, limit = 50) {
   try {
     return await messagingQueries.getMessageThread(parentMessageId, limit);
   } catch (error) {
-    console.error('Error getting message thread:', error);
+    log.error('Error getting message thread', error);
     return [];
   }
 }
@@ -86,7 +88,7 @@ async function createReply(messageData) {
 
     return message;
   } catch (error) {
-    console.error('Error creating reply:', error);
+    log.error('Error creating reply', error);
     throw error;
   }
 }
@@ -123,7 +125,7 @@ async function getMessageWithReplies(messageId, limit = 50) {
       replyCount: replies.length
     };
   } catch (error) {
-    console.error('Error getting message with replies:', error);
+    log.error('Error getting message with replies', error);
     return null;
   }
 }

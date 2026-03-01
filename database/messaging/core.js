@@ -4,6 +4,8 @@
  */
 
 const { query, messagingQueries } = require('../config');
+const { createLogger } = require('../../lib/logger');
+const log = createLogger('DB:Msg:Core');
 
 // Data transformation helpers
 function transformMessage(dbMessage) {
@@ -76,7 +78,7 @@ async function getMessages(conversationId = null, limit = 50, offset = 0, userId
       return result.rows.map(transformMessage);
     }
   } catch (error) {
-    console.error('Error getting messages:', error);
+    log.error('Error getting messages', error);
     return [];
   }
 }
@@ -105,7 +107,7 @@ async function createMessage(messageData) {
 
     return message;
   } catch (error) {
-    console.error('Error creating message:', error);
+    log.error('Error creating message', error);
     throw error;
   }
 }
@@ -123,7 +125,7 @@ async function updateMessage(messageId, updates) {
     const result = await query(`UPDATE messages SET ${fields} WHERE id = $1 RETURNING *`, values);
     return result.rows.length > 0 ? transformMessage(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error updating message:', error);
+    log.error('Error updating message', error);
     throw error;
   }
 }
@@ -136,7 +138,7 @@ async function deleteMessage(messageId) {
     );
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error deleting message:', error);
+    log.error('Error deleting message', error);
     return false;
   }
 }
@@ -159,7 +161,7 @@ async function getConversations(userId = null, limit = 20, offset = 0) {
       return result.rows.map(transformConversation);
     }
   } catch (error) {
-    console.error('Error getting conversations:', error);
+    log.error('Error getting conversations', error);
     return [];
   }
 }
@@ -187,7 +189,7 @@ async function createConversation(conversationData) {
 
     return conversation;
   } catch (error) {
-    console.error('Error creating conversation:', error);
+    log.error('Error creating conversation', error);
     throw error;
   }
 }
@@ -209,7 +211,7 @@ async function updateConversation(conversationId, updates) {
     const result = await query(`UPDATE conversations SET ${fields} WHERE id = $1 RETURNING *`, values);
     return result.rows.length > 0 ? transformConversation(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error updating conversation:', error);
+    log.error('Error updating conversation', error);
     throw error;
   }
 }
@@ -221,7 +223,7 @@ async function updateConversationActivity(conversationId) {
       [conversationId]
     );
   } catch (error) {
-    console.error('Error updating conversation activity:', error);
+    log.error('Error updating conversation activity', error);
   }
 }
 
@@ -236,7 +238,7 @@ async function addParticipant(conversationId, userId, role = 'member') {
     );
     return true;
   } catch (error) {
-    console.error('Error adding participant:', error);
+    log.error('Error adding participant', error);
     return false;
   }
 }
@@ -249,7 +251,7 @@ async function removeParticipant(conversationId, userId) {
     );
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error removing participant:', error);
+    log.error('Error removing participant', error);
     return false;
   }
 }
@@ -265,7 +267,7 @@ async function getParticipants(conversationId) {
     );
     return result.rows;
   } catch (error) {
-    console.error('Error getting participants:', error);
+    log.error('Error getting participants', error);
     return [];
   }
 }
@@ -279,7 +281,7 @@ async function isParticipant(conversationId, userId) {
     );
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error checking participant:', error);
+    log.error('Error checking participant', error);
     return false;
   }
 }
@@ -313,19 +315,19 @@ async function getConversationWithMessages(conversationId, userId, messageLimit 
       participants
     };
   } catch (error) {
-    console.error('Error getting conversation with messages:', error);
+    log.error('Error getting conversation with messages', error);
     return null;
   }
 }
 
 // Backward compatibility methods
 async function saveMessages(_messages) {
-  console.warn('saveMessages() called - this method is deprecated in database mode');
+  log.warn('saveMessages() called - this method is deprecated in database mode');
   return true;
 }
 
 async function saveChannels(_channels) {
-  console.warn('saveChannels() called - this method is deprecated in database mode');
+  log.warn('saveChannels() called - this method is deprecated in database mode');
   return true;
 }
 

@@ -7,6 +7,8 @@ const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('DB:Pool');
 
 /**
  * Generate a cuid-like ID compatible with Prisma/MetMap schema
@@ -29,7 +31,7 @@ const dbConfig = (() => {
       } : false,
     };
 
-    console.log('✅ Using DATABASE_URL for database connection');
+    log.info('Using DATABASE_URL for database connection');
     return config;
   }
 
@@ -81,10 +83,8 @@ const pool = new Pool(poolConfig);
 
 // Enhanced connection pool monitoring and error handling
 pool.on('error', (err, client) => {
-  console.error('🔴 Unexpected error on idle database client:', {
-    error: err.message,
+  log.error('Unexpected error on idle database client', err, {
     code: err.code,
-    timestamp: new Date().toISOString(),
     totalCount: pool.totalCount,
     idleCount: pool.idleCount,
     waitingCount: pool.waitingCount
@@ -97,16 +97,15 @@ pool.on('error', (err, client) => {
 });
 
 pool.on('connect', (client) => {
-  console.log('🟢 New database client connected:', {
+  log.debug('New database client connected', {
     totalCount: pool.totalCount,
     idleCount: pool.idleCount,
-    waitingCount: pool.waitingCount,
-    timestamp: new Date().toISOString()
+    waitingCount: pool.waitingCount
   });
 });
 
 pool.on('acquire', (client) => {
-  console.log('🔵 Database client acquired from pool:', {
+  log.debug('Database client acquired from pool', {
     totalCount: pool.totalCount,
     idleCount: pool.idleCount,
     waitingCount: pool.waitingCount
@@ -114,7 +113,7 @@ pool.on('acquire', (client) => {
 });
 
 pool.on('remove', (client) => {
-  console.log('🟡 Database client removed from pool:', {
+  log.debug('Database client removed from pool', {
     totalCount: pool.totalCount,
     idleCount: pool.idleCount,
     waitingCount: pool.waitingCount
@@ -126,11 +125,11 @@ async function testConnection() {
   try {
     const client = await pool.connect();
     const result = await client.query('SELECT NOW()');
-    console.log('✅ Database connected successfully at:', result.rows[0].now);
+    log.info('Database connected successfully', { serverTime: result.rows[0].now });
     client.release();
     return true;
   } catch (err) {
-    console.error('❌ Database connection error:', err.message);
+    log.error('Database connection error', err);
     return false;
   }
 }
@@ -168,7 +167,7 @@ async function query(text, params = [], options = {}) {
 
     // Log slow queries with more detail
     if (isSlowQueryLogging && durationMs > slowQueryThreshold) {
-      console.warn('🐌 Slow query detected:', {
+      log.warn('Slow query detected', {
         ...queryInfo,
         query: text.replace(/\s+/g, ' ').substring(0, 200) + (text.length > 200 ? '...' : ''),
         params: params?.length > 0 ? `${params.length} params` : 'no params'
@@ -177,16 +176,15 @@ async function query(text, params = [], options = {}) {
 
     // Log all queries in development with shorter format
     if (process.env.NODE_ENV === 'development') {
-      console.log(`📊 Query [${queryId}] ${durationMs}ms - ${res.rowCount} rows`);
+      log.debug(`Query [${queryId}] ${durationMs}ms - ${res.rowCount} rows`);
     }
 
     return res;
   } catch (err) {
     const duration = Number(process.hrtime.bigint() - start) / 1000000;
 
-    console.error('❌ Database query error:', {
+    log.error('Database query error', err, {
       queryId,
-      error: err.message,
       code: err.code,
       duration: Math.round(duration * 100) / 100,
       query: text.replace(/\s+/g, ' ').substring(0, 100) + '...',
@@ -194,8 +192,7 @@ async function query(text, params = [], options = {}) {
         totalCount: pool.totalCount,
         idleCount: pool.idleCount,
         waitingCount: pool.waitingCount
-      },
-      timestamp: new Date().toISOString()
+      }
     });
 
     throw err;
@@ -224,13 +221,13 @@ async function initializeDatabase() {
     const schemaPath = path.join(__dirname, 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
 
-    console.log('🔄 Initializing database schema...');
+    log.info('Initializing database schema...');
     await query(schema);
-    console.log('✅ Database schema initialized successfully');
+    log.info('Database schema initialized successfully');
 
     return true;
   } catch (err) {
-    console.error('❌ Database initialization error:', err.message);
+    log.error('Database initialization error', err);
     throw err;
   }
 }
@@ -251,7 +248,7 @@ async function runMigrations() {
 
     // Get list of migration files
     if (!fs.existsSync(migrationsPath)) {
-      console.log('📂 No migrations directory found');
+      log.info('No migrations directory found');
       return;
     }
 
@@ -260,7 +257,7 @@ async function runMigrations() {
       .sort();
 
     if (migrationFiles.length === 0) {
-      console.log('📄 No migration files found');
+      log.info('No migration files found');
       return;
     }
 
@@ -271,7 +268,7 @@ async function runMigrations() {
     // Run pending migrations
     for (const migrationFile of migrationFiles) {
       if (!executedMigrations.includes(migrationFile)) {
-        console.log(`🔄 Running migration: ${migrationFile}`);
+        log.info(`Running migration: ${migrationFile}`);
 
         const migrationPath = path.join(migrationsPath, migrationFile);
         const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
@@ -284,7 +281,7 @@ async function runMigrations() {
               [migrationFile]
             );
           });
-          console.log(`✅ Migration completed: ${migrationFile}`);
+          log.info(`Migration completed: ${migrationFile}`);
         } catch (migrationErr) {
           // Check if this is an "already exists" error (safe to ignore)
           const isAlreadyExists = migrationErr.message.includes('already exists') ||
@@ -292,30 +289,30 @@ async function runMigrations() {
             migrationErr.code === '42710';   // duplicate_object
 
           if (isAlreadyExists) {
-            console.log(`⚠️ Migration warning: ${migrationErr.message}`);
+            log.warn(`Migration warning: ${migrationErr.message}`);
             // Mark migration as completed even though it partially failed
             try {
               await query(
                 'INSERT INTO migrations (filename) VALUES ($1) ON CONFLICT (filename) DO NOTHING',
                 [migrationFile]
               );
-              console.log(`✅ Migration marked as completed (already applied): ${migrationFile}`);
+              log.info(`Migration marked as completed (already applied): ${migrationFile}`);
             } catch (markErr) {
-              console.log(`⚠️ Could not mark migration: ${markErr.message}`);
+              log.warn(`Could not mark migration: ${markErr.message}`);
             }
           } else {
             // For other errors, log and continue to next migration
-            console.error(`❌ Migration error in ${migrationFile}: ${migrationErr.message}`);
+            log.error(`Migration error in ${migrationFile}`, migrationErr);
           }
         }
       }
     }
 
-    console.log('✅ All migrations completed');
+    log.info('All migrations completed');
   } catch (err) {
-    console.error('❌ Migration error:', err.message);
+    log.error('Migration error', err);
     // Don't throw - allow server to start even if migrations have issues
-    console.log('⚠️ Server will continue despite migration errors');
+    log.warn('Server will continue despite migration errors');
   }
 }
 
@@ -348,7 +345,7 @@ async function createBackup() {
     return new Promise((resolve, reject) => {
       pgDump.on('close', (code) => {
         if (code === 0) {
-          console.log(`✅ Database backup created: ${backupFile}`);
+          log.info(`Database backup created: ${backupFile}`);
           resolve(backupPath);
         } else {
           reject(new Error(`pg_dump exited with code ${code}`));
@@ -356,12 +353,12 @@ async function createBackup() {
       });
 
       pgDump.on('error', (err) => {
-        console.error('❌ Backup error:', err.message);
+        log.error('Backup error', err);
         reject(err);
       });
     });
   } catch (err) {
-    console.error('❌ Backup creation failed:', err.message);
+    log.error('Backup creation failed', err);
     throw err;
   }
 }
@@ -651,9 +648,9 @@ async function healthCheck() {
 async function closePool() {
   try {
     await pool.end();
-    console.log('📪 Database pool closed');
+    log.info('Database pool closed');
   } catch (err) {
-    console.error('Error closing database pool:', err);
+    log.error('Error closing database pool', err);
   }
 }
 

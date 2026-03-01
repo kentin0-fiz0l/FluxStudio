@@ -5,6 +5,8 @@
 
 const { query, transaction } = require('./config');
 const oauthManager = require('../lib/oauth-manager');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('DB:Connectors');
 
 class ConnectorsAdapter {
   // ========================================
@@ -38,7 +40,7 @@ class ConnectorsAdapter {
         isExpired: row.is_expired
       }));
     } catch (error) {
-      console.error('Error getting user connectors:', error);
+      log.error('Error getting user connectors', error);
       return [];
     }
   }
@@ -62,7 +64,7 @@ class ConnectorsAdapter {
 
       return true;
     } catch (error) {
-      console.error('Error checking connector status:', error);
+      log.error('Error checking connector status', error);
       return false;
     }
   }
@@ -75,7 +77,7 @@ class ConnectorsAdapter {
       await oauthManager.disconnectIntegration(userId, provider);
       return true;
     } catch (error) {
-      console.error('Error disconnecting connector:', error);
+      log.error('Error disconnecting connector', error);
       return false;
     }
   }
@@ -132,7 +134,7 @@ class ConnectorsAdapter {
 
       return this.transformConnectorFile(result.rows[0]);
     } catch (error) {
-      console.error('Error storing connector file:', error);
+      log.error('Error storing connector file', error);
       throw error;
     }
   }
@@ -176,7 +178,7 @@ class ConnectorsAdapter {
       const result = await query(queryText, params);
       return result.rows.map(this.transformConnectorFile);
     } catch (error) {
-      console.error('Error getting connector files:', error);
+      log.error('Error getting connector files', error);
       return [];
     }
   }
@@ -192,7 +194,7 @@ class ConnectorsAdapter {
       );
       return result.rows.length > 0 ? this.transformConnectorFile(result.rows[0]) : null;
     } catch (error) {
-      console.error('Error getting connector file:', error);
+      log.error('Error getting connector file', error);
       return null;
     }
   }
@@ -210,7 +212,7 @@ class ConnectorsAdapter {
       );
       return result.rows.length > 0 ? this.transformConnectorFile(result.rows[0]) : null;
     } catch (error) {
-      console.error('Error linking file to project:', error);
+      log.error('Error linking file to project', error);
       return null;
     }
   }
@@ -226,7 +228,7 @@ class ConnectorsAdapter {
       );
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting connector file:', error);
+      log.error('Error deleting connector file', error);
       return false;
     }
   }
@@ -243,7 +245,7 @@ class ConnectorsAdapter {
       );
       return true;
     } catch (error) {
-      console.error('Error updating file sync status:', error);
+      log.error('Error updating file sync status', error);
       return false;
     }
   }
@@ -271,7 +273,7 @@ class ConnectorsAdapter {
       );
       return this.transformSyncJob(result.rows[0]);
     } catch (error) {
-      console.error('Error creating sync job:', error);
+      log.error('Error creating sync job', error);
       throw error;
     }
   }
@@ -290,7 +292,7 @@ class ConnectorsAdapter {
       );
       return true;
     } catch (error) {
-      console.error('Error updating sync job progress:', error);
+      log.error('Error updating sync job progress', error);
       return false;
     }
   }
@@ -308,7 +310,7 @@ class ConnectorsAdapter {
       );
       return true;
     } catch (error) {
-      console.error('Error completing sync job:', error);
+      log.error('Error completing sync job', error);
       return false;
     }
   }
@@ -332,7 +334,7 @@ class ConnectorsAdapter {
       const result = await query(queryText, params);
       return result.rows.map(this.transformSyncJob);
     } catch (error) {
-      console.error('Error getting sync jobs:', error);
+      log.error('Error getting sync jobs', error);
       return [];
     }
   }
@@ -377,7 +379,7 @@ class ConnectorsAdapter {
         }
       }));
     } catch (error) {
-      console.error('Error getting GitHub repos:', error);
+      log.error('Error getting GitHub repos', error);
       throw error;
     }
   }
@@ -413,7 +415,7 @@ class ConnectorsAdapter {
         sha: item.sha
       }));
     } catch (error) {
-      console.error('Error getting GitHub repo contents:', error);
+      log.error('Error getting GitHub repo contents', error);
       throw error;
     }
   }
@@ -454,7 +456,7 @@ class ConnectorsAdapter {
         parentId: file.parents ? file.parents[0] : null
       }));
     } catch (error) {
-      console.error('Error getting Google Drive files:', error);
+      log.error('Error getting Google Drive files', error);
       throw error;
     }
   }
@@ -493,7 +495,7 @@ class ConnectorsAdapter {
         contentHash: entry.content_hash
       }));
     } catch (error) {
-      console.error('Error getting Dropbox files:', error);
+      log.error('Error getting Dropbox files', error);
       throw error;
     }
   }
@@ -531,7 +533,7 @@ class ConnectorsAdapter {
         parentId: item.parentReference?.id
       }));
     } catch (error) {
-      console.error('Error getting OneDrive files:', error);
+      log.error('Error getting OneDrive files', error);
       throw error;
     }
   }
@@ -584,7 +586,7 @@ class ConnectorsAdapter {
 
       return storedFile;
     } catch (error) {
-      console.error('Error importing file:', error);
+      log.error('Error importing file', error);
       throw error;
     }
   }

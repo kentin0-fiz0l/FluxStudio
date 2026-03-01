@@ -5,13 +5,15 @@
 
 const { query, messagingQueries } = require('../config');
 const { transformMessage, updateConversationActivity } = require('./core');
+const { createLogger } = require('../../lib/logger');
+const log = createLogger('DB:Msg:Search');
 
 // Search functionality
 async function searchMessages(searchTerm, conversationId = null, limit = 20, offset = 0) {
   try {
     return await messagingQueries.searchMessages(searchTerm, conversationId, limit, offset);
   } catch (error) {
-    console.error('Error searching messages:', error);
+    log.error('Error searching messages', error);
     return [];
   }
 }
@@ -48,7 +50,7 @@ async function editMessage(messageId, userId, newContent) {
 
     return result.rows.length > 0 ? transformMessage(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error editing message:', error);
+    log.error('Error editing message', error);
     return null;
   }
 }
@@ -61,7 +63,7 @@ async function getEditHistory(messageId) {
     );
     return result.rows.length > 0 ? result.rows[0].edit_history || [] : [];
   } catch (error) {
-    console.error('Error getting edit history:', error);
+    log.error('Error getting edit history', error);
     return [];
   }
 }
@@ -101,7 +103,7 @@ async function forwardMessage(originalMessageId, toConversationId, forwardedByUs
 
     return forwardedMessage;
   } catch (error) {
-    console.error('Error forwarding message:', error);
+    log.error('Error forwarding message', error);
     return null;
   }
 }
@@ -135,7 +137,7 @@ async function healthCheck() {
       attachmentCount: parseInt(result.rows[0].attachment_count) || 0
     };
   } catch (error) {
-    console.error('Messaging health check failed:', error);
+    log.error('Messaging health check failed', error);
     return {
       status: 'error',
       service: 'messaging',

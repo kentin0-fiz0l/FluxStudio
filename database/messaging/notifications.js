@@ -4,6 +4,8 @@
  */
 
 const { query } = require('../config');
+const { createLogger } = require('../../lib/logger');
+const log = createLogger('DB:Msg:Notifications');
 
 function transformNotification(dbNotification) {
   return {
@@ -33,7 +35,7 @@ async function getNotifications(userId, limit = 20, offset = 0) {
     );
     return result.rows.map(transformNotification);
   } catch (error) {
-    console.error('Error getting notifications:', error);
+    log.error('Error getting notifications', error);
     return [];
   }
 }
@@ -47,7 +49,7 @@ async function getUnreadNotificationCount(userId) {
     );
     return parseInt(result.rows[0].count) || 0;
   } catch (error) {
-    console.error('Error getting unread notification count:', error);
+    log.error('Error getting unread notification count', error);
     return 0;
   }
 }
@@ -70,7 +72,7 @@ async function createNotification(notificationData) {
     );
     return transformNotification(result.rows[0]);
   } catch (error) {
-    console.error('Error creating notification:', error);
+    log.error('Error creating notification', error);
     throw error;
   }
 }
@@ -84,7 +86,7 @@ async function markNotificationAsRead(notificationId, userId) {
     );
     return result.rows.length > 0 ? transformNotification(result.rows[0]) : null;
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    log.error('Error marking notification as read', error);
     return null;
   }
 }
@@ -98,7 +100,7 @@ async function markAllNotificationsAsRead(userId) {
     );
     return result.rows.map(transformNotification);
   } catch (error) {
-    console.error('Error marking all notifications as read:', error);
+    log.error('Error marking all notifications as read', error);
     return [];
   }
 }
@@ -112,7 +114,7 @@ async function markNotificationsByIds(notificationIds, userId) {
     );
     return result.rows.map(transformNotification);
   } catch (error) {
-    console.error('Error marking notifications by ids:', error);
+    log.error('Error marking notifications by ids', error);
     return [];
   }
 }
@@ -125,7 +127,7 @@ async function deleteNotification(notificationId, userId) {
     );
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error deleting notification:', error);
+    log.error('Error deleting notification', error);
     return false;
   }
 }
