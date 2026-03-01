@@ -12,6 +12,8 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('AdminAudit');
 
 // All routes require authentication + admin role
 router.use(authenticateToken);
@@ -129,7 +131,7 @@ router.get('/', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('[AdminAudit] List failed:', error);
+    log.error('List failed', error);
     res.status(500).json({ error: 'Failed to fetch audit logs' });
   }
 });
@@ -202,7 +204,7 @@ router.get('/export', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename=audit-logs.csv');
     res.send(header + rows);
   } catch (error) {
-    console.error('[AdminAudit] Export failed:', error);
+    log.error('Export failed', error);
     res.status(500).json({ error: 'Failed to export audit logs' });
   }
 });

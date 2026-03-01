@@ -7,6 +7,8 @@
 const express = require('express');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Usage');
 
 const router = express.Router();
 
@@ -146,7 +148,7 @@ router.get('/', authenticateToken, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Get usage error:', error);
+    log.error('Get usage error', error);
     res.status(500).json({ error: 'Failed to get usage' });
   }
 });
@@ -173,7 +175,7 @@ router.get('/limits', authenticateToken, async (req, res) => {
       limits,
     });
   } catch (error) {
-    console.error('Get limits error:', error);
+    log.error('Get limits error', error);
     res.status(500).json({ error: 'Failed to get limits' });
   }
 });

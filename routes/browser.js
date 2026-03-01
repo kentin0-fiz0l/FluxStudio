@@ -16,6 +16,8 @@
 const express = require('express');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
+const { zodValidate } = require('../middleware/zodValidate');
+const { linkPreviewSchema, webCaptureSchema, pdfExportSchema, thumbnailSchema, designQaSchema } = require('../lib/schemas');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Browser');
 
@@ -25,14 +27,10 @@ const router = express.Router();
  * POST /api/browser/link-preview
  * Queue a link preview generation job
  */
-router.post('/link-preview', authenticateToken, async (req, res) => {
+router.post('/link-preview', authenticateToken, zodValidate(linkPreviewSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const { url } = req.body;
-
-    if (!url || typeof url !== 'string') {
-      return res.status(400).json({ success: false, error: 'url is required' });
-    }
 
     const result = await query(
       'INSERT INTO browser_jobs (type, input, created_by) VALUES ($1, $2::jsonb, $3) RETURNING id',
@@ -50,17 +48,10 @@ router.post('/link-preview', authenticateToken, async (req, res) => {
  * POST /api/browser/web-capture
  * Queue a web asset capture job
  */
-router.post('/web-capture', authenticateToken, async (req, res) => {
+router.post('/web-capture', authenticateToken, zodValidate(webCaptureSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const { url, projectId, boardId } = req.body;
-
-    if (!url || typeof url !== 'string') {
-      return res.status(400).json({ success: false, error: 'url is required' });
-    }
-    if (!projectId || typeof projectId !== 'string') {
-      return res.status(400).json({ success: false, error: 'projectId is required' });
-    }
 
     const result = await query(
       'INSERT INTO browser_jobs (type, input, created_by) VALUES ($1, $2::jsonb, $3) RETURNING id',
@@ -78,17 +69,10 @@ router.post('/web-capture', authenticateToken, async (req, res) => {
  * POST /api/browser/pdf-export
  * Queue a PDF export job
  */
-router.post('/pdf-export', authenticateToken, async (req, res) => {
+router.post('/pdf-export', authenticateToken, zodValidate(pdfExportSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const { html, css, projectId, format, pageSize } = req.body;
-
-    if (!html || typeof html !== 'string') {
-      return res.status(400).json({ success: false, error: 'html is required' });
-    }
-    if (!projectId || typeof projectId !== 'string') {
-      return res.status(400).json({ success: false, error: 'projectId is required' });
-    }
 
     const result = await query(
       'INSERT INTO browser_jobs (type, input, created_by) VALUES ($1, $2::jsonb, $3) RETURNING id',
@@ -106,14 +90,10 @@ router.post('/pdf-export', authenticateToken, async (req, res) => {
  * POST /api/browser/thumbnail
  * Queue a project thumbnail generation job
  */
-router.post('/thumbnail', authenticateToken, async (req, res) => {
+router.post('/thumbnail', authenticateToken, zodValidate(thumbnailSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const { projectId } = req.body;
-
-    if (!projectId || typeof projectId !== 'string') {
-      return res.status(400).json({ success: false, error: 'projectId is required' });
-    }
 
     const result = await query(
       'INSERT INTO browser_jobs (type, input, created_by) VALUES ($1, $2::jsonb, $3) RETURNING id',
@@ -131,17 +111,10 @@ router.post('/thumbnail', authenticateToken, async (req, res) => {
  * POST /api/browser/design-qa
  * Queue a design QA diffing job
  */
-router.post('/design-qa', authenticateToken, async (req, res) => {
+router.post('/design-qa', authenticateToken, zodValidate(designQaSchema), async (req, res) => {
   try {
     const userId = req.user.id;
     const { url, baselineAssetId, viewport, threshold } = req.body;
-
-    if (!url || typeof url !== 'string') {
-      return res.status(400).json({ success: false, error: 'url is required' });
-    }
-    if (!baselineAssetId || typeof baselineAssetId !== 'string') {
-      return res.status(400).json({ success: false, error: 'baselineAssetId is required' });
-    }
 
     const result = await query(
       'INSERT INTO browser_jobs (type, input, created_by) VALUES ($1, $2::jsonb, $3) RETURNING id',

@@ -12,6 +12,8 @@
 const express = require('express');
 const { query } = require('../database/config');
 const { config } = require('../config/environment');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Health');
 
 const router = express.Router();
 
@@ -154,7 +156,7 @@ router.post('/admin/init-database', async (req, res) => {
     const fs = require('fs');
     const path = require('path');
 
-    console.log('Checking database status...');
+    log.info('Checking database status...');
 
     const currentTables = await query(`
       SELECT tablename FROM pg_tables
@@ -176,14 +178,14 @@ router.post('/admin/init-database', async (req, res) => {
       });
     }
 
-    console.log('Running database initialization...');
+    log.info('Running database initialization...');
 
     const sqlPath = path.join(__dirname, '..', 'database', 'add-missing-tables.sql');
     const sql = fs.readFileSync(sqlPath, 'utf8');
 
     await query(sql);
 
-    console.log('Database initialization completed');
+    log.info('Database initialization completed');
 
     const finalTables = await query(`
       SELECT tablename FROM pg_tables
@@ -208,7 +210,7 @@ router.post('/admin/init-database', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Database initialization failed:', err);
+    log.error('Database initialization failed', err);
     res.status(500).json({
       error: 'Database initialization failed',
       message: err.message,

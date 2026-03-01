@@ -15,6 +15,8 @@ const {
   forecastCompletion,
 } = require('../lib/analytics-scoring');
 const { ingestEvent, queryFunnel, queryRetention, FUNNEL_STAGES } = require('../lib/analytics/funnelTracker');
+const { zodValidate } = require('../middleware/zodValidate');
+const { ingestEventSchema } = require('../lib/schemas');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Analytics');
 
@@ -424,12 +426,9 @@ router.get('/project/:projectId/risks', authenticateToken, async (req, res) => {
  * Ingest a single funnel/growth event from the client.
  * Accepts both authenticated and anonymous requests.
  */
-router.post('/events', async (req, res) => {
+router.post('/events', zodValidate(ingestEventSchema), async (req, res) => {
   try {
     const { eventName, properties = {}, sessionId } = req.body;
-    if (!eventName) {
-      return res.status(400).json({ error: 'eventName is required' });
-    }
 
     // Extract userId from JWT if present (but don't require auth)
     let userId = null;

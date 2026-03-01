@@ -12,6 +12,8 @@ const express = require('express');
 const { authenticateToken, requireAdmin } = require('../lib/auth/middleware');
 const { zodValidate } = require('../middleware/zodValidate');
 const { submitFeedbackSchema } = require('../lib/schemas');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Feedback');
 
 const router = express.Router();
 
@@ -21,7 +23,7 @@ try {
   const { query } = require('../database/config');
   dbQuery = query;
 } catch (e) {
-  console.warn('Database not available for feedback routes');
+  log.warn('Database not available for feedback routes');
 }
 
 const VALID_TYPES = ['bug', 'feature', 'general'];
@@ -81,7 +83,7 @@ router.post('/', authenticateToken, zodValidate(submitFeedbackSchema), async (re
       message: 'Thank you for your feedback!',
     });
   } catch (error) {
-    console.error('Feedback submission error:', error);
+    log.error('Feedback submission error', error);
     res.status(500).json({
       success: false,
       error: 'Failed to submit feedback.',
@@ -127,7 +129,7 @@ router.get('/admin', authenticateToken, requireAdmin, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Feedback list error:', error);
+    log.error('Feedback list error', error);
     res.status(500).json({ success: false, error: 'Failed to fetch feedback.' });
   }
 });

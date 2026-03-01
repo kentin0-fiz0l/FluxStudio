@@ -14,6 +14,10 @@ const jwt = require('jsonwebtoken');
 const { query } = require('../database/config');
 const samlService = require('../lib/auth/samlService');
 const { config } = require('../config/environment');
+const { zodValidate } = require('../middleware/zodValidate');
+const { samlAcsSchema } = require('../lib/schemas');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('SAML');
 
 // ---------------------------------------------------------------------------
 // Helper: resolve orgSlug → organization row
@@ -51,7 +55,7 @@ router.get('/:orgSlug/login', async (req, res) => {
 
     return res.redirect(redirectUrl);
   } catch (err) {
-    console.error('SAML login error:', err.message);
+    log.error('SAML login error', err);
     return res.status(500).json({ error: 'Failed to initiate SSO login' });
   }
 });
@@ -60,14 +64,10 @@ router.get('/:orgSlug/login', async (req, res) => {
 // POST /acs — Assertion Consumer Service
 // ---------------------------------------------------------------------------
 
-router.post('/acs', express.urlencoded({ extended: false }), async (req, res) => {
+router.post('/acs', express.urlencoded({ extended: false }), zodValidate(samlAcsSchema), async (req, res) => {
   try {
     const samlResponse = req.body.SAMLResponse;
     const relayState = req.body.RelayState || '/';
-
-    if (!samlResponse) {
-      return res.status(400).json({ error: 'Missing SAMLResponse' });
-    }
 
     // Determine org from RelayState or SAMLResponse issuer
     // For now, we look up org from the SAMLResponse after partial decode
@@ -110,7 +110,7 @@ router.post('/acs', express.urlencoded({ extended: false }), async (req, res) =>
     const frontendUrl = config.FRONTEND_URL || 'https://fluxstudio.art';
     return res.redirect(`${frontendUrl}/auth/sso-callback?token=${encodeURIComponent(token)}&returnTo=${encodeURIComponent(relayState)}`);
   } catch (err) {
-    console.error('SAML ACS error:', err.message);
+    log.error('SAML ACS error', err);
 
     // Try to log the failure
     try {
@@ -126,7 +126,7 @@ router.post('/acs', express.urlencoded({ extended: false }), async (req, res) =>
         }
       }
     } catch (logErr) {
-      console.error('Failed to log SSO failure:', logErr.message);
+      log.error('Failed to log SSO failure', logErr);
     }
 
     return res.status(401).json({ error: 'SAML assertion validation failed' });
@@ -148,7 +148,7 @@ router.get('/metadata/:orgSlug', async (req, res) => {
     res.type('application/xml');
     return res.send(xml);
   } catch (err) {
-    console.error('SAML metadata error:', err.message);
+    log.error('SAML metadata error', err);
     return res.status(500).json({ error: 'Failed to generate SP metadata' });
   }
 });

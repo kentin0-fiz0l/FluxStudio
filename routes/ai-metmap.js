@@ -10,11 +10,13 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { authenticateToken, rateLimitByUser } = require('../lib/auth/middleware');
 const metmapAdapter = require('../database/metmap-adapter');
 const { buildMetMapContext } = require('../lib/metmap-ai-context');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('AIMetMap');
 
 const router = express.Router();
 
 if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('[AI-MetMap] ANTHROPIC_API_KEY is not set — AI endpoints will return 503');
+  log.error('ANTHROPIC_API_KEY is not set — AI endpoints will return 503');
 }
 
 const anthropic = new Anthropic({
@@ -90,7 +92,7 @@ async function streamAnalysis(req, res, systemPrompt, userMessage) {
       res.end();
       return;
     }
-    console.error('[AI-MetMap] Stream error:', error);
+    log.error('Stream error', error);
     let errorMessage = error.message || 'AI analysis failed';
     if (error.status === 429 || error?.error?.type === 'rate_limit_error') {
       errorMessage = 'Rate limit reached — try again in 30 seconds';

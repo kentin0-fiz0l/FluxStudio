@@ -17,6 +17,8 @@ const { query } = require('../database/config');
 const { logAction } = require('../lib/auditLog');
 const { zodValidate } = require('../middleware/zodValidate');
 const { deleteAccountSchema } = require('../lib/schemas');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Account');
 
 router.use(authenticateToken);
 
@@ -96,7 +98,7 @@ router.get('/export', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename=fluxstudio-data-export.json');
     res.json(exportData);
   } catch (error) {
-    console.error('[Account] Export failed:', error);
+    log.error('Export failed', error);
     res.status(500).json({ error: 'Failed to export data' });
   }
 });
@@ -135,7 +137,7 @@ router.post('/delete', zodValidate(deleteAccountSchema), async (req, res) => {
       scheduledAt: scheduledAt.toISOString(),
     });
   } catch (error) {
-    console.error('[Account] Delete request failed:', error);
+    log.error('Delete request failed', error);
     res.status(500).json({ error: 'Failed to schedule deletion' });
   }
 });
@@ -164,7 +166,7 @@ router.delete('/delete', async (req, res) => {
 
     res.json({ success: true, message: 'Deletion request cancelled' });
   } catch (error) {
-    console.error('[Account] Cancel delete failed:', error);
+    log.error('Cancel delete failed', error);
     res.status(500).json({ error: 'Failed to cancel deletion' });
   }
 });
@@ -197,7 +199,7 @@ router.get('/delete/status', async (req, res) => {
       requestedAt: request.created_at,
     });
   } catch (error) {
-    console.error('[Account] Delete status failed:', error);
+    log.error('Delete status failed', error);
     res.status(500).json({ error: 'Failed to check deletion status' });
   }
 });

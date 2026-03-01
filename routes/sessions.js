@@ -18,6 +18,9 @@ const {
   revokeAllSessions,
 } = require('../lib/auth/sessionManager');
 const { logAction } = require('../lib/auditLog');
+const { z } = require('zod');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Sessions');
 
 router.use(authenticateToken);
 
@@ -42,7 +45,7 @@ router.get('/', async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('[Sessions] List failed:', error);
+    log.error('List failed', error);
     res.status(500).json({ error: 'Failed to list sessions' });
   }
 });
@@ -54,6 +57,15 @@ router.get('/', async (req, res) => {
  */
 router.delete('/:id', async (req, res) => {
   try {
+    const paramResult = z.string().uuid('Must be a valid UUID').safeParse(req.params.id);
+    if (!paramResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: paramResult.error.issues[0].message,
+        field: 'id',
+      });
+    }
+
     const { query: dbQuery } = require('../database/config');
 
     // Verify session belongs to user
@@ -71,7 +83,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ success: true, message: 'Session revoked' });
   } catch (error) {
-    console.error('[Sessions] Revoke failed:', error);
+    log.error('Revoke failed', error);
     res.status(500).json({ error: 'Failed to revoke session' });
   }
 });
@@ -88,7 +100,7 @@ router.delete('/', async (req, res) => {
 
     res.json({ success: true, message: 'All other sessions revoked' });
   } catch (error) {
-    console.error('[Sessions] Revoke all failed:', error);
+    log.error('Revoke all failed', error);
     res.status(500).json({ error: 'Failed to revoke sessions' });
   }
 });

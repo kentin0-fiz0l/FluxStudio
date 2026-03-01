@@ -13,6 +13,8 @@ const express = require('express');
 const crypto = require('crypto');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Referrals');
 
 const router = express.Router();
 
@@ -61,7 +63,7 @@ router.get('/code', authenticateToken, async (req, res) => {
 
     res.json({ success: true, code });
   } catch (error) {
-    console.error('[Referrals] Code generation error:', error.message);
+    log.error('Code generation error', error);
     res.status(500).json({ error: 'Failed to generate referral code' });
   }
 });
@@ -114,7 +116,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('[Referrals] Stats error:', error.message);
+    log.error('Stats error', error);
     res.status(500).json({ error: 'Failed to fetch referral stats' });
   }
 });
@@ -143,7 +145,7 @@ router.get('/validate/:code', async (req, res) => {
       referrerName: result.rows[0].referrer_name,
     });
   } catch (error) {
-    console.error('[Referrals] Validate error:', error.message);
+    log.error('Validate error', error);
     res.status(500).json({ error: 'Failed to validate code' });
   }
 });

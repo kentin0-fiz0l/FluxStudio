@@ -13,6 +13,10 @@
 const express = require('express');
 const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Media');
+const { zodValidate } = require('../middleware/zodValidate');
+const { transcodeSchema } = require('../lib/schemas');
 
 const router = express.Router();
 
@@ -42,13 +46,9 @@ const requireAdmin = (req, res, next) => {
 };
 
 // Submit transcoding job
-router.post('/transcode', authenticateToken, async (req, res) => {
+router.post('/transcode', authenticateToken, zodValidate(transcodeSchema), async (req, res) => {
   try {
     const { fileId } = req.body;
-
-    if (!fileId) {
-      return res.status(400).json({ error: 'fileId is required' });
-    }
 
     const fileResult = await query(
       'SELECT id, name, file_url, uploaded_by FROM files WHERE id = $1',
@@ -85,7 +85,7 @@ router.post('/transcode', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Transcoding submission error:', error);
+    log.error('Transcoding submission error', error);
     res.status(500).json({
       error: 'Failed to submit transcoding job',
       details: error.message
@@ -118,7 +118,7 @@ router.get('/transcode/:fileId', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get transcoding status error:', error);
+    log.error('Get transcoding status error', error);
     res.status(500).json({
       error: 'Failed to get transcoding status',
       details: error.message
@@ -138,7 +138,7 @@ router.post('/monitor-jobs', authenticateToken, requireAdmin, async (req, res) =
     });
 
   } catch (error) {
-    console.error('Job monitoring error:', error);
+    log.error('Job monitoring error', error);
     res.status(500).json({
       error: 'Failed to monitor jobs',
       details: error.message
@@ -210,7 +210,7 @@ router.get('/:fileId/manifest', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get manifest error:', error);
+    log.error('Get manifest error', error);
     res.status(500).json({
       error: 'Failed to get manifest',
       details: error.message

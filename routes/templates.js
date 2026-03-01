@@ -15,6 +15,8 @@ const { authenticateToken } = require('../lib/auth/middleware');
 const { query } = require('../database/config');
 const { zodValidate } = require('../middleware/zodValidate');
 const { createCustomTemplateSchema } = require('../lib/schemas');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Templates');
 
 const router = express.Router();
 
@@ -373,7 +375,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     res.json({ success: true, templates: results, total: results.length });
   } catch (error) {
-    console.error('List templates error:', error);
+    log.error('List templates error', error);
     res.status(500).json({ error: 'Failed to list templates' });
   }
 });
@@ -426,7 +428,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Get template error:', error);
+    log.error('Get template error', error);
     res.status(500).json({ error: 'Failed to get template' });
   }
 });
@@ -463,7 +465,7 @@ router.post('/custom', authenticateToken, zodValidate(createCustomTemplateSchema
 
     res.status(201).json({ success: true, template: result.rows[0] });
   } catch (error) {
-    console.error('Create custom template error:', error);
+    log.error('Create custom template error', error);
     res.status(500).json({ error: 'Failed to create custom template' });
   }
 });
@@ -485,7 +487,7 @@ router.delete('/custom/:id', authenticateToken, async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Delete custom template error:', error);
+    log.error('Delete custom template error', error);
     res.status(500).json({ error: 'Failed to delete custom template' });
   }
 });

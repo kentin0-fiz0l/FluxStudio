@@ -21,6 +21,8 @@ const {
 } = require('../lib/agent/middleware');
 const draftService = require('../services/formation-draft-service');
 const { FormationDraftYjsClient } = require('../services/formation-draft-yjs-client');
+const { zodValidate } = require('../middleware/zodValidate');
+const { generateFormationSchema, refineFormationSchema, interruptFormationSchema } = require('../lib/schemas');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('FormationDraftAgent');
 
@@ -46,15 +48,9 @@ router.post('/generate',
   agentRateLimit(5, 60000),
   agentPermissions('write:formations'),
   auditLog('formation_draft'),
+  zodValidate(generateFormationSchema),
   async (req, res) => {
     const { formationId, songId, showDescription, performerCount, constraints } = req.body;
-
-    if (!formationId || !showDescription || !performerCount) {
-      return res.status(400).json({
-        error: 'Bad request',
-        message: 'formationId, showDescription, and performerCount are required',
-      });
-    }
 
     // Set up SSE
     res.setHeader('Content-Type', 'text/event-stream');
@@ -320,12 +316,9 @@ router.post('/session/:id/refine',
   agentRateLimit(10, 60000),
   agentPermissions('write:formations'),
   auditLog('formation_draft_refine'),
+  zodValidate(refineFormationSchema),
   async (req, res) => {
     const { instruction } = req.body;
-
-    if (!instruction) {
-      return res.status(400).json({ error: 'instruction is required' });
-    }
 
     try {
       const session = await draftService.getSession(req.params.id);
@@ -389,8 +382,9 @@ router.post('/session/:id/refine',
 
 router.post('/session/:id/interrupt',
   authenticateToken,
+  zodValidate(interruptFormationSchema),
   async (req, res) => {
-    const { action } = req.body; // 'pause' or 'cancel'
+    const { action } = req.body;
 
     try {
       const session = await draftService.getSession(req.params.id);

@@ -18,6 +18,8 @@ const { query } = require('../database/config');
 const { logAction } = require('../lib/auditLog');
 const { zodValidate } = require('../middleware/zodValidate');
 const { createRoleSchema, updateRoleSchema } = require('../lib/schemas');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Roles');
 
 router.use(authenticateToken);
 
@@ -51,7 +53,7 @@ router.get('/', requirePermission('settings.manage'), async (req, res) => {
       availablePermissions: PERMISSIONS,
     });
   } catch (error) {
-    console.error('[Roles] List failed:', error);
+    log.error('List failed', error);
     res.status(500).json({ error: 'Failed to list roles' });
   }
 });
@@ -100,7 +102,7 @@ router.post('/', requirePermission('settings.manage'), zodValidate(createRoleSch
     if (error.code === '23505') {
       return res.status(409).json({ error: 'A role with that slug already exists in this organization' });
     }
-    console.error('[Roles] Create failed:', error);
+    log.error('Create failed', error);
     res.status(500).json({ error: 'Failed to create role' });
   }
 });
@@ -159,7 +161,7 @@ router.put('/:slug', requirePermission('settings.manage'), zodValidate(updateRol
 
     res.json({ success: true, role: result.rows[0] });
   } catch (error) {
-    console.error('[Roles] Update failed:', error);
+    log.error('Update failed', error);
     res.status(500).json({ error: 'Failed to update role' });
   }
 });
@@ -206,7 +208,7 @@ router.delete('/:slug', requirePermission('settings.manage'), async (req, res) =
 
     res.json({ success: true });
   } catch (error) {
-    console.error('[Roles] Delete failed:', error);
+    log.error('Delete failed', error);
     res.status(500).json({ error: 'Failed to delete role' });
   }
 });
