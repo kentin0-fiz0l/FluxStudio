@@ -6,6 +6,8 @@
 
 const { query } = require('../database/config');
 const { createId } = require('@paralleldrive/cuid2');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('PrintJobLogger');
 
 class PrintJobLogger {
   /**
@@ -49,10 +51,10 @@ class PrintJobLogger {
 
     try {
       const result = await query(sql, values);
-      console.log(`✅ Print job logged: ${jobId} (${jobData.file_name})`);
+      log.info('Print job logged', { jobId, fileName: jobData.file_name });
       return result.rows[0];
     } catch (error) {
-      console.error('❌ Failed to create print job:', error.message);
+      log.error('Failed to create print job', { error: error.message });
       throw error;
     }
   }
@@ -78,9 +80,9 @@ class PrintJobLogger {
 
     try {
       await query(sql, values);
-      console.log(`✅ Print job status updated: ${jobId} → ${status}${progress !== null ? ` (${progress}%)` : ''}`);
+      log.info('Print job status updated', { jobId, status, progress });
     } catch (error) {
-      console.error('❌ Failed to update job status:', error.message);
+      log.error('Failed to update job status', { error: error.message });
       throw error;
     }
   }
@@ -110,12 +112,12 @@ class PrintJobLogger {
       const result = await query(sql, values);
       if (result.rows.length > 0) {
         const job = result.rows[0];
-        console.log(`✅ Print job updated via FluxPrint ID ${fluxprintQueueId}: ${job.file_name} → ${status}`);
+        log.info('Print job updated via FluxPrint ID', { fluxprintQueueId, fileName: job.file_name, status });
         return job;
       }
       return null;
     } catch (error) {
-      console.error('❌ Failed to update job by FluxPrint ID:', error.message);
+      log.error('Failed to update job by FluxPrint ID', { error: error.message });
       throw error;
     }
   }
@@ -134,12 +136,12 @@ class PrintJobLogger {
       if (actualTime !== null) {
         const hours = Math.floor(actualTime / 3600);
         const minutes = Math.floor((actualTime % 3600) / 60);
-        console.log(`✅ Print time calculated: ${jobId} → ${hours}h ${minutes}m`);
+        log.info('Print time calculated', { jobId, hours, minutes });
       }
 
       return actualTime;
     } catch (error) {
-      console.error('❌ Failed to calculate print time:', error.message);
+      log.error('Failed to calculate print time', { error: error.message });
       throw error;
     }
   }
@@ -166,12 +168,12 @@ class PrintJobLogger {
     try {
       const result = await query(sql, values);
       if (result.rows.length > 0) {
-        console.log(`✅ Print job linked to project: ${jobId} → ${projectId}`);
+        log.info('Print job linked to project', { jobId, projectId });
         return result.rows[0];
       }
       return null;
     } catch (error) {
-      console.error('❌ Failed to link job to project:', error.message);
+      log.error('Failed to link job to project', { error: error.message });
       throw error;
     }
   }
@@ -187,7 +189,7 @@ class PrintJobLogger {
       const result = await query(sql);
       return result.rows;
     } catch (error) {
-      console.error('❌ Failed to get active jobs:', error.message);
+      log.error('Failed to get active jobs', { error: error.message });
       throw error;
     }
   }
@@ -207,7 +209,7 @@ class PrintJobLogger {
       const result = await query(sql, [limit]);
       return result.rows;
     } catch (error) {
-      console.error('❌ Failed to get job history:', error.message);
+      log.error('Failed to get job history', { error: error.message });
       throw error;
     }
   }
@@ -227,7 +229,7 @@ class PrintJobLogger {
       const result = await query(sql, [projectId]);
       return result.rows.length > 0 ? result.rows[0] : null;
     } catch (error) {
-      console.error('❌ Failed to get project stats:', error.message);
+      log.error('Failed to get project stats', { error: error.message });
       throw error;
     }
   }
@@ -247,7 +249,7 @@ class PrintJobLogger {
       const result = await query(sql, [fluxprintQueueId]);
       return result.rows.length > 0 ? result.rows[0] : null;
     } catch (error) {
-      console.error('❌ Failed to find job by FluxPrint ID:', error.message);
+      log.error('Failed to find job by FluxPrint ID', { error: error.message });
       throw error;
     }
   }
@@ -262,10 +264,10 @@ class PrintJobLogger {
     try {
       const result = await query(sql);
       const deletedCount = result.rows[0].deleted_count;
-      console.log(`🧹 Cleaned up ${deletedCount} old print jobs`);
+      log.info('Cleaned up old print jobs', { deletedCount });
       return deletedCount;
     } catch (error) {
-      console.error('❌ Failed to cleanup old jobs:', error.message);
+      log.error('Failed to cleanup old jobs', { error: error.message });
       throw error;
     }
   }

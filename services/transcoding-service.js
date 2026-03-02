@@ -14,6 +14,8 @@ const AWS = require('aws-sdk');
 const { query } = require('../database/config');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('Transcoding');
 
 // AWS SDK configuration
 const mediaConvert = new AWS.MediaConvert({
@@ -66,7 +68,7 @@ async function generateContentKey(contentId) {
       keyId: KeyId
     };
   } catch (error) {
-    console.error('Failed to generate content key:', error);
+    log.error('Failed to generate content key', error);
     throw new Error('Content key generation failed');
   }
 }
@@ -92,7 +94,7 @@ async function storeContentKey(contentId, keyData) {
  */
 async function createTranscodingJob({ fileId, fileName, s3Key, userId, enableDrm = false }) {
   try {
-    console.log(`[Transcoding] Creating job for file ${fileId}`);
+    log.info('Creating job for file', { fileId });
 
     // Generate content key if DRM is enabled
     let contentKey = null;
@@ -101,7 +103,7 @@ async function createTranscodingJob({ fileId, fileName, s3Key, userId, enableDrm
     if (enableDrm) {
       contentKey = await generateContentKey(fileId);
       keyId = await storeContentKey(fileId, contentKey);
-      console.log(`[Transcoding] Generated content key ${keyId}`);
+      log.info('Generated content key', { keyId });
     }
 
     const outputPrefix = `hls/${fileId}/`;
@@ -278,7 +280,7 @@ async function createTranscodingJob({ fileId, fileName, s3Key, userId, enableDrm
         }
       };
 
-      console.log(`[Transcoding] Enabled FairPlay encryption for ${fileId}`);
+      log.info('Enabled FairPlay encryption', { fileId });
     }
 
     // Create MediaConvert job
@@ -296,7 +298,7 @@ async function createTranscodingJob({ fileId, fileName, s3Key, userId, enableDrm
     const job = await mediaConvert.createJob(jobParams).promise();
     const jobId = job.Job.Id;
 
-    console.log(`[Transcoding] MediaConvert job created: ${jobId}`);
+    log.info('MediaConvert job created', { jobId });
 
     // Store transcoding job in database
     const transcodingJobId = uuidv4();
@@ -337,7 +339,7 @@ async function createTranscodingJob({ fileId, fileName, s3Key, userId, enableDrm
     };
 
   } catch (error) {
-    console.error('[Transcoding] Job creation failed:', error);
+    log.error('Job creation failed', error);
 
     // Update file status to failed
     await query(
@@ -370,7 +372,7 @@ async function checkJobStatus(jobId) {
       errorCode: job.Job.ErrorCode
     };
   } catch (error) {
-    console.error('[Transcoding] Status check failed:', error);
+    log.error('Status check failed', error);
     throw error;
   }
 }
@@ -436,12 +438,12 @@ async function updateJobStatus(fileId, statusData) {
 
     await query(updateQuery, params);
 
-    console.log(`[Transcoding] Updated status for file ${fileId}: ${mappedStatus} (${statusData.progress}%)`);
+    log.info('Updated status for file', { fileId, status: mappedStatus, progress: statusData.progress });
 
     return { success: true, status: mappedStatus };
 
   } catch (error) {
-    console.error('[Transcoding] Failed to update job status:', error);
+    log.error('Failed to update job status', error);
     throw error;
   }
 }
@@ -460,21 +462,21 @@ async function monitorJobs() {
        LIMIT 50`
     );
 
-    console.log(`[Transcoding Monitor] Checking ${result.rows.length} jobs`);
+    log.info('Checking active jobs', { count: result.rows.length });
 
     for (const job of result.rows) {
       try {
         const statusData = await checkJobStatus(job.job_id);
         await updateJobStatus(job.file_id, statusData);
       } catch (error) {
-        console.error(`[Transcoding Monitor] Error checking job ${job.job_id}:`, error);
+        log.error('Error checking job', error, { jobId: job.job_id });
       }
     }
 
     return { checked: result.rows.length };
 
   } catch (error) {
-    console.error('[Transcoding Monitor] Monitor failed:', error);
+    log.error('Monitor failed', error);
     throw error;
   }
 }

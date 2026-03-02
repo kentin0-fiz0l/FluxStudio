@@ -40,7 +40,7 @@ router.get('/export', async (req, res) => {
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ success: false, error: 'User not found', code: 'ACCOUNT_NOT_FOUND' });
     }
 
     // Gather projects
@@ -99,7 +99,7 @@ router.get('/export', async (req, res) => {
     res.json(exportData);
   } catch (error) {
     log.error('Export failed', error);
-    res.status(500).json({ error: 'Failed to export data' });
+    res.status(500).json({ success: false, error: 'Failed to export data', code: 'EXPORT_FAILED' });
   }
 });
 
@@ -138,7 +138,7 @@ router.post('/delete', zodValidate(deleteAccountSchema), async (req, res) => {
     });
   } catch (error) {
     log.error('Delete request failed', error);
-    res.status(500).json({ error: 'Failed to schedule deletion' });
+    res.status(500).json({ success: false, error: 'Failed to schedule deletion', code: 'DELETION_SCHEDULE_FAILED' });
   }
 });
 
@@ -159,7 +159,7 @@ router.delete('/delete', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'No pending deletion request found' });
+      return res.status(404).json({ success: false, error: 'No pending deletion request found', code: 'DELETION_REQUEST_NOT_FOUND' });
     }
 
     await logAction(userId, 'deletion_cancelled', 'user', userId, {}, req);
@@ -167,7 +167,7 @@ router.delete('/delete', async (req, res) => {
     res.json({ success: true, message: 'Deletion request cancelled' });
   } catch (error) {
     log.error('Cancel delete failed', error);
-    res.status(500).json({ error: 'Failed to cancel deletion' });
+    res.status(500).json({ success: false, error: 'Failed to cancel deletion', code: 'DELETION_CANCEL_FAILED' });
   }
 });
 
@@ -200,7 +200,7 @@ router.get('/delete/status', async (req, res) => {
     });
   } catch (error) {
     log.error('Delete status failed', error);
-    res.status(500).json({ error: 'Failed to check deletion status' });
+    res.status(500).json({ success: false, error: 'Failed to check deletion status', code: 'DELETION_STATUS_FAILED' });
   }
 });
 

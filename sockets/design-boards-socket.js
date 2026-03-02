@@ -7,6 +7,8 @@
  */
 
 const jwt = require('jsonwebtoken');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('DesignBoardsSocket');
 
 module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
   // Store active board sessions
@@ -47,7 +49,7 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
 
   // Socket.IO connection handling
   namespace.on('connection', async (socket) => {
-    console.log(`[Design Boards] User connected: ${socket.userId}`);
+    log.info('User connected', { userId: socket.userId });
 
     // Join a board for real-time collaboration
     socket.on('board:join', async (boardId) => {
@@ -73,7 +75,7 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
           cursor: null
         });
 
-        console.log(`[Design Boards] User ${socket.userId} joined board ${boardId}`);
+        log.info('User joined board', { userId: socket.userId, boardId });
 
         // Notify others in the room
         broadcastToBoard(socket, boardId, 'board:user-joined', {
@@ -89,7 +91,7 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
           users: getBoardUsers(boardId)
         });
       } catch (error) {
-        console.error('[Design Boards] Error joining board:', error);
+        log.error('Error joining board', error);
         socket.emit('error', { message: 'Failed to join board' });
       }
     });
@@ -109,7 +111,7 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
 
       socket.currentBoardId = null;
 
-      console.log(`[Design Boards] User ${socket.userId} left board ${boardId}`);
+      log.info('User left board', { userId: socket.userId, boardId });
 
       // Notify others in the room
       broadcastToBoard(socket, boardId, 'board:user-left', {
@@ -169,7 +171,7 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
           userId: socket.userId
         });
       } catch (error) {
-        console.error('[Design Boards] Error creating node:', error);
+        log.error('Error creating node', error);
         socket.emit('error', { message: 'Failed to create node' });
       }
     });
@@ -200,7 +202,7 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
           userId: socket.userId
         });
       } catch (error) {
-        console.error('[Design Boards] Error updating node:', error);
+        log.error('Error updating node', error);
         socket.emit('error', { message: 'Failed to update node' });
       }
     });
@@ -231,7 +233,7 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
           userId: socket.userId
         });
       } catch (error) {
-        console.error('[Design Boards] Error deleting node:', error);
+        log.error('Error deleting node', error);
         socket.emit('error', { message: 'Failed to delete node' });
       }
     });
@@ -257,7 +259,7 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
           userId: socket.userId
         });
       } catch (error) {
-        console.error('[Design Boards] Error bulk updating nodes:', error);
+        log.error('Error bulk updating nodes', error);
         socket.emit('error', { message: 'Failed to bulk update nodes' });
       }
     });
@@ -309,14 +311,14 @@ module.exports = (namespace, designBoardsAdapter, JWT_SECRET) => {
           userId: socket.userId
         });
       } catch (error) {
-        console.error('[Design Boards] Error updating board:', error);
+        log.error('Error updating board', error);
         socket.emit('error', { message: 'Failed to update board' });
       }
     });
 
     // Handle disconnect
     socket.on('disconnect', () => {
-      console.log(`[Design Boards] User disconnected: ${socket.userId}`);
+      log.info('User disconnected', { userId: socket.userId });
 
       // Clean up all board sessions this user was part of
       for (const [boardId, session] of boardSessions.entries()) {

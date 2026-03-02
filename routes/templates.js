@@ -376,7 +376,7 @@ router.get('/', authenticateToken, async (req, res) => {
     res.json({ success: true, templates: results, total: results.length });
   } catch (error) {
     log.error('List templates error', error);
-    res.status(500).json({ error: 'Failed to list templates' });
+    res.status(500).json({ success: false, error: 'Failed to list templates', code: 'TEMPLATE_LIST_FAILED' });
   }
 });
 
@@ -410,7 +410,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Template not found' });
+      return res.status(404).json({ success: false, error: 'Template not found', code: 'TEMPLATE_NOT_FOUND' });
     }
 
     const row = result.rows[0];
@@ -429,7 +429,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Get template error', error);
-    res.status(500).json({ error: 'Failed to get template' });
+    res.status(500).json({ success: false, error: 'Failed to get template', code: 'TEMPLATE_FETCH_FAILED' });
   }
 });
 
@@ -443,7 +443,7 @@ router.post('/custom', authenticateToken, zodValidate(createCustomTemplateSchema
     const { name, description, category, structure, variables, sourceProjectId } = req.body;
 
     if (!name || name.trim().length < 2) {
-      return res.status(400).json({ error: 'Template name must be at least 2 characters' });
+      return res.status(400).json({ success: false, error: 'Template name must be at least 2 characters', code: 'INVALID_TEMPLATE_NAME' });
     }
 
     const id = uuidv4();
@@ -466,7 +466,7 @@ router.post('/custom', authenticateToken, zodValidate(createCustomTemplateSchema
     res.status(201).json({ success: true, template: result.rows[0] });
   } catch (error) {
     log.error('Create custom template error', error);
-    res.status(500).json({ error: 'Failed to create custom template' });
+    res.status(500).json({ success: false, error: 'Failed to create custom template', code: 'TEMPLATE_CREATE_FAILED' });
   }
 });
 
@@ -482,13 +482,13 @@ router.delete('/custom/:id', authenticateToken, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Custom template not found' });
+      return res.status(404).json({ success: false, error: 'Custom template not found', code: 'TEMPLATE_NOT_FOUND' });
     }
 
     res.json({ success: true });
   } catch (error) {
     log.error('Delete custom template error', error);
-    res.status(500).json({ error: 'Failed to delete custom template' });
+    res.status(500).json({ success: false, error: 'Failed to delete custom template', code: 'TEMPLATE_DELETE_FAILED' });
   }
 });
 

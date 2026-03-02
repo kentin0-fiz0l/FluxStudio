@@ -5,6 +5,8 @@
 
 const { Octokit } = require('@octokit/rest');
 const { Pool } = require('pg');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('GitHubSync');
 
 class GitHubSyncService {
   constructor(config = {}) {
@@ -19,11 +21,10 @@ class GitHubSyncService {
           ? { rejectUnauthorized: false }  // Accept DigitalOcean self-signed certs
           : false
       };
-      console.log('[GitHubSyncService] Using DATABASE_URL for database connection (SSL: ' +
-        (this.dbConfig.ssl ? 'enabled with rejectUnauthorized=false' : 'disabled') + ')');
+      log.info('Using DATABASE_URL for database connection', { ssl: this.dbConfig.ssl ? 'enabled' : 'disabled' });
     } else if (config.database) {
       this.dbConfig = config.database;
-      console.log('[GitHubSyncService] Using provided database config');
+      log.info('Using provided database config');
     } else {
       // Fallback to individual variables (development only)
       this.dbConfig = {
@@ -33,7 +34,7 @@ class GitHubSyncService {
         user: process.env.DB_USER || 'fluxstudio_user',
         password: process.env.DB_PASSWORD
       };
-      console.log('[GitHubSyncService] Using individual DB variables (fallback)');
+      log.info('Using individual DB variables (fallback)');
     }
 
     this.pool = new Pool(this.dbConfig);
@@ -108,7 +109,7 @@ class GitHubSyncService {
     // Get encryption key from environment
     const encryptionKey = process.env.OAUTH_ENCRYPTION_KEY;
     if (!encryptionKey || encryptionKey.length < 32) {
-      console.warn('[GitHubSyncService] OAUTH_ENCRYPTION_KEY not set, assuming plaintext token');
+      log.warn('OAUTH_ENCRYPTION_KEY not set, assuming plaintext token');
       return encryptedBuffer.toString('utf8');
     }
 
@@ -132,7 +133,7 @@ class GitHubSyncService {
 
       return decrypted.toString('utf8');
     } catch (error) {
-      console.error('[GitHubSyncService] Token decryption error:', error.message);
+      log.error('Token decryption error', { error: error.message });
       // Fall back to treating as plaintext if decryption fails
       return encryptedBuffer.toString('utf8');
     }
@@ -156,7 +157,7 @@ class GitHubSyncService {
         per_page: 100
       });
 
-      console.log(`Fetched ${issues.length} issues from ${link.full_name}`);
+      log.info('Fetched issues from repository', { count: issues.length, repo: link.full_name });
 
       // Sync each issue
       for (const issue of issues) {
@@ -171,7 +172,7 @@ class GitHubSyncService {
 
       return { success: true, issueCount: issues.length };
     } catch (error) {
-      console.error(`Error syncing issues for ${link.full_name}:`, error);
+      log.error('Error syncing issues', error, { repo: link.full_name });
 
       // Update sync status to error
       await this.pool.query(
@@ -296,12 +297,12 @@ class GitHubSyncService {
 
       await client.query('COMMIT');
 
-      console.log(`Created task ${taskId} from GitHub issue #${issue.number}`);
+      log.info('Created task from GitHub issue', { taskId, issueNumber: issue.number });
 
       return taskId;
     } catch (error) {
       await client.query('ROLLBACK');
-      console.error(`Error creating task from issue #${issue.number}:`, error);
+      log.error('Error creating task from issue', error, { issueNumber: issue.number });
       throw error;
     } finally {
       client.release();
@@ -370,7 +371,7 @@ class GitHubSyncService {
         existingSync.fluxstudio_task_id
       ]);
 
-      console.log(`Updated task ${existingSync.fluxstudio_task_id} from GitHub issue #${issue.number}`);
+      log.info('Updated task from GitHub issue', { taskId: existingSync.fluxstudio_task_id, issueNumber: issue.number });
     }
   }
 
@@ -397,7 +398,7 @@ class GitHubSyncService {
     );
 
     if (!syncResult.rows.length) {
-      console.log(`Task ${taskId} is not linked to a GitHub issue`);
+      log.info('Task is not linked to a GitHub issue', { taskId });
       return;
     }
 
@@ -405,7 +406,7 @@ class GitHubSyncService {
 
     // Check if sync is enabled
     if (sync.sync_direction === 'github_to_flux' || sync.sync_direction === 'disabled') {
-      console.log(`Sync disabled for task ${taskId} (direction: ${sync.sync_direction})`);
+      log.info('Sync disabled for task', { taskId, direction: sync.sync_direction });
       return;
     }
 
@@ -434,9 +435,9 @@ class GitHubSyncService {
         WHERE id = $1
       `, [sync.id]);
 
-      console.log(`Synced task ${taskId} to GitHub issue #${sync.issue_number}`);
+      log.info('Synced task to GitHub issue', { taskId, issueNumber: sync.issue_number });
     } catch (error) {
-      console.error(`Error syncing task ${taskId} to GitHub:`, error);
+      log.error('Error syncing task to GitHub', error, { taskId });
 
       // Mark as error
       await this.pool.query(`
@@ -457,7 +458,7 @@ class GitHubSyncService {
     const { action, issue, repository } = event;
 
     if (!issue || !repository) {
-      console.log('Webhook event has no issue or repository data');
+      log.info('Webhook event has no issue or repository data');
       return;
     }
 
@@ -468,14 +469,14 @@ class GitHubSyncService {
     );
 
     if (!linkResult.rows.length) {
-      console.log(`No repository link found for ${repository.full_name}`);
+      log.info('No repository link found', { repo: repository.full_name });
       return;
     }
 
     const link = linkResult.rows[0];
 
     // Sync the issue
-    console.log(`Processing ${action} event for issue #${issue.number} in ${repository.full_name}`);
+    log.info('Processing webhook event', { action, issueNumber: issue.number, repo: repository.full_name });
     await this.syncSingleIssue(link.id, issue, link);
   }
 
@@ -484,18 +485,18 @@ class GitHubSyncService {
    */
   startAutoSync() {
     if (this.isRunning) {
-      console.log('Auto sync already running');
+      log.info('Auto sync already running');
       return;
     }
 
     this.isRunning = true;
-    console.log(`Starting auto sync (interval: ${this.syncInterval}ms)`);
+    log.info('Starting auto sync', { interval: this.syncInterval });
 
     this.syncTimer = setInterval(async () => {
       try {
         await this.syncAllRepositories();
       } catch (error) {
-        console.error('Error in auto sync:', error);
+        log.error('Error in auto sync', error);
       }
     }, this.syncInterval);
   }
@@ -509,7 +510,7 @@ class GitHubSyncService {
       this.syncTimer = null;
     }
     this.isRunning = false;
-    console.log('Auto sync stopped');
+    log.info('Auto sync stopped');
   }
 
   /**
@@ -535,20 +536,20 @@ class GitHubSyncService {
       );
 
       if (links.rows.length > 0) {
-        console.log(`Syncing ${links.rows.length} repository links`);
+        log.info('Syncing repository links', { count: links.rows.length });
 
         for (const link of links.rows) {
           try {
             await this.syncIssuesFromGitHub(link.id);
           } catch (error) {
-            console.error(`Error syncing ${link.full_name}:`, error);
+            log.error('Error syncing repository', error, { repo: link.full_name });
           }
         }
       }
     } catch (error) {
       // Only log if it's not a "table doesn't exist" error
       if (!error.message?.includes('does not exist')) {
-        console.error('Error in syncAllRepositories:', error);
+        log.error('Error in syncAllRepositories', error);
       }
     }
   }

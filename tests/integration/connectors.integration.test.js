@@ -81,6 +81,14 @@ function createApp() {
   return app;
 }
 
+// Deterministic test UUIDs for Zod validation
+const TEST_UUIDS = {
+  user1: '10000000-0000-0000-0000-000000000001',
+  project1: '20000000-0000-0000-0000-000000000001',
+  file1: '30000000-0000-0000-0000-000000000001',
+  connector1: '40000000-0000-0000-0000-000000000001',
+};
+
 describe('Connectors Integration Tests', () => {
   let app;
   let token;
@@ -337,7 +345,7 @@ describe('Connectors Integration Tests', () => {
       const res = await request(app)
         .post('/api/connectors/figma/import')
         .set('Authorization', `Bearer ${token}`)
-        .send({ fileId: 'figma-file-123', projectId: 'proj-1' })
+        .send({ fileId: 'figma-file-123', projectId: TEST_UUIDS.project1 })
         .expect(200);
 
       expect(res.body.success).toBe(true);
@@ -348,10 +356,10 @@ describe('Connectors Integration Tests', () => {
       const res = await request(app)
         .post('/api/connectors/github/import')
         .set('Authorization', `Bearer ${token}`)
-        .send({ projectId: 'proj-1' })
+        .send({ projectId: TEST_UUIDS.project1 })
         .expect(400);
 
-      expect(res.body.error).toBe('fileId is required');
+      expect(res.body.error).toBe('Required');
     });
 
     it('should return 401 when not connected', async () => {
@@ -387,15 +395,15 @@ describe('Connectors Integration Tests', () => {
 
     it('POST /api/connectors/files/:fileId/link should link file to project', async () => {
       mockConnectorsAdapter.linkFileToProject.mockResolvedValueOnce({
-        id: 'f1',
+        id: TEST_UUIDS.file1,
         name: 'file.fig',
-        projectId: 'proj-1'
+        projectId: TEST_UUIDS.project1
       });
 
       const res = await request(app)
-        .post('/api/connectors/files/f1/link')
+        .post(`/api/connectors/files/${TEST_UUIDS.file1}/link`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ projectId: 'proj-1' })
+        .send({ projectId: TEST_UUIDS.project1 })
         .expect(200);
 
       expect(res.body.success).toBe(true);
@@ -403,12 +411,12 @@ describe('Connectors Integration Tests', () => {
 
     it('POST /api/connectors/files/:fileId/link should return 400 without projectId', async () => {
       const res = await request(app)
-        .post('/api/connectors/files/f1/link')
+        .post(`/api/connectors/files/${TEST_UUIDS.file1}/link`)
         .set('Authorization', `Bearer ${token}`)
         .send({})
         .expect(400);
 
-      expect(res.body.error).toBe('projectId is required');
+      expect(res.body.error).toBe('Required');
     });
 
     it('POST /api/connectors/files/:fileId/link should return 404 when file not found', async () => {
@@ -417,7 +425,7 @@ describe('Connectors Integration Tests', () => {
       const res = await request(app)
         .post('/api/connectors/files/nonexistent/link')
         .set('Authorization', `Bearer ${token}`)
-        .send({ projectId: 'proj-1' })
+        .send({ projectId: TEST_UUIDS.project1 })
         .expect(404);
 
       expect(res.body.error).toBe('File not found');

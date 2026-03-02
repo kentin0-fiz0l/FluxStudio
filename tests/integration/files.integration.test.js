@@ -103,6 +103,14 @@ function createApp() {
   return app;
 }
 
+// Deterministic test UUIDs for Zod validation
+const TEST_UUIDS = {
+  user1: '10000000-0000-0000-0000-000000000001',
+  project1: '20000000-0000-0000-0000-000000000001',
+  file1: '30000000-0000-0000-0000-000000000001',
+  file2: '30000000-0000-0000-0000-000000000002',
+};
+
 describe('Files Integration Tests', () => {
   let app;
   let token;
@@ -341,21 +349,21 @@ describe('Files Integration Tests', () => {
     });
 
     it('POST /api/files/:fileId/attach should attach file to project', async () => {
-      mockFilesAdapter.getFileById.mockResolvedValueOnce({ id: 'f1', name: 'test.png' });
+      mockFilesAdapter.getFileById.mockResolvedValueOnce({ id: TEST_UUIDS.file1, name: 'test.png' });
       mockFilesAdapter.attachFileToProject.mockResolvedValueOnce();
 
       const res = await request(app)
-        .post('/api/files/f1/attach')
+        .post(`/api/files/${TEST_UUIDS.file1}/attach`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ projectId: 'proj-1', role: 'deliverable' })
+        .send({ projectId: TEST_UUIDS.project1, role: 'reference' })
         .expect(200);
 
       expect(res.body.success).toBe(true);
       expect(mockFilesAdapter.attachFileToProject).toHaveBeenCalledWith(
         expect.objectContaining({
-          fileId: 'f1',
-          projectId: 'proj-1',
-          role: 'deliverable',
+          fileId: TEST_UUIDS.file1,
+          projectId: TEST_UUIDS.project1,
+          role: 'reference',
           addedBy: userId
         })
       );
@@ -363,21 +371,21 @@ describe('Files Integration Tests', () => {
 
     it('POST /api/files/:fileId/attach should return 400 without projectId', async () => {
       const res = await request(app)
-        .post('/api/files/f1/attach')
+        .post(`/api/files/${TEST_UUIDS.file1}/attach`)
         .set('Authorization', `Bearer ${token}`)
         .send({})
         .expect(400);
 
-      expect(res.body.error).toBe('projectId is required');
+      expect(res.body.error).toBe('Required');
     });
 
     it('POST /api/files/:fileId/attach should return 404 when file not found', async () => {
       mockFilesAdapter.getFileById.mockResolvedValueOnce(null);
 
       const res = await request(app)
-        .post('/api/files/f1/attach')
+        .post(`/api/files/${TEST_UUIDS.file1}/attach`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ projectId: 'proj-1' })
+        .send({ projectId: TEST_UUIDS.project1 })
         .expect(404);
 
       expect(res.body.error).toBe('File not found');
@@ -441,9 +449,10 @@ describe('Files Integration Tests', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body[0].id).toBe('pf1');
-      expect(res.body[0].type).toBe('stl');
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.files)).toBe(true);
+      expect(res.body.files[0].id).toBe('pf1');
+      expect(res.body.files[0].type).toBe('stl');
     });
 
     it('should return 403 when user has no project access', async () => {
@@ -463,13 +472,13 @@ describe('Files Integration Tests', () => {
   // =========================================================================
   describe('POST /api/files/projects/:projectId/attach-file', () => {
     it('should attach file to project via alternative route', async () => {
-      mockFilesAdapter.getFileById.mockResolvedValueOnce({ id: 'f1', name: 'test.png' });
+      mockFilesAdapter.getFileById.mockResolvedValueOnce({ id: TEST_UUIDS.file1, name: 'test.png' });
       mockFilesAdapter.attachFileToProject.mockResolvedValueOnce();
 
       const res = await request(app)
-        .post('/api/files/projects/proj-1/attach-file')
+        .post(`/api/files/projects/${TEST_UUIDS.project1}/attach-file`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ fileId: 'f1', role: 'reference' })
+        .send({ fileId: TEST_UUIDS.file1, role: 'reference' })
         .expect(200);
 
       expect(res.body.success).toBe(true);
@@ -477,21 +486,21 @@ describe('Files Integration Tests', () => {
 
     it('should return 400 without fileId', async () => {
       const res = await request(app)
-        .post('/api/files/projects/proj-1/attach-file')
+        .post(`/api/files/projects/${TEST_UUIDS.project1}/attach-file`)
         .set('Authorization', `Bearer ${token}`)
         .send({})
         .expect(400);
 
-      expect(res.body.error).toBe('fileId is required');
+      expect(res.body.error).toBe('Required');
     });
 
     it('should return 404 when file not found', async () => {
       mockFilesAdapter.getFileById.mockResolvedValueOnce(null);
 
       const res = await request(app)
-        .post('/api/files/projects/proj-1/attach-file')
+        .post(`/api/files/projects/${TEST_UUIDS.project1}/attach-file`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ fileId: 'nonexistent' })
+        .send({ fileId: TEST_UUIDS.file2 })
         .expect(404);
 
       expect(res.body.error).toBe('File not found');

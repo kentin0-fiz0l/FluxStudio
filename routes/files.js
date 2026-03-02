@@ -125,7 +125,7 @@ router.get('/', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error listing files', error);
-    res.status(500).json({ error: 'Failed to list files' });
+    res.status(500).json({ success: false, error: 'Failed to list files', code: 'FILES_LIST_FAILED' });
   }
 });
 
@@ -139,13 +139,13 @@ router.get('/:fileId', authenticateToken, async (req, res) => {
     const file = await filesAdapter.getFileById(fileId, req.user.id);
 
     if (!file) {
-      return res.status(404).json({ error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
     }
 
     res.json({ success: true, file });
   } catch (error) {
     log.error('Error getting file', error);
-    res.status(500).json({ error: 'Failed to get file' });
+    res.status(500).json({ success: false, error: 'Failed to get file', code: 'FILE_FETCH_FAILED' });
   }
 });
 
@@ -159,7 +159,7 @@ router.post('/upload', authenticateToken, fileUpload.array('files', 10), validat
     const { projectId, organizationId } = req.body;
 
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: 'No files uploaded' });
+      return res.status(400).json({ success: false, error: 'No files uploaded', code: 'NO_FILES_UPLOADED' });
     }
 
     const uploadedFiles = [];
@@ -168,7 +168,7 @@ router.post('/upload', authenticateToken, fileUpload.array('files', 10), validat
       // Validate file size
       if (file.size > 100 * 1024 * 1024) {
         return res.status(400).json({
-          error: 'File too large',
+          success: false, error: 'File too large', code: 'FILE_TOO_LARGE',
           filename: file.originalname,
           maxSize: '100MB'
         });
@@ -178,7 +178,7 @@ router.post('/upload', authenticateToken, fileUpload.array('files', 10), validat
       const ext = file.originalname.toLowerCase().split('.').pop();
       if (!allowedExtensions.includes(ext)) {
         return res.status(400).json({
-          error: 'File type not allowed',
+          success: false, error: 'File type not allowed', code: 'INVALID_FILE_TYPE',
           filename: file.originalname,
           allowed: allowedExtensions
         });
@@ -222,7 +222,7 @@ router.post('/upload', authenticateToken, fileUpload.array('files', 10), validat
     });
   } catch (error) {
     log.error('Error uploading files', error);
-    res.status(500).json({ error: 'Failed to upload files' });
+    res.status(500).json({ success: false, error: 'Failed to upload files', code: 'FILE_UPLOAD_FAILED' });
   }
 });
 
@@ -237,7 +237,7 @@ router.delete('/:fileId', authenticateToken, async (req, res) => {
 
     const file = await filesAdapter.getFileById(fileId, userId);
     if (!file) {
-      return res.status(404).json({ error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
     }
 
     // Delete from storage
@@ -257,7 +257,7 @@ router.delete('/:fileId', authenticateToken, async (req, res) => {
     res.json({ success: true, message: 'File deleted successfully' });
   } catch (error) {
     log.error('Error deleting file', error);
-    res.status(500).json({ error: 'Failed to delete file' });
+    res.status(500).json({ success: false, error: 'Failed to delete file', code: 'FILE_DELETE_FAILED' });
   }
 });
 
@@ -274,7 +274,7 @@ router.get('/:fileId/projects', authenticateToken, async (req, res) => {
     res.json({ success: true, projects });
   } catch (error) {
     log.error('Error getting file projects', error);
-    res.status(500).json({ error: 'Failed to get file projects' });
+    res.status(500).json({ success: false, error: 'Failed to get file projects', code: 'FILE_PROJECTS_FETCH_FAILED' });
   }
 });
 
@@ -290,7 +290,7 @@ router.post('/:fileId/attach', authenticateToken, zodValidate(attachFileSchema),
     // Verify file exists and user has access
     const file = await filesAdapter.getFileById(fileId, req.user.id);
     if (!file) {
-      return res.status(404).json({ error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
     }
 
     // Attach file to project
@@ -305,7 +305,7 @@ router.post('/:fileId/attach', authenticateToken, zodValidate(attachFileSchema),
     res.json({ success: true, message: 'File attached to project' });
   } catch (error) {
     log.error('Error attaching file to project', error);
-    res.status(500).json({ error: 'Failed to attach file to project' });
+    res.status(500).json({ success: false, error: 'Failed to attach file to project', code: 'FILE_ATTACH_FAILED' });
   }
 });
 
@@ -322,7 +322,7 @@ router.delete('/:fileId/attach/:projectId', authenticateToken, async (req, res) 
     res.json({ success: true, message: 'File detached from project' });
   } catch (error) {
     log.error('Error detaching file from project', error);
-    res.status(500).json({ error: 'Failed to detach file from project' });
+    res.status(500).json({ success: false, error: 'Failed to detach file from project', code: 'FILE_DETACH_FAILED' });
   }
 });
 
@@ -348,7 +348,7 @@ router.get('/project-files/:projectId', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting project files', error);
-    res.status(500).json({ error: 'Failed to get project files' });
+    res.status(500).json({ success: false, error: 'Failed to get project files', code: 'PROJECT_FILES_FETCH_FAILED' });
   }
 });
 
@@ -364,7 +364,7 @@ router.post('/projects/:projectId/attach-file', authenticateToken, zodValidate(a
     // Verify file exists
     const file = await filesAdapter.getFileById(fileId, req.user.id);
     if (!file) {
-      return res.status(404).json({ error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
     }
 
     await filesAdapter.attachFileToProject({
@@ -378,7 +378,7 @@ router.post('/projects/:projectId/attach-file', authenticateToken, zodValidate(a
     res.json({ success: true, message: 'File attached to project', file });
   } catch (error) {
     log.error('Error attaching file to project', error);
-    res.status(500).json({ error: 'Failed to attach file to project' });
+    res.status(500).json({ success: false, error: 'Failed to attach file to project', code: 'FILE_ATTACH_FAILED' });
   }
 });
 
@@ -395,7 +395,7 @@ router.delete('/projects/:projectId/files/:fileId/detach', authenticateToken, as
     res.json({ success: true, message: 'File detached from project' });
   } catch (error) {
     log.error('Error detaching file from project', error);
-    res.status(500).json({ error: 'Failed to detach file from project' });
+    res.status(500).json({ success: false, error: 'Failed to detach file from project', code: 'FILE_DETACH_FAILED' });
   }
 });
 
@@ -412,7 +412,7 @@ router.get('/projects/:projectId/files', authenticateToken, async (req, res) => 
     const hasAccess = await canUserAccessProject(userId, projectId);
     if (!hasAccess) {
       return res.status(403).json({
-        error: 'You do not have permission to access this project'
+        success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
       });
     }
 
@@ -442,13 +442,12 @@ router.get('/projects/:projectId/files', authenticateToken, async (req, res) => 
       printStatus: file.printStatus || 'idle'
     }));
 
-    res.json(files);
+    res.json({ success: true, files });
 
   } catch (error) {
     log.error('Failed to get project files', { error: error.message });
     res.status(500).json({
-      error: 'Failed to get project files',
-      message: error.message
+      success: false, error: 'Failed to get project files', code: 'PROJECT_FILES_FETCH_FAILED'
     });
   }
 });
@@ -470,12 +469,12 @@ router.post('/projects/:projectId/files/upload',
       const hasAccess = await canUserAccessProject(userId, projectId);
       if (!hasAccess) {
         return res.status(403).json({
-          error: 'You do not have permission to access this project'
+          success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
         });
       }
 
       if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ error: 'No files uploaded' });
+        return res.status(400).json({ success: false, error: 'No files uploaded', code: 'NO_FILES_UPLOADED' });
       }
 
       // Validate file sizes (max 100MB per file)
@@ -483,7 +482,7 @@ router.post('/projects/:projectId/files/upload',
       for (const file of req.files) {
         if (file.size > MAX_FILE_SIZE) {
           return res.status(400).json({
-            error: 'File too large',
+            success: false, error: 'File too large', code: 'FILE_TOO_LARGE',
             filename: file.originalname,
             maxSize: '100MB'
           });
@@ -495,7 +494,7 @@ router.post('/projects/:projectId/files/upload',
         const ext = file.originalname.toLowerCase().split('.').pop();
         if (!allowedExtensions.includes(ext)) {
           return res.status(400).json({
-            error: 'File type not allowed',
+            success: false, error: 'File type not allowed', code: 'INVALID_FILE_TYPE',
             filename: file.originalname,
             allowed: allowedExtensions
           });
@@ -548,8 +547,7 @@ router.post('/projects/:projectId/files/upload',
     } catch (error) {
       log.error('File upload error', { error: error.message });
       res.status(500).json({
-        error: 'File upload failed',
-        message: error.message
+        success: false, error: 'File upload failed', code: 'FILE_UPLOAD_FAILED'
       });
     }
   }
@@ -568,7 +566,7 @@ router.delete('/projects/:projectId/files/:fileId', csrfProtection, authenticate
     const hasAccess = await canUserAccessProject(userId, projectId);
     if (!hasAccess) {
       return res.status(403).json({
-        error: 'You do not have permission to access this project'
+        success: false, error: 'You do not have permission to access this project', code: 'ACCESS_DENIED'
       });
     }
 
@@ -579,7 +577,7 @@ router.delete('/projects/:projectId/files/:fileId', csrfProtection, authenticate
     );
 
     if (fileResult.rows.length === 0) {
-      return res.status(404).json({ error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
     }
 
     // Delete from database
@@ -593,8 +591,7 @@ router.delete('/projects/:projectId/files/:fileId', csrfProtection, authenticate
   } catch (error) {
     log.error('File deletion error', { error: error.message });
     res.status(500).json({
-      error: 'Failed to delete file',
-      message: error.message
+      success: false, error: 'Failed to delete file', code: 'FILE_DELETE_FAILED'
     });
   }
 });
@@ -611,7 +608,7 @@ router.get('/storage/*storageKey', authenticateToken, async (req, res) => {
     // Check if file exists
     const exists = await fileStorage.exists(storageKey);
     if (!exists) {
-      return res.status(404).json({ error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
     }
 
     // Get file stream
@@ -626,7 +623,7 @@ router.get('/storage/*storageKey', authenticateToken, async (req, res) => {
     stream.pipe(res);
   } catch (error) {
     log.error('Error serving file', error);
-    res.status(500).json({ error: 'Failed to serve file' });
+    res.status(500).json({ success: false, error: 'Failed to serve file', code: 'FILE_SERVE_FAILED' });
   }
 });
 

@@ -1,5 +1,7 @@
 const { Server } = require('socket.io');
 const { PerformanceMonitor } = require('./performance-monitor');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('PerformanceWS');
 
 class PerformanceWebSocketService {
   constructor(httpServer, dbConfig) {
@@ -30,7 +32,7 @@ class PerformanceWebSocketService {
       this.broadcastMetrics(metrics);
     });
 
-    console.log('✅ Performance WebSocket service started');
+    log.info('Performance WebSocket service started');
   }
 
   stop() {
@@ -41,12 +43,12 @@ class PerformanceWebSocketService {
     this.performanceMonitor.stop();
     this.io.close();
 
-    console.log('⏹️ Performance WebSocket service stopped');
+    log.info('Performance WebSocket service stopped');
   }
 
   setupEventHandlers() {
     this.io.on('connection', (socket) => {
-      console.log(`Performance dashboard client connected: ${socket.id}`);
+      log.info('Performance dashboard client connected', { socketId: socket.id });
       this.connectedClients.add(socket.id);
 
       // Send current metrics immediately
@@ -64,7 +66,7 @@ class PerformanceWebSocketService {
           socket.emit('system_metrics', metrics);
           socket.emit('database_metrics', dbMetrics);
         } catch (error) {
-          console.error('Error handling metrics request:', error);
+          log.error('Error handling metrics request', error);
           socket.emit('error', { message: 'Failed to fetch metrics' });
         }
       });
@@ -76,7 +78,7 @@ class PerformanceWebSocketService {
           const history = this.performanceMonitor.getMetricsHistory(limit);
           socket.emit('metrics_history', history);
         } catch (error) {
-          console.error('Error handling history request:', error);
+          log.error('Error handling history request', error);
           socket.emit('error', { message: 'Failed to fetch historical data' });
         }
       });
@@ -87,14 +89,14 @@ class PerformanceWebSocketService {
           const healthStatus = await this.performanceMonitor.healthCheck();
           socket.emit('health_status', healthStatus);
         } catch (error) {
-          console.error('Error handling health check:', error);
+          log.error('Error handling health check', error);
           socket.emit('error', { message: 'Health check failed' });
         }
       });
 
       // Handle disconnection
       socket.on('disconnect', () => {
-        console.log(`Performance dashboard client disconnected: ${socket.id}`);
+        log.info('Performance dashboard client disconnected', { socketId: socket.id });
         this.connectedClients.delete(socket.id);
       });
 
@@ -104,7 +106,7 @@ class PerformanceWebSocketService {
           const customMetrics = await this.getCustomMetrics(params);
           socket.emit('custom_metrics', customMetrics);
         } catch (error) {
-          console.error('Error handling custom metrics request:', error);
+          log.error('Error handling custom metrics request', error);
           socket.emit('error', { message: 'Failed to fetch custom metrics' });
         }
       });
@@ -112,7 +114,7 @@ class PerformanceWebSocketService {
       // Handle alert subscription
       socket.on('subscribe_alerts', (alertConfig) => {
         socket.alertConfig = alertConfig;
-        console.log(`Client ${socket.id} subscribed to alerts with config:`, alertConfig);
+        log.info('Client subscribed to alerts', { socketId: socket.id, alertConfig });
       });
     });
   }
@@ -199,7 +201,7 @@ class PerformanceWebSocketService {
           throw new Error(`Unknown custom metric type: ${type}`);
       }
     } catch (error) {
-      console.error('Error getting custom metrics:', error);
+      log.error('Error getting custom metrics', error);
       throw error;
     }
   }

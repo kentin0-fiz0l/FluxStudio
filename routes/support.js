@@ -40,19 +40,19 @@ router.post('/ticket', optionalAuth, validateInput.sanitizeInput, zodValidate(su
 
     // Validate required fields
     if (!name || !name.trim()) {
-      return res.status(400).json({ error: 'Name is required' });
+      return res.status(400).json({ success: false, error: 'Name is required', code: 'NAME_REQUIRED' });
     }
 
     if (!email || !email.trim() || !email.includes('@')) {
-      return res.status(400).json({ error: 'Valid email is required' });
+      return res.status(400).json({ success: false, error: 'Valid email is required', code: 'INVALID_EMAIL' });
     }
 
     if (!subject || !subject.trim()) {
-      return res.status(400).json({ error: 'Subject is required' });
+      return res.status(400).json({ success: false, error: 'Subject is required', code: 'SUBJECT_REQUIRED' });
     }
 
     if (!message || message.trim().length < 20) {
-      return res.status(400).json({ error: 'Message must be at least 20 characters' });
+      return res.status(400).json({ success: false, error: 'Message must be at least 20 characters', code: 'MESSAGE_TOO_SHORT' });
     }
 
     // Validate category
@@ -134,7 +134,7 @@ The FluxStudio Team
     });
   } catch (error) {
     log.error('Support ticket error', error);
-    res.status(500).json({ error: 'Failed to submit support request' });
+    res.status(500).json({ success: false, error: 'Failed to submit support request', code: 'TICKET_SUBMISSION_FAILED' });
   }
 });
 

@@ -11,6 +11,8 @@
  */
 
 const jwt = require('jsonwebtoken');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('NotificationsSocket');
 
 let _io = null;
 let _namespace = null;
@@ -48,7 +50,7 @@ function initNotificationsSocket(namespace, jwtSecret) {
 
     // Join user-specific room
     socket.join(`user:${userId}`);
-    console.log(`[Notifications] User ${userId} connected`);
+    log.info('User connected', { userId });
 
     // Client can request current unread count
     socket.on('notifications:request_count', async () => {
@@ -62,12 +64,12 @@ function initNotificationsSocket(namespace, jwtSecret) {
           count: parseInt(result.rows[0]?.count || '0', 10),
         });
       } catch (err) {
-        console.error('[Notifications] Count error:', err.message);
+        log.error('Count error', { error: err.message });
       }
     });
 
     socket.on('disconnect', () => {
-      console.log(`[Notifications] User ${userId} disconnected`);
+      log.info('User disconnected', { userId });
     });
   });
 }

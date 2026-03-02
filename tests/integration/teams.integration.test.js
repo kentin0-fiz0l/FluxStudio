@@ -163,7 +163,7 @@ describe('Teams Integration Tests', () => {
         .send({ description: 'No name' })
         .expect(400);
 
-      expect(res.body.message).toBe('Team name is required');
+      expect(res.body.error).toBe('Required');
     });
 
     it('should create team with empty description when not provided', async () => {
@@ -183,7 +183,7 @@ describe('Teams Integration Tests', () => {
         .send({ name: '' })
         .expect(400);
 
-      expect(res.body.message).toBe('Team name is required');
+      expect(res.body.error).toBe('Team name is required');
     });
   });
 
@@ -467,7 +467,7 @@ describe('Teams Integration Tests', () => {
         .send({ role: 'member' })
         .expect(400);
 
-      expect(res.body.message).toBe('Email is required');
+      expect(res.body.error).toBe('Required');
     });
 
     it('should return 403 when regular member tries to invite', async () => {
@@ -647,7 +647,7 @@ describe('Teams Integration Tests', () => {
         .send({ role: 'superadmin' })
         .expect(400);
 
-      expect(res.body.message).toBe('Valid role is required');
+      expect(res.body.error).toContain('Invalid enum value');
     });
 
     it('should return 400 when role is missing', async () => {
@@ -665,7 +665,7 @@ describe('Teams Integration Tests', () => {
         .send({})
         .expect(400);
 
-      expect(res.body.message).toBe('Valid role is required');
+      expect(res.body.error).toBe('Required');
     });
 
     it('should return 403 when non-owner tries to change roles', async () => {

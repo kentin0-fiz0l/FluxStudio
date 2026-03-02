@@ -9,6 +9,8 @@
 const jwt = require('jsonwebtoken');
 const messagingConversationsAdapter = require('../database/messaging-conversations-adapter');
 const notificationService = require('../services/notification-service');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('MessagingSocket');
 
 module.exports = (namespace, createMessage, getMessages, getChannels, messagingAdapter, JWT_SECRET) => {
   // Store active connections
@@ -33,7 +35,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
   // Socket.IO connection handling
   namespace.on('connection', async (socket) => {
-    console.log(`💬 User connected to messaging: ${socket.userId}`);
+    log.info('User connected to messaging', { userId: socket.userId });
 
     // Store user connection in memory
     activeUsers.set(socket.userId, {
@@ -49,7 +51,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         await messagingAdapter.updateUserPresence(socket.userId, 'online');
       }
     } catch (error) {
-      console.error('Error updating user presence:', error);
+      log.error('Error updating user presence', error);
     }
 
     // Broadcast user status
@@ -76,7 +78,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         }
 
         socket.join(`conversation:${conversationId}`);
-        console.log(`User ${socket.userId} joined conversation ${conversationId}`);
+        log.info('User joined conversation', { userId: socket.userId, conversationId });
 
         // Send recent messages for the conversation
         const messagesResult = await messagingConversationsAdapter.listMessages(conversationId, { limit: 50 });
@@ -93,7 +95,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
           userEmail: socket.userEmail
         });
       } catch (error) {
-        console.error('Error joining conversation:', error);
+        log.error('Error joining conversation', error);
         socket.emit('error', { message: 'Failed to join conversation' });
       }
     });
@@ -101,7 +103,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     // Leave a conversation room
     socket.on('conversation:leave', (conversationId) => {
       socket.leave(`conversation:${conversationId}`);
-      console.log(`User ${socket.userId} left conversation ${conversationId}`);
+      log.info('User left conversation', { userId: socket.userId, conversationId });
 
       // Notify other members that user left
       socket.to(`conversation:${conversationId}`).emit('conversation:user-left', {
@@ -205,10 +207,10 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
           }
         } catch (notifError) {
           // Don't fail the message send if notifications fail
-          console.error('Error processing message notifications:', notifError);
+          log.error('Error processing message notifications', notifError);
         }
       } catch (error) {
-        console.error('Error sending conversation message:', error);
+        log.error('Error sending conversation message', error);
         socket.emit('error', { message: 'Failed to send message' });
       }
     });
@@ -227,7 +229,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
           isTyping: true
         });
       } catch (error) {
-        console.error('Error sending typing indicator:', error);
+        log.error('Error sending typing indicator', error);
         // Fall back to basic info
         socket.to(`conversation:${conversationId}`).emit('conversation:user-typing', {
           conversationId,
@@ -270,7 +272,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         // Confirm to the user
         socket.emit('conversation:read:confirmed', { conversationId, messageId });
       } catch (error) {
-        console.error('Error marking conversation as read:', error);
+        log.error('Error marking conversation as read', error);
         socket.emit('error', { message: 'Failed to mark as read' });
       }
     });
@@ -296,7 +298,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
           socket.emit('error', { message: 'Message not found or unauthorized' });
         }
       } catch (error) {
-        console.error('Error deleting message:', error);
+        log.error('Error deleting conversation message', error);
         socket.emit('error', { message: 'Failed to delete message' });
       }
     });
@@ -345,7 +347,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         // Acknowledge success
         if (ack) ack({ ok: true, reactions: result.reactions });
       } catch (error) {
-        console.error('Error adding reaction:', error);
+        log.error('Error adding reaction', error);
         if (ack) ack({ ok: false, error: 'Failed to add reaction' });
       }
     });
@@ -394,7 +396,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         // Acknowledge success
         if (ack) ack({ ok: true, reactions: result.reactions });
       } catch (error) {
-        console.error('Error removing reaction:', error);
+        log.error('Error removing reaction', error);
         if (ack) ack({ ok: false, error: 'Failed to remove reaction' });
       }
     });
@@ -443,7 +445,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         // Acknowledge success
         if (ack) ack({ ok: true, pins });
       } catch (error) {
-        console.error('Error pinning message:', error);
+        log.error('Error pinning message', error);
         if (ack) ack({ ok: false, error: 'Failed to pin message' });
       }
     });
@@ -489,7 +491,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         // Acknowledge success
         if (ack) ack({ ok: true, pins });
       } catch (error) {
-        console.error('Error unpinning message:', error);
+        log.error('Error unpinning message', error);
         if (ack) ack({ ok: false, error: 'Failed to unpin message' });
       }
     });
@@ -558,7 +560,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         // Acknowledge success
         if (ack) ack({ ok: true, message: messagePayload });
       } catch (error) {
-        console.error('Error editing message:', error);
+        log.error('Error editing conversation message', error);
         if (ack) ack({ ok: false, error: error.message || 'Failed to edit message' });
       }
     });
@@ -640,7 +642,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         // Acknowledge success
         if (ack) ack({ ok: true, message: messagePayload });
       } catch (error) {
-        console.error('Error forwarding message:', error);
+        log.error('Error forwarding message', error);
         if (ack) ack({ ok: false, error: error.message || 'Failed to forward message' });
       }
     });
@@ -652,14 +654,14 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     // Join team channels
     socket.on('channel:join', async (channelId) => {
       socket.join(`channel:${channelId}`);
-      console.log(`User ${socket.userId} joined channel ${channelId}`);
+      log.info('User joined channel', { userId: socket.userId, channelId });
 
       try {
         // Send recent messages for the channel
         const messages = await getMessages(channelId, 50);
         socket.emit('channel:messages', messages);
       } catch (error) {
-        console.error('Error loading channel messages:', error);
+        log.error('Error loading channel messages', error);
         socket.emit('error', { message: 'Failed to load channel messages' });
       }
     });
@@ -667,7 +669,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
     // Leave channel
     socket.on('channel:leave', (channelId) => {
       socket.leave(`channel:${channelId}`);
-      console.log(`User ${socket.userId} left channel ${channelId}`);
+      log.info('User left channel', { userId: socket.userId, channelId });
     });
 
     // Send message
@@ -697,7 +699,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         // Emit to all users in the channel
         namespace.to(`channel:${channelId}`).emit('message:new', newMessage);
       } catch (error) {
-        console.error('Error sending message:', error);
+        log.error('Error sending channel message', error);
         socket.emit('error', { message: 'Failed to send message' });
       }
     });
@@ -726,7 +728,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
           socket.emit('error', { message: 'Message editing not available in file mode' });
         }
       } catch (error) {
-        console.error('Error editing message:', error);
+        log.error('Error editing channel message', error);
         socket.emit('error', { message: 'Failed to edit message' });
       }
     });
@@ -758,7 +760,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
           socket.emit('error', { message: 'Message deletion not available in file mode' });
         }
       } catch (error) {
-        console.error('Error deleting message:', error);
+        log.error('Error deleting channel message', error);
         socket.emit('error', { message: 'Failed to delete message' });
       }
     });
@@ -800,7 +802,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
           socket.emit('error', { message: 'Reactions not available in file mode' });
         }
       } catch (error) {
-        console.error('Error handling reaction:', error);
+        log.error('Error handling reaction', error);
         socket.emit('error', { message: 'Failed to update reaction' });
       }
     });
@@ -850,7 +852,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         // Send back to sender for confirmation
         socket.emit('dm:sent', newMessage);
       } catch (error) {
-        console.error('Error sending DM:', error);
+        log.error('Error sending DM', error);
         socket.emit('error', { message: 'Failed to send direct message' });
       }
     });
@@ -881,7 +883,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
           }
         }
       } catch (error) {
-        console.error('Error marking message as read:', error);
+        log.error('Error marking message as read', error);
       }
     });
 
@@ -906,7 +908,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         });
         socket.emit('notifications:unread-count', { count });
       } catch (error) {
-        console.error('Error getting unread notification count:', error);
+        log.error('Error getting unread notification count', error);
         socket.emit('notifications:unread-count', { count: 0 });
       }
     });
@@ -929,7 +931,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
           socket.emit('notifications:unread-count', { count });
         }
       } catch (error) {
-        console.error('Error marking notification as read:', error);
+        log.error('Error marking notification as read', error);
         socket.emit('error', { message: 'Failed to mark notification as read' });
       }
     });
@@ -944,14 +946,14 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
         socket.emit('notifications:unread-count', { count: 0 });
         socket.emit('notifications:all-read', { updatedCount });
       } catch (error) {
-        console.error('Error marking all notifications as read:', error);
+        log.error('Error marking all notifications as read', error);
         socket.emit('error', { message: 'Failed to mark all notifications as read' });
       }
     });
 
     // Handle disconnect
     socket.on('disconnect', async () => {
-      console.log(`💬 User disconnected from messaging: ${socket.userId}`);
+      log.info('User disconnected from messaging', { userId: socket.userId });
 
       // Update user status in memory
       const userData = activeUsers.get(socket.userId);
@@ -966,7 +968,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
           await messagingAdapter.updateUserPresence(socket.userId, 'offline');
         }
       } catch (error) {
-        console.error('Error updating user presence on disconnect:', error);
+        log.error('Error updating user presence on disconnect', error);
       }
 
       // Remove from active users after a delay (in case of reconnection)
@@ -1006,7 +1008,7 @@ module.exports = (namespace, createMessage, getMessages, getChannels, messagingA
 
       return created;
     } catch (error) {
-      console.error('Error sending notification to user:', error);
+      log.error('Error sending notification to user', error);
       return null;
     }
   };

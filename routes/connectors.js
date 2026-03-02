@@ -73,7 +73,7 @@ router.get('/list', authenticateToken, async (req, res) => {
     res.json({ success: true, connectors });
   } catch (error) {
     log.error('Error getting connectors list', error);
-    res.status(500).json({ error: 'Failed to get connectors list' });
+    res.status(500).json({ success: false, error: 'Failed to get connectors list', code: 'CONNECTORS_LIST_FAILED' });
   }
 });
 
@@ -86,7 +86,7 @@ router.get('/:provider/auth-url', authenticateToken, async (req, res) => {
     const { provider } = req.params;
 
     if (!VALID_PROVIDERS.includes(provider)) {
-      return res.status(400).json({ error: `Invalid provider: ${provider}` });
+      return res.status(400).json({ success: false, error: `Invalid provider: ${provider}`, code: 'INVALID_PROVIDER' });
     }
 
     const { url, stateToken } = await oauthManager.getAuthorizationURL(provider, req.user.id);
@@ -94,7 +94,7 @@ router.get('/:provider/auth-url', authenticateToken, async (req, res) => {
     res.json({ success: true, url, stateToken });
   } catch (error) {
     log.error('Error generating OAuth URL', error);
-    res.status(500).json({ error: error.message || 'Failed to generate authorization URL' });
+    res.status(500).json({ success: false, error: error.message || 'Failed to generate authorization URL', code: 'OAUTH_URL_FAILED' });
   }
 });
 
@@ -145,7 +145,7 @@ router.delete('/:provider', authenticateToken, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     log.error('Error disconnecting connector', error);
-    res.status(500).json({ error: 'Failed to disconnect connector' });
+    res.status(500).json({ success: false, error: 'Failed to disconnect connector', code: 'CONNECTOR_DISCONNECT_FAILED' });
   }
 });
 
@@ -166,7 +166,7 @@ router.get('/:provider/status', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting connector status', error);
-    res.status(500).json({ error: 'Failed to get connector status' });
+    res.status(500).json({ success: false, error: 'Failed to get connector status', code: 'CONNECTOR_STATUS_FAILED' });
   }
 });
 
@@ -182,7 +182,7 @@ router.get('/:provider/files', authenticateToken, async (req, res) => {
     // Check if connected
     const isConnected = await connectorsAdapter.isConnected(req.user.id, provider);
     if (!isConnected) {
-      return res.status(401).json({ error: `Not connected to ${provider}` });
+      return res.status(401).json({ success: false, error: `Not connected to ${provider}`, code: 'NOT_CONNECTED' });
     }
 
     let files;
@@ -204,13 +204,13 @@ router.get('/:provider/files', authenticateToken, async (req, res) => {
         files = await connectorsAdapter.getOneDriveFiles(req.user.id, folderId || 'root');
         break;
       default:
-        return res.status(400).json({ error: `File listing not supported for ${provider}` });
+        return res.status(400).json({ success: false, error: `File listing not supported for ${provider}`, code: 'UNSUPPORTED_PROVIDER' });
     }
 
     res.json({ success: true, files });
   } catch (error) {
     log.error('Error getting provider files', { provider: req.params.provider, error: error.message });
-    res.status(500).json({ error: error.message || 'Failed to get files' });
+    res.status(500).json({ success: false, error: error.message || 'Failed to get files', code: 'PROVIDER_FILES_FETCH_FAILED' });
   }
 });
 
@@ -226,7 +226,7 @@ router.post('/:provider/import', authenticateToken, zodValidate(connectorImportS
     // Check if connected
     const isConnected = await connectorsAdapter.isConnected(req.user.id, provider);
     if (!isConnected) {
-      return res.status(401).json({ error: `Not connected to ${provider}` });
+      return res.status(401).json({ success: false, error: `Not connected to ${provider}`, code: 'NOT_CONNECTED' });
     }
 
     const importedFile = await connectorsAdapter.importFile(req.user.id, provider, fileId, {
@@ -267,7 +267,7 @@ router.post('/:provider/import', authenticateToken, zodValidate(connectorImportS
     res.json({ success: true, file: importedFile });
   } catch (error) {
     log.error('Error importing from provider', { provider: req.params.provider, error: error.message });
-    res.status(500).json({ error: error.message || 'Failed to import file' });
+    res.status(500).json({ success: false, error: error.message || 'Failed to import file', code: 'FILE_IMPORT_FAILED' });
   }
 });
 
@@ -289,7 +289,7 @@ router.get('/files', authenticateToken, async (req, res) => {
     res.json({ success: true, files });
   } catch (error) {
     log.error('Error getting connector files', error);
-    res.status(500).json({ error: 'Failed to get files' });
+    res.status(500).json({ success: false, error: 'Failed to get files', code: 'CONNECTOR_FILES_FETCH_FAILED' });
   }
 });
 
@@ -305,7 +305,7 @@ router.post('/files/:fileId/link', authenticateToken, zodValidate(connectorLinkS
     const file = await connectorsAdapter.linkFileToProject(fileId, projectId, req.user.id);
 
     if (!file) {
-      return res.status(404).json({ error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
     }
 
     // Create notification for file linked
@@ -318,7 +318,7 @@ router.post('/files/:fileId/link', authenticateToken, zodValidate(connectorLinkS
     res.json({ success: true, file });
   } catch (error) {
     log.error('Error linking file to project', error);
-    res.status(500).json({ error: 'Failed to link file' });
+    res.status(500).json({ success: false, error: 'Failed to link file', code: 'FILE_LINK_FAILED' });
   }
 });
 
@@ -332,13 +332,13 @@ router.delete('/files/:fileId', authenticateToken, async (req, res) => {
     const deleted = await connectorsAdapter.deleteConnectorFile(fileId, req.user.id);
 
     if (!deleted) {
-      return res.status(404).json({ error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
     }
 
     res.json({ success: true });
   } catch (error) {
     log.error('Error deleting connector file', error);
-    res.status(500).json({ error: 'Failed to delete file' });
+    res.status(500).json({ success: false, error: 'Failed to delete file', code: 'FILE_DELETE_FAILED' });
   }
 });
 
@@ -353,7 +353,7 @@ router.get('/sync-jobs', authenticateToken, async (req, res) => {
     res.json({ success: true, jobs });
   } catch (error) {
     log.error('Error getting sync jobs', error);
-    res.status(500).json({ error: 'Failed to get sync jobs' });
+    res.status(500).json({ success: false, error: 'Failed to get sync jobs', code: 'SYNC_JOBS_FETCH_FAILED' });
   }
 });
 
@@ -368,7 +368,7 @@ router.post('/:provider/sync', authenticateToken, async (req, res) => {
     // Check if connected
     const isConnected = await connectorsAdapter.isConnected(req.user.id, provider);
     if (!isConnected) {
-      return res.status(401).json({ error: `Not connected to ${provider}` });
+      return res.status(401).json({ success: false, error: `Not connected to ${provider}`, code: 'NOT_CONNECTED' });
     }
 
     const job = await connectorsAdapter.createSyncJob(req.user.id, provider);
@@ -376,7 +376,7 @@ router.post('/:provider/sync', authenticateToken, async (req, res) => {
     res.json({ success: true, job });
   } catch (error) {
     log.error('Error triggering sync', error);
-    res.status(500).json({ error: 'Failed to trigger sync' });
+    res.status(500).json({ success: false, error: 'Failed to trigger sync', code: 'SYNC_TRIGGER_FAILED' });
   }
 });
 
@@ -393,7 +393,7 @@ router.post('/:provider/refresh', authenticateToken, async (req, res) => {
     res.json({ success: true, refreshed });
   } catch (error) {
     log.error('Error refreshing token', error);
-    res.status(500).json({ error: 'Failed to refresh token' });
+    res.status(500).json({ success: false, error: 'Failed to refresh token', code: 'TOKEN_REFRESH_FAILED' });
   }
 });
 

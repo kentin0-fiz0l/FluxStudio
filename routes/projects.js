@@ -154,7 +154,7 @@ router.get('/', authenticateToken, async (req, res) => {
     res.json({ success: true, projects, total: projects.length });
   } catch (error) {
     log.error('Get projects error', error);
-    res.status(500).json({ error: 'Failed to fetch projects' });
+    res.status(500).json({ success: false, error: 'Failed to fetch projects', code: 'PROJECTS_FETCH_FAILED' });
   }
 });
 
@@ -191,13 +191,13 @@ router.get('/:projectId', authenticateToken, async (req, res) => {
     }
 
     if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
+      return res.status(404).json({ success: false, error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
     }
 
     res.json({ success: true, project });
   } catch (error) {
     log.error('Get project error', error);
-    res.status(500).json({ error: 'Failed to fetch project' });
+    res.status(500).json({ success: false, error: 'Failed to fetch project', code: 'PROJECT_FETCH_FAILED' });
   }
 });
 
@@ -222,7 +222,7 @@ router.post('/', authenticateToken, validateInput.sanitizeInput, checkProjectQuo
     } = req.body;
 
     if (!name || name.trim().length < 3) {
-      return res.status(400).json({ error: 'Project name must be at least 3 characters' });
+      return res.status(400).json({ success: false, error: 'Project name must be at least 3 characters', code: 'INVALID_PROJECT_NAME' });
     }
 
     let newProject;
@@ -315,7 +315,7 @@ router.post('/', authenticateToken, validateInput.sanitizeInput, checkProjectQuo
     res.status(201).json({ success: true, project: newProject });
   } catch (error) {
     log.error('Create project error', error);
-    res.status(500).json({ error: 'Failed to create project' });
+    res.status(500).json({ success: false, error: 'Failed to create project', code: 'PROJECT_CREATE_FAILED' });
   }
 });
 
@@ -342,7 +342,7 @@ router.put('/:projectId', authenticateToken, validateInput.sanitizeInput, zodVal
       const projects = await getProjectsFromFile();
       const index = projects.findIndex(p => p.id === projectId);
       if (index === -1) {
-        return res.status(404).json({ error: 'Project not found' });
+        return res.status(404).json({ success: false, error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
       }
       projects[index] = { ...projects[index], ...updates, updatedAt: new Date().toISOString() };
       await saveProjectsToFile(projects);
@@ -350,13 +350,13 @@ router.put('/:projectId', authenticateToken, validateInput.sanitizeInput, zodVal
     }
 
     if (!updatedProject) {
-      return res.status(404).json({ error: 'Project not found' });
+      return res.status(404).json({ success: false, error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
     }
 
     res.json({ success: true, project: updatedProject });
   } catch (error) {
     log.error('Update project error', error);
-    res.status(500).json({ error: 'Failed to update project' });
+    res.status(500).json({ success: false, error: 'Failed to update project', code: 'PROJECT_UPDATE_FAILED' });
   }
 });
 
@@ -375,7 +375,7 @@ router.delete('/:projectId', authenticateToken, async (req, res) => {
       const projects = await getProjectsFromFile();
       const index = projects.findIndex(p => p.id === projectId);
       if (index === -1) {
-        return res.status(404).json({ error: 'Project not found' });
+        return res.status(404).json({ success: false, error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
       }
       projects.splice(index, 1);
       await saveProjectsToFile(projects);
@@ -384,7 +384,7 @@ router.delete('/:projectId', authenticateToken, async (req, res) => {
     res.json({ success: true, message: 'Project deleted successfully' });
   } catch (error) {
     log.error('Delete project error', error);
-    res.status(500).json({ error: 'Failed to delete project' });
+    res.status(500).json({ success: false, error: 'Failed to delete project', code: 'PROJECT_DELETE_FAILED' });
   }
 });
 
@@ -409,7 +409,7 @@ router.get('/:projectId/activity', authenticateToken, async (req, res) => {
     res.json({ success: true, activity, total: activity.length });
   } catch (error) {
     log.error('Get project activity error', error);
-    res.status(500).json({ error: 'Failed to fetch project activity' });
+    res.status(500).json({ success: false, error: 'Failed to fetch project activity', code: 'PROJECT_ACTIVITY_FETCH_FAILED' });
   }
 });
 
@@ -423,7 +423,7 @@ router.get('/:projectId/conversation', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     if (!projectsAdapter) {
-      return res.status(501).json({ error: 'Requires database mode' });
+      return res.status(501).json({ success: false, error: 'Requires database mode', code: 'DATABASE_REQUIRED' });
     }
 
     const conversation = await projectsAdapter.getOrCreateProjectConversation(projectId, userId);
@@ -431,7 +431,7 @@ router.get('/:projectId/conversation', authenticateToken, async (req, res) => {
     res.json({ success: true, conversation });
   } catch (error) {
     log.error('Get project conversation error', error);
-    res.status(500).json({ error: 'Failed to fetch project conversation' });
+    res.status(500).json({ success: false, error: 'Failed to fetch project conversation', code: 'PROJECT_CONVERSATION_FETCH_FAILED' });
   }
 });
 
@@ -452,7 +452,7 @@ router.get('/:projectId/members', authenticateToken, async (req, res) => {
     res.json({ success: true, members, total: members.length });
   } catch (error) {
     log.error('Get project members error', error);
-    res.status(500).json({ error: 'Failed to fetch project members' });
+    res.status(500).json({ success: false, error: 'Failed to fetch project members', code: 'PROJECT_MEMBERS_FETCH_FAILED' });
   }
 });
 
@@ -466,7 +466,7 @@ router.post('/:projectId/members', authenticateToken, validateInput.sanitizeInpu
     const { userId: memberUserId, role = 'contributor' } = req.body;
 
     if (!memberUserId) {
-      return res.status(400).json({ error: 'userId is required' });
+      return res.status(400).json({ success: false, error: 'userId is required', code: 'USER_ID_REQUIRED' });
     }
 
     if (projectsAdapter) {
@@ -476,7 +476,7 @@ router.post('/:projectId/members', authenticateToken, validateInput.sanitizeInpu
     res.json({ success: true, message: 'Member added successfully' });
   } catch (error) {
     log.error('Add project member error', error);
-    res.status(500).json({ error: 'Failed to add project member' });
+    res.status(500).json({ success: false, error: 'Failed to add project member', code: 'MEMBER_ADD_FAILED' });
   }
 });
 
@@ -495,7 +495,7 @@ router.delete('/:projectId/members/:userId', authenticateToken, async (req, res)
     res.json({ success: true, message: 'Member removed successfully' });
   } catch (error) {
     log.error('Remove project member error', error);
-    res.status(500).json({ error: 'Failed to remove project member' });
+    res.status(500).json({ success: false, error: 'Failed to remove project member', code: 'MEMBER_REMOVE_FAILED' });
   }
 });
 
@@ -509,7 +509,7 @@ router.put('/:projectId/members/:userId', authenticateToken, validateInput.sanit
     const { role } = req.body;
 
     if (!role) {
-      return res.status(400).json({ error: 'Role is required' });
+      return res.status(400).json({ success: false, error: 'Role is required', code: 'ROLE_REQUIRED' });
     }
 
     if (projectsAdapter) {
@@ -519,7 +519,7 @@ router.put('/:projectId/members/:userId', authenticateToken, validateInput.sanit
     res.json({ success: true, message: 'Member role updated successfully' });
   } catch (error) {
     log.error('Update project member role error', error);
-    res.status(500).json({ error: 'Failed to update member role' });
+    res.status(500).json({ success: false, error: 'Failed to update member role', code: 'MEMBER_ROLE_UPDATE_FAILED' });
   }
 });
 
@@ -545,7 +545,7 @@ router.get('/activities/recent', authenticateToken, async (req, res) => {
     res.json({ success: true, activities, total: activities.length });
   } catch (error) {
     log.error('Get recent activities error', error);
-    res.status(500).json({ error: 'Failed to fetch recent activities' });
+    res.status(500).json({ success: false, error: 'Failed to fetch recent activities', code: 'ACTIVITIES_FETCH_FAILED' });
   }
 });
 
@@ -562,12 +562,12 @@ router.get('/:projectId/counts', authenticateToken, async (req, res) => {
     if (projectsAdapter) {
       const project = await projectsAdapter.getProjectById(projectId);
       if (!project) {
-        return res.status(404).json({ success: false, error: 'Project not found' });
+        return res.status(404).json({ success: false, error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
       }
       const members = await projectsAdapter.getProjectMembers(projectId);
       const isMember = members.some(m => m.userId === userId || m.user_id === userId);
       if (!isMember) {
-        return res.status(403).json({ success: false, error: 'Not a project member' });
+        return res.status(403).json({ success: false, error: 'Not a project member', code: 'NOT_PROJECT_MEMBER' });
       }
     }
 
@@ -602,7 +602,7 @@ router.get('/:projectId/counts', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Get project counts error', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch project counts' });
+    res.status(500).json({ success: false, error: 'Failed to fetch project counts', code: 'PROJECT_COUNTS_FETCH_FAILED' });
   }
 });
 

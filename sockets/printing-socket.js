@@ -20,6 +20,8 @@
 const axios = require('axios');
 const io = require('socket.io-client');
 const jwt = require('jsonwebtoken');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('PrintingSocket');
 
 /**
  * FluxPrint WebSocket URL
@@ -37,7 +39,7 @@ module.exports = (namespace, JWT_SECRET) => {
       const token = socket.handshake.auth.token;
 
       if (!token) {
-        console.warn('⚠️  Printing socket: Connection rejected - no token');
+        log.warn('Printing socket connection rejected - no token');
         return next(new Error('Authentication required'));
       }
 
@@ -45,10 +47,10 @@ module.exports = (namespace, JWT_SECRET) => {
       socket.userId = decoded.id;
       socket.userEmail = decoded.email;
 
-      console.log(`✅ Printing socket: Authenticated user ${socket.userId} (${socket.userEmail})`);
+      log.info('Printing socket authenticated user', { userId: socket.userId, email: socket.userEmail });
       next();
     } catch (err) {
-      console.warn('⚠️  Printing socket: Invalid token -', err.message);
+      log.warn('Printing socket invalid token', { error: err.message });
       return next(new Error('Invalid or expired token'));
     }
   });
@@ -65,16 +67,16 @@ module.exports = (namespace, JWT_SECRET) => {
    */
   function connectToFluxPrint() {
     if (!FLUXPRINT_ENABLED) {
-      console.log('⚠️  FluxPrint disabled, skipping WebSocket connection');
+      log.warn('FluxPrint disabled, skipping WebSocket connection');
       return;
     }
 
     if (fluxprintClient && fluxprintClient.connected) {
-      console.log('✅ Already connected to FluxPrint WebSocket');
+      log.info('Already connected to FluxPrint WebSocket');
       return;
     }
 
-    console.log(`🔌 Connecting to FluxPrint WebSocket: ${FLUXPRINT_WS_URL}/ws/printing`);
+    log.info('Connecting to FluxPrint WebSocket', { url: `${FLUXPRINT_WS_URL}/ws/printing` });
 
     fluxprintClient = io(`${FLUXPRINT_WS_URL}/ws/printing`, {
       reconnection: true,
@@ -86,7 +88,7 @@ module.exports = (namespace, JWT_SECRET) => {
 
     // FluxPrint connection handlers
     fluxprintClient.on('connect', () => {
-      console.log('✅ Connected to FluxPrint WebSocket');
+      log.info('Connected to FluxPrint WebSocket');
       reconnectAttempts = 0;
 
       // Notify all clients that connection is established
@@ -100,7 +102,7 @@ module.exports = (namespace, JWT_SECRET) => {
     });
 
     fluxprintClient.on('disconnect', (reason) => {
-      console.log(`❌ Disconnected from FluxPrint WebSocket: ${reason}`);
+      log.warn('Disconnected from FluxPrint WebSocket', { reason });
 
       // Notify all clients
       namespace.emit('printer:connection', {
@@ -112,7 +114,7 @@ module.exports = (namespace, JWT_SECRET) => {
 
     fluxprintClient.on('connect_error', (error) => {
       reconnectAttempts++;
-      console.error(`❌ FluxPrint WebSocket connection error (attempt ${reconnectAttempts}):`, error.message);
+      log.error('FluxPrint WebSocket connection error', { attempt: reconnectAttempts, error: error.message });
 
       // Notify clients of connection issues
       if (activeClients.size > 0) {
@@ -156,7 +158,7 @@ module.exports = (namespace, JWT_SECRET) => {
    */
   function disconnectFromFluxPrint() {
     if (fluxprintClient) {
-      console.log('🔌 Disconnecting from FluxPrint WebSocket');
+      log.info('Disconnecting from FluxPrint WebSocket');
       fluxprintClient.disconnect();
       fluxprintClient = null;
     }
@@ -169,7 +171,7 @@ module.exports = (namespace, JWT_SECRET) => {
 
   // Client connection handlers
   namespace.on('connection', (socket) => {
-    console.log(`🖨️  Client connected to /printing namespace: ${socket.id}`);
+    log.info('Client connected to /printing namespace', { socketId: socket.id });
     activeClients.add(socket.id);
 
     // If this is the first client and FluxPrint is not connected, connect now
@@ -203,10 +205,10 @@ module.exports = (namespace, JWT_SECRET) => {
         const room = `project:${projectId}`;
         socket.join(room);
 
-        console.log(`🖨️  User ${socket.userId} (${socket.id}) joined room: ${room}`);
+        log.info('User joined project room', { userId: socket.userId, socketId: socket.id, room });
         socket.emit('project:joined', { projectId, room });
       } catch (error) {
-        console.error('Error handling project:join:', error);
+        log.error('Error handling project:join', error);
         socket.emit('error', {
           message: 'Failed to join project room',
           code: 'PROJECT_JOIN_ERROR'
@@ -218,13 +220,13 @@ module.exports = (namespace, JWT_SECRET) => {
     socket.on('project:leave', (projectId) => {
       const room = `project:${projectId}`;
       socket.leave(room);
-      console.log(`🖨️  Client ${socket.id} left room: ${room}`);
+      log.info('Client left project room', { socketId: socket.id, room });
       socket.emit('project:left', { projectId, room });
     });
 
     // Handle client requests
     socket.on('printer:request_status', () => {
-      console.log(`📊 Client ${socket.id} requested printer status`);
+      log.info('Client requested printer status', { socketId: socket.id });
 
       if (fluxprintClient && fluxprintClient.connected) {
         // Forward request to FluxPrint
@@ -240,27 +242,27 @@ module.exports = (namespace, JWT_SECRET) => {
     });
 
     socket.on('printer:subscribe', () => {
-      console.log(`📊 Client ${socket.id} subscribed to printer updates`);
+      log.info('Client subscribed to printer updates', { socketId: socket.id });
       socket.emit('printer:subscribed', { success: true });
     });
 
     socket.on('printer:unsubscribe', () => {
-      console.log(`📊 Client ${socket.id} unsubscribed from printer updates`);
+      log.info('Client unsubscribed from printer updates', { socketId: socket.id });
       socket.emit('printer:unsubscribed', { success: true });
     });
 
     // Handle disconnection
     socket.on('disconnect', () => {
-      console.log(`🖨️  Client disconnected from /printing namespace: ${socket.id}`);
+      log.info('Client disconnected from /printing namespace', { socketId: socket.id });
       activeClients.delete(socket.id);
 
       // If no more clients, disconnect from FluxPrint to save resources
       if (activeClients.size === 0) {
-        console.log('ℹ️  No more clients connected, keeping FluxPrint connection for quick reconnection');
+        log.info('No more clients connected, keeping FluxPrint connection for quick reconnection');
         // We keep the connection alive for 60 seconds in case client reconnects
         setTimeout(() => {
           if (activeClients.size === 0 && fluxprintClient) {
-            console.log('🔌 No clients for 60s, disconnecting from FluxPrint');
+            log.info('No clients for 60s, disconnecting from FluxPrint');
             disconnectFromFluxPrint();
           }
         }, 60000);
@@ -270,16 +272,14 @@ module.exports = (namespace, JWT_SECRET) => {
 
   // Graceful shutdown handler
   process.on('SIGINT', () => {
-    console.log('🛑 Shutting down printing namespace...');
+    log.info('Shutting down printing namespace (SIGINT)');
     disconnectFromFluxPrint();
   });
 
   process.on('SIGTERM', () => {
-    console.log('🛑 Shutting down printing namespace...');
+    log.info('Shutting down printing namespace (SIGTERM)');
     disconnectFromFluxPrint();
   });
 
-  console.log('✅ Printing Socket.IO namespace initialized (/printing)');
-  console.log(`   FluxPrint enabled: ${FLUXPRINT_ENABLED}`);
-  console.log(`   FluxPrint URL: ${FLUXPRINT_WS_URL}`);
+  log.info('Printing Socket.IO namespace initialized', { enabled: FLUXPRINT_ENABLED, url: FLUXPRINT_WS_URL });
 };

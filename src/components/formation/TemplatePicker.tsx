@@ -14,23 +14,20 @@ import {
   Search,
   X,
   ArrowLeft,
-  Play,
-  Pause,
   Users,
-  Grid3X3,
   LayoutGrid,
   Loader2,
-  Check,
-  Music,
 } from 'lucide-react';
 import { templateRegistry } from '@/services/formationTemplates/registry';
 import {
   DrillTemplate,
   TemplateCategory,
   ApplyTemplateOptions,
-  TemplatePosition,
 } from '@/services/formationTemplates/types';
 import { cn } from '@/lib/utils';
+import { categoryIcons, categoryLabels } from './templatePickerConstants';
+import { TemplateCard } from './TemplateCard';
+import { TemplatePreviewPanel } from './TemplatePreviewPanel';
 
 interface TemplatePickerProps {
   onApply: (options: Omit<ApplyTemplateOptions, 'formationId'>) => void;
@@ -154,22 +151,6 @@ export function TemplatePicker({
   };
 
   const categories = templateRegistry.getCategories();
-
-  const categoryIcons: Record<TemplateCategory, React.ReactNode> = {
-    basic: <Grid3X3 className="w-4 h-4" aria-hidden="true" />,
-    intermediate: <LayoutGrid className="w-4 h-4" aria-hidden="true" />,
-    advanced: <Users className="w-4 h-4" aria-hidden="true" />,
-    custom: <Users className="w-4 h-4" aria-hidden="true" />,
-    drill: <Music className="w-4 h-4" aria-hidden="true" />,
-  };
-
-  const categoryLabels: Record<TemplateCategory, string> = {
-    basic: 'Basic',
-    intermediate: 'Intermediate',
-    advanced: 'Advanced',
-    custom: 'Custom',
-    drill: 'Drill',
-  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
@@ -355,123 +336,16 @@ export function TemplatePicker({
             )}
 
             {viewState === 'preview' && selectedTemplate && (
-              <motion.div
-                key="preview"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="p-6"
-              >
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Preview Canvas */}
-                  <div>
-                    <div className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden">
-                      <TemplatePreviewCanvas
-                        template={selectedTemplate}
-                        performerCount={performerCount}
-                        scale={previewScale}
-                        rotation={previewRotation}
-                        isAnimating={isPreviewAnimating}
-                      />
-
-                      {/* Animation controls */}
-                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => setIsPreviewAnimating(!isPreviewAnimating)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-white/90 dark:bg-gray-900/90 rounded-full text-sm shadow-sm"
-                        >
-                          {isPreviewAnimating ? (
-                            <>
-                              <Pause className="w-4 h-4" aria-hidden="true" />
-                              Pause
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-4 h-4" aria-hidden="true" />
-                              Play
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Template info */}
-                    <div className="mt-4 flex items-center gap-3 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <Users className="w-4 h-4" aria-hidden="true" />
-                        {selectedTemplate.parameters.minPerformers}
-                        {selectedTemplate.parameters.maxPerformers &&
-                          `-${selectedTemplate.parameters.maxPerformers}`} performers
-                      </span>
-                      {selectedTemplate.parameters.scalable && (
-                        <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                          <Check className="w-4 h-4" aria-hidden="true" />
-                          Scalable
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Options */}
-                  <div>
-                    <p className="text-gray-600 dark:text-gray-400 mb-6">
-                      {selectedTemplate.description}
-                    </p>
-
-                    <div className="space-y-4">
-                      {/* Scale */}
-                      {selectedTemplate.parameters.scalable && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Scale: {(previewScale * 100).toFixed(0)}%
-                          </label>
-                          <input
-                            type="range"
-                            min="0.5"
-                            max="1.5"
-                            step="0.05"
-                            value={previewScale}
-                            onChange={(e) => setPreviewScale(parseFloat(e.target.value))}
-                            className="w-full"
-                          />
-                        </div>
-                      )}
-
-                      {/* Rotation */}
-                      {selectedTemplate.parameters.rotatable && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Rotation: {previewRotation}°
-                          </label>
-                          <input
-                            type="range"
-                            min="0"
-                            max="360"
-                            step="15"
-                            value={previewRotation}
-                            onChange={(e) => setPreviewRotation(parseFloat(e.target.value))}
-                            className="w-full"
-                          />
-                        </div>
-                      )}
-
-                      {/* Tags */}
-                      {selectedTemplate.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {selectedTemplate.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
+              <TemplatePreviewPanel
+                template={selectedTemplate}
+                performerCount={performerCount}
+                previewScale={previewScale}
+                previewRotation={previewRotation}
+                isPreviewAnimating={isPreviewAnimating}
+                onScaleChange={setPreviewScale}
+                onRotationChange={setPreviewRotation}
+                onToggleAnimation={() => setIsPreviewAnimating(!isPreviewAnimating)}
+              />
             )}
           </AnimatePresence>
         </div>
@@ -496,173 +370,6 @@ export function TemplatePicker({
         )}
       </motion.div>
     </div>
-  );
-}
-
-interface TemplateCardProps {
-  template: DrillTemplate;
-  performerCount: number;
-  onClick: () => void;
-}
-
-function TemplateCard({ template, performerCount, onClick }: TemplateCardProps) {
-  return (
-    <button
-      onClick={onClick}
-      className="group text-left p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:shadow-lg transition-all"
-    >
-      <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-lg mb-3 relative overflow-hidden">
-        <TemplatePreviewCanvas
-          template={template}
-          performerCount={Math.min(performerCount, template.parameters.maxPerformers || performerCount)}
-          scale={1}
-          rotation={0}
-          isAnimating={false}
-          isMinimal
-        />
-      </div>
-      <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
-        {template.name}
-      </h3>
-      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-        {template.description}
-      </p>
-      <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-        <span className="capitalize px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">
-          {template.category}
-        </span>
-        <span className="flex items-center gap-1">
-          <Users className="w-3 h-3" aria-hidden="true" />
-          {template.parameters.minPerformers}+
-        </span>
-      </div>
-    </button>
-  );
-}
-
-interface TemplatePreviewCanvasProps {
-  template: DrillTemplate;
-  performerCount: number;
-  scale: number;
-  rotation: number;
-  isAnimating: boolean;
-  isMinimal?: boolean;
-}
-
-function TemplatePreviewCanvas({
-  template,
-  performerCount,
-  scale,
-  rotation,
-  isAnimating,
-  isMinimal = false,
-}: TemplatePreviewCanvasProps) {
-  const [animationFrame, setAnimationFrame] = React.useState(0);
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
-
-  // Scale template for actual performer count
-  const scaledPositions = React.useMemo((): TemplatePosition[] => {
-    return templateRegistry.scaleTemplateForPerformers(template, performerCount);
-  }, [template, performerCount]);
-
-  // Animation loop
-  React.useEffect(() => {
-    if (!isAnimating || template.keyframes.length <= 1) return;
-
-    const interval = setInterval(() => {
-      setAnimationFrame((prev) => (prev + 1) % template.keyframes.length);
-    }, 1500); // 1.5 seconds per keyframe
-
-    return () => clearInterval(interval);
-  }, [isAnimating, template.keyframes.length]);
-
-  // Render canvas
-  React.useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const width = canvas.width;
-    const height = canvas.height;
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    // Clear
-    ctx.clearRect(0, 0, width, height);
-
-    // Draw grid (only if not minimal)
-    if (!isMinimal) {
-      ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
-      ctx.lineWidth = 1;
-      for (let i = 0; i <= 4; i++) {
-        ctx.beginPath();
-        ctx.moveTo((width / 4) * i, 0);
-        ctx.lineTo((width / 4) * i, height);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, (height / 4) * i);
-        ctx.lineTo(width, (height / 4) * i);
-        ctx.stroke();
-      }
-    }
-
-    // Get current positions (interpolate between keyframes if animating)
-    let positions: TemplatePosition[] = scaledPositions;
-
-    if (isAnimating && template.keyframes.length > 1) {
-      const currentKeyframe = template.keyframes[animationFrame];
-      positions = scaledPositions.map((pos: TemplatePosition, index: number) => {
-        const keyframePos = currentKeyframe.positions.get(index);
-        return keyframePos || pos;
-      });
-    }
-
-    // Apply transformations and draw performers
-    const rotationRad = (rotation * Math.PI) / 180;
-    const performerSize = isMinimal ? 6 : 10;
-    const colors = [
-      '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4',
-      '#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#10b981',
-    ];
-
-    positions.forEach((pos: TemplatePosition, index: number) => {
-      // Transform position
-      const x = ((pos.x - 50) * scale) / 100 * (width * 0.8);
-      const y = ((pos.y - 50) * scale) / 100 * (height * 0.8);
-
-      // Apply rotation around center
-      const rotatedX = x * Math.cos(rotationRad) - y * Math.sin(rotationRad);
-      const rotatedY = x * Math.sin(rotationRad) + y * Math.cos(rotationRad);
-
-      const finalX = centerX + rotatedX;
-      const finalY = centerY + rotatedY;
-
-      // Draw performer dot
-      ctx.beginPath();
-      ctx.arc(finalX, finalY, performerSize, 0, Math.PI * 2);
-      ctx.fillStyle = colors[index % colors.length];
-      ctx.fill();
-
-      // Draw label (only if not minimal)
-      if (!isMinimal) {
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 8px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(String(index + 1), finalX, finalY);
-      }
-    });
-  }, [scaledPositions, scale, rotation, animationFrame, isAnimating, isMinimal, template.keyframes]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={isMinimal ? 200 : 400}
-      height={isMinimal ? 200 : 400}
-      className="w-full h-full"
-    />
   );
 }
 

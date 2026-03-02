@@ -14,6 +14,8 @@
 
 const jwt = require('jsonwebtoken');
 const Y = require('yjs');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('MetmapCollabSocket');
 
 // LRU cache for Y.Doc instances
 class DocLRUCache {
@@ -119,7 +121,7 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
         Y.applyUpdate(doc, bytes);
       }
     } catch (err) {
-      console.error(`[metmap-collab] Failed to load Yjs state for ${room}:`, err);
+      log.error('Failed to load Yjs state', err, { room });
     }
 
     docCache.set(room, doc);
@@ -138,9 +140,9 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
       } else {
         await adapter.saveYjsState(songId, Buffer.from(state));
       }
-      console.log(`[metmap-collab] Flushed Yjs state for ${room} to DB (${state.length} bytes)`);
+      log.info('Flushed Yjs state to DB', { room, bytes: state.length });
     } catch (err) {
-      console.error(`[metmap-collab] Failed to flush ${room}:`, err);
+      log.error('Failed to flush Yjs state', err, { room });
     }
   }
 
@@ -163,7 +165,7 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
   // ==================== Connection Handler ====================
 
   namespace.on('connection', (socket) => {
-    console.log(`[metmap-collab] User ${socket.username} connected (${socket.id})`);
+    log.info('User connected', { username: socket.username, socketId: socket.id });
 
     // ---------- Join room ----------
     socket.on('yjs:join', async ({ room }) => {
@@ -172,14 +174,14 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
       // Clean up stale membership (reconnect case)
       if (roomClients.get(room)?.has(socket.id)) {
         // Already in room — this is a rejoin
-        console.log(`[metmap-collab] ${socket.username} rejoined ${room}`);
+        log.info('User rejoined room', { username: socket.username, room });
       } else {
         socket.join(room);
         if (!roomClients.has(room)) roomClients.set(room, new Set());
         roomClients.get(room).add(socket.id);
       }
 
-      console.log(`[metmap-collab] ${socket.username} joined ${room} (${roomClients.get(room).size} clients)`);
+      log.info('User joined room', { username: socket.username, room, clientCount: roomClients.get(room).size });
 
       // Ensure doc is loaded
       await getOrCreateDoc(room);
@@ -235,7 +237,7 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
           });
         }
       } catch (err) {
-        console.error(`[metmap-collab] sync-request error for ${room}:`, err);
+        log.error('Sync-request error', err, { room });
         socket.emit('yjs:sync-response', { update: [] });
       }
     });
@@ -256,7 +258,7 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
         // Schedule debounced flush to DB
         schedulePersist(room);
       } catch (err) {
-        console.error(`[metmap-collab] update apply error for ${room}:`, err);
+        log.error('Update apply error', err, { room });
       }
     });
 
@@ -306,7 +308,7 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
         // Notify all clients in room
         namespace.to(room).emit('yjs:snapshot-created', { snapshot });
       } catch (err) {
-        console.error(`[metmap-collab] create-snapshot error for ${room}:`, err);
+        log.error('Create-snapshot error', err, { room });
         socket.emit('yjs:snapshot-error', { error: 'Failed to create snapshot' });
       }
     });
@@ -350,16 +352,16 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
           restoredBy: socket.username,
         });
 
-        console.log(`[metmap-collab] Snapshot "${snapshot.name}" restored for ${room} by ${socket.username}`);
+        log.info('Snapshot restored', { snapshotName: snapshot.name, room, restoredBy: socket.username });
       } catch (err) {
-        console.error(`[metmap-collab] restore-snapshot error for ${room}:`, err);
+        log.error('Restore-snapshot error', err, { room });
         socket.emit('yjs:snapshot-error', { error: 'Failed to restore snapshot' });
       }
     });
 
     // ---------- Disconnect ----------
     socket.on('disconnect', () => {
-      console.log(`[metmap-collab] User ${socket.username} disconnected (${socket.id})`);
+      log.info('User disconnected', { username: socket.username, socketId: socket.id });
 
       // Remove from all rooms
       for (const [room, clients] of roomClients) {
@@ -383,5 +385,5 @@ module.exports = function setupMetMapCollabSocket(namespace, metmapAdapter, jwtS
     });
   });
 
-  console.log('[metmap-collab] MetMap collaboration namespace initialized (server-side Yjs)');
+  log.info('MetMap collaboration namespace initialized (server-side Yjs)');
 };

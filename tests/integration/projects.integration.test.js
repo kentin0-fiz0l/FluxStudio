@@ -80,6 +80,13 @@ function createApp() {
   return app;
 }
 
+// Deterministic test UUIDs for Zod validation
+const TEST_UUIDS = {
+  user1: '10000000-0000-0000-0000-000000000001',
+  user2: '10000000-0000-0000-0000-000000000002',
+  project1: '20000000-0000-0000-0000-000000000001',
+};
+
 describe('Projects Integration Tests', () => {
   let app;
   let token;
@@ -93,6 +100,8 @@ describe('Projects Integration Tests', () => {
   beforeEach(() => {
     // Reset call history and queues, but keep mock implementations from jest.mock()
     query.mockReset();
+    // Default query to resolve so .catch() chaining doesn't throw
+    query.mockResolvedValue({ rows: [] });
     Object.values(mockProjectsAdapter).forEach(fn => fn.mockReset());
   });
 
@@ -287,7 +296,7 @@ describe('Projects Integration Tests', () => {
         .send({ description: 'No name' })
         .expect(400);
 
-      expect(res.body.error).toContain('at least 3 characters');
+      expect(res.body.error).toBe('Required');
     });
 
     it('should add additional members if provided', async () => {
@@ -408,11 +417,11 @@ describe('Projects Integration Tests', () => {
       const res = await request(app)
         .post('/api/projects/proj-1/members')
         .set('Authorization', `Bearer ${token}`)
-        .send({ userId: 'user-new', role: 'contributor' })
+        .send({ userId: TEST_UUIDS.user2, role: 'contributor' })
         .expect(200);
 
       expect(res.body.success).toBe(true);
-      expect(mockProjectsAdapter.addProjectMember).toHaveBeenCalledWith('proj-1', 'user-new', 'contributor');
+      expect(mockProjectsAdapter.addProjectMember).toHaveBeenCalledWith('proj-1', TEST_UUIDS.user2, 'contributor');
     });
 
     it('POST /api/projects/:id/members should return 400 without userId', async () => {
@@ -422,7 +431,7 @@ describe('Projects Integration Tests', () => {
         .send({ role: 'contributor' })
         .expect(400);
 
-      expect(res.body.error).toBe('userId is required');
+      expect(res.body.error).toBe('Required');
     });
 
     it('DELETE /api/projects/:id/members/:userId should remove member', async () => {

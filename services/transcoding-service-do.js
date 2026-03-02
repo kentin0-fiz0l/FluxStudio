@@ -12,6 +12,8 @@
 
 const { query } = require('../database/config');
 const { createId } = require('@paralleldrive/cuid2');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('TranscodingDO');
 
 // Configuration
 const CONFIG = {
@@ -25,7 +27,7 @@ const CONFIG = {
  */
 async function createTranscodingJob({ fileId, fileName, spacesKey, userId }) {
   try {
-    console.log(`[Transcoding] Creating job for file ${fileId}`);
+    log.info('Creating job for file', { fileId });
 
     const jobId = createId();
     const outputPrefix = `hls/${fileId}/`;
@@ -45,7 +47,7 @@ async function createTranscodingJob({ fileId, fileName, spacesKey, userId }) {
       [jobId, fileId, 'pending', inputUrl, outputPrefix]
     );
 
-    console.log(`[Transcoding] Job ${jobId} created for file ${fileId}`);
+    log.info('Job created for file', { jobId, fileId });
 
     // Update file record with transcoding status
     await query(
@@ -65,7 +67,7 @@ async function createTranscodingJob({ fileId, fileName, spacesKey, userId }) {
     };
 
   } catch (error) {
-    console.error('[Transcoding] Job creation failed:', error);
+    log.error('Job creation failed', error);
 
     // Update file status to failed
     await query(
@@ -105,7 +107,7 @@ async function checkJobStatus(jobId) {
       errorMessage: job.error_message
     };
   } catch (error) {
-    console.error('[Transcoding] Status check failed:', error);
+    log.error('Status check failed', error);
     throw error;
   }
 }
@@ -157,7 +159,7 @@ async function monitorJobs() {
        LIMIT 50`
     );
 
-    console.log(`[Transcoding Monitor] Found ${result.rows.length} active jobs`);
+    log.info('Found active jobs', { count: result.rows.length });
 
     // Note: The FFmpeg worker automatically updates job status
     // This function is mainly for observability
@@ -165,7 +167,7 @@ async function monitorJobs() {
     return { checked: result.rows.length, jobs: result.rows };
 
   } catch (error) {
-    console.error('[Transcoding Monitor] Monitor failed:', error);
+    log.error('Monitor failed', error);
     throw error;
   }
 }
@@ -183,11 +185,11 @@ async function cancelJob(jobId) {
       [jobId]
     );
 
-    console.log(`[Transcoding] Job ${jobId} canceled`);
+    log.info('Job canceled', { jobId });
 
     return { success: true };
   } catch (error) {
-    console.error('[Transcoding] Cancel failed:', error);
+    log.error('Cancel failed', error);
     throw error;
   }
 }
@@ -229,12 +231,12 @@ async function retryJob(jobId) {
       [originalJob.file_id]
     );
 
-    console.log(`[Transcoding] Retry job ${newJobId} created for file ${originalJob.file_id}`);
+    log.info('Retry job created', { jobId: newJobId, fileId: originalJob.file_id });
 
     return { jobId: newJobId, status: 'pending' };
 
   } catch (error) {
-    console.error('[Transcoding] Retry failed:', error);
+    log.error('Retry failed', error);
     throw error;
   }
 }
@@ -257,7 +259,7 @@ async function getStatistics() {
 
     return result.rows[0];
   } catch (error) {
-    console.error('[Transcoding] Statistics failed:', error);
+    log.error('Statistics failed', error);
     throw error;
   }
 }

@@ -11,6 +11,8 @@
 
 const { query, generateCuid } = require('../database/config');
 const Anthropic = require('@anthropic-ai/sdk');
+const { createLogger } = require('../lib/logger');
+const log = createLogger('AgentService');
 
 // Initialize Anthropic client (lazy - only if API key is available)
 let anthropic = null;
@@ -60,7 +62,7 @@ async function searchProjects(userId, searchQuery, options = {}) {
       updatedAt: row.updatedAt,
     }));
   } catch (error) {
-    console.error('[AgentService] searchProjects error:', error);
+    log.error('searchProjects error', error);
     return [];
   }
 }
@@ -98,7 +100,7 @@ async function getProject(userId, projectId) {
       updatedAt: row.updatedAt,
     };
   } catch (error) {
-    console.error('[AgentService] getProject error:', error);
+    log.error('getProject error', error);
     return null;
   }
 }
@@ -140,7 +142,7 @@ async function listProjects(userId, options = {}) {
       updatedAt: row.updatedAt,
     }));
   } catch (error) {
-    console.error('[AgentService] listProjects error:', error);
+    log.error('listProjects error', error);
     return [];
   }
 }
@@ -180,7 +182,7 @@ async function getActivityFeed(userId, options = {}) {
       timestamp: row.timestamp,
     }));
   } catch (error) {
-    console.error('[AgentService] getActivityFeed error:', error);
+    log.error('getActivityFeed error', error);
     return [];
   }
 }
@@ -229,7 +231,7 @@ async function whatChanged(userId, since) {
       },
     };
   } catch (error) {
-    console.error('[AgentService] whatChanged error:', error);
+    log.error('whatChanged error', error);
     return {
       since: sinceDate.toISOString(),
       summary: { projectUpdates: 0, newMessages: 0, newAssets: 0, notifications: 0 },
@@ -300,7 +302,7 @@ Focus on what's most important today. Be encouraging and actionable.`;
       generatedAt: new Date().toISOString(),
     };
   } catch (error) {
-    console.error('[AgentService] generateDailyBrief error:', error);
+    log.error('generateDailyBrief error', error);
     return {
       brief: 'Welcome back! Unable to generate summary at this time.',
       stats: { projectUpdates: 0, newMessages: 0, newAssets: 0, notifications: 0 },
@@ -449,7 +451,7 @@ ${projectId ? `Current project context: ${projectId}` : ''}`;
       toolsUsed: toolCalls.map(t => t.name),
     };
   } catch (error) {
-    console.error('[AgentService] chat error:', error);
+    log.error('chat error', error);
     throw error;
   }
 }
@@ -470,7 +472,7 @@ async function createSession(userId, projectId = null) {
 
     return { id, userId, projectId, createdAt: now };
   } catch (error) {
-    console.error('[AgentService] createSession error:', error);
+    log.error('createSession error', error);
     throw error;
   }
 }
@@ -482,7 +484,7 @@ async function getSession(sessionId) {
     `, [sessionId]);
     return result.rows[0] || null;
   } catch (error) {
-    console.error('[AgentService] getSession error:', error);
+    log.error('getSession error', error);
     return null;
   }
 }
@@ -495,7 +497,7 @@ async function updateSessionMessages(sessionId, messages) {
       WHERE id = $1
     `, [sessionId, JSON.stringify(messages)]);
   } catch (error) {
-    console.error('[AgentService] updateSessionMessages error:', error);
+    log.error('updateSessionMessages error', error);
   }
 }
 
@@ -514,7 +516,7 @@ async function createPendingAction(sessionId, userId, actionType, payload, previ
 
     return { id, sessionId, actionType, payload, preview, status: 'pending' };
   } catch (error) {
-    console.error('[AgentService] createPendingAction error:', error);
+    log.error('createPendingAction error', error);
     throw error;
   }
 }
@@ -528,7 +530,7 @@ async function getPendingActions(userId) {
     `, [userId]);
     return result.rows;
   } catch (error) {
-    console.error('[AgentService] getPendingActions error:', error);
+    log.error('getPendingActions error', error);
     return [];
   }
 }
@@ -541,7 +543,7 @@ async function resolvePendingAction(actionId, status, resolvedBy) {
       WHERE id = $1
     `, [actionId, status, resolvedBy]);
   } catch (error) {
-    console.error('[AgentService] resolvePendingAction error:', error);
+    log.error('resolvePendingAction error', error);
     throw error;
   }
 }
@@ -557,7 +559,7 @@ async function logAction(sessionId, userId, action, skill, input, output, latenc
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `, [sessionId, userId, action, skill, JSON.stringify(input), JSON.stringify(output), latencyMs, status]);
   } catch (error) {
-    console.error('[AgentService] logAction error:', error);
+    log.error('logAction error', error);
   }
 }
 

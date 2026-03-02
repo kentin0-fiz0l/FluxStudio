@@ -6,9 +6,12 @@
  * Purpose: Performance monitoring dashboard, real-time auth events
  */
 
+const { createLogger } = require('../lib/logger');
+const log = createLogger('AuthSocket');
+
 module.exports = (namespace, performanceMonitor, authAdapter) => {
   namespace.on('connection', (socket) => {
-    console.log('📊 Auth socket connected:', socket.id);
+    log.info('Auth socket connected', { socketId: socket.id });
 
     // Send initial metrics
     const currentMetrics = performanceMonitor.getCurrentMetrics();
@@ -30,13 +33,13 @@ module.exports = (namespace, performanceMonitor, authAdapter) => {
             index_usage: 95
           }]);
         }).catch(err => {
-          console.error('Database health check failed:', err);
+          log.error('Database health check failed', err);
         });
       }
     });
 
     socket.on('disconnect', () => {
-      console.log('📊 Auth socket disconnected:', socket.id);
+      log.info('Auth socket disconnected', { socketId: socket.id });
     });
   });
 

@@ -56,6 +56,13 @@ function createApp() {
   return app;
 }
 
+// Deterministic test UUIDs for Zod validation
+const TEST_UUIDS = {
+  file1: '30000000-0000-0000-0000-000000000001',
+  file2: '30000000-0000-0000-0000-000000000002',
+  media1: '50000000-0000-0000-0000-000000000001',
+};
+
 describe('Media Integration Tests', () => {
   let app;
   let token;
@@ -104,7 +111,7 @@ describe('Media Integration Tests', () => {
   describe('POST /api/media/transcode', () => {
     it('should submit a transcoding job', async () => {
       query.mockResolvedValueOnce({
-        rows: [{ id: 'f1', name: 'video.mp4', file_url: 'https://spaces.digitaloceanspaces.com/uploads/video.mp4', uploaded_by: userId }]
+        rows: [{ id: TEST_UUIDS.file1, name: 'video.mp4', file_url: 'https://spaces.digitaloceanspaces.com/uploads/video.mp4', uploaded_by: userId }]
       });
       mockTranscodingService.createTranscodingJob.mockResolvedValueOnce({
         jobId: 'job-1',
@@ -115,7 +122,7 @@ describe('Media Integration Tests', () => {
       const res = await request(app)
         .post('/api/media/transcode')
         .set('Authorization', `Bearer ${token}`)
-        .send({ fileId: 'f1' })
+        .send({ fileId: TEST_UUIDS.file1 })
         .expect(200);
 
       expect(res.body.message).toBe('Transcoding job submitted successfully');
@@ -131,7 +138,7 @@ describe('Media Integration Tests', () => {
         .send({})
         .expect(400);
 
-      expect(res.body.error).toBe('fileId is required');
+      expect(res.body.error).toBe('Required');
     });
 
     it('should return 404 when file not found', async () => {
@@ -140,7 +147,7 @@ describe('Media Integration Tests', () => {
       const res = await request(app)
         .post('/api/media/transcode')
         .set('Authorization', `Bearer ${token}`)
-        .send({ fileId: 'nonexistent' })
+        .send({ fileId: TEST_UUIDS.file2 })
         .expect(404);
 
       expect(res.body.error).toBe('File not found');
@@ -148,13 +155,13 @@ describe('Media Integration Tests', () => {
 
     it('should return 403 when user does not own the file', async () => {
       query.mockResolvedValueOnce({
-        rows: [{ id: 'f1', name: 'video.mp4', file_url: 'video.mp4', uploaded_by: 'other-user' }]
+        rows: [{ id: TEST_UUIDS.file1, name: 'video.mp4', file_url: 'video.mp4', uploaded_by: 'other-user' }]
       });
 
       const res = await request(app)
         .post('/api/media/transcode')
         .set('Authorization', `Bearer ${token}`)
-        .send({ fileId: 'f1' })
+        .send({ fileId: TEST_UUIDS.file1 })
         .expect(403);
 
       expect(res.body.error).toBe('Unauthorized');
@@ -162,14 +169,14 @@ describe('Media Integration Tests', () => {
 
     it('should handle transcoding service errors', async () => {
       query.mockResolvedValueOnce({
-        rows: [{ id: 'f1', name: 'video.mp4', file_url: 'video.mp4', uploaded_by: userId }]
+        rows: [{ id: TEST_UUIDS.file1, name: 'video.mp4', file_url: 'video.mp4', uploaded_by: userId }]
       });
       mockTranscodingService.createTranscodingJob.mockRejectedValueOnce(new Error('Service error'));
 
       const res = await request(app)
         .post('/api/media/transcode')
         .set('Authorization', `Bearer ${token}`)
-        .send({ fileId: 'f1' })
+        .send({ fileId: TEST_UUIDS.file1 })
         .expect(500);
 
       expect(res.body.error).toBe('Failed to submit transcoding job');
@@ -357,7 +364,6 @@ describe('Media Integration Tests', () => {
         .expect(404);
 
       expect(res.body.error).toBe('HLS manifest not available');
-      expect(res.body.suggestion).toBeDefined();
     });
 
     it('should include license server URL for DRM-protected content', async () => {

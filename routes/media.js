@@ -56,13 +56,13 @@ router.post('/transcode', authenticateToken, zodValidate(transcodeSchema), async
     );
 
     if (fileResult.rows.length === 0) {
-      return res.status(404).json({ error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
     }
 
     const file = fileResult.rows[0];
 
     if (file.uploaded_by !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized' });
+      return res.status(403).json({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' });
     }
 
     const spacesKey = file.file_url.includes('digitaloceanspaces.com/')
@@ -86,10 +86,7 @@ router.post('/transcode', authenticateToken, zodValidate(transcodeSchema), async
 
   } catch (error) {
     log.error('Transcoding submission error', error);
-    res.status(500).json({
-      error: 'Failed to submit transcoding job',
-      details: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to submit transcoding job', code: 'TRANSCODE_SUBMIT_FAILED' });
   }
 });
 
@@ -101,7 +98,7 @@ router.get('/transcode/:fileId', authenticateToken, async (req, res) => {
     const status = await getTranscodingService().getTranscodingStatus(fileId);
 
     if (!status) {
-      return res.status(404).json({ error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
     }
 
     res.json({
@@ -119,10 +116,7 @@ router.get('/transcode/:fileId', authenticateToken, async (req, res) => {
 
   } catch (error) {
     log.error('Get transcoding status error', error);
-    res.status(500).json({
-      error: 'Failed to get transcoding status',
-      details: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to get transcoding status', code: 'TRANSCODE_STATUS_FAILED' });
   }
 });
 
@@ -139,10 +133,7 @@ router.post('/monitor-jobs', authenticateToken, requireAdmin, async (req, res) =
 
   } catch (error) {
     log.error('Job monitoring error', error);
-    res.status(500).json({
-      error: 'Failed to monitor jobs',
-      details: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to monitor jobs', code: 'JOB_MONITOR_FAILED' });
   }
 });
 
@@ -159,7 +150,7 @@ router.get('/:fileId/manifest', authenticateToken, async (req, res) => {
     );
 
     if (fileResult.rows.length === 0) {
-      return res.status(404).json({ error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'FILE_NOT_FOUND' });
     }
 
     const file = fileResult.rows[0];
@@ -190,15 +181,12 @@ router.get('/:fileId/manifest', authenticateToken, async (req, res) => {
       );
 
       if (membershipCheck.rows.length === 0) {
-        return res.status(403).json({ error: 'Access denied' });
+        return res.status(403).json({ success: false, error: 'Access denied', code: 'ACCESS_DENIED' });
       }
     }
 
     if (!file.hls_manifest_url) {
-      return res.status(404).json({
-        error: 'HLS manifest not available',
-        suggestion: 'File may not be transcoded yet'
-      });
+      return res.status(404).json({ success: false, error: 'HLS manifest not available', code: 'MANIFEST_NOT_AVAILABLE' });
     }
 
     res.json({
@@ -211,10 +199,7 @@ router.get('/:fileId/manifest', authenticateToken, async (req, res) => {
 
   } catch (error) {
     log.error('Get manifest error', error);
-    res.status(500).json({
-      error: 'Failed to get manifest',
-      details: error.message
-    });
+    res.status(500).json({ success: false, error: 'Failed to get manifest', code: 'MANIFEST_FETCH_FAILED' });
   }
 });
 

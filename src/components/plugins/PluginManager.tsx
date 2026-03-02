@@ -9,20 +9,11 @@
  */
 
 import * as React from 'react';
-import { List as VirtualList, RowComponentProps } from 'react-window';
+import { List as VirtualList } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import {
   Package,
   Search,
-  Download,
-  Trash2,
-  Settings,
-  Power,
-  PowerOff,
-  Star,
-  Shield,
-  AlertTriangle,
-  CheckCircle,
   Loader2,
   RefreshCw,
   Grid,
@@ -32,9 +23,11 @@ import { pluginRegistry, PluginInstance } from '@/services/plugins/PluginRegistr
 import { pluginMarketplace, MarketplacePlugin } from '@/services/plugins/PluginMarketplace';
 import { PluginPermissionDialog } from './PluginPermissionDialog';
 import { cn } from '@/lib/utils';
-
-type TabType = 'installed' | 'marketplace' | 'updates';
-type ViewMode = 'grid' | 'list';
+import type { TabType, ViewMode } from './pluginManagerHelpers';
+import { PLUGIN_GRID_ROW_HEIGHT, PLUGIN_LIST_ROW_HEIGHT } from './pluginManagerHelpers';
+import { InstalledPluginRow } from './InstalledPluginCard';
+import { MarketplacePluginRow } from './MarketplacePluginCard';
+import { PluginEmptyState } from './PluginEmptyState';
 
 export function PluginManager() {
   const [activeTab, setActiveTab] = React.useState<TabType>('installed');
@@ -218,7 +211,7 @@ export function PluginManager() {
           </div>
         ) : activeTab === 'installed' ? (
           filteredInstalled.length === 0 ? (
-            <EmptyState
+            <PluginEmptyState
               icon={<Package className="w-12 h-12" aria-hidden="true" />}
               title="No plugins installed"
               description="Browse the marketplace to discover plugins"
@@ -256,7 +249,7 @@ export function PluginManager() {
           )
         ) : activeTab === 'marketplace' ? (
           marketplacePlugins.length === 0 ? (
-            <EmptyState
+            <PluginEmptyState
               icon={<Package className="w-12 h-12" aria-hidden="true" />}
               title="No plugins found"
               description="Try a different search query"
@@ -282,7 +275,7 @@ export function PluginManager() {
             </div>
           )
         ) : (
-          <EmptyState
+          <PluginEmptyState
             icon={<RefreshCw className="w-12 h-12" aria-hidden="true" />}
             title="All plugins up to date"
             description="Your installed plugins are using the latest versions"
@@ -300,353 +293,6 @@ export function PluginManager() {
       )}
     </div>
   );
-}
-
-// Row heights for plugin list virtualization
-const PLUGIN_GRID_ROW_HEIGHT = 220;
-const PLUGIN_LIST_ROW_HEIGHT = 76;
-
-// Row component for installed plugins in list view
-interface InstalledPluginRowProps {
-  plugins: PluginInstance[];
-  viewMode: ViewMode;
-  onActivate: (id: string) => void;
-  onDeactivate: (id: string) => void;
-  onUninstall: (id: string) => void;
-  onSettings: (id: string) => void;
-}
-
-function InstalledPluginRow({
-  index,
-  style,
-  plugins,
-  viewMode,
-  onActivate,
-  onDeactivate,
-  onUninstall,
-  onSettings,
-}: RowComponentProps<InstalledPluginRowProps>): React.ReactElement {
-  const plugin = plugins[index];
-  return (
-    <div style={style}>
-      <InstalledPluginCard
-        plugin={plugin}
-        viewMode={viewMode}
-        onActivate={onActivate}
-        onDeactivate={onDeactivate}
-        onUninstall={onUninstall}
-        onSettings={() => onSettings(plugin.manifest.id)}
-      />
-    </div>
-  );
-}
-
-// Row component for marketplace plugins in list view
-interface MarketplacePluginRowProps {
-  plugins: MarketplacePlugin[];
-  viewMode: ViewMode;
-  onInstall: (plugin: MarketplacePlugin) => void;
-}
-
-function MarketplacePluginRow({
-  index,
-  style,
-  plugins,
-  viewMode,
-  onInstall,
-}: RowComponentProps<MarketplacePluginRowProps>): React.ReactElement {
-  const plugin = plugins[index];
-  return (
-    <div style={style}>
-      <MarketplacePluginCard
-        plugin={plugin}
-        viewMode={viewMode}
-        isInstalled={pluginRegistry.isInstalled(plugin.id)}
-        onInstall={() => onInstall(plugin)}
-      />
-    </div>
-  );
-}
-
-interface InstalledPluginCardProps {
-  plugin: PluginInstance;
-  viewMode: ViewMode;
-  onActivate: (id: string) => void;
-  onDeactivate: (id: string) => void;
-  onUninstall: (id: string) => void;
-  onSettings: () => void;
-}
-
-function InstalledPluginCard({
-  plugin,
-  viewMode,
-  onActivate,
-  onDeactivate,
-  onUninstall,
-  onSettings,
-}: InstalledPluginCardProps) {
-  const isActive = plugin.state === 'active';
-  const hasError = plugin.state === 'error';
-
-  if (viewMode === 'list') {
-    return (
-      <div className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
-        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
-          {plugin.manifest.name.charAt(0)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
-              {plugin.manifest.name}
-            </h3>
-            <span className="text-xs text-neutral-500">v{plugin.manifest.version}</span>
-            {isActive && (
-              <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
-                Active
-              </span>
-            )}
-            {hasError && (
-              <span className="text-xs px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full">
-                Error
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate">
-            {plugin.manifest.description}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {isActive ? (
-            <button
-              onClick={() => onDeactivate(plugin.manifest.id)}
-              className="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg"
-              title="Disable"
-            >
-              <PowerOff className="w-4 h-4" aria-hidden="true" />
-            </button>
-          ) : (
-            <button
-              onClick={() => onActivate(plugin.manifest.id)}
-              className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg"
-              title="Enable"
-            >
-              <Power className="w-4 h-4" aria-hidden="true" />
-            </button>
-          )}
-          <button
-            onClick={onSettings}
-            className="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg"
-            title="Settings"
-          >
-            <Settings className="w-4 h-4" aria-hidden="true" />
-          </button>
-          <button
-            onClick={() => onUninstall(plugin.manifest.id)}
-            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
-            title="Uninstall"
-          >
-            <Trash2 className="w-4 h-4" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-4 bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm">
-      <div className="flex items-start gap-3 mb-3">
-        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
-          {plugin.manifest.name.charAt(0)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
-            {plugin.manifest.name}
-          </h3>
-          <p className="text-xs text-neutral-500">v{plugin.manifest.version}</p>
-        </div>
-        {isActive && <CheckCircle className="w-5 h-5 text-green-500" aria-hidden="true" />}
-        {hasError && <AlertTriangle className="w-5 h-5 text-red-500" aria-hidden="true" />}
-      </div>
-
-      <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4 line-clamp-2">
-        {plugin.manifest.description}
-      </p>
-
-      {hasError && plugin.error && (
-        <div className="mb-4 p-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-xs rounded">
-          {plugin.error}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-neutral-500">
-          by {plugin.manifest.author.name}
-        </div>
-        <div className="flex items-center gap-1">
-          {isActive ? (
-            <button
-              onClick={() => onDeactivate(plugin.manifest.id)}
-              className="p-1.5 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded"
-              title="Disable"
-            >
-              <PowerOff className="w-4 h-4" aria-hidden="true" />
-            </button>
-          ) : (
-            <button
-              onClick={() => onActivate(plugin.manifest.id)}
-              className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
-              title="Enable"
-            >
-              <Power className="w-4 h-4" aria-hidden="true" />
-            </button>
-          )}
-          <button
-            onClick={onSettings}
-            className="p-1.5 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded"
-            title="Settings"
-          >
-            <Settings className="w-4 h-4" aria-hidden="true" />
-          </button>
-          <button
-            onClick={() => onUninstall(plugin.manifest.id)}
-            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
-            title="Uninstall"
-          >
-            <Trash2 className="w-4 h-4" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface MarketplacePluginCardProps {
-  plugin: MarketplacePlugin;
-  viewMode: ViewMode;
-  isInstalled: boolean;
-  onInstall: () => void;
-}
-
-function MarketplacePluginCard({
-  plugin,
-  viewMode,
-  isInstalled,
-  onInstall,
-}: MarketplacePluginCardProps) {
-  if (viewMode === 'list') {
-    return (
-      <div className="flex items-center gap-4 p-4 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
-        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold">
-          {plugin.manifest.name.charAt(0)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
-              {plugin.manifest.name}
-            </h3>
-            {plugin.verified && <span title="Verified"><Shield className="w-4 h-4 text-blue-500" aria-hidden="true" /></span>}
-            {plugin.featured && <span title="Featured"><Star className="w-4 h-4 text-amber-500 fill-amber-500" aria-hidden="true" /></span>}
-          </div>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate">
-            {plugin.manifest.description}
-          </p>
-          <div className="flex items-center gap-4 mt-1 text-xs text-neutral-500">
-            <span className="flex items-center gap-1">
-              <Download className="w-3 h-3" aria-hidden="true" />
-              {formatNumber(plugin.downloads)}
-            </span>
-            <span className="flex items-center gap-1">
-              <Star className="w-3 h-3" aria-hidden="true" />
-              {plugin.rating.toFixed(1)}
-            </span>
-          </div>
-        </div>
-        <button
-          onClick={onInstall}
-          disabled={isInstalled}
-          className={cn(
-            'px-4 py-2 rounded-lg font-medium text-sm transition-colors',
-            isInstalled
-              ? 'bg-neutral-100 dark:bg-neutral-700 text-neutral-400 cursor-not-allowed'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          )}
-        >
-          {isInstalled ? 'Installed' : 'Install'}
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-4 bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-sm">
-      <div className="flex items-start gap-3 mb-3">
-        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold">
-          {plugin.manifest.name.charAt(0)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1">
-            <h3 className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
-              {plugin.manifest.name}
-            </h3>
-            {plugin.verified && <Shield className="w-4 h-4 text-blue-500" aria-hidden="true" />}
-          </div>
-          <div className="flex items-center gap-2 text-xs text-neutral-500">
-            <span className="flex items-center gap-0.5">
-              <Star className="w-3 h-3 text-amber-500" aria-hidden="true" />
-              {plugin.rating.toFixed(1)}
-            </span>
-            <span>{formatNumber(plugin.downloads)} downloads</span>
-          </div>
-        </div>
-      </div>
-
-      <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4 line-clamp-2">
-        {plugin.manifest.description}
-      </p>
-
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-neutral-500">
-          by {plugin.manifest.author.name}
-        </div>
-        <button
-          onClick={onInstall}
-          disabled={isInstalled}
-          className={cn(
-            'px-3 py-1.5 rounded-lg font-medium text-sm transition-colors',
-            isInstalled
-              ? 'bg-neutral-100 dark:bg-neutral-700 text-neutral-400 cursor-not-allowed'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          )}
-        >
-          {isInstalled ? 'Installed' : 'Install'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-interface EmptyStateProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  action?: React.ReactNode;
-}
-
-function EmptyState({ icon, title, description, action }: EmptyStateProps) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="text-neutral-300 dark:text-neutral-600 mb-4">{icon}</div>
-      <h3 className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-1">{title}</h3>
-      <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">{description}</p>
-      {action}
-    </div>
-  );
-}
-
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num.toString();
 }
 
 export default PluginManager;

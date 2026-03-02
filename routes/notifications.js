@@ -52,7 +52,7 @@ router.get('/', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error listing notifications', error);
-    res.status(500).json({ success: false, error: 'Failed to list notifications' });
+    res.status(500).json({ success: false, error: 'Failed to list notifications', code: 'NOTIFICATIONS_LIST_FAILED' });
   }
 });
 
@@ -71,13 +71,13 @@ router.patch('/:id/read', authenticateToken, async (req, res) => {
     });
 
     if (!notification) {
-      return res.status(404).json({ success: false, error: 'Notification not found' });
+      return res.status(404).json({ success: false, error: 'Notification not found', code: 'NOTIFICATION_NOT_FOUND' });
     }
 
     res.json({ success: true, notification });
   } catch (error) {
     log.error('Error marking notification as read', error);
-    res.status(500).json({ success: false, error: 'Failed to mark notification as read' });
+    res.status(500).json({ success: false, error: 'Failed to mark notification as read', code: 'NOTIFICATION_READ_FAILED' });
   }
 });
 
@@ -96,13 +96,13 @@ router.post('/:id/read', authenticateToken, async (req, res) => {
     });
 
     if (!notification) {
-      return res.status(404).json({ success: false, error: 'Notification not found' });
+      return res.status(404).json({ success: false, error: 'Notification not found', code: 'NOTIFICATION_NOT_FOUND' });
     }
 
     res.json({ success: true, notification });
   } catch (error) {
     log.error('Error marking notification as read', error);
-    res.status(500).json({ success: false, error: 'Failed to mark notification as read' });
+    res.status(500).json({ success: false, error: 'Failed to mark notification as read', code: 'NOTIFICATION_READ_FAILED' });
   }
 });
 
@@ -119,7 +119,7 @@ router.post('/read-all', authenticateToken, async (req, res) => {
     res.json({ success: true, updatedCount: count });
   } catch (error) {
     log.error('Error marking all notifications as read', error);
-    res.status(500).json({ success: false, error: 'Failed to mark all notifications as read' });
+    res.status(500).json({ success: false, error: 'Failed to mark all notifications as read', code: 'NOTIFICATIONS_READ_ALL_FAILED' });
   }
 });
 
@@ -136,7 +136,7 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
     res.json({ success: true, count });
   } catch (error) {
     log.error('Error getting unread notification count', error);
-    res.status(500).json({ success: false, error: 'Failed to get unread count' });
+    res.status(500).json({ success: false, error: 'Failed to get unread count', code: 'UNREAD_COUNT_FAILED' });
   }
 });
 
@@ -151,7 +151,7 @@ router.get('/preferences', authenticateToken, async (req, res) => {
     res.json({ success: true, preferences });
   } catch (error) {
     log.error('Error getting notification preferences', error);
-    res.status(500).json({ success: false, error: 'Failed to get preferences' });
+    res.status(500).json({ success: false, error: 'Failed to get preferences', code: 'PREFERENCES_FETCH_FAILED' });
   }
 });
 
@@ -168,7 +168,7 @@ router.put('/preferences', authenticateToken, zodValidate(updateNotificationPref
     res.json({ success: true, preferences });
   } catch (error) {
     log.error('Error updating notification preferences', error);
-    res.status(500).json({ success: false, error: 'Failed to update preferences' });
+    res.status(500).json({ success: false, error: 'Failed to update preferences', code: 'PREFERENCES_UPDATE_FAILED' });
   }
 });
 
@@ -197,7 +197,7 @@ router.post('/projects/:projectId/read-all', authenticateToken, async (req, res)
     });
   } catch (error) {
     log.error('Error marking project notifications as read', error);
-    res.status(500).json({ success: false, error: 'Failed to mark notifications as read' });
+    res.status(500).json({ success: false, error: 'Failed to mark notifications as read', code: 'PROJECT_NOTIFICATIONS_READ_FAILED' });
   }
 });
 
@@ -268,7 +268,7 @@ router.get('/projects/:projectId', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting project notifications', error);
-    res.status(500).json({ success: false, error: 'Failed to get project notifications' });
+    res.status(500).json({ success: false, error: 'Failed to get project notifications', code: 'PROJECT_NOTIFICATIONS_FETCH_FAILED' });
   }
 });
 
