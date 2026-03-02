@@ -9,38 +9,35 @@
  * - Custom variable input
  */
 
-import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
-  Sparkles,
-  Star,
   Download,
   ChevronRight,
   Check,
   X,
   Wand2,
   FolderPlus,
-  Palette,
-  Code,
-  Music,
-  Video,
-  Camera,
-  Megaphone,
-  Image,
-  FileText,
+  Star,
   Loader2,
   ArrowLeft,
 } from 'lucide-react';
-import { templateService } from '@/services/templates/TemplateService';
-import {
-  ProjectTemplate,
-  TemplateCategory,
-  TemplateVariable,
-  CreateFromTemplateOptions,
-} from '@/services/templates/types';
+import { TemplateCategory, CreateFromTemplateOptions } from '@/services/templates/types';
 import { cn } from '@/lib/utils';
-import { observability } from '@/services/observability';
+
+import { useTemplateSelector } from './templateSelector/useTemplateSelector';
+import { TemplateCard } from './templateSelector/TemplateCard';
+import { VariableInput } from './templateSelector/VariableInput';
+import { AIGenerateView } from './templateSelector/AIGenerateView';
+import { categoryIcons } from './templateSelector/TemplateSelector.constants';
+
+// Re-export for backward compatibility
+export { useTemplateSelector } from './templateSelector/useTemplateSelector';
+export type { ViewState } from './templateSelector/useTemplateSelector';
+export { TemplateCard } from './templateSelector/TemplateCard';
+export { VariableInput } from './templateSelector/VariableInput';
+export { AIGenerateView } from './templateSelector/AIGenerateView';
+export { categoryIcons, AI_SUGGESTION_CHIPS } from './templateSelector/TemplateSelector.constants';
 
 interface TemplateSelectorProps {
   onSelect: (options: CreateFromTemplateOptions) => void;
@@ -48,132 +45,32 @@ interface TemplateSelectorProps {
   initialCategory?: TemplateCategory;
 }
 
-type ViewState = 'browse' | 'detail' | 'customize' | 'ai-generate';
-
 export function TemplateSelector({
   onSelect,
   onCancel,
   initialCategory,
 }: TemplateSelectorProps) {
-  const [viewState, setViewState] = React.useState<ViewState>('browse');
-  const [selectedCategory, setSelectedCategory] = React.useState<TemplateCategory | null>(
-    initialCategory || null
-  );
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [templates, setTemplates] = React.useState<ProjectTemplate[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = React.useState<ProjectTemplate | null>(null);
-  const [variables, setVariables] = React.useState<Record<string, unknown>>({});
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [aiPrompt, setAiPrompt] = React.useState('');
-  const [projectName, setProjectName] = React.useState('');
-
-  // Load templates
-  const loadTemplates = React.useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const result = await templateService.search({
-        category: selectedCategory || undefined,
-        search: searchQuery || undefined,
-      });
-      setTemplates(result.templates);
-    } catch (error) {
-      console.error('Failed to load templates:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedCategory, searchQuery]);
-
-  React.useEffect(() => {
-    loadTemplates();
-  }, [loadTemplates]);
-
-  const handleSelectTemplate = (template: ProjectTemplate) => {
-    setSelectedTemplate(template);
-    // Initialize variables with defaults
-    const defaults: Record<string, unknown> = {};
-    for (const variable of template.variables) {
-      defaults[variable.id] = variable.defaultValue;
-    }
-    setVariables(defaults);
-    setProjectName(template.name);
-    setViewState('detail');
-  };
-
-  const handleCustomize = () => {
-    setViewState('customize');
-  };
-
-  const handleCreate = () => {
-    if (!selectedTemplate) return;
-
-    observability.analytics.track('template_used', {
-      templateId: selectedTemplate.id,
-      templateName: selectedTemplate.name,
-      category: selectedTemplate.category,
-      source: 'project_template_selector',
-    });
-
-    onSelect({
-      templateId: selectedTemplate.id,
-      projectName: projectName || selectedTemplate.name,
-      variables,
-    });
-  };
-
-  const handleAIGenerate = async () => {
-    if (!aiPrompt.trim()) return;
-
-    setIsLoading(true);
-    try {
-      const result = await templateService.generateTemplate({
-        description: aiPrompt,
-      });
-
-      // Create a temporary template from AI result
-      const aiTemplate: ProjectTemplate = {
-        id: 'ai-generated',
-        name: result.suggestions.name,
-        description: aiPrompt,
-        category: 'custom',
-        complexity: 'basic',
-        tags: [],
-        author: { id: 'ai', name: 'AI Generated' },
-        version: '1.0.0',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        downloads: 0,
-        rating: 0,
-        featured: false,
-        official: false,
-        premium: false,
-        structure: result.suggestions.structure as ProjectTemplate['structure'],
-        variables: result.suggestions.variables,
-        presets: [],
-      };
-
-      setSelectedTemplate(aiTemplate);
-      setProjectName(result.suggestions.name);
-      setViewState('detail');
-    } catch (error) {
-      console.error('AI generation failed:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const categoryIcons: Record<TemplateCategory, React.ReactNode> = {
-    design: <Palette className="w-5 h-5" aria-hidden="true" />,
-    development: <Code className="w-5 h-5" aria-hidden="true" />,
-    marketing: <Megaphone className="w-5 h-5" aria-hidden="true" />,
-    music: <Music className="w-5 h-5" aria-hidden="true" />,
-    video: <Video className="w-5 h-5" aria-hidden="true" />,
-    photography: <Camera className="w-5 h-5" aria-hidden="true" />,
-    branding: <Image className="w-5 h-5" aria-hidden="true" />,
-    'social-media': <Star className="w-5 h-5" aria-hidden="true" />,
-    presentation: <FileText className="w-5 h-5" aria-hidden="true" />,
-    documentation: <FileText className="w-5 h-5" aria-hidden="true" />,
-    custom: <FolderPlus className="w-5 h-5" aria-hidden="true" />,
-  };
+  const {
+    viewState,
+    setViewState,
+    selectedCategory,
+    setSelectedCategory,
+    searchQuery,
+    setSearchQuery,
+    templates,
+    selectedTemplate,
+    variables,
+    setVariables,
+    isLoading,
+    aiPrompt,
+    setAiPrompt,
+    projectName,
+    setProjectName,
+    handleSelectTemplate,
+    handleCustomize,
+    handleCreate,
+    handleAIGenerate,
+  } = useTemplateSelector({ onSelect, initialCategory });
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
@@ -414,72 +311,12 @@ export function TemplateSelector({
             )}
 
             {viewState === 'ai-generate' && (
-              <motion.div
-                key="ai-generate"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="p-6"
-              >
-                <div className="max-w-xl mx-auto">
-                  <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-4">
-                      <Sparkles className="w-8 h-8 text-white" aria-hidden="true" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                      Describe Your Project
-                    </h3>
-                    <p className="text-gray-500 dark:text-gray-400">
-                      Tell us what you want to create and AI will generate a custom template
-                    </p>
-                  </div>
-
-                  <textarea
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    placeholder="E.g., A modern SaaS landing page with dark mode, hero section, features grid, pricing table, and testimonials..."
-                    rows={5}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                  />
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {['Landing page', 'Dashboard', 'Mobile app', 'Portfolio', 'E-commerce'].map(
-                      (suggestion) => (
-                        <button
-                          key={suggestion}
-                          onClick={() => setAiPrompt((prev) => `${prev} ${suggestion}`.trim())}
-                          className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-                        >
-                          + {suggestion}
-                        </button>
-                      )
-                    )}
-                  </div>
-
-                  <button
-                    onClick={handleAIGenerate}
-                    disabled={!aiPrompt.trim() || isLoading}
-                    className={cn(
-                      'w-full mt-6 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium transition-colors',
-                      aiPrompt.trim() && !isLoading
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-                    )}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Wand2 className="w-5 h-5" aria-hidden="true" />
-                        Generate Template
-                      </>
-                    )}
-                  </button>
-                </div>
-              </motion.div>
+              <AIGenerateView
+                aiPrompt={aiPrompt}
+                onAiPromptChange={setAiPrompt}
+                onGenerate={handleAIGenerate}
+                isLoading={isLoading}
+              />
             )}
           </AnimatePresence>
         </div>
@@ -515,131 +352,6 @@ export function TemplateSelector({
       </motion.div>
     </div>
   );
-}
-
-interface TemplateCardProps {
-  template: ProjectTemplate;
-  onClick: () => void;
-}
-
-function TemplateCard({ template, onClick }: TemplateCardProps) {
-  return (
-    <button
-      onClick={onClick}
-      className="group text-left p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500 hover:shadow-lg transition-all"
-    >
-      <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-lg mb-3 flex items-center justify-center">
-        <span className="text-4xl opacity-50 group-hover:scale-110 transition-transform">
-          {template.category === 'design' && '🎨'}
-          {template.category === 'development' && '💻'}
-          {template.category === 'marketing' && '📣'}
-          {template.category === 'music' && '🎵'}
-          {template.category === 'video' && '🎬'}
-          {template.category === 'branding' && '🏷️'}
-          {template.category === 'social-media' && '📱'}
-          {!['design', 'development', 'marketing', 'music', 'video', 'branding', 'social-media'].includes(template.category) && '📁'}
-        </span>
-      </div>
-      <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
-        {template.name}
-      </h3>
-      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-        {template.description}
-      </p>
-      <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-        {template.official && (
-          <span className="flex items-center gap-0.5 text-blue-500">
-            <Check className="w-3 h-3" aria-hidden="true" />
-            Official
-          </span>
-        )}
-        {template.featured && (
-          <span className="flex items-center gap-0.5 text-amber-500">
-            <Star className="w-3 h-3" aria-hidden="true" />
-            Featured
-          </span>
-        )}
-      </div>
-    </button>
-  );
-}
-
-interface VariableInputProps {
-  variable: TemplateVariable;
-  value: unknown;
-  onChange: (value: unknown) => void;
-}
-
-function VariableInput({ variable, value, onChange }: VariableInputProps) {
-  switch (variable.type) {
-    case 'boolean':
-      return (
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={Boolean(value)}
-            onChange={(e) => onChange(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-          />
-          <span className="text-sm text-gray-600 dark:text-gray-400">Enable</span>
-        </label>
-      );
-
-    case 'select':
-      return (
-        <select
-          value={String(value)}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-          {variable.options?.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      );
-
-    case 'color':
-      return (
-        <div className="flex items-center gap-2">
-          <input
-            type="color"
-            value={String(value)}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-10 h-10 rounded border border-gray-200 dark:border-gray-700 cursor-pointer"
-          />
-          <input
-            type="text"
-            value={String(value)}
-            onChange={(e) => onChange(e.target.value)}
-            className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-      );
-
-    case 'number':
-      return (
-        <input
-          type="number"
-          value={Number(value)}
-          onChange={(e) => onChange(Number(e.target.value))}
-          min={variable.validation?.min}
-          max={variable.validation?.max}
-          className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-      );
-
-    default:
-      return (
-        <input
-          type="text"
-          value={String(value || '')}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-      );
-  }
 }
 
 export default TemplateSelector;

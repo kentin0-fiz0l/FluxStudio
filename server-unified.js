@@ -29,6 +29,9 @@ const crypto = require('crypto');
 const axios = require('axios');
 const FormData = require('form-data');
 
+const { createLogger } = require('./lib/logger');
+const log = createLogger('UnifiedServer');
+
 // Import security and configuration modules
 const { config } = require('./config/environment');
 const { rateLimit, authRateLimit, printRateLimit, cors, helmet, validateInput, securityErrorHandler, auditLogger, traceIdMiddleware } = require('./middleware/security');
@@ -81,13 +84,10 @@ const anomalyDetector = require('./lib/security/anomalyDetector');
 
 // Handle unhandled promise rejections (async errors that escape try/catch)
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('='.repeat(60));
-  console.error('⚠️  UNHANDLED PROMISE REJECTION');
-  console.error('='.repeat(60));
-  console.error('Reason:', reason);
-  console.error('Promise:', promise);
-  console.error('Stack:', reason instanceof Error ? reason.stack : 'No stack trace');
-  console.error('='.repeat(60));
+  log.error('Unhandled promise rejection', reason instanceof Error ? reason : undefined, {
+    reason: reason instanceof Error ? undefined : String(reason),
+    promise: String(promise),
+  });
 
   // Log to Sentry if available
   try {
@@ -116,12 +116,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Handle uncaught exceptions (synchronous errors that escape try/catch)
 process.on('uncaughtException', (error) => {
-  console.error('='.repeat(60));
-  console.error('💥 UNCAUGHT EXCEPTION - Server may be in unstable state');
-  console.error('='.repeat(60));
-  console.error('Error:', error.message);
-  console.error('Stack:', error.stack);
-  console.error('='.repeat(60));
+  log.error('Uncaught exception - Server may be in unstable state', error);
 
   // Log to Sentry if available
   try {
@@ -149,43 +144,40 @@ process.on('uncaughtException', (error) => {
   // For truly fatal errors, give time for logs to flush then exit
   // In production, a process manager (PM2, Docker, etc.) should restart the server
   setTimeout(() => {
-    console.error('Exiting due to uncaught exception...');
+    log.error('Exiting due to uncaught exception');
     process.exit(1);
   }, 1000);
 });
 
 // Handle SIGTERM gracefully (container orchestration, load balancer draining)
 process.on('SIGTERM', () => {
-  console.log('');
-  console.log('='.repeat(60));
-  console.log('📴 SIGTERM received - Starting graceful shutdown');
-  console.log('='.repeat(60));
+  log.info('SIGTERM received - Starting graceful shutdown');
 
   // Close HTTP server (stop accepting new connections)
   if (typeof httpServer !== 'undefined' && httpServer.close) {
     httpServer.close(() => {
-      console.log('✅ HTTP server closed');
+      log.info('HTTP server closed');
 
       // Close database connections
       try {
         const { pool } = require('./lib/db');
         if (pool && pool.end) {
           pool.end().then(() => {
-            console.log('✅ Database connections closed');
+            log.info('Database connections closed');
             process.exit(0);
           });
         } else {
           process.exit(0);
         }
       } catch (err) {
-        console.log('Database pool not available, exiting');
+        log.info('Database pool not available, exiting');
         process.exit(0);
       }
     });
 
     // Force exit after 30 seconds if graceful shutdown fails
     setTimeout(() => {
-      console.error('⚠️ Graceful shutdown timeout - forcing exit');
+      log.error('Graceful shutdown timeout - forcing exit');
       process.exit(1);
     }, 30000);
   } else {
@@ -201,10 +193,10 @@ cache.initializeCache()
   .then(() => {
     cacheInitialized = true;
     dataHelpers.setCacheInitialized(true);
-    console.log('✅ Redis cache initialized for unified service');
+    log.info('Redis cache initialized for unified service');
   })
   .catch((err) => {
-    console.warn('⚠️  Redis cache not available, continuing without cache:', err.message);
+    log.warn('Redis cache not available, continuing without cache', { error: err.message });
   });
 
 // Database adapters (with fallback to file-based storage)
@@ -222,9 +214,9 @@ if (USE_DATABASE) {
     projectsAdapter = require('./database/projects-adapter');
     designBoardsAdapter = require('./database/design-boards-adapter');
     metmapAdapter = require('./database/metmap-adapter');
-    console.log('✅ Database adapters loaded for unified service');
+    log.info('Database adapters loaded for unified service');
   } catch (error) {
-    console.warn('⚠️ Failed to load database adapters, falling back to file-based storage:', error.message);
+    log.warn('Failed to load database adapters, falling back to file-based storage', { error: error.message });
   }
 }
 
@@ -751,18 +743,12 @@ app.use(errorHandler());
 app.use(securityErrorHandler);
 
 httpServer.listen(PORT, async () => {
-  console.log('');
-  console.log('='.repeat(60));
-  console.log('🚀 FluxStudio Unified Backend Service');
-  console.log('='.repeat(60));
-  console.log(`📡 Server running on port ${PORT}`);
-  console.log(`🔐 Auth namespace: ws://localhost:${PORT}/auth`);
-  console.log(`💬 Messaging namespace: ws://localhost:${PORT}/messaging`);
-  console.log(`🎨 Design Boards namespace: ws://localhost:${PORT}/design-boards`);
-  console.log(`🎵 MetMap Collab namespace: ws://localhost:${PORT}/metmap-collab`);
-  console.log(`🏥 Health check: http://localhost:${PORT}/health`);
-  console.log(`📊 Monitoring: http://localhost:${PORT}/api/monitoring`);
-  console.log('');
+  log.info('FluxStudio Unified Backend Service started', {
+    port: PORT,
+    namespaces: ['auth', 'messaging', 'design-boards', 'metmap-collab'],
+    healthUrl: `http://localhost:${PORT}/health`,
+    monitoringUrl: `http://localhost:${PORT}/api/monitoring`,
+  });
 
   // Run database migrations on startup (if using database)
   if (USE_DATABASE) {
@@ -772,27 +758,23 @@ httpServer.listen(PORT, async () => {
       const { runSchemaFixes } = require('./database/schema-fixes');
       await runSchemaFixes(query);
     } catch (fixError) {
-      console.error('⚠️ Schema fix warning:', fixError.message);
+      log.warn('Schema fix warning', { error: fixError.message });
     }
 
     try {
-      console.log('🔄 Running database migrations...');
+      log.info('Running database migrations');
       await runMigrations();
-      console.log('✅ Database migrations completed');
+      log.info('Database migrations completed');
     } catch (migrationError) {
-      console.error('⚠️ Migration warning:', migrationError.message);
+      log.warn('Migration warning', { error: migrationError.message });
       // Don't crash server on migration errors - log and continue
     }
   }
 
-  console.log('');
-  console.log('Services consolidated:');
-  console.log('  ✅ Authentication (formerly port 3001)');
-  console.log('  ✅ Messaging (formerly port 3002)');
-  console.log('');
-  console.log('Cost savings: $360/year (2 services → 1 service)');
-  console.log('='.repeat(60));
-  console.log('');
+  log.info('Services consolidated', {
+    services: ['Authentication', 'Messaging'],
+    costSavings: '$360/year (2 services to 1 service)',
+  });
 });
 
 module.exports = httpServer;

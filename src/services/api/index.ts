@@ -29,6 +29,11 @@ import { pluginsApi } from './plugins';
 import { templatesApi } from './templates';
 import { supportApi } from './support';
 import { usersApi } from './users';
+import { twoFactorApi } from './two-factor';
+import { rolesApi } from './roles';
+import { complianceApi } from './compliance';
+import { feedbackApi } from './feedback';
+import { metmapApi } from './metmap';
 
 export type { ApiResponse, ApiError, UserSettings } from './base';
 export { ApiService } from './base';
@@ -62,6 +67,11 @@ export const apiService = Object.assign(baseService, {
   ...templatesApi(baseService),
   ...supportApi(baseService),
   ...usersApi(baseService),
+  ...twoFactorApi(baseService),
+  ...rolesApi(baseService),
+  ...complianceApi(baseService),
+  ...feedbackApi(baseService),
+  ...metmapApi(baseService),
 });
 
 export default apiService;

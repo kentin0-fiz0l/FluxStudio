@@ -51,8 +51,9 @@ router.post('/data-export', async (req, res) => {
     const recent = await hasRecentExport(userId);
     if (recent) {
       return res.status(429).json({
-        error: 'Rate limit exceeded',
-        message: 'You can only request one data export every 24 hours.',
+        success: false,
+        error: 'You can only request one data export every 24 hours',
+        code: 'EXPORT_RATE_LIMITED',
       });
     }
 
@@ -81,7 +82,7 @@ router.post('/data-export', async (req, res) => {
     }
   } catch (error) {
     log.error('Data export request failed', error);
-    res.status(500).json({ error: 'Failed to create data export' });
+    res.status(500).json({ success: false, error: 'Failed to create data export', code: 'EXPORT_CREATE_FAILED' });
   }
 });
 
@@ -93,7 +94,7 @@ router.get('/data-export/:id', async (req, res) => {
   try {
     const exportReq = await getExportRequest(req.params.id, req.user.id);
     if (!exportReq) {
-      return res.status(404).json({ error: 'Export request not found' });
+      return res.status(404).json({ success: false, error: 'Export request not found', code: 'EXPORT_NOT_FOUND' });
     }
 
     res.json({
@@ -107,7 +108,7 @@ router.get('/data-export/:id', async (req, res) => {
     });
   } catch (error) {
     log.error('Export status check failed', error);
-    res.status(500).json({ error: 'Failed to check export status' });
+    res.status(500).json({ success: false, error: 'Failed to check export status', code: 'EXPORT_STATUS_FAILED' });
   }
 });
 
@@ -119,15 +120,15 @@ router.get('/data-export/:id/download', async (req, res) => {
   try {
     const exportReq = await getExportRequest(req.params.id, req.user.id);
     if (!exportReq) {
-      return res.status(404).json({ error: 'Export request not found' });
+      return res.status(404).json({ success: false, error: 'Export request not found', code: 'EXPORT_NOT_FOUND' });
     }
 
     if (exportReq.status !== 'completed') {
-      return res.status(400).json({ error: 'Export is not ready for download', status: exportReq.status });
+      return res.status(400).json({ success: false, error: 'Export is not ready for download', code: 'EXPORT_NOT_READY', status: exportReq.status });
     }
 
     if (exportReq.expires_at && new Date(exportReq.expires_at) < new Date()) {
-      return res.status(410).json({ error: 'Export has expired. Please request a new one.' });
+      return res.status(410).json({ success: false, error: 'Export has expired. Please request a new one.', code: 'EXPORT_EXPIRED' });
     }
 
     // Generate the data fresh for download
@@ -146,7 +147,7 @@ router.get('/data-export/:id/download', async (req, res) => {
     res.json(data);
   } catch (error) {
     log.error('Export download failed', error);
-    res.status(500).json({ error: 'Failed to download export' });
+    res.status(500).json({ success: false, error: 'Failed to download export', code: 'EXPORT_DOWNLOAD_FAILED' });
   }
 });
 
@@ -174,7 +175,7 @@ router.post('/delete-account', zodValidate(deleteAccountComplianceSchema), async
     });
   } catch (error) {
     log.error('Delete account request failed', error);
-    res.status(500).json({ error: 'Failed to schedule account deletion' });
+    res.status(500).json({ success: false, error: 'Failed to schedule account deletion', code: 'DELETION_SCHEDULE_FAILED' });
   }
 });
 
@@ -186,7 +187,7 @@ router.post('/cancel-deletion', async (req, res) => {
   try {
     const cancelled = await cancelDeletion(req.user.id);
     if (!cancelled) {
-      return res.status(404).json({ error: 'No pending deletion request found' });
+      return res.status(404).json({ success: false, error: 'No pending deletion request found', code: 'DELETION_NOT_FOUND' });
     }
 
     await logAction(req.user.id, 'deletion_cancelled', 'user', req.user.id, {}, req);
@@ -197,7 +198,7 @@ router.post('/cancel-deletion', async (req, res) => {
     });
   } catch (error) {
     log.error('Cancel deletion failed', error);
-    res.status(500).json({ error: 'Failed to cancel deletion' });
+    res.status(500).json({ success: false, error: 'Failed to cancel deletion', code: 'DELETION_CANCEL_FAILED' });
   }
 });
 
@@ -242,7 +243,7 @@ router.get('/consents', async (req, res) => {
     });
   } catch (error) {
     log.error('Get consents failed', error);
-    res.status(500).json({ error: 'Failed to retrieve consent settings' });
+    res.status(500).json({ success: false, error: 'Failed to retrieve consent settings', code: 'CONSENT_GET_FAILED' });
   }
 });
 
@@ -254,7 +255,7 @@ router.put('/consents', zodValidate(updateConsentsSchema), async (req, res) => {
   try {
     const { consents } = req.body;
     if (!consents || typeof consents !== 'object') {
-      return res.status(400).json({ error: 'consents object is required' });
+      return res.status(400).json({ success: false, error: 'consents object is required', code: 'CONSENT_OBJECT_REQUIRED' });
     }
 
     const userId = req.user.id;
@@ -284,7 +285,7 @@ router.put('/consents', zodValidate(updateConsentsSchema), async (req, res) => {
     });
   } catch (error) {
     log.error('Update consents failed', error);
-    res.status(500).json({ error: 'Failed to update consent preferences' });
+    res.status(500).json({ success: false, error: 'Failed to update consent preferences', code: 'CONSENT_UPDATE_FAILED' });
   }
 });
 

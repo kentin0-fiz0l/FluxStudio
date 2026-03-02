@@ -54,7 +54,7 @@ router.get('/', requirePermission('settings.manage'), async (req, res) => {
     });
   } catch (error) {
     log.error('List failed', error);
-    res.status(500).json({ error: 'Failed to list roles' });
+    res.status(500).json({ success: false, error: 'Failed to list roles', code: 'ROLE_LIST_FAILED' });
   }
 });
 
@@ -69,19 +69,19 @@ router.post('/', requirePermission('settings.manage'), zodValidate(createRoleSch
     const { name, slug, permissions } = req.body;
 
     if (!name || !slug) {
-      return res.status(400).json({ error: 'name and slug are required' });
+      return res.status(400).json({ success: false, error: 'name and slug are required', code: 'ROLE_NAME_SLUG_REQUIRED' });
     }
 
     // Validate slug format
     if (!/^[a-z0-9-]+$/.test(slug)) {
-      return res.status(400).json({ error: 'slug must be lowercase alphanumeric with hyphens' });
+      return res.status(400).json({ success: false, error: 'slug must be lowercase alphanumeric with hyphens', code: 'ROLE_INVALID_SLUG' });
     }
 
     // Validate permissions against catalog
     if (permissions && Array.isArray(permissions)) {
       const invalid = permissions.filter(p => !PERMISSIONS[p] && p !== '*');
       if (invalid.length > 0) {
-        return res.status(400).json({ error: `Unknown permissions: ${invalid.join(', ')}` });
+        return res.status(400).json({ success: false, error: `Unknown permissions: ${invalid.join(', ')}`, code: 'ROLE_INVALID_PERMISSIONS' });
       }
     }
 
@@ -100,10 +100,10 @@ router.post('/', requirePermission('settings.manage'), zodValidate(createRoleSch
     });
   } catch (error) {
     if (error.code === '23505') {
-      return res.status(409).json({ error: 'A role with that slug already exists in this organization' });
+      return res.status(409).json({ success: false, error: 'A role with that slug already exists in this organization', code: 'ROLE_SLUG_CONFLICT' });
     }
     log.error('Create failed', error);
-    res.status(500).json({ error: 'Failed to create role' });
+    res.status(500).json({ success: false, error: 'Failed to create role', code: 'ROLE_CREATE_FAILED' });
   }
 });
 
@@ -126,10 +126,10 @@ router.put('/:slug', requirePermission('settings.manage'), zodValidate(updateRol
     );
 
     if (existing.rows.length === 0) {
-      return res.status(404).json({ error: 'Role not found' });
+      return res.status(404).json({ success: false, error: 'Role not found', code: 'ROLE_NOT_FOUND' });
     }
     if (existing.rows[0].is_default) {
-      return res.status(403).json({ error: 'Cannot edit default roles' });
+      return res.status(403).json({ success: false, error: 'Cannot edit default roles', code: 'ROLE_DEFAULT_IMMUTABLE' });
     }
 
     const updates = [];
@@ -146,7 +146,7 @@ router.put('/:slug', requirePermission('settings.manage'), zodValidate(updateRol
     }
 
     if (updates.length === 0) {
-      return res.status(400).json({ error: 'No fields to update' });
+      return res.status(400).json({ success: false, error: 'No fields to update', code: 'ROLE_NO_FIELDS' });
     }
 
     updates.push(`updated_at = NOW()`);
@@ -162,7 +162,7 @@ router.put('/:slug', requirePermission('settings.manage'), zodValidate(updateRol
     res.json({ success: true, role: result.rows[0] });
   } catch (error) {
     log.error('Update failed', error);
-    res.status(500).json({ error: 'Failed to update role' });
+    res.status(500).json({ success: false, error: 'Failed to update role', code: 'ROLE_UPDATE_FAILED' });
   }
 });
 
@@ -182,10 +182,10 @@ router.delete('/:slug', requirePermission('settings.manage'), async (req, res) =
     );
 
     if (existing.rows.length === 0) {
-      return res.status(404).json({ error: 'Custom role not found' });
+      return res.status(404).json({ success: false, error: 'Custom role not found', code: 'ROLE_NOT_FOUND' });
     }
     if (existing.rows[0].is_default) {
-      return res.status(403).json({ error: 'Cannot delete default roles' });
+      return res.status(403).json({ success: false, error: 'Cannot delete default roles', code: 'ROLE_DEFAULT_IMMUTABLE' });
     }
 
     // Check if any members use this role
@@ -197,7 +197,9 @@ router.delete('/:slug', requirePermission('settings.manage'), async (req, res) =
 
     if (parseInt(memberCount.rows[0].count) > 0) {
       return res.status(409).json({
+        success: false,
         error: 'Cannot delete role — reassign members first',
+        code: 'ROLE_HAS_MEMBERS',
         memberCount: parseInt(memberCount.rows[0].count),
       });
     }
@@ -209,7 +211,7 @@ router.delete('/:slug', requirePermission('settings.manage'), async (req, res) =
     res.json({ success: true });
   } catch (error) {
     log.error('Delete failed', error);
-    res.status(500).json({ error: 'Failed to delete role' });
+    res.status(500).json({ success: false, error: 'Failed to delete role', code: 'ROLE_DELETE_FAILED' });
   }
 });
 

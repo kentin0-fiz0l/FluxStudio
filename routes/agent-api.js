@@ -45,8 +45,9 @@ router.get('/search_projects',
 
       if (!searchQuery) {
         return res.status(400).json({
-          error: 'Bad request',
-          message: 'Query parameter is required',
+          success: false,
+          error: 'Query parameter is required',
+          code: 'AGENT_QUERY_REQUIRED',
         });
       }
 
@@ -63,8 +64,9 @@ router.get('/search_projects',
     } catch (error) {
       log.error('search_projects error', error);
       res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to search projects',
+        success: false,
+        error: 'Failed to search projects',
+        code: 'AGENT_SEARCH_FAILED',
       });
     }
   }
@@ -97,8 +99,9 @@ router.get('/list_projects',
     } catch (error) {
       log.error('list_projects error', error);
       res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to list projects',
+        success: false,
+        error: 'Failed to list projects',
+        code: 'AGENT_LIST_FAILED',
       });
     }
   }
@@ -121,8 +124,9 @@ router.get('/get_project/:id',
 
       if (!project) {
         return res.status(404).json({
-          error: 'Not found',
-          message: 'Project not found or access denied',
+          success: false,
+          error: 'Project not found or access denied',
+          code: 'AGENT_PROJECT_NOT_FOUND',
         });
       }
 
@@ -133,8 +137,9 @@ router.get('/get_project/:id',
     } catch (error) {
       log.error('get_project error', error);
       res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to get project',
+        success: false,
+        error: 'Failed to get project',
+        code: 'AGENT_GET_PROJECT_FAILED',
       });
     }
   }
@@ -166,8 +171,9 @@ router.get('/activity_feed',
     } catch (error) {
       log.error('activity_feed error', error);
       res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to get activity feed',
+        success: false,
+        error: 'Failed to get activity feed',
+        code: 'AGENT_ACTIVITY_FEED_FAILED',
       });
     }
   }
@@ -195,8 +201,9 @@ router.get('/what_changed',
     } catch (error) {
       log.error('what_changed error', error);
       res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to get changes',
+        success: false,
+        error: 'Failed to get changes',
+        code: 'AGENT_CHANGES_FAILED',
       });
     }
   }
@@ -222,8 +229,9 @@ router.get('/daily_brief',
     } catch (error) {
       log.error('daily_brief error', error);
       res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to generate daily brief',
+        success: false,
+        error: 'Failed to generate daily brief',
+        code: 'AGENT_DAILY_BRIEF_FAILED',
       });
     }
   }
@@ -300,8 +308,9 @@ router.post('/session',
     } catch (error) {
       log.error('create_session error', error);
       res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to create session',
+        success: false,
+        error: 'Failed to create session',
+        code: 'AGENT_SESSION_CREATE_FAILED',
       });
     }
   }
@@ -319,8 +328,9 @@ router.get('/session/:id',
 
       if (!session || session.user_id !== req.user.id) {
         return res.status(404).json({
-          error: 'Not found',
-          message: 'Session not found',
+          success: false,
+          error: 'Session not found',
+          code: 'AGENT_SESSION_NOT_FOUND',
         });
       }
 
@@ -331,8 +341,9 @@ router.get('/session/:id',
     } catch (error) {
       log.error('get_session error', error);
       res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to get session',
+        success: false,
+        error: 'Failed to get session',
+        code: 'AGENT_SESSION_GET_FAILED',
       });
     }
   }
@@ -360,8 +371,9 @@ router.get('/pending_actions',
     } catch (error) {
       log.error('pending_actions error', error);
       res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to get pending actions',
+        success: false,
+        error: 'Failed to get pending actions',
+        code: 'AGENT_PENDING_ACTIONS_FAILED',
       });
     }
   }
@@ -384,8 +396,9 @@ router.post('/pending_action/:id/approve',
     } catch (error) {
       log.error('approve_action error', error);
       res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to approve action',
+        success: false,
+        error: 'Failed to approve action',
+        code: 'AGENT_APPROVE_FAILED',
       });
     }
   }
@@ -408,8 +421,9 @@ router.post('/pending_action/:id/reject',
     } catch (error) {
       log.error('reject_action error', error);
       res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to reject action',
+        success: false,
+        error: 'Failed to reject action',
+        code: 'AGENT_REJECT_FAILED',
       });
     }
   }

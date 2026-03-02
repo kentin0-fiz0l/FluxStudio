@@ -122,7 +122,7 @@ router.get('/', authenticateToken, async (req, res) => {
     res.json({ users, total, page: parsedPage || 1, limit: parsedLimit });
   } catch (error) {
     log.error('Error fetching users', error);
-    res.status(500).json({ message: 'Failed to fetch users' });
+    res.status(500).json({ success: false, error: 'Failed to fetch users', code: 'USER_LIST_FAILED' });
   }
 });
 
@@ -161,13 +161,13 @@ router.get('/:userId', authenticateToken, async (req, res) => {
     }
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ success: false, error: 'User not found', code: 'USER_NOT_FOUND' });
     }
 
     res.json({ user });
   } catch (error) {
     log.error('Error fetching user', error);
-    res.status(500).json({ message: 'Failed to fetch user' });
+    res.status(500).json({ success: false, error: 'Failed to fetch user', code: 'USER_GET_FAILED' });
   }
 });
 
@@ -175,7 +175,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
 router.patch('/:id', authenticateToken, zodValidate(updateUserSchema), async (req, res) => {
   try {
     if (req.user.userType !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
+      return res.status(403).json({ success: false, error: 'Admin access required', code: 'USER_ADMIN_REQUIRED' });
     }
 
     const { id } = req.params;
@@ -200,7 +200,7 @@ router.patch('/:id', authenticateToken, zodValidate(updateUserSchema), async (re
       }
 
       if (setClauses.length === 0) {
-        return res.status(400).json({ message: 'No fields to update' });
+        return res.status(400).json({ success: false, error: 'No fields to update', code: 'USER_NO_FIELDS' });
       }
 
       params.push(id);
@@ -208,7 +208,7 @@ router.patch('/:id', authenticateToken, zodValidate(updateUserSchema), async (re
       const result = await query(sql, params);
 
       if (result.rows.length === 0) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({ success: false, error: 'User not found', code: 'USER_NOT_FOUND' });
       }
 
       res.json({ user: result.rows[0] });
@@ -221,7 +221,7 @@ router.patch('/:id', authenticateToken, zodValidate(updateUserSchema), async (re
       const userIndex = parsed.users.findIndex(u => u.id === id);
 
       if (userIndex === -1) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({ success: false, error: 'User not found', code: 'USER_NOT_FOUND' });
       }
 
       if (status !== undefined) parsed.users[userIndex].status = status;
@@ -235,7 +235,7 @@ router.patch('/:id', authenticateToken, zodValidate(updateUserSchema), async (re
     }
   } catch (error) {
     log.error('Error updating user', error);
-    res.status(500).json({ message: 'Failed to update user' });
+    res.status(500).json({ success: false, error: 'Failed to update user', code: 'USER_UPDATE_FAILED' });
   }
 });
 
@@ -243,7 +243,7 @@ router.patch('/:id', authenticateToken, zodValidate(updateUserSchema), async (re
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     if (req.user.userType !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
+      return res.status(403).json({ success: false, error: 'Admin access required', code: 'USER_ADMIN_REQUIRED' });
     }
 
     const { id } = req.params;
@@ -253,10 +253,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       const result = await query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
 
       if (result.rows.length === 0) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({ success: false, error: 'User not found', code: 'USER_NOT_FOUND' });
       }
 
-      res.json({ message: 'User deleted successfully' });
+      res.json({ success: true, message: 'User deleted successfully' });
     } else {
       const fs = require('fs');
       const path = require('path');
@@ -266,17 +266,17 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       const userIndex = parsed.users.findIndex(u => u.id === id);
 
       if (userIndex === -1) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({ success: false, error: 'User not found', code: 'USER_NOT_FOUND' });
       }
 
       parsed.users.splice(userIndex, 1);
       fs.writeFileSync(USERS_FILE, JSON.stringify(parsed, null, 2));
 
-      res.json({ message: 'User deleted successfully' });
+      res.json({ success: true, message: 'User deleted successfully' });
     }
   } catch (error) {
     log.error('Error deleting user', error);
-    res.status(500).json({ message: 'Failed to delete user' });
+    res.status(500).json({ success: false, error: 'Failed to delete user', code: 'USER_DELETE_FAILED' });
   }
 });
 

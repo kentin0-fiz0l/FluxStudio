@@ -15,6 +15,9 @@ const db = require('./lib/db');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
+const { createLogger } = require('./lib/logger');
+const log = createLogger('CollabServer');
+
 // y-websocket protocol message types
 const messageSync = 0;
 const messageAwareness = 1;
@@ -25,12 +28,13 @@ const HOST = process.env.COLLAB_HOST || '0.0.0.0';
 const AUTOSAVE_INTERVAL = 30000; // 30 seconds
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Debug: Log which relevant env vars are set at startup (keys only, not values)
-console.log('🔧 Collaboration server startup - Environment check:');
-console.log('  COLLAB_PORT:', process.env.COLLAB_PORT ? '✓ set' : '✗ not set');
-console.log('  COLLAB_HOST:', process.env.COLLAB_HOST ? '✓ set' : '✗ not set');
-console.log('  JWT_SECRET:', process.env.JWT_SECRET ? '✓ set' : '✗ not set');
-console.log('  DATABASE_URL:', process.env.DATABASE_URL ? '✓ set' : '✗ not set');
+// Log which relevant env vars are set at startup (keys only, not values)
+log.info('Environment check', {
+  COLLAB_PORT: !!process.env.COLLAB_PORT,
+  COLLAB_HOST: !!process.env.COLLAB_HOST,
+  JWT_SECRET: !!process.env.JWT_SECRET,
+  DATABASE_URL: !!process.env.DATABASE_URL,
+});
 
 // ============================================================================
 // Authentication & Authorization
@@ -43,11 +47,11 @@ console.log('  DATABASE_URL:', process.env.DATABASE_URL ? '✓ set' : '✗ not s
  */
 function authenticateWebSocket(token) {
   if (!token) {
-    console.error('❌ Auth failed: No token provided');
+    log.error('Auth failed: No token provided');
     return null;
   }
   if (!JWT_SECRET) {
-    console.error('❌ Auth failed: JWT_SECRET not configured');
+    log.error('Auth failed: JWT_SECRET not configured');
     return null;
   }
 
@@ -56,7 +60,7 @@ function authenticateWebSocket(token) {
     return decoded;
   } catch (error) {
     // SECURITY: Never log secrets or full tokens - only log error type
-    console.error('❌ JWT verification failed:', error.name || 'Unknown error');
+    log.error('JWT verification failed', { errorName: error.name || 'Unknown error' });
     return null;
   }
 }
@@ -77,7 +81,7 @@ async function checkProjectAccess(userId, projectId) {
 
     return result.rows.length > 0 ? result.rows[0].role : null;
   } catch (error) {
-    console.error('Error checking project access:', error);
+    log.error('Error checking project access', error);
     return null;
   }
 }
@@ -356,7 +360,7 @@ async function createVersionSnapshot(roomName, doc, userId) {
         [buffer, formationId]
       );
 
-      console.log(`📸 Saved formation snapshot: ${formationId} (${buffer.length} bytes)`);
+      log.info('Saved formation snapshot', { formationId, bytes: buffer.length });
       return;
     }
 
@@ -367,7 +371,7 @@ async function createVersionSnapshot(roomName, doc, userId) {
     );
 
     if (result.rows.length === 0) {
-      console.warn(`Document not found for room: ${roomName}`);
+      log.warn('Document not found for room', { roomName });
       return;
     }
 
@@ -392,10 +396,10 @@ async function createVersionSnapshot(roomName, doc, userId) {
       VALUES ($1, $2, $3, $4, $5)
     `, [documentId, versionNumber, buffer, isFullSnapshot, userId]);
 
-    console.log(`📸 Created version ${versionNumber} for document ${documentId} (${buffer.length} bytes, full=${isFullSnapshot})`);
+    log.info('Created version snapshot', { versionNumber, documentId, bytes: buffer.length, isFullSnapshot });
     return versionNumber;
   } catch (error) {
-    console.error(`Error creating version snapshot for room ${roomName}:`, error.message);
+    log.error('Error creating version snapshot', error, { roomName });
   }
 }
 
@@ -417,7 +421,7 @@ async function saveDocument(roomName, doc) {
          WHERE id = $2`,
         [buffer, formationId]
       );
-      console.log(`💾 Saved formation for room: ${roomName} (${buffer.length} bytes)`);
+      log.info('Saved formation', { roomName, bytes: buffer.length });
       return true;
     }
 
@@ -430,10 +434,10 @@ async function saveDocument(roomName, doc) {
       [roomName, buffer]
     );
 
-    console.log(`💾 Saved document for room: ${roomName} (${buffer.length} bytes)`);
+    log.info('Saved document', { roomName, bytes: buffer.length });
     return true;
   } catch (error) {
-    console.error(`❌ Error saving document for room ${roomName}:`, error.message);
+    log.error('Error saving document', error, { roomName });
     return false;
   }
 }
@@ -516,7 +520,7 @@ function initializeYjsFromFormation(doc, formationData) {
     }
   });
 
-  console.log(`🔄 Initialized Yjs document from formation data`);
+  log.info('Initialized Yjs document from formation data');
 }
 
 /**
@@ -538,12 +542,12 @@ async function loadDocument(roomName, doc) {
       if (snapshotResult.rows.length > 0 && snapshotResult.rows[0].yjs_snapshot) {
         const snapshot = new Uint8Array(snapshotResult.rows[0].yjs_snapshot);
         Y.applyUpdate(doc, snapshot);
-        console.log(`📂 Loaded formation Yjs snapshot: ${roomName} (${snapshot.length} bytes)`);
+        log.info('Loaded formation Yjs snapshot', { roomName, bytes: snapshot.length });
         return true;
       }
 
       // No Yjs snapshot - load from regular formation data and initialize Yjs
-      console.log(`📄 No Yjs snapshot for formation: ${roomName}, loading from database...`);
+      log.info('No Yjs snapshot for formation, loading from database', { roomName });
 
       const formationResult = await db.query(`
         SELECT f.*,
@@ -557,7 +561,7 @@ async function loadDocument(roomName, doc) {
       `, [formationId]);
 
       if (formationResult.rows.length === 0) {
-        console.error(`❌ Formation not found: ${formationId}`);
+        log.error('Formation not found', { formationId });
         return false;
       }
 
@@ -608,7 +612,7 @@ async function loadDocument(roomName, doc) {
         `UPDATE formations SET yjs_snapshot = $1, last_yjs_sync_at = NOW() WHERE id = $2`,
         [Buffer.from(initialSnapshot), formationId]
       );
-      console.log(`💾 Saved initial Yjs snapshot for formation: ${formationId} (${initialSnapshot.length} bytes)`);
+      log.info('Saved initial Yjs snapshot for formation', { formationId, bytes: initialSnapshot.length });
 
       return true;
     }
@@ -622,14 +626,14 @@ async function loadDocument(roomName, doc) {
     if (result.rows.length > 0) {
       const snapshot = new Uint8Array(result.rows[0].snapshot);
       Y.applyUpdate(doc, snapshot);
-      console.log(`📂 Loaded document for room: ${roomName} (${snapshot.length} bytes)`);
+      log.info('Loaded document', { roomName, bytes: snapshot.length });
       return true;
     }
 
-    console.log(`📄 No existing document for room: ${roomName}`);
+    log.info('No existing document for room', { roomName });
     return false;
   } catch (error) {
-    console.error(`❌ Error loading document for room ${roomName}:`, error.message);
+    log.error('Error loading document', error, { roomName });
     return false;
   }
 }
@@ -672,7 +676,7 @@ async function getDoc(roomName) {
     // Start auto-save timer
     scheduleAutoSave(roomName, doc);
 
-    console.log(`📄 Initialized document for room: ${roomName}`);
+    log.info('Initialized document for room', { roomName });
   }
   return docs.get(roomName);
 }
@@ -687,7 +691,7 @@ function getAwareness(roomName) {
 // Create WebSocket server
 const wss = new WebSocket.Server({ server });
 
-console.log('🚀 FluxStudio Collaboration Server starting...');
+log.info('FluxStudio Collaboration Server starting');
 
 wss.on('connection', async (ws, req) => {
   // Get client IP for rate limiting
@@ -697,7 +701,7 @@ wss.on('connection', async (ws, req) => {
 
   // Check connection rate limit
   if (!connectionLimiter.tryConsume(clientIp)) {
-    console.warn(`⚠️  Connection rate limited: ${clientIp}`);
+    log.warn('Connection rate limited', { clientIp });
     stats.rateLimited++;
     ws.close(4429, 'Too Many Requests: Connection rate limit exceeded');
     return;
@@ -720,12 +724,12 @@ wss.on('connection', async (ws, req) => {
     // Store client IP for message rate limiting
     ws.clientIp = clientIp;
 
-    console.log(`🔐 New connection attempt to room: ${roomName}`);
+    log.info('New connection attempt', { roomName });
 
     // Authenticate user
     const user = authenticateWebSocket(token);
     if (!user || !user.id) {
-      console.error(`❌ Authentication failed for room: ${roomName}`);
+      log.error('Authentication failed for room', { roomName });
       ws.close(4401, 'Unauthorized: Invalid or missing token');
       stats.connections--;
       return;
@@ -740,7 +744,7 @@ wss.on('connection', async (ws, req) => {
     const match = docMatch || formationMatch;
 
     if (!match) {
-      console.error(`❌ Invalid room format: ${roomName}`);
+      log.error('Invalid room format', { roomName });
       ws.close(4400, 'Bad Request: Invalid room name format');
       stats.connections--;
       return;
@@ -752,7 +756,7 @@ wss.on('connection', async (ws, req) => {
     // Check project access
     const role = await checkProjectAccess(user.id, projectId);
     if (!role) {
-      console.error(`❌ Access denied for user ${user.id} to project ${projectId}`);
+      log.error('Access denied', { userId: user.id, projectId });
       ws.close(4403, 'Forbidden: No access to this project');
       stats.connections--;
       return;
@@ -764,9 +768,7 @@ wss.on('connection', async (ws, req) => {
     ws.userRole = role;
     ws.projectId = projectId;
 
-    console.log(`✅ Authenticated: ${ws.userName} (${role}) -> ${roomType}: ${roomName}`);
-    console.log(`   Total connections: ${stats.connections}`);
-    console.log(`   Total rooms: ${stats.rooms.size + 1}`);
+    log.info('Authenticated', { userName: ws.userName, role, roomType, roomName, totalConnections: stats.connections, totalRooms: stats.rooms.size + 1 });
 
     // Track room connections
     if (!stats.rooms.has(roomName)) {
@@ -819,7 +821,7 @@ wss.on('connection', async (ws, req) => {
     // Apply message rate limiting
     const rateLimitKey = ws.clientIp || ws.userId || 'unknown';
     if (!messageLimiter.tryConsume(rateLimitKey)) {
-      console.warn(`⚠️  Message rate limited: ${ws.userName} (${rateLimitKey})`);
+      log.warn('Message rate limited', { userName: ws.userName, rateLimitKey });
       stats.rateLimited++;
       // Don't disconnect, just drop the message
       return;
@@ -846,7 +848,7 @@ wss.on('connection', async (ws, req) => {
 
             // SECURITY: Check write permissions - viewers can only read, not write
             if (syncMessageType === syncProtocol.messageYjsUpdate && ws.userRole === 'viewer') {
-              console.warn(`⚠️  Viewer ${ws.userName} attempted to edit document via binary protocol`);
+              log.warn('Viewer attempted to edit document via binary protocol', { userName: ws.userName });
               break; // Reject the update
             }
 
@@ -866,7 +868,7 @@ wss.on('connection', async (ws, req) => {
               updateCounts.set(roomName, count);
               if (count % 100 === 0 && ws.userId) {
                 createVersionSnapshot(roomName, doc, ws.userId).catch(error => {
-                  console.error('Error creating version snapshot:', error);
+                  log.error('Error creating version snapshot', error);
                 });
                 updateCounts.set(roomName, 0);
               }
@@ -899,7 +901,7 @@ wss.on('connection', async (ws, req) => {
               const validation = validateAwarenessState(clientState);
 
               if (!validation.valid) {
-                console.warn(`⚠️  Invalid awareness data from ${ws.userName}: ${validation.reason}`);
+                log.warn('Invalid awareness data', { userName: ws.userName, reason: validation.reason });
                 // Remove the invalid state to prevent it from propagating
                 awareness.states.delete(clientId);
                 // Don't broadcast invalid data
@@ -920,7 +922,7 @@ wss.on('connection', async (ws, req) => {
           }
 
           default:
-            console.warn(`Unknown y-websocket message type: ${messageType}`);
+            log.warn('Unknown y-websocket message type', { messageType });
         }
       } else {
         // Text messages - JSON protocol (for backwards compatibility)
@@ -929,7 +931,7 @@ wss.on('connection', async (ws, req) => {
         if (data.type === 'sync-update') {
           // Check write permissions - viewers can only read, not write
           if (ws.userRole === 'viewer') {
-            console.warn(`⚠️  Viewer ${ws.userName} attempted to edit document`);
+            log.warn('Viewer attempted to edit document', { userName: ws.userName });
             return;
           }
 
@@ -966,7 +968,7 @@ wss.on('connection', async (ws, req) => {
         }
       }
     } catch (err) {
-      console.error(`⚠️  Message handling error in room ${roomName}:`, err.message);
+      log.error('Message handling error', err, { roomName });
     }
   });
 
@@ -1001,28 +1003,25 @@ wss.on('connection', async (ws, req) => {
         setTimeout(() => {
           if (!stats.rooms.has(roomName)) {
             docs.delete(roomName);
-            console.log(`🗑️  Document removed from memory: ${roomName}`);
+            log.info('Document removed from memory', { roomName });
           }
         }, 300000); // 5 minutes
 
-        console.log(`💾 Room empty, document saved: ${roomName}`);
+        log.info('Room empty, document saved', { roomName });
       }
     }
 
-    console.log(`❌ Connection closed: ${roomName}`);
-    console.log(`   User: ${ws.userName || 'anonymous'}`);
-    console.log(`   Duration: ${Math.floor((Date.now() - ws.connectedAt) / 1000)}s`);
-    console.log(`   Remaining connections: ${stats.connections}`);
+    log.info('Connection closed', { roomName, userName: ws.userName || 'anonymous', durationSec: Math.floor((Date.now() - ws.connectedAt) / 1000), remainingConnections: stats.connections });
   });
 
   // Handle errors
   ws.on('error', (error) => {
-    console.error(`⚠️  WebSocket error in room ${roomName}:`, error.message);
+    log.error('WebSocket error', error, { roomName });
   });
 
   } catch (error) {
     // Handle connection setup errors
-    console.error('❌ Connection setup error:', error.message);
+    log.error('Connection setup error', error);
     ws.close(4500, 'Internal Server Error');
     stats.connections--;
   }
@@ -1030,23 +1029,21 @@ wss.on('connection', async (ws, req) => {
 
 // Start server
 server.listen(PORT, HOST, () => {
-  console.log('✅ Collaboration server listening');
-  console.log(`   Port: ${PORT}`);
-  console.log(`   Host: ${HOST}`);
-  console.log(`   Health: http://localhost:${PORT}/health`);
-  console.log(`   Stats: http://localhost:${PORT}/stats`);
-  console.log('');
-  console.log('📝 Connect clients to: ws://localhost:' + PORT + '/<room-name>');
-  console.log('');
-  console.log('Ready for collaborative editing! 🎨');
+  log.info('Collaboration server listening', {
+    port: PORT,
+    host: HOST,
+    healthUrl: `http://localhost:${PORT}/health`,
+    statsUrl: `http://localhost:${PORT}/stats`,
+    wsUrl: `ws://localhost:${PORT}/<room-name>`,
+  });
 });
 
 // Graceful shutdown
 const shutdown = async () => {
-  console.log('\n🛑 Shutting down collaboration server...');
+  log.info('Shutting down collaboration server');
 
   // Save all documents before shutdown
-  console.log('💾 Saving all documents...');
+  log.info('Saving all documents');
   const savePromises = [];
   docs.forEach((doc, roomName) => {
     savePromises.push(saveDocument(roomName, doc));
@@ -1054,9 +1051,9 @@ const shutdown = async () => {
 
   try {
     await Promise.all(savePromises);
-    console.log(`✅ Saved ${savePromises.length} document(s)`);
+    log.info('Documents saved', { count: savePromises.length });
   } catch (error) {
-    console.error('❌ Error saving documents:', error.message);
+    log.error('Error saving documents during shutdown', error);
   }
 
   // Clear all auto-save timers
@@ -1073,16 +1070,13 @@ const shutdown = async () => {
 
   // Close server
   server.close(() => {
-    console.log('✅ Server closed');
-    console.log(`   Total sessions: ${stats.totalConnections}`);
-    console.log(`   Total messages: ${stats.messages}`);
-    console.log(`   Uptime: ${Math.floor((Date.now() - stats.startTime) / 1000)}s`);
+    log.info('Server closed', { totalSessions: stats.totalConnections, totalMessages: stats.messages, uptimeSec: Math.floor((Date.now() - stats.startTime) / 1000) });
     process.exit(0);
   });
 
   // Force exit after 10 seconds
   setTimeout(() => {
-    console.error('⚠️  Forced shutdown after 10s timeout');
+    log.error('Forced shutdown after 10s timeout');
     process.exit(1);
   }, 10000);
 };
@@ -1092,12 +1086,12 @@ process.on('SIGINT', shutdown);
 
 // Error handling
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
+  log.error('Uncaught Exception', error);
   shutdown();
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  log.error('Unhandled Rejection', { promise: String(promise), reason: String(reason) });
 });
 
 module.exports = server;
