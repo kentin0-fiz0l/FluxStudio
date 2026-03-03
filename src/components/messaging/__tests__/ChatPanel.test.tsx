@@ -211,7 +211,7 @@ describe('ChatPanel', () => {
       />
     );
 
-    expect(screen.getByText('typing...')).toBeTruthy();
+    expect(screen.getByText('typing')).toBeTruthy();
   });
 
   test('shows online status for online participant', () => {

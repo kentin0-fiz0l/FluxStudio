@@ -338,11 +338,12 @@ describe('MessagingService', () => {
       expect(mockSocketService.stopTyping).toHaveBeenCalledWith('conv-1');
     });
 
-    it('should delegate join/leave to socketService', () => {
+    it('should delegate join/leave to socketService', async () => {
       messagingService.joinConversation('conv-1');
       expect(mockSocketService.joinConversation).toHaveBeenCalledWith('conv-1');
 
-      messagingService.leaveConversation('conv-1');
+      mockApiDelete({});
+      await messagingService.leaveConversation('conv-1');
       expect(mockSocketService.leaveConversation).toHaveBeenCalledWith('conv-1');
     });
   });

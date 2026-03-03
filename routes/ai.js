@@ -48,6 +48,7 @@ if (process.env.ANTHROPIC_API_KEY) {
 function requireAnthropicClient(req, res, next) {
   if (!anthropic) {
     return res.status(503).json({
+      success: false,
       error: 'AI service not configured',
       message: 'The ANTHROPIC_API_KEY environment variable is not set. Please configure it to enable AI features.',
       code: 'AI_NOT_CONFIGURED',
@@ -71,13 +72,16 @@ function handleAnthropicError(error, res, context = 'AI') {
   const status = error.status || error.statusCode;
   if (status === 429) {
     return res.status(429).json({
+      success: false,
       error: 'Rate limit exceeded',
       message: safeMessage,
+      code: 'AI_RATE_LIMIT',
       retryAfter: parseInt(error.headers?.['retry-after']) || 60,
     });
   }
   if (status === 401) {
     return res.status(503).json({
+      success: false,
       error: 'AI service configuration error',
       message: safeMessage,
       code: 'AI_AUTH_FAILED',
@@ -85,14 +89,18 @@ function handleAnthropicError(error, res, context = 'AI') {
   }
   if (status === 529 || status === 503 || status === 500) {
     return res.status(503).json({
+      success: false,
       error: 'AI service temporarily unavailable',
       message: safeMessage,
+      code: 'AI_SERVICE_UNAVAILABLE',
     });
   }
 
   return res.status(500).json({
+    success: false,
     error: 'AI service error',
     message: safeMessage,
+    code: 'AI_SERVICE_ERROR',
   });
 }
 
@@ -322,14 +330,14 @@ router.get('/conversations/:id', authenticateToken, (req, res) => {
   const conversation = conversations.get(id);
 
   if (!conversation) {
-    return res.status(404).json({ error: 'Conversation not found' });
+    return res.status(404).json({ success: false, error: 'Conversation not found', code: 'AI_CONVERSATION_NOT_FOUND' });
   }
 
   if (conversation.userId !== userId) {
-    return res.status(403).json({ error: 'Access denied' });
+    return res.status(403).json({ success: false, error: 'Access denied', code: 'AI_ACCESS_DENIED' });
   }
 
-  res.json({ conversation });
+  res.json({ success: true, conversation });
 });
 
 /**
@@ -343,16 +351,16 @@ router.delete('/conversations/:id', authenticateToken, (req, res) => {
   const conversation = conversations.get(id);
 
   if (!conversation) {
-    return res.status(404).json({ error: 'Conversation not found' });
+    return res.status(404).json({ success: false, error: 'Conversation not found', code: 'AI_CONVERSATION_NOT_FOUND' });
   }
 
   if (conversation.userId !== userId) {
-    return res.status(403).json({ error: 'Access denied' });
+    return res.status(403).json({ success: false, error: 'Access denied', code: 'AI_ACCESS_DENIED' });
   }
 
   conversations.delete(id);
 
-  res.json({ message: 'Conversation deleted' });
+  res.json({ success: true, message: 'Conversation deleted' });
 });
 
 /**
@@ -497,6 +505,7 @@ if (process.env.NODE_ENV !== 'production') {
   router.post('/test', async (req, res) => {
     if (!anthropic) {
       return res.status(503).json({
+        success: false,
         error: 'AI service not configured',
         message: 'Set ANTHROPIC_API_KEY environment variable to enable AI features.',
         code: 'AI_NOT_CONFIGURED',
@@ -506,7 +515,7 @@ if (process.env.NODE_ENV !== 'production') {
     const { message, context } = req.body;
 
     if (!message || typeof message !== 'string') {
-      return res.status(400).json({ error: 'Message is required' });
+      return res.status(400).json({ success: false, error: 'Message is required', code: 'AI_MISSING_MESSAGE' });
     }
 
     try {
@@ -582,7 +591,7 @@ Be specific, actionable, and constructive in your feedback.`;
     // Fetch image and convert to base64
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
-      return res.status(400).json({ error: `Failed to fetch image: ${imageResponse.status}` });
+      return res.status(400).json({ success: false, error: `Failed to fetch image: ${imageResponse.status}`, code: 'AI_IMAGE_FETCH_FAILED' });
     }
     const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
     const base64 = imageBuffer.toString('base64');
@@ -615,12 +624,12 @@ Be specific, actionable, and constructive in your feedback.`;
 
     const textContent = response.content.find(c => c.type === 'text');
     if (!textContent || textContent.type !== 'text') {
-      return res.status(500).json({ error: 'No text response from AI' });
+      return res.status(500).json({ success: false, error: 'No text response from AI', code: 'AI_NO_RESPONSE' });
     }
 
     const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return res.status(500).json({ error: 'Could not parse AI response as JSON' });
+      return res.status(500).json({ success: false, error: 'Could not parse AI response as JSON', code: 'AI_PARSE_ERROR' });
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
@@ -686,12 +695,12 @@ ${category ? `- The project category is: ${category}` : ''}`;
 
     const textContent = response.content.find(c => c.type === 'text');
     if (!textContent || textContent.type !== 'text') {
-      return res.status(500).json({ error: 'No response from AI' });
+      return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
     }
 
     const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return res.status(500).json({ error: 'Could not parse AI response' });
+      return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
     }
 
     const suggestion = JSON.parse(jsonMatch[0]);
@@ -765,12 +774,12 @@ ${category ? `- Category: ${category}` : ''}`;
 
     const textContent = response.content.find(c => c.type === 'text');
     if (!textContent || textContent.type !== 'text') {
-      return res.status(500).json({ error: 'No response from AI' });
+      return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
     }
 
     const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return res.status(500).json({ error: 'Could not parse AI response' });
+      return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
     }
 
     const template = JSON.parse(jsonMatch[0]);

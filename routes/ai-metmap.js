@@ -118,12 +118,12 @@ router.post('/analyze-song', authenticateToken, rateLimitByUser(15, 60000), zodV
   const { songId, focus = 'all' } = req.body;
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'AI service not configured' });
+    return res.status(503).json({ success: false, error: 'AI service not configured', code: 'AI_METMAP_NOT_CONFIGURED' });
   }
 
   const data = await loadSongContext(songId, req.user.id, { includePractice: false });
   if (!data) {
-    return res.status(404).json({ error: 'Song not found' });
+    return res.status(404).json({ success: false, error: 'Song not found', code: 'AI_METMAP_SONG_NOT_FOUND' });
   }
 
   const focusMap = {
@@ -162,12 +162,12 @@ router.post('/suggest-chords', authenticateToken, rateLimitByUser(15, 60000), zo
   const { songId, sectionId, style, request } = req.body;
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'AI service not configured' });
+    return res.status(503).json({ success: false, error: 'AI service not configured', code: 'AI_METMAP_NOT_CONFIGURED' });
   }
 
   const data = await loadSongContext(songId, req.user.id);
   if (!data) {
-    return res.status(404).json({ error: 'Song not found' });
+    return res.status(404).json({ success: false, error: 'Song not found', code: 'AI_METMAP_SONG_NOT_FOUND' });
   }
 
   // Find target section
@@ -235,12 +235,12 @@ router.post('/practice-insights', authenticateToken, rateLimitByUser(15, 60000),
   const { songId } = req.body;
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'AI service not configured' });
+    return res.status(503).json({ success: false, error: 'AI service not configured', code: 'AI_METMAP_NOT_CONFIGURED' });
   }
 
   const data = await loadSongContext(songId, req.user.id, { includePractice: true });
   if (!data) {
-    return res.status(404).json({ error: 'Song not found' });
+    return res.status(404).json({ success: false, error: 'Song not found', code: 'AI_METMAP_SONG_NOT_FOUND' });
   }
 
   if (!data.practiceHistory || data.practiceHistory.length === 0) {
