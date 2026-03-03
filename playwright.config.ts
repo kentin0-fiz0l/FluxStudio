@@ -4,6 +4,49 @@ import { defineConfig, devices } from '@playwright/test';
  * Playwright E2E Test Configuration
  * See https://playwright.dev/docs/test-configuration
  */
+
+const allProjects = [
+  {
+    name: 'chromium',
+    use: { ...devices['Desktop Chrome'] },
+  },
+
+  {
+    name: 'firefox',
+    use: { ...devices['Desktop Firefox'] },
+  },
+
+  {
+    name: 'webkit',
+    use: { ...devices['Desktop Safari'] },
+  },
+
+  /* Test against mobile viewports */
+  {
+    name: 'Mobile Chrome',
+    use: { ...devices['Pixel 5'] },
+  },
+  {
+    name: 'Mobile Safari',
+    use: { ...devices['iPhone 12'] },
+  },
+
+  /* Test against branded browsers */
+  {
+    name: 'Microsoft Edge',
+    use: { ...devices['Desktop Edge'], channel: 'msedge' as const },
+  },
+  {
+    name: 'Google Chrome',
+    use: { ...devices['Desktop Chrome'], channel: 'chrome' as const },
+  },
+];
+
+// In CI, only run chromium (CI only installs chromium)
+const projects = process.env.CI
+  ? allProjects.filter((p) => p.name === 'chromium')
+  : allProjects;
+
 export default defineConfig({
   testDir: './tests/e2e',
 
@@ -42,46 +85,11 @@ export default defineConfig({
   },
 
   /* Configure projects for major browsers */
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-
-    /* Test against mobile viewports */
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
-
-    /* Test against branded browsers */
-    {
-      name: 'Microsoft Edge',
-      use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    },
-    {
-      name: 'Google Chrome',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    },
-  ],
+  projects,
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
+    command: process.env.CI ? 'npx vite preview --port 5173' : 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

@@ -69,8 +69,9 @@ const QUALITY_TIME_MULTIPLIERS = {
 const checkFluxPrintEnabled = (req, res, next) => {
   if (process.env.FLUXPRINT_ENABLED !== 'true') {
     return res.status(503).json({
+      success: false,
       error: 'FluxPrint service not enabled',
-      message: 'Set FLUXPRINT_ENABLED=true to enable printing features'
+      code: 'PRINTING_SERVICE_DISABLED'
     });
   }
   next();
@@ -107,18 +108,21 @@ async function proxyToFluxPrint(req, res, endpoint, method = 'GET') {
     log.error('FluxPrint proxy error', { endpoint, error: error.message });
     if (error.code === 'ECONNREFUSED') {
       res.status(503).json({
+        success: false,
         error: 'FluxPrint service unavailable',
-        message: 'Unable to connect to FluxPrint service. Please ensure it is running on port 5001.'
+        code: 'PRINTING_SERVICE_UNAVAILABLE'
       });
     } else if (error.code === 'ETIMEDOUT') {
       res.status(504).json({
+        success: false,
         error: 'FluxPrint service timeout',
-        message: 'The request to FluxPrint service timed out.'
+        code: 'PRINTING_SERVICE_TIMEOUT'
       });
     } else {
       res.status(500).json({
+        success: false,
         error: 'Proxy error',
-        message: error.message
+        code: 'PRINTING_PROXY_ERROR'
       });
     }
   }
@@ -205,7 +209,7 @@ router.post('/queue', printRateLimit, checkFluxPrintEnabled, authenticateToken, 
       `, [project_id, userId]);
 
       if (projectAccessQuery.rows.length === 0) {
-        return res.status(404).json({ error: 'Project not found' });
+        return res.status(404).json({ success: false, error: 'Project not found', code: 'PRINTING_PROJECT_NOT_FOUND' });
       }
 
       const project = projectAccessQuery.rows[0];
@@ -215,8 +219,9 @@ router.post('/queue', printRateLimit, checkFluxPrintEnabled, authenticateToken, 
 
       if (!canPrint) {
         return res.status(403).json({
-          error: 'Insufficient permissions',
-          message: 'You need owner, manager, or editor role to queue print jobs'
+          success: false,
+          error: 'You need owner, manager, or editor role to queue print jobs',
+          code: 'PRINTING_INSUFFICIENT_PERMISSIONS'
         });
       }
     }
@@ -247,7 +252,7 @@ router.post('/queue', printRateLimit, checkFluxPrintEnabled, authenticateToken, 
     res.status(response.status).json(response.data);
   } catch (error) {
     log.error('FluxPrint queue POST error', { error: error.message });
-    res.status(500).json({ error: 'Failed to add job to queue', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to add job to queue', code: 'PRINTING_QUEUE_ADD_FAILED' });
   }
 });
 
@@ -327,7 +332,7 @@ router.post('/files/upload', checkFluxPrintEnabled, authenticateToken, upload.ar
     res.status(response.status).json(response.data);
   } catch (error) {
     log.error('FluxPrint file upload error', { error: error.message });
-    res.status(500).json({ error: 'File upload failed', message: error.message });
+    res.status(500).json({ success: false, error: 'File upload failed', code: 'PRINTING_UPLOAD_FAILED' });
   }
 });
 
@@ -358,7 +363,7 @@ router.get('/camera/stream', checkFluxPrintEnabled, async (req, res) => {
     response.data.on('error', (error) => {
       log.error('Camera stream error', { error: error.message });
       if (!res.headersSent) {
-        res.status(500).json({ error: 'Camera stream error' });
+        res.status(500).json({ success: false, error: 'Camera stream error', code: 'PRINTING_CAMERA_STREAM_ERROR' });
       }
     });
 
@@ -368,7 +373,7 @@ router.get('/camera/stream', checkFluxPrintEnabled, async (req, res) => {
   } catch (error) {
     log.error('FluxPrint camera stream error', { error: error.message });
     if (!res.headersSent) {
-      res.status(503).json({ error: 'Camera stream unavailable', message: error.message });
+      res.status(503).json({ success: false, error: 'Camera stream unavailable', code: 'PRINTING_CAMERA_UNAVAILABLE' });
     }
   }
 });
@@ -383,7 +388,7 @@ router.get('/jobs/active', async (req, res) => {
     res.json(activeJobs);
   } catch (error) {
     log.error('Failed to get active jobs', { error: error.message });
-    res.status(500).json({ error: 'Failed to get active jobs', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to get active jobs', code: 'PRINTING_GET_ACTIVE_JOBS_FAILED' });
   }
 });
 
@@ -394,7 +399,7 @@ router.get('/jobs/history', async (req, res) => {
     res.json(history);
   } catch (error) {
     log.error('Failed to get job history', { error: error.message });
-    res.status(500).json({ error: 'Failed to get job history', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to get job history', code: 'PRINTING_GET_JOB_HISTORY_FAILED' });
   }
 });
 
@@ -417,7 +422,7 @@ router.get('/jobs/history/filter', authenticateToken, async (req, res) => {
     if (project_id) {
       const hasAccess = await canUserAccessProject(userId, project_id);
       if (!hasAccess) {
-        return res.status(403).json({ error: 'You do not have permission to view this project' });
+        return res.status(403).json({ success: false, error: 'You do not have permission to view this project', code: 'PRINTING_ACCESS_DENIED' });
       }
       queryText += ` AND pj.project_id = $${paramIndex}`;
       queryParams.push(project_id);
@@ -432,7 +437,7 @@ router.get('/jobs/history/filter', authenticateToken, async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     log.error('Failed to get filtered job history', error);
-    res.status(500).json({ error: 'Failed to get filtered job history', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to get filtered job history', code: 'PRINTING_GET_FILTERED_HISTORY_FAILED' });
   }
 });
 
@@ -444,11 +449,11 @@ router.get('/jobs/:jobId', async (req, res) => {
     if (result.rows.length > 0) {
       res.json(result.rows[0]);
     } else {
-      res.status(404).json({ error: 'Print job not found' });
+      res.status(404).json({ success: false, error: 'Print job not found', code: 'PRINTING_JOB_NOT_FOUND' });
     }
   } catch (error) {
     log.error('Failed to get print job', { error: error.message });
-    res.status(500).json({ error: 'Failed to get print job', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to get print job', code: 'PRINTING_GET_JOB_FAILED' });
   }
 });
 
@@ -461,11 +466,11 @@ router.post('/jobs/:jobId/link', zodValidate(printJobLinkSchema), async (req, re
     if (linked) {
       res.json({ success: true, job: linked });
     } else {
-      res.status(404).json({ error: 'Print job not found' });
+      res.status(404).json({ success: false, error: 'Print job not found', code: 'PRINTING_JOB_NOT_FOUND' });
     }
   } catch (error) {
     log.error('Failed to link job to project', { error: error.message });
-    res.status(500).json({ error: 'Failed to link job to project', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to link job to project', code: 'PRINTING_LINK_JOB_FAILED' });
   }
 });
 
@@ -483,7 +488,7 @@ router.patch('/jobs/:jobId/status', zodValidate(printJobStatusSchema), async (re
     res.json({ success: true, jobId, status });
   } catch (error) {
     log.error('Failed to update job status', { error: error.message });
-    res.status(500).json({ error: 'Failed to update job status', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update job status', code: 'PRINTING_UPDATE_JOB_STATUS_FAILED' });
   }
 });
 
@@ -504,11 +509,11 @@ router.post('/jobs/sync/:fluxprintQueueId', zodValidate(printJobSyncSchema), asy
       }
       res.json({ success: true, job: updated });
     } else {
-      res.status(404).json({ error: 'Print job not found' });
+      res.status(404).json({ success: false, error: 'Print job not found', code: 'PRINTING_JOB_NOT_FOUND' });
     }
   } catch (error) {
     log.error('Failed to sync job status', { error: error.message });
-    res.status(500).json({ error: 'Failed to sync job status', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to sync job status', code: 'PRINTING_SYNC_JOB_FAILED' });
   }
 });
 
@@ -523,7 +528,7 @@ router.get('/projects/:projectId/stats', async (req, res) => {
     res.json(stats || { message: 'No print jobs found for this project' });
   } catch (error) {
     log.error('Failed to get project stats', { error: error.message });
-    res.status(500).json({ error: 'Failed to get project stats', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to get project stats', code: 'PRINTING_GET_PROJECT_STATS_FAILED' });
   }
 });
 
@@ -534,7 +539,7 @@ router.get('/projects/:projectId/stats/detailed', authenticateToken, async (req,
 
     const hasAccess = await canUserAccessProject(userId, projectId);
     if (!hasAccess) {
-      return res.status(403).json({ error: 'You do not have permission to view this project' });
+      return res.status(403).json({ success: false, error: 'You do not have permission to view this project', code: 'PRINTING_ACCESS_DENIED' });
     }
 
     const result = await query(
@@ -549,7 +554,7 @@ router.get('/projects/:projectId/stats/detailed', authenticateToken, async (req,
     res.json(result.rows[0]);
   } catch (error) {
     log.error('Failed to get detailed project stats', error);
-    res.status(500).json({ error: 'Failed to get detailed project stats', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to get detailed project stats', code: 'PRINTING_GET_DETAILED_STATS_FAILED' });
   }
 });
 
@@ -562,7 +567,7 @@ router.get('/projects/:projectId/files', authenticateToken, async (req, res) => 
 
     const hasAccess = await canUserAccessProject(userId, projectId);
     if (!hasAccess) {
-      return res.status(403).json({ error: 'You do not have permission to view this project' });
+      return res.status(403).json({ success: false, error: 'You do not have permission to view this project', code: 'PRINTING_ACCESS_DENIED' });
     }
 
     const result = await query(`
@@ -591,7 +596,7 @@ router.get('/projects/:projectId/files', authenticateToken, async (req, res) => 
     });
   } catch (error) {
     log.error('Failed to get project files', error);
-    res.status(500).json({ error: 'Failed to get project files', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to get project files', code: 'PRINTING_GET_PROJECT_FILES_FAILED' });
   }
 });
 
@@ -606,12 +611,12 @@ router.post('/files/:filename/link', authenticateToken, zodValidate(printFileLin
     const userId = req.user.id;
 
     if (filename.includes('/') || filename.includes('\\')) {
-      return res.status(400).json({ error: 'Invalid filename' });
+      return res.status(400).json({ success: false, error: 'Invalid filename', code: 'PRINTING_INVALID_FILENAME' });
     }
 
     const hasAccess = await canUserAccessProject(userId, project_id);
     if (!hasAccess) {
-      return res.status(403).json({ error: 'You do not have permission to access this project' });
+      return res.status(403).json({ success: false, error: 'You do not have permission to access this project', code: 'PRINTING_ACCESS_DENIED' });
     }
 
     const existingLink = await query(
@@ -623,7 +628,9 @@ router.post('/files/:filename/link', authenticateToken, zodValidate(printFileLin
       const existing = existingLink.rows[0];
       if (existing.project_id !== project_id) {
         return res.status(409).json({
+          success: false,
           error: 'File already linked to another project',
+          code: 'PRINTING_FILE_ALREADY_LINKED',
           linked_to: existing.project_id
         });
       }
@@ -644,7 +651,7 @@ router.post('/files/:filename/link', authenticateToken, zodValidate(printFileLin
     res.status(201).json({ success: true, file: result.rows[0] });
   } catch (error) {
     log.error('Failed to link file to project', error);
-    res.status(500).json({ error: 'Failed to link file to project', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to link file to project', code: 'PRINTING_LINK_FILE_FAILED' });
   }
 });
 
@@ -655,7 +662,7 @@ router.delete('/files/:filename/link', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     if (filename.includes('/') || filename.includes('\\')) {
-      return res.status(400).json({ error: 'Invalid filename' });
+      return res.status(400).json({ success: false, error: 'Invalid filename', code: 'PRINTING_INVALID_FILENAME' });
     }
 
     const existingLink = await query(
@@ -664,25 +671,25 @@ router.delete('/files/:filename/link', authenticateToken, async (req, res) => {
     );
 
     if (existingLink.rows.length === 0) {
-      return res.status(404).json({ error: 'File link not found' });
+      return res.status(404).json({ success: false, error: 'File link not found', code: 'PRINTING_FILE_LINK_NOT_FOUND' });
     }
 
     const linkedProjectId = existingLink.rows[0].project_id;
 
     if (project_id && linkedProjectId !== project_id) {
-      return res.status(400).json({ error: 'File is not linked to the specified project' });
+      return res.status(400).json({ success: false, error: 'File is not linked to the specified project', code: 'PRINTING_FILE_PROJECT_MISMATCH' });
     }
 
     const hasAccess = await canUserAccessProject(userId, linkedProjectId);
     if (!hasAccess) {
-      return res.status(403).json({ error: 'You do not have permission to modify this project' });
+      return res.status(403).json({ success: false, error: 'You do not have permission to modify this project', code: 'PRINTING_ACCESS_DENIED' });
     }
 
     await query('DELETE FROM printing_files WHERE filename = $1', [filename]);
     res.json({ success: true, message: 'File unlinked from project' });
   } catch (error) {
     log.error('Failed to unlink file', error);
-    res.status(500).json({ error: 'Failed to unlink file', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to unlink file', code: 'PRINTING_UNLINK_FILE_FAILED' });
   }
 });
 
@@ -704,7 +711,7 @@ router.post('/quick-print', printRateLimit, csrfProtection, authenticateToken, z
     `, [projectId, userId]);
 
     if (projectAccessQuery.rows.length === 0) {
-      return res.status(404).json({ error: 'Project not found' });
+      return res.status(404).json({ success: false, error: 'Project not found', code: 'PRINTING_PROJECT_NOT_FOUND' });
     }
 
     const project = projectAccessQuery.rows[0];
@@ -714,21 +721,24 @@ router.post('/quick-print', printRateLimit, csrfProtection, authenticateToken, z
 
     if (!canPrint) {
       return res.status(403).json({
-        error: 'Insufficient permissions',
-        message: 'You need owner, manager, or editor role to print files'
+        success: false,
+        error: 'You need owner, manager, or editor role to print files',
+        code: 'PRINTING_INSUFFICIENT_PERMISSIONS'
       });
     }
 
     // Sanitize filename
     if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
-      return res.status(400).json({ error: 'Invalid filename' });
+      return res.status(400).json({ success: false, error: 'Invalid filename', code: 'PRINTING_INVALID_FILENAME' });
     }
 
     // Validate file type
     const ext = filename.toLowerCase().split('.').pop();
     if (!PRINTABLE_EXTENSIONS.includes(ext)) {
       return res.status(400).json({
+        success: false,
         error: 'File type not supported for printing',
+        code: 'PRINTING_UNSUPPORTED_FILE_TYPE',
         supported: PRINTABLE_EXTENSIONS
       });
     }
@@ -757,8 +767,9 @@ router.post('/quick-print', printRateLimit, csrfProtection, authenticateToken, z
 
     if (queueResponse.status !== 200 && queueResponse.status !== 201) {
       return res.status(queueResponse.status).json({
+        success: false,
         error: 'Failed to queue print job',
-        message: queueResponse.data?.error || 'FluxPrint service error'
+        code: 'PRINTING_QUEUE_JOB_FAILED'
       });
     }
 
@@ -824,7 +835,7 @@ router.post('/quick-print', printRateLimit, csrfProtection, authenticateToken, z
     });
   } catch (error) {
     log.error('Quick print error', { error: error.message });
-    res.status(500).json({ error: 'Failed to queue print job', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to queue print job', code: 'PRINTING_QUICK_PRINT_FAILED' });
   }
 });
 
@@ -866,7 +877,7 @@ router.post('/estimate', authenticateToken, zodValidate(printEstimateSchema), as
     res.json(estimate);
   } catch (error) {
     log.error('Estimate calculation error', { error: error.message });
-    res.status(500).json({ error: 'Failed to calculate estimate', message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to calculate estimate', code: 'PRINTING_ESTIMATE_FAILED' });
   }
 });
 

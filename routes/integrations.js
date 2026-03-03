@@ -110,7 +110,7 @@ router.get('/:provider/auth', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error(`OAuth init error (${req.params.provider})`, error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_OAUTH_INIT_ERROR' });
   }
 });
 
@@ -121,7 +121,7 @@ router.get('/:provider/callback', async (req, res) => {
     const { code, state } = req.query;
 
     if (!code || !state) {
-      return res.status(400).json({ message: 'Missing OAuth code or state' });
+      return res.status(400).json({ success: false, error: 'Missing OAuth code or state', code: 'INTEGRATION_OAUTH_MISSING_PARAMS' });
     }
 
     await getOAuthManager().handleCallback(provider, code, state);
@@ -143,7 +143,8 @@ router.post('/:provider/callback', zodValidate(oauthCallbackSchema), async (req,
     if (!code || !state) {
       return res.status(400).json({
         success: false,
-        message: 'Missing OAuth code or state'
+        error: 'Missing OAuth code or state',
+        code: 'INTEGRATION_OAUTH_MISSING_PARAMS'
       });
     }
 
@@ -165,7 +166,8 @@ router.post('/:provider/callback', zodValidate(oauthCallbackSchema), async (req,
     log.error(`OAuth callback error (${req.params.provider})`, error);
     res.status(500).json({
       success: false,
-      message: error.message || 'OAuth callback failed'
+      error: error.message || 'OAuth callback failed',
+      code: 'INTEGRATION_OAUTH_CALLBACK_ERROR'
     });
   }
 });
@@ -182,7 +184,7 @@ router.get('/', authenticateToken, async (req, res) => {
       return res.json({ integrations: [] });
     }
     log.error('Get integrations error', error);
-    res.status(500).json({ message: 'Error retrieving integrations' });
+    res.status(500).json({ success: false, error: 'Error retrieving integrations', code: 'INTEGRATION_GET_LIST_ERROR' });
   }
 });
 
@@ -198,7 +200,7 @@ router.delete('/:provider', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error(`Disconnect integration error (${req.params.provider})`, error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_DISCONNECT_ERROR' });
   }
 });
 
@@ -232,7 +234,7 @@ router.get('/figma/files', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Figma files error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_FIGMA_FILES_ERROR' });
   }
 });
 
@@ -247,7 +249,7 @@ router.get('/figma/files/:fileKey', authenticateToken, async (req, res) => {
     res.json(file);
   } catch (error) {
     log.error('Figma file details error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_FIGMA_FILE_DETAILS_ERROR' });
   }
 });
 
@@ -262,7 +264,7 @@ router.get('/figma/comments/:fileKey', authenticateToken, async (req, res) => {
     res.json({ comments });
   } catch (error) {
     log.error('Figma comments error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_FIGMA_COMMENTS_ERROR' });
   }
 });
 
@@ -280,7 +282,7 @@ router.post('/figma/webhook', async (req, res) => {
       );
 
       if (!isValid) {
-        return res.status(401).json({ message: 'Invalid webhook signature' });
+        return res.status(401).json({ success: false, error: 'Invalid webhook signature', code: 'INTEGRATION_FIGMA_WEBHOOK_INVALID_SIG' });
       }
     }
 
@@ -305,7 +307,7 @@ router.post('/figma/webhook', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     log.error('Figma webhook error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_FIGMA_WEBHOOK_ERROR' });
   }
 });
 
@@ -324,7 +326,7 @@ router.get('/slack/channels', authenticateToken, async (req, res) => {
     res.json({ channels });
   } catch (error) {
     log.error('Slack channels error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_SLACK_CHANNELS_ERROR' });
   }
 });
 
@@ -333,7 +335,7 @@ router.post('/slack/message', authenticateToken, zodValidate(slackMessageSchema)
     const { channel, text, blocks } = req.body;
 
     if (!channel || !text) {
-      return res.status(400).json({ message: 'Channel and text are required' });
+      return res.status(400).json({ success: false, error: 'Channel and text are required', code: 'INTEGRATION_SLACK_MISSING_PARAMS' });
     }
 
     const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'slack');
@@ -345,7 +347,7 @@ router.post('/slack/message', authenticateToken, zodValidate(slackMessageSchema)
     res.json({ message });
   } catch (error) {
     log.error('Slack post message error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_SLACK_MESSAGE_ERROR' });
   }
 });
 
@@ -354,7 +356,7 @@ router.post('/slack/project-update', authenticateToken, zodValidate(slackProject
     const { channel, projectName, updateType, details } = req.body;
 
     if (!channel || !projectName || !updateType) {
-      return res.status(400).json({ message: 'Missing required fields' });
+      return res.status(400).json({ success: false, error: 'Missing required fields', code: 'INTEGRATION_SLACK_MISSING_FIELDS' });
     }
 
     const accessToken = await getOAuthManager().getAccessToken(req.user.id, 'slack');
@@ -366,7 +368,7 @@ router.post('/slack/project-update', authenticateToken, zodValidate(slackProject
     res.json({ message });
   } catch (error) {
     log.error('Slack project update error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_SLACK_PROJECT_UPDATE_ERROR' });
   }
 });
 
@@ -392,7 +394,7 @@ router.post('/slack/webhook', async (req, res) => {
       );
 
       if (!isValid) {
-        return res.status(401).json({ message: 'Invalid webhook signature' });
+        return res.status(401).json({ success: false, error: 'Invalid webhook signature', code: 'INTEGRATION_SLACK_WEBHOOK_INVALID_SIG' });
       }
     }
 
@@ -415,7 +417,7 @@ router.post('/slack/webhook', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     log.error('Slack webhook error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_SLACK_WEBHOOK_ERROR' });
   }
 });
 
@@ -441,7 +443,7 @@ router.get('/github/repositories', authenticateToken, async (req, res) => {
     res.json({ repositories: data });
   } catch (error) {
     log.error('GitHub repositories error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_REPOS_ERROR' });
   }
 });
 
@@ -458,7 +460,7 @@ router.get('/github/repositories/:owner/:repo', authenticateToken, async (req, r
     res.json(data);
   } catch (error) {
     log.error('GitHub repository error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_REPO_ERROR' });
   }
 });
 
@@ -484,7 +486,7 @@ router.get('/github/repositories/:owner/:repo/issues', authenticateToken, async 
     res.json({ issues: data });
   } catch (error) {
     log.error('GitHub issues error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_ISSUES_ERROR' });
   }
 });
 
@@ -505,7 +507,7 @@ router.get('/github/repositories/:owner/:repo/issues/:issue_number', authenticat
     res.json(data);
   } catch (error) {
     log.error('GitHub issue error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_ISSUE_ERROR' });
   }
 });
 
@@ -519,7 +521,7 @@ router.post('/github/repositories/:owner/:repo/issues', authenticateToken, zodVa
     const { title, body, labels, assignees } = req.body;
 
     if (!title) {
-      return res.status(400).json({ message: 'Issue title is required' });
+      return res.status(400).json({ success: false, error: 'Issue title is required', code: 'INTEGRATION_GITHUB_MISSING_TITLE' });
     }
 
     const { data } = await octokit.issues.create({
@@ -534,7 +536,7 @@ router.post('/github/repositories/:owner/:repo/issues', authenticateToken, zodVa
     res.json(data);
   } catch (error) {
     log.error('GitHub create issue error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_CREATE_ISSUE_ERROR' });
   }
 });
 
@@ -561,7 +563,7 @@ router.patch('/github/repositories/:owner/:repo/issues/:issue_number', authentic
     res.json(data);
   } catch (error) {
     log.error('GitHub update issue error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_UPDATE_ISSUE_ERROR' });
   }
 });
 
@@ -575,7 +577,7 @@ router.post('/github/repositories/:owner/:repo/issues/:issue_number/comments', a
     const { body } = req.body;
 
     if (!body) {
-      return res.status(400).json({ message: 'Comment body is required' });
+      return res.status(400).json({ success: false, error: 'Comment body is required', code: 'INTEGRATION_GITHUB_MISSING_BODY' });
     }
 
     const { data } = await octokit.issues.createComment({
@@ -588,7 +590,7 @@ router.post('/github/repositories/:owner/:repo/issues/:issue_number/comments', a
     res.json(data);
   } catch (error) {
     log.error('GitHub add comment error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_ADD_COMMENT_ERROR' });
   }
 });
 
@@ -613,7 +615,7 @@ router.get('/github/repositories/:owner/:repo/pulls', authenticateToken, async (
     res.json({ pulls: data });
   } catch (error) {
     log.error('GitHub pull requests error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_PULLS_ERROR' });
   }
 });
 
@@ -637,7 +639,7 @@ router.get('/github/repositories/:owner/:repo/commits', authenticateToken, async
     res.json({ commits: data });
   } catch (error) {
     log.error('GitHub commits error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_COMMITS_ERROR' });
   }
 });
 
@@ -659,7 +661,7 @@ router.get('/github/repositories/:owner/:repo/branches', authenticateToken, asyn
     res.json({ branches });
   } catch (error) {
     log.error('GitHub branches error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_BRANCHES_ERROR' });
   }
 });
 
@@ -682,7 +684,7 @@ router.get('/github/repositories/:owner/:repo/collaborators', authenticateToken,
     res.json({ collaborators });
   } catch (error) {
     log.error('GitHub collaborators error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_COLLABORATORS_ERROR' });
   }
 });
 
@@ -692,7 +694,7 @@ router.post('/github/repositories/:owner/:repo/link', authenticateToken, zodVali
     const { projectId } = req.body;
 
     if (!projectId) {
-      return res.status(400).json({ message: 'Project ID is required' });
+      return res.status(400).json({ success: false, error: 'Project ID is required', code: 'INTEGRATION_GITHUB_MISSING_PROJECT_ID' });
     }
 
     await getOAuthManager().getAccessToken(req.user.id, 'github');
@@ -701,12 +703,12 @@ router.post('/github/repositories/:owner/:repo/link', authenticateToken, zodVali
     const projectIndex = projects.findIndex(p => p.id === projectId);
 
     if (projectIndex === -1) {
-      return res.status(404).json({ message: 'Project not found' });
+      return res.status(404).json({ success: false, error: 'Project not found', code: 'INTEGRATION_PROJECT_NOT_FOUND' });
     }
 
     const isMember = projects[projectIndex].members && projects[projectIndex].members.some(m => m.userId === req.user.id);
     if (!isMember) {
-      return res.status(403).json({ message: 'Access denied' });
+      return res.status(403).json({ success: false, error: 'Access denied', code: 'INTEGRATION_ACCESS_DENIED' });
     }
 
     if (!projects[projectIndex].githubMetadata) {
@@ -729,7 +731,7 @@ router.post('/github/repositories/:owner/:repo/link', authenticateToken, zodVali
     });
   } catch (error) {
     log.error('GitHub link repository error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_LINK_REPO_ERROR' });
   }
 });
 
@@ -751,7 +753,7 @@ router.get('/github/user', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('GitHub user error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_USER_ERROR' });
   }
 });
 
@@ -766,7 +768,7 @@ router.post('/github/webhook', async (req, res) => {
       const digest = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
 
       if (signature !== digest) {
-        return res.status(401).json({ message: 'Invalid webhook signature' });
+        return res.status(401).json({ success: false, error: 'Invalid webhook signature', code: 'INTEGRATION_GITHUB_WEBHOOK_INVALID_SIG' });
       }
     }
 
@@ -805,7 +807,7 @@ router.post('/github/webhook', async (req, res) => {
     }
   } catch (error) {
     log.error('GitHub webhook error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_WEBHOOK_ERROR' });
   }
 });
 
@@ -816,7 +818,9 @@ router.post('/github/sync/:linkId', authenticateToken, async (req, res) => {
     const syncService = getGitHubSyncService();
     if (!syncService) {
       return res.status(503).json({
-        message: 'GitHub Sync Service not available (requires database mode)'
+        success: false,
+        error: 'GitHub Sync Service not available (requires database mode)',
+        code: 'INTEGRATION_SYNC_SERVICE_UNAVAILABLE'
       });
     }
 
@@ -829,7 +833,7 @@ router.post('/github/sync/:linkId', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('GitHub manual sync error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_GITHUB_SYNC_ERROR' });
   }
 });
 
@@ -838,12 +842,14 @@ router.post('/github/sync/start', authenticateToken, async (req, res) => {
     const syncService = getGitHubSyncService();
     if (!syncService) {
       return res.status(503).json({
-        message: 'GitHub Sync Service not available (requires database mode)'
+        success: false,
+        error: 'GitHub Sync Service not available (requires database mode)',
+        code: 'INTEGRATION_SYNC_SERVICE_UNAVAILABLE'
       });
     }
 
     if (req.user.userType !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
+      return res.status(403).json({ success: false, error: 'Admin access required', code: 'INTEGRATION_ADMIN_REQUIRED' });
     }
 
     syncService.startAutoSync();
@@ -854,7 +860,7 @@ router.post('/github/sync/start', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('GitHub start auto-sync error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_START_SYNC_ERROR' });
   }
 });
 
@@ -863,12 +869,14 @@ router.post('/github/sync/stop', authenticateToken, async (req, res) => {
     const syncService = getGitHubSyncService();
     if (!syncService) {
       return res.status(503).json({
-        message: 'GitHub Sync Service not available (requires database mode)'
+        success: false,
+        error: 'GitHub Sync Service not available (requires database mode)',
+        code: 'INTEGRATION_SYNC_SERVICE_UNAVAILABLE'
       });
     }
 
     if (req.user.userType !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
+      return res.status(403).json({ success: false, error: 'Admin access required', code: 'INTEGRATION_ADMIN_REQUIRED' });
     }
 
     syncService.stopAutoSync();
@@ -878,7 +886,7 @@ router.post('/github/sync/stop', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('GitHub stop auto-sync error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_STOP_SYNC_ERROR' });
   }
 });
 
@@ -887,7 +895,9 @@ router.get('/github/sync/status/:linkId', authenticateToken, async (req, res) =>
     const syncService = getGitHubSyncService();
     if (!syncService) {
       return res.status(503).json({
-        message: 'GitHub Sync Service not available (requires database mode)'
+        success: false,
+        error: 'GitHub Sync Service not available (requires database mode)',
+        code: 'INTEGRATION_SYNC_SERVICE_UNAVAILABLE'
       });
     }
 
@@ -895,7 +905,7 @@ router.get('/github/sync/status/:linkId', authenticateToken, async (req, res) =>
     const link = await syncService.getRepositoryLink(linkId);
 
     if (!link) {
-      return res.status(404).json({ message: 'Repository link not found' });
+      return res.status(404).json({ success: false, error: 'Repository link not found', code: 'INTEGRATION_REPO_LINK_NOT_FOUND' });
     }
 
     res.json({
@@ -914,7 +924,7 @@ router.get('/github/sync/status/:linkId', authenticateToken, async (req, res) =>
     });
   } catch (error) {
     log.error('GitHub sync status error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: error.message, code: 'INTEGRATION_SYNC_STATUS_ERROR' });
   }
 });
 

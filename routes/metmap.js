@@ -68,7 +68,7 @@ router.get('/songs', authenticateToken, async (req, res) => {
     res.json(result);
   } catch (error) {
     log.error('Error getting songs', error);
-    res.status(500).json({ error: 'Failed to get songs' });
+    res.status(500).json({ success: false, error: 'Failed to get songs', code: 'METMAP_GET_SONGS_FAILED' });
   }
 });
 
@@ -82,7 +82,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     res.json(stats);
   } catch (error) {
     log.error('Error getting stats', error);
-    res.status(500).json({ error: 'Failed to get stats' });
+    res.status(500).json({ success: false, error: 'Failed to get stats', code: 'METMAP_GET_STATS_FAILED' });
   }
 });
 
@@ -105,7 +105,7 @@ router.post('/songs', authenticateToken, zodValidate(createSongSchema), async (r
     res.status(201).json({ song });
   } catch (error) {
     log.error('Error creating song', error);
-    res.status(500).json({ error: 'Failed to create song' });
+    res.status(500).json({ success: false, error: 'Failed to create song', code: 'METMAP_CREATE_SONG_FAILED' });
   }
 });
 
@@ -119,13 +119,13 @@ router.get('/songs/:songId', authenticateToken, async (req, res) => {
     const song = await metmapAdapter.getSongById(songId, req.user.id);
 
     if (!song) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     res.json({ song });
   } catch (error) {
     log.error('Error getting song', error);
-    res.status(500).json({ error: 'Failed to get song' });
+    res.status(500).json({ success: false, error: 'Failed to get song', code: 'METMAP_GET_SONG_FAILED' });
   }
 });
 
@@ -147,13 +147,13 @@ router.put('/songs/:songId', authenticateToken, zodValidate(updateSongSchema), a
     });
 
     if (!song) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     res.json({ song });
   } catch (error) {
     log.error('Error updating song', error);
-    res.status(500).json({ error: 'Failed to update song' });
+    res.status(500).json({ success: false, error: 'Failed to update song', code: 'METMAP_UPDATE_SONG_FAILED' });
   }
 });
 
@@ -167,13 +167,13 @@ router.delete('/songs/:songId', authenticateToken, async (req, res) => {
     const success = await metmapAdapter.deleteSong(songId, req.user.id);
 
     if (!success) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     res.json({ success: true });
   } catch (error) {
     log.error('Error deleting song', error);
-    res.status(500).json({ error: 'Failed to delete song' });
+    res.status(500).json({ success: false, error: 'Failed to delete song', code: 'METMAP_DELETE_SONG_FAILED' });
   }
 });
 
@@ -191,13 +191,13 @@ router.post('/songs/:songId/audio', authenticateToken, audioUpload.single('audio
     const file = req.file;
 
     if (!file) {
-      return res.status(400).json({ error: 'No audio file provided' });
+      return res.status(400).json({ success: false, error: 'No audio file provided', code: 'METMAP_NO_AUDIO_FILE' });
     }
 
     // Verify song ownership
     const song = await metmapAdapter.getSongById(songId, req.user.id);
     if (!song) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     // Upload to storage
@@ -215,7 +215,7 @@ router.post('/songs/:songId/audio', authenticateToken, audioUpload.single('audio
     res.json({ song: updated, audioFileUrl: audioUrl });
   } catch (error) {
     log.error('Error uploading song audio', error);
-    res.status(500).json({ error: 'Failed to upload audio' });
+    res.status(500).json({ success: false, error: 'Failed to upload audio', code: 'METMAP_UPLOAD_AUDIO_FAILED' });
   }
 });
 
@@ -229,13 +229,13 @@ router.delete('/songs/:songId/audio', authenticateToken, async (req, res) => {
     const updated = await metmapAdapter.clearSongAudio(songId, req.user.id);
 
     if (!updated) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     res.json({ song: updated });
   } catch (error) {
     log.error('Error removing song audio', error);
-    res.status(500).json({ error: 'Failed to remove audio' });
+    res.status(500).json({ success: false, error: 'Failed to remove audio', code: 'METMAP_REMOVE_AUDIO_FAILED' });
   }
 });
 
@@ -255,13 +255,13 @@ router.put('/songs/:songId/beat-map', authenticateToken, zodValidate(songBeatMap
     });
 
     if (!updated) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     res.json({ song: updated });
   } catch (error) {
     log.error('Error saving beat map', error);
-    res.status(500).json({ error: 'Failed to save beat map' });
+    res.status(500).json({ success: false, error: 'Failed to save beat map', code: 'METMAP_SAVE_BEATMAP_FAILED' });
   }
 });
 
@@ -279,13 +279,13 @@ router.get('/songs/:songId/sections', authenticateToken, async (req, res) => {
     const sections = await metmapAdapter.getSections(songId, req.user.id);
 
     if (sections === null) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     res.json({ sections });
   } catch (error) {
     log.error('Error getting sections', error);
-    res.status(500).json({ error: 'Failed to get sections' });
+    res.status(500).json({ success: false, error: 'Failed to get sections', code: 'METMAP_GET_SECTIONS_FAILED' });
   }
 });
 
@@ -301,13 +301,13 @@ router.put('/songs/:songId/sections', authenticateToken, zodValidate(upsertSecti
     const updatedSections = await metmapAdapter.upsertSections(songId, req.user.id, sections);
 
     if (updatedSections === null) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     res.json({ sections: updatedSections });
   } catch (error) {
     log.error('Error upserting sections', error);
-    res.status(500).json({ error: 'Failed to update sections' });
+    res.status(500).json({ success: false, error: 'Failed to update sections', code: 'METMAP_UPDATE_SECTIONS_FAILED' });
   }
 });
 
@@ -321,13 +321,13 @@ router.delete('/sections/:sectionId', authenticateToken, async (req, res) => {
     const success = await metmapAdapter.deleteSection(sectionId, req.user.id);
 
     if (!success) {
-      return res.status(404).json({ error: 'Section not found' });
+      return res.status(404).json({ success: false, error: 'Section not found', code: 'METMAP_SECTION_NOT_FOUND' });
     }
 
     res.json({ success: true });
   } catch (error) {
     log.error('Error deleting section', error);
-    res.status(500).json({ error: 'Failed to delete section' });
+    res.status(500).json({ success: false, error: 'Failed to delete section', code: 'METMAP_DELETE_SECTION_FAILED' });
   }
 });
 
@@ -345,13 +345,13 @@ router.get('/songs/:songId/chords', authenticateToken, async (req, res) => {
     const chords = await metmapAdapter.getChordsForSong(songId, req.user.id);
 
     if (chords === null) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     res.json({ chords });
   } catch (error) {
     log.error('Error getting chords', error);
-    res.status(500).json({ error: 'Failed to get chords' });
+    res.status(500).json({ success: false, error: 'Failed to get chords', code: 'METMAP_GET_CHORDS_FAILED' });
   }
 });
 
@@ -367,13 +367,13 @@ router.put('/sections/:sectionId/chords', authenticateToken, zodValidate(upsertC
     const updatedChords = await metmapAdapter.upsertChords(sectionId, req.user.id, chords);
 
     if (updatedChords === null) {
-      return res.status(404).json({ error: 'Section not found' });
+      return res.status(404).json({ success: false, error: 'Section not found', code: 'METMAP_SECTION_NOT_FOUND' });
     }
 
     res.json({ chords: updatedChords });
   } catch (error) {
     log.error('Error upserting chords', error);
-    res.status(500).json({ error: 'Failed to update chords' });
+    res.status(500).json({ success: false, error: 'Failed to update chords', code: 'METMAP_UPDATE_CHORDS_FAILED' });
   }
 });
 
@@ -387,13 +387,13 @@ router.delete('/chords/:chordId', authenticateToken, async (req, res) => {
     const success = await metmapAdapter.deleteChord(chordId, req.user.id);
 
     if (!success) {
-      return res.status(404).json({ error: 'Chord not found' });
+      return res.status(404).json({ success: false, error: 'Chord not found', code: 'METMAP_CHORD_NOT_FOUND' });
     }
 
     res.json({ success: true });
   } catch (error) {
     log.error('Error deleting chord', error);
-    res.status(500).json({ error: 'Failed to delete chord' });
+    res.status(500).json({ success: false, error: 'Failed to delete chord', code: 'METMAP_DELETE_CHORD_FAILED' });
   }
 });
 
@@ -413,13 +413,13 @@ router.post('/songs/:songId/practice', authenticateToken, zodValidate(startPract
     const session = await metmapAdapter.createPracticeSession(songId, req.user.id, settings || {});
 
     if (!session) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     res.status(201).json({ session });
   } catch (error) {
     log.error('Error starting practice session', error);
-    res.status(500).json({ error: 'Failed to start practice session' });
+    res.status(500).json({ success: false, error: 'Failed to start practice session', code: 'METMAP_START_PRACTICE_FAILED' });
   }
 });
 
@@ -435,13 +435,13 @@ router.post('/practice/:sessionId/end', authenticateToken, zodValidate(endPracti
     const session = await metmapAdapter.endPracticeSession(sessionId, req.user.id, notes);
 
     if (!session) {
-      return res.status(404).json({ error: 'Practice session not found' });
+      return res.status(404).json({ success: false, error: 'Practice session not found', code: 'METMAP_PRACTICE_NOT_FOUND' });
     }
 
     res.json({ session });
   } catch (error) {
     log.error('Error ending practice session', error);
-    res.status(500).json({ error: 'Failed to end practice session' });
+    res.status(500).json({ success: false, error: 'Failed to end practice session', code: 'METMAP_END_PRACTICE_FAILED' });
   }
 });
 
@@ -460,13 +460,13 @@ router.get('/songs/:songId/practice-history', authenticateToken, async (req, res
     });
 
     if (result === null) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     res.json(result);
   } catch (error) {
     log.error('Error getting practice history', error);
-    res.status(500).json({ error: 'Failed to get practice history' });
+    res.status(500).json({ success: false, error: 'Failed to get practice history', code: 'METMAP_GET_PRACTICE_HISTORY_FAILED' });
   }
 });
 
@@ -482,12 +482,12 @@ router.get('/songs/:songId/tracks', authenticateToken, async (req, res) => {
   try {
     const tracks = await metmapAdapter.getTracksForSong(req.params.songId, req.user.id);
     if (tracks === null) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
     res.json({ tracks });
   } catch (error) {
     log.error('Error getting tracks', error);
-    res.status(500).json({ error: 'Failed to get tracks' });
+    res.status(500).json({ success: false, error: 'Failed to get tracks', code: 'METMAP_GET_TRACKS_FAILED' });
   }
 });
 
@@ -515,12 +515,12 @@ router.post('/songs/:songId/tracks', authenticateToken, audioUpload.single('audi
 
     const track = await metmapAdapter.createTrack(songId, req.user.id, trackData);
     if (!track) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
     res.status(201).json({ track });
   } catch (error) {
     log.error('Error creating track', error);
-    res.status(500).json({ error: 'Failed to create track' });
+    res.status(500).json({ success: false, error: 'Failed to create track', code: 'METMAP_CREATE_TRACK_FAILED' });
   }
 });
 
@@ -535,12 +535,12 @@ router.put('/tracks/:trackId', authenticateToken, zodValidate(updateTrackSchema)
       name, volume, pan, muted, solo
     });
     if (!track) {
-      return res.status(404).json({ error: 'Track not found' });
+      return res.status(404).json({ success: false, error: 'Track not found', code: 'METMAP_TRACK_NOT_FOUND' });
     }
     res.json({ track });
   } catch (error) {
     log.error('Error updating track', error);
-    res.status(500).json({ error: 'Failed to update track' });
+    res.status(500).json({ success: false, error: 'Failed to update track', code: 'METMAP_UPDATE_TRACK_FAILED' });
   }
 });
 
@@ -552,7 +552,7 @@ router.delete('/tracks/:trackId', authenticateToken, async (req, res) => {
   try {
     const deleted = await metmapAdapter.deleteTrack(req.params.trackId, req.user.id);
     if (!deleted) {
-      return res.status(404).json({ error: 'Track not found' });
+      return res.status(404).json({ success: false, error: 'Track not found', code: 'METMAP_TRACK_NOT_FOUND' });
     }
     // Clean up S3 file if exists
     if (deleted.audio_key && fileStorage) {
@@ -565,7 +565,7 @@ router.delete('/tracks/:trackId', authenticateToken, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     log.error('Error deleting track', error);
-    res.status(500).json({ error: 'Failed to delete track' });
+    res.status(500).json({ success: false, error: 'Failed to delete track', code: 'METMAP_DELETE_TRACK_FAILED' });
   }
 });
 
@@ -578,12 +578,12 @@ router.put('/tracks/:trackId/reorder', authenticateToken, zodValidate(reorderTra
     const { sortOrder } = req.body;
     const track = await metmapAdapter.reorderTrack(req.params.trackId, req.user.id, sortOrder);
     if (!track) {
-      return res.status(404).json({ error: 'Track not found' });
+      return res.status(404).json({ success: false, error: 'Track not found', code: 'METMAP_TRACK_NOT_FOUND' });
     }
     res.json({ track });
   } catch (error) {
     log.error('Error reordering track', error);
-    res.status(500).json({ error: 'Failed to reorder track' });
+    res.status(500).json({ success: false, error: 'Failed to reorder track', code: 'METMAP_REORDER_TRACK_FAILED' });
   }
 });
 
@@ -596,12 +596,12 @@ router.put('/tracks/:trackId/beat-map', authenticateToken, zodValidate(trackBeat
     const { beatMap } = req.body;
     const track = await metmapAdapter.updateTrackBeatMap(req.params.trackId, req.user.id, beatMap);
     if (!track) {
-      return res.status(404).json({ error: 'Track not found' });
+      return res.status(404).json({ success: false, error: 'Track not found', code: 'METMAP_TRACK_NOT_FOUND' });
     }
     res.json({ track });
   } catch (error) {
     log.error('Error updating track beat map', error);
-    res.status(500).json({ error: 'Failed to update beat map' });
+    res.status(500).json({ success: false, error: 'Failed to update beat map', code: 'METMAP_UPDATE_TRACK_BEATMAP_FAILED' });
   }
 });
 
@@ -617,12 +617,12 @@ router.get('/songs/:songId/snapshots', authenticateToken, async (req, res) => {
   try {
     const snapshots = await metmapAdapter.getSnapshotsForSong(req.params.songId, req.user.id);
     if (snapshots === null) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
     res.json({ snapshots });
   } catch (error) {
     log.error('Error getting snapshots', error);
-    res.status(500).json({ error: 'Failed to get snapshots' });
+    res.status(500).json({ success: false, error: 'Failed to get snapshots', code: 'METMAP_GET_SNAPSHOTS_FAILED' });
   }
 });
 
@@ -638,7 +638,7 @@ router.post('/songs/:songId/snapshots', authenticateToken, zodValidate(createSna
     // Get current Yjs state from the song
     const yjsState = await metmapAdapter.getYjsState(songId);
     if (!yjsState) {
-      return res.status(404).json({ error: 'Song not found or no Yjs state' });
+      return res.status(404).json({ success: false, error: 'Song not found or no Yjs state', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     const snapshot = await metmapAdapter.createSnapshot(songId, req.user.id, {
@@ -652,7 +652,7 @@ router.post('/songs/:songId/snapshots', authenticateToken, zodValidate(createSna
     res.status(201).json({ snapshot });
   } catch (error) {
     log.error('Error creating snapshot', error);
-    res.status(500).json({ error: 'Failed to create snapshot' });
+    res.status(500).json({ success: false, error: 'Failed to create snapshot', code: 'METMAP_CREATE_SNAPSHOT_FAILED' });
   }
 });
 
@@ -664,12 +664,12 @@ router.delete('/songs/:songId/snapshots/:id', authenticateToken, async (req, res
   try {
     const deleted = await metmapAdapter.deleteSnapshot(req.params.id, req.user.id);
     if (!deleted) {
-      return res.status(404).json({ error: 'Snapshot not found' });
+      return res.status(404).json({ success: false, error: 'Snapshot not found', code: 'METMAP_SNAPSHOT_NOT_FOUND' });
     }
     res.json({ success: true });
   } catch (error) {
     log.error('Error deleting snapshot', error);
-    res.status(500).json({ error: 'Failed to delete snapshot' });
+    res.status(500).json({ success: false, error: 'Failed to delete snapshot', code: 'METMAP_DELETE_SNAPSHOT_FAILED' });
   }
 });
 
@@ -681,7 +681,7 @@ router.post('/songs/:songId/snapshots/:id/restore', authenticateToken, async (re
   try {
     const snapshot = await metmapAdapter.getSnapshot(req.params.id, req.user.id);
     if (!snapshot || !snapshot.yjsState) {
-      return res.status(404).json({ error: 'Snapshot not found' });
+      return res.status(404).json({ success: false, error: 'Snapshot not found', code: 'METMAP_SNAPSHOT_NOT_FOUND' });
     }
 
     // Replace song's Yjs state with snapshot state
@@ -690,7 +690,7 @@ router.post('/songs/:songId/snapshots/:id/restore', authenticateToken, async (re
     res.json({ success: true, snapshot: { id: snapshot.id, name: snapshot.name } });
   } catch (error) {
     log.error('Error restoring snapshot', error);
-    res.status(500).json({ error: 'Failed to restore snapshot' });
+    res.status(500).json({ success: false, error: 'Failed to restore snapshot', code: 'METMAP_RESTORE_SNAPSHOT_FAILED' });
   }
 });
 
@@ -706,12 +706,12 @@ router.get('/songs/:songId/branches', authenticateToken, async (req, res) => {
   try {
     const branches = await metmapAdapter.getBranchesForSong(req.params.songId, req.user.id);
     if (branches === null) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
     res.json({ branches });
   } catch (error) {
     log.error('Error getting branches', error);
-    res.status(500).json({ error: 'Failed to get branches' });
+    res.status(500).json({ success: false, error: 'Failed to get branches', code: 'METMAP_GET_BRANCHES_FAILED' });
   }
 });
 
@@ -731,13 +731,13 @@ router.post('/songs/:songId/branches', authenticateToken, zodValidate(createBran
     });
 
     if (!branch) {
-      return res.status(404).json({ error: 'Song not found' });
+      return res.status(404).json({ success: false, error: 'Song not found', code: 'METMAP_SONG_NOT_FOUND' });
     }
 
     res.status(201).json({ branch });
   } catch (error) {
     log.error('Error creating branch', error);
-    res.status(500).json({ error: 'Failed to create branch' });
+    res.status(500).json({ success: false, error: 'Failed to create branch', code: 'METMAP_CREATE_BRANCH_FAILED' });
   }
 });
 
@@ -749,12 +749,12 @@ router.delete('/songs/:songId/branches/:id', authenticateToken, async (req, res)
   try {
     const deleted = await metmapAdapter.deleteBranch(req.params.id, req.user.id);
     if (!deleted) {
-      return res.status(404).json({ error: 'Branch not found or is main branch' });
+      return res.status(404).json({ success: false, error: 'Branch not found or is main branch', code: 'METMAP_BRANCH_NOT_FOUND' });
     }
     res.json({ success: true });
   } catch (error) {
     log.error('Error deleting branch', error);
-    res.status(500).json({ error: 'Failed to delete branch' });
+    res.status(500).json({ success: false, error: 'Failed to delete branch', code: 'METMAP_DELETE_BRANCH_FAILED' });
   }
 });
 
@@ -766,12 +766,12 @@ router.post('/songs/:songId/branches/:id/merge', authenticateToken, async (req, 
   try {
     const merged = await metmapAdapter.mergeBranch(req.params.id, req.user.id);
     if (!merged) {
-      return res.status(404).json({ error: 'Branch not found or is main branch' });
+      return res.status(404).json({ success: false, error: 'Branch not found or is main branch', code: 'METMAP_BRANCH_NOT_FOUND' });
     }
     res.json({ success: true, branch: merged });
   } catch (error) {
     log.error('Error merging branch', error);
-    res.status(500).json({ error: 'Failed to merge branch' });
+    res.status(500).json({ success: false, error: 'Failed to merge branch', code: 'METMAP_MERGE_BRANCH_FAILED' });
   }
 });
 
