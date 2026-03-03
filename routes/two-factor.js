@@ -38,7 +38,7 @@ try {
  */
 router.post('/setup', authenticateToken, async (req, res) => {
   if (!authenticator || !toDataURL) {
-    return res.status(503).json({ error: '2FA service not available' });
+    return res.status(503).json({ success: false, error: '2FA service not available', code: 'TWO_FACTOR_SERVICE_UNAVAILABLE' });
   }
 
   try {
@@ -50,10 +50,10 @@ router.post('/setup', authenticateToken, async (req, res) => {
       [userId]
     );
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ success: false, error: 'User not found', code: 'TWO_FACTOR_USER_NOT_FOUND' });
     }
     if (userResult.rows[0].totp_enabled) {
-      return res.status(400).json({ error: '2FA is already enabled. Disable it first to reconfigure.' });
+      return res.status(400).json({ success: false, error: '2FA is already enabled. Disable it first to reconfigure.', code: 'TWO_FACTOR_ALREADY_ENABLED' });
     }
 
     // Generate secret
@@ -77,7 +77,7 @@ router.post('/setup', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Setup failed', error);
-    res.status(500).json({ error: 'Failed to set up 2FA' });
+    res.status(500).json({ success: false, error: 'Failed to set up 2FA', code: 'TWO_FACTOR_SETUP_ERROR' });
   }
 });
 
@@ -91,7 +91,7 @@ router.post('/setup', authenticateToken, async (req, res) => {
  */
 router.post('/verify-setup', authenticateToken, zodValidate(twoFactorCodeSchema), async (req, res) => {
   if (!authenticator) {
-    return res.status(503).json({ error: '2FA service not available' });
+    return res.status(503).json({ success: false, error: '2FA service not available', code: 'TWO_FACTOR_SERVICE_UNAVAILABLE' });
   }
 
   try {
@@ -99,7 +99,7 @@ router.post('/verify-setup', authenticateToken, zodValidate(twoFactorCodeSchema)
     const { code } = req.body;
 
     if (!code || typeof code !== 'string') {
-      return res.status(400).json({ error: 'Verification code is required' });
+      return res.status(400).json({ success: false, error: 'Verification code is required', code: 'TWO_FACTOR_MISSING_CODE' });
     }
 
     // Fetch secret
@@ -108,21 +108,21 @@ router.post('/verify-setup', authenticateToken, zodValidate(twoFactorCodeSchema)
       [userId]
     );
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ success: false, error: 'User not found', code: 'TWO_FACTOR_USER_NOT_FOUND' });
     }
 
     const { totp_secret, totp_enabled } = userResult.rows[0];
     if (totp_enabled) {
-      return res.status(400).json({ error: '2FA is already enabled' });
+      return res.status(400).json({ success: false, error: '2FA is already enabled', code: 'TWO_FACTOR_ALREADY_ENABLED' });
     }
     if (!totp_secret) {
-      return res.status(400).json({ error: 'Run /api/2fa/setup first' });
+      return res.status(400).json({ success: false, error: 'Run /api/2fa/setup first', code: 'TWO_FACTOR_SETUP_REQUIRED' });
     }
 
     // Verify code
     const isValid = authenticator.verify({ token: code, secret: totp_secret });
     if (!isValid) {
-      return res.status(400).json({ error: 'Invalid verification code' });
+      return res.status(400).json({ success: false, error: 'Invalid verification code', code: 'TWO_FACTOR_INVALID_CODE' });
     }
 
     // Generate backup codes
@@ -149,7 +149,7 @@ router.post('/verify-setup', authenticateToken, zodValidate(twoFactorCodeSchema)
     });
   } catch (error) {
     log.error('Verify setup failed', error);
-    res.status(500).json({ error: 'Failed to verify 2FA setup' });
+    res.status(500).json({ success: false, error: 'Failed to verify 2FA setup', code: 'TWO_FACTOR_VERIFY_SETUP_ERROR' });
   }
 });
 
@@ -162,7 +162,7 @@ router.post('/verify-setup', authenticateToken, zodValidate(twoFactorCodeSchema)
  */
 router.post('/disable', authenticateToken, zodValidate(twoFactorCodeSchema), async (req, res) => {
   if (!authenticator) {
-    return res.status(503).json({ error: '2FA service not available' });
+    return res.status(503).json({ success: false, error: '2FA service not available', code: 'TWO_FACTOR_SERVICE_UNAVAILABLE' });
   }
 
   try {
@@ -170,7 +170,7 @@ router.post('/disable', authenticateToken, zodValidate(twoFactorCodeSchema), asy
     const { code } = req.body;
 
     if (!code || typeof code !== 'string') {
-      return res.status(400).json({ error: 'Verification code is required' });
+      return res.status(400).json({ success: false, error: 'Verification code is required', code: 'TWO_FACTOR_MISSING_CODE' });
     }
 
     const userResult = await query(
@@ -178,11 +178,11 @@ router.post('/disable', authenticateToken, zodValidate(twoFactorCodeSchema), asy
       [userId]
     );
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ success: false, error: 'User not found', code: 'TWO_FACTOR_USER_NOT_FOUND' });
     }
 
     if (!userResult.rows[0].totp_enabled) {
-      return res.status(400).json({ error: '2FA is not enabled' });
+      return res.status(400).json({ success: false, error: '2FA is not enabled', code: 'TWO_FACTOR_NOT_ENABLED' });
     }
 
     const isValid = authenticator.verify({
@@ -190,7 +190,7 @@ router.post('/disable', authenticateToken, zodValidate(twoFactorCodeSchema), asy
       secret: userResult.rows[0].totp_secret,
     });
     if (!isValid) {
-      return res.status(400).json({ error: 'Invalid verification code' });
+      return res.status(400).json({ success: false, error: 'Invalid verification code', code: 'TWO_FACTOR_INVALID_CODE' });
     }
 
     await query(
@@ -208,7 +208,7 @@ router.post('/disable', authenticateToken, zodValidate(twoFactorCodeSchema), asy
     res.json({ success: true, message: 'Two-factor authentication disabled' });
   } catch (error) {
     log.error('Disable failed', error);
-    res.status(500).json({ error: 'Failed to disable 2FA' });
+    res.status(500).json({ success: false, error: 'Failed to disable 2FA', code: 'TWO_FACTOR_DISABLE_ERROR' });
   }
 });
 
@@ -222,14 +222,14 @@ router.post('/disable', authenticateToken, zodValidate(twoFactorCodeSchema), asy
  */
 router.post('/verify', zodValidate(twoFactorVerifySchema), async (req, res) => {
   if (!authenticator) {
-    return res.status(503).json({ error: '2FA service not available' });
+    return res.status(503).json({ success: false, error: '2FA service not available', code: 'TWO_FACTOR_SERVICE_UNAVAILABLE' });
   }
 
   try {
     const { tempToken, code } = req.body;
 
     if (!tempToken || !code) {
-      return res.status(400).json({ error: 'tempToken and code are required' });
+      return res.status(400).json({ success: false, error: 'tempToken and code are required', code: 'TWO_FACTOR_MISSING_FIELDS' });
     }
 
     // Verify temp token
@@ -239,11 +239,11 @@ router.post('/verify', zodValidate(twoFactorVerifySchema), async (req, res) => {
     try {
       payload = jwt.verify(tempToken, config.JWT_SECRET);
     } catch {
-      return res.status(401).json({ error: 'Invalid or expired token' });
+      return res.status(401).json({ success: false, error: 'Invalid or expired token', code: 'TWO_FACTOR_TOKEN_EXPIRED' });
     }
 
     if (payload.type !== '2fa_pending') {
-      return res.status(400).json({ error: 'Invalid token type' });
+      return res.status(400).json({ success: false, error: 'Invalid token type', code: 'TWO_FACTOR_INVALID_TOKEN_TYPE' });
     }
 
     const userId = payload.id;
@@ -255,7 +255,7 @@ router.post('/verify', zodValidate(twoFactorVerifySchema), async (req, res) => {
       [userId]
     );
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ success: false, error: 'User not found', code: 'TWO_FACTOR_USER_NOT_FOUND' });
     }
 
     const user = userResult.rows[0];
@@ -279,7 +279,7 @@ router.post('/verify', zodValidate(twoFactorVerifySchema), async (req, res) => {
     }
 
     if (!isValid) {
-      return res.status(400).json({ error: 'Invalid verification code' });
+      return res.status(400).json({ success: false, error: 'Invalid verification code', code: 'TWO_FACTOR_INVALID_CODE' });
     }
 
     // Issue full auth tokens
@@ -294,7 +294,7 @@ router.post('/verify', zodValidate(twoFactorVerifySchema), async (req, res) => {
     });
   } catch (error) {
     log.error('Verify failed', error);
-    res.status(500).json({ error: 'Failed to verify 2FA code' });
+    res.status(500).json({ success: false, error: 'Failed to verify 2FA code', code: 'TWO_FACTOR_VERIFY_ERROR' });
   }
 });
 

@@ -94,7 +94,7 @@ router.setAuthHelper = (helper) => {
 // Lazy authentication middleware wrapper (evaluates authHelper at runtime)
 const requireAuth = (req, res, next) => {
   if (!authHelper || !authHelper.authenticateToken) {
-    return res.status(500).json({ message: 'Auth system not initialized' });
+    return res.status(500).json({ success: false, error: 'Auth system not initialized', code: 'AUTH_NOT_INITIALIZED' });
   }
   return authHelper.authenticateToken(req, res, next);
 };
@@ -118,7 +118,7 @@ router.post('/signup',
       const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
       if (isBlocked) {
         return res.status(429).json({
-          message: 'Too many requests. Please try again later.'
+          success: false, error: 'Too many requests. Please try again later.', code: 'RATE_LIMIT_EXCEEDED'
         });
       }
 
@@ -142,7 +142,7 @@ router.post('/signup',
       if (isRapidRequest) {
         await anomalyDetector.blockIpAddress(req.ip, 1800, 'rapid_signup_requests');
         return res.status(429).json({
-          message: 'Too many signup attempts. Please try again later.'
+          success: false, error: 'Too many signup attempts. Please try again later.', code: 'RATE_LIMIT_EXCEEDED'
         });
       }
 
@@ -153,7 +153,7 @@ router.post('/signup',
       if (betaGateEnabled) {
         const { inviteCode } = req.body;
         if (!inviteCode) {
-          return res.status(403).json({ message: 'An invite code is required to sign up during the beta period.' });
+          return res.status(403).json({ success: false, error: 'An invite code is required to sign up during the beta period.', code: 'AUTH_INVITE_REQUIRED' });
         }
         const codeResult = dbQuery
           ? await dbQuery(
@@ -165,13 +165,13 @@ router.post('/signup',
           : { rows: [] };
         const invite = codeResult.rows[0];
         if (!invite) {
-          return res.status(403).json({ message: 'Invalid invite code.' });
+          return res.status(403).json({ success: false, error: 'Invalid invite code.', code: 'AUTH_INVALID_INVITE' });
         }
         if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
-          return res.status(403).json({ message: 'This invite code has expired.' });
+          return res.status(403).json({ success: false, error: 'This invite code has expired.', code: 'AUTH_INVITE_EXPIRED' });
         }
         if (invite.uses_count >= invite.max_uses) {
-          return res.status(403).json({ message: 'This invite code has reached its maximum uses.' });
+          return res.status(403).json({ success: false, error: 'This invite code has reached its maximum uses.', code: 'AUTH_INVITE_EXHAUSTED' });
         }
         // Store invite id for post-signup increment
         req._betaInviteId = invite.id;
@@ -179,23 +179,23 @@ router.post('/signup',
 
       // Validation
       if (!email || !password || !name) {
-        return res.status(400).json({ message: 'All fields are required' });
+        return res.status(400).json({ success: false, error: 'All fields are required', code: 'AUTH_MISSING_FIELDS' });
       }
 
       // Validate userType
       const validUserTypes = ['client', 'designer'];
       if (!validUserTypes.includes(userType)) {
-        return res.status(400).json({ message: 'Invalid user type' });
+        return res.status(400).json({ success: false, error: 'Invalid user type', code: 'AUTH_INVALID_USER_TYPE' });
       }
 
       if (password.length < 8) {
-        return res.status(400).json({ message: 'Password must be at least 8 characters' });
+        return res.status(400).json({ success: false, error: 'Password must be at least 8 characters', code: 'AUTH_WEAK_PASSWORD' });
       }
 
       // Check if user exists
       const existingUser = await authHelper.getUserByEmail(email);
       if (existingUser) {
-        return res.status(400).json({ message: 'Email already registered' });
+        return res.status(400).json({ success: false, error: 'Email already registered', code: 'AUTH_EMAIL_EXISTS' });
       }
 
       // Hash password
@@ -328,7 +328,7 @@ router.post('/signup',
         error: error.message
       });
 
-      res.status(500).json({ message: 'Server error during signup' });
+      res.status(500).json({ success: false, error: 'Server error during signup', code: 'AUTH_SIGNUP_ERROR' });
     }
   });
 
@@ -347,7 +347,7 @@ router.post('/login',
       const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
       if (isBlocked) {
         return res.status(429).json({
-          message: 'Too many failed attempts. Please try again later.'
+          success: false, error: 'Too many failed attempts. Please try again later.', code: 'RATE_LIMIT_EXCEEDED'
         });
       }
 
@@ -376,13 +376,13 @@ router.post('/login',
           // Block IP temporarily
           await anomalyDetector.blockIpAddress(req.ip, 3600, 'brute_force_login');
           return res.status(429).json({
-            message: 'Too many failed attempts. Your IP has been temporarily blocked.'
+            success: false, error: 'Too many failed attempts. Your IP has been temporarily blocked.', code: 'AUTH_IP_BLOCKED'
           });
         }
 
         // Log failed login - user not found
         await securityLogger.logLoginFailure(email, 'User not found', req);
-        return res.status(401).json({ message: 'Invalid email or password' });
+        return res.status(401).json({ success: false, error: 'Invalid email or password', code: 'AUTH_INVALID_CREDENTIALS' });
       }
 
       // Check password
@@ -394,7 +394,7 @@ router.post('/login',
           // Block IP temporarily
           await anomalyDetector.blockIpAddress(req.ip, 3600, 'brute_force_login');
           return res.status(429).json({
-            message: 'Too many failed attempts. Your IP has been temporarily blocked.'
+            success: false, error: 'Too many failed attempts. Your IP has been temporarily blocked.', code: 'AUTH_IP_BLOCKED'
           });
         }
 
@@ -402,7 +402,7 @@ router.post('/login',
         await securityLogger.logLoginFailure(email, 'Invalid password', req, {
           userId: user.id
         });
-        return res.status(401).json({ message: 'Invalid email or password' });
+        return res.status(401).json({ success: false, error: 'Invalid email or password', code: 'AUTH_INVALID_CREDENTIALS' });
       }
 
       // Reset failed login counter on successful authentication
@@ -456,7 +456,7 @@ router.post('/login',
       // Log failed login - server error
       await securityLogger.logLoginFailure(req.body.email, `Server error: ${error.message}`, req);
 
-      res.status(500).json({ message: 'Server error during login' });
+      res.status(500).json({ success: false, error: 'Server error during login', code: 'AUTH_LOGIN_ERROR' });
     }
   });
 
@@ -467,14 +467,14 @@ router.get('/me', requireAuth, async (req, res) => {
     const user = users.find(u => u.id === req.user.id);
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ success: false, error: 'User not found', code: 'AUTH_USER_NOT_FOUND' });
     }
 
     const { password: _, ...userWithoutPassword } = user;
     res.json(userWithoutPassword);
   } catch (error) {
     log.error('Error fetching current user', error);
-    res.status(500).json({ message: 'Failed to fetch user data' });
+    res.status(500).json({ success: false, error: 'Failed to fetch user data', code: 'AUTH_FETCH_USER_ERROR' });
   }
 });
 
@@ -497,7 +497,7 @@ router.post('/google', async (req, res) => {
 
     if (!credential) {
       log.info('No credential provided in request');
-      return res.status(400).json({ message: 'Google credential is required' });
+      return res.status(400).json({ success: false, error: 'Google credential is required', code: 'AUTH_MISSING_CREDENTIAL' });
     }
 
     // Verify the Google ID token
@@ -513,7 +513,7 @@ router.post('/google', async (req, res) => {
 
     if (!email_verified) {
       log.info('Email not verified by Google');
-      return res.status(400).json({ message: 'Google email not verified' });
+      return res.status(400).json({ success: false, error: 'Google email not verified', code: 'AUTH_EMAIL_NOT_VERIFIED' });
     }
 
     // Check if user already exists
@@ -588,7 +588,7 @@ router.post('/google', async (req, res) => {
       hasCredential: !!req.body.credential
     });
 
-    res.status(401).json({ message: userMessage, errorType });
+    res.status(401).json({ success: false, error: userMessage, code: 'AUTH_GOOGLE_OAUTH_FAILED', errorType });
   }
 });
 
@@ -762,7 +762,7 @@ router.post('/verify-email',
       const { token } = req.body;
 
       if (!token) {
-        return res.status(400).json({ message: 'Verification token is required' });
+        return res.status(400).json({ success: false, error: 'Verification token is required', code: 'AUTH_MISSING_TOKEN' });
       }
 
       // For database mode, query directly
@@ -774,7 +774,7 @@ router.post('/verify-email',
         `, [token]);
 
         if (result.rows.length === 0) {
-          return res.status(400).json({ message: 'Invalid or expired verification token' });
+          return res.status(400).json({ success: false, error: 'Invalid or expired verification token', code: 'AUTH_INVALID_VERIFICATION_TOKEN' });
         }
 
         const user = result.rows[0];
@@ -786,7 +786,7 @@ router.post('/verify-email',
 
         // Check if token is expired
         if (user.verification_expires && new Date(user.verification_expires) < new Date()) {
-          return res.status(400).json({ message: 'Verification token has expired. Please request a new one.' });
+          return res.status(400).json({ success: false, error: 'Verification token has expired. Please request a new one.', code: 'AUTH_VERIFICATION_EXPIRED' });
         }
 
         // Mark email as verified and clear token
@@ -819,7 +819,7 @@ router.post('/verify-email',
       const user = users.find(u => u.verificationToken === token);
 
       if (!user) {
-        return res.status(400).json({ message: 'Invalid or expired verification token' });
+        return res.status(400).json({ success: false, error: 'Invalid or expired verification token', code: 'AUTH_INVALID_VERIFICATION_TOKEN' });
       }
 
       if (user.emailVerified) {
@@ -827,7 +827,7 @@ router.post('/verify-email',
       }
 
       if (user.verificationExpires && new Date(user.verificationExpires) < new Date()) {
-        return res.status(400).json({ message: 'Verification token has expired. Please request a new one.' });
+        return res.status(400).json({ success: false, error: 'Verification token has expired. Please request a new one.', code: 'AUTH_VERIFICATION_EXPIRED' });
       }
 
       // Update user
@@ -846,7 +846,7 @@ router.post('/verify-email',
         endpoint: '/api/auth/verify-email',
         ipAddress: req.ip
       });
-      res.status(500).json({ message: 'Server error during email verification' });
+      res.status(500).json({ success: false, error: 'Server error during email verification', code: 'AUTH_VERIFICATION_ERROR' });
     }
   }
 );
@@ -864,13 +864,13 @@ router.post('/resend-verification',
       const { email } = req.body;
 
       if (!email) {
-        return res.status(400).json({ message: 'Email is required' });
+        return res.status(400).json({ success: false, error: 'Email is required', code: 'AUTH_MISSING_EMAIL' });
       }
 
       // Check rate limiting for resend
       const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
       if (isBlocked) {
-        return res.status(429).json({ message: 'Too many requests. Please try again later.' });
+        return res.status(429).json({ success: false, error: 'Too many requests. Please try again later.', code: 'RATE_LIMIT_EXCEEDED' });
       }
 
       // Generate new token
@@ -935,7 +935,7 @@ router.post('/resend-verification',
         email: req.body.email,
         ipAddress: req.ip
       });
-      res.status(500).json({ message: 'Server error while sending verification email' });
+      res.status(500).json({ success: false, error: 'Server error while sending verification email', code: 'AUTH_RESEND_ERROR' });
     }
   }
 );
@@ -954,13 +954,13 @@ router.post('/forgot-password',
       const { email } = req.body;
 
       if (!email) {
-        return res.status(400).json({ message: 'Email is required' });
+        return res.status(400).json({ success: false, error: 'Email is required', code: 'AUTH_MISSING_EMAIL' });
       }
 
       // Check rate limiting
       const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
       if (isBlocked) {
-        return res.status(429).json({ message: 'Too many requests. Please try again later.' });
+        return res.status(429).json({ success: false, error: 'Too many requests. Please try again later.', code: 'RATE_LIMIT_EXCEEDED' });
       }
 
       // Generate reset token
@@ -1039,7 +1039,7 @@ router.post('/forgot-password',
         email: req.body.email,
         ipAddress: req.ip
       });
-      res.status(500).json({ message: 'Server error while processing password reset request' });
+      res.status(500).json({ success: false, error: 'Server error while processing password reset request', code: 'AUTH_FORGOT_PASSWORD_ERROR' });
     }
   }
 );
@@ -1058,15 +1058,15 @@ router.post('/reset-password',
       const { token, password } = req.body;
 
       if (!token) {
-        return res.status(400).json({ message: 'Reset token is required' });
+        return res.status(400).json({ success: false, error: 'Reset token is required', code: 'AUTH_MISSING_TOKEN' });
       }
 
       if (!password) {
-        return res.status(400).json({ message: 'New password is required' });
+        return res.status(400).json({ success: false, error: 'New password is required', code: 'AUTH_MISSING_PASSWORD' });
       }
 
       if (password.length < 8) {
-        return res.status(400).json({ message: 'Password must be at least 8 characters' });
+        return res.status(400).json({ success: false, error: 'Password must be at least 8 characters', code: 'AUTH_WEAK_PASSWORD' });
       }
 
       // Hash the new password
@@ -1081,14 +1081,14 @@ router.post('/reset-password',
         `, [token]);
 
         if (result.rows.length === 0) {
-          return res.status(400).json({ message: 'Invalid or expired reset token' });
+          return res.status(400).json({ success: false, error: 'Invalid or expired reset token', code: 'AUTH_INVALID_RESET_TOKEN' });
         }
 
         const user = result.rows[0];
 
         // Check if token is expired
         if (user.password_reset_expires && new Date(user.password_reset_expires) < new Date()) {
-          return res.status(400).json({ message: 'Reset token has expired. Please request a new one.' });
+          return res.status(400).json({ success: false, error: 'Reset token has expired. Please request a new one.', code: 'AUTH_RESET_TOKEN_EXPIRED' });
         }
 
         // Update password and clear reset token
@@ -1113,11 +1113,11 @@ router.post('/reset-password',
       const user = users.find(u => u.passwordResetToken === token);
 
       if (!user) {
-        return res.status(400).json({ message: 'Invalid or expired reset token' });
+        return res.status(400).json({ success: false, error: 'Invalid or expired reset token', code: 'AUTH_INVALID_RESET_TOKEN' });
       }
 
       if (user.passwordResetExpires && new Date(user.passwordResetExpires) < new Date()) {
-        return res.status(400).json({ message: 'Reset token has expired. Please request a new one.' });
+        return res.status(400).json({ success: false, error: 'Reset token has expired. Please request a new one.', code: 'AUTH_RESET_TOKEN_EXPIRED' });
       }
 
       // Update password and clear reset token
@@ -1133,7 +1133,7 @@ router.post('/reset-password',
         endpoint: '/api/auth/reset-password',
         ipAddress: req.ip
       });
-      res.status(500).json({ message: 'Server error while resetting password' });
+      res.status(500).json({ success: false, error: 'Server error while resetting password', code: 'AUTH_RESET_PASSWORD_ERROR' });
     }
   }
 );
@@ -1149,12 +1149,13 @@ router.post('/apple', async (req, res) => {
 
     // For now, return a helpful message
     res.status(501).json({
-      message: 'Apple Sign In integration is in development. Please use email/password authentication for now.',
-      error: 'OAuth not yet implemented'
+      success: false,
+      error: 'Apple Sign In integration is in development. Please use email/password authentication for now.',
+      code: 'AUTH_APPLE_NOT_IMPLEMENTED'
     });
   } catch (error) {
     log.error('Apple OAuth error', error);
-    res.status(500).json({ message: 'Apple authentication error' });
+    res.status(500).json({ success: false, error: 'Apple authentication error', code: 'AUTH_APPLE_ERROR' });
   }
 });
 
@@ -1214,7 +1215,8 @@ router.get('/settings', requireAuth, async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        error: 'User not found'
+        error: 'User not found',
+        code: 'AUTH_USER_NOT_FOUND'
       });
     }
 
@@ -1245,7 +1247,8 @@ router.get('/settings', requireAuth, async (req, res) => {
     log.error('Error fetching user settings', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch settings'
+      error: 'Failed to fetch settings',
+      code: 'AUTH_FETCH_SETTINGS_ERROR'
     });
   }
 });
@@ -1262,7 +1265,8 @@ router.put('/settings', requireAuth, async (req, res) => {
     if (!settings || typeof settings !== 'object') {
       return res.status(400).json({
         success: false,
-        error: 'Settings object is required'
+        error: 'Settings object is required',
+        code: 'AUTH_INVALID_SETTINGS'
       });
     }
 
@@ -1316,7 +1320,8 @@ router.put('/settings', requireAuth, async (req, res) => {
     if (userIndex === -1) {
       return res.status(404).json({
         success: false,
-        error: 'User not found'
+        error: 'User not found',
+        code: 'AUTH_USER_NOT_FOUND'
       });
     }
 
@@ -1338,7 +1343,8 @@ router.put('/settings', requireAuth, async (req, res) => {
     log.error('Error updating user settings', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to save settings'
+      error: 'Failed to save settings',
+      code: 'AUTH_SAVE_SETTINGS_ERROR'
     });
   }
 });

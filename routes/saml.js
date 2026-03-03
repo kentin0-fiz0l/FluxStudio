@@ -42,7 +42,7 @@ router.get('/:orgSlug/login', async (req, res) => {
   try {
     const org = await resolveOrg(req.params.orgSlug);
     if (!org) {
-      return res.status(404).json({ error: 'Organization not found' });
+      return res.status(404).json({ success: false, error: 'Organization not found', code: 'SAML_ORG_NOT_FOUND' });
     }
 
     const relayState = req.query.returnTo || '/';
@@ -56,7 +56,7 @@ router.get('/:orgSlug/login', async (req, res) => {
     return res.redirect(redirectUrl);
   } catch (err) {
     log.error('SAML login error', err);
-    return res.status(500).json({ error: 'Failed to initiate SSO login' });
+    return res.status(500).json({ success: false, error: 'Failed to initiate SSO login', code: 'SAML_LOGIN_ERROR' });
   }
 });
 
@@ -82,7 +82,7 @@ router.post('/acs', express.urlencoded({ extended: false }), zodValidate(samlAcs
     // Fallback: try to find org from verified domain of the SAML NameID
     // For MVP, require org query param
     if (!org) {
-      return res.status(400).json({ error: 'Organization could not be determined. Pass ?org=slug' });
+      return res.status(400).json({ success: false, error: 'Organization could not be determined. Pass ?org=slug', code: 'SAML_ORG_REQUIRED' });
     }
 
     // Validate the SAML assertion
@@ -129,7 +129,7 @@ router.post('/acs', express.urlencoded({ extended: false }), zodValidate(samlAcs
       log.error('Failed to log SSO failure', logErr);
     }
 
-    return res.status(401).json({ error: 'SAML assertion validation failed' });
+    return res.status(401).json({ success: false, error: 'SAML assertion validation failed', code: 'SAML_ASSERTION_FAILED' });
   }
 });
 
@@ -141,7 +141,7 @@ router.get('/metadata/:orgSlug', async (req, res) => {
   try {
     const org = await resolveOrg(req.params.orgSlug);
     if (!org) {
-      return res.status(404).json({ error: 'Organization not found' });
+      return res.status(404).json({ success: false, error: 'Organization not found', code: 'SAML_ORG_NOT_FOUND' });
     }
 
     const xml = await samlService.generateMetadata(org.id);
@@ -149,7 +149,7 @@ router.get('/metadata/:orgSlug', async (req, res) => {
     return res.send(xml);
   } catch (err) {
     log.error('SAML metadata error', err);
-    return res.status(500).json({ error: 'Failed to generate SP metadata' });
+    return res.status(500).json({ success: false, error: 'Failed to generate SP metadata', code: 'SAML_METADATA_ERROR' });
   }
 });
 
@@ -159,8 +159,9 @@ router.get('/metadata/:orgSlug', async (req, res) => {
 
 router.get('/:orgSlug/logout', (_req, res) => {
   return res.status(501).json({
+    success: false,
     error: 'Single Logout (SLO) is not yet implemented',
-    message: 'SLO support is planned for a future sprint.',
+    code: 'SAML_SLO_NOT_IMPLEMENTED',
   });
 });
 

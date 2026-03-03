@@ -47,7 +47,9 @@ router.post('/query', authenticateToken, zodValidate(mcpQuerySchema), async (req
     const manager = getMcpManager();
     if (!mcpInitialized) {
       return res.status(503).json({
-        message: 'MCP service not available',
+        success: false,
+        error: 'MCP service not available',
+        code: 'MCP_SERVICE_UNAVAILABLE',
         fallback: 'Try using direct SQL queries instead'
       });
     }
@@ -57,7 +59,7 @@ router.post('/query', authenticateToken, zodValidate(mcpQuerySchema), async (req
     res.json(result);
   } catch (error) {
     log.error('MCP query error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: 'MCP query failed', code: 'MCP_QUERY_ERROR' });
   }
 });
 
@@ -74,7 +76,7 @@ router.get('/tools', authenticateToken, async (req, res) => {
     res.json({ tools, available: true });
   } catch (error) {
     log.error('MCP list tools error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to list MCP tools', code: 'MCP_LIST_TOOLS_ERROR' });
   }
 });
 
@@ -82,12 +84,12 @@ router.get('/tools', authenticateToken, async (req, res) => {
 router.post('/cache/clear', authenticateToken, async (req, res) => {
   try {
     if (req.user.userType !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
+      return res.status(403).json({ success: false, error: 'Admin access required', code: 'MCP_ADMIN_REQUIRED' });
     }
 
     const manager = getMcpManager();
     if (!mcpInitialized) {
-      return res.status(503).json({ message: 'MCP service not available' });
+      return res.status(503).json({ success: false, error: 'MCP service not available', code: 'MCP_SERVICE_UNAVAILABLE' });
     }
 
     manager.clearCache();
@@ -95,7 +97,7 @@ router.post('/cache/clear', authenticateToken, async (req, res) => {
     res.json({ message: 'MCP cache cleared successfully' });
   } catch (error) {
     log.error('MCP cache clear error', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, error: 'Failed to clear MCP cache', code: 'MCP_CACHE_CLEAR_ERROR' });
   }
 });
 

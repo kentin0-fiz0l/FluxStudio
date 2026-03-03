@@ -30,7 +30,7 @@ router.setAuthHelper = (helper) => {
 // Lazy authentication middleware
 const requireAuth = (req, res, next) => {
   if (!authHelper || !authHelper.authenticateToken) {
-    return res.status(500).json({ message: 'Auth system not initialized' });
+    return res.status(500).json({ success: false, error: 'Auth system not initialized', code: 'AUTH_NOT_INITIALIZED' });
   }
   return authHelper.authenticateToken(req, res, next);
 };
@@ -48,7 +48,7 @@ router.post('/webhooks/stripe', async (req, res) => {
 
     if (!signature) {
       log.error('Webhook error: Missing stripe-signature header');
-      return res.status(400).json({ error: 'Missing stripe-signature header' });
+      return res.status(400).json({ success: false, error: 'Missing stripe-signature header', code: 'PAYMENT_MISSING_SIGNATURE' });
     }
 
     // The body should be the raw buffer for signature verification
@@ -61,7 +61,7 @@ router.post('/webhooks/stripe', async (req, res) => {
   } catch (error) {
     log.error('Webhook processing error', error);
     // Return 400 for invalid webhooks so Stripe doesn't retry
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ success: false, error: error.message, code: 'PAYMENT_WEBHOOK_ERROR' });
   }
 });
 
@@ -75,7 +75,7 @@ router.post('/create-checkout-session', requireAuth, zodValidate(createCheckoutS
     const userId = req.user.id;
 
     if (!priceId) {
-      return res.status(400).json({ error: 'Price ID is required' });
+      return res.status(400).json({ success: false, error: 'Price ID is required', code: 'PAYMENT_MISSING_PRICE_ID' });
     }
 
     // Get or create Stripe customer
@@ -86,7 +86,7 @@ router.post('/create-checkout-session', requireAuth, zodValidate(createCheckoutS
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ success: false, error: 'User not found', code: 'PAYMENT_USER_NOT_FOUND' });
     }
 
     const user = userResult.rows[0];
@@ -121,7 +121,7 @@ router.post('/create-checkout-session', requireAuth, zodValidate(createCheckoutS
     res.json({ sessionId: session.id, url: session.url });
   } catch (error) {
     log.error('Create checkout session error', error);
-    res.status(500).json({ error: 'Failed to create checkout session' });
+    res.status(500).json({ success: false, error: 'Failed to create checkout session', code: 'PAYMENT_CHECKOUT_ERROR' });
   }
 });
 
@@ -141,7 +141,7 @@ router.post('/create-portal-session', requireAuth, zodValidate(createPortalSessi
     );
 
     if (userResult.rows.length === 0 || !userResult.rows[0].stripe_customer_id) {
-      return res.status(400).json({ error: 'No billing account found' });
+      return res.status(400).json({ success: false, error: 'No billing account found', code: 'PAYMENT_NO_BILLING_ACCOUNT' });
     }
 
     const session = await paymentService.stripe.billingPortal.sessions.create({
@@ -152,7 +152,7 @@ router.post('/create-portal-session', requireAuth, zodValidate(createPortalSessi
     res.json({ url: session.url });
   } catch (error) {
     log.error('Create portal session error', error);
-    res.status(500).json({ error: 'Failed to create billing portal session' });
+    res.status(500).json({ success: false, error: 'Failed to create billing portal session', code: 'PAYMENT_PORTAL_ERROR' });
   }
 });
 
@@ -179,7 +179,7 @@ router.get('/pricing', (_req, res) => {
     res.json({ pricing: formattedPricing });
   } catch (error) {
     log.error('Get pricing error', error);
-    res.status(500).json({ error: 'Failed to get pricing' });
+    res.status(500).json({ success: false, error: 'Failed to get pricing', code: 'PAYMENT_PRICING_ERROR' });
   }
 });
 
@@ -230,7 +230,7 @@ router.get('/subscription', requireAuth, async (req, res) => {
     });
   } catch (error) {
     log.error('Get subscription error', error);
-    res.status(500).json({ error: 'Failed to get subscription status' });
+    res.status(500).json({ success: false, error: 'Failed to get subscription status', code: 'PAYMENT_SUBSCRIPTION_ERROR' });
   }
 });
 
@@ -244,7 +244,7 @@ router.post('/create-payment-intent', requireAuth, async (req, res) => {
     const userId = req.user.id;
 
     if (!projectId || !serviceTier || !projectType) {
-      return res.status(400).json({ error: 'Project ID, service tier, and project type are required' });
+      return res.status(400).json({ success: false, error: 'Project ID, service tier, and project type are required', code: 'PAYMENT_MISSING_FIELDS' });
     }
 
     // Get user's Stripe customer ID
@@ -254,7 +254,7 @@ router.post('/create-payment-intent', requireAuth, async (req, res) => {
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ success: false, error: 'User not found', code: 'PAYMENT_USER_NOT_FOUND' });
     }
 
     const user = userResult.rows[0];
@@ -277,7 +277,7 @@ router.post('/create-payment-intent', requireAuth, async (req, res) => {
     );
 
     if (projectResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Project not found' });
+      return res.status(404).json({ success: false, error: 'Project not found', code: 'PAYMENT_PROJECT_NOT_FOUND' });
     }
 
     const project = projectResult.rows[0];
@@ -306,7 +306,7 @@ router.post('/create-payment-intent', requireAuth, async (req, res) => {
     });
   } catch (error) {
     log.error('Create payment intent error', error);
-    res.status(500).json({ error: error.message || 'Failed to create payment intent' });
+    res.status(500).json({ success: false, error: error.message || 'Failed to create payment intent', code: 'PAYMENT_INTENT_ERROR' });
   }
 });
 

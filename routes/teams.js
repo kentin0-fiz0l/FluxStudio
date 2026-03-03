@@ -70,7 +70,7 @@ router.post('/', authenticateToken, zodValidate(createTeamSchema), async (req, r
     const { name, description } = req.body;
 
     if (!name) {
-      return res.status(400).json({ message: 'Team name is required' });
+      return res.status(400).json({ success: false, error: 'Team name is required', code: 'TEAM_MISSING_NAME' });
     }
 
     const teams = await getTeams();
@@ -100,7 +100,7 @@ router.post('/', authenticateToken, zodValidate(createTeamSchema), async (req, r
     });
   } catch (error) {
     log.error('Create team error', error);
-    res.status(500).json({ message: 'Error creating team' });
+    res.status(500).json({ success: false, error: 'Error creating team', code: 'TEAM_CREATE_ERROR' });
   }
 });
 
@@ -118,7 +118,7 @@ router.get('/', authenticateToken, async (req, res) => {
     res.json({ teams: userTeams });
   } catch (error) {
     log.error('Get teams error', error);
-    res.status(500).json({ message: 'Error retrieving teams' });
+    res.status(500).json({ success: false, error: 'Error retrieving teams', code: 'TEAM_LIST_ERROR' });
   }
 });
 
@@ -132,19 +132,19 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const team = teams.find(t => t.id === req.params.id);
 
     if (!team) {
-      return res.status(404).json({ message: 'Team not found' });
+      return res.status(404).json({ success: false, error: 'Team not found', code: 'TEAM_NOT_FOUND' });
     }
 
     // Check if user is a member
     const isMember = team.members.some(member => member.userId === req.user.id);
     if (!isMember) {
-      return res.status(403).json({ message: 'Access denied' });
+      return res.status(403).json({ success: false, error: 'Access denied', code: 'TEAM_ACCESS_DENIED' });
     }
 
     res.json(team);
   } catch (error) {
     log.error('Get team error', error);
-    res.status(500).json({ message: 'Error retrieving team' });
+    res.status(500).json({ success: false, error: 'Error retrieving team', code: 'TEAM_GET_ERROR' });
   }
 });
 
@@ -158,13 +158,13 @@ router.put('/:id', authenticateToken, zodValidate(updateTeamSchema), async (req,
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
 
     if (teamIndex === -1) {
-      return res.status(404).json({ message: 'Team not found' });
+      return res.status(404).json({ success: false, error: 'Team not found', code: 'TEAM_NOT_FOUND' });
     }
 
     // Check if user is owner or admin
     const member = teams[teamIndex].members.find(m => m.userId === req.user.id);
     if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
-      return res.status(403).json({ message: 'Permission denied' });
+      return res.status(403).json({ success: false, error: 'Permission denied', code: 'TEAM_PERMISSION_DENIED' });
     }
 
     const { name, description } = req.body;
@@ -180,7 +180,7 @@ router.put('/:id', authenticateToken, zodValidate(updateTeamSchema), async (req,
     res.json(teams[teamIndex]);
   } catch (error) {
     log.error('Update team error', error);
-    res.status(500).json({ message: 'Error updating team' });
+    res.status(500).json({ success: false, error: 'Error updating team', code: 'TEAM_UPDATE_ERROR' });
   }
 });
 
@@ -194,13 +194,13 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
 
     if (teamIndex === -1) {
-      return res.status(404).json({ message: 'Team not found' });
+      return res.status(404).json({ success: false, error: 'Team not found', code: 'TEAM_NOT_FOUND' });
     }
 
     // Check if user is owner
     const member = teams[teamIndex].members.find(m => m.userId === req.user.id);
     if (!member || member.role !== 'owner') {
-      return res.status(403).json({ message: 'Only team owner can delete the team' });
+      return res.status(403).json({ success: false, error: 'Only team owner can delete the team', code: 'TEAM_OWNER_REQUIRED' });
     }
 
     teams.splice(teamIndex, 1);
@@ -209,7 +209,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Team deleted successfully' });
   } catch (error) {
     log.error('Delete team error', error);
-    res.status(500).json({ message: 'Error deleting team' });
+    res.status(500).json({ success: false, error: 'Error deleting team', code: 'TEAM_DELETE_ERROR' });
   }
 });
 
@@ -222,20 +222,20 @@ router.post('/:id/invite', authenticateToken, zodValidate(inviteTeamMemberSchema
     const { email, role = 'member' } = req.body;
 
     if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
+      return res.status(400).json({ success: false, error: 'Email is required', code: 'TEAM_MISSING_EMAIL' });
     }
 
     const teams = await getTeams();
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
 
     if (teamIndex === -1) {
-      return res.status(404).json({ message: 'Team not found' });
+      return res.status(404).json({ success: false, error: 'Team not found', code: 'TEAM_NOT_FOUND' });
     }
 
     // Check if user has permission to invite
     const member = teams[teamIndex].members.find(m => m.userId === req.user.id);
     if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
-      return res.status(403).json({ message: 'Permission denied' });
+      return res.status(403).json({ success: false, error: 'Permission denied', code: 'TEAM_PERMISSION_DENIED' });
     }
 
     // Check if user is already a member or invited
@@ -245,7 +245,7 @@ router.post('/:id/invite', authenticateToken, zodValidate(inviteTeamMemberSchema
     if (invitedUser) {
       const existingMember = teams[teamIndex].members.find(m => m.userId === invitedUser.id);
       if (existingMember) {
-        return res.status(400).json({ message: 'User is already a team member' });
+        return res.status(400).json({ success: false, error: 'User is already a team member', code: 'TEAM_ALREADY_MEMBER' });
       }
     }
 
@@ -272,7 +272,7 @@ router.post('/:id/invite', authenticateToken, zodValidate(inviteTeamMemberSchema
     });
   } catch (error) {
     log.error('Invite member error', error);
-    res.status(500).json({ message: 'Error sending invitation' });
+    res.status(500).json({ success: false, error: 'Error sending invitation', code: 'TEAM_INVITE_ERROR' });
   }
 });
 
@@ -286,7 +286,7 @@ router.post('/:id/accept-invite', authenticateToken, async (req, res) => {
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
 
     if (teamIndex === -1) {
-      return res.status(404).json({ message: 'Team not found' });
+      return res.status(404).json({ success: false, error: 'Team not found', code: 'TEAM_NOT_FOUND' });
     }
 
     // Find invitation for user's email
@@ -297,7 +297,7 @@ router.post('/:id/accept-invite', authenticateToken, async (req, res) => {
     );
 
     if (inviteIndex === -1 || inviteIndex === undefined) {
-      return res.status(404).json({ message: 'Invitation not found' });
+      return res.status(404).json({ success: false, error: 'Invitation not found', code: 'TEAM_INVITE_NOT_FOUND' });
     }
 
     const invite = teams[teamIndex].invites[inviteIndex];
@@ -328,7 +328,7 @@ router.post('/:id/accept-invite', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Accept invitation error', error);
-    res.status(500).json({ message: 'Error accepting invitation' });
+    res.status(500).json({ success: false, error: 'Error accepting invitation', code: 'TEAM_ACCEPT_INVITE_ERROR' });
   }
 });
 
@@ -342,7 +342,7 @@ router.delete('/:id/members/:userId', authenticateToken, async (req, res) => {
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
 
     if (teamIndex === -1) {
-      return res.status(404).json({ message: 'Team not found' });
+      return res.status(404).json({ success: false, error: 'Team not found', code: 'TEAM_NOT_FOUND' });
     }
 
     // Check if user has permission to remove members
@@ -350,14 +350,14 @@ router.delete('/:id/members/:userId', authenticateToken, async (req, res) => {
     if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
       // Allow users to remove themselves
       if (req.params.userId !== req.user.id) {
-        return res.status(403).json({ message: 'Permission denied' });
+        return res.status(403).json({ success: false, error: 'Permission denied', code: 'TEAM_PERMISSION_DENIED' });
       }
     }
 
     // Cannot remove the owner
     const targetMember = teams[teamIndex].members.find(m => m.userId === req.params.userId);
     if (targetMember && targetMember.role === 'owner' && req.params.userId !== req.user.id) {
-      return res.status(400).json({ message: 'Cannot remove team owner' });
+      return res.status(400).json({ success: false, error: 'Cannot remove team owner', code: 'TEAM_CANNOT_REMOVE_OWNER' });
     }
 
     // Get member info before removal for activity logging
@@ -383,7 +383,7 @@ router.delete('/:id/members/:userId', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Remove member error', error);
-    res.status(500).json({ message: 'Error removing member' });
+    res.status(500).json({ success: false, error: 'Error removing member', code: 'TEAM_REMOVE_MEMBER_ERROR' });
   }
 });
 
@@ -397,20 +397,20 @@ router.put('/:id/members/:userId', authenticateToken, zodValidate(updateTeamMemb
     const validRoles = ['owner', 'admin', 'member'];
 
     if (!role || !validRoles.includes(role)) {
-      return res.status(400).json({ message: 'Valid role is required' });
+      return res.status(400).json({ success: false, error: 'Valid role is required', code: 'TEAM_INVALID_ROLE' });
     }
 
     const teams = await getTeams();
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
 
     if (teamIndex === -1) {
-      return res.status(404).json({ message: 'Team not found' });
+      return res.status(404).json({ success: false, error: 'Team not found', code: 'TEAM_NOT_FOUND' });
     }
 
     // Check if user has permission
     const member = teams[teamIndex].members.find(m => m.userId === req.user.id);
     if (!member || member.role !== 'owner') {
-      return res.status(403).json({ message: 'Only team owner can change roles' });
+      return res.status(403).json({ success: false, error: 'Only team owner can change roles', code: 'TEAM_OWNER_REQUIRED' });
     }
 
     // Find target member
@@ -419,7 +419,7 @@ router.put('/:id/members/:userId', authenticateToken, zodValidate(updateTeamMemb
     );
 
     if (targetMemberIndex === -1) {
-      return res.status(404).json({ message: 'Member not found' });
+      return res.status(404).json({ success: false, error: 'Member not found', code: 'TEAM_MEMBER_NOT_FOUND' });
     }
 
     // Update role
@@ -432,7 +432,7 @@ router.put('/:id/members/:userId', authenticateToken, zodValidate(updateTeamMemb
     });
   } catch (error) {
     log.error('Update role error', error);
-    res.status(500).json({ message: 'Error updating role' });
+    res.status(500).json({ success: false, error: 'Error updating role', code: 'TEAM_UPDATE_ROLE_ERROR' });
   }
 });
 
@@ -446,13 +446,13 @@ router.get('/:id/invites', authenticateToken, async (req, res) => {
     const team = teams.find(t => t.id === req.params.id);
 
     if (!team) {
-      return res.status(404).json({ message: 'Team not found' });
+      return res.status(404).json({ success: false, error: 'Team not found', code: 'TEAM_NOT_FOUND' });
     }
 
     // Check if user is admin or owner
     const member = team.members.find(m => m.userId === req.user.id);
     if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
-      return res.status(403).json({ message: 'Permission denied' });
+      return res.status(403).json({ success: false, error: 'Permission denied', code: 'TEAM_PERMISSION_DENIED' });
     }
 
     res.json({
@@ -460,7 +460,7 @@ router.get('/:id/invites', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Get invites error', error);
-    res.status(500).json({ message: 'Error retrieving invitations' });
+    res.status(500).json({ success: false, error: 'Error retrieving invitations', code: 'TEAM_LIST_INVITES_ERROR' });
   }
 });
 
@@ -474,13 +474,13 @@ router.delete('/:id/invites/:inviteId', authenticateToken, async (req, res) => {
     const teamIndex = teams.findIndex(t => t.id === req.params.id);
 
     if (teamIndex === -1) {
-      return res.status(404).json({ message: 'Team not found' });
+      return res.status(404).json({ success: false, error: 'Team not found', code: 'TEAM_NOT_FOUND' });
     }
 
     // Check if user is admin or owner
     const member = teams[teamIndex].members.find(m => m.userId === req.user.id);
     if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
-      return res.status(403).json({ message: 'Permission denied' });
+      return res.status(403).json({ success: false, error: 'Permission denied', code: 'TEAM_PERMISSION_DENIED' });
     }
 
     // Remove invitation
@@ -493,7 +493,7 @@ router.delete('/:id/invites/:inviteId', authenticateToken, async (req, res) => {
     res.json({ message: 'Invitation cancelled' });
   } catch (error) {
     log.error('Cancel invitation error', error);
-    res.status(500).json({ message: 'Error cancelling invitation' });
+    res.status(500).json({ success: false, error: 'Error cancelling invitation', code: 'TEAM_CANCEL_INVITE_ERROR' });
   }
 });
 

@@ -64,7 +64,7 @@ router.get('/project/:projectId/health', authenticateToken, async (req, res) => 
   try {
     const { projectId } = req.params;
     const project = await verifyProjectAccess(projectId, req.user.id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
 
     // 1. Task stats from view
     const statsResult = await query(
@@ -127,7 +127,7 @@ router.get('/project/:projectId/health', authenticateToken, async (req, res) => 
     });
   } catch (error) {
     log.error('Health error', error);
-    res.status(500).json({ error: 'Failed to calculate health score' });
+    res.status(500).json({ success: false, error: 'Failed to calculate health score', code: 'ANALYTICS_HEALTH_ERROR' });
   }
 });
 
@@ -143,7 +143,7 @@ router.get('/project/:projectId/burndown', authenticateToken, async (req, res) =
   try {
     const { projectId } = req.params;
     const project = await verifyProjectAccess(projectId, req.user.id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
 
     // Total tasks in project
     const totalResult = await query(
@@ -179,7 +179,7 @@ router.get('/project/:projectId/burndown', authenticateToken, async (req, res) =
     res.json({ projectId, totalTasks, burndown });
   } catch (error) {
     log.error('Burndown error', error);
-    res.status(500).json({ error: 'Failed to calculate burndown' });
+    res.status(500).json({ success: false, error: 'Failed to calculate burndown', code: 'ANALYTICS_BURNDOWN_ERROR' });
   }
 });
 
@@ -195,7 +195,7 @@ router.get('/project/:projectId/velocity', authenticateToken, async (req, res) =
   try {
     const { projectId } = req.params;
     const project = await verifyProjectAccess(projectId, req.user.id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
 
     // Completed tasks in last 8 weeks
     const tasksResult = await query(
@@ -220,7 +220,7 @@ router.get('/project/:projectId/velocity', authenticateToken, async (req, res) =
     res.json({ projectId, ...velocity, forecast, remainingTasks });
   } catch (error) {
     log.error('Velocity error', error);
-    res.status(500).json({ error: 'Failed to calculate velocity' });
+    res.status(500).json({ success: false, error: 'Failed to calculate velocity', code: 'ANALYTICS_VELOCITY_ERROR' });
   }
 });
 
@@ -236,7 +236,7 @@ router.get('/team/:teamId/workload', authenticateToken, async (req, res) => {
   try {
     const { teamId } = req.params;
     const team = await verifyTeamAccess(teamId, req.user.id);
-    if (!team) return res.status(404).json({ error: 'Team not found' });
+    if (!team) return res.status(404).json({ success: false, error: 'Team not found', code: 'ANALYTICS_TEAM_NOT_FOUND' });
 
     // Get team members with their task stats
     const membersResult = await query(
@@ -323,7 +323,7 @@ router.get('/team/:teamId/workload', authenticateToken, async (req, res) => {
     res.json({ teamId, members, bottlenecks });
   } catch (error) {
     log.error('Workload error', error);
-    res.status(500).json({ error: 'Failed to calculate workload' });
+    res.status(500).json({ success: false, error: 'Failed to calculate workload', code: 'ANALYTICS_WORKLOAD_ERROR' });
   }
 });
 
@@ -339,7 +339,7 @@ router.get('/project/:projectId/risks', authenticateToken, async (req, res) => {
   try {
     const { projectId } = req.params;
     const project = await verifyProjectAccess(projectId, req.user.id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
 
     // Velocity for forecast
     const completedResult = await query(
@@ -413,7 +413,7 @@ router.get('/project/:projectId/risks', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Risks error', error);
-    res.status(500).json({ error: 'Failed to calculate risks' });
+    res.status(500).json({ success: false, error: 'Failed to calculate risks', code: 'ANALYTICS_RISKS_ERROR' });
   }
 });
 
@@ -455,7 +455,7 @@ router.post('/events', zodValidate(ingestEventSchema), async (req, res) => {
     res.status(201).json({ success: true, eventId: event.id });
   } catch (error) {
     log.error('Ingest error', error);
-    res.status(500).json({ error: 'Failed to record event' });
+    res.status(500).json({ success: false, error: 'Failed to record event', code: 'ANALYTICS_INGEST_ERROR' });
   }
 });
 
@@ -468,7 +468,7 @@ router.get('/funnel', authenticateToken, async (req, res) => {
     // Simple admin check — requires admin role
     const userResult = await query('SELECT role FROM users WHERE id = $1', [req.user.id]);
     if (!userResult.rows[0] || userResult.rows[0].role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      return res.status(403).json({ success: false, error: 'Admin access required', code: 'ANALYTICS_ADMIN_REQUIRED' });
     }
 
     const startDate = req.query.start || new Date(Date.now() - 30 * 86400000).toISOString();
@@ -482,7 +482,7 @@ router.get('/funnel', authenticateToken, async (req, res) => {
     res.json({ success: true, funnel, retention, period: { startDate, endDate } });
   } catch (error) {
     log.error('Funnel query error', error);
-    res.status(500).json({ error: 'Failed to query funnel data' });
+    res.status(500).json({ success: false, error: 'Failed to query funnel data', code: 'ANALYTICS_FUNNEL_ERROR' });
   }
 });
 

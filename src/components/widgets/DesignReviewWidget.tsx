@@ -1,19 +1,10 @@
-import React, { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Eye,
   Download,
   Share2,
-  MousePointer,
   Edit3,
-  Type,
-  Circle,
-  Square,
-  ArrowRight,
   User,
   Calendar,
   AlertTriangle,
@@ -22,9 +13,15 @@ import {
 } from 'lucide-react';
 import {
   DesignReview,
-  ImageAnnotation,
-  MessageUser
+  ImageAnnotation
 } from '../../types/messaging';
+import { AnnotationCanvas, annotationTools } from './design-review/AnnotationCanvas';
+import { ReviewStatusBadge } from './design-review/ReviewStatusBadge';
+import {
+  createMockDesignReview,
+  createMockDesignVersions,
+  colors,
+} from './design-review/mock-data';
 
 interface DesignReviewWidgetProps {
   review?: DesignReview;
@@ -34,327 +31,9 @@ interface DesignReviewWidgetProps {
   className?: string;
 }
 
-interface AnnotationTool {
-  id: string;
-  name: string;
-  icon: React.ComponentType<{ size?: string | number; className?: string }>;
-  cursor: string;
-}
-
-interface DesignVersion {
-  id: string;
-  version: string;
-  uploadedAt: Date;
-  uploadedBy: MessageUser;
-  changes: string[];
-  isActive: boolean;
-  fileUrl: string;
-  thumbnail: string;
-}
-
-// Factory functions to create mock data with fresh dates
-function createMockDesignReview(): DesignReview {
-  const now = Date.now();
-  return {
-    id: 'review-1',
-    messageId: 'msg-1',
-    fileId: 'file-1',
-    projectId: 'project-1',
-    reviewType: 'initial',
-    status: 'in_review',
-    reviewer: { id: 'client-1', name: 'Director Johnson', userType: 'client', avatar: '/avatars/director.jpg' },
-    assignedTo: [
-      { id: 'kentino', name: 'Kentino', userType: 'designer', avatar: '/avatars/kentino.jpg' }
-    ],
-    feedback: {
-      overall: '',
-      annotations: [],
-      suggestions: [],
-      approved: false
-    },
-    deadline: new Date(now + 48 * 60 * 60 * 1000), // 48 hours from now
-    createdAt: new Date(now - 2 * 60 * 60 * 1000) // 2 hours ago
-  };
-}
-
-function createMockDesignVersions(): DesignVersion[] {
-  const now = Date.now();
-  return [
-    {
-      id: 'version-3',
-      version: 'v3.0',
-      uploadedAt: new Date(now - 1 * 60 * 60 * 1000),
-      uploadedBy: { id: 'kentino', name: 'Kentino', userType: 'designer' },
-      changes: ['Updated color scheme based on feedback', 'Adjusted logo placement', 'Refined typography'],
-      isActive: true,
-      fileUrl: '/designs/uniform-v3.jpg',
-      thumbnail: '/thumbnails/uniform-v3-thumb.jpg'
-    },
-    {
-      id: 'version-2',
-      version: 'v2.1',
-      uploadedAt: new Date(now - 1 * 24 * 60 * 60 * 1000),
-      uploadedBy: { id: 'kentino', name: 'Kentino', userType: 'designer' },
-      changes: ['Initial client feedback integration', 'Color variations added'],
-      isActive: false,
-      fileUrl: '/designs/uniform-v2.jpg',
-      thumbnail: '/thumbnails/uniform-v2-thumb.jpg'
-    },
-    {
-      id: 'version-1',
-      version: 'v1.0',
-      uploadedAt: new Date(now - 3 * 24 * 60 * 60 * 1000),
-      uploadedBy: { id: 'kentino', name: 'Kentino', userType: 'designer' },
-      changes: ['Initial concept'],
-      isActive: false,
-      fileUrl: '/designs/uniform-v1.jpg',
-      thumbnail: '/thumbnails/uniform-v1-thumb.jpg'
-    }
-  ];
-}
-
 // Default mock data - initialized once
 const defaultMockDesignReview = createMockDesignReview();
 const defaultMockDesignVersions = createMockDesignVersions();
-
-const annotationTools: AnnotationTool[] = [
-  { id: 'point', name: 'Point', icon: MousePointer, cursor: 'crosshair' },
-  { id: 'text', name: 'Text', icon: Type, cursor: 'text' },
-  { id: 'rectangle', name: 'Rectangle', icon: Square, cursor: 'crosshair' },
-  { id: 'circle', name: 'Circle', icon: Circle, cursor: 'crosshair' },
-  { id: 'arrow', name: 'Arrow', icon: ArrowRight, cursor: 'crosshair' }
-];
-
-const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#000000'];
-
-function AnnotationCanvas({
-  imageUrl,
-  annotations,
-  onAnnotationAdd,
-  activeTool,
-  activeColor,
-  className = ''
-}: {
-  imageUrl: string;
-  annotations: ImageAnnotation[];
-  onAnnotationAdd: (annotation: Omit<ImageAnnotation, 'id' | 'createdAt' | 'createdBy'>) => void;
-  activeTool: string;
-  activeColor: string;
-  className?: string;
-}) {
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
-  const [tempAnnotation, setTempAnnotation] = useState<Partial<ImageAnnotation> | null>(null);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!canvasRef.current || activeTool === 'move') return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-
-    setStartPos({ x, y });
-    setIsDrawing(true);
-
-    if (activeTool === 'point') {
-      // Point annotations are created immediately
-      onAnnotationAdd({
-        x,
-        y,
-        type: 'point',
-        color: activeColor,
-        content: `Point annotation at ${x.toFixed(1)}%, ${y.toFixed(1)}%`
-      });
-      setIsDrawing(false);
-    } else if (activeTool === 'text') {
-      // Text annotations need content input
-      const content = prompt('Enter annotation text:');
-      if (content) {
-        onAnnotationAdd({
-          x,
-          y,
-          type: 'text',
-          color: activeColor,
-          content
-        });
-      }
-      setIsDrawing(false);
-    }
-  }, [activeTool, activeColor, onAnnotationAdd]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDrawing || !startPos || !canvasRef.current) return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const currentX = ((e.clientX - rect.left) / rect.width) * 100;
-    const currentY = ((e.clientY - rect.top) / rect.height) * 100;
-
-    if (activeTool === 'rectangle' || activeTool === 'circle') {
-      setTempAnnotation({
-        x: Math.min(startPos.x, currentX),
-        y: Math.min(startPos.y, currentY),
-        width: Math.abs(currentX - startPos.x),
-        height: Math.abs(currentY - startPos.y),
-        type: activeTool,
-        color: activeColor,
-        content: `${activeTool} annotation`
-      });
-    }
-  }, [isDrawing, startPos, activeTool, activeColor]);
-
-  const handleMouseUp = useCallback(() => {
-    if (!isDrawing || !tempAnnotation) return;
-
-    if (tempAnnotation.width && tempAnnotation.height && tempAnnotation.width > 1 && tempAnnotation.height > 1) {
-      onAnnotationAdd({
-        x: tempAnnotation.x!,
-        y: tempAnnotation.y!,
-        width: tempAnnotation.width,
-        height: tempAnnotation.height,
-        type: tempAnnotation.type!,
-        color: tempAnnotation.color!,
-        content: tempAnnotation.content!
-      });
-    }
-
-    setIsDrawing(false);
-    setStartPos(null);
-    setTempAnnotation(null);
-  }, [isDrawing, tempAnnotation, onAnnotationAdd]);
-
-  return (
-    <div
-      ref={canvasRef}
-      className={`relative bg-gray-100 rounded-lg overflow-hidden ${className}`}
-      style={{ cursor: annotationTools.find(t => t.id === activeTool)?.cursor || 'default' }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-    >
-      <img
-        src={imageUrl}
-        alt="Design for review"
-        className="w-full h-full object-contain pointer-events-none"
-        draggable={false}
-      />
-
-      {/* Existing annotations */}
-      {annotations.map((annotation) => (
-        <div
-          key={annotation.id}
-          className="absolute pointer-events-none"
-          style={{
-            left: `${annotation.x}%`,
-            top: `${annotation.y}%`,
-            width: annotation.width ? `${annotation.width}%` : 'auto',
-            height: annotation.height ? `${annotation.height}%` : 'auto'
-          }}
-        >
-          {annotation.type === 'point' && (
-            <div
-              className="w-3 h-3 rounded-full border-2 border-white shadow-lg flex items-center justify-center"
-              style={{ backgroundColor: annotation.color }}
-            >
-              <div className="w-1 h-1 bg-white rounded-full" />
-            </div>
-          )}
-
-          {annotation.type === 'rectangle' && (
-            <div
-              className="border-2 border-white shadow-lg bg-opacity-20"
-              style={{
-                borderColor: annotation.color,
-                backgroundColor: annotation.color
-              }}
-            />
-          )}
-
-          {annotation.type === 'circle' && (
-            <div
-              className="border-2 border-white shadow-lg bg-opacity-20 rounded-full"
-              style={{
-                borderColor: annotation.color,
-                backgroundColor: annotation.color
-              }}
-            />
-          )}
-
-          {annotation.type === 'text' && (
-            <div
-              className="px-2 py-1 rounded text-xs font-medium text-white shadow-lg max-w-32"
-              style={{ backgroundColor: annotation.color }}
-            >
-              {annotation.content}
-            </div>
-          )}
-        </div>
-      ))}
-
-      {/* Temporary annotation while drawing */}
-      {tempAnnotation && (
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: `${tempAnnotation.x}%`,
-            top: `${tempAnnotation.y}%`,
-            width: `${tempAnnotation.width}%`,
-            height: `${tempAnnotation.height}%`
-          }}
-        >
-          {tempAnnotation.type === 'rectangle' && (
-            <div
-              className="border-2 border-dashed bg-opacity-20"
-              style={{
-                borderColor: tempAnnotation.color,
-                backgroundColor: tempAnnotation.color
-              }}
-            />
-          )}
-
-          {tempAnnotation.type === 'circle' && (
-            <div
-              className="border-2 border-dashed bg-opacity-20 rounded-full"
-              style={{
-                borderColor: tempAnnotation.color,
-                backgroundColor: tempAnnotation.color
-              }}
-            />
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ReviewStatusBadge({ status }: { status: DesignReview['status'] }) {
-  const getStatusConfig = (status: DesignReview['status']) => {
-    switch (status) {
-      case 'pending':
-        return { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: Clock, label: 'Pending Review' };
-      case 'in_review':
-        return { bg: 'bg-blue-100', text: 'text-blue-800', icon: Eye, label: 'In Review' };
-      case 'approved':
-        return { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle, label: 'Approved' };
-      case 'rejected':
-        return { bg: 'bg-red-100', text: 'text-red-800', icon: XCircle, label: 'Rejected' };
-      case 'needs_revision':
-        return { bg: 'bg-orange-100', text: 'text-orange-800', icon: Edit3, label: 'Needs Revision' };
-      default:
-        return { bg: 'bg-gray-100', text: 'text-gray-800', icon: Clock, label: 'Unknown' };
-    }
-  };
-
-  const config = getStatusConfig(status);
-  const Icon = config.icon;
-
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-      <Icon size={12} aria-hidden="true" />
-      {config.label}
-    </span>
-  );
-}
 
 export function DesignReviewWidget({
   review = defaultMockDesignReview,

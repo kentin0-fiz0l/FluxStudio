@@ -29,7 +29,7 @@ router.post('/subscribe', authenticateToken, zodValidate(pushSubscribeSchema), a
     const { endpoint, keys } = req.body;
 
     if (!endpoint || !keys?.p256dh || !keys?.auth) {
-      return res.status(400).json({ error: 'Invalid subscription data' });
+      return res.status(400).json({ success: false, error: 'Invalid subscription data', code: 'PUSH_INVALID_SUBSCRIPTION' });
     }
 
     // Check if subscription already exists
@@ -57,7 +57,7 @@ router.post('/subscribe', authenticateToken, zodValidate(pushSubscribeSchema), a
     res.json({ success: true });
   } catch (error) {
     log.error('Error subscribing to push', error);
-    res.status(500).json({ error: 'Failed to subscribe to push notifications' });
+    res.status(500).json({ success: false, error: 'Failed to subscribe to push notifications', code: 'PUSH_SUBSCRIBE_ERROR' });
   }
 });
 
@@ -70,7 +70,7 @@ router.post('/unsubscribe', authenticateToken, zodValidate(pushUnsubscribeSchema
     const { endpoint } = req.body;
 
     if (!endpoint) {
-      return res.status(400).json({ error: 'Endpoint is required' });
+      return res.status(400).json({ success: false, error: 'Endpoint is required', code: 'PUSH_MISSING_ENDPOINT' });
     }
 
     await query(
@@ -81,7 +81,7 @@ router.post('/unsubscribe', authenticateToken, zodValidate(pushUnsubscribeSchema
     res.json({ success: true });
   } catch (error) {
     log.error('Error unsubscribing from push', error);
-    res.status(500).json({ error: 'Failed to unsubscribe from push notifications' });
+    res.status(500).json({ success: false, error: 'Failed to unsubscribe from push notifications', code: 'PUSH_UNSUBSCRIBE_ERROR' });
   }
 });
 
@@ -121,7 +121,7 @@ router.get('/preferences', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting notification preferences', error);
-    res.status(500).json({ error: 'Failed to get notification preferences' });
+    res.status(500).json({ success: false, error: 'Failed to get notification preferences', code: 'PUSH_GET_PREFERENCES_ERROR' });
   }
 });
 
@@ -169,7 +169,7 @@ router.put('/preferences', authenticateToken, validateInput.sanitizeInput, zodVa
     res.json({ success: true });
   } catch (error) {
     log.error('Error updating notification preferences', error);
-    res.status(500).json({ error: 'Failed to update notification preferences' });
+    res.status(500).json({ success: false, error: 'Failed to update notification preferences', code: 'PUSH_UPDATE_PREFERENCES_ERROR' });
   }
 });
 
@@ -190,7 +190,7 @@ router.get('/status', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting push status', error);
-    res.status(500).json({ error: 'Failed to get push status' });
+    res.status(500).json({ success: false, error: 'Failed to get push status', code: 'PUSH_STATUS_ERROR' });
   }
 });
 

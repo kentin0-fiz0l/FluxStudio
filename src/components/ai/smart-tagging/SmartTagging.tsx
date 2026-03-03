@@ -1,0 +1,477 @@
+import React, { useState, useMemo } from 'react';
+import {
+  X,
+  Plus,
+  Hash,
+  Search,
+  Check,
+  Sparkles,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { TagData, TagHierarchy, TagSuggestion, SmartTaggingProps } from './types';
+import { TagAnalytics } from './TagAnalytics';
+import { TagHierarchyTree } from './TagHierarchyTree';
+
+// Mock data for demonstration
+const mockTags: TagData[] = [
+  {
+    id: '1',
+    name: 'design',
+    category: 'project-type',
+    count: 145,
+    color: '#3B82F6',
+    parentId: undefined,
+    createdAt: new Date('2024-01-01'),
+    lastUsed: new Date('2024-10-15'),
+  },
+  {
+    id: '2',
+    name: 'ui-design',
+    category: 'project-type',
+    count: 87,
+    color: '#3B82F6',
+    parentId: '1',
+    createdAt: new Date('2024-01-15'),
+    lastUsed: new Date('2024-10-14'),
+  },
+  {
+    id: '3',
+    name: 'branding',
+    category: 'project-type',
+    count: 62,
+    color: '#8B5CF6',
+    parentId: '1',
+    createdAt: new Date('2024-02-01'),
+    lastUsed: new Date('2024-10-13'),
+  },
+  {
+    id: '4',
+    name: 'high-priority',
+    category: 'status',
+    count: 43,
+    color: '#EF4444',
+    isAI: true,
+    createdAt: new Date('2024-03-01'),
+    lastUsed: new Date('2024-10-15'),
+  },
+  {
+    id: '5',
+    name: 'client-work',
+    category: 'source',
+    count: 98,
+    color: '#10B981',
+    createdAt: new Date('2024-01-20'),
+    lastUsed: new Date('2024-10-14'),
+  },
+  {
+    id: '6',
+    name: 'revision',
+    category: 'status',
+    count: 34,
+    color: '#F59E0B',
+    isAI: true,
+    createdAt: new Date('2024-04-01'),
+    lastUsed: new Date('2024-10-12'),
+  },
+];
+
+const mockSuggestions: TagSuggestion[] = [
+  { name: 'modern-design', confidence: 0.92, reason: 'Based on file content analysis' },
+  { name: 'minimalist', confidence: 0.87, reason: 'Color palette suggests minimalist style' },
+  { name: 'professional', confidence: 0.81, reason: 'Typography and layout patterns' },
+  { name: 'corporate', confidence: 0.76, reason: 'Similar to corporate design files' },
+];
+
+export const SmartTagging: React.FC<SmartTaggingProps> = ({
+  fileId: _fileId,
+  tags: initialTags = [],
+  onTagsChange,
+  showAnalytics = true,
+  showHierarchy = true,
+  allowBulkOperations: _allowBulkOperations = false,
+}) => {
+  const [allTags, setAllTags] = useState<TagData[]>(mockTags);
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
+  const [suggestions, setSuggestions] = useState<TagSuggestion[]>(mockSuggestions);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'count' | 'recent'>('count');
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['all']));
+  const [_editingTag, _setEditingTag] = useState<string | null>(null);
+
+  // Build tag hierarchy
+  const tagHierarchy = useMemo(() => {
+    const buildHierarchy = (parentId: string | undefined): TagHierarchy[] => {
+      return allTags
+        .filter((tag) => tag.parentId === parentId)
+        .map((tag) => ({
+          tag,
+          children: buildHierarchy(tag.id),
+        }));
+    };
+    return buildHierarchy(undefined);
+  }, [allTags]);
+
+  // Filter and sort tags
+  const filteredTags = useMemo(() => {
+    const filtered = allTags.filter((tag) => {
+      const matchesSearch = tag.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory =
+        selectedCategory === 'all' || tag.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'count':
+          return b.count - a.count;
+        case 'recent':
+          return b.lastUsed.getTime() - a.lastUsed.getTime();
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [allTags, searchQuery, selectedCategory, sortBy]);
+
+  // Get categories
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    allTags.forEach((tag) => {
+      if (tag.category) cats.add(tag.category);
+    });
+    return Array.from(cats);
+  }, [allTags]);
+
+  // Store mount time for stable trending calculation
+  const [mountTime] = useState(() => Date.now());
+
+  // Analytics data
+  const analytics = useMemo(() => {
+    const totalTags = allTags.length;
+    const aiTags = allTags.filter((t) => t.isAI).length;
+    const customTags = allTags.filter((t) => t.isCustom).length;
+    const mostUsed = [...allTags].sort((a, b) => b.count - a.count).slice(0, 5);
+    const trending = [...allTags]
+      .filter((t) => {
+        const daysSinceUsed =
+          (mountTime - t.lastUsed.getTime()) / (1000 * 60 * 60 * 24);
+        return daysSinceUsed <= 7;
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return {
+      totalTags,
+      aiTags,
+      customTags,
+      mostUsed,
+      trending,
+    };
+  }, [allTags, mountTime]);
+
+  // Handle tag selection
+  const handleToggleTag = (tagName: string) => {
+    const newTags = selectedTags.includes(tagName)
+      ? selectedTags.filter((t) => t !== tagName)
+      : [...selectedTags, tagName];
+
+    setSelectedTags(newTags);
+    onTagsChange?.(newTags);
+  };
+
+  // Counter for unique IDs
+  const [tagIdCounter, setTagIdCounter] = useState(() => Date.now());
+
+  // Handle add custom tag
+  const handleAddTag = () => {
+    if (!newTagName.trim()) return;
+
+    const newTag: TagData = {
+      id: (tagIdCounter + 1).toString(),
+      name: newTagName.trim().toLowerCase().replace(/\s+/g, '-'),
+      category: selectedCategory !== 'all' ? selectedCategory : undefined,
+      count: 1,
+      isCustom: true,
+      createdAt: new Date(),
+      lastUsed: new Date(),
+    };
+    setTagIdCounter(prev => prev + 1);
+
+    setAllTags([...allTags, newTag]);
+    setSelectedTags([...selectedTags, newTag.name]);
+    onTagsChange?.([...selectedTags, newTag.name]);
+    setNewTagName('');
+    setIsAddingTag(false);
+  };
+
+  // Handle accept AI suggestion
+  const handleAcceptSuggestion = (suggestion: TagSuggestion) => {
+    const existingTag = allTags.find((t) => t.name === suggestion.name);
+
+    if (!existingTag) {
+      const newTag: TagData = {
+        id: (tagIdCounter + 1).toString(),
+        name: suggestion.name,
+        confidence: suggestion.confidence,
+        count: 1,
+        isAI: true,
+        createdAt: new Date(),
+        lastUsed: new Date(),
+      };
+      setTagIdCounter(prev => prev + 1);
+      setAllTags([...allTags, newTag]);
+    }
+
+    setSelectedTags([...selectedTags, suggestion.name]);
+    onTagsChange?.([...selectedTags, suggestion.name]);
+    setSuggestions(suggestions.filter((s) => s.name !== suggestion.name));
+  };
+
+  // Handle reject AI suggestion
+  const handleRejectSuggestion = (suggestion: TagSuggestion) => {
+    setSuggestions(suggestions.filter((s) => s.name !== suggestion.name));
+  };
+
+  // Toggle category expansion
+  const toggleCategory = (category: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(category)) {
+      newExpanded.delete(category);
+    } else {
+      newExpanded.add(category);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Hash className="w-5 h-5 text-blue-500" aria-hidden="true" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Smart Tagging</h3>
+          {selectedTags.length > 0 && (
+            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs rounded-full">
+              {selectedTags.length} selected
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => setIsAddingTag(!isAddingTag)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          <Plus className="w-4 h-4" aria-hidden="true" />
+          <span className="text-sm">Add Tag</span>
+        </button>
+      </div>
+
+      {/* AI Suggestions */}
+      {suggestions.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4 text-purple-500" aria-hidden="true" />
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">AI Suggestions</h4>
+          </div>
+          <div className="space-y-2">
+            <AnimatePresence>
+              {suggestions.map((suggestion) => (
+                <motion.div
+                  key={suggestion.name}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {suggestion.name}
+                      </span>
+                      <span className="text-xs text-purple-600 dark:text-purple-400">
+                        {Math.round(suggestion.confidence * 100)}% confidence
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{suggestion.reason}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleAcceptSuggestion(suggestion)}
+                      className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                      aria-label="Accept suggestion"
+                    >
+                      <Check className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      onClick={() => handleRejectSuggestion(suggestion)}
+                      className="p-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                      aria-label="Reject suggestion"
+                    >
+                      <X className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
+
+      {/* Add Tag Form */}
+      <AnimatePresence>
+        {isAddingTag && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+          >
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                placeholder="Enter tag name..."
+                aria-label="New tag name"
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+              <button
+                onClick={handleAddTag}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Add
+              </button>
+              <button
+                onClick={() => setIsAddingTag(false)}
+                className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Search and Filters */}
+      <div className="mb-6 space-y-3">
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search tags..."
+              aria-label="Search tags"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            aria-label="Filter by category"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            aria-label="Sort tags by"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="count">Most Used</option>
+            <option value="name">Name</option>
+            <option value="recent">Recently Used</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Tag List */}
+      <div className="mb-6">
+        {showHierarchy ? (
+          <TagHierarchyTree
+            hierarchy={tagHierarchy}
+            selectedTags={selectedTags}
+            expandedCategories={expandedCategories}
+            onToggleTag={handleToggleTag}
+            onToggleCategory={toggleCategory}
+          />
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {filteredTags.map((tag) => (
+              <motion.button
+                key={tag.id}
+                onClick={() => handleToggleTag(tag.name)}
+                aria-pressed={selectedTags.includes(tag.name)}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileHover={{ scale: 1.05 }}
+                className={`
+                  flex items-center gap-2 px-3 py-1.5 rounded-full text-sm
+                  transition-all duration-200
+                  ${
+                    selectedTags.includes(tag.name)
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }
+                `}
+              >
+                {tag.isAI && <Sparkles className="w-3 h-3" aria-hidden="true" />}
+                <span>{tag.name}</span>
+                <span className="text-xs opacity-75">({tag.count})</span>
+              </motion.button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Analytics */}
+      {showAnalytics && <TagAnalytics analytics={analytics} />}
+
+      {/* Selected Tags Summary */}
+      {selectedTags.length > 0 && (
+        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Selected Tags ({selectedTags.length})
+            </span>
+            <button
+              onClick={() => {
+                setSelectedTags([]);
+                onTagsChange?.([]);
+              }}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              Clear all
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {selectedTags.map((tagName) => (
+              <span
+                key={tagName}
+                className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full"
+              >
+                {tagName}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SmartTagging;

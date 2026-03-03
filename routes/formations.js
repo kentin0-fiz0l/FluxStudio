@@ -51,7 +51,7 @@ router.get('/projects/:projectId/formations', authenticateToken, async (req, res
     res.json({ success: true, formations });
   } catch (error) {
     log.error('Error listing formations', error);
-    res.status(500).json({ success: false, error: 'Failed to list formations' });
+    res.status(500).json({ success: false, error: 'Failed to list formations', code: 'FORMATION_LIST_ERROR' });
   }
 });
 
@@ -77,7 +77,7 @@ router.post('/projects/:projectId/formations', authenticateToken, zodValidate(cr
     res.status(201).json({ success: true, formation });
   } catch (error) {
     log.error('Error creating formation', error);
-    res.status(500).json({ success: false, error: 'Failed to create formation' });
+    res.status(500).json({ success: false, error: 'Failed to create formation', code: 'FORMATION_CREATE_ERROR' });
   }
 });
 
@@ -91,13 +91,13 @@ router.get('/formations/:formationId', authenticateToken, async (req, res) => {
 
     const formation = await formationsAdapter.getFormationById(formationId);
     if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found' });
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
 
     res.json({ success: true, formation });
   } catch (error) {
     log.error('Error getting formation', error);
-    res.status(500).json({ success: false, error: 'Failed to get formation' });
+    res.status(500).json({ success: false, error: 'Failed to get formation', code: 'FORMATION_GET_ERROR' });
   }
 });
 
@@ -112,7 +112,7 @@ router.patch('/formations/:formationId', authenticateToken, zodValidate(updateFo
 
     const formation = await formationsAdapter.getFormationById(formationId);
     if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found' });
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
 
     const updatedFormation = await formationsAdapter.updateFormation(formationId, {
@@ -128,7 +128,7 @@ router.patch('/formations/:formationId', authenticateToken, zodValidate(updateFo
     res.json({ success: true, formation: updatedFormation });
   } catch (error) {
     log.error('Error updating formation', error);
-    res.status(500).json({ success: false, error: 'Failed to update formation' });
+    res.status(500).json({ success: false, error: 'Failed to update formation', code: 'FORMATION_UPDATE_ERROR' });
   }
 });
 
@@ -142,7 +142,7 @@ router.delete('/formations/:formationId', authenticateToken, async (req, res) =>
 
     const formation = await formationsAdapter.getFormationById(formationId);
     if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found' });
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
 
     await formationsAdapter.deleteFormation(formationId);
@@ -150,7 +150,7 @@ router.delete('/formations/:formationId', authenticateToken, async (req, res) =>
     res.json({ success: true, message: 'Formation deleted' });
   } catch (error) {
     log.error('Error deleting formation', error);
-    res.status(500).json({ success: false, error: 'Failed to delete formation' });
+    res.status(500).json({ success: false, error: 'Failed to delete formation', code: 'FORMATION_DELETE_ERROR' });
   }
 });
 
@@ -165,7 +165,7 @@ router.put('/formations/:formationId/save', authenticateToken, zodValidate(saveF
 
     const existingFormation = await formationsAdapter.getFormationById(formationId);
     if (!existingFormation) {
-      return res.status(404).json({ success: false, error: 'Formation not found' });
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
 
     const formation = await formationsAdapter.saveFormation(formationId, {
@@ -177,7 +177,7 @@ router.put('/formations/:formationId/save', authenticateToken, zodValidate(saveF
     res.json({ success: true, formation });
   } catch (error) {
     log.error('Error saving formation', error);
-    res.status(500).json({ success: false, error: 'Failed to save formation' });
+    res.status(500).json({ success: false, error: 'Failed to save formation', code: 'FORMATION_SAVE_ERROR' });
   }
 });
 
@@ -194,7 +194,7 @@ router.post('/formations/:formationId/audio', authenticateToken, zodValidate(for
 
     const formation = await formationsAdapter.getFormationById(formationId);
     if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found' });
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
 
     const audioTrack = {
@@ -209,7 +209,7 @@ router.post('/formations/:formationId/audio', authenticateToken, zodValidate(for
     res.json({ success: true, formation: updatedFormation, audioTrack });
   } catch (error) {
     log.error('Error uploading audio', error);
-    res.status(500).json({ success: false, error: 'Failed to upload audio' });
+    res.status(500).json({ success: false, error: 'Failed to upload audio', code: 'FORMATION_AUDIO_UPLOAD_ERROR' });
   }
 });
 
@@ -223,7 +223,7 @@ router.delete('/formations/:formationId/audio', authenticateToken, async (req, r
 
     const formation = await formationsAdapter.getFormationById(formationId);
     if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found' });
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
 
     const updatedFormation = await formationsAdapter.updateFormation(formationId, { audioTrack: null });
@@ -231,7 +231,7 @@ router.delete('/formations/:formationId/audio', authenticateToken, async (req, r
     res.json({ success: true, formation: updatedFormation, message: 'Audio removed' });
   } catch (error) {
     log.error('Error removing audio', error);
-    res.status(500).json({ success: false, error: 'Failed to remove audio' });
+    res.status(500).json({ success: false, error: 'Failed to remove audio', code: 'FORMATION_AUDIO_REMOVE_ERROR' });
   }
 });
 
@@ -248,7 +248,7 @@ router.post('/formations/:formationId/performers', authenticateToken, zodValidat
 
     const formation = await formationsAdapter.getFormationById(formationId);
     if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found' });
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
 
     const performer = await formationsAdapter.addPerformer({
@@ -262,7 +262,7 @@ router.post('/formations/:formationId/performers', authenticateToken, zodValidat
     res.status(201).json({ success: true, performer });
   } catch (error) {
     log.error('Error adding performer', error);
-    res.status(500).json({ success: false, error: 'Failed to add performer' });
+    res.status(500).json({ success: false, error: 'Failed to add performer', code: 'FORMATION_ADD_PERFORMER_ERROR' });
   }
 });
 
@@ -283,13 +283,13 @@ router.patch('/formations/:formationId/performers/:performerId', authenticateTok
     });
 
     if (!performer) {
-      return res.status(404).json({ success: false, error: 'Performer not found' });
+      return res.status(404).json({ success: false, error: 'Performer not found', code: 'FORMATION_PERFORMER_NOT_FOUND' });
     }
 
     res.json({ success: true, performer });
   } catch (error) {
     log.error('Error updating performer', error);
-    res.status(500).json({ success: false, error: 'Failed to update performer' });
+    res.status(500).json({ success: false, error: 'Failed to update performer', code: 'FORMATION_UPDATE_PERFORMER_ERROR' });
   }
 });
 
@@ -306,7 +306,7 @@ router.delete('/formations/:formationId/performers/:performerId', authenticateTo
     res.json({ success: true, message: 'Performer deleted' });
   } catch (error) {
     log.error('Error deleting performer', error);
-    res.status(500).json({ success: false, error: 'Failed to delete performer' });
+    res.status(500).json({ success: false, error: 'Failed to delete performer', code: 'FORMATION_DELETE_PERFORMER_ERROR' });
   }
 });
 
@@ -323,7 +323,7 @@ router.post('/formations/:formationId/keyframes', authenticateToken, zodValidate
 
     const formation = await formationsAdapter.getFormationById(formationId);
     if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found' });
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
 
     const keyframe = await formationsAdapter.addKeyframe({
@@ -336,7 +336,7 @@ router.post('/formations/:formationId/keyframes', authenticateToken, zodValidate
     res.status(201).json({ success: true, keyframe });
   } catch (error) {
     log.error('Error adding keyframe', error);
-    res.status(500).json({ success: false, error: 'Failed to add keyframe' });
+    res.status(500).json({ success: false, error: 'Failed to add keyframe', code: 'FORMATION_ADD_KEYFRAME_ERROR' });
   }
 });
 
@@ -356,13 +356,13 @@ router.patch('/formations/:formationId/keyframes/:keyframeId', authenticateToken
     });
 
     if (!keyframe) {
-      return res.status(404).json({ success: false, error: 'Keyframe not found' });
+      return res.status(404).json({ success: false, error: 'Keyframe not found', code: 'FORMATION_KEYFRAME_NOT_FOUND' });
     }
 
     res.json({ success: true, keyframe });
   } catch (error) {
     log.error('Error updating keyframe', error);
-    res.status(500).json({ success: false, error: 'Failed to update keyframe' });
+    res.status(500).json({ success: false, error: 'Failed to update keyframe', code: 'FORMATION_UPDATE_KEYFRAME_ERROR' });
   }
 });
 
@@ -379,7 +379,7 @@ router.delete('/formations/:formationId/keyframes/:keyframeId', authenticateToke
     res.json({ success: true, message: 'Keyframe deleted' });
   } catch (error) {
     log.error('Error deleting keyframe', error);
-    res.status(500).json({ success: false, error: 'Failed to delete keyframe' });
+    res.status(500).json({ success: false, error: 'Failed to delete keyframe', code: 'FORMATION_DELETE_KEYFRAME_ERROR' });
   }
 });
 
@@ -405,7 +405,7 @@ router.put('/formations/:formationId/keyframes/:keyframeId/positions/:performerI
     res.json({ success: true, position });
   } catch (error) {
     log.error('Error setting position', error);
-    res.status(500).json({ success: false, error: 'Failed to set position' });
+    res.status(500).json({ success: false, error: 'Failed to set position', code: 'FORMATION_SET_POSITION_ERROR' });
   }
 });
 
@@ -422,7 +422,7 @@ router.get('/formations/:formationId/scene-objects', authenticateToken, async (r
     res.json({ success: true, sceneObjects: objects });
   } catch (error) {
     log.error('Error listing scene objects', error);
-    res.status(500).json({ success: false, error: 'Failed to list scene objects' });
+    res.status(500).json({ success: false, error: 'Failed to list scene objects', code: 'FORMATION_LIST_SCENE_OBJECTS_ERROR' });
   }
 });
 
@@ -443,7 +443,7 @@ router.post('/formations/:formationId/scene-objects', authenticateToken, zodVali
     res.status(201).json({ success: true, sceneObject: object });
   } catch (error) {
     log.error('Error creating scene object', error);
-    res.status(500).json({ success: false, error: 'Failed to create scene object' });
+    res.status(500).json({ success: false, error: 'Failed to create scene object', code: 'FORMATION_CREATE_SCENE_OBJECT_ERROR' });
   }
 });
 
@@ -461,13 +461,13 @@ router.patch('/formations/:formationId/scene-objects/:objectId', authenticateTok
     });
 
     if (!object) {
-      return res.status(404).json({ success: false, error: 'Scene object not found' });
+      return res.status(404).json({ success: false, error: 'Scene object not found', code: 'FORMATION_SCENE_OBJECT_NOT_FOUND' });
     }
 
     res.json({ success: true, sceneObject: object });
   } catch (error) {
     log.error('Error updating scene object', error);
-    res.status(500).json({ success: false, error: 'Failed to update scene object' });
+    res.status(500).json({ success: false, error: 'Failed to update scene object', code: 'FORMATION_UPDATE_SCENE_OBJECT_ERROR' });
   }
 });
 
@@ -482,7 +482,7 @@ router.delete('/formations/:formationId/scene-objects/:objectId', authenticateTo
     res.json({ success: true, message: 'Scene object deleted' });
   } catch (error) {
     log.error('Error deleting scene object', error);
-    res.status(500).json({ success: false, error: 'Failed to delete scene object' });
+    res.status(500).json({ success: false, error: 'Failed to delete scene object', code: 'FORMATION_DELETE_SCENE_OBJECT_ERROR' });
   }
 });
 
@@ -499,7 +499,7 @@ router.put('/formations/:formationId/scene-objects', authenticateToken, zodValid
     res.json({ success: true, sceneObjects: result });
   } catch (error) {
     log.error('Error bulk syncing scene objects', error);
-    res.status(500).json({ success: false, error: 'Failed to sync scene objects' });
+    res.status(500).json({ success: false, error: 'Failed to sync scene objects', code: 'FORMATION_SYNC_SCENE_OBJECTS_ERROR' });
   }
 });
 
@@ -518,7 +518,7 @@ router.get('/formations/:formationId/share', async (req, res) => {
     const formation = await formationsAdapter.getFormationById(formationId);
 
     if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found' });
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
 
     // Return only public-safe fields
@@ -537,7 +537,7 @@ router.get('/formations/:formationId/share', async (req, res) => {
     });
   } catch (error) {
     log.error('Error fetching shared formation', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch formation' });
+    res.status(500).json({ success: false, error: 'Failed to fetch formation', code: 'FORMATION_FETCH_ERROR' });
   }
 });
 
@@ -551,7 +551,7 @@ router.post('/formations/:formationId/share', authenticateToken, async (req, res
     const formation = await formationsAdapter.getFormationById(formationId);
 
     if (!formation) {
-      return res.status(404).json({ success: false, error: 'Formation not found' });
+      return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
 
     // Share URL is deterministic based on formation ID
@@ -560,7 +560,7 @@ router.post('/formations/:formationId/share', authenticateToken, async (req, res
     res.json({ success: true, shareUrl });
   } catch (error) {
     log.error('Error generating share link', error);
-    res.status(500).json({ success: false, error: 'Failed to generate share link' });
+    res.status(500).json({ success: false, error: 'Failed to generate share link', code: 'FORMATION_SHARE_ERROR' });
   }
 });
 

@@ -34,6 +34,11 @@ import { rolesApi } from './roles';
 import { complianceApi } from './compliance';
 import { feedbackApi } from './feedback';
 import { metmapApi } from './metmap';
+import { integrationsApi } from './integrations';
+import { pushApi } from './push';
+import { referralsApi } from './referrals';
+import { usageApi } from './usage';
+import { adminApi } from './admin';
 
 export type { ApiResponse, ApiError, UserSettings } from './base';
 export { ApiService } from './base';
@@ -72,6 +77,11 @@ export const apiService = Object.assign(baseService, {
   ...complianceApi(baseService),
   ...feedbackApi(baseService),
   ...metmapApi(baseService),
+  ...integrationsApi(baseService),
+  ...pushApi(baseService),
+  ...referralsApi(baseService),
+  ...usageApi(baseService),
+  ...adminApi(baseService),
 });
 
 export default apiService;

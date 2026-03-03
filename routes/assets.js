@@ -59,7 +59,7 @@ router.get('/', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error listing assets', error);
-    res.status(500).json({ success: false, error: 'Failed to list assets' });
+    res.status(500).json({ success: false, error: 'Failed to list assets', code: 'ASSET_LIST_ERROR' });
   }
 });
 
@@ -73,7 +73,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     res.json({ success: true, stats });
   } catch (error) {
     log.error('Error getting asset stats', error);
-    res.status(500).json({ success: false, error: 'Failed to get stats' });
+    res.status(500).json({ success: false, error: 'Failed to get stats', code: 'ASSET_STATS_ERROR' });
   }
 });
 
@@ -86,13 +86,13 @@ router.post('/', authenticateToken, zodValidate(createAssetSchema), async (req, 
     const { fileId, name, kind, description, tags } = req.body;
 
     if (!fileId) {
-      return res.status(400).json({ success: false, error: 'fileId is required' });
+      return res.status(400).json({ success: false, error: 'fileId is required', code: 'ASSET_MISSING_FILE_ID' });
     }
 
     // Get the file to inherit properties
     const file = await filesAdapter.getFileById(fileId, req.user.id);
     if (!file) {
-      return res.status(404).json({ success: false, error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'ASSET_FILE_NOT_FOUND' });
     }
 
     // Infer kind from mime type if not provided
@@ -126,7 +126,7 @@ router.post('/', authenticateToken, zodValidate(createAssetSchema), async (req, 
     res.status(201).json({ success: true, asset: fullAsset });
   } catch (error) {
     log.error('Error creating asset', error);
-    res.status(500).json({ success: false, error: 'Failed to create asset' });
+    res.status(500).json({ success: false, error: 'Failed to create asset', code: 'ASSET_CREATE_ERROR' });
   }
 });
 
@@ -141,13 +141,13 @@ router.get('/:assetId', authenticateToken, async (req, res) => {
     const asset = await assetsAdapter.getAssetById(assetId);
 
     if (!asset) {
-      return res.status(404).json({ success: false, error: 'Asset not found' });
+      return res.status(404).json({ success: false, error: 'Asset not found', code: 'ASSET_NOT_FOUND' });
     }
 
     res.json({ success: true, asset });
   } catch (error) {
     log.error('Error getting asset', error);
-    res.status(500).json({ success: false, error: 'Failed to get asset' });
+    res.status(500).json({ success: false, error: 'Failed to get asset', code: 'ASSET_GET_ERROR' });
   }
 });
 
@@ -169,13 +169,13 @@ router.patch('/:assetId', authenticateToken, zodValidate(updateAssetSchema), asy
     });
 
     if (!asset) {
-      return res.status(404).json({ success: false, error: 'Asset not found' });
+      return res.status(404).json({ success: false, error: 'Asset not found', code: 'ASSET_NOT_FOUND' });
     }
 
     res.json({ success: true, asset });
   } catch (error) {
     log.error('Error updating asset', error);
-    res.status(500).json({ success: false, error: 'Failed to update asset' });
+    res.status(500).json({ success: false, error: 'Failed to update asset', code: 'ASSET_UPDATE_ERROR' });
   }
 });
 
@@ -190,13 +190,13 @@ router.delete('/:assetId', authenticateToken, async (req, res) => {
     const success = await assetsAdapter.deleteAsset(assetId);
 
     if (!success) {
-      return res.status(404).json({ success: false, error: 'Asset not found' });
+      return res.status(404).json({ success: false, error: 'Asset not found', code: 'ASSET_NOT_FOUND' });
     }
 
     res.json({ success: true });
   } catch (error) {
     log.error('Error deleting asset', error);
-    res.status(500).json({ success: false, error: 'Failed to delete asset' });
+    res.status(500).json({ success: false, error: 'Failed to delete asset', code: 'ASSET_DELETE_ERROR' });
   }
 });
 
@@ -210,13 +210,13 @@ router.post('/:assetId/versions', authenticateToken, zodValidate(createAssetVers
     const { fileId, label, makePrimary } = req.body;
 
     if (!fileId) {
-      return res.status(400).json({ success: false, error: 'fileId is required' });
+      return res.status(400).json({ success: false, error: 'fileId is required', code: 'ASSET_MISSING_FILE_ID' });
     }
 
     // Get file info for version metadata
     const file = await filesAdapter.getFileById(fileId, req.user.id);
     if (!file) {
-      return res.status(404).json({ success: false, error: 'File not found' });
+      return res.status(404).json({ success: false, error: 'File not found', code: 'ASSET_FILE_NOT_FOUND' });
     }
 
     const version = await assetsAdapter.createAssetVersion({
@@ -237,7 +237,7 @@ router.post('/:assetId/versions', authenticateToken, zodValidate(createAssetVers
     res.status(201).json({ success: true, version });
   } catch (error) {
     log.error('Error creating version', error);
-    res.status(500).json({ success: false, error: 'Failed to create version' });
+    res.status(500).json({ success: false, error: 'Failed to create version', code: 'ASSET_CREATE_VERSION_ERROR' });
   }
 });
 
@@ -251,7 +251,7 @@ router.post('/:assetId/primary', authenticateToken, zodValidate(setPrimaryVersio
     const { versionId } = req.body;
 
     if (!versionId) {
-      return res.status(400).json({ success: false, error: 'versionId is required' });
+      return res.status(400).json({ success: false, error: 'versionId is required', code: 'ASSET_MISSING_VERSION_ID' });
     }
 
     await assetsAdapter.setPrimaryAssetVersion(assetId, versionId);
@@ -261,7 +261,7 @@ router.post('/:assetId/primary', authenticateToken, zodValidate(setPrimaryVersio
     res.json({ success: true, asset });
   } catch (error) {
     log.error('Error setting primary version', error);
-    res.status(500).json({ success: false, error: error.message || 'Failed to set primary version' });
+    res.status(500).json({ success: false, error: 'Failed to set primary version', code: 'ASSET_SET_PRIMARY_ERROR' });
   }
 });
 
@@ -277,7 +277,7 @@ router.get('/:assetId/versions', authenticateToken, async (req, res) => {
     res.json({ success: true, versions });
   } catch (error) {
     log.error('Error getting versions', error);
-    res.status(500).json({ success: false, error: 'Failed to get versions' });
+    res.status(500).json({ success: false, error: 'Failed to get versions', code: 'ASSET_GET_VERSIONS_ERROR' });
   }
 });
 
@@ -293,7 +293,7 @@ router.get('/:assetId/projects', authenticateToken, async (req, res) => {
     res.json({ success: true, projects });
   } catch (error) {
     log.error('Error getting asset projects', error);
-    res.status(500).json({ success: false, error: 'Failed to get projects' });
+    res.status(500).json({ success: false, error: 'Failed to get projects', code: 'ASSET_GET_PROJECTS_ERROR' });
   }
 });
 
@@ -310,11 +310,11 @@ router.get('/:assetId/file', authenticateToken, async (req, res) => {
     // Get asset with file info
     const asset = await assetsAdapter.getAssetById(assetId);
     if (!asset) {
-      return res.status(404).json({ error: 'Asset not found' });
+      return res.status(404).json({ success: false, error: 'Asset not found', code: 'ASSET_NOT_FOUND' });
     }
 
     if (!asset.file) {
-      return res.status(404).json({ error: 'Asset has no file' });
+      return res.status(404).json({ success: false, error: 'Asset has no file', code: 'ASSET_NO_FILE' });
     }
 
     // Determine which file to serve (thumbnail or original)
@@ -328,13 +328,13 @@ router.get('/:assetId/file', authenticateToken, async (req, res) => {
     } else if (asset.file.url) {
       storageKey = asset.file.url.replace('/files/storage/', '').replace('/files/', '');
     } else {
-      return res.status(404).json({ error: 'File storage key not found' });
+      return res.status(404).json({ success: false, error: 'File storage key not found', code: 'ASSET_STORAGE_KEY_NOT_FOUND' });
     }
 
     // Check if file exists
     const exists = await fileStorage.exists(storageKey);
     if (!exists) {
-      return res.status(404).json({ error: 'File not found in storage' });
+      return res.status(404).json({ success: false, error: 'File not found in storage', code: 'ASSET_FILE_NOT_IN_STORAGE' });
     }
 
     // Get file stream
@@ -354,7 +354,7 @@ router.get('/:assetId/file', authenticateToken, async (req, res) => {
     stream.pipe(res);
   } catch (error) {
     log.error('Error serving asset file', error);
-    res.status(500).json({ error: 'Failed to serve asset file' });
+    res.status(500).json({ success: false, error: 'Failed to serve asset file', code: 'ASSET_SERVE_FILE_ERROR' });
   }
 });
 
@@ -370,7 +370,7 @@ router.post('/projects/:projectId/assets', authenticateToken, zodValidate(linkPr
     // Case 1: Attach existing asset (no files uploaded)
     if (!req.files || req.files.length === 0) {
       if (!assetId) {
-        return res.status(400).json({ success: false, error: 'Either files or assetId is required' });
+        return res.status(400).json({ success: false, error: 'Either files or assetId is required', code: 'ASSET_MISSING_INPUT' });
       }
 
       await assetsAdapter.attachAssetToProject({
@@ -486,7 +486,7 @@ router.post('/projects/:projectId/assets', authenticateToken, zodValidate(linkPr
     }
 
     if (createdAssets.length === 0 && errors.length > 0) {
-      return res.status(500).json({ success: false, error: 'Failed to create assets', errors });
+      return res.status(500).json({ success: false, error: 'Failed to create assets', code: 'ASSET_BATCH_CREATE_ERROR', errors });
     }
 
     res.json({
@@ -496,7 +496,7 @@ router.post('/projects/:projectId/assets', authenticateToken, zodValidate(linkPr
     });
   } catch (error) {
     log.error('Error creating/attaching project assets', error);
-    res.status(500).json({ success: false, error: 'Failed to process assets' });
+    res.status(500).json({ success: false, error: 'Failed to process assets', code: 'ASSET_PROCESS_ERROR' });
   }
 });
 
@@ -513,7 +513,7 @@ router.delete('/projects/:projectId/assets/:assetId', authenticateToken, async (
     res.json({ success: true, message: 'Asset detached from project' });
   } catch (error) {
     log.error('Error detaching asset from project', error);
-    res.status(500).json({ success: false, error: 'Failed to detach asset' });
+    res.status(500).json({ success: false, error: 'Failed to detach asset', code: 'ASSET_DETACH_ERROR' });
   }
 });
 
@@ -529,7 +529,7 @@ router.get('/projects/:projectId/assets', authenticateToken, async (req, res) =>
     res.json({ success: true, assets });
   } catch (error) {
     log.error('Error getting project assets', error);
-    res.status(500).json({ success: false, error: 'Failed to get project assets' });
+    res.status(500).json({ success: false, error: 'Failed to get project assets', code: 'ASSET_GET_PROJECT_ASSETS_ERROR' });
   }
 });
 
