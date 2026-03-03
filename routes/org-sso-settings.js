@@ -42,7 +42,7 @@ router.get('/', requirePermission('settings.manage'), async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'No SSO configuration found' });
+      return res.status(404).json({ success: false, error: 'No SSO configuration found', code: 'SSO_CONFIG_NOT_FOUND' });
     }
 
     const config = result.rows[0];
@@ -64,7 +64,7 @@ router.get('/', requirePermission('settings.manage'), async (req, res) => {
     });
   } catch (error) {
     log.error('Get config failed', error);
-    res.status(500).json({ error: 'Failed to get SSO configuration' });
+    res.status(500).json({ success: false, error: 'Failed to get SSO configuration', code: 'SSO_GET_CONFIG_ERROR' });
   }
 });
 
@@ -134,7 +134,7 @@ router.put('/', requirePermission('settings.manage'), zodValidate(updateSSOSetti
     });
   } catch (error) {
     log.error('Upsert config failed', error);
-    res.status(500).json({ error: 'Failed to save SSO configuration' });
+    res.status(500).json({ success: false, error: 'Failed to save SSO configuration', code: 'SSO_SAVE_CONFIG_ERROR' });
   }
 });
 
@@ -152,7 +152,7 @@ router.delete('/', requirePermission('settings.manage'), async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'No SSO configuration found' });
+      return res.status(404).json({ success: false, error: 'No SSO configuration found', code: 'SSO_CONFIG_NOT_FOUND' });
     }
 
     samlService.invalidateCache(orgId);
@@ -160,7 +160,7 @@ router.delete('/', requirePermission('settings.manage'), async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     log.error('Disable failed', error);
-    res.status(500).json({ error: 'Failed to disable SSO' });
+    res.status(500).json({ success: false, error: 'Failed to disable SSO', code: 'SSO_DISABLE_ERROR' });
   }
 });
 
@@ -176,7 +176,7 @@ router.get('/metadata', requirePermission('settings.manage'), async (req, res) =
     res.send(xml);
   } catch (error) {
     log.error('Metadata generation failed', error);
-    res.status(404).json({ error: 'SSO configuration not found or inactive' });
+    res.status(404).json({ success: false, error: 'SSO configuration not found or inactive', code: 'SSO_METADATA_NOT_FOUND' });
   }
 });
 
@@ -205,7 +205,7 @@ router.post('/test-connection', requirePermission('settings.manage'), zodValidat
     res.json({ success: true, reachable, statusCode });
   } catch (error) {
     log.error('Test connection failed', error);
-    res.status(500).json({ error: 'Failed to test connection' });
+    res.status(500).json({ success: false, error: 'Failed to test connection', code: 'SSO_TEST_CONNECTION_ERROR' });
   }
 });
 
@@ -220,7 +220,7 @@ router.get('/domains', requirePermission('settings.manage'), async (req, res) =>
     res.json({ success: true, domains });
   } catch (error) {
     log.error('List domains failed', error);
-    res.status(500).json({ error: 'Failed to list domains' });
+    res.status(500).json({ success: false, error: 'Failed to list domains', code: 'SSO_LIST_DOMAINS_ERROR' });
   }
 });
 
@@ -237,7 +237,7 @@ router.post('/domains', requirePermission('settings.manage'), zodValidate(addSSO
     res.json({ success: true, ...result });
   } catch (error) {
     log.error('Create domain verification failed', error);
-    res.status(500).json({ error: 'Failed to start domain verification' });
+    res.status(500).json({ success: false, error: 'Failed to start domain verification', code: 'SSO_CREATE_DOMAIN_ERROR' });
   }
 });
 
@@ -251,7 +251,7 @@ router.post('/domains/:domainId/verify', requirePermission('settings.manage'), a
     res.json({ success: true, ...result });
   } catch (error) {
     log.error('DNS check failed', error);
-    res.status(500).json({ error: 'Failed to check domain verification' });
+    res.status(500).json({ success: false, error: 'Failed to check domain verification', code: 'SSO_VERIFY_DOMAIN_ERROR' });
   }
 });
 
@@ -270,13 +270,13 @@ router.delete('/domains/:domainId', requirePermission('settings.manage'), async 
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Domain not found' });
+      return res.status(404).json({ success: false, error: 'Domain not found', code: 'SSO_DOMAIN_NOT_FOUND' });
     }
 
     res.json({ success: true });
   } catch (error) {
     log.error('Delete domain failed', error);
-    res.status(500).json({ error: 'Failed to delete domain' });
+    res.status(500).json({ success: false, error: 'Failed to delete domain', code: 'SSO_DELETE_DOMAIN_ERROR' });
   }
 });
 
@@ -324,7 +324,7 @@ router.get('/events', requirePermission('settings.manage'), async (req, res) => 
     });
   } catch (error) {
     log.error('List events failed', error);
-    res.status(500).json({ error: 'Failed to list SSO events' });
+    res.status(500).json({ success: false, error: 'Failed to list SSO events', code: 'SSO_LIST_EVENTS_ERROR' });
   }
 });
 

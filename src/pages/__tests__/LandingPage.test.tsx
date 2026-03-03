@@ -31,6 +31,23 @@ vi.mock('../../components/SEOHead', () => ({
   SEOHead: () => null,
 }));
 
+vi.mock('@/components/landing/FeatureVideos', () => {
+  const Stub = () => null;
+  return {
+    CollabAnimation: Stub,
+    FileManagementAnimation: Stub,
+    TeamChatAnimation: Stub,
+    WorkflowAnimation: Stub,
+    AnalyticsAnimation: Stub,
+    SecurityAnimation: Stub,
+    FEATURE_ANIMATIONS: new Proxy({}, { get: () => Stub }),
+  };
+});
+
+vi.mock('@/components/landing/HeroDemo', () => ({
+  HeroDemo: () => <div data-testid="hero-demo" />,
+}));
+
 vi.mock('framer-motion', () => ({
   motion: new Proxy(
     {},
@@ -44,6 +61,7 @@ vi.mock('framer-motion', () => ({
       },
     }
   ) as any,
+  AnimatePresence: ({ children }: any) => <>{children}</>,
   useScroll: () => ({ scrollY: { get: () => 0 }, scrollYProgress: { get: () => 0 } }),
   useTransform: () => '0',
   useInView: () => true,

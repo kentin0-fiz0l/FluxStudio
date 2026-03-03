@@ -94,7 +94,7 @@ router.post('/cache/clear', authenticateToken, async (req, res) => {
 
     manager.clearCache();
 
-    res.json({ message: 'MCP cache cleared successfully' });
+    res.json({ success: true, message: 'MCP cache cleared successfully' });
   } catch (error) {
     log.error('MCP cache clear error', error);
     res.status(500).json({ success: false, error: 'Failed to clear MCP cache', code: 'MCP_CACHE_CLEAR_ERROR' });

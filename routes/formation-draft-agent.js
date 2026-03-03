@@ -290,11 +290,11 @@ router.post('/session/:id/approve',
       const session = await draftService.getSession(req.params.id);
 
       if (!session || session.user_id !== req.user.id) {
-        return res.status(404).json({ error: 'Session not found' });
+        return res.status(404).json({ success: false, error: 'Session not found', code: 'FORMATION_SESSION_NOT_FOUND' });
       }
 
       if (session.status !== 'awaiting_approval') {
-        return res.status(400).json({ error: 'Session is not awaiting approval' });
+        return res.status(400).json({ success: false, error: 'Session is not awaiting approval', code: 'FORMATION_NOT_AWAITING_APPROVAL' });
       }
 
       await draftService.approveShowPlan(req.params.id);
@@ -302,7 +302,7 @@ router.post('/session/:id/approve',
       res.json({ success: true, message: 'Plan approved' });
     } catch (error) {
       log.error('Approve error', error);
-      res.status(500).json({ error: 'Failed to approve plan' });
+      res.status(500).json({ success: false, error: 'Failed to approve plan', code: 'FORMATION_APPROVE_ERROR' });
     }
   }
 );
@@ -323,11 +323,11 @@ router.post('/session/:id/refine',
     try {
       const session = await draftService.getSession(req.params.id);
       if (!session || session.user_id !== req.user.id) {
-        return res.status(404).json({ error: 'Session not found' });
+        return res.status(404).json({ success: false, error: 'Session not found', code: 'FORMATION_SESSION_NOT_FOUND' });
       }
 
       if (session.status !== 'done' && session.status !== 'paused') {
-        return res.status(400).json({ error: 'Session must be done or paused to refine' });
+        return res.status(400).json({ success: false, error: 'Session must be done or paused to refine', code: 'FORMATION_INVALID_STATUS' });
       }
 
       // Set up SSE for refinement
@@ -389,7 +389,7 @@ router.post('/session/:id/interrupt',
     try {
       const session = await draftService.getSession(req.params.id);
       if (!session || session.user_id !== req.user.id) {
-        return res.status(404).json({ error: 'Session not found' });
+        return res.status(404).json({ success: false, error: 'Session not found', code: 'FORMATION_SESSION_NOT_FOUND' });
       }
 
       if (action === 'cancel') {
@@ -403,7 +403,7 @@ router.post('/session/:id/interrupt',
       res.json({ success: true, action });
     } catch (error) {
       log.error('Interrupt error', error);
-      res.status(500).json({ error: 'Failed to interrupt generation' });
+      res.status(500).json({ success: false, error: 'Failed to interrupt generation', code: 'FORMATION_INTERRUPT_ERROR' });
     }
   }
 );
@@ -419,7 +419,7 @@ router.get('/session/:id',
       const session = await draftService.getSession(req.params.id);
 
       if (!session || session.user_id !== req.user.id) {
-        return res.status(404).json({ error: 'Session not found' });
+        return res.status(404).json({ success: false, error: 'Session not found', code: 'FORMATION_SESSION_NOT_FOUND' });
       }
 
       res.json({
@@ -440,7 +440,7 @@ router.get('/session/:id',
       });
     } catch (error) {
       log.error('Get session error', error);
-      res.status(500).json({ error: 'Failed to get session' });
+      res.status(500).json({ success: false, error: 'Failed to get session', code: 'FORMATION_GET_SESSION_ERROR' });
     }
   }
 );

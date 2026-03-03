@@ -95,6 +95,7 @@ router.post('/', authenticateToken, zodValidate(createTeamSchema), async (req, r
     await saveTeams(teams);
 
     res.json({
+      success: true,
       message: 'Team created successfully',
       team: newTeam
     });
@@ -206,7 +207,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     teams.splice(teamIndex, 1);
     await saveTeams(teams);
 
-    res.json({ message: 'Team deleted successfully' });
+    res.json({ success: true, message: 'Team deleted successfully' });
   } catch (error) {
     log.error('Delete team error', error);
     res.status(500).json({ success: false, error: 'Error deleting team', code: 'TEAM_DELETE_ERROR' });
@@ -267,6 +268,7 @@ router.post('/:id/invite', authenticateToken, zodValidate(inviteTeamMemberSchema
     await saveTeams(teams);
 
     res.json({
+      success: true,
       message: 'Invitation sent successfully',
       invite
     });
@@ -323,6 +325,7 @@ router.post('/:id/accept-invite', authenticateToken, async (req, res) => {
     }
 
     res.json({
+      success: true,
       message: 'Successfully joined the team',
       team: teams[teamIndex]
     });
@@ -379,6 +382,7 @@ router.delete('/:id/members/:userId', authenticateToken, async (req, res) => {
     }
 
     res.json({
+      success: true,
       message: 'Member removed successfully'
     });
   } catch (error) {
@@ -427,6 +431,7 @@ router.put('/:id/members/:userId', authenticateToken, zodValidate(updateTeamMemb
     await saveTeams(teams);
 
     res.json({
+      success: true,
       message: 'Role updated successfully',
       member: teams[teamIndex].members[targetMemberIndex]
     });
@@ -490,7 +495,7 @@ router.delete('/:id/invites/:inviteId', authenticateToken, async (req, res) => {
 
     await saveTeams(teams);
 
-    res.json({ message: 'Invitation cancelled' });
+    res.json({ success: true, message: 'Invitation cancelled' });
   } catch (error) {
     log.error('Cancel invitation error', error);
     res.status(500).json({ success: false, error: 'Error cancelling invitation', code: 'TEAM_CANCEL_INVITE_ERROR' });

@@ -308,6 +308,7 @@ router.post('/signup',
       // Return auth response with access + refresh tokens
       // Include emailVerified status so frontend knows to show verification reminder
       res.json({
+        success: true,
         ...authResponse,
         emailVerified: false,
         message: 'Account created! Please check your email to verify your account.'
@@ -481,7 +482,7 @@ router.get('/me', requireAuth, async (req, res) => {
 // Logout endpoint
 router.post('/logout', requireAuth, (req, res) => {
   // In a real app, you might want to invalidate the token server-side
-  res.json({ message: 'Logged out successfully' });
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // Google OAuth endpoint
@@ -781,7 +782,7 @@ router.post('/verify-email',
 
         // Check if already verified
         if (user.email_verified) {
-          return res.json({ message: 'Email already verified', verified: true });
+          return res.json({ success: true, message: 'Email already verified', verified: true });
         }
 
         // Check if token is expired
@@ -811,7 +812,7 @@ router.post('/verify-email',
           ipAddress: req.ip, userAgent: req.get('user-agent'),
         }).catch(() => {});
 
-        return res.json({ message: 'Email verified successfully', verified: true });
+        return res.json({ success: true, message: 'Email verified successfully', verified: true });
       }
 
       // Fallback for file-based storage
@@ -823,7 +824,7 @@ router.post('/verify-email',
       }
 
       if (user.emailVerified) {
-        return res.json({ message: 'Email already verified', verified: true });
+        return res.json({ success: true, message: 'Email already verified', verified: true });
       }
 
       if (user.verificationExpires && new Date(user.verificationExpires) < new Date()) {
@@ -839,7 +840,7 @@ router.post('/verify-email',
       // Send welcome email
       await emailService.sendWelcomeEmail(user.email, user.name || 'there');
 
-      res.json({ message: 'Email verified successfully', verified: true });
+      res.json({ success: true, message: 'Email verified successfully', verified: true });
     } catch (error) {
       log.error('Email verification error', error);
       captureAuthError(error, {
@@ -885,13 +886,13 @@ router.post('/resend-verification',
 
         if (result.rows.length === 0) {
           // Don't reveal if email exists
-          return res.json({ message: 'If an account exists with this email, a verification link has been sent.' });
+          return res.json({ success: true, message: 'If an account exists with this email, a verification link has been sent.' });
         }
 
         const user = result.rows[0];
 
         if (user.email_verified) {
-          return res.json({ message: 'Email is already verified' });
+          return res.json({ success: true, message: 'Email is already verified' });
         }
 
         // Update token
@@ -904,7 +905,7 @@ router.post('/resend-verification',
         // Send verification email
         await emailService.sendVerificationEmail(email, verificationToken, user.name || 'there');
 
-        return res.json({ message: 'Verification email sent. Please check your inbox.' });
+        return res.json({ success: true, message: 'Verification email sent. Please check your inbox.' });
       }
 
       // Fallback for file-based storage
@@ -912,11 +913,11 @@ router.post('/resend-verification',
       const user = users.find(u => u.email === email);
 
       if (!user) {
-        return res.json({ message: 'If an account exists with this email, a verification link has been sent.' });
+        return res.json({ success: true, message: 'If an account exists with this email, a verification link has been sent.' });
       }
 
       if (user.emailVerified) {
-        return res.json({ message: 'Email is already verified' });
+        return res.json({ success: true, message: 'Email is already verified' });
       }
 
       // Update token
@@ -927,7 +928,7 @@ router.post('/resend-verification',
       // Send verification email
       await emailService.sendVerificationEmail(email, verificationToken, user.name || 'there');
 
-      res.json({ message: 'Verification email sent. Please check your inbox.' });
+      res.json({ success: true, message: 'Verification email sent. Please check your inbox.' });
     } catch (error) {
       log.error('Resend verification error', error);
       captureAuthError(error, {
@@ -975,7 +976,7 @@ router.post('/forgot-password',
 
         // Always return success message to prevent email enumeration
         if (result.rows.length === 0) {
-          return res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
+          return res.json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
         }
 
         const user = result.rows[0];
@@ -983,6 +984,7 @@ router.post('/forgot-password',
         // If user signed up with Google, suggest using Google login
         if (user.google_id && !user.password) {
           return res.json({
+            success: true,
             message: 'This account uses Google Sign-In. Please log in with Google instead.',
             useGoogle: true
           });
@@ -1005,7 +1007,7 @@ router.post('/forgot-password',
           { userId: user.id, email, ipAddress: req.ip }
         );
 
-        return res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
+        return res.json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
       }
 
       // Fallback for file-based storage
@@ -1013,11 +1015,12 @@ router.post('/forgot-password',
       const user = users.find(u => u.email === email);
 
       if (!user) {
-        return res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
+        return res.json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
       }
 
       if (user.googleId && !user.password) {
         return res.json({
+          success: true,
           message: 'This account uses Google Sign-In. Please log in with Google instead.',
           useGoogle: true
         });
@@ -1031,7 +1034,7 @@ router.post('/forgot-password',
       // Send reset email
       await emailService.sendPasswordResetEmail(email, resetToken, user.name || 'there');
 
-      res.json({ message: 'If an account exists with this email, a password reset link has been sent.' });
+      res.json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
     } catch (error) {
       log.error('Forgot password error', error);
       captureAuthError(error, {
@@ -1105,7 +1108,7 @@ router.post('/reset-password',
           { userId: user.id, email: user.email, ipAddress: req.ip }
         );
 
-        return res.json({ message: 'Password reset successfully. You can now log in with your new password.' });
+        return res.json({ success: true, message: 'Password reset successfully. You can now log in with your new password.' });
       }
 
       // Fallback for file-based storage
@@ -1126,7 +1129,7 @@ router.post('/reset-password',
       user.passwordResetExpires = null;
       await authHelper.saveUsers(users);
 
-      res.json({ message: 'Password reset successfully. You can now log in with your new password.' });
+      res.json({ success: true, message: 'Password reset successfully. You can now log in with your new password.' });
     } catch (error) {
       log.error('Reset password error', error);
       captureAuthError(error, {
