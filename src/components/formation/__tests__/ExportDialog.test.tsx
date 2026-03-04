@@ -46,7 +46,7 @@ describe('ExportDialog', () => {
     expect(screen.getByText('JPEG Image')).toBeTruthy();
     expect(screen.getByText('SVG Vector')).toBeTruthy();
     expect(screen.getByText('Animated GIF')).toBeTruthy();
-    expect(screen.getByText('MP4 Video')).toBeTruthy();
+    expect(screen.getByText('Video')).toBeTruthy();
   });
 
   test('selects format when clicked', async () => {

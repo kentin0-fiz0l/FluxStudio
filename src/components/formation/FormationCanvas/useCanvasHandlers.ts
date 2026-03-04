@@ -417,7 +417,12 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
   const handleExport = useCallback(async (options: FormationExportOptions) => {
     if (!formation) return;
     const blob = await formationService.exportFormation(formation.id, options);
-    if (blob) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${formation.name}.${options.format}`; a.click(); URL.revokeObjectURL(url); }
+    if (blob) {
+      const ext = options.format === 'video' ? 'webm' : options.format;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${formation.name}.${ext}`; a.click();
+      URL.revokeObjectURL(url);
+    }
   }, [formation]);
 
   // ---- Audio ----

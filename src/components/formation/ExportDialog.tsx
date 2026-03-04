@@ -21,7 +21,7 @@ import {
   Tag,
   Clock,
 } from 'lucide-react';
-import { FormationExportOptions } from '../../services/formationService';
+import type { FormationExportOptions, ExportProgress } from '../../services/formationService';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -86,8 +86,8 @@ const formatOptions: FormatOption[] = [
   },
   {
     value: 'video',
-    label: 'MP4 Video',
-    description: 'Full video export with transitions',
+    label: 'Video',
+    description: 'WebM video export with transitions',
     icon: <Film className="w-5 h-5" aria-hidden="true" />,
     category: 'animated',
   },
@@ -120,11 +120,13 @@ export function ExportDialog({
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('pdf');
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
 
   // Export options state
   const [includeGrid, setIncludeGrid] = useState(true);
   const [includeLabels, setIncludeLabels] = useState(true);
   const [includeTimestamps, setIncludeTimestamps] = useState(true);
+  const [includeFieldOverlay, setIncludeFieldOverlay] = useState(false);
   const [paperSize, setPaperSize] = useState<'letter' | 'a4' | 'tabloid'>('letter');
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('landscape');
   const [quality, setQuality] = useState(90);
@@ -140,9 +142,21 @@ export function ExportDialog({
   const isImageFormat = selectedFormat === 'png' || selectedFormat === 'jpg';
   const isPdfFormat = selectedFormat === 'pdf';
 
+  const handleFormatChange = useCallback((format: ExportFormat) => {
+    setSelectedFormat(format);
+    if (format === 'gif') {
+      if (resolution.width > 1280 || resolution.height > 720) {
+        setResolution({ width: 1280, height: 720 });
+        setSelectedResolutionPreset('720p');
+      }
+      if (fps > 15) setFps(15);
+    }
+  }, [resolution, fps]);
+
   const handleExport = useCallback(async () => {
     setIsExporting(true);
     setExportSuccess(false);
+    setExportProgress(null);
 
     try {
       const options: FormationExportOptions = {
@@ -155,18 +169,21 @@ export function ExportDialog({
         quality: isImageFormat ? quality : undefined,
         fps: isAnimatedFormat ? fps : undefined,
         resolution: isAnimatedFormat || isImageFormat ? resolution : undefined,
+        includeFieldOverlay: isAnimatedFormat ? includeFieldOverlay : undefined,
+        onProgress: isAnimatedFormat ? (p) => setExportProgress(p) : undefined,
       };
 
       await onExport(options);
       setExportSuccess(true);
+      setExportProgress(null);
 
-      // Auto-close after success
       setTimeout(() => {
         onClose();
         setExportSuccess(false);
       }, 1500);
     } catch (error) {
       console.error('Export failed:', error);
+      setExportProgress(null);
     } finally {
       setIsExporting(false);
     }
@@ -175,6 +192,7 @@ export function ExportDialog({
     includeGrid,
     includeLabels,
     includeTimestamps,
+    includeFieldOverlay,
     paperSize,
     orientation,
     quality,
@@ -251,7 +269,7 @@ export function ExportDialog({
                   e.preventDefault();
                   const idx = formatOptions.findIndex((f) => f.value === selectedFormat);
                   const next = (idx + delta + formatOptions.length) % formatOptions.length;
-                  setSelectedFormat(formatOptions[next].value);
+                  handleFormatChange(formatOptions[next].value);
                   // Move focus to the newly selected button
                   const container = e.currentTarget;
                   const buttons = container.querySelectorAll<HTMLElement>('[role="radio"]');
@@ -265,7 +283,7 @@ export function ExportDialog({
                   role="radio"
                   aria-checked={selectedFormat === format.value}
                   tabIndex={selectedFormat === format.value ? 0 : -1}
-                  onClick={() => setSelectedFormat(format.value)}
+                  onClick={() => handleFormatChange(format.value)}
                   className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800 ${
                     selectedFormat === format.value
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -341,6 +359,21 @@ export function ExportDialog({
                   <Clock className="w-4 h-4 text-gray-400" aria-hidden="true" />
                   <span className="text-sm text-gray-700 dark:text-gray-300">
                     {t('formation.includeTimestamps', 'Include timestamps')}
+                  </span>
+                </label>
+              )}
+
+              {isAnimatedFormat && (
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeFieldOverlay}
+                    onChange={(e) => setIncludeFieldOverlay(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                  />
+                  <Grid className="w-4 h-4 text-gray-400" aria-hidden="true" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    {t('formation.includeFieldOverlay', 'Include field overlay')}
                   </span>
                 </label>
               )}
@@ -479,6 +512,25 @@ export function ExportDialog({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {exportProgress && exportProgress.phase !== 'done' && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {exportProgress.phase === 'rendering' ? 'Rendering frames...' : 'Encoding...'}
+                </span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {exportProgress.percent}%
+                </span>
+              </div>
+              <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full transition-all duration-200"
+                  style={{ width: `${exportProgress.percent}%` }}
+                />
+              </div>
             </div>
           )}
         </div>

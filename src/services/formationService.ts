@@ -30,6 +30,7 @@ export type {
   AudioTrack,
   Formation,
   DrillSettings,
+  ExportProgress,
   FormationExportOptions,
   PlaybackState,
 } from './formationTypes';

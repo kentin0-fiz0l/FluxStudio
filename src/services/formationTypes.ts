@@ -68,6 +68,11 @@ export interface Formation {
   createdBy: string;
 }
 
+export interface ExportProgress {
+  phase: 'rendering' | 'encoding' | 'done';
+  percent: number;
+}
+
 export interface FormationExportOptions {
   format: 'pdf' | 'png' | 'jpg' | 'svg' | 'video' | 'gif';
   includeGrid: boolean;
@@ -79,6 +84,7 @@ export interface FormationExportOptions {
   fps?: number;
   resolution?: { width: number; height: number };
   includeFieldOverlay?: boolean;
+  onProgress?: (progress: ExportProgress) => void;
 }
 
 export interface PlaybackState {
