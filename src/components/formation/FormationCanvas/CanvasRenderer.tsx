@@ -4,13 +4,16 @@
  * Performance optimizations for 200+ performers:
  * - Canvas2D batch layer renders non-interactive performers via a single <canvas> element,
  *   batching draw calls by color to minimize state changes.
+ * - Viewport culling: only performers within the visible area are drawn on the batch canvas.
  * - Only selected/dragged performers use DOM-based PerformerMarker for interactivity.
  * - React.memo with custom comparator prevents unnecessary re-renders.
+ * - useDeferredValue defers non-critical overlay updates (paths, ghost trails) during drag.
+ * - Debounced path recalculation (100ms during drag, immediate on drag end).
  * - Collaboration drag state is pre-computed into a Map to avoid per-performer function calls.
  * - Stable callback refs via useCallback avoid re-creating closures in the render loop.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { PerformerMarker } from '../PerformerMarker';
 import { PathOverlay } from '../PathOverlay';
 import { FieldOverlay } from '../FieldOverlay';
@@ -20,6 +23,7 @@ import { ShapeToolOverlay } from './ShapeToolOverlay';
 import type { Formation, Performer, Position, PlaybackState } from '../../../services/formationService';
 import type { Tool, Marquee } from './types';
 import type { FormationAwarenessState } from '../../../services/formation/yjs/formationYjsTypes';
+import { isInViewport } from '../../../utils/performanceUtils';
 
 // ============================================================================
 // Types
@@ -48,6 +52,8 @@ interface CanvasRendererProps {
   isCollaborativeEnabled: boolean;
   collab: { collaborators: FormationAwarenessState[]; isPerformerBeingDragged: (id: string) => { dragging: boolean; by?: FormationAwarenessState } };
   canvasRef: React.RefObject<HTMLDivElement>;
+  /** Size of the visible scroll container (pixels). Enables viewport culling when provided. */
+  viewportSize?: { width: number; height: number };
   // Handlers
   onCanvasClick: (e: React.MouseEvent) => void;
   onCanvasPointerDown: (e: React.PointerEvent) => void;
@@ -149,6 +155,10 @@ interface PerformerCanvasLayerProps {
   canvasHeight: number;
   zoom: number;
   showLabels: boolean;
+  /** Pan offset in pixels for viewport culling */
+  canvasPan?: { x: number; y: number };
+  /** Visible container size in pixels for viewport culling */
+  viewportSize?: { width: number; height: number };
 }
 
 const PerformerCanvasLayer = React.memo<PerformerCanvasLayerProps>(function PerformerCanvasLayer({
@@ -159,16 +169,27 @@ const PerformerCanvasLayer = React.memo<PerformerCanvasLayerProps>(function Perf
   canvasHeight,
   zoom,
   showLabels,
+  canvasPan,
+  viewportSize,
 }) {
   const canvasElRef = useRef<HTMLCanvasElement>(null);
 
-  // Pre-compute batch data
+  // Pre-compute batch data with viewport culling
   const batchData = useMemo(() => {
     const result: BatchPerformer[] = [];
+    const doCull = viewportSize != null && canvasPan != null;
+    const canvasSize = { width: canvasWidth, height: canvasHeight };
+
     for (const performer of performers) {
       if (excludeIds.has(performer.id)) continue;
       const pos = positions.get(performer.id);
       if (!pos) continue;
+
+      // Skip performers outside the visible viewport
+      if (doCull && !isInViewport(pos, zoom, canvasPan, canvasSize, viewportSize)) {
+        continue;
+      }
+
       result.push({
         color: performer.color,
         label: performer.label,
@@ -178,7 +199,7 @@ const PerformerCanvasLayer = React.memo<PerformerCanvasLayerProps>(function Perf
       });
     }
     return result;
-  }, [performers, positions, excludeIds, canvasWidth, canvasHeight]);
+  }, [performers, positions, excludeIds, canvasWidth, canvasHeight, zoom, canvasPan, viewportSize]);
 
   // Draw on canvas
   useEffect(() => {
@@ -243,6 +264,7 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
   isCollaborativeEnabled,
   collab,
   canvasRef,
+  viewportSize,
   onCanvasClick,
   onCanvasPointerDown,
   onCanvasPointerMove,
@@ -258,6 +280,58 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
 }) {
   const canvasWidth = formation.stageWidth * 20 * zoom;
   const canvasHeight = formation.stageHeight * 20 * zoom;
+
+  // ---------------------------------------------------------------------------
+  // Drag state tracking for debounced path recalculation
+  // ---------------------------------------------------------------------------
+  const [isDraggingPerformer, setIsDraggingPerformer] = useState(false);
+
+  // Debounced performer paths: during drag, defer path updates by 100ms.
+  // On drag end, the paths update immediately via the flush below.
+  const debouncedPathsRef = useRef(performerPaths);
+  const pathDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Update debounced paths: 100ms delay during drag, immediate otherwise
+  useEffect(() => {
+    if (!isDraggingPerformer) {
+      // Immediate update on drag end or when not dragging
+      if (pathDebounceTimer.current !== null) {
+        clearTimeout(pathDebounceTimer.current);
+        pathDebounceTimer.current = null;
+      }
+      debouncedPathsRef.current = performerPaths;
+      return;
+    }
+
+    // During drag: debounce path recalculation by 100ms
+    if (pathDebounceTimer.current !== null) {
+      clearTimeout(pathDebounceTimer.current);
+    }
+    pathDebounceTimer.current = setTimeout(() => {
+      debouncedPathsRef.current = performerPaths;
+      pathDebounceTimer.current = null;
+    }, 100);
+
+    return () => {
+      if (pathDebounceTimer.current !== null) {
+        clearTimeout(pathDebounceTimer.current);
+        pathDebounceTimer.current = null;
+      }
+    };
+  }, [performerPaths, isDraggingPerformer]);
+
+  // Effective paths: use debounced ref during drag, live paths otherwise
+  const effectivePaths = isDraggingPerformer ? debouncedPathsRef.current : performerPaths;
+
+  // ---------------------------------------------------------------------------
+  // useDeferredValue for non-critical visual updates during drag
+  // ---------------------------------------------------------------------------
+  // Ghost trail and collaboration overlays can lag slightly during drag
+  // without affecting the user's perception of responsiveness.
+  const deferredGhostTrail = useDeferredValue(ghostTrail);
+  const deferredCollaborators = useDeferredValue(
+    isCollaborativeEnabled ? collab.collaborators : [],
+  );
 
   // Pre-compute collaboration drag state into a Map to avoid calling
   // collab.isPerformerBeingDragged() per performer during render
@@ -286,16 +360,28 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
   // to avoid creating new closures in the render loop
   const onDragStartRef = useRef(onDragStart);
   onDragStartRef.current = onDragStart;
+  const onDragEndRef = useRef(onDragEnd);
+  onDragEndRef.current = onDragEnd;
 
   const dragStartCallbacks = useRef(new Map<string, () => boolean>());
 
   const getDragStartCallback = useCallback((performerId: string) => {
     let cb = dragStartCallbacks.current.get(performerId);
     if (!cb) {
-      cb = () => onDragStartRef.current(performerId);
+      cb = () => {
+        const allowed = onDragStartRef.current(performerId);
+        if (allowed) setIsDraggingPerformer(true);
+        return allowed;
+      };
       dragStartCallbacks.current.set(performerId, cb);
     }
     return cb;
+  }, []);
+
+  // Wrapped onDragEnd to clear drag state for debounce control
+  const handleDragEnd = useCallback(() => {
+    setIsDraggingPerformer(false);
+    onDragEndRef.current();
   }, []);
 
   // Combined pointer move handler (stable reference)
@@ -360,7 +446,7 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
       {showPaths && !playbackState.isPlaying && (
         <PathOverlay
           performers={formation.performers}
-          paths={performerPaths}
+          paths={effectivePaths}
           currentTime={playbackState.currentTime}
           canvasWidth={canvasWidth}
           canvasHeight={canvasHeight}
@@ -368,10 +454,10 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
           selectedPerformerIds={selectedPerformerIds}
         />
       )}
-      {playbackState.isPlaying && ghostTrail.length > 1 && (
+      {playbackState.isPlaying && deferredGhostTrail.length > 1 && (
         <TransitionGhostTrail
           performers={formation.performers}
-          trail={ghostTrail}
+          trail={deferredGhostTrail}
           maxGhosts={5}
           canvasWidth={canvasWidth}
           canvasHeight={canvasHeight}
@@ -387,9 +473,9 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
           canvasHeight={canvasHeight}
         />
       )}
-      {isCollaborativeEnabled && collab.collaborators.length > 0 && (
+      {isCollaborativeEnabled && deferredCollaborators.length > 0 && (
         <SelectionRingsOverlay
-          collaborators={collab.collaborators}
+          collaborators={deferredCollaborators}
           performerPositions={currentPositions}
           canvasWidth={canvasWidth}
           canvasHeight={canvasHeight}
@@ -418,6 +504,8 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
         canvasHeight={canvasHeight}
         zoom={zoom}
         showLabels={showLabels}
+        canvasPan={canvasPan}
+        viewportSize={viewportSize}
       />
 
       {/* DOM-based PerformerMarker only for selected/dragged performers */}
@@ -442,14 +530,14 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
             onMove={onMovePerformer}
             onRotate={onRotatePerformer}
             onDragStart={getDragStartCallback(performer.id)}
-            onDragEnd={onDragEnd}
+            onDragEnd={handleDragEnd}
             lockedByUser={dragState?.by?.user.name}
           />
         );
       })}
-      {isCollaborativeEnabled && collab.collaborators.length > 0 && (
+      {isCollaborativeEnabled && deferredCollaborators.length > 0 && (
         <FormationCursorOverlay
-          collaborators={collab.collaborators}
+          collaborators={deferredCollaborators}
           canvasWidth={canvasWidth}
           canvasHeight={canvasHeight}
           performerPositions={currentPositions}

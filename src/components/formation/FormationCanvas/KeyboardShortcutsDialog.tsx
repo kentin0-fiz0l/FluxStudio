@@ -40,6 +40,18 @@ export function KeyboardShortcutsDialog({ onClose }: KeyboardShortcutsDialogProp
         { keys: '\u2191 \u2193 \u2190 \u2192', desc: 'Nudge performer (1 unit)' },
         { keys: 'Shift+Arrow', desc: 'Nudge performer (5 units)' },
         { keys: '+ / -', desc: 'Zoom in / out' },
+        { keys: 'Tab', desc: 'Cycle through performers' },
+      ],
+    },
+    {
+      title: 'Drill',
+      shortcuts: [
+        { keys: 'J', desc: 'Next set' },
+        { keys: 'K', desc: 'Previous set' },
+        { keys: '1-9', desc: 'Jump to set number' },
+        { keys: 'M', desc: 'Movement tools' },
+        { keys: 'Shift+A', desc: 'Drill analysis' },
+        { keys: 'I', desc: 'Coordinate info panel' },
       ],
     },
   ];

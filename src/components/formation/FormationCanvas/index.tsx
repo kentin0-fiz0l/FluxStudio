@@ -9,13 +9,18 @@
  * Toolbar extracted to CanvasToolbar.tsx, PerformerPanel to PerformerPanel.tsx
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { Timeline } from '../Timeline';
 import { ExportDialog } from '../ExportDialog';
 import { AudioUpload } from '../AudioUpload';
 import { TemplatePicker } from '../TemplatePicker';
+import { DrillAnalysisPanel } from '../DrillAnalysisPanel';
+import { MovementToolsPanel } from '../MovementToolsPanel';
+import { CoordinatePanel } from '../CoordinatePanel';
+import { StepSizeOverlay } from '../StepSizeOverlay';
+import { QuickStartWizard } from '../QuickStartWizard';
 import { CanvasToolbar } from './CanvasToolbar';
 import { PerformerPanel } from './PerformerPanel';
 import { AlignmentToolbar } from './AlignmentToolbar';
@@ -25,6 +30,8 @@ import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 import { useCanvasState } from './useCanvasState';
 import { useCanvasHandlers } from './useCanvasHandlers';
 import { useCanvasKeyboardHandlers } from './useCanvasKeyboardHandlers';
+import { NCAA_FOOTBALL_FIELD } from '../../../services/fieldConfigService';
+import type { DrillSet, Position as DrillPosition } from '../../../services/formationTypes';
 import type { FormationCanvasProps } from './types';
 
 export type { FormationCanvasProps };
@@ -58,6 +65,11 @@ export function FormationCanvas(props: FormationCanvasProps) {
     timeDisplayMode, setTimeDisplayMode,
     drillSettings, setDrillSettings,
     showFieldOverlay, setShowFieldOverlay,
+    showAnalysisPanel, setShowAnalysisPanel,
+    showMovementTools, setShowMovementTools,
+    showStepSizes, setShowStepSizes,
+    showCoordinatePanel, setShowCoordinatePanel,
+    showQuickStart, setShowQuickStart,
     shapeToolStart, shapeToolCurrent,
     fingerMode, setFingerMode,
     canvasPan, setCanvasPan,
@@ -111,6 +123,9 @@ export function FormationCanvas(props: FormationCanvasProps) {
     setCurrentPositions,
     setHasUnsavedChanges,
     setShowShortcutsDialog,
+    setShowAnalysisPanel,
+    setShowMovementTools,
+    setShowCoordinatePanel,
     handleUndo,
     handleRedo,
     handleDeleteSelected,
@@ -123,6 +138,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
     handleSave,
     handlePlay,
     handlePause,
+    handleKeyframeSelect,
   });
 
   // Notify parent when positions change (used for sandbox auto-save)
@@ -131,6 +147,90 @@ export function FormationCanvas(props: FormationCanvasProps) {
       onPositionsChange(currentPositions);
     }
   }, [currentPositions, onPositionsChange]);
+
+  // Derive drill sets from keyframes for drill panels
+  const drillSets: DrillSet[] = useMemo(() => {
+    if (!formation) return [];
+    return formation.keyframes.map((kf, i) => ({
+      id: kf.id,
+      name: `Set ${i + 1}`,
+      counts: 8,
+      keyframeId: kf.id,
+      sortOrder: i,
+    }));
+  }, [formation]);
+
+  // Current set index based on selected keyframe
+  const currentSetIndex = useMemo(() => {
+    if (!formation || !selectedKeyframeId) return 0;
+    const idx = formation.keyframes.findIndex(kf => kf.id === selectedKeyframeId);
+    return idx >= 0 ? idx : 0;
+  }, [formation, selectedKeyframeId]);
+
+  // Next set positions for step size overlay
+  const nextSetPositions = useMemo(() => {
+    if (!formation || currentSetIndex >= formation.keyframes.length - 1) return null;
+    return new Map(formation.keyframes[currentSetIndex + 1].positions);
+  }, [formation, currentSetIndex]);
+
+  // Previous set positions for coordinate panel
+  const prevSetPositions = useMemo(() => {
+    if (!formation || currentSetIndex <= 0) return null;
+    return new Map(formation.keyframes[currentSetIndex - 1].positions);
+  }, [formation, currentSetIndex]);
+
+  // Selected performer info for coordinate panel
+  const selectedPerformerInfo = useMemo(() => {
+    if (!formation || selectedPerformerIds.size !== 1) return null;
+    const id = Array.from(selectedPerformerIds)[0];
+    const performer = formation.performers.find(p => p.id === id);
+    if (!performer) return null;
+    return {
+      id,
+      name: performer.name,
+      position: currentPositions.get(id) || null,
+      nextPosition: nextSetPositions?.get(id) || null,
+      prevPosition: prevSetPositions?.get(id) || null,
+    };
+  }, [formation, selectedPerformerIds, currentPositions, nextSetPositions, prevSetPositions]);
+
+  // Handler: navigate to a set from analysis panel
+  const handleNavigateToSet = useCallback((setId: string, performerIds?: string[]) => {
+    if (!formation) return;
+    const kf = formation.keyframes.find(k => k.id === setId);
+    if (kf) {
+      handleKeyframeSelect(kf.id);
+      if (performerIds && performerIds.length > 0) {
+        setSelectedPerformerIds(new Set(performerIds));
+      }
+    }
+  }, [formation, handleKeyframeSelect, setSelectedPerformerIds]);
+
+  // Handler: apply movement tool positions
+  const handleApplyMovementPositions = useCallback((performerIds: string[], positions: DrillPosition[]) => {
+    setCurrentPositions(prev => {
+      const next = new Map(prev);
+      performerIds.forEach((id, i) => {
+        if (positions[i]) next.set(id, positions[i]);
+      });
+      return next;
+    });
+    setHasUnsavedChanges(true);
+  }, [setCurrentPositions, setHasUnsavedChanges]);
+
+  // Handler: quick start wizard completion
+  const handleQuickStartComplete = useCallback((config: {
+    showName: string;
+    performers: Omit<import('../../../services/formationTypes').Performer, 'id'>[];
+    initialSets: Array<{ name: string; counts: number; description: string }>;
+  }) => {
+    // Add performers from quick start (handleAddPerformer creates with defaults)
+    for (let i = 0; i < config.performers.length; i++) {
+      handleAddPerformer();
+    }
+    handleNameChange(config.showName);
+    setShowQuickStart(false);
+  }, [handleAddPerformer, handleNameChange, setShowQuickStart]);
 
   // Loading/error states
   if (apiLoading || (formationId && !formation)) {
@@ -191,6 +291,14 @@ export function FormationCanvas(props: FormationCanvasProps) {
         formationId={formationId}
         fingerMode={fingerMode}
         setFingerMode={setFingerMode}
+        showAnalysisPanel={showAnalysisPanel}
+        setShowAnalysisPanel={setShowAnalysisPanel}
+        showMovementTools={showMovementTools}
+        setShowMovementTools={setShowMovementTools}
+        showStepSizes={showStepSizes}
+        setShowStepSizes={setShowStepSizes}
+        showCoordinatePanel={showCoordinatePanel}
+        setShowCoordinatePanel={setShowCoordinatePanel}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -246,6 +354,35 @@ export function FormationCanvas(props: FormationCanvasProps) {
             onRemovePerformer={handleRemovePerformer}
           />
         )}
+        {showCoordinatePanel && selectedPerformerInfo && (
+          <CoordinatePanel
+            performerId={selectedPerformerInfo.id}
+            performerName={selectedPerformerInfo.name}
+            position={selectedPerformerInfo.position}
+            nextPosition={selectedPerformerInfo.nextPosition}
+            prevPosition={selectedPerformerInfo.prevPosition}
+            fieldConfig={NCAA_FOOTBALL_FIELD}
+            currentSetCounts={drillSets[currentSetIndex]?.counts ?? 8}
+            prevSetCounts={currentSetIndex > 0 ? (drillSets[currentSetIndex - 1]?.counts ?? 8) : 0}
+            onPositionChange={(pos) => {
+              if (selectedPerformerInfo) {
+                setCurrentPositions(prev => {
+                  const next = new Map(prev);
+                  next.set(selectedPerformerInfo.id, pos);
+                  return next;
+                });
+                setHasUnsavedChanges(true);
+              }
+            }}
+          />
+        )}
+        {showAnalysisPanel && (
+          <DrillAnalysisPanel
+            formation={formation}
+            sets={drillSets}
+            onNavigateToSet={handleNavigateToSet}
+          />
+        )}
       </div>
 
       {showAudioPanel && (
@@ -294,6 +431,39 @@ export function FormationCanvas(props: FormationCanvasProps) {
           onCancel={() => setShowTemplatePicker(false)}
           emptyState={formation.performers.length === 0}
         />
+      )}
+
+      {/* Movement Tools Panel (modal overlay) */}
+      {showMovementTools && (
+        <MovementToolsPanel
+          selectedPositions={Array.from(selectedPerformerIds).map(id => currentPositions.get(id)).filter((p): p is DrillPosition => !!p)}
+          allPositions={Array.from(currentPositions.values())}
+          selectedPerformerIds={Array.from(selectedPerformerIds)}
+          onApplyPositions={handleApplyMovementPositions}
+          onClose={() => setShowMovementTools(false)}
+        />
+      )}
+
+      {/* Quick Start Wizard (modal overlay) */}
+      {showQuickStart && (
+        <QuickStartWizard
+          onComplete={handleQuickStartComplete}
+          onClose={() => setShowQuickStart(false)}
+        />
+      )}
+
+      {/* Step Size Overlay (rendered in an invisible portal over canvas) */}
+      {showStepSizes && nextSetPositions && (
+        <div className="absolute inset-0 pointer-events-none" style={{ top: '48px' }}>
+          <StepSizeOverlay
+            positions={currentPositions}
+            nextPositions={nextSetPositions}
+            fieldConfig={NCAA_FOOTBALL_FIELD}
+            counts={drillSets[currentSetIndex]?.counts ?? 8}
+            canvasWidth={canvasRef.current?.clientWidth ?? 800}
+            canvasHeight={canvasRef.current?.clientHeight ?? 500}
+          />
+        </div>
       )}
     </div>
   );

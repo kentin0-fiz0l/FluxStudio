@@ -28,6 +28,10 @@ interface UseCanvasKeyboardHandlersProps {
   setCurrentPositions: React.Dispatch<React.SetStateAction<Map<string, Position>>>;
   setHasUnsavedChanges: React.Dispatch<React.SetStateAction<boolean>>;
   setShowShortcutsDialog: React.Dispatch<React.SetStateAction<boolean>>;
+  // Drill panel toggles
+  setShowAnalysisPanel?: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowMovementTools?: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowCoordinatePanel?: React.Dispatch<React.SetStateAction<boolean>>;
   // Handlers from useCanvasHandlers
   handleUndo: () => void;
   handleRedo: () => void;
@@ -41,6 +45,8 @@ interface UseCanvasKeyboardHandlersProps {
   handleSave: () => void;
   handlePlay: () => void;
   handlePause: () => void;
+  // Drill navigation
+  handleKeyframeSelect?: (id: string) => void;
 }
 
 export function useCanvasKeyboardHandlers({
@@ -67,6 +73,10 @@ export function useCanvasKeyboardHandlers({
   handleSave,
   handlePlay,
   handlePause,
+  setShowAnalysisPanel,
+  setShowMovementTools,
+  setShowCoordinatePanel,
+  handleKeyframeSelect,
 }: UseCanvasKeyboardHandlersProps): { contextMenu: ContextMenuState; handleWheel: (e: React.WheelEvent) => void } {
   const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 
@@ -229,6 +239,60 @@ export function useCanvasKeyboardHandlers({
         setHasUnsavedChanges(true);
       }
 
+      // Drill shortcuts: J/K for next/previous set
+      if ((e.key === 'j' || e.key === 'k') && formation && handleKeyframeSelect) {
+        e.preventDefault();
+        const kfs = formation.keyframes;
+        if (kfs.length > 1) {
+          // Find current keyframe index by matching positions
+          let curIdx = 0;
+          if (currentPositions.size > 0) {
+            const firstId = Array.from(currentPositions.keys())[0];
+            const curPos = currentPositions.get(firstId);
+            if (curPos) {
+              for (let i = 0; i < kfs.length; i++) {
+                const kfPos = kfs[i].positions.get(firstId);
+                if (kfPos && Math.abs(kfPos.x - curPos.x) < 0.01 && Math.abs(kfPos.y - curPos.y) < 0.01) {
+                  curIdx = i;
+                  break;
+                }
+              }
+            }
+          }
+          const targetIdx = e.key === 'j'
+            ? Math.min(curIdx + 1, kfs.length - 1)
+            : Math.max(curIdx - 1, 0);
+          handleKeyframeSelect(kfs[targetIdx].id);
+        }
+      }
+
+      // M for movement tools
+      if (e.key === 'm' && !e.metaKey && !e.ctrlKey && setShowMovementTools) {
+        e.preventDefault();
+        setShowMovementTools(prev => !prev);
+      }
+
+      // Shift+A for analysis panel
+      if (e.key === 'A' && e.shiftKey && !e.metaKey && !e.ctrlKey && setShowAnalysisPanel) {
+        e.preventDefault();
+        setShowAnalysisPanel(prev => !prev);
+      }
+
+      // I for coordinate info panel
+      if (e.key === 'i' && !e.metaKey && !e.ctrlKey && setShowCoordinatePanel) {
+        e.preventDefault();
+        setShowCoordinatePanel(prev => !prev);
+      }
+
+      // Number keys 1-9 to jump to specific set
+      if (/^[1-9]$/.test(e.key) && !e.metaKey && !e.ctrlKey && formation && handleKeyframeSelect) {
+        const setNum = parseInt(e.key, 10) - 1;
+        if (setNum < formation.keyframes.length) {
+          e.preventDefault();
+          handleKeyframeSelect(formation.keyframes[setNum].id);
+        }
+      }
+
       if (e.key === 'Tab' && formation) {
         e.preventDefault();
         const ids = formation.performers.map(p => p.id);
@@ -248,7 +312,7 @@ export function useCanvasKeyboardHandlers({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleSave, playbackState.isPlaying, handlePause, handlePlay, handleUndo, handleRedo, selectedPerformerIds, formation, setCurrentPositions, setHasUnsavedChanges, setSelectedPerformerIds, handleDeleteSelected, setShowShortcutsDialog, setZoom]);
+  }, [handleSave, playbackState.isPlaying, handlePause, handlePlay, handleUndo, handleRedo, selectedPerformerIds, formation, currentPositions, setCurrentPositions, setHasUnsavedChanges, setSelectedPerformerIds, handleDeleteSelected, setShowShortcutsDialog, setZoom, setShowAnalysisPanel, setShowMovementTools, setShowCoordinatePanel, handleKeyframeSelect]);
 
   return {
     contextMenu: { ...contextMenuState, close: closeContextMenu },

@@ -128,6 +128,12 @@ export function useCanvasState(props: FormationCanvasProps) {
   const [timeDisplayMode, setTimeDisplayMode] = useState<'time' | 'counts'>('time');
   const [drillSettings, setDrillSettings] = useState<DrillSettings>(DEFAULT_DRILL_SETTINGS);
   const [showFieldOverlay, setShowFieldOverlay] = useState(false);
+  // Drill feature panels
+  const [showAnalysisPanel, setShowAnalysisPanel] = useState(false);
+  const [showMovementTools, setShowMovementTools] = useState(false);
+  const [showStepSizes, setShowStepSizes] = useState(false);
+  const [showCoordinatePanel, setShowCoordinatePanel] = useState(false);
+  const [showQuickStart, setShowQuickStart] = useState(false);
   const [shapeToolStart, setShapeToolStart] = useState<Position | null>(null);
   const [shapeToolCurrent, setShapeToolCurrent] = useState<Position | null>(null);
   const [fingerMode, setFingerMode] = useState<'select' | 'pan'>('select');
@@ -166,6 +172,11 @@ export function useCanvasState(props: FormationCanvasProps) {
     timeDisplayMode, setTimeDisplayMode,
     drillSettings, setDrillSettings,
     showFieldOverlay, setShowFieldOverlay,
+    showAnalysisPanel, setShowAnalysisPanel,
+    showMovementTools, setShowMovementTools,
+    showStepSizes, setShowStepSizes,
+    showCoordinatePanel, setShowCoordinatePanel,
+    showQuickStart, setShowQuickStart,
     shapeToolStart, setShapeToolStart,
     shapeToolCurrent, setShapeToolCurrent,
     fingerMode, setFingerMode,
