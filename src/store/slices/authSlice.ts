@@ -536,6 +536,13 @@ export function useAuthInit() {
     checkAuth();
 
     const handleUnauthorized = async () => {
+      // Don't redirect while initial auth check is still in progress —
+      // checkAuth() handles its own 401s (e.g. token refresh). Parallel API
+      // calls that fire before auth resolves should not race to logout.
+      const store = getUseStore() as { getState: () => FluxStore };
+      const { isLoading } = store.getState().auth;
+      if (isLoading) return;
+
       const publicAuthPaths = ['/login', '/signup', '/forgot-password', '/reset-password'];
       const isPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.includes(path));
       if (!isPublicAuthPage) {

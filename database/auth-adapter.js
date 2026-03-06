@@ -12,8 +12,7 @@ class AuthAdapter {
   // User management
   async getUsers() {
     try {
-      // Use "createdAt" (camelCase) to match MetMap/Prisma schema
-      const result = await query('SELECT * FROM users WHERE is_active = true ORDER BY "createdAt" DESC');
+      const result = await query('SELECT * FROM users WHERE is_active = true ORDER BY created_at DESC');
       return result.rows.map(this.transformUser);
     } catch (error) {
       log.error('Error getting users', error);

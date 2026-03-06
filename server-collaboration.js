@@ -4,6 +4,7 @@
  * Sprint 11 - Phase 2: Document Persistence
  */
 
+require('dotenv').config();
 const http = require('http');
 const WebSocket = require('ws');
 const Y = require('yjs');
@@ -13,7 +14,6 @@ const encoding = require('lib0/encoding');
 const decoding = require('lib0/decoding');
 const db = require('./lib/db');
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
 const { createLogger } = require('./lib/logger');
 const log = createLogger('CollabServer');

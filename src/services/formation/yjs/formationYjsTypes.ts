@@ -207,7 +207,7 @@ export function performerToYMapEntries(performer: Performer): [string, unknown][
  * Convert a Yjs keyframe map to a Keyframe object
  */
 export function yMapToKeyframe(yMap: Y.Map<unknown>): Keyframe {
-  const positionsMap = yMap.get('positions') as Y.Map<YjsPosition> | undefined;
+  const positionsMap = yMap.get(FORMATION_YJS_TYPES.POSITIONS) as Y.Map<YjsPosition> | undefined;
   const positions = new Map<string, Position>();
 
   if (positionsMap) {
