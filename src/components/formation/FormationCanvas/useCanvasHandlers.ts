@@ -201,6 +201,36 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
 
   const handleDeselectAll = useCallback(() => { setSelectedPerformerIds(new Set()); }, [setSelectedPerformerIds]);
 
+  const handleInvertSelection = useCallback(() => {
+    if (!formation) return;
+    const inverted = new Set<string>();
+    for (const p of formation.performers) {
+      if (!selectedPerformerIds.has(p.id)) inverted.add(p.id);
+    }
+    setSelectedPerformerIds(inverted);
+  }, [formation, selectedPerformerIds, setSelectedPerformerIds]);
+
+  const handleSelectBySection = useCallback((section: string) => {
+    if (!formation) return;
+    const ids = formation.performers
+      .filter((p) => (p.section || 'Unassigned') === section)
+      .map((p) => p.id);
+    setSelectedPerformerIds(new Set(ids));
+  }, [formation, setSelectedPerformerIds]);
+
+  const handleSelectByProximity = useCallback((centerId: string, radiusNormalized: number) => {
+    if (!formation) return;
+    const centerPos = currentPositions.get(centerId);
+    if (!centerPos) return;
+    const ids = new Set<string>();
+    currentPositions.forEach((pos, id) => {
+      const dx = pos.x - centerPos.x;
+      const dy = pos.y - centerPos.y;
+      if (Math.sqrt(dx * dx + dy * dy) <= radiusNormalized) ids.add(id);
+    });
+    setSelectedPerformerIds(ids);
+  }, [formation, currentPositions, setSelectedPerformerIds]);
+
   const handleNudge = useCallback((dx: number, dy: number) => {
     if (!formation || selectedPerformerIds.size === 0) return;
     setCurrentPositions(prev => {
@@ -594,7 +624,9 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
     handleSave, handleExport,
     // Performer editing
     handleDeleteSelected, handleDuplicateSelected, handleCopy, handlePaste,
-    handleSelectAll, handleDeselectAll, handleNudge,
+    handleSelectAll, handleDeselectAll, handleInvertSelection,
+    handleSelectBySection, handleSelectByProximity,
+    handleNudge,
     // Drag
     handleDragStart, handleDragEnd,
     // Performer CRUD

@@ -5,7 +5,7 @@
  * keyframe markers, and scrubbing capability.
  */
 
-import React, { useRef, useState, useCallback, useEffect, lazy, Suspense } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { generateCountMarkers } from '../../utils/drillGeometry';
 import { useAudioPlayback } from '../../hooks/useAudioPlayback';
@@ -13,6 +13,7 @@ import type { TimelineProps } from './timelineHelpers';
 import { formatTime, formatCount } from './timelineHelpers';
 import { KeyframeMarker } from './KeyframeMarker';
 import { PlaybackControls } from './PlaybackControls';
+import { SetNavigator } from './SetNavigator';
 
 // Lazy-load AudioSyncTimeline to avoid wavesurfer bundle impact when no audio
 const AudioSyncTimeline = lazy(() => import('./AudioSyncTimeline'));
@@ -43,16 +44,36 @@ export function Timeline({
   onSnapResolutionChange,
   onDrillSettingsChange,
   onKeyframeMove,
+  sets,
+  currentSetId,
+  onSetSelect,
+  onSetUpdate,
+  onSetAdd,
+  onSetRemove,
+  onSetsReorder,
 }: TimelineProps) {
   const { t } = useTranslation('common');
   const timelineRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const isCountMode = timeDisplayMode === 'counts' && !!drillSettings;
+  const isSetsMode = timeDisplayMode === 'sets' && !!sets && sets.length > 0;
   const countMarkers = React.useMemo(() => {
     if (!isCountMode || !drillSettings) return [];
     return generateCountMarkers(duration, { bpm: drillSettings.bpm, countsPerPhrase: drillSettings.countsPerPhrase, startOffset: drillSettings.startOffset });
   }, [isCountMode, drillSettings, duration]);
+
+  // Compute set boundary positions on the timeline (by matching sets to their keyframes)
+  const setBoundaries = useMemo(() => {
+    if (!isSetsMode || !sets) return [];
+    const sortedSets = [...sets].sort((a, b) => a.sortOrder - b.sortOrder);
+    return sortedSets.map((set) => {
+      const keyframe = keyframes.find((kf) => kf.id === set.keyframeId);
+      const timeMs = keyframe ? keyframe.timestamp : 0;
+      const position = duration > 0 ? (timeMs / duration) * 100 : 0;
+      return { set, position, timeMs };
+    });
+  }, [isSetsMode, sets, keyframes, duration]);
 
   // Audio playback integration
   const {
@@ -127,6 +148,19 @@ export function Timeline({
 
   return (
     <div className="bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
+      {/* Set Navigator (shown above timeline track in sets mode) */}
+      {isSetsMode && sets && onSetSelect && onSetUpdate && onSetAdd && onSetRemove && onSetsReorder && (
+        <SetNavigator
+          sets={sets}
+          currentSetId={currentSetId ?? null}
+          onSetSelect={onSetSelect}
+          onSetUpdate={onSetUpdate}
+          onSetAdd={onSetAdd}
+          onSetRemove={onSetRemove}
+          onSetsReorder={onSetsReorder}
+        />
+      )}
+
       {/* Playback Controls */}
       <PlaybackControls
         playbackState={playbackState}
@@ -137,6 +171,8 @@ export function Timeline({
         drillSettings={drillSettings}
         isCountMode={isCountMode}
         zoom={zoom}
+        sets={sets}
+        currentSetId={currentSetId}
         onPlay={onPlay}
         onPause={onPause}
         onStop={onStop}
@@ -222,6 +258,20 @@ export function Timeline({
               className="absolute top-0 bottom-0 bg-blue-100 dark:bg-blue-900/50"
               style={{ width: `${playheadPosition}%` }}
             />
+
+            {/* Set Boundary Markers (vertical lines on the timeline bar in sets mode) */}
+            {isSetsMode && setBoundaries.map(({ set, position }) => (
+              <div
+                key={`set-boundary-${set.id}`}
+                className="absolute top-0 bottom-0 z-20 pointer-events-none"
+                style={{ left: `${position}%` }}
+              >
+                <div className="w-px h-full bg-indigo-400 dark:bg-indigo-500 opacity-70" />
+                <span className="absolute -top-0.5 left-1 text-[9px] font-medium text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+                  {set.label || set.name}
+                </span>
+              </div>
+            ))}
 
             {/* Keyframe Markers */}
             {keyframes.map((keyframe, index) => (

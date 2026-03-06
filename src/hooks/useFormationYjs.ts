@@ -17,6 +17,7 @@ import {
   Position,
   AudioTrack,
   TransitionType,
+  DrillSet,
 } from '@/services/formationService';
 import {
   FormationAwarenessState,
@@ -27,8 +28,10 @@ import {
   yMapToKeyframe,
   yMapToFormationMeta,
   yMapToAudioTrack,
+  yMapToDrillSet,
   performerToYMapEntries,
   keyframeToYMapEntries,
+  drillSetToYMapEntries,
   YjsPosition,
 } from '@/services/formation/yjs/formationYjsTypes';
 
@@ -115,6 +118,14 @@ export interface UseFormationYjsResult {
   updatePositions: (keyframeId: string, positions: Map<string, Position>) => void;
   /** Set audio track */
   setAudioTrack: (audioTrack: AudioTrack | null) => void;
+  /** Add a new drill set */
+  addSet: (keyframeId: string, counts: number, options?: Partial<Pick<DrillSet, 'name' | 'label' | 'notes' | 'rehearsalMark'>>) => DrillSet;
+  /** Update drill set properties */
+  updateSet: (setId: string, updates: Partial<Omit<DrillSet, 'id'>>) => void;
+  /** Remove a drill set */
+  removeSet: (setId: string) => void;
+  /** Reorder drill sets by moving from one index to another */
+  reorderSets: (fromIndex: number, toIndex: number) => void;
 
   // Awareness functions
   /** Update local cursor position */
@@ -398,6 +409,7 @@ export function useFormationYjs({
     const meta = ydoc.getMap(FORMATION_YJS_TYPES.META);
     const performers = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
     const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
+    const sets = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
 
     const observer = () => {
       syncYjsToReact(ydoc);
@@ -406,6 +418,7 @@ export function useFormationYjs({
     meta.observeDeep(observer);
     performers.observeDeep(observer);
     keyframes.observeDeep(observer);
+    sets.observeDeep(observer);
 
     // ---------------------------------------------------------------
     // Conflict Detection via Snapshots
@@ -508,7 +521,7 @@ export function useFormationYjs({
     ydoc.on('update', simultaneousMoveTracker);
 
     // Setup Y.UndoManager for per-user undo/redo
-    const undoManager = new Y.UndoManager([performers, keyframes], {
+    const undoManager = new Y.UndoManager([performers, keyframes, sets], {
       trackedOrigins: new Set([null, undefined]),
     });
     undoManagerRef.current = undoManager;
@@ -532,6 +545,7 @@ export function useFormationYjs({
       meta.unobserveDeep(observer);
       performers.unobserveDeep(observer);
       keyframes.unobserveDeep(observer);
+      sets.unobserveDeep(observer);
       performers.unobserveDeep(conflictCheckObserver);
       keyframes.unobserveDeep(conflictCheckObserver);
 
@@ -554,6 +568,7 @@ export function useFormationYjs({
     const meta = ydoc.getMap(FORMATION_YJS_TYPES.META);
     const performersMap = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
     const keyframesArray = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
+    const setsArray = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
 
     // Check if document has data
     if (!meta.get('id')) return;
@@ -573,6 +588,15 @@ export function useFormationYjs({
     // Sort keyframes by timestamp
     keyframes.sort((a, b) => a.timestamp - b.timestamp);
 
+    // Convert drill sets
+    const sets: DrillSet[] = [];
+    setsArray.forEach((ySet) => {
+      sets.push(yMapToDrillSet(ySet as Y.Map<unknown>));
+    });
+
+    // Sort sets by sortOrder
+    sets.sort((a, b) => a.sortOrder - b.sortOrder);
+
     // Build formation object
     const formationMeta = yMapToFormationMeta(meta);
     const audioTrackMap = meta.get(FORMATION_YJS_TYPES.AUDIO) as Y.Map<unknown> | undefined;
@@ -581,6 +605,7 @@ export function useFormationYjs({
       ...formationMeta,
       performers,
       keyframes,
+      sets,
       audioTrack: yMapToAudioTrack(audioTrackMap),
       // Provide defaults for required fields
       createdAt: formationMeta.createdAt || new Date().toISOString(),
@@ -601,6 +626,7 @@ export function useFormationYjs({
       const meta = ydoc.getMap(FORMATION_YJS_TYPES.META);
       const performers = ydoc.getMap(FORMATION_YJS_TYPES.PERFORMERS);
       const keyframes = ydoc.getArray(FORMATION_YJS_TYPES.KEYFRAMES);
+      const sets = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
 
       // Only initialize if empty
       if (meta.get('id')) return;
@@ -655,6 +681,17 @@ export function useFormationYjs({
 
         keyframes.push([yKeyframe]);
       });
+
+      // Add drill sets
+      if (data.sets) {
+        data.sets.forEach((drillSet) => {
+          const ySet = new Y.Map();
+          drillSetToYMapEntries(drillSet).forEach(([key, value]) => {
+            ySet.set(key, value);
+          });
+          sets.push([ySet]);
+        });
+      }
     });
   }, []);
 
@@ -728,6 +765,9 @@ export function useFormationYjs({
       if (updates.label !== undefined) yPerformer.set('label', updates.label);
       if (updates.color !== undefined) yPerformer.set('color', updates.color);
       if (updates.group !== undefined) yPerformer.set('group', updates.group);
+      if (updates.instrument !== undefined) yPerformer.set('instrument', updates.instrument);
+      if (updates.section !== undefined) yPerformer.set('section', updates.section);
+      if (updates.drillNumber !== undefined) yPerformer.set('drillNumber', updates.drillNumber);
     });
   }, []);
 
@@ -919,6 +959,138 @@ export function useFormationYjs({
   }, []);
 
   // ============================================================================
+  // Set Mutation Functions
+  // ============================================================================
+
+  const addSet = useCallback((
+    keyframeId: string,
+    counts: number,
+    options?: Partial<Pick<DrillSet, 'name' | 'label' | 'notes' | 'rehearsalMark'>>,
+  ): DrillSet => {
+    const ydoc = docRef.current;
+    if (!ydoc) throw new Error('Yjs document not initialized');
+
+    const setsArray = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
+
+    // Determine sortOrder based on existing sets
+    let maxSortOrder = -1;
+    for (let i = 0; i < setsArray.length; i++) {
+      const ySet = setsArray.get(i) as Y.Map<unknown>;
+      const order = ySet.get('sortOrder') as number;
+      if (order > maxSortOrder) maxSortOrder = order;
+    }
+
+    const drillSet: DrillSet = {
+      id: `set-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: options?.name || `Set ${setsArray.length + 1}`,
+      counts,
+      keyframeId,
+      sortOrder: maxSortOrder + 1,
+    };
+    if (options?.label) drillSet.label = options.label;
+    if (options?.notes) drillSet.notes = options.notes;
+    if (options?.rehearsalMark) drillSet.rehearsalMark = options.rehearsalMark;
+
+    ydoc.transact(() => {
+      const ySet = new Y.Map();
+      drillSetToYMapEntries(drillSet).forEach(([key, value]) => {
+        ySet.set(key, value);
+      });
+
+      // Insert at correct position based on sortOrder
+      let insertIndex = setsArray.length;
+      for (let i = 0; i < setsArray.length; i++) {
+        const existing = setsArray.get(i) as Y.Map<unknown>;
+        if ((existing.get('sortOrder') as number) > drillSet.sortOrder) {
+          insertIndex = i;
+          break;
+        }
+      }
+
+      setsArray.insert(insertIndex, [ySet]);
+    });
+
+    return drillSet;
+  }, []);
+
+  const updateSet = useCallback((setId: string, updates: Partial<Omit<DrillSet, 'id'>>) => {
+    const ydoc = docRef.current;
+    if (!ydoc) return;
+
+    const setsArray = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
+
+    ydoc.transact(() => {
+      for (let i = 0; i < setsArray.length; i++) {
+        const ySet = setsArray.get(i) as Y.Map<unknown>;
+        if (ySet.get('id') === setId) {
+          if (updates.name !== undefined) ySet.set('name', updates.name);
+          if (updates.label !== undefined) ySet.set('label', updates.label);
+          if (updates.counts !== undefined) ySet.set('counts', updates.counts);
+          if (updates.keyframeId !== undefined) ySet.set('keyframeId', updates.keyframeId);
+          if (updates.notes !== undefined) ySet.set('notes', updates.notes);
+          if (updates.rehearsalMark !== undefined) ySet.set('rehearsalMark', updates.rehearsalMark);
+          if (updates.sortOrder !== undefined) ySet.set('sortOrder', updates.sortOrder);
+          break;
+        }
+      }
+    });
+  }, []);
+
+  const removeSet = useCallback((setId: string) => {
+    const ydoc = docRef.current;
+    if (!ydoc) return;
+
+    const setsArray = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
+
+    ydoc.transact(() => {
+      for (let i = 0; i < setsArray.length; i++) {
+        const ySet = setsArray.get(i) as Y.Map<unknown>;
+        if (ySet.get('id') === setId) {
+          setsArray.delete(i, 1);
+          break;
+        }
+      }
+    });
+  }, []);
+
+  const reorderSets = useCallback((fromIndex: number, toIndex: number) => {
+    const ydoc = docRef.current;
+    if (!ydoc) return;
+
+    const setsArray = ydoc.getArray(FORMATION_YJS_TYPES.SETS);
+    if (fromIndex < 0 || fromIndex >= setsArray.length) return;
+    if (toIndex < 0 || toIndex >= setsArray.length) return;
+    if (fromIndex === toIndex) return;
+
+    ydoc.transact(() => {
+      // Read the set being moved
+      const movingSet = setsArray.get(fromIndex) as Y.Map<unknown>;
+      const movingData: [string, unknown][] = [];
+      movingSet.forEach((value, key) => {
+        movingData.push([key, value]);
+      });
+
+      // Delete from old position
+      setsArray.delete(fromIndex, 1);
+
+      // Create a new Y.Map with the same data
+      const ySet = new Y.Map();
+      movingData.forEach(([key, value]) => {
+        ySet.set(key, value);
+      });
+
+      // Insert at new position
+      setsArray.insert(toIndex, [ySet]);
+
+      // Update sortOrder for all sets to match their array positions
+      for (let i = 0; i < setsArray.length; i++) {
+        const s = setsArray.get(i) as Y.Map<unknown>;
+        s.set('sortOrder', i);
+      }
+    });
+  }, []);
+
+  // ============================================================================
   // Awareness Functions
   // ============================================================================
 
@@ -1067,6 +1239,10 @@ export function useFormationYjs({
     updatePosition,
     updatePositions,
     setAudioTrack,
+    addSet,
+    updateSet,
+    removeSet,
+    reorderSets,
 
     // Awareness
     updateCursor,

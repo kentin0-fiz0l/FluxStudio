@@ -6,7 +6,7 @@
  */
 
 import * as Y from 'yjs';
-import type { Position, Performer, Keyframe, TransitionType, AudioTrack } from '../../formationService';
+import type { Position, Performer, Keyframe, TransitionType, AudioTrack, DrillSet } from '../../formationService';
 
 // ============================================================================
 // Yjs Document Structure
@@ -32,16 +32,30 @@ import type { Position, Performer, Keyframe, TransitionType, AudioTrack } from '
  * │       ├── name: string
  * │       ├── label: string
  * │       ├── color: string
- * │       └── group?: string
+ * │       ├── group?: string
+ * │       ├── instrument?: string
+ * │       ├── section?: string
+ * │       └── drillNumber?: string
  * │
- * └── keyframes (Y.Array<Y.Map>)           - Ordered array of keyframes
+ * ├── keyframes (Y.Array<Y.Map>)           - Ordered array of keyframes
+ * │   └── [index]: Y.Map
+ * │       ├── id: string
+ * │       ├── timestamp: number
+ * │       ├── transition: string
+ * │       ├── duration: number
+ * │       └── positions (Y.Map<string, Position>)
+ * │           └── [performerId]: { x, y, rotation }
+ * │
+ * └── sets (Y.Array<Y.Map>)               - Ordered array of drill sets
  *     └── [index]: Y.Map
  *         ├── id: string
- *         ├── timestamp: number
- *         ├── transition: string
- *         ├── duration: number
- *         └── positions (Y.Map<string, Position>)
- *             └── [performerId]: { x, y, rotation }
+ *         ├── name: string
+ *         ├── label?: string
+ *         ├── counts: number
+ *         ├── keyframeId: string
+ *         ├── notes?: string
+ *         ├── rehearsalMark?: string
+ *         └── sortOrder: number
  */
 
 // ============================================================================
@@ -66,6 +80,9 @@ export interface YjsPerformer {
   label: string;
   color: string;
   group?: string;
+  instrument?: string;
+  section?: string;
+  drillNumber?: string;
 }
 
 /**
@@ -105,6 +122,20 @@ export interface YjsAudioTrack {
   filename: string;
   duration: number; // in milliseconds
   waveformData?: number[];
+}
+
+/**
+ * Drill set data stored in Yjs Y.Map
+ */
+export interface YjsDrillSet {
+  id: string;
+  name: string;
+  label?: string;
+  counts: number;
+  keyframeId: string;
+  notes?: string;
+  rehearsalMark?: string;
+  sortOrder: number;
 }
 
 // ============================================================================
@@ -158,6 +189,7 @@ export interface FormationAwarenessState {
 export type YFormationMeta = Y.Map<unknown>;
 export type YPerformers = Y.Map<Y.Map<unknown>>;
 export type YKeyframes = Y.Array<Y.Map<unknown>>;
+export type YSets = Y.Array<Y.Map<unknown>>;
 export type YPositions = Y.Map<YjsPosition>;
 
 /**
@@ -167,6 +199,7 @@ export interface FormationYjsDoc {
   meta: YFormationMeta;
   performers: YPerformers;
   keyframes: YKeyframes;
+  sets: YSets;
   sceneObjects: Y.Map<Y.Map<unknown>>;
 }
 
@@ -178,13 +211,20 @@ export interface FormationYjsDoc {
  * Convert a Yjs performer map to a Performer object
  */
 export function yMapToPerformer(yMap: Y.Map<unknown>): Performer {
-  return {
+  const performer: Performer = {
     id: yMap.get('id') as string,
     name: yMap.get('name') as string,
     label: yMap.get('label') as string,
     color: yMap.get('color') as string,
     group: yMap.get('group') as string | undefined,
   };
+  const instrument = yMap.get('instrument') as string | undefined;
+  if (instrument) performer.instrument = instrument;
+  const section = yMap.get('section') as string | undefined;
+  if (section) performer.section = section;
+  const drillNumber = yMap.get('drillNumber') as string | undefined;
+  if (drillNumber) performer.drillNumber = drillNumber;
+  return performer;
 }
 
 /**
@@ -199,6 +239,15 @@ export function performerToYMapEntries(performer: Performer): [string, unknown][
   ];
   if (performer.group) {
     entries.push(['group', performer.group]);
+  }
+  if (performer.instrument) {
+    entries.push(['instrument', performer.instrument]);
+  }
+  if (performer.section) {
+    entries.push(['section', performer.section]);
+  }
+  if (performer.drillNumber) {
+    entries.push(['drillNumber', performer.drillNumber]);
   }
   return entries;
 }
@@ -287,6 +336,49 @@ export function yMapToAudioTrack(yMap: Y.Map<unknown> | undefined): AudioTrack |
   };
 }
 
+/**
+ * Convert a Yjs drill set map to a DrillSet object
+ */
+export function yMapToDrillSet(yMap: Y.Map<unknown>): DrillSet {
+  const set: DrillSet = {
+    id: yMap.get('id') as string,
+    name: yMap.get('name') as string,
+    counts: yMap.get('counts') as number,
+    keyframeId: yMap.get('keyframeId') as string,
+    sortOrder: yMap.get('sortOrder') as number,
+  };
+  const label = yMap.get('label') as string | undefined;
+  if (label) set.label = label;
+  const notes = yMap.get('notes') as string | undefined;
+  if (notes) set.notes = notes;
+  const rehearsalMark = yMap.get('rehearsalMark') as string | undefined;
+  if (rehearsalMark) set.rehearsalMark = rehearsalMark;
+  return set;
+}
+
+/**
+ * Convert a DrillSet object to Yjs map entries
+ */
+export function drillSetToYMapEntries(set: DrillSet): [string, unknown][] {
+  const entries: [string, unknown][] = [
+    ['id', set.id],
+    ['name', set.name],
+    ['counts', set.counts],
+    ['keyframeId', set.keyframeId],
+    ['sortOrder', set.sortOrder],
+  ];
+  if (set.label) {
+    entries.push(['label', set.label]);
+  }
+  if (set.notes) {
+    entries.push(['notes', set.notes]);
+  }
+  if (set.rehearsalMark) {
+    entries.push(['rehearsalMark', set.rehearsalMark]);
+  }
+  return entries;
+}
+
 // ============================================================================
 // Room Name Utilities
 // ============================================================================
@@ -322,6 +414,7 @@ export const FORMATION_YJS_TYPES = {
   META: 'formation:meta',
   PERFORMERS: 'formation:performers',
   KEYFRAMES: 'formation:keyframes',
+  SETS: 'formation:sets',
   POSITIONS: 'formation:positions',
   AUDIO: 'audioTrack',
   SCENE_OBJECTS: 'scene:objects',

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Play,
@@ -12,9 +12,11 @@ import {
   Volume2,
   VolumeX,
   Music,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { PlaybackState, AudioTrack } from '../../services/formationService';
-import type { DrillSettings } from '../../services/formationTypes';
+import type { DrillSettings, DrillSet } from '../../services/formationTypes';
 import { formatTime, formatCount } from './timelineHelpers';
 
 interface PlaybackControlsProps {
@@ -26,6 +28,10 @@ interface PlaybackControlsProps {
   drillSettings?: DrillSettings;
   isCountMode: boolean;
   zoom: number;
+  sets?: DrillSet[];
+  currentSetId?: string | null;
+  onPreviousSet?: () => void;
+  onNextSet?: () => void;
   onPlay: () => void;
   onPause: () => void;
   onStop: () => void;
@@ -49,6 +55,10 @@ export function PlaybackControls({
   drillSettings,
   isCountMode,
   zoom,
+  sets,
+  currentSetId,
+  onPreviousSet,
+  onNextSet,
   onPlay,
   onPause,
   onStop,
@@ -63,6 +73,37 @@ export function PlaybackControls({
   const { t } = useTranslation('common');
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [showBpmInput, setShowBpmInput] = useState(false);
+
+  // Set navigation info
+  const hasSets = !!sets && sets.length > 0;
+  const sortedSets = useMemo(
+    () => (hasSets ? [...sets!].sort((a, b) => a.sortOrder - b.sortOrder) : []),
+    [hasSets, sets]
+  );
+  const currentSetIndex = useMemo(
+    () => (currentSetId ? sortedSets.findIndex((s) => s.id === currentSetId) : -1),
+    [currentSetId, sortedSets]
+  );
+  const currentSet = currentSetIndex >= 0 ? sortedSets[currentSetIndex] : null;
+  const canGoPrevious = currentSetIndex > 0;
+  const canGoNext = currentSetIndex >= 0 && currentSetIndex < sortedSets.length - 1;
+
+  const handlePreviousSet = useCallback(() => {
+    if (onPreviousSet) {
+      onPreviousSet();
+    } else if (canGoPrevious) {
+      // Fallback: seek to the previous set's keyframe if no handler provided
+      // (parent components can override via onPreviousSet)
+    }
+  }, [onPreviousSet, canGoPrevious]);
+
+  const handleNextSet = useCallback(() => {
+    if (onNextSet) {
+      onNextSet();
+    } else if (canGoNext) {
+      // Fallback: seek to the next set's keyframe if no handler provided
+    }
+  }, [onNextSet, canGoNext]);
 
   return (
     <div className="flex items-center justify-between mb-4">
@@ -111,6 +152,37 @@ export function PlaybackControls({
         >
           <Repeat className="w-5 h-5" aria-hidden="true" />
         </button>
+
+        {/* Set Navigation (Previous / Next Set) */}
+        {hasSets && (
+          <div className="flex items-center gap-0.5 ml-2">
+            <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mr-1" />
+            <button
+              onClick={handlePreviousSet}
+              disabled={!canGoPrevious}
+              className={`p-2 rounded-lg transition-colors ${
+                canGoPrevious
+                  ? 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+              }`}
+              aria-label={t('formation.previousSet', 'Previous Set')}
+            >
+              <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+            </button>
+            <button
+              onClick={handleNextSet}
+              disabled={!canGoNext}
+              className={`p-2 rounded-lg transition-colors ${
+                canGoNext
+                  ? 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+              }`}
+              aria-label={t('formation.nextSet', 'Next Set')}
+            >
+              <ChevronRight className="w-5 h-5" aria-hidden="true" />
+            </button>
+          </div>
+        )}
 
         {/* Audio indicator and volume control */}
         {audioTrack && (
@@ -163,9 +235,11 @@ export function PlaybackControls({
       <div className="flex items-center gap-2 text-sm">
         <Clock className="w-4 h-4 text-gray-400" aria-hidden="true" />
         <span className="font-mono text-gray-700 dark:text-gray-300">
-          {isCountMode && drillSettings
-            ? formatCount(currentTime, drillSettings)
-            : `${formatTime(currentTime)} / ${formatTime(duration)}`}
+          {hasSets && currentSet
+            ? `Set ${currentSetIndex + 1} of ${sortedSets.length} \u2014 ${currentSet.counts} counts`
+            : isCountMode && drillSettings
+              ? formatCount(currentTime, drillSettings)
+              : `${formatTime(currentTime)} / ${formatTime(duration)}`}
         </span>
       </div>
 

@@ -11,7 +11,7 @@ import {
   ApplyTemplateOptions,
   ApplyTemplateResult,
 } from './formationTemplates/types';
-import { exportToPdf, exportToImage, exportToSvg, exportToAnimation } from './formationExport';
+import { exportToPdf, exportToImage, exportToSvg, exportToAnimation, exportToCoordinateSheetPdf, exportToDrillBookPdf, exportAllDrillBooks } from './formationExport';
 import type {
   Position,
   Performer,
@@ -30,6 +30,7 @@ export type {
   AudioTrack,
   Formation,
   DrillSettings,
+  DrillSet,
   ExportProgress,
   FormationExportOptions,
   PlaybackState,
@@ -621,6 +622,47 @@ class FormationService {
       default:
         return null;
     }
+  }
+
+  /**
+   * Export a coordinate sheet PDF for a single performer.
+   */
+  async exportCoordinateSheet(
+    formationId: string,
+    performerId: string,
+    sets: import('./formationTypes').DrillSet[],
+    fieldConfig?: import('./formationTypes').FieldConfig,
+  ): Promise<Blob | null> {
+    const formation = this.formations.get(formationId);
+    if (!formation) return null;
+    return exportToCoordinateSheetPdf(formation, performerId, sets, fieldConfig);
+  }
+
+  /**
+   * Export a full drill book PDF for a single performer.
+   */
+  async exportDrillBook(
+    formationId: string,
+    performerId: string,
+    sets: import('./formationTypes').DrillSet[],
+    fieldConfig?: import('./formationTypes').FieldConfig,
+  ): Promise<Blob | null> {
+    const formation = this.formations.get(formationId);
+    if (!formation) return null;
+    return exportToDrillBookPdf(formation, performerId, sets, fieldConfig);
+  }
+
+  /**
+   * Export drill books for all performers.
+   */
+  async exportAllDrillBooks(
+    formationId: string,
+    sets: import('./formationTypes').DrillSet[],
+    fieldConfig?: import('./formationTypes').FieldConfig,
+  ) {
+    const formation = this.formations.get(formationId);
+    if (!formation) return null;
+    return exportAllDrillBooks(formation, sets, fieldConfig);
   }
 
   // ============================================================================

@@ -14,6 +14,7 @@ import {
   Loader2, Check, Music, Route, LayoutGrid, Users, Magnet, Hash,
   Minus, CircleDot, Grid3x3, Map, Bot, Hand, WifiOff, Cloud,
   Undo2, Redo2, Settings2, Circle, Share2, Code2, Menu, X,
+  Shield, ArrowRightLeft, Footprints, MapPin,
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
 import { useSyncStatus } from '@/store/slices/offlineSlice';
@@ -59,6 +60,15 @@ interface CanvasToolbarProps {
   showDraftPanel?: boolean;
   setShowDraftPanel?: (show: boolean) => void;
   draftStatus?: string;
+  // Drill feature panel toggles
+  showAnalysisPanel?: boolean;
+  setShowAnalysisPanel?: (show: boolean) => void;
+  showMovementTools?: boolean;
+  setShowMovementTools?: (show: boolean) => void;
+  showStepSizes?: boolean;
+  setShowStepSizes?: (show: boolean) => void;
+  showCoordinatePanel?: boolean;
+  setShowCoordinatePanel?: (show: boolean) => void;
   // New props
   onUndo?: () => void;
   onRedo?: () => void;
@@ -86,6 +96,10 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
   setShowTemplatePicker, setIsExportDialogOpen,
   onSave, saveStatus, apiSaving,
   showDraftPanel, setShowDraftPanel, draftStatus,
+  showAnalysisPanel, setShowAnalysisPanel,
+  showMovementTools, setShowMovementTools,
+  showStepSizes, setShowStepSizes,
+  showCoordinatePanel, setShowCoordinatePanel,
   onUndo, onRedo, canUndo = false, canRedo = false,
   hasUnsavedChanges = false, sandboxMode = false, formationId,
   fingerMode = 'select', setFingerMode,
@@ -261,6 +275,52 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             aria-pressed={showDraftPanel}
           >
             <Bot className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+
+        {/* Drill-specific panel toggles */}
+        {setShowStepSizes && (
+          <button
+            onClick={() => setShowStepSizes(!showStepSizes)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showStepSizes ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Step Sizes"
+            aria-label="Step sizes overlay"
+            aria-pressed={showStepSizes}
+          >
+            <Footprints className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+        {setShowCoordinatePanel && (
+          <button
+            onClick={() => setShowCoordinatePanel(!showCoordinatePanel)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showCoordinatePanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Coordinates"
+            aria-label="Coordinate panel"
+            aria-pressed={showCoordinatePanel}
+          >
+            <MapPin className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+        {setShowMovementTools && (
+          <button
+            onClick={() => setShowMovementTools(!showMovementTools)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showMovementTools ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Movement Tools"
+            aria-label="Movement tools panel"
+            aria-pressed={showMovementTools}
+          >
+            <ArrowRightLeft className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+        {setShowAnalysisPanel && (
+          <button
+            onClick={() => setShowAnalysisPanel(!showAnalysisPanel)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showAnalysisPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Drill Analysis"
+            aria-label="Drill analysis panel"
+            aria-pressed={showAnalysisPanel}
+          >
+            <Shield className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
 

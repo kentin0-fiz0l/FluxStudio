@@ -3,8 +3,10 @@
  * Extracted from formationService.ts - handles PDF, image, SVG, and animation export
  */
 
-import type { Formation, FormationExportOptions, ExportProgress, Position } from './formationTypes';
+import type { Formation, FormationExportOptions, ExportProgress, Position, DrillSet, FieldConfig, CoordinateEntry, Performer } from './formationTypes';
 import { quantizeFrame, encodeGif } from './gifEncoder';
+import { generateCoordinateSheet, generateDrillBookPages } from './coordinateSheetGenerator';
+import { NCAA_FOOTBALL_FIELD } from './fieldConfigService';
 
 export function formatTime(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
@@ -523,4 +525,318 @@ export async function exportToAnimation(
     return encodeAsGif(ctx, formation, options, layout, getPositionsAtTime, duration, fps, options.onProgress);
   }
   return encodeAsWebM(canvas, ctx, formation, options, layout, getPositionsAtTime, duration, fps, options.onProgress);
+}
+
+// ============================================================================
+// DRILL BOOK & COORDINATE SHEET PDF EXPORT
+// ============================================================================
+
+/**
+ * Export a coordinate sheet PDF for a single performer.
+ */
+export async function exportToCoordinateSheetPdf(
+  formation: Formation,
+  performerId: string,
+  sets: DrillSet[],
+  fieldConfig: FieldConfig = NCAA_FOOTBALL_FIELD,
+): Promise<Blob> {
+  const performer = formation.performers.find((p) => p.id === performerId);
+  if (!performer) throw new Error(`Performer ${performerId} not found`);
+
+  const entries = generateCoordinateSheet(formation, performerId, sets, fieldConfig);
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  const contentWidth = pageWidth - margin * 2;
+
+  // Header
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formation.name, margin, margin + 5);
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${performer.name}${performer.drillNumber ? ` (${performer.drillNumber})` : ''}`, margin, margin + 12);
+  if (performer.instrument || performer.section) {
+    doc.setFontSize(9);
+    doc.text(
+      [performer.section, performer.instrument].filter(Boolean).join(' - '),
+      margin,
+      margin + 18,
+    );
+  }
+
+  // Table header
+  let y = margin + 26;
+  const colWidths = [22, 16, 42, 42, 28, 28];
+  const headers = ['Set', 'Cts', 'Side-to-Side', 'Front-to-Back', 'Step Size', 'Direction'];
+
+  doc.setFillColor(240, 240, 245);
+  doc.rect(margin, y - 4, contentWidth, 7, 'F');
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  let xOff = margin;
+  for (let c = 0; c < headers.length; c++) {
+    doc.text(headers[c], xOff + 1, y);
+    xOff += colWidths[c];
+  }
+  y += 6;
+
+  // Table rows
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+
+  for (const entry of entries) {
+    if (y > 260) {
+      doc.addPage();
+      y = margin + 10;
+    }
+
+    // Alternating row background
+    if (entries.indexOf(entry) % 2 === 1) {
+      doc.setFillColor(250, 250, 252);
+      doc.rect(margin, y - 3.5, contentWidth, 5.5, 'F');
+    }
+
+    xOff = margin;
+    const row = [
+      entry.set.name,
+      String(entry.set.counts),
+      entry.coordinateDetails.sideToSide,
+      entry.coordinateDetails.frontToBack,
+      entry.stepToNext?.stepSizeLabel ?? '-',
+      entry.stepToNext?.directionLabel ?? '-',
+    ];
+
+    for (let c = 0; c < row.length; c++) {
+      doc.text(row[c], xOff + 1, y, { maxWidth: colWidths[c] - 2 });
+      xOff += colWidths[c];
+    }
+    y += 5.5;
+  }
+
+  return doc.output('blob');
+}
+
+/**
+ * Export a full drill book PDF for a single performer.
+ * Includes: cover page, field chart per set, coordinate sheet, step size summary.
+ */
+export async function exportToDrillBookPdf(
+  formation: Formation,
+  performerId: string,
+  sets: DrillSet[],
+  fieldConfig: FieldConfig = NCAA_FOOTBALL_FIELD,
+): Promise<Blob> {
+  const pages = generateDrillBookPages(formation, performerId, sets, fieldConfig);
+  if (pages.length === 0) throw new Error('No pages generated for drill book');
+
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+
+  for (let i = 0; i < pages.length; i++) {
+    if (i > 0) doc.addPage();
+    const page = pages[i];
+
+    switch (page.type) {
+      case 'cover': {
+        const d = page.data as { showName: string; performerName: string; drillNumber: string; instrument?: string; section?: string; totalSets: number };
+        doc.setFontSize(28);
+        doc.setFont('helvetica', 'bold');
+        doc.text(d.showName, pageWidth / 2, pageHeight / 3, { align: 'center' });
+
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'normal');
+        doc.text(d.performerName, pageWidth / 2, pageHeight / 3 + 16, { align: 'center' });
+
+        doc.setFontSize(14);
+        doc.text(`Drill #${d.drillNumber}`, pageWidth / 2, pageHeight / 3 + 28, { align: 'center' });
+
+        if (d.section || d.instrument) {
+          doc.setFontSize(12);
+          doc.text(
+            [d.section, d.instrument].filter(Boolean).join(' - '),
+            pageWidth / 2,
+            pageHeight / 3 + 38,
+            { align: 'center' },
+          );
+        }
+
+        doc.setFontSize(10);
+        doc.setTextColor(120, 120, 120);
+        doc.text(`${d.totalSets} Sets`, pageWidth / 2, pageHeight / 3 + 50, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
+        break;
+      }
+
+      case 'chart': {
+        const d = page.data as { positions: Record<string, Position>; highlightPerformerId: string; set: DrillSet; fieldConfig: FieldConfig };
+        // Header
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${d.set.name} — ${d.set.counts} counts`, margin, margin + 5);
+        if (d.set.rehearsalMark) {
+          doc.setFont('helvetica', 'normal');
+          doc.text(`[${d.set.rehearsalMark}]`, margin + 80, margin + 5);
+        }
+
+        // Draw field
+        const chartW = pageWidth - margin * 2;
+        const chartH = pageHeight - margin * 2 - 20;
+        const chartY = margin + 12;
+
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(margin, chartY, chartW, chartH, 'FD');
+
+        // Draw performers
+        const positions = d.positions;
+        for (const performer of formation.performers) {
+          const pos = positions[performer.id];
+          if (!pos) continue;
+
+          const cx = margin + (pos.x / 100) * chartW;
+          const cy = chartY + (pos.y / 100) * chartH;
+          const isHighlighted = performer.id === d.highlightPerformerId;
+          const radius = isHighlighted ? 4 : 2.5;
+
+          if (isHighlighted) {
+            // Draw highlight ring
+            doc.setDrawColor(255, 0, 0);
+            doc.setLineWidth(1);
+            doc.circle(cx, cy, radius + 2, 'S');
+          }
+
+          const color = hexToRgb(performer.color);
+          doc.setFillColor(color.r, color.g, color.b);
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(0.5);
+          doc.circle(cx, cy, radius, 'FD');
+
+          if (isHighlighted) {
+            doc.setFontSize(6);
+            doc.setTextColor(255, 0, 0);
+            doc.text('YOU', cx, cy + radius + 5, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+          }
+        }
+        break;
+      }
+
+      case 'coordinates': {
+        const d = page.data as { entries: CoordinateEntry[] };
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Coordinate Sheet — ${page.performerName}`, margin, margin + 5);
+
+        let y = margin + 14;
+        const cw = [22, 14, 40, 40, 26, 26, 20];
+        const ch = ['Set', 'Cts', 'S/S', 'F/B', 'Step Size', 'Direction', 'Diff'];
+
+        doc.setFillColor(230, 230, 240);
+        doc.rect(margin, y - 3, pageWidth - margin * 2, 6, 'F');
+        doc.setFontSize(6.5);
+        doc.setFont('helvetica', 'bold');
+        let xx = margin;
+        for (let c = 0; c < ch.length; c++) {
+          doc.text(ch[c], xx + 1, y);
+          xx += cw[c];
+        }
+        y += 5;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        for (const entry of d.entries) {
+          if (y > pageHeight - margin - 5) {
+            doc.addPage();
+            y = margin + 10;
+          }
+
+          xx = margin;
+          const row = [
+            entry.set.name,
+            String(entry.set.counts),
+            entry.coordinateDetails.sideToSide,
+            entry.coordinateDetails.frontToBack,
+            entry.stepToNext?.stepSizeLabel ?? '-',
+            entry.stepToNext?.directionLabel ?? '-',
+            entry.stepToNext?.difficulty ?? '-',
+          ];
+          for (let c = 0; c < row.length; c++) {
+            doc.text(row[c], xx + 1, y, { maxWidth: cw[c] - 2 });
+            xx += cw[c];
+          }
+          y += 4.5;
+        }
+        break;
+      }
+
+      case 'summary': {
+        const d = page.data as { totalSets: number; totalDistance: string; hardSteps: number; moderateSteps: number; easySteps: number; worstStep: { setName: string; stepSize: string } | null };
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Step Size Summary — ${page.performerName}`, margin, margin + 8);
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        let y = margin + 22;
+
+        const summaryRows = [
+          ['Total Sets:', String(d.totalSets)],
+          ['Total Distance:', `${d.totalDistance} yards`],
+          ['Easy Steps (8+ to 5):', String(d.easySteps)],
+          ['Moderate Steps (6-7 to 5):', String(d.moderateSteps)],
+          ['Hard Steps (<6 to 5):', String(d.hardSteps)],
+        ];
+
+        if (d.worstStep) {
+          summaryRows.push(['Hardest Transition:', `${d.worstStep.setName} (${d.worstStep.stepSize})`]);
+        }
+
+        for (const [label, value] of summaryRows) {
+          doc.setFont('helvetica', 'bold');
+          doc.text(label, margin, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text(value, margin + 70, y);
+          y += 8;
+        }
+        break;
+      }
+    }
+
+    // Page number footer
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Page ${i + 1} of ${pages.length}`, pageWidth - margin, pageHeight - 5, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+  }
+
+  return doc.output('blob');
+}
+
+/**
+ * Export drill books for all performers as individual PDFs.
+ * Returns a Map of performerId -> Blob.
+ */
+export async function exportAllDrillBooks(
+  formation: Formation,
+  sets: DrillSet[],
+  fieldConfig: FieldConfig = NCAA_FOOTBALL_FIELD,
+  onProgress?: (performerIndex: number, total: number) => void,
+): Promise<Map<string, { performer: Performer; pdf: Blob }>> {
+  const result = new Map<string, { performer: Performer; pdf: Blob }>();
+
+  for (let i = 0; i < formation.performers.length; i++) {
+    const performer = formation.performers[i];
+    onProgress?.(i, formation.performers.length);
+
+    const pdf = await exportToDrillBookPdf(formation, performer.id, sets, fieldConfig);
+    result.set(performer.id, { performer, pdf });
+  }
+
+  return result;
 }

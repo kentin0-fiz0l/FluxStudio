@@ -21,7 +21,7 @@ import {
   Tag,
   Clock,
 } from 'lucide-react';
-import type { FormationExportOptions, ExportProgress } from '../../services/formationService';
+import type { FormationExportOptions, ExportProgress, Performer } from '../../services/formationService';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -30,11 +30,14 @@ import type { FormationExportOptions, ExportProgress } from '../../services/form
 interface ExportDialogProps {
   isOpen: boolean;
   formationName: string;
+  performers?: Performer[];
   onClose: () => void;
   onExport: (options: FormationExportOptions) => Promise<void>;
+  onExportDrillBook?: (performerIds: string[]) => Promise<void>;
+  onExportCoordinateSheet?: (performerIds: string[]) => Promise<void>;
 }
 
-type ExportFormat = FormationExportOptions['format'];
+type ExportFormat = FormationExportOptions['format'] | 'drill_book' | 'coordinate_sheet';
 
 interface FormatOption {
   value: ExportFormat;
@@ -91,6 +94,20 @@ const formatOptions: FormatOption[] = [
     icon: <Film className="w-5 h-5" aria-hidden="true" />,
     category: 'animated',
   },
+  {
+    value: 'drill_book' as ExportFormat,
+    label: 'Drill Book',
+    description: 'Per-performer drill book with charts & coordinates',
+    icon: <FileText className="w-5 h-5" aria-hidden="true" />,
+    category: 'static',
+  },
+  {
+    value: 'coordinate_sheet' as ExportFormat,
+    label: 'Coordinate Sheet',
+    description: 'Printable coordinate table per performer',
+    icon: <FileText className="w-5 h-5" aria-hidden="true" />,
+    category: 'static',
+  },
 ];
 
 const paperSizes = [
@@ -113,14 +130,19 @@ const resolutionPresets = [
 export function ExportDialog({
   isOpen,
   formationName,
+  performers,
   onClose,
   onExport,
+  onExportDrillBook,
+  onExportCoordinateSheet,
 }: ExportDialogProps) {
   const { t } = useTranslation('common');
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('pdf');
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
+  const [selectedPerformerScope, setSelectedPerformerScope] = useState<'all' | 'selected'>('all');
+  const [selectedPerformerIds, setSelectedPerformerIds] = useState<string[]>([]);
 
   // Export options state
   const [includeGrid, setIncludeGrid] = useState(true);
@@ -141,6 +163,7 @@ export function ExportDialog({
   const isAnimatedFormat = selectedFormatOption?.category === 'animated';
   const isImageFormat = selectedFormat === 'png' || selectedFormat === 'jpg';
   const isPdfFormat = selectedFormat === 'pdf';
+  const isDrillFormat = selectedFormat === 'drill_book' || selectedFormat === 'coordinate_sheet';
 
   const handleFormatChange = useCallback((format: ExportFormat) => {
     setSelectedFormat(format);
@@ -159,21 +182,34 @@ export function ExportDialog({
     setExportProgress(null);
 
     try {
-      const options: FormationExportOptions = {
-        format: selectedFormat,
-        includeGrid,
-        includeLabels,
-        includeTimestamps,
-        paperSize: isPdfFormat ? paperSize : undefined,
-        orientation: isPdfFormat ? orientation : undefined,
-        quality: isImageFormat ? quality : undefined,
-        fps: isAnimatedFormat ? fps : undefined,
-        resolution: isAnimatedFormat || isImageFormat ? resolution : undefined,
-        includeFieldOverlay: isAnimatedFormat ? includeFieldOverlay : undefined,
-        onProgress: isAnimatedFormat ? (p) => setExportProgress(p) : undefined,
-      };
+      // Handle drill-specific export formats
+      if (selectedFormat === 'drill_book' && onExportDrillBook) {
+        const ids = selectedPerformerScope === 'all' && performers
+          ? performers.map(p => p.id)
+          : selectedPerformerIds;
+        await onExportDrillBook(ids);
+      } else if (selectedFormat === 'coordinate_sheet' && onExportCoordinateSheet) {
+        const ids = selectedPerformerScope === 'all' && performers
+          ? performers.map(p => p.id)
+          : selectedPerformerIds;
+        await onExportCoordinateSheet(ids);
+      } else {
+        const options: FormationExportOptions = {
+          format: selectedFormat as FormationExportOptions['format'],
+          includeGrid,
+          includeLabels,
+          includeTimestamps,
+          paperSize: isPdfFormat ? paperSize : undefined,
+          orientation: isPdfFormat ? orientation : undefined,
+          quality: isImageFormat ? quality : undefined,
+          fps: isAnimatedFormat ? fps : undefined,
+          resolution: isAnimatedFormat || isImageFormat ? resolution : undefined,
+          includeFieldOverlay: isAnimatedFormat ? includeFieldOverlay : undefined,
+          onProgress: isAnimatedFormat ? (p) => setExportProgress(p) : undefined,
+        };
 
-      await onExport(options);
+        await onExport(options);
+      }
       setExportSuccess(true);
       setExportProgress(null);
 
@@ -189,6 +225,11 @@ export function ExportDialog({
     }
   }, [
     selectedFormat,
+    selectedPerformerScope,
+    selectedPerformerIds,
+    performers,
+    onExportDrillBook,
+    onExportCoordinateSheet,
     includeGrid,
     includeLabels,
     includeTimestamps,
@@ -379,6 +420,60 @@ export function ExportDialog({
               )}
             </div>
           </div>
+
+          {/* Drill Format Options (performer selector) */}
+          {isDrillFormat && performers && performers.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                Performer Selection
+              </h3>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={selectedPerformerScope === 'all'}
+                    onChange={() => setSelectedPerformerScope('all')}
+                    className="w-4 h-4 text-blue-500"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    All performers ({performers.length})
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={selectedPerformerScope === 'selected'}
+                    onChange={() => setSelectedPerformerScope('selected')}
+                    className="w-4 h-4 text-blue-500"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    Selected performers only
+                  </span>
+                </label>
+                {selectedPerformerScope === 'selected' && (
+                  <div className="ml-6 max-h-32 overflow-y-auto space-y-1 border rounded-lg p-2 bg-gray-50 dark:bg-gray-700/50">
+                    {performers.map((p) => (
+                      <label key={p.id} className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 dark:text-gray-400">
+                        <input
+                          type="checkbox"
+                          checked={selectedPerformerIds.includes(p.id)}
+                          onChange={(e) => {
+                            setSelectedPerformerIds(prev =>
+                              e.target.checked
+                                ? [...prev, p.id]
+                                : prev.filter(id => id !== p.id)
+                            );
+                          }}
+                          className="w-3.5 h-3.5 rounded text-blue-500"
+                        />
+                        {p.name} {p.drillNumber ? `(#${p.drillNumber})` : ''}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* PDF Options */}
           {isPdfFormat && (

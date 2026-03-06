@@ -1,5 +1,5 @@
 import { Keyframe, PlaybackState, AudioTrack } from '../../services/formationService';
-import type { DrillSettings } from '../../services/formationTypes';
+import type { DrillSettings, DrillSet } from '../../services/formationTypes';
 import { timeToCount } from '../../utils/drillGeometry';
 
 export interface TimelineProps {
@@ -10,7 +10,7 @@ export interface TimelineProps {
   selectedKeyframeId?: string;
   audioTrack?: AudioTrack | null;
   drillSettings?: DrillSettings;
-  timeDisplayMode?: 'time' | 'counts';
+  timeDisplayMode?: 'time' | 'counts' | 'sets';
   snapResolution?: 'beat' | 'half-beat' | 'measure';
   onSnapResolutionChange?: (resolution: 'beat' | 'half-beat' | 'measure') => void;
   onDrillSettingsChange?: (settings: DrillSettings) => void;
@@ -24,6 +24,14 @@ export interface TimelineProps {
   onKeyframeAdd: (timestamp: number) => void;
   onKeyframeRemove: (keyframeId: string) => void;
   onKeyframeMove: (keyframeId: string, timestamp: number) => void;
+  // Drill set navigation props
+  sets?: DrillSet[];
+  currentSetId?: string | null;
+  onSetSelect?: (setId: string) => void;
+  onSetUpdate?: (setId: string, updates: Partial<DrillSet>) => void;
+  onSetAdd?: (afterIndex?: number) => void;
+  onSetRemove?: (setId: string) => void;
+  onSetsReorder?: (fromIndex: number, toIndex: number) => void;
 }
 
 export function formatTime(ms: number): string {

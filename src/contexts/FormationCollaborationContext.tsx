@@ -163,6 +163,10 @@ export function FormationCollaborationProvider({
     updatePosition: yjsResult.updatePosition,
     updatePositions: yjsResult.updatePositions,
     setAudioTrack: yjsResult.setAudioTrack,
+    addSet: yjsResult.addSet,
+    updateSet: yjsResult.updateSet,
+    removeSet: yjsResult.removeSet,
+    reorderSets: yjsResult.reorderSets,
 
     // Awareness
     updateCursor: yjsResult.updateCursor,

@@ -5,7 +5,7 @@
  * shape generation, alignment, and distribution.
  */
 
-import type { Position } from '../services/formationTypes';
+import type { Position, FieldConfig } from '../services/formationTypes';
 
 // ============================================================================
 // TYPES
@@ -396,4 +396,74 @@ export function distributePositions(
       return result;
     }
   }
+}
+
+// ============================================================================
+// UNIT CONVERSION
+// ============================================================================
+
+/**
+ * Convert a distance in yards to steps.
+ * Default is 8-to-5 (8 steps per 5 yards), which is the marching band standard.
+ */
+export function yardsToSteps(yards: number, stepsPerFiveYards: number = 8): number {
+  return yards * (stepsPerFiveYards / 5);
+}
+
+/**
+ * Convert a distance in steps to yards.
+ * Default is 8-to-5 (8 steps per 5 yards).
+ */
+export function stepsToYards(steps: number, stepsPerFiveYards: number = 8): number {
+  return steps * (5 / stepsPerFiveYards);
+}
+
+// ============================================================================
+// DISTANCE & ANGLE
+// ============================================================================
+
+/**
+ * Calculate the Euclidean distance between two positions in normalized (0-100) units.
+ * The stageWidth and stageHeight parameters allow compensating for non-square
+ * aspect ratios if needed, but the result is still in normalized units.
+ */
+export function calculateDistance(
+  from: Position,
+  to: Position,
+  _stageWidth: number,
+  _stageHeight: number
+): number {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * Convert a normalized (0-100) distance to yards using a field configuration.
+ *
+ * Because x and y may map to different physical dimensions (e.g., a football
+ * field is 120 yards wide but 53.33 yards tall), this function uses the
+ * average scale factor. For axis-specific conversion, compute each axis
+ * separately: xYards = (dx / 100) * fieldConfig.width.
+ */
+export function normalizedToYards(
+  normalizedDistance: number,
+  fieldConfig: FieldConfig
+): number {
+  // Use the average of width and height scale factors for a scalar distance
+  const avgScale = (fieldConfig.width + fieldConfig.height) / 2;
+  return (normalizedDistance / 100) * avgScale;
+}
+
+/**
+ * Calculate the angle in degrees from one position to another.
+ * 0 = right (positive x), 90 = down (positive y, toward back sideline).
+ * Result is always in the range [0, 360).
+ */
+export function angleBetween(from: Position, to: Position): number {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const radians = Math.atan2(dy, dx);
+  const degrees = (radians * 180) / Math.PI;
+  return ((degrees % 360) + 360) % 360;
 }
