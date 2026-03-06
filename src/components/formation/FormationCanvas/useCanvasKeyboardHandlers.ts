@@ -3,8 +3,8 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { useKeyboardShortcuts } from '../../../hooks/useKeyboardShortcuts';
 import { useTouchGestures } from '../../../hooks/useTouchGestures';
+import { useKeybindingStore, bindingMatchesEvent } from '../../../hooks/useKeybindingStore';
 import type { Formation, Position, PlaybackState } from '../../../services/formationService';
 
 export interface ContextMenuState {
@@ -25,8 +25,6 @@ interface UseCanvasKeyboardHandlersProps {
   setZoom: React.Dispatch<React.SetStateAction<number>>;
   setCanvasPan: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>;
   setSelectedPerformerIds: React.Dispatch<React.SetStateAction<Set<string>>>;
-  setCurrentPositions: React.Dispatch<React.SetStateAction<Map<string, Position>>>;
-  setHasUnsavedChanges: React.Dispatch<React.SetStateAction<boolean>>;
   setShowShortcutsDialog: React.Dispatch<React.SetStateAction<boolean>>;
   // Drill panel toggles
   setShowAnalysisPanel?: React.Dispatch<React.SetStateAction<boolean>>;
@@ -58,8 +56,6 @@ export function useCanvasKeyboardHandlers({
   setZoom,
   setCanvasPan,
   setSelectedPerformerIds,
-  setCurrentPositions,
-  setHasUnsavedChanges,
   setShowShortcutsDialog,
   handleUndo,
   handleRedo,
@@ -78,8 +74,6 @@ export function useCanvasKeyboardHandlers({
   setShowCoordinatePanel,
   handleKeyframeSelect,
 }: UseCanvasKeyboardHandlersProps): { contextMenu: ContextMenuState; handleWheel: (e: React.WheelEvent) => void } {
-  const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-
   // Context menu state for long-press
   const [contextMenuState, setContextMenuState] = useState<{
     isOpen: boolean;
@@ -90,31 +84,6 @@ export function useCanvasKeyboardHandlers({
   const closeContextMenu = useCallback(() => {
     setContextMenuState(prev => ({ ...prev, isOpen: false, performer: null }));
   }, []);
-
-  // Hook-based keyboard shortcuts
-  useKeyboardShortcuts({
-    shortcuts: [
-      { key: 'z', ctrlKey: !isMac, metaKey: isMac, action: handleUndo, description: 'Undo' },
-      { key: 'z', ctrlKey: !isMac, metaKey: isMac, shiftKey: true, action: handleRedo, description: 'Redo' },
-      { key: 'y', ctrlKey: !isMac, metaKey: isMac, action: handleRedo, description: 'Redo' },
-      { key: 'Delete', action: handleDeleteSelected, description: 'Delete selected' },
-      { key: 'Backspace', action: handleDeleteSelected, description: 'Delete selected' },
-      { key: 'c', ctrlKey: !isMac, metaKey: isMac, action: handleCopy, description: 'Copy selected' },
-      { key: 'v', ctrlKey: !isMac, metaKey: isMac, action: handlePaste, description: 'Paste performers' },
-      { key: 'd', ctrlKey: !isMac, metaKey: isMac, action: handleDuplicateSelected, description: 'Duplicate selected' },
-      { key: 'a', ctrlKey: !isMac, metaKey: isMac, action: handleSelectAll, description: 'Select all' },
-      { key: 'Escape', action: handleDeselectAll, description: 'Deselect all' },
-      { key: 'ArrowUp', action: () => handleNudge(0, -1), description: 'Nudge up' },
-      { key: 'ArrowDown', action: () => handleNudge(0, 1), description: 'Nudge down' },
-      { key: 'ArrowLeft', action: () => handleNudge(-1, 0), description: 'Nudge left' },
-      { key: 'ArrowRight', action: () => handleNudge(1, 0), description: 'Nudge right' },
-      { key: 'ArrowUp', shiftKey: true, action: () => handleNudge(0, -5), description: 'Nudge up (large)' },
-      { key: 'ArrowDown', shiftKey: true, action: () => handleNudge(0, 5), description: 'Nudge down (large)' },
-      { key: 'ArrowLeft', shiftKey: true, action: () => handleNudge(-5, 0), description: 'Nudge left (large)' },
-      { key: 'ArrowRight', shiftKey: true, action: () => handleNudge(5, 0), description: 'Nudge right (large)' },
-    ],
-    enabled: !playbackState.isPlaying,
-  });
 
   // Touch gesture handling
   const handleTouchZoom = useCallback((delta: number, _cx: number, _cy: number) => {
@@ -177,13 +146,17 @@ export function useCanvasKeyboardHandlers({
     enabled: true,
   });
 
-  // Global keyboard handler (Cmd+S, Space play/pause, ? shortcuts, +/- zoom, Tab cycle, etc.)
+  // Keybinding store for customizable shortcuts
+  const { getBinding } = useKeybindingStore();
+
+  // Global keyboard handler — uses keybinding store for customizable shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true';
 
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      // Save always works (even in inputs)
+      if (bindingMatchesEvent(getBinding('save'), e)) {
         e.preventDefault();
         handleSave();
         return;
@@ -191,100 +164,116 @@ export function useCanvasKeyboardHandlers({
 
       if (isInput) return;
 
-      if (e.key === ' ' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      // Play / Pause
+      if (bindingMatchesEvent(getBinding('playPause'), e)) {
         e.preventDefault();
         if (playbackState.isPlaying) handlePause();
         else handlePlay();
       }
 
-      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+      // Toggle shortcuts dialog
+      if (bindingMatchesEvent(getBinding('shortcuts'), e) || (e.key === '?' || (e.shiftKey && e.key === '/'))) {
         e.preventDefault();
         setShowShortcutsDialog(prev => !prev);
       }
 
-      if ((e.key === '=' || e.key === '+') && !e.metaKey && !e.ctrlKey) {
+      // Zoom
+      if (bindingMatchesEvent(getBinding('zoomIn'), e)) {
         e.preventDefault();
         setZoom(z => Math.min(3, z + 0.25));
       }
-      if (e.key === '-' && !e.metaKey && !e.ctrlKey) {
+      if (bindingMatchesEvent(getBinding('zoomOut'), e)) {
         e.preventDefault();
         setZoom(z => Math.max(0.5, z - 0.25));
       }
 
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+      // Undo / Redo
+      if (bindingMatchesEvent(getBinding('undo'), e)) {
         e.preventDefault();
         handleUndo();
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
+      if (bindingMatchesEvent(getBinding('redo'), e)) {
         e.preventDefault();
         handleRedo();
       }
 
+      // Copy / Paste / Duplicate / Select All
+      if (bindingMatchesEvent(getBinding('copy'), e)) {
+        e.preventDefault();
+        handleCopy();
+      }
+      if (bindingMatchesEvent(getBinding('paste'), e)) {
+        e.preventDefault();
+        handlePaste();
+      }
+      if (bindingMatchesEvent(getBinding('duplicate'), e)) {
+        e.preventDefault();
+        handleDuplicateSelected();
+      }
+      if (bindingMatchesEvent(getBinding('selectAll'), e)) {
+        e.preventDefault();
+        handleSelectAll();
+      }
+
+      // Arrow nudge (not customizable — uses physical arrow keys)
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && selectedPerformerIds.size > 0) {
         e.preventDefault();
         const step = e.shiftKey ? 5 : 1;
-        const delta = { x: 0, y: 0 };
-        if (e.key === 'ArrowUp') delta.y = -step;
-        if (e.key === 'ArrowDown') delta.y = step;
-        if (e.key === 'ArrowLeft') delta.x = -step;
-        if (e.key === 'ArrowRight') delta.x = step;
-        setCurrentPositions(prev => {
-          const next = new Map(prev);
-          selectedPerformerIds.forEach(id => {
-            const pos = next.get(id);
-            if (pos) { next.set(id, { ...pos, x: Math.max(0, Math.min(100, pos.x + delta.x)), y: Math.max(0, Math.min(100, pos.y + delta.y)) }); }
-          });
-          return next;
-        });
-        setHasUnsavedChanges(true);
+        if (e.key === 'ArrowUp') handleNudge(0, -step);
+        else if (e.key === 'ArrowDown') handleNudge(0, step);
+        else if (e.key === 'ArrowLeft') handleNudge(-step, 0);
+        else if (e.key === 'ArrowRight') handleNudge(step, 0);
       }
 
-      // Drill shortcuts: J/K for next/previous set
-      if ((e.key === 'j' || e.key === 'k') && formation && handleKeyframeSelect) {
-        e.preventDefault();
-        const kfs = formation.keyframes;
-        if (kfs.length > 1) {
-          // Find current keyframe index by matching positions
-          let curIdx = 0;
-          if (currentPositions.size > 0) {
-            const firstId = Array.from(currentPositions.keys())[0];
-            const curPos = currentPositions.get(firstId);
-            if (curPos) {
-              for (let i = 0; i < kfs.length; i++) {
-                const kfPos = kfs[i].positions.get(firstId);
-                if (kfPos && Math.abs(kfPos.x - curPos.x) < 0.01 && Math.abs(kfPos.y - curPos.y) < 0.01) {
-                  curIdx = i;
-                  break;
+      // Drill: Next/Previous set
+      if (formation && handleKeyframeSelect) {
+        const nextBinding = getBinding('nextSet');
+        const prevBinding = getBinding('prevSet');
+        if (bindingMatchesEvent(nextBinding, e) || bindingMatchesEvent(prevBinding, e)) {
+          e.preventDefault();
+          const kfs = formation.keyframes;
+          if (kfs.length > 1) {
+            let curIdx = 0;
+            if (currentPositions.size > 0) {
+              const firstId = Array.from(currentPositions.keys())[0];
+              const curPos = currentPositions.get(firstId);
+              if (curPos) {
+                for (let i = 0; i < kfs.length; i++) {
+                  const kfPos = kfs[i].positions.get(firstId);
+                  if (kfPos && Math.abs(kfPos.x - curPos.x) < 0.01 && Math.abs(kfPos.y - curPos.y) < 0.01) {
+                    curIdx = i;
+                    break;
+                  }
                 }
               }
             }
+            const targetIdx = bindingMatchesEvent(nextBinding, e)
+              ? Math.min(curIdx + 1, kfs.length - 1)
+              : Math.max(curIdx - 1, 0);
+            handleKeyframeSelect(kfs[targetIdx].id);
           }
-          const targetIdx = e.key === 'j'
-            ? Math.min(curIdx + 1, kfs.length - 1)
-            : Math.max(curIdx - 1, 0);
-          handleKeyframeSelect(kfs[targetIdx].id);
         }
       }
 
-      // M for movement tools
-      if (e.key === 'm' && !e.metaKey && !e.ctrlKey && setShowMovementTools) {
+      // Movement tools
+      if (setShowMovementTools && bindingMatchesEvent(getBinding('movementTools'), e)) {
         e.preventDefault();
         setShowMovementTools(prev => !prev);
       }
 
-      // Shift+A for analysis panel
-      if (e.key === 'A' && e.shiftKey && !e.metaKey && !e.ctrlKey && setShowAnalysisPanel) {
+      // Analysis panel
+      if (setShowAnalysisPanel && bindingMatchesEvent(getBinding('drillAnalysis'), e)) {
         e.preventDefault();
         setShowAnalysisPanel(prev => !prev);
       }
 
-      // I for coordinate info panel
-      if (e.key === 'i' && !e.metaKey && !e.ctrlKey && setShowCoordinatePanel) {
+      // Coordinate info panel
+      if (setShowCoordinatePanel && bindingMatchesEvent(getBinding('coordinateInfo'), e)) {
         e.preventDefault();
         setShowCoordinatePanel(prev => !prev);
       }
 
-      // Number keys 1-9 to jump to specific set
+      // Number keys 1-9 to jump to specific set (not customizable)
       if (/^[1-9]$/.test(e.key) && !e.metaKey && !e.ctrlKey && formation && handleKeyframeSelect) {
         const setNum = parseInt(e.key, 10) - 1;
         if (setNum < formation.keyframes.length) {
@@ -293,7 +282,8 @@ export function useCanvasKeyboardHandlers({
         }
       }
 
-      if (e.key === 'Tab' && formation) {
+      // Cycle through performers
+      if (bindingMatchesEvent(getBinding('cyclePerformer'), e) && formation) {
         e.preventDefault();
         const ids = formation.performers.map(p => p.id);
         if (ids.length === 0) return;
@@ -305,14 +295,21 @@ export function useCanvasKeyboardHandlers({
         setSelectedPerformerIds(new Set([ids[nextIdx]]));
       }
 
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedPerformerIds.size > 0) {
+      // Delete selected
+      if (bindingMatchesEvent(getBinding('delete'), e) && selectedPerformerIds.size > 0) {
         e.preventDefault();
         handleDeleteSelected();
+      }
+
+      // Deselect
+      if (bindingMatchesEvent(getBinding('deselect'), e)) {
+        e.preventDefault();
+        handleDeselectAll();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleSave, playbackState.isPlaying, handlePause, handlePlay, handleUndo, handleRedo, selectedPerformerIds, formation, currentPositions, setCurrentPositions, setHasUnsavedChanges, setSelectedPerformerIds, handleDeleteSelected, setShowShortcutsDialog, setZoom, setShowAnalysisPanel, setShowMovementTools, setShowCoordinatePanel, handleKeyframeSelect]);
+  }, [getBinding, handleSave, playbackState.isPlaying, handlePause, handlePlay, handleUndo, handleRedo, handleCopy, handlePaste, handleDuplicateSelected, handleSelectAll, handleNudge, selectedPerformerIds, formation, currentPositions, setSelectedPerformerIds, handleDeleteSelected, handleDeselectAll, setShowShortcutsDialog, setZoom, setShowAnalysisPanel, setShowMovementTools, setShowCoordinatePanel, handleKeyframeSelect]);
 
   return {
     contextMenu: { ...contextMenuState, close: closeContextMenu },

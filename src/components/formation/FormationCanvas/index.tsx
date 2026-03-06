@@ -120,8 +120,6 @@ export function FormationCanvas(props: FormationCanvasProps) {
     setZoom,
     setCanvasPan,
     setSelectedPerformerIds,
-    setCurrentPositions,
-    setHasUnsavedChanges,
     setShowShortcutsDialog,
     setShowAnalysisPanel,
     setShowMovementTools,
