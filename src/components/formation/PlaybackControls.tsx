@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { PlaybackState, AudioTrack } from '../../services/formationService';
 import type { DrillSettings, DrillSet } from '../../services/formationTypes';
+import type { TempoMap } from '../../services/tempoMap';
 import { formatTime, formatCount } from './timelineHelpers';
 
 interface PlaybackControlsProps {
@@ -42,6 +43,11 @@ interface PlaybackControlsProps {
   onZoomChange: (zoom: number) => void;
   onVolumeChange: (volume: number) => void;
   onDrillSettingsChange?: (settings: DrillSettings) => void;
+  tempoMap?: TempoMap;
+  currentSection?: string;
+  currentMeasure?: number;
+  currentBeat?: number;
+  currentLiveTempo?: number;
 }
 
 const speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -69,6 +75,11 @@ export function PlaybackControls({
   onZoomChange,
   onVolumeChange,
   onDrillSettingsChange,
+  tempoMap,
+  currentSection,
+  currentMeasure: currentMeasureProp,
+  currentBeat: currentBeatProp,
+  currentLiveTempo,
 }: PlaybackControlsProps) {
   const { t } = useTranslation('common');
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
@@ -232,15 +243,30 @@ export function PlaybackControls({
       </div>
 
       {/* Time Display */}
-      <div className="flex items-center gap-2 text-sm">
-        <Clock className="w-4 h-4 text-gray-400" aria-hidden="true" />
-        <span className="font-mono text-gray-700 dark:text-gray-300">
-          {hasSets && currentSet
-            ? `Set ${currentSetIndex + 1} of ${sortedSets.length} \u2014 ${currentSet.counts} counts`
-            : isCountMode && drillSettings
-              ? formatCount(currentTime, drillSettings)
-              : `${formatTime(currentTime)} / ${formatTime(duration)}`}
-        </span>
+      <div className="flex flex-col items-center gap-0.5">
+        <div className="flex items-center gap-2 text-sm">
+          <Clock className="w-4 h-4 text-gray-400" aria-hidden="true" />
+          <span className="font-mono text-gray-700 dark:text-gray-300">
+            {hasSets && currentSet
+              ? `Set ${currentSetIndex + 1} of ${sortedSets.length} \u2014 ${currentSet.counts} counts`
+              : isCountMode && drillSettings
+                ? formatCount(currentTime, drillSettings)
+                : `${formatTime(currentTime)} / ${formatTime(duration)}`}
+          </span>
+        </div>
+        {tempoMap && tempoMap.segments.length > 0 && (
+          <span
+            className="font-mono text-gray-500 dark:text-gray-500"
+            style={{ fontSize: '11px' }}
+          >
+            {hasSets && currentSet
+              ? `Set ${currentSetIndex + 1} of ${sortedSets.length} \u2014 ${currentSet.counts} counts | `
+              : ''}
+            m{currentMeasureProp ?? 1}:{currentBeatProp ?? 1}
+            {currentSection ? ` | ${currentSection}` : ''}
+            {currentLiveTempo != null ? ` @ ${Math.round(currentLiveTempo)} BPM` : ''}
+          </span>
+        )}
       </div>
 
       {/* Speed Control */}

@@ -67,6 +67,20 @@ interface CanvasRendererProps {
   onRotatePerformer: (id: string, rotation: number) => void;
   onDragStart: (id: string) => boolean;
   onDragEnd: () => void;
+  // Curve editing
+  curveEditMode?: boolean;
+  selectedKeyframeIndex?: number;
+  onCurveControlPointMove?: (
+    keyframeId: string,
+    performerId: string,
+    controlPoint: 'cp1' | 'cp2',
+    position: Position,
+  ) => void;
+  // Snap guides
+  snapGuides?: import('../../../utils/drillGeometry').SnapGuide[];
+  // Transform handles
+  transformMode?: 'none' | 'rotate' | 'scale' | 'mirror';
+  onTransformApply?: (mode: 'rotate' | 'scale' | 'mirror', value: number, axis?: 'x' | 'y') => void;
 }
 
 // ============================================================================
@@ -80,12 +94,65 @@ interface BatchPerformer {
   name: string;
   pixelX: number;
   pixelY: number;
+  shape: import('../../../services/formationTypes').SymbolShape;
+}
+
+/**
+ * Draw a single performer shape onto a Canvas2D context.
+ */
+function drawPerformerShape(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  shape: import('../../../services/formationTypes').SymbolShape,
+): void {
+  switch (shape) {
+    case 'square':
+      ctx.rect(x - size, y - size, size * 2, size * 2);
+      break;
+    case 'diamond':
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x + size, y);
+      ctx.lineTo(x, y + size);
+      ctx.lineTo(x - size, y);
+      ctx.closePath();
+      break;
+    case 'triangle':
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x + size, y + size * 0.7);
+      ctx.lineTo(x - size, y + size * 0.7);
+      ctx.closePath();
+      break;
+    case 'cross': {
+      const arm = size * 0.35;
+      ctx.moveTo(x - arm, y - size);
+      ctx.lineTo(x + arm, y - size);
+      ctx.lineTo(x + arm, y - arm);
+      ctx.lineTo(x + size, y - arm);
+      ctx.lineTo(x + size, y + arm);
+      ctx.lineTo(x + arm, y + arm);
+      ctx.lineTo(x + arm, y + size);
+      ctx.lineTo(x - arm, y + size);
+      ctx.lineTo(x - arm, y + arm);
+      ctx.lineTo(x - size, y + arm);
+      ctx.lineTo(x - size, y - arm);
+      ctx.lineTo(x - arm, y - arm);
+      ctx.closePath();
+      break;
+    }
+    case 'circle':
+    default:
+      ctx.moveTo(x + size, y);
+      ctx.arc(x, y, size, 0, 2 * Math.PI);
+      break;
+  }
 }
 
 /**
  * Batch-render performers onto a Canvas2D context.
- * Groups performers by color to minimize fillStyle changes,
- * uses a single beginPath/fill per color group.
+ * Groups performers by color to minimize fillStyle changes.
+ * Supports multiple symbol shapes (circle, square, diamond, triangle, cross).
  */
 export function batchRenderPerformers(
   ctx: CanvasRenderingContext2D,
@@ -96,26 +163,25 @@ export function batchRenderPerformers(
 ): void {
   if (performers.length === 0) return;
 
-  // Group performers by color for batched fills
-  const colorGroups = new Map<string, BatchPerformer[]>();
+  // Group performers by color + shape for batched fills
+  const colorShapeGroups = new Map<string, BatchPerformer[]>();
   for (const p of performers) {
-    let group = colorGroups.get(p.color);
+    const key = `${p.color}|${p.shape}`;
+    let group = colorShapeGroups.get(key);
     if (!group) {
       group = [];
-      colorGroups.set(p.color, group);
+      colorShapeGroups.set(key, group);
     }
     group.push(p);
   }
 
-  const TAU = 2 * Math.PI;
-
-  // Batch draw circles - single beginPath per color
-  for (const [color, group] of colorGroups) {
+  // Batch draw shapes - single beginPath per color+shape group
+  for (const [key, group] of colorShapeGroups) {
+    const color = key.split('|')[0];
     ctx.fillStyle = color;
     ctx.beginPath();
     for (const p of group) {
-      ctx.moveTo(p.pixelX + markerRadius, p.pixelY);
-      ctx.arc(p.pixelX, p.pixelY, markerRadius, 0, TAU);
+      drawPerformerShape(ctx, p.pixelX, p.pixelY, markerRadius, p.shape);
     }
     ctx.fill();
   }
@@ -196,6 +262,7 @@ const PerformerCanvasLayer = React.memo<PerformerCanvasLayerProps>(function Perf
         name: performer.name,
         pixelX: (pos.x / 100) * canvasWidth,
         pixelY: (pos.y / 100) * canvasHeight,
+        shape: performer.symbolShape ?? 'circle',
       });
     }
     return result;
@@ -277,6 +344,11 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
   onRotatePerformer,
   onDragStart,
   onDragEnd,
+  curveEditMode,
+  selectedKeyframeIndex,
+  onCurveControlPointMove,
+  snapGuides,
+  transformMode,
 }) {
   const canvasWidth = formation.stageWidth * 20 * zoom;
   const canvasHeight = formation.stageHeight * 20 * zoom;
@@ -409,7 +481,8 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
       ref={canvasRef}
       role="application"
       tabIndex={0}
-      aria-label="Formation canvas"
+      aria-label={`Formation canvas: ${formation.performers.length} performers, ${formation.keyframes.length} sets`}
+      aria-roledescription="formation canvas"
       className="relative bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden mx-auto"
       style={{
         width: `${canvasWidth}px`,
@@ -452,6 +525,10 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
           canvasHeight={canvasHeight}
           showPaths={showPaths}
           selectedPerformerIds={selectedPerformerIds}
+          keyframes={formation.keyframes}
+          selectedKeyframeIndex={selectedKeyframeIndex}
+          curveEditMode={curveEditMode}
+          onCurveControlPointMove={onCurveControlPointMove}
         />
       )}
       {playbackState.isPlaying && deferredGhostTrail.length > 1 && (
@@ -494,6 +571,91 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
           }}
         />
       )}
+
+      {/* Snap alignment guides during drag */}
+      {snapGuides && snapGuides.length > 0 && (
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 25 }}>
+          {snapGuides.map((guide, i) =>
+            guide.type === 'x' ? (
+              <line
+                key={`sg-${i}`}
+                x1={`${guide.value}%`} y1="0" x2={`${guide.value}%`} y2="100%"
+                stroke="#06b6d4" strokeWidth={1} strokeDasharray="4 3" strokeOpacity={0.7}
+              />
+            ) : (
+              <line
+                key={`sg-${i}`}
+                x1="0" y1={`${guide.value}%`} x2="100%" y2={`${guide.value}%`}
+                stroke="#06b6d4" strokeWidth={1} strokeDasharray="4 3" strokeOpacity={0.7}
+              />
+            ),
+          )}
+        </svg>
+      )}
+
+      {/* Transform bounding box for multi-selection */}
+      {transformMode && transformMode !== 'none' && selectedPerformerIds.size >= 2 && (() => {
+        const selectedPositions = Array.from(selectedPerformerIds)
+          .map(id => currentPositions.get(id))
+          .filter((p): p is Position => !!p);
+        if (selectedPositions.length < 2) return null;
+        const xs = selectedPositions.map(p => p.x);
+        const ys = selectedPositions.map(p => p.y);
+        const minX = Math.min(...xs);
+        const maxX = Math.max(...xs);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
+        const padding = 2; // percent padding
+        return (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 30 }}>
+            <rect
+              x={`${minX - padding}%`} y={`${minY - padding}%`}
+              width={`${maxX - minX + padding * 2}%`} height={`${maxY - minY + padding * 2}%`}
+              fill="none" stroke="#8b5cf6" strokeWidth={1.5} strokeDasharray="6 3" rx={4}
+            />
+            {/* Center crosshair */}
+            <circle
+              cx={`${(minX + maxX) / 2}%`} cy={`${(minY + maxY) / 2}%`}
+              r={4} fill="#8b5cf6" fillOpacity={0.5} stroke="#8b5cf6" strokeWidth={1}
+            />
+            {/* Corner handles */}
+            {[
+              [minX - padding, minY - padding],
+              [maxX + padding, minY - padding],
+              [minX - padding, maxY + padding],
+              [maxX + padding, maxY + padding],
+            ].map(([cx, cy], i) => (
+              <rect
+                key={`th-${i}`}
+                x={`${cx - 0.5}%`} y={`${cy - 0.5}%`}
+                width="1%" height="1%"
+                fill="white" stroke="#8b5cf6" strokeWidth={1.5} rx={2}
+              />
+            ))}
+            {/* Rotation handle (above center) */}
+            {transformMode === 'rotate' && (
+              <g>
+                <line
+                  x1={`${(minX + maxX) / 2}%`} y1={`${minY - padding}%`}
+                  x2={`${(minX + maxX) / 2}%`} y2={`${minY - padding - 4}%`}
+                  stroke="#8b5cf6" strokeWidth={1}
+                />
+                <circle
+                  cx={`${(minX + maxX) / 2}%`} cy={`${minY - padding - 4}%`}
+                  r={5} fill="white" stroke="#8b5cf6" strokeWidth={1.5}
+                />
+              </g>
+            )}
+            {/* Mode label */}
+            <text
+              x={`${(minX + maxX) / 2}%`} y={`${maxY + padding + 3}%`}
+              textAnchor="middle" fill="#8b5cf6" fontSize={11} fontWeight="bold"
+            >
+              {transformMode === 'rotate' ? 'Rotate' : transformMode === 'scale' ? 'Scale' : 'Mirror'}
+            </text>
+          </svg>
+        );
+      })()}
 
       {/* Canvas2D batch layer for non-interactive performers */}
       <PerformerCanvasLayer

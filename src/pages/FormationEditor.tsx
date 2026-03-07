@@ -9,7 +9,7 @@ import * as React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { FormationCanvas } from '@/components/formation';
-import { FormationEditorErrorBoundary } from '@/components/error/ErrorBoundary';
+import { FormationEditorErrorBoundary, Formation3DViewErrorBoundary } from '@/components/error/ErrorBoundary';
 import { useRegisterShortcuts } from '@/contexts/KeyboardShortcutsContext';
 import { useAuth } from '@/store/slices/authSlice';
 import { useNotification } from '@/store/slices/notificationSlice';
@@ -17,6 +17,8 @@ import { Formation } from '../services/formationService';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { ViewToggle } from '../components/formation/ViewToggle';
+import { PerformerView } from '../components/formation/PerformerView';
+import { SectionLeaderView } from '../components/formation/SectionLeaderView';
 import { Scene3DToolbar } from '../components/formation/Scene3DToolbar';
 import { useScene3D } from '../hooks/useScene3D';
 import { ObjectEditorModal } from '../components/object-editor/ObjectEditorModal';
@@ -82,6 +84,11 @@ export default function FormationEditor() {
     setPrimitiveBuilderOpen,
   } = useScene3D();
 
+  // Multi-role view state
+  const [viewRole, setViewRole] = React.useState<'designer' | 'section-leader' | 'performer'>('designer');
+  const [selectedPerformerId, setSelectedPerformerId] = React.useState<string | null>(null);
+  const [currentFormation, setCurrentFormation] = React.useState<import('../services/formationTypes').Formation | null>(null);
+
   // Track current positions and performers for 3D view (from FormationCanvas internal state)
   const [currentPositions, setCurrentPositions] = React.useState<Map<string, import('../services/formationTypes').Position>>(new Map());
   const [currentPerformers, setCurrentPerformers] = React.useState<import('../services/formationTypes').Performer[]>([]);
@@ -105,7 +112,8 @@ export default function FormationEditor() {
         title: 'Formation Saved',
         message: `"${formation.name}" has been saved successfully.`,
       });
-      // Update 3D view data when formation saves
+      // Update 3D view data and role-view formation when formation saves
+      setCurrentFormation(formation as unknown as import('../services/formationTypes').Formation);
       if (formation.performers) {
         setCurrentPerformers(formation.performers);
       }
@@ -279,11 +287,34 @@ export default function FormationEditor() {
               </li>
             </ol>
           </nav>
+          {/* Role selector */}
+          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+            <select
+              value={viewRole}
+              onChange={(e) => {
+                const role = e.target.value as 'designer' | 'section-leader' | 'performer';
+                setViewRole(role);
+                // Reset to select tool when switching to section-leader
+                if (role === 'section-leader' || role === 'performer') {
+                  // Auto-select first performer for performer view
+                  if (role === 'performer' && currentPerformers.length > 0 && !selectedPerformerId) {
+                    setSelectedPerformerId(currentPerformers[0].id);
+                  }
+                }
+              }}
+              className="text-xs bg-transparent border-none outline-none cursor-pointer text-gray-700 dark:text-gray-300 px-2 py-1 rounded focus-visible:ring-2 focus-visible:ring-blue-500"
+              aria-label="View role"
+            >
+              <option value="designer">Designer</option>
+              <option value="section-leader">Section Leader</option>
+              <option value="performer">Performer</option>
+            </select>
+          </div>
           <ViewToggle mode={viewMode} onChange={setViewMode} />
         </div>
 
-        {/* 3D Toolbar (only when 3D view is active) */}
-        {show3D && (
+        {/* 3D Toolbar (only when 3D view is active and in designer mode) */}
+        {show3D && viewRole === 'designer' && (
           <Scene3DToolbar
             activeTool={activeTool}
             showGrid={settings.showGrid}
@@ -299,51 +330,74 @@ export default function FormationEditor() {
           />
         )}
 
-        {/* Content area with view mode */}
-        <div className={`flex-1 overflow-hidden ${viewMode === 'split' ? 'flex' : ''}`}>
-          {/* 2D Canvas */}
-          {show2D && (
-            <div className={viewMode === 'split' ? 'w-1/2 border-r border-gray-200 dark:border-gray-700' : 'h-full'}>
-              <FormationEditorErrorBoundary>
-                <FormationCanvas
-                  projectId={projectId}
-                  formationId={formationId}
-                  collaborativeMode={true}
-                  onSave={handleSave}
-                  onClose={handleClose}
-                />
-              </FormationEditorErrorBoundary>
-            </div>
-          )}
+        {/* Content area - switches based on viewRole */}
+        {viewRole === 'performer' && currentFormation ? (
+          /* Performer View */
+          <div className="flex-1 overflow-hidden">
+            <PerformerView
+              formation={currentFormation}
+              performerId={selectedPerformerId || currentPerformers[0]?.id || ''}
+              onClose={() => setViewRole('designer')}
+              onChangePerformer={(id) => setSelectedPerformerId(id)}
+            />
+          </div>
+        ) : viewRole === 'section-leader' && currentFormation ? (
+          /* Section Leader View */
+          <div className="flex-1 overflow-hidden">
+            <SectionLeaderView
+              formation={currentFormation}
+              onSelectPerformer={(id) => setSelectedPerformerId(id)}
+            />
+          </div>
+        ) : (
+          /* Designer View (default) */
+          <div className={`flex-1 overflow-hidden ${viewMode === 'split' ? 'flex' : ''}`}>
+            {/* 2D Canvas */}
+            {show2D && (
+              <div className={viewMode === 'split' ? 'w-1/2 border-r border-gray-200 dark:border-gray-700' : 'h-full'}>
+                <FormationEditorErrorBoundary>
+                  <FormationCanvas
+                    projectId={projectId}
+                    formationId={formationId}
+                    collaborativeMode={true}
+                    onSave={handleSave}
+                    onClose={handleClose}
+                  />
+                </FormationEditorErrorBoundary>
+              </div>
+            )}
 
-          {/* 3D View */}
-          {show3D && (
-            <div className={viewMode === 'split' ? 'w-1/2' : 'h-full'}>
-              <React.Suspense
-                fallback={
-                  <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900">
-                    <div className="text-gray-500 dark:text-gray-400">Loading 3D view...</div>
-                  </div>
-                }
-              >
-                <Formation3DViewLazy
-                  positions={currentPositions}
-                  performers={currentPerformers}
-                  sceneObjects={objectList}
-                  selectedObjectId={selectedObjectId}
-                  activeTool={activeTool}
-                  showGrid={settings.showGrid}
-                  showLabels={settings.showLabels}
-                  showShadows={settings.showShadows}
-                  onSelectObject={selectObject}
-                  onUpdateObjectPosition={(id: string, pos: { x?: number; y?: number; z?: number }) => {
-                    updateObjectPosition(id, pos);
-                  }}
-                />
-              </React.Suspense>
-            </div>
-          )}
-        </div>
+            {/* 3D View */}
+            {show3D && (
+              <div className={viewMode === 'split' ? 'w-1/2' : 'h-full'}>
+                <Formation3DViewErrorBoundary>
+                  <React.Suspense
+                    fallback={
+                      <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900">
+                        <div className="text-gray-500 dark:text-gray-400">Loading 3D view...</div>
+                      </div>
+                    }
+                  >
+                    <Formation3DViewLazy
+                      positions={currentPositions}
+                      performers={currentPerformers}
+                      sceneObjects={objectList}
+                      selectedObjectId={selectedObjectId}
+                      activeTool={activeTool}
+                      showGrid={settings.showGrid}
+                      showLabels={settings.showLabels}
+                      showShadows={settings.showShadows}
+                      onSelectObject={selectObject}
+                      onUpdateObjectPosition={(id: string, pos: { x?: number; y?: number; z?: number }) => {
+                        updateObjectPosition(id, pos);
+                      }}
+                    />
+                  </React.Suspense>
+                </Formation3DViewErrorBoundary>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Object Editor Panel (right sidebar) */}

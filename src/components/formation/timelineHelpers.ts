@@ -1,5 +1,7 @@
 import { Keyframe, PlaybackState, AudioTrack } from '../../services/formationService';
 import type { DrillSettings, DrillSet } from '../../services/formationTypes';
+import type { Section, Chord, BeatMap } from '../../contexts/metmap/types';
+import type { TempoMap } from '../../services/tempoMap';
 import { timeToCount } from '../../utils/drillGeometry';
 
 export interface TimelineProps {
@@ -32,6 +34,11 @@ export interface TimelineProps {
   onSetAdd?: (afterIndex?: number) => void;
   onSetRemove?: (setId: string) => void;
   onSetsReorder?: (fromIndex: number, toIndex: number) => void;
+  // MetMap integration (optional)
+  sections?: Section[];
+  chords?: Chord[];
+  tempoMap?: TempoMap;
+  beatMap?: BeatMap;
 }
 
 export function formatTime(ms: number): string {

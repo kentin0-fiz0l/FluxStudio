@@ -155,6 +155,11 @@
             if (id.includes('node_modules')) {
               // === Pure packages (no React dependency) ===
 
+              // WaveSurfer.js — audio waveform (only used in AudioSyncTimeline)
+              if (id.includes('wavesurfer')) {
+                return 'vendor-wavesurfer';
+              }
+
               // Socket.io - WebSocket transport
               if (id.includes('socket.io-client') || id.includes('engine.io')) {
                 return 'vendor-socket';

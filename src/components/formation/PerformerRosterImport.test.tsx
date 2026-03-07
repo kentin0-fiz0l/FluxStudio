@@ -3,6 +3,21 @@ import { render, screen } from '../../test/utils';
 import { PerformerRosterImport } from './PerformerRosterImport';
 import type { Performer } from '../../services/formationTypes';
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, fallback: string, options?: Record<string, unknown>) => {
+      let result = fallback ?? key;
+      if (options) {
+        for (const [k, v] of Object.entries(options)) {
+          result = result.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v));
+        }
+      }
+      return result;
+    },
+    i18n: { language: 'en', changeLanguage: vi.fn() },
+  }),
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -208,7 +223,7 @@ describe('PerformerRosterImport', () => {
     await user.click(screen.getByRole('button', { name: /next/i })); // Map
     await user.click(screen.getByRole('button', { name: /next/i })); // Preview
 
-    expect(screen.getByText('2 performers found')).toBeInTheDocument();
+    expect(screen.getByText('2 performer(s) found')).toBeInTheDocument();
   });
 
   test('shows merge strategy options when existing performers exist', { timeout: 15000 }, async () => {

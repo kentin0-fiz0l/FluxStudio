@@ -9,11 +9,13 @@ import React, { useRef, useState, useCallback, useEffect, useMemo, lazy, Suspens
 import { useTranslation } from 'react-i18next';
 import { generateCountMarkers } from '../../utils/drillGeometry';
 import { useAudioPlayback } from '../../hooks/useAudioPlayback';
+import { countToTimeMs } from '../../services/tempoMap';
 import type { TimelineProps } from './timelineHelpers';
 import { formatTime, formatCount } from './timelineHelpers';
 import { KeyframeMarker } from './KeyframeMarker';
 import { PlaybackControls } from './PlaybackControls';
 import { SetNavigator } from './SetNavigator';
+import { AudioSyncTimelineErrorBoundary } from '../error/featureBoundaries';
 
 // Lazy-load AudioSyncTimeline to avoid wavesurfer bundle impact when no audio
 const AudioSyncTimeline = lazy(() => import('./AudioSyncTimeline'));
@@ -50,6 +52,10 @@ export function Timeline({
   onSetUpdate,
   onSetAdd,
   onSetRemove,
+  sections,
+  chords,
+  tempoMap,
+  beatMap,
   onSetsReorder,
 }: TimelineProps) {
   const { t } = useTranslation('common');
@@ -225,12 +231,13 @@ export function Timeline({
 
         {/* Timeline Bar — AudioSyncTimeline (waveform + beat-snap) when audio present, basic bar otherwise */}
         {audioTrack?.url ? (
+          <AudioSyncTimelineErrorBoundary>
           <Suspense fallback={
             <div className="relative h-24 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" style={{ width: `${100 * zoom}%` }} />
           }>
             <AudioSyncTimeline
               audioUrl={audioTrack.url}
-              beatMap={null}
+              beatMap={beatMap ?? null}
               keyframes={keyframes}
               currentTime={currentTime}
               duration={duration}
@@ -244,8 +251,12 @@ export function Timeline({
               onKeyframeAdd={onKeyframeAdd}
               onKeyframeSelect={onKeyframeSelect}
               onSnapResolutionChange={onSnapResolutionChange}
+              sections={sections}
+              chords={chords}
+              tempoMap={tempoMap}
             />
           </Suspense>
+          </AudioSyncTimelineErrorBoundary>
         ) : (
           <div
             ref={timelineRef}
@@ -258,6 +269,30 @@ export function Timeline({
               className="absolute top-0 bottom-0 bg-blue-100 dark:bg-blue-900/50"
               style={{ width: `${playheadPosition}%` }}
             />
+
+            {/* Lightweight section indicator strip (non-audio mode) */}
+            {sections && sections.length > 0 && tempoMap && tempoMap.segments.length > 0 && (() => {
+              const SECTION_COLORS = ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981','#06b6d4','#f97316','#6366f1'];
+              const sorted = [...sections].sort((a, b) => a.orderIndex - b.orderIndex);
+              let currentCount = 1;
+              return sorted.map((section, i) => {
+                const beatsPerBar = parseInt(section.timeSignature.split('/')[0]) || 4;
+                const sectionBeats = section.bars * beatsPerBar;
+                if (sectionBeats <= 0) { return null; }
+                const startMs = countToTimeMs(currentCount, tempoMap);
+                const endMs = countToTimeMs(currentCount + sectionBeats, tempoMap);
+                currentCount += sectionBeats;
+                const leftPct = duration > 0 ? (startMs / duration) * 100 : 0;
+                const widthPct = duration > 0 ? ((endMs - startMs) / duration) * 100 : 0;
+                const color = SECTION_COLORS[i % SECTION_COLORS.length];
+                return (
+                  <div key={`section-strip-${i}`} className="absolute top-0 pointer-events-none" style={{ left: `${leftPct}%`, width: `${widthPct}%`, height: 14 }}>
+                    <div className="w-full h-full" style={{ backgroundColor: color, opacity: 0.12 }} />
+                    <span className="absolute left-1 top-0.5 text-[8px] font-semibold whitespace-nowrap" style={{ color, opacity: 0.7 }}>{section.name}</span>
+                  </div>
+                );
+              });
+            })()}
 
             {/* Set Boundary Markers (vertical lines on the timeline bar in sets mode) */}
             {isSetsMode && setBoundaries.map(({ set, position }) => (

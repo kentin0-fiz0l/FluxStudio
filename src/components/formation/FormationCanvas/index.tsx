@@ -21,6 +21,11 @@ import { MovementToolsPanel } from '../MovementToolsPanel';
 import { CoordinatePanel } from '../CoordinatePanel';
 import { StepSizeOverlay } from '../StepSizeOverlay';
 import { QuickStartWizard } from '../QuickStartWizard';
+import { MetMapSongSelector } from '../MetMapSongSelector';
+import { MeasurementOverlay } from '../MeasurementOverlay';
+import { GroupPanel } from '../GroupPanel';
+import { CollisionOverlay } from '../CollisionOverlay';
+import { FormationVersionHistoryPanel } from '../FormationVersionHistory';
 import { CanvasToolbar } from './CanvasToolbar';
 import { PerformerPanel } from './PerformerPanel';
 import { AlignmentToolbar } from './AlignmentToolbar';
@@ -30,8 +35,10 @@ import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 import { useCanvasState } from './useCanvasState';
 import { useCanvasHandlers } from './useCanvasHandlers';
 import { useCanvasKeyboardHandlers } from './useCanvasKeyboardHandlers';
+import { useCanvasAccessibility } from './useCanvasAccessibility';
+import { useMetMapSongLink } from '../../../hooks/useMetMapSongLink';
 import { NCAA_FOOTBALL_FIELD } from '../../../services/fieldConfigService';
-import type { DrillSet, Position as DrillPosition } from '../../../services/formationTypes';
+import type { DrillSet, Position as DrillPosition, Formation } from '../../../services/formationTypes';
 import type { FormationCanvasProps } from './types';
 
 export type { FormationCanvasProps };
@@ -40,13 +47,14 @@ export function FormationCanvas(props: FormationCanvasProps) {
   const { formationId, projectId, onSave, sandboxMode = false, onPositionsChange } = props;
   const { t } = useTranslation('common');
   const [snapResolution, setSnapResolution] = useState<'beat' | 'half-beat' | 'measure'>('beat');
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
 
   const state = useCanvasState(props);
 
   const {
     apiLoading, apiError, apiSaving,
     isCollaborativeEnabled, collab, currentUser,
-    formation,
+    formation, setFormation,
     selectedPerformerIds, setSelectedPerformerIds,
     selectedKeyframeId,
     currentPositions, setCurrentPositions,
@@ -75,12 +83,33 @@ export function FormationCanvas(props: FormationCanvasProps) {
     canvasPan, setCanvasPan,
     marquee,
     showTemplatePicker, setShowTemplatePicker,
+    transformMode, setTransformMode,
+    curveEditMode, setCurveEditMode,
+    snapGuides,
+    showMeasurements, setShowMeasurements,
+    measurementStepSize, setMeasurementStepSize: _setMeasurementStepSize,
+    showGroupPanel, setShowGroupPanel,
     playbackState,
     ghostTrail,
     hasUnsavedChanges, setHasUnsavedChanges,
     canvasRef,
     history,
   } = state;
+
+  // MetMap song link integration
+  const handleFormationUpdate = useCallback((updates: Partial<Formation>) => {
+    setFormation(prev => prev ? { ...prev, ...updates } : prev);
+  }, [setFormation]);
+
+  const {
+    linkedSong,
+    sections: metmapSections,
+    chords: metmapChords,
+    beatMap: metmapBeatMap,
+    tempoMap: metmapTempoMap,
+    linkSong,
+    unlinkSong,
+  } = useMetMapSongLink(formation, handleFormationUpdate);
 
   const handlers = useCanvasHandlers({
     state,
@@ -124,6 +153,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
     setShowAnalysisPanel,
     setShowMovementTools,
     setShowCoordinatePanel,
+    setTransformMode,
     handleUndo,
     handleRedo,
     handleDeleteSelected,
@@ -137,6 +167,14 @@ export function FormationCanvas(props: FormationCanvasProps) {
     handlePlay,
     handlePause,
     handleKeyframeSelect,
+  });
+
+  const accessibility = useCanvasAccessibility({
+    formation,
+    selectedPerformerIds,
+    currentPositions,
+    activeTool,
+    zoom,
   });
 
   // Notify parent when positions change (used for sandbox auto-save)
@@ -230,6 +268,77 @@ export function FormationCanvas(props: FormationCanvasProps) {
     setShowQuickStart(false);
   }, [handleAddPerformer, handleNameChange, setShowQuickStart]);
 
+  // Handler: curve control point drag
+  const handleCurveControlPointMove = useCallback((
+    keyframeId: string,
+    performerId: string,
+    controlPoint: 'cp1' | 'cp2',
+    position: DrillPosition,
+  ) => {
+    if (!formation) return;
+    setFormation(prev => {
+      if (!prev) return prev;
+      const keyframes = prev.keyframes.map(kf => {
+        if (kf.id !== keyframeId) return kf;
+        const pathCurves = new Map(kf.pathCurves ?? []);
+        const existing = pathCurves.get(performerId) ?? { cp1: { x: 0, y: 0 }, cp2: { x: 0, y: 0 } };
+        pathCurves.set(performerId, { ...existing, [controlPoint]: position });
+        return { ...kf, pathCurves };
+      });
+      return { ...prev, keyframes };
+    });
+    setHasUnsavedChanges(true);
+  }, [formation, setFormation, setHasUnsavedChanges]);
+
+  // Selected keyframe index for curve editing
+  const selectedKeyframeIndex = useMemo(() => {
+    if (!formation || !selectedKeyframeId) return 0;
+    const idx = formation.keyframes.findIndex(kf => kf.id === selectedKeyframeId);
+    return idx >= 0 ? idx : 0;
+  }, [formation, selectedKeyframeId]);
+
+  // Handler: create performer group
+  const handleCreateGroup = useCallback((name: string, performerIds: string[], color: string) => {
+    if (!formation) return;
+    const group = { id: `group-${Date.now()}`, name, performerIds, color };
+    setFormation(prev => prev ? { ...prev, groups: [...(prev.groups ?? []), group] } : prev);
+    setHasUnsavedChanges(true);
+  }, [formation, setFormation, setHasUnsavedChanges]);
+
+  // Handler: delete performer group
+  const handleDeleteGroup = useCallback((groupId: string) => {
+    setFormation(prev => prev ? { ...prev, groups: (prev.groups ?? []).filter(g => g.id !== groupId) } : prev);
+    setHasUnsavedChanges(true);
+  }, [setFormation, setHasUnsavedChanges]);
+
+  // Handler: rename performer group
+  const handleRenameGroup = useCallback((groupId: string, name: string) => {
+    setFormation(prev => prev ? { ...prev, groups: (prev.groups ?? []).map(g => g.id === groupId ? { ...g, name } : g) } : prev);
+    setHasUnsavedChanges(true);
+  }, [setFormation, setHasUnsavedChanges]);
+
+  // Handler: select group members
+  const handleSelectGroup = useCallback((performerIds: string[]) => {
+    setSelectedPerformerIds(new Set(performerIds));
+  }, [setSelectedPerformerIds]);
+
+  // Handler: update group color
+  const handleUpdateGroupColor = useCallback((groupId: string, color: string) => {
+    setFormation(prev => prev ? { ...prev, groups: (prev.groups ?? []).map(g => g.id === groupId ? { ...g, color } : g) } : prev);
+    setHasUnsavedChanges(true);
+  }, [setFormation, setHasUnsavedChanges]);
+
+  // Handler: restore formation from version history
+  const handleVersionRestore = useCallback((restoredFormation: Formation) => {
+    setFormation(restoredFormation);
+    // Update current positions to match the first keyframe of the restored formation
+    if (restoredFormation.keyframes.length > 0) {
+      setCurrentPositions(new Map(restoredFormation.keyframes[0].positions));
+    }
+    setHasUnsavedChanges(true);
+    setShowVersionHistory(false);
+  }, [setFormation, setCurrentPositions, setHasUnsavedChanges]);
+
   // Loading/error states
   if (apiLoading || (formationId && !formation)) {
     return (
@@ -257,12 +366,32 @@ export function FormationCanvas(props: FormationCanvasProps) {
 
   return (
     <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900" role="application" aria-label={`Formation editor: ${formation.name}`} aria-roledescription="formation editor">
-      {/* Screen reader announcements */}
-      <div className="sr-only" aria-live="polite" aria-atomic="true">
+      {/* Skip navigation links for keyboard users */}
+      <nav className="sr-only focus-within:not-sr-only focus-within:absolute focus-within:z-[100] focus-within:top-0 focus-within:left-0 focus-within:p-2 focus-within:bg-white focus-within:dark:bg-gray-800 focus-within:shadow-lg focus-within:rounded-lg" aria-label="Skip navigation">
+        <a href="#canvas-area" className="block px-4 py-2 text-sm font-medium text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+          Skip to canvas
+        </a>
+        <a href="#timeline-area" className="block px-4 py-2 text-sm font-medium text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+          Skip to timeline
+        </a>
+      </nav>
+
+      {/* Screen reader announcements — accessibility hook provides detailed context */}
+      <div
+        ref={accessibility.liveRegionRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+        role="status"
+      >
+        {accessibility.announcement}
         {saveStatus === 'saving' && 'Saving formation...'}
         {saveStatus === 'saved' && 'Formation saved successfully'}
         {saveStatus === 'error' && 'Error saving formation'}
-        {selectedPerformerIds.size > 0 && `${selectedPerformerIds.size} performer${selectedPerformerIds.size > 1 ? 's' : ''} selected`}
+      </div>
+      {/* Canvas summary for screen reader orientation (assertive, read on demand) */}
+      <div className="sr-only" aria-live="off" id="canvas-summary">
+        {accessibility.getCanvasSummary()}
       </div>
 
       <CanvasToolbar
@@ -297,10 +426,18 @@ export function FormationCanvas(props: FormationCanvasProps) {
         setShowStepSizes={setShowStepSizes}
         showCoordinatePanel={showCoordinatePanel}
         setShowCoordinatePanel={setShowCoordinatePanel}
+        showMeasurements={showMeasurements}
+        setShowMeasurements={setShowMeasurements}
+        showGroupPanel={showGroupPanel}
+        setShowGroupPanel={setShowGroupPanel}
+        curveEditMode={curveEditMode}
+        setCurveEditMode={setCurveEditMode}
+        showVersionHistory={showVersionHistory}
+        setShowVersionHistory={setShowVersionHistory}
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 relative overflow-auto p-8 bg-gray-100 dark:bg-gray-900">
+        <div id="canvas-area" className="flex-1 relative overflow-auto p-8 bg-gray-100 dark:bg-gray-900">
           {sandboxMode && <OnboardingHints />}
           <AlignmentToolbar
             selectedCount={selectedPerformerIds.size}
@@ -341,6 +478,11 @@ export function FormationCanvas(props: FormationCanvasProps) {
             onRotatePerformer={handleRotatePerformer}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            curveEditMode={curveEditMode}
+            selectedKeyframeIndex={selectedKeyframeIndex}
+            onCurveControlPointMove={handleCurveControlPointMove}
+            snapGuides={snapGuides}
+            transformMode={transformMode}
           />
         </div>
         {showPerformerPanel && (
@@ -381,6 +523,51 @@ export function FormationCanvas(props: FormationCanvasProps) {
             onNavigateToSet={handleNavigateToSet}
           />
         )}
+        {showGroupPanel && (
+          <GroupPanel
+            groups={formation.groups ?? []}
+            performers={formation.performers}
+            selectedPerformerIds={selectedPerformerIds}
+            onCreateGroup={handleCreateGroup}
+            onDeleteGroup={handleDeleteGroup}
+            onRenameGroup={handleRenameGroup}
+            onSelectGroup={handleSelectGroup}
+            onUpdateGroupColor={handleUpdateGroupColor}
+            onClose={() => setShowGroupPanel(false)}
+          />
+        )}
+        {showVersionHistory && formation.id && (
+          <FormationVersionHistoryPanel
+            formationId={formation.id}
+            currentFormation={formation}
+            onRestore={handleVersionRestore}
+            onClose={() => setShowVersionHistory(false)}
+          />
+        )}
+      </div>
+
+      {/* Measurement overlay (rendered over canvas) */}
+      {showMeasurements && selectedPerformerIds.size >= 2 && (
+        <div className="absolute inset-0 pointer-events-none" style={{ top: '48px' }}>
+          <MeasurementOverlay
+            performers={formation.performers}
+            positions={currentPositions}
+            selectedPerformerIds={selectedPerformerIds}
+            canvasWidth={canvasRef.current?.clientWidth ?? 800}
+            canvasHeight={canvasRef.current?.clientHeight ?? 500}
+            fieldConfig={NCAA_FOOTBALL_FIELD}
+            stepsPerFiveYards={measurementStepSize}
+          />
+        </div>
+      )}
+
+      {/* Collision detection overlay */}
+      <div className="absolute inset-0 pointer-events-none" style={{ top: '48px' }}>
+        <CollisionOverlay
+          positions={currentPositions}
+          canvasWidth={canvasRef.current?.clientWidth ?? 800}
+          canvasHeight={canvasRef.current?.clientHeight ?? 500}
+        />
       </div>
 
       {showAudioPanel && (
@@ -395,6 +582,16 @@ export function FormationCanvas(props: FormationCanvasProps) {
           </div>
         </div>
       )}
+
+      {/* MetMap song selector (above timeline) */}
+      <div id="timeline-area" className="flex items-center gap-2 px-4 py-1 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+        <MetMapSongSelector
+          linkedSongId={formation.metmapSongId}
+          linkedSong={linkedSong}
+          onLinkSong={linkSong}
+          onUnlinkSong={unlinkSong}
+        />
+      </div>
 
       <Timeline
         keyframes={formation.keyframes}
@@ -418,6 +615,10 @@ export function FormationCanvas(props: FormationCanvasProps) {
         onKeyframeAdd={handleKeyframeAdd}
         onKeyframeRemove={handleKeyframeRemove}
         onKeyframeMove={handleKeyframeMove}
+        sections={metmapSections}
+        chords={metmapChords}
+        tempoMap={metmapTempoMap ?? undefined}
+        beatMap={metmapBeatMap ?? undefined}
       />
 
       <ExportDialog isOpen={isExportDialogOpen} formationName={formation.name} onClose={() => setIsExportDialogOpen(false)} onExport={handleExport} />

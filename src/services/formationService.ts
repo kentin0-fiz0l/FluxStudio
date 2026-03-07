@@ -12,6 +12,7 @@ import {
   ApplyTemplateResult,
 } from './formationTemplates/types';
 import { exportToPdf, exportToImage, exportToSvg, exportToAnimation, exportToCoordinateSheetPdf, exportToDrillBookPdf, exportAllDrillBooks } from './formationExport';
+import { exportToVideo } from './videoExport';
 import type {
   Position,
   Performer,
@@ -19,7 +20,15 @@ import type {
   Formation,
   FormationExportOptions,
   PlaybackState,
+  PathCurve,
+  GroupTransform,
 } from './formationTypes';
+import {
+  evaluateCubicBezier,
+  applyGroupTransform as applyGroupTransformGeom,
+  detectCollisions as detectCollisionsGeom,
+  type CollisionPair,
+} from '../utils/drillGeometry';
 
 // Re-export all types for backward compatibility
 export type {
@@ -34,6 +43,10 @@ export type {
   ExportProgress,
   FormationExportOptions,
   PlaybackState,
+  PathCurve,
+  SymbolShape,
+  PerformerGroup,
+  GroupTransform,
 } from './formationTypes';
 
 // ============================================================================
@@ -294,15 +307,28 @@ class FormationService {
       const nextPos = nextKeyframe.positions.get(performerId);
 
       if (prevPos && nextPos) {
-        interpolatedPositions.set(performerId, {
-          x: prevPos.x + (nextPos.x - prevPos.x) * easedProgress,
-          y: prevPos.y + (nextPos.y - prevPos.y) * easedProgress,
-          rotation: this.interpolateRotation(
-            prevPos.rotation ?? 0,
-            nextPos.rotation ?? 0,
-            easedProgress
-          ),
-        });
+        // Check for Bezier curve control points on the previous keyframe
+        const curve = prevKeyframe.pathCurves?.get(performerId);
+        let interpolated: Position;
+
+        if (curve) {
+          // Cubic Bezier interpolation
+          interpolated = evaluateCubicBezier(easedProgress, prevPos, curve.cp1, curve.cp2, nextPos);
+        } else {
+          // Linear interpolation (default)
+          interpolated = {
+            x: prevPos.x + (nextPos.x - prevPos.x) * easedProgress,
+            y: prevPos.y + (nextPos.y - prevPos.y) * easedProgress,
+          };
+        }
+
+        interpolated.rotation = this.interpolateRotation(
+          prevPos.rotation ?? 0,
+          nextPos.rotation ?? 0,
+          easedProgress
+        );
+
+        interpolatedPositions.set(performerId, interpolated);
       } else if (prevPos) {
         interpolatedPositions.set(performerId, { ...prevPos });
       } else if (nextPos) {
@@ -488,23 +514,30 @@ class FormationService {
       const timeDelta = endKf.timestamp - startKf.timestamp;
       const easing = endKf.transition ?? 'linear';
 
+      const curve = startKf.pathCurves?.get(performerId);
+
       for (let j = 0; j < pointsPerSegment; j++) {
         const t = j / pointsPerSegment;
         const easedT = this.applyEasing(t, easing);
         const time = startKf.timestamp + timeDelta * t;
 
-        path.push({
-          time,
-          position: {
+        let pos: Position;
+        if (curve) {
+          pos = evaluateCubicBezier(easedT, startPos, curve.cp1, curve.cp2, endPos);
+        } else {
+          pos = {
             x: startPos.x + (endPos.x - startPos.x) * easedT,
             y: startPos.y + (endPos.y - startPos.y) * easedT,
-            rotation: this.interpolateRotation(
-              startPos.rotation ?? 0,
-              endPos.rotation ?? 0,
-              easedT
-            ),
-          },
-        });
+          };
+        }
+
+        pos.rotation = this.interpolateRotation(
+          startPos.rotation ?? 0,
+          endPos.rotation ?? 0,
+          easedT
+        );
+
+        path.push({ time, position: pos });
       }
     }
 
@@ -612,6 +645,17 @@ class FormationService {
       case 'svg':
         return exportToSvg(formation, options);
       case 'video':
+        // Use enhanced video exporter with optional audio muxing
+        return exportToVideo({
+          formation,
+          exportOptions: options,
+          getPositionsAtTime: (fId, time) => this.getPositionsAtTime(fId, time),
+          duration: this.getFormationDuration(formationId) ||
+            (formation.keyframes.length > 0 ? formation.keyframes[formation.keyframes.length - 1].timestamp + 1000 : 5000),
+          audioTrackUrl: formation.audioTrack?.url || formation.musicTrackUrl,
+          includeAudio: options.includeAudio,
+          onProgress: options.onProgress,
+        });
       case 'gif':
         return exportToAnimation(
           formation,
@@ -663,6 +707,91 @@ class FormationService {
     const formation = this.formations.get(formationId);
     if (!formation) return null;
     return exportAllDrillBooks(formation, sets, fieldConfig);
+  }
+
+  // ============================================================================
+  // CURVE OPERATIONS
+  // ============================================================================
+
+  /**
+   * Set or update path curve control points for a performer transition.
+   */
+  setPathCurve(
+    formationId: string,
+    keyframeId: string,
+    performerId: string,
+    curve: PathCurve,
+  ): boolean {
+    const formation = this.formations.get(formationId);
+    if (!formation) return false;
+
+    const keyframe = formation.keyframes.find((kf) => kf.id === keyframeId);
+    if (!keyframe) return false;
+
+    if (!keyframe.pathCurves) {
+      keyframe.pathCurves = new Map();
+    }
+    keyframe.pathCurves.set(performerId, curve);
+    formation.updatedAt = new Date().toISOString();
+    return true;
+  }
+
+  /**
+   * Remove path curve control points, reverting to linear interpolation.
+   */
+  removePathCurve(
+    formationId: string,
+    keyframeId: string,
+    performerId: string,
+  ): boolean {
+    const formation = this.formations.get(formationId);
+    if (!formation) return false;
+
+    const keyframe = formation.keyframes.find((kf) => kf.id === keyframeId);
+    if (!keyframe || !keyframe.pathCurves) return false;
+
+    const deleted = keyframe.pathCurves.delete(performerId);
+    if (deleted) formation.updatedAt = new Date().toISOString();
+    return deleted;
+  }
+
+  // ============================================================================
+  // GROUP TRANSFORM OPERATIONS
+  // ============================================================================
+
+  /**
+   * Apply a group transform to selected performers at a keyframe.
+   * Returns new positions (the original keyframe is NOT modified — caller decides).
+   */
+  applyGroupTransform(
+    formationId: string,
+    keyframeId: string,
+    performerIds: string[],
+    transform: GroupTransform,
+  ): Map<string, Position> | null {
+    const formation = this.formations.get(formationId);
+    if (!formation) return null;
+
+    const keyframe = formation.keyframes.find((kf) => kf.id === keyframeId);
+    if (!keyframe) return null;
+
+    return applyGroupTransformGeom(keyframe.positions, performerIds, transform);
+  }
+
+  // ============================================================================
+  // COLLISION DETECTION
+  // ============================================================================
+
+  /**
+   * Detect performers that are too close at a given time.
+   */
+  detectCollisions(
+    formationId: string,
+    time: number,
+    minDistance: number = 2,
+  ): CollisionPair[] {
+    const positions = this.getPositionsAtTime(formationId, time);
+    return detectCollisionsGeom(positions, minDistance);
   }
 
   // ============================================================================

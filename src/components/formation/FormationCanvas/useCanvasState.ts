@@ -142,6 +142,22 @@ export function useCanvasState(props: FormationCanvasProps) {
   const marqueeRef = useRef(false);
   const clipboardRef = useRef<{ performers: Formation['performers']; positions: Map<string, Position> } | null>(null);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+
+  // Transform mode state (for group rotate/scale/mirror)
+  const [transformMode, setTransformMode] = useState<'none' | 'rotate' | 'scale' | 'mirror'>('none');
+
+  // Curve editing mode
+  const [curveEditMode, setCurveEditMode] = useState(false);
+
+  // Snap guides (shown during drag)
+  const [snapGuides, setSnapGuides] = useState<import('../../../utils/drillGeometry').SnapGuide[]>([]);
+
+  // Measurement mode
+  const [showMeasurements, setShowMeasurements] = useState(false);
+  const [measurementStepSize, setMeasurementStepSize] = useState(8); // 8-to-5 default
+
+  // Group panel visibility
+  const [showGroupPanel, setShowGroupPanel] = useState(false);
   const [playbackState, setPlaybackState] = useState<PlaybackState>({ isPlaying: false, currentTime: 0, duration: 5000, loop: false, speed: 1 });
   const [ghostTrail, setGhostTrail] = useState<Array<{ time: number; positions: Map<string, Position> }>>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -184,6 +200,12 @@ export function useCanvasState(props: FormationCanvasProps) {
     marquee, setMarquee,
     marqueeRef, clipboardRef,
     showTemplatePicker, setShowTemplatePicker,
+    transformMode, setTransformMode,
+    curveEditMode, setCurveEditMode,
+    snapGuides, setSnapGuides,
+    showMeasurements, setShowMeasurements,
+    measurementStepSize, setMeasurementStepSize,
+    showGroupPanel, setShowGroupPanel,
     playbackState, setPlaybackState,
     ghostTrail, setGhostTrail,
     hasUnsavedChanges, setHasUnsavedChanges,

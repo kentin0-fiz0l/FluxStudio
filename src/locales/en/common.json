@@ -75,7 +75,9 @@
     "deleted": "Deleted",
     "online": "Online",
     "offline": "Offline",
-    "connecting": "Connecting..."
+    "connecting": "Connecting...",
+    "exporting": "Exporting...",
+    "exported": "Exported!"
   },
   "time": {
     "now": "Just now",
@@ -277,6 +279,79 @@
     "speed": "Speed",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
-    "addKeyframe": "Add keyframe at current time"
+    "addKeyframe": "Add keyframe at current time",
+    "importRoster": "Import Roster",
+    "importPerformersCount": "Import {{count}} Performers",
+    "includeFieldOverlay": "Include field overlay",
+    "includeAudio": "Include audio track",
+    "performerSelection": "Performer Selection",
+    "allPerformers": "All performers ({{count}})",
+    "selectedPerformersOnly": "Selected performers only",
+    "rosterUpload": {
+      "unsupportedFileType": "Unsupported file type. Please use CSV or TSV files.",
+      "fileTooLarge": "File is too large. Maximum file size is 5 MB.",
+      "readError": "Failed to read file. Please try again.",
+      "clickOrDragReplace": "Click or drag to replace",
+      "dropFileHere": "Drop your roster file here",
+      "clickToBrowse": "or click to browse. Supports CSV and TSV files.",
+      "expectedFormat": "Expected Format",
+      "formatDescription": "The first row should contain column headers. Each subsequent row represents one performer."
+    },
+    "columnMapper": {
+      "instructions": "Map each column from your file to a performer field. The \"Name\" field is required.",
+      "nameRequired": "Please map at least one column to \"Name\" to continue.",
+      "fileColumn": "File Column",
+      "mapTo": "Map To",
+      "sampleValues": "Sample Values",
+      "skip": "-- Skip --"
+    },
+    "rosterPreview": {
+      "performersFound": "{{count}} performer(s) found",
+      "issuesCount": "{{count}} issue(s)",
+      "mergeStrategy": "Merge Strategy",
+      "name": "Name",
+      "label": "Label",
+      "instrument": "Instrument",
+      "section": "Section",
+      "drillNumber": "Drill #",
+      "status": "Status",
+      "missing": "missing",
+      "issuesFound": "Issues Found"
+    },
+    "steps": {
+      "upload": "Upload File",
+      "map": "Map Columns",
+      "preview": "Preview",
+      "import": "Import"
+    },
+    "exportProgress": {
+      "rendering": "Rendering frames...",
+      "encoding": "Encoding..."
+    },
+    "lmsShare": {
+      "shareToClassroom": "Share to Classroom",
+      "course": "Course",
+      "selectCourse": "Select a course...",
+      "assignmentTitle": "Assignment Title",
+      "enterAssignmentTitle": "Enter assignment title",
+      "sharing": "Sharing...",
+      "shareTo": "Share to {{provider}}",
+      "sharedSuccessfully": "Shared successfully!",
+      "shareFailed": "Failed to share to LMS",
+      "shareFailedGeneric": "Share failed"
+    },
+    "drillCritique": {
+      "title": "Drill Critique",
+      "analyze": "Analyze",
+      "analyzing": "Analyzing...",
+      "reAnalyze": "Re-analyze",
+      "analyzeYourDrill": "Analyze your drill",
+      "description": "Check spacing, stride feasibility, and movement flow across all sets.",
+      "addPerformersFirst": "Add performers and sets before analyzing.",
+      "overallScore": "Overall Score",
+      "categories": "Categories",
+      "suggestions": "Suggestions ({{count}})",
+      "highlightPerformers": "Highlight {{count}} performer(s)"
+    }
   }
 }

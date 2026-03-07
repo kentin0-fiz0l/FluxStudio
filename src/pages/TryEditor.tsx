@@ -171,7 +171,7 @@ export default function TryEditor() {
             <button
               onClick={() => {
                 eventTracker.trackEvent('sandbox_signup_click', { source: 'try_banner', interactions: interactionCount, cta_variant: ctaVariantActive });
-                navigate('/signup');
+                navigate('/signup?from=sandbox');
               }}
               className="flex items-center gap-1 px-4 py-1.5 bg-white text-indigo-600 rounded-lg font-medium text-sm hover:bg-indigo-50 transition-colors"
             >
@@ -228,7 +228,7 @@ export default function TryEditor() {
               <button
                 onClick={() => {
                   eventTracker.trackEvent('sandbox_signup_click', { source: 'exit_intent', interactions: interactionCount, cta_variant: ctaVariantActive });
-                  navigate('/signup');
+                  navigate('/signup?from=sandbox');
                 }}
                 className="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
               >

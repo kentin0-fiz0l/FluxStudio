@@ -23,7 +23,7 @@ import { NCAA_FOOTBALL_FIELD } from './fieldConfigService';
 /**
  * Convert a normalized position (0-100) to drill coordinate notation.
  */
-function positionToCoordinateDetails(
+export function positionToCoordinateDetails(
   pos: Position,
   fieldConfig: FieldConfig,
 ): { sideToSide: string; frontToBack: string } {

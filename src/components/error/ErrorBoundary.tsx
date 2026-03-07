@@ -40,6 +40,8 @@ export {
   ToolsErrorBoundary,
   ProjectsErrorBoundary,
   FormationEditorErrorBoundary,
+  Formation3DViewErrorBoundary,
+  AudioSyncTimelineErrorBoundary,
   AIErrorBoundary,
   FileUploadErrorBoundary,
   ConnectorsErrorBoundary,

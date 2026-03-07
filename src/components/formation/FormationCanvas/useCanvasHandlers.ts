@@ -19,6 +19,7 @@ import {
   snapToGrid, snapToCount,
   alignPositions, distributePositions,
   generateLinePositions, generateArcPositions, generateBlockPositions,
+  findSnapTargets, applySnapGuides,
 } from '../../../utils/drillGeometry';
 import type { AlignmentType, DistributionType } from '../../../utils/drillGeometry';
 import type { ApplyTemplateOptions } from '../../../services/formationTemplates/types';
@@ -60,6 +61,7 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
     showPaths,
     hasUnsavedChanges,
     setShowAudioPanel, setShowTemplatePicker,
+    setSnapGuides,
   } = state;
 
   // ---- History ----
@@ -260,8 +262,9 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
   const handleDragEnd = useCallback(() => {
     if (isCollaborativeEnabled && collab.isConnected) collab.setDraggingPerformer(null);
     setDraggingPerformerId(null);
+    setSnapGuides([]);
     pushHistory('Move performer');
-  }, [isCollaborativeEnabled, collab, pushHistory, setDraggingPerformerId]);
+  }, [isCollaborativeEnabled, collab, pushHistory, setDraggingPerformerId, setSnapGuides]);
 
   // ---- Performer actions ----
 
@@ -316,9 +319,20 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
 
   const handleMovePerformer = useCallback((performerId: string, position: Position) => {
     if (!formation || playbackState.isPlaying) return;
-    const finalPosition = snapEnabled
-      ? snapToGrid(position, formation.gridSize, formation.stageWidth, formation.stageHeight)
-      : position;
+
+    // Compute snap guides and apply snap if enabled
+    let finalPosition = position;
+    if (snapEnabled) {
+      const guides = findSnapTargets(position, currentPositions, performerId, undefined);
+      setSnapGuides(guides);
+      if (guides.length > 0) {
+        finalPosition = applySnapGuides(position, guides);
+      } else {
+        finalPosition = snapToGrid(position, formation.gridSize, formation.stageWidth, formation.stageHeight);
+      }
+    } else {
+      setSnapGuides([]);
+    }
 
     if (selectedPerformerIds.has(performerId) && selectedPerformerIds.size > 1) {
       const prevPos = currentPositions.get(performerId);
@@ -346,7 +360,7 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
     if (isCollaborativeEnabled && collab.isConnected) collab.updatePosition(selectedKeyframeId, performerId, finalPosition);
     else formationService.updatePosition(formation.id, selectedKeyframeId, performerId, finalPosition);
     setCurrentPositions((prev) => new Map(prev).set(performerId, finalPosition));
-  }, [formation, selectedKeyframeId, playbackState.isPlaying, isCollaborativeEnabled, collab, snapEnabled, selectedPerformerIds, currentPositions, setCurrentPositions]);
+  }, [formation, selectedKeyframeId, playbackState.isPlaying, isCollaborativeEnabled, collab, snapEnabled, selectedPerformerIds, currentPositions, setCurrentPositions, setSnapGuides]);
 
   const handleRotatePerformer = useCallback((performerId: string, rotation: number) => {
     if (!formation || playbackState.isPlaying) return;

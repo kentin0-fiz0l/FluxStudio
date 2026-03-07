@@ -16,6 +16,7 @@ import {
   Lightbulb,
   Folder,
   CheckCircle2,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,6 +80,12 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [step, setStep] = useState<'name' | 'template' | 'creating' | 'done'>('name');
+  const [performerCount, setPerformerCount] = useState('8');
+
+  // Check if user has sandbox formations to import
+  const hasSandboxData = (() => {
+    try { return !!localStorage.getItem('tryEditor_formations'); } catch { return false; }
+  })();
 
   const handleCreateProject = async () => {
     if (!projectName.trim()) return;
@@ -90,9 +97,10 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
       // Create project via API
       const result = await apiService.post<{ data?: { id: string }; id?: string }>('/projects', {
         name: projectName.trim(),
-        template: selectedTemplate,
+        template: hasSandboxData ? 'marching-band' : selectedTemplate,
         status: 'planning',
         priority: 'medium',
+        ...(hasSandboxData ? { performerCount: parseInt(performerCount, 10) || 8 } : {}),
       });
 
       const project = result.data?.data || result.data;
@@ -101,7 +109,10 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
 
       // Wait briefly to show success state
       setTimeout(() => {
-        if (onComplete) {
+        if (hasSandboxData) {
+          // Redirect to formation editor with sandbox data import
+          navigate(`/projects/${project?.id ?? ''}/formations/new?import=sandbox`);
+        } else if (onComplete) {
           onComplete(project?.id ?? '');
         } else {
           navigate(`/projects/${project?.id ?? ''}`);
@@ -115,9 +126,9 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && projectName.trim()) {
-      if (step === 'name') {
-        setStep('template');
+    if (e.key === 'Enter') {
+      if (step === 'name' && projectName.trim()) {
+        setStep(hasSandboxData ? 'template' : 'template');
       } else if (step === 'template') {
         handleCreateProject();
       }
@@ -149,7 +160,9 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
                     Welcome{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
                   </CardTitle>
                   <p className="text-neutral-600 dark:text-neutral-400 mt-2">
-                    Let's create your first project in under 60 seconds.
+                    {hasSandboxData
+                      ? "Let's save your sandbox work. What's your show called?"
+                      : "Let's create your first project in under 60 seconds."}
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -193,7 +206,7 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
             </motion.div>
           )}
 
-          {/* Step 2: Template Selection */}
+          {/* Step 2: Template Selection (or sandbox performer count) */}
           {step === 'template' && (
             <motion.div
               key="template"
@@ -202,64 +215,120 @@ export function QuickOnboarding({ onComplete, onSkip }: QuickOnboardingProps) {
               exit={{ opacity: 0, x: -20 }}
             >
               <Card className="shadow-2xl border-0">
-                <CardHeader className="text-center pb-2">
-                  <CardTitle className="text-2xl">
-                    Choose a starting point
-                  </CardTitle>
-                  <p className="text-neutral-600 dark:text-neutral-400 mt-2">
-                    Pick a template or start blank. You can always customize later.
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    {templates.map((template) => (
-                      <button
-                        key={template.id}
-                        onClick={() => setSelectedTemplate(template.id)}
-                        aria-label={`Select ${template.name} template`}
-                        aria-pressed={selectedTemplate === template.id}
-                        className={cn(
-                          'p-4 rounded-xl border-2 text-left transition-all',
-                          selectedTemplate === template.id
-                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                            : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300'
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            'w-10 h-10 rounded-lg flex items-center justify-center mb-3',
-                            template.color
-                          )}
+                {hasSandboxData ? (
+                  <>
+                    <CardHeader className="text-center pb-2">
+                      <div className="mx-auto w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-3">
+                        <Users className="w-6 h-6 text-indigo-500" aria-hidden="true" />
+                      </div>
+                      <CardTitle className="text-2xl">
+                        Import your formation
+                      </CardTitle>
+                      <p className="text-neutral-600 dark:text-neutral-400 mt-2">
+                        We found formations from your sandbox session. How many performers are in your show?
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div>
+                        <label
+                          htmlFor="performer-count"
+                          className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2"
                         >
-                          {template.icon}
-                        </div>
-                        <h3 className="font-semibold text-neutral-900 dark:text-white">
-                          {template.name}
-                        </h3>
-                        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                          {template.description}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
+                          Number of performers
+                        </label>
+                        <Input
+                          id="performer-count"
+                          type="number"
+                          min="1"
+                          max="300"
+                          value={performerCount}
+                          onChange={(e) => setPerformerCount(e.target.value)}
+                          onKeyDown={handleKeyPress}
+                          className="text-lg h-12"
+                          autoFocus
+                        />
+                      </div>
 
-                  <div className="flex items-center justify-between pt-4">
-                    <Button
-                      variant="ghost"
-                      onClick={() => setStep('name')}
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      onClick={handleCreateProject}
-                      disabled={isCreating}
-                      className="gap-2"
-                    >
-                      Create "{projectName}"
-                      <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                    </Button>
-                  </div>
-                </CardContent>
+                      <div className="flex items-center justify-between pt-2">
+                        <Button
+                          variant="ghost"
+                          onClick={() => setStep('name')}
+                        >
+                          Back
+                        </Button>
+                        <Button
+                          onClick={handleCreateProject}
+                          disabled={isCreating}
+                          className="gap-2"
+                        >
+                          Create & import formation
+                          <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </>
+                ) : (
+                  <>
+                    <CardHeader className="text-center pb-2">
+                      <CardTitle className="text-2xl">
+                        Choose a starting point
+                      </CardTitle>
+                      <p className="text-neutral-600 dark:text-neutral-400 mt-2">
+                        Pick a template or start blank. You can always customize later.
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        {templates.map((template) => (
+                          <button
+                            key={template.id}
+                            onClick={() => setSelectedTemplate(template.id)}
+                            aria-label={`Select ${template.name} template`}
+                            aria-pressed={selectedTemplate === template.id}
+                            className={cn(
+                              'p-4 rounded-xl border-2 text-left transition-all',
+                              selectedTemplate === template.id
+                                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                                : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300'
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                'w-10 h-10 rounded-lg flex items-center justify-center mb-3',
+                                template.color
+                              )}
+                            >
+                              {template.icon}
+                            </div>
+                            <h3 className="font-semibold text-neutral-900 dark:text-white">
+                              {template.name}
+                            </h3>
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                              {template.description}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4">
+                        <Button
+                          variant="ghost"
+                          onClick={() => setStep('name')}
+                        >
+                          Back
+                        </Button>
+                        <Button
+                          onClick={handleCreateProject}
+                          disabled={isCreating}
+                          className="gap-2"
+                        >
+                          Create "{projectName}"
+                          <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </>
+                )}
               </Card>
             </motion.div>
           )}

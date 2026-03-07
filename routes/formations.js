@@ -161,7 +161,12 @@ router.delete('/formations/:formationId', authenticateToken, async (req, res) =>
 router.put('/formations/:formationId/save', authenticateToken, zodValidate(saveFormationSchema), async (req, res) => {
   try {
     const { formationId } = req.params;
-    const { name, performers, keyframes } = req.body;
+    const {
+      name, performers, keyframes,
+      drillSettings, sets, fieldConfig,
+      groups, sectionShapeMap,
+      metmapSongId, tempoMap, useConstantTempo
+    } = req.body;
 
     const existingFormation = await formationsAdapter.getFormationById(formationId);
     if (!existingFormation) {
@@ -171,7 +176,15 @@ router.put('/formations/:formationId/save', authenticateToken, zodValidate(saveF
     const formation = await formationsAdapter.saveFormation(formationId, {
       name,
       performers: performers || [],
-      keyframes: keyframes || []
+      keyframes: keyframes || [],
+      drillSettings,
+      sets,
+      fieldConfig,
+      groups,
+      sectionShapeMap,
+      metmapSongId,
+      tempoMap,
+      useConstantTempo,
     });
 
     res.json({ success: true, formation });
@@ -521,7 +534,7 @@ router.get('/formations/:formationId/share', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Formation not found', code: 'FORMATION_NOT_FOUND' });
     }
 
-    // Return only public-safe fields
+    // Return public-safe fields including audio for playback
     res.json({
       success: true,
       data: {
@@ -533,6 +546,13 @@ router.get('/formations/:formationId/share', async (req, res) => {
         gridSize: formation.gridSize || 5,
         performers: formation.performers || [],
         keyframes: formation.keyframes || [],
+        sets: formation.sets || [],
+        audioTrack: formation.audioTrack || null,
+        musicTrackUrl: formation.musicTrackUrl || formation.audioTrack?.url || null,
+        musicDuration: formation.musicDuration || formation.audioTrack?.duration || null,
+        tempoMap: formation.tempoMap || null,
+        drillSettings: formation.drillSettings || null,
+        fieldConfig: formation.fieldConfig || null,
       },
     });
   } catch (error) {

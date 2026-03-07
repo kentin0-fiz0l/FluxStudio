@@ -5,7 +5,14 @@
  * shape generation, alignment, and distribution.
  */
 
-import type { Position, FieldConfig } from '../services/formationTypes';
+import type { Position, FieldConfig, PathCurve, GroupTransform } from '../services/formationTypes';
+import type { TempoMap } from '../services/tempoMap';
+import {
+  countToTimeMs,
+  timeMsToCount,
+  snapToCountTM,
+  generateCountMarkersTM,
+} from '../services/tempoMap';
 
 // ============================================================================
 // TYPES
@@ -110,49 +117,74 @@ export function snapToGrid(
 // ============================================================================
 
 /**
- * Convert a time in milliseconds to a count number (1-based).
+ * Type guard: check if the timing parameter is a TempoMap (has segments)
+ * vs. a CountSettings (has bpm).
  */
-export function timeToCount(timeMs: number, settings: CountSettings): number {
-  const msPerBeat = 60000 / settings.bpm;
-  return Math.floor((timeMs - settings.startOffset) / msPerBeat) + 1;
+function isTempoMap(timing: CountSettings | TempoMap): timing is TempoMap {
+  return 'segments' in timing;
+}
+
+/**
+ * Convert a time in milliseconds to a count number (1-based).
+ * Accepts either CountSettings (constant BPM) or TempoMap (variable tempo).
+ */
+export function timeToCount(timeMs: number, timing: CountSettings | TempoMap): number {
+  if (isTempoMap(timing)) {
+    return Math.floor(timeMsToCount(timeMs, timing));
+  }
+  const msPerBeat = 60000 / timing.bpm;
+  return Math.floor((timeMs - timing.startOffset) / msPerBeat) + 1;
 }
 
 /**
  * Convert a count number (1-based) to time in milliseconds.
+ * Accepts either CountSettings (constant BPM) or TempoMap (variable tempo).
  */
-export function countToTime(count: number, settings: CountSettings): number {
-  const msPerBeat = 60000 / settings.bpm;
-  return settings.startOffset + (count - 1) * msPerBeat;
+export function countToTime(count: number, timing: CountSettings | TempoMap): number {
+  if (isTempoMap(timing)) {
+    return countToTimeMs(count, timing);
+  }
+  const msPerBeat = 60000 / timing.bpm;
+  return timing.startOffset + (count - 1) * msPerBeat;
 }
 
 /**
  * Snap a time value to the nearest beat boundary.
+ * Accepts either CountSettings (constant BPM) or TempoMap (variable tempo).
  */
-export function snapToCount(timeMs: number, settings: CountSettings): number {
-  const msPerBeat = 60000 / settings.bpm;
-  const beatsFromStart = (timeMs - settings.startOffset) / msPerBeat;
+export function snapToCount(timeMs: number, timing: CountSettings | TempoMap): number {
+  if (isTempoMap(timing)) {
+    return snapToCountTM(timeMs, timing);
+  }
+  const msPerBeat = 60000 / timing.bpm;
+  const beatsFromStart = (timeMs - timing.startOffset) / msPerBeat;
   const snappedBeat = Math.round(beatsFromStart);
-  return settings.startOffset + snappedBeat * msPerBeat;
+  return timing.startOffset + snappedBeat * msPerBeat;
 }
 
 /**
  * Generate count markers for a timeline ruler.
+ * Accepts either CountSettings (constant BPM) or TempoMap (variable tempo).
  */
 export function generateCountMarkers(
   duration: number,
-  settings: CountSettings
+  timing: CountSettings | TempoMap
 ): CountMarker[] {
+  if (isTempoMap(timing)) {
+    return generateCountMarkersTM(timing).filter(m => m.timeMs <= duration);
+  }
+
   const markers: CountMarker[] = [];
-  const msPerBeat = 60000 / settings.bpm;
+  const msPerBeat = 60000 / timing.bpm;
   let count = 1;
 
   for (
-    let time = settings.startOffset;
+    let time = timing.startOffset;
     time <= duration;
     time += msPerBeat, count++
   ) {
-    const phrase = Math.ceil(count / settings.countsPerPhrase);
-    const beatInPhrase = ((count - 1) % settings.countsPerPhrase) + 1;
+    const phrase = Math.ceil(count / timing.countsPerPhrase);
+    const beatInPhrase = ((count - 1) % timing.countsPerPhrase) + 1;
     const isPhraseBoundary = beatInPhrase === 1;
 
     markers.push({
@@ -466,4 +498,326 @@ export function angleBetween(from: Position, to: Position): number {
   const radians = Math.atan2(dy, dx);
   const degrees = (radians * 180) / Math.PI;
   return ((degrees % 360) + 360) % 360;
+}
+
+// ============================================================================
+// CUBIC BEZIER EVALUATION
+// ============================================================================
+
+/**
+ * Evaluate a cubic Bezier curve at parameter t (0–1).
+ * Returns the interpolated position between p0 and p1
+ * with control points cp1 and cp2.
+ */
+export function evaluateCubicBezier(
+  t: number,
+  p0: Position,
+  cp1: Position,
+  cp2: Position,
+  p1: Position,
+): Position {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  const mt = 1 - t;
+  const mt2 = mt * mt;
+  const mt3 = mt2 * mt;
+
+  return {
+    x: mt3 * p0.x + 3 * mt2 * t * cp1.x + 3 * mt * t2 * cp2.x + t3 * p1.x,
+    y: mt3 * p0.y + 3 * mt2 * t * cp1.y + 3 * mt * t2 * cp2.y + t3 * p1.y,
+  };
+}
+
+/**
+ * Generate default control points for a cubic Bezier curve between two positions.
+ * Places control points at 1/3 and 2/3 of the segment (producing a straight line).
+ */
+export function defaultCurveControlPoints(
+  p0: Position,
+  p1: Position,
+): PathCurve {
+  return {
+    cp1: { x: p0.x + (p1.x - p0.x) / 3, y: p0.y + (p1.y - p0.y) / 3 },
+    cp2: { x: p0.x + (p1.x - p0.x) * 2 / 3, y: p0.y + (p1.y - p0.y) * 2 / 3 },
+  };
+}
+
+// ============================================================================
+// SNAP GUIDES
+// ============================================================================
+
+export interface SnapGuide {
+  type: 'x' | 'y';
+  /** Position in normalized coordinates (0-100) */
+  value: number;
+  /** What this guide is snapping to */
+  source: 'yard-line' | 'hash-mark' | 'performer' | 'center';
+}
+
+/**
+ * Find snap targets for a position being dragged.
+ * Returns guide lines that the position should snap to.
+ */
+export function findSnapTargets(
+  position: Position,
+  allPositions: Map<string, Position>,
+  excludeId: string | null,
+  fieldConfig: FieldConfig | undefined,
+  threshold: number = 1.5,
+): SnapGuide[] {
+  const guides: SnapGuide[] = [];
+
+  // Snap to field center
+  if (Math.abs(position.x - 50) < threshold) {
+    guides.push({ type: 'x', value: 50, source: 'center' });
+  }
+  if (Math.abs(position.y - 50) < threshold) {
+    guides.push({ type: 'y', value: 50, source: 'center' });
+  }
+
+  // Snap to yard lines (if field config available)
+  if (fieldConfig && fieldConfig.yardLineInterval > 0) {
+    for (let pos = 0; pos <= fieldConfig.width; pos += fieldConfig.yardLineInterval) {
+      const normalizedX = (pos / fieldConfig.width) * 100;
+      if (Math.abs(position.x - normalizedX) < threshold) {
+        guides.push({ type: 'x', value: normalizedX, source: 'yard-line' });
+      }
+    }
+    // Hash marks
+    const frontHashY = (fieldConfig.hashMarks.front / fieldConfig.height) * 100;
+    const backHashY = 100 - (fieldConfig.hashMarks.back / fieldConfig.height) * 100;
+    if (Math.abs(position.y - frontHashY) < threshold) {
+      guides.push({ type: 'y', value: frontHashY, source: 'hash-mark' });
+    }
+    if (Math.abs(position.y - backHashY) < threshold) {
+      guides.push({ type: 'y', value: backHashY, source: 'hash-mark' });
+    }
+  }
+
+  // Snap to other performer positions (alignment)
+  for (const [id, pos] of allPositions) {
+    if (id === excludeId) continue;
+    if (Math.abs(position.x - pos.x) < threshold) {
+      guides.push({ type: 'x', value: pos.x, source: 'performer' });
+    }
+    if (Math.abs(position.y - pos.y) < threshold) {
+      guides.push({ type: 'y', value: pos.y, source: 'performer' });
+    }
+  }
+
+  return guides;
+}
+
+/**
+ * Apply snap guides to a position, returning the snapped position.
+ */
+export function applySnapGuides(
+  position: Position,
+  guides: SnapGuide[],
+): Position {
+  let x = position.x;
+  let y = position.y;
+
+  for (const guide of guides) {
+    if (guide.type === 'x') x = guide.value;
+    if (guide.type === 'y') y = guide.value;
+  }
+
+  return { x, y, rotation: position.rotation };
+}
+
+// ============================================================================
+// STEP DISTANCE MEASUREMENT
+// ============================================================================
+
+export interface StepMeasurement {
+  /** Euclidean distance in normalized units */
+  normalizedDistance: number;
+  /** Distance in yards */
+  yards: number;
+  /** Distance in steps (at given step size) */
+  steps: number;
+  /** Step size label (e.g., "8 to 5") */
+  stepSizeLabel: string;
+  /** Angle between positions in degrees */
+  angle: number;
+}
+
+/**
+ * Calculate the step distance between two positions.
+ * Supports configurable step sizes: 8-to-5 (standard), 6-to-5 (large), etc.
+ */
+export function calculateStepDistance(
+  from: Position,
+  to: Position,
+  fieldConfig: FieldConfig,
+  stepsPerFiveYards: number = 8,
+): StepMeasurement {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const normalizedDistance = Math.sqrt(dx * dx + dy * dy);
+  const yards = normalizedToYards(normalizedDistance, fieldConfig);
+  const steps = yardsToSteps(yards, stepsPerFiveYards);
+  const angle = angleBetween(from, to);
+
+  return {
+    normalizedDistance,
+    yards,
+    steps,
+    stepSizeLabel: `${stepsPerFiveYards} to 5`,
+    angle,
+  };
+}
+
+// ============================================================================
+// GROUP TRANSFORMS
+// ============================================================================
+
+/**
+ * Apply a group transform to a set of positions.
+ * Returns new positions (non-destructive).
+ */
+export function applyGroupTransform(
+  positions: Map<string, Position>,
+  performerIds: string[],
+  transform: GroupTransform,
+): Map<string, Position> {
+  const result = new Map(positions);
+  const { origin } = transform;
+
+  for (const id of performerIds) {
+    const pos = positions.get(id);
+    if (!pos) continue;
+
+    let newX = pos.x;
+    let newY = pos.y;
+
+    // Translate to origin-relative coordinates
+    const dx = pos.x - origin.x;
+    const dy = pos.y - origin.y;
+
+    switch (transform.type) {
+      case 'rotate': {
+        const rad = ((transform.angle ?? 0) * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        newX = origin.x + dx * cos - dy * sin;
+        newY = origin.y + dx * sin + dy * cos;
+        break;
+      }
+      case 'scale': {
+        const factor = transform.scaleFactor ?? 1;
+        const axis = transform.scaleAxis ?? 'uniform';
+        newX = origin.x + dx * (axis === 'y' ? 1 : factor);
+        newY = origin.y + dy * (axis === 'x' ? 1 : factor);
+        break;
+      }
+      case 'mirror': {
+        if (transform.mirrorAxis === 'x') {
+          newX = origin.x - dx;
+          newY = pos.y;
+        } else {
+          newX = pos.x;
+          newY = origin.y - dy;
+        }
+        break;
+      }
+    }
+
+    result.set(id, {
+      x: Math.max(0, Math.min(100, newX)),
+      y: Math.max(0, Math.min(100, newY)),
+      rotation: pos.rotation,
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Calculate the centroid of a set of positions.
+ */
+export function calculateCentroid(
+  positions: Map<string, Position>,
+  performerIds: string[],
+): Position {
+  let sumX = 0;
+  let sumY = 0;
+  let count = 0;
+
+  for (const id of performerIds) {
+    const pos = positions.get(id);
+    if (pos) {
+      sumX += pos.x;
+      sumY += pos.y;
+      count++;
+    }
+  }
+
+  if (count === 0) return { x: 50, y: 50 };
+  return { x: sumX / count, y: sumY / count };
+}
+
+/**
+ * Calculate bounding box for a set of positions.
+ */
+export function calculateBoundingBox(
+  positions: Map<string, Position>,
+  performerIds: string[],
+): { minX: number; minY: number; maxX: number; maxY: number; width: number; height: number } {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const id of performerIds) {
+    const pos = positions.get(id);
+    if (pos) {
+      if (pos.x < minX) minX = pos.x;
+      if (pos.y < minY) minY = pos.y;
+      if (pos.x > maxX) maxX = pos.x;
+      if (pos.y > maxY) maxY = pos.y;
+    }
+  }
+
+  if (!isFinite(minX)) return { minX: 0, minY: 0, maxX: 100, maxY: 100, width: 100, height: 100 };
+  return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
+}
+
+// ============================================================================
+// COLLISION DETECTION
+// ============================================================================
+
+export interface CollisionPair {
+  id1: string;
+  id2: string;
+  distance: number;
+}
+
+/**
+ * Detect performers that are too close together.
+ * Returns pairs of performers within the minimum distance threshold.
+ */
+export function detectCollisions(
+  positions: Map<string, Position>,
+  minDistanceNormalized: number = 2,
+): CollisionPair[] {
+  const collisions: CollisionPair[] = [];
+  const entries = Array.from(positions.entries());
+
+  for (let i = 0; i < entries.length; i++) {
+    for (let j = i + 1; j < entries.length; j++) {
+      const [id1, pos1] = entries[i];
+      const [id2, pos2] = entries[j];
+      const dx = pos2.x - pos1.x;
+      const dy = pos2.y - pos1.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < minDistanceNormalized) {
+        collisions.push({ id1, id2, distance });
+      }
+    }
+  }
+
+  return collisions;
 }

@@ -15,12 +15,13 @@ import {
   Minus, CircleDot, Grid3x3, Map, Bot, Hand, WifiOff, Cloud,
   Undo2, Redo2, Settings2, Circle, Share2, Code2, Menu, X,
   Shield, ArrowRightLeft, Footprints, MapPin,
+  Ruler, UsersRound, Spline, MessageCircle, ShieldCheck, History,
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
 import { useSyncStatus } from '@/store/slices/offlineSlice';
 import { observability } from '@/services/observability';
 
-type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block';
+type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block' | 'comment';
 
 interface CanvasToolbarProps {
   activeTool: Tool;
@@ -79,6 +80,22 @@ interface CanvasToolbarProps {
   formationId?: string;
   fingerMode?: 'select' | 'pan';
   setFingerMode?: (mode: 'select' | 'pan') => void;
+  // New drill feature toggles
+  showMeasurements?: boolean;
+  setShowMeasurements?: (show: boolean) => void;
+  showGroupPanel?: boolean;
+  setShowGroupPanel?: (show: boolean) => void;
+  curveEditMode?: boolean;
+  setCurveEditMode?: (mode: boolean) => void;
+  // Validation mode toggle
+  validationMode?: boolean;
+  onToggleValidationMode?: () => void;
+  // Multi-role view
+  viewRole?: 'designer' | 'section-leader' | 'performer';
+  onViewRoleChange?: (role: 'designer' | 'section-leader' | 'performer') => void;
+  // Version history panel toggle
+  showVersionHistory?: boolean;
+  setShowVersionHistory?: (show: boolean) => void;
 }
 
 export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
@@ -103,6 +120,12 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
   onUndo, onRedo, canUndo = false, canRedo = false,
   hasUnsavedChanges = false, sandboxMode = false, formationId,
   fingerMode = 'select', setFingerMode,
+  showMeasurements, setShowMeasurements,
+  showGroupPanel, setShowGroupPanel,
+  curveEditMode, setCurveEditMode,
+  validationMode, onToggleValidationMode,
+  viewRole = 'designer', onViewRoleChange,
+  showVersionHistory, setShowVersionHistory,
 }) => {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
@@ -131,6 +154,22 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
     <>
       {/* Left: Drawing tools + Finger Mode + Undo/Redo + Zoom */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Role Selector */}
+        {onViewRoleChange && (
+          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 mr-1">
+            <select
+              value={viewRole}
+              onChange={(e) => onViewRoleChange(e.target.value as 'designer' | 'section-leader' | 'performer')}
+              className="text-xs bg-transparent border-none outline-none cursor-pointer text-gray-700 dark:text-gray-300 px-1.5 py-1 rounded focus-visible:ring-2 focus-visible:ring-blue-500"
+              aria-label="View role"
+            >
+              <option value="designer">Designer</option>
+              <option value="section-leader">Section Leader</option>
+              <option value="performer">Performer</option>
+            </select>
+          </div>
+        )}
+
         {/* Drawing Tools */}
         <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
           <button onClick={() => setActiveTool('select')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'select' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Select (V)" aria-label="Select tool" aria-pressed={activeTool === 'select'}>
@@ -139,19 +178,27 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
           <button onClick={() => setActiveTool('pan')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'pan' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Pan (H)" aria-label="Pan tool" aria-pressed={activeTool === 'pan'}>
             <Move className="w-4 h-4" aria-hidden="true" />
           </button>
-          <button onClick={() => setActiveTool('add')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'add' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Add Performer" aria-label="Add performer tool" aria-pressed={activeTool === 'add'}>
-            <Plus className="w-4 h-4" aria-hidden="true" />
-          </button>
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5 hidden sm:block" aria-hidden="true" />
-          <button onClick={() => setActiveTool('line')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'line' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Line Tool" aria-label="Line tool" aria-pressed={activeTool === 'line'}>
-            <Minus className="w-4 h-4" aria-hidden="true" />
-          </button>
-          <button onClick={() => setActiveTool('arc')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'arc' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Arc Tool" aria-label="Arc tool" aria-pressed={activeTool === 'arc'}>
-            <CircleDot className="w-4 h-4" aria-hidden="true" />
-          </button>
-          <button onClick={() => setActiveTool('block')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'block' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Block Tool" aria-label="Block tool" aria-pressed={activeTool === 'block'}>
-            <Grid3x3 className="w-4 h-4" aria-hidden="true" />
-          </button>
+          {viewRole === 'designer' && (
+            <>
+              <button onClick={() => setActiveTool('add')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'add' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Add Performer" aria-label="Add performer tool" aria-pressed={activeTool === 'add'}>
+                <Plus className="w-4 h-4" aria-hidden="true" />
+              </button>
+              <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5 hidden sm:block" aria-hidden="true" />
+              <button onClick={() => setActiveTool('line')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'line' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Line Tool" aria-label="Line tool" aria-pressed={activeTool === 'line'}>
+                <Minus className="w-4 h-4" aria-hidden="true" />
+              </button>
+              <button onClick={() => setActiveTool('arc')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'arc' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Arc Tool" aria-label="Arc tool" aria-pressed={activeTool === 'arc'}>
+                <CircleDot className="w-4 h-4" aria-hidden="true" />
+              </button>
+              <button onClick={() => setActiveTool('block')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'block' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Block Tool" aria-label="Block tool" aria-pressed={activeTool === 'block'}>
+                <Grid3x3 className="w-4 h-4" aria-hidden="true" />
+              </button>
+              <div className="w-px h-4 bg-gray-300 dark:bg-gray-500 mx-0.5 hidden sm:block" aria-hidden="true" />
+              <button onClick={() => setActiveTool('comment')} className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded hidden sm:block focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${activeTool === 'comment' ? 'bg-white dark:bg-gray-600 shadow' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Comment Tool (C)" aria-label="Comment tool" aria-pressed={activeTool === 'comment'}>
+                <MessageCircle className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Finger mode toggle (visible on touch devices via media query) */}
@@ -322,6 +369,66 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
           >
             <Shield className="w-4 h-4" aria-hidden="true" />
           </button>
+        )}
+        {setShowMeasurements && (
+          <button
+            onClick={() => setShowMeasurements(!showMeasurements)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showMeasurements ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Measurements"
+            aria-label="Measurement overlay"
+            aria-pressed={showMeasurements}
+          >
+            <Ruler className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+        {setShowGroupPanel && (
+          <button
+            onClick={() => setShowGroupPanel(!showGroupPanel)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showGroupPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Performer Groups"
+            aria-label="Performer groups panel"
+            aria-pressed={showGroupPanel}
+          >
+            <UsersRound className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+        {setCurveEditMode && (
+          <button
+            onClick={() => setCurveEditMode(!curveEditMode)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${curveEditMode ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Curve Edit Mode"
+            aria-label="Curve editing mode"
+            aria-pressed={curveEditMode}
+          >
+            <Spline className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+        {setShowVersionHistory && (
+          <button
+            onClick={() => setShowVersionHistory(!showVersionHistory)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showVersionHistory ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Version History"
+            aria-label="Version history panel"
+            aria-pressed={showVersionHistory}
+          >
+            <History className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+
+        {/* Validation Mode toggle */}
+        {onToggleValidationMode && (
+          <>
+            <div className="w-px h-5 bg-gray-300 dark:bg-gray-600" aria-hidden="true" />
+            <button
+              onClick={onToggleValidationMode}
+              className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${validationMode ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+              title="Validation Mode"
+              aria-label="Toggle validation mode"
+              aria-pressed={!!validationMode}
+            >
+              <ShieldCheck className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </>
         )}
 
         <div className="w-px h-5 bg-gray-300 dark:bg-gray-600" />

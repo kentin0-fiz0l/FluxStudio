@@ -68,6 +68,16 @@ export interface AIContext {
   }>;
   page?: string;
   recentActions?: string[];
+  /** Formation context for drill design AI assistance */
+  formation?: {
+    name: string;
+    performerCount: number;
+    currentSet?: string;
+    sections?: string[];
+    selectedPerformerCount?: number;
+    musicLinked?: boolean;
+    contextSummary?: string;
+  };
 }
 
 export interface ChatOptions {

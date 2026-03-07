@@ -3,25 +3,25 @@
  *
  * Dialog for exporting formations to various formats including
  * PDF, images, SVG, and animated formats.
+ *
+ * Composed from sub-components in ./export/:
+ * - ExportFormatSelector: format grid
+ * - ExportOptionsPanel: display/PDF/image/animation options
+ * - LMSShareSection: Google Classroom / Canvas LMS sharing
+ * - ExportProgressView: progress bar during export
  */
 
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  X,
-  Download,
-  FileImage,
-  FileText,
-  Film,
-  Image,
-  Code,
-  Check,
-  Loader2,
-  Grid,
-  Tag,
-  Clock,
-} from 'lucide-react';
+import { X, Download, Check, Loader2 } from 'lucide-react';
 import type { FormationExportOptions, ExportProgress, Performer } from '../../services/formationService';
+
+import { ExportFormatSelector } from './export/ExportFormatSelector';
+import type { ExportFormat } from './export/ExportFormatSelector';
+import { ExportOptionsPanel } from './export/ExportOptionsPanel';
+import type { ExportOptionsState } from './export/ExportOptionsPanel';
+import { LMSShareSection } from './export/LMSShareSection';
+import { ExportProgressView } from './export/ExportProgressView';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -30,98 +30,17 @@ import type { FormationExportOptions, ExportProgress, Performer } from '../../se
 interface ExportDialogProps {
   isOpen: boolean;
   formationName: string;
+  formationId?: string;
   performers?: Performer[];
+  metmapLinked?: boolean;
+  hasAudioTrack?: boolean;
   onClose: () => void;
   onExport: (options: FormationExportOptions) => Promise<void>;
   onExportDrillBook?: (performerIds: string[]) => Promise<void>;
   onExportCoordinateSheet?: (performerIds: string[]) => Promise<void>;
+  onExportProductionSheet?: (format: 'pdf' | 'csv') => Promise<void>;
+  onExportAudioSync?: () => Promise<void>;
 }
-
-type ExportFormat = FormationExportOptions['format'] | 'drill_book' | 'coordinate_sheet';
-
-interface FormatOption {
-  value: ExportFormat;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  category: 'static' | 'animated';
-}
-
-// ============================================================================
-// FORMAT OPTIONS
-// ============================================================================
-
-const formatOptions: FormatOption[] = [
-  {
-    value: 'pdf',
-    label: 'PDF Document',
-    description: 'Print-ready document with all formations',
-    icon: <FileText className="w-5 h-5" aria-hidden="true" />,
-    category: 'static',
-  },
-  {
-    value: 'png',
-    label: 'PNG Image',
-    description: 'High-quality image with transparency',
-    icon: <FileImage className="w-5 h-5" aria-hidden="true" />,
-    category: 'static',
-  },
-  {
-    value: 'jpg',
-    label: 'JPEG Image',
-    description: 'Compressed image for web use',
-    icon: <Image className="w-5 h-5" aria-hidden="true" />,
-    category: 'static',
-  },
-  {
-    value: 'svg',
-    label: 'SVG Vector',
-    description: 'Scalable vector graphics',
-    icon: <Code className="w-5 h-5" aria-hidden="true" />,
-    category: 'static',
-  },
-  {
-    value: 'gif',
-    label: 'Animated GIF',
-    description: 'Looping animation of formations',
-    icon: <Film className="w-5 h-5" aria-hidden="true" />,
-    category: 'animated',
-  },
-  {
-    value: 'video',
-    label: 'Video',
-    description: 'WebM video export with transitions',
-    icon: <Film className="w-5 h-5" aria-hidden="true" />,
-    category: 'animated',
-  },
-  {
-    value: 'drill_book' as ExportFormat,
-    label: 'Drill Book',
-    description: 'Per-performer drill book with charts & coordinates',
-    icon: <FileText className="w-5 h-5" aria-hidden="true" />,
-    category: 'static',
-  },
-  {
-    value: 'coordinate_sheet' as ExportFormat,
-    label: 'Coordinate Sheet',
-    description: 'Printable coordinate table per performer',
-    icon: <FileText className="w-5 h-5" aria-hidden="true" />,
-    category: 'static',
-  },
-];
-
-const paperSizes = [
-  { value: 'letter', label: 'Letter (8.5" × 11")' },
-  { value: 'a4', label: 'A4 (210mm × 297mm)' },
-  { value: 'tabloid', label: 'Tabloid (11" × 17")' },
-];
-
-const resolutionPresets = [
-  { value: '720p', label: '720p (1280×720)', width: 1280, height: 720 },
-  { value: '1080p', label: '1080p (1920×1080)', width: 1920, height: 1080 },
-  { value: '4k', label: '4K (3840×2160)', width: 3840, height: 2160 },
-  { value: 'custom', label: 'Custom', width: 0, height: 0 },
-];
 
 // ============================================================================
 // MAIN COMPONENT
@@ -130,51 +49,61 @@ const resolutionPresets = [
 export function ExportDialog({
   isOpen,
   formationName,
+  formationId,
   performers,
+  metmapLinked,
+  hasAudioTrack,
   onClose,
   onExport,
   onExportDrillBook,
   onExportCoordinateSheet,
+  onExportProductionSheet,
+  onExportAudioSync,
 }: ExportDialogProps) {
   const { t } = useTranslation('common');
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('pdf');
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
-  const [selectedPerformerScope, setSelectedPerformerScope] = useState<'all' | 'selected'>('all');
-  const [selectedPerformerIds, setSelectedPerformerIds] = useState<string[]>([]);
 
-  // Export options state
-  const [includeGrid, setIncludeGrid] = useState(true);
-  const [includeLabels, setIncludeLabels] = useState(true);
-  const [includeTimestamps, setIncludeTimestamps] = useState(true);
-  const [includeFieldOverlay, setIncludeFieldOverlay] = useState(false);
-  const [paperSize, setPaperSize] = useState<'letter' | 'a4' | 'tabloid'>('letter');
-  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('landscape');
-  const [quality, setQuality] = useState(90);
-  const [fps, setFps] = useState(30);
-  const [resolution, setResolution] = useState<{ width: number; height: number }>({
-    width: 1920,
-    height: 1080,
+  // Export options state (consolidated)
+  const [options, setOptions] = useState<ExportOptionsState>({
+    includeGrid: true,
+    includeLabels: true,
+    includeTimestamps: true,
+    includeFieldOverlay: false,
+    includeAudio: true,
+    paperSize: 'letter',
+    orientation: 'landscape',
+    quality: 90,
+    fps: 30,
+    resolution: { width: 1920, height: 1080 },
+    selectedResolutionPreset: '1080p',
+    selectedPerformerScope: 'all',
+    selectedPerformerIds: [],
   });
-  const [selectedResolutionPreset, setSelectedResolutionPreset] = useState('1080p');
 
-  const selectedFormatOption = formatOptions.find((f) => f.value === selectedFormat);
-  const isAnimatedFormat = selectedFormatOption?.category === 'animated';
+  const isAnimatedFormat = selectedFormat === 'gif' || selectedFormat === 'video';
   const isImageFormat = selectedFormat === 'png' || selectedFormat === 'jpg';
   const isPdfFormat = selectedFormat === 'pdf';
-  const isDrillFormat = selectedFormat === 'drill_book' || selectedFormat === 'coordinate_sheet';
+  const handleOptionsChange = useCallback(<K extends keyof ExportOptionsState>(key: K, value: ExportOptionsState[K]) => {
+    setOptions((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   const handleFormatChange = useCallback((format: ExportFormat) => {
     setSelectedFormat(format);
     if (format === 'gif') {
-      if (resolution.width > 1280 || resolution.height > 720) {
-        setResolution({ width: 1280, height: 720 });
-        setSelectedResolutionPreset('720p');
-      }
-      if (fps > 15) setFps(15);
+      setOptions((prev) => {
+        const updates: Partial<ExportOptionsState> = {};
+        if (prev.resolution.width > 1280 || prev.resolution.height > 720) {
+          updates.resolution = { width: 1280, height: 720 };
+          updates.selectedResolutionPreset = '720p';
+        }
+        if (prev.fps > 15) updates.fps = 15;
+        return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
+      });
     }
-  }, [resolution, fps]);
+  }, []);
 
   const handleExport = useCallback(async () => {
     setIsExporting(true);
@@ -182,33 +111,39 @@ export function ExportDialog({
     setExportProgress(null);
 
     try {
-      // Handle drill-specific export formats
       if (selectedFormat === 'drill_book' && onExportDrillBook) {
-        const ids = selectedPerformerScope === 'all' && performers
+        const ids = options.selectedPerformerScope === 'all' && performers
           ? performers.map(p => p.id)
-          : selectedPerformerIds;
+          : options.selectedPerformerIds;
         await onExportDrillBook(ids);
       } else if (selectedFormat === 'coordinate_sheet' && onExportCoordinateSheet) {
-        const ids = selectedPerformerScope === 'all' && performers
+        const ids = options.selectedPerformerScope === 'all' && performers
           ? performers.map(p => p.id)
-          : selectedPerformerIds;
+          : options.selectedPerformerIds;
         await onExportCoordinateSheet(ids);
+      } else if (selectedFormat === 'production_sheet_pdf' && onExportProductionSheet) {
+        await onExportProductionSheet('pdf');
+      } else if (selectedFormat === 'production_sheet_csv' && onExportProductionSheet) {
+        await onExportProductionSheet('csv');
+      } else if (selectedFormat === 'audio_sync' && onExportAudioSync) {
+        await onExportAudioSync();
       } else {
-        const options: FormationExportOptions = {
+        const exportOptions: FormationExportOptions = {
           format: selectedFormat as FormationExportOptions['format'],
-          includeGrid,
-          includeLabels,
-          includeTimestamps,
-          paperSize: isPdfFormat ? paperSize : undefined,
-          orientation: isPdfFormat ? orientation : undefined,
-          quality: isImageFormat ? quality : undefined,
-          fps: isAnimatedFormat ? fps : undefined,
-          resolution: isAnimatedFormat || isImageFormat ? resolution : undefined,
-          includeFieldOverlay: isAnimatedFormat ? includeFieldOverlay : undefined,
+          includeGrid: options.includeGrid,
+          includeLabels: options.includeLabels,
+          includeTimestamps: options.includeTimestamps,
+          paperSize: isPdfFormat ? options.paperSize : undefined,
+          orientation: isPdfFormat ? options.orientation : undefined,
+          quality: isImageFormat ? options.quality : undefined,
+          fps: isAnimatedFormat ? options.fps : undefined,
+          resolution: isAnimatedFormat || isImageFormat ? options.resolution : undefined,
+          includeFieldOverlay: isAnimatedFormat ? options.includeFieldOverlay : undefined,
+          includeAudio: selectedFormat === 'video' && hasAudioTrack ? options.includeAudio : undefined,
           onProgress: isAnimatedFormat ? (p) => setExportProgress(p) : undefined,
         };
 
-        await onExport(options);
+        await onExport(exportOptions);
       }
       setExportSuccess(true);
       setExportProgress(null);
@@ -225,34 +160,19 @@ export function ExportDialog({
     }
   }, [
     selectedFormat,
-    selectedPerformerScope,
-    selectedPerformerIds,
+    options,
     performers,
     onExportDrillBook,
     onExportCoordinateSheet,
-    includeGrid,
-    includeLabels,
-    includeTimestamps,
-    includeFieldOverlay,
-    paperSize,
-    orientation,
-    quality,
-    fps,
-    resolution,
+    onExportProductionSheet,
+    onExportAudioSync,
     isPdfFormat,
     isImageFormat,
     isAnimatedFormat,
+    hasAudioTrack,
     onExport,
     onClose,
   ]);
-
-  const handleResolutionPresetChange = (preset: string) => {
-    setSelectedResolutionPreset(preset);
-    const presetOption = resolutionPresets.find((r) => r.value === preset);
-    if (presetOption && presetOption.value !== 'custom') {
-      setResolution({ width: presetOption.width, height: presetOption.height });
-    }
-  };
 
   if (!isOpen) return null;
 
@@ -294,340 +214,31 @@ export function ExportDialog({
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-          {/* Format Selection */}
-          <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-              {t('formation.exportFormat', 'Export Format')}
-            </h3>
-            <div
-              className="grid grid-cols-3 gap-3"
-              role="radiogroup"
-              aria-label={t('formation.exportFormat', 'Export Format')}
-              onKeyDown={(e) => {
-                const keys: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
-                const delta = keys[e.key];
-                if (delta !== undefined) {
-                  e.preventDefault();
-                  const idx = formatOptions.findIndex((f) => f.value === selectedFormat);
-                  const next = (idx + delta + formatOptions.length) % formatOptions.length;
-                  handleFormatChange(formatOptions[next].value);
-                  // Move focus to the newly selected button
-                  const container = e.currentTarget;
-                  const buttons = container.querySelectorAll<HTMLElement>('[role="radio"]');
-                  buttons[next]?.focus();
-                }
-              }}
-            >
-              {formatOptions.map((format) => (
-                <button
-                  key={format.value}
-                  role="radio"
-                  aria-checked={selectedFormat === format.value}
-                  tabIndex={selectedFormat === format.value ? 0 : -1}
-                  onClick={() => handleFormatChange(format.value)}
-                  className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800 ${
-                    selectedFormat === format.value
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  <div
-                    className={`mb-2 ${
-                      selectedFormat === format.value
-                        ? 'text-blue-500'
-                        : 'text-gray-400'
-                    }`}
-                  >
-                    {format.icon}
-                  </div>
-                  <span
-                    className={`text-sm font-medium ${
-                      selectedFormat === format.value
-                        ? 'text-blue-700 dark:text-blue-400'
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    {format.label}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 text-center mt-1">
-                    {format.description}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <ExportFormatSelector
+            selectedFormat={selectedFormat}
+            onFormatChange={handleFormatChange}
+            metmapLinked={metmapLinked}
+            t={t}
+          />
 
-          {/* Common Options */}
-          <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-              {t('formation.displayOptions', 'Display Options')}
-            </h3>
-            <div className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={includeGrid}
-                  onChange={(e) => setIncludeGrid(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
-                />
-                <Grid className="w-4 h-4 text-gray-400" aria-hidden="true" />
-                <span className="text-sm text-gray-700 dark:text-gray-300">
-                  {t('formation.includeGrid', 'Include grid lines')}
-                </span>
-              </label>
+          <ExportOptionsPanel
+            selectedFormat={selectedFormat}
+            options={options}
+            onOptionsChange={handleOptionsChange}
+            performers={performers}
+            hasAudioTrack={hasAudioTrack}
+            t={t}
+          />
 
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={includeLabels}
-                  onChange={(e) => setIncludeLabels(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
-                />
-                <Tag className="w-4 h-4 text-gray-400" aria-hidden="true" />
-                <span className="text-sm text-gray-700 dark:text-gray-300">
-                  {t('formation.includeLabels', 'Include performer labels')}
-                </span>
-              </label>
-
-              {isAnimatedFormat && (
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeTimestamps}
-                    onChange={(e) => setIncludeTimestamps(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
-                  />
-                  <Clock className="w-4 h-4 text-gray-400" aria-hidden="true" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {t('formation.includeTimestamps', 'Include timestamps')}
-                  </span>
-                </label>
-              )}
-
-              {isAnimatedFormat && (
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeFieldOverlay}
-                    onChange={(e) => setIncludeFieldOverlay(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
-                  />
-                  <Grid className="w-4 h-4 text-gray-400" aria-hidden="true" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {t('formation.includeFieldOverlay', 'Include field overlay')}
-                  </span>
-                </label>
-              )}
-            </div>
-          </div>
-
-          {/* Drill Format Options (performer selector) */}
-          {isDrillFormat && performers && performers.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-                Performer Selection
-              </h3>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={selectedPerformerScope === 'all'}
-                    onChange={() => setSelectedPerformerScope('all')}
-                    className="w-4 h-4 text-blue-500"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    All performers ({performers.length})
-                  </span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={selectedPerformerScope === 'selected'}
-                    onChange={() => setSelectedPerformerScope('selected')}
-                    className="w-4 h-4 text-blue-500"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    Selected performers only
-                  </span>
-                </label>
-                {selectedPerformerScope === 'selected' && (
-                  <div className="ml-6 max-h-32 overflow-y-auto space-y-1 border rounded-lg p-2 bg-gray-50 dark:bg-gray-700/50">
-                    {performers.map((p) => (
-                      <label key={p.id} className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 dark:text-gray-400">
-                        <input
-                          type="checkbox"
-                          checked={selectedPerformerIds.includes(p.id)}
-                          onChange={(e) => {
-                            setSelectedPerformerIds(prev =>
-                              e.target.checked
-                                ? [...prev, p.id]
-                                : prev.filter(id => id !== p.id)
-                            );
-                          }}
-                          className="w-3.5 h-3.5 rounded text-blue-500"
-                        />
-                        {p.name} {p.drillNumber ? `(#${p.drillNumber})` : ''}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+          {formationId && (
+            <LMSShareSection
+              formationId={formationId}
+              formationName={formationName}
+              isOpen={isOpen}
+            />
           )}
 
-          {/* PDF Options */}
-          {isPdfFormat && (
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-                {t('formation.pdfOptions', 'PDF Options')}
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    {t('formation.paperSize', 'Paper Size')}
-                  </label>
-                  <select
-                    value={paperSize}
-                    onChange={(e) => setPaperSize(e.target.value as typeof paperSize)}
-                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                  >
-                    {paperSizes.map((size) => (
-                      <option key={size.value} value={size.value}>
-                        {size.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    {t('formation.orientation', 'Orientation')}
-                  </label>
-                  <select
-                    value={orientation}
-                    onChange={(e) => setOrientation(e.target.value as typeof orientation)}
-                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                  >
-                    <option value="landscape">{t('formation.landscape', 'Landscape')}</option>
-                    <option value="portrait">{t('formation.portrait', 'Portrait')}</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Image Options */}
-          {isImageFormat && (
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-                {t('formation.imageOptions', 'Image Options')}
-              </h3>
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
-                  {t('formation.quality', 'Quality')}: {quality}%
-                </label>
-                <input
-                  type="range"
-                  min={10}
-                  max={100}
-                  value={quality}
-                  onChange={(e) => setQuality(Number(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Animation Options */}
-          {isAnimatedFormat && (
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-                {t('formation.animationOptions', 'Animation Options')}
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    {t('formation.resolution', 'Resolution')}
-                  </label>
-                  <select
-                    value={selectedResolutionPreset}
-                    onChange={(e) => handleResolutionPresetChange(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                  >
-                    {resolutionPresets.map((res) => (
-                      <option key={res.value} value={res.value}>
-                        {res.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    {t('formation.fps', 'Frame Rate')}
-                  </label>
-                  <select
-                    value={fps}
-                    onChange={(e) => setFps(Number(e.target.value))}
-                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                  >
-                    <option value={15}>15 FPS</option>
-                    <option value={24}>24 FPS</option>
-                    <option value={30}>30 FPS</option>
-                    <option value={60}>60 FPS</option>
-                  </select>
-                </div>
-              </div>
-
-              {selectedResolutionPreset === 'custom' && (
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
-                      {t('formation.width', 'Width')}
-                    </label>
-                    <input
-                      type="number"
-                      value={resolution.width}
-                      onChange={(e) =>
-                        setResolution((r) => ({ ...r, width: Number(e.target.value) }))
-                      }
-                      className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
-                      {t('formation.height', 'Height')}
-                    </label>
-                    <input
-                      type="number"
-                      value={resolution.height}
-                      onChange={(e) =>
-                        setResolution((r) => ({ ...r, height: Number(e.target.value) }))
-                      }
-                      className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {exportProgress && exportProgress.phase !== 'done' && (
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {exportProgress.phase === 'rendering' ? 'Rendering frames...' : 'Encoding...'}
-                </span>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {exportProgress.percent}%
-                </span>
-              </div>
-              <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 rounded-full transition-all duration-200"
-                  style={{ width: `${exportProgress.percent}%` }}
-                />
-              </div>
-            </div>
-          )}
+          <ExportProgressView exportProgress={exportProgress} />
         </div>
 
         {/* Footer */}

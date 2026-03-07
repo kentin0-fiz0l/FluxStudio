@@ -415,3 +415,121 @@ export function generateQuickStartShow(
 
   return { performers, initialSets };
 }
+
+// ============================================================================
+// AI FULL-SHOW GENERATION FROM MUSIC
+// ============================================================================
+
+export interface GenerateShowFromMusicRequest {
+  performers: Performer[];
+  sections: Array<{
+    name: string;
+    bars: number;
+    timeSignature: string;
+    tempoStart: number;
+    tempoEnd?: number;
+  }>;
+  fieldConfig?: FieldConfig;
+  /** Default counts per set if not derived from music */
+  defaultCounts?: number;
+}
+
+export interface GeneratedShowSet {
+  name: string;
+  counts: number;
+  positions: Map<string, Position>;
+  notes?: string;
+  /** Which music section this set belongs to */
+  sectionName?: string;
+}
+
+export interface GenerateShowFromMusicResult {
+  sets: GeneratedShowSet[];
+  description: string;
+}
+
+/**
+ * Generate a full show of formations from music structure (local heuristic).
+ * Uses music sections to create appropriate formation patterns:
+ * - Opener sections get bold formations (company fronts, diagonals)
+ * - Ballad sections get flowing shapes (circles, arcs)
+ * - Closer sections get dynamic formations (wedges, blocks)
+ *
+ * This is a local fallback; the AI-powered version streams from the backend.
+ */
+export function generateShowFromMusic(
+  request: GenerateShowFromMusicRequest,
+): GenerateShowFromMusicResult {
+  const { performers, sections, defaultCounts = 8 } = request;
+  const sets: GeneratedShowSet[] = [];
+
+  // Map section types to formation patterns
+  const sectionPatterns: Record<string, string[]> = {
+    opener: ['company front', 'block', 'diagonal'],
+    intro: ['company front', 'scatter'],
+    verse: ['block', 'diagonal', 'line'],
+    chorus: ['company front', 'wedge', 'block'],
+    bridge: ['circle', 'scatter', 'diagonal'],
+    ballad: ['circle', 'arc', 'scatter'],
+    closer: ['wedge', 'block', 'company front'],
+    finale: ['wedge', 'company front', 'block'],
+    drill: ['block', 'diagonal', 'wedge'],
+  };
+
+  let setIndex = 1;
+  let patternVariant = 0;
+
+  for (const section of sections) {
+    const sectionLower = section.name.toLowerCase();
+    const beatsPerBar = parseInt(section.timeSignature.split('/')[0]) || 4;
+    const totalBeats = section.bars * beatsPerBar;
+
+    // Find matching pattern group
+    let patterns = sectionPatterns['verse']; // default
+    for (const [key, value] of Object.entries(sectionPatterns)) {
+      if (sectionLower.includes(key)) {
+        patterns = value;
+        break;
+      }
+    }
+
+    // Determine how many sets this section needs
+    const countsPerSet = Math.max(defaultCounts, 8);
+    const setsInSection = Math.max(1, Math.round(totalBeats / countsPerSet));
+
+    for (let i = 0; i < setsInSection; i++) {
+      const pattern = patterns[patternVariant % patterns.length];
+      const counts = i === setsInSection - 1
+        ? totalBeats - (setsInSection - 1) * countsPerSet
+        : countsPerSet;
+
+      const positions = generatePattern(pattern, performers);
+
+      // Add slight variation to positions to differentiate sets within a section
+      if (i > 0) {
+        for (const [id, pos] of positions) {
+          positions.set(id, {
+            x: Math.max(2, Math.min(98, pos.x + (Math.random() - 0.5) * 8)),
+            y: Math.max(2, Math.min(98, pos.y + (Math.random() - 0.5) * 8)),
+          });
+        }
+      }
+
+      sets.push({
+        name: `Set ${setIndex}`,
+        counts: Math.max(4, counts),
+        positions,
+        notes: `${section.name}: ${pattern}`,
+        sectionName: section.name,
+      });
+
+      setIndex++;
+      patternVariant++;
+    }
+  }
+
+  return {
+    sets,
+    description: `Generated ${sets.length} sets across ${sections.length} music sections for ${performers.length} performers.`,
+  };
+}

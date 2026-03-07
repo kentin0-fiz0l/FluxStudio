@@ -9,9 +9,38 @@ import { getApiUrl } from '../utils/apiHelpers';
 import { apiService } from './apiService';
 import { buildApiUrl } from '../config/environment';
 import { Formation, Performer, Keyframe, Position, AudioTrack } from './formationService';
+import type { PathCurve, SymbolShape, PerformerGroup, DrillSet, DrillSettings, FieldConfig } from './formationTypes';
+import type { TempoMap } from './tempoMap';
 import type { SceneObject } from './scene3d/types';
 
-// Raw API response shapes (before transform)
+// ============================================================================
+// RETRY LOGIC WITH EXPONENTIAL BACKOFF
+// ============================================================================
+
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 500;
+
+async function withRetry<T>(fn: () => Promise<T>, retries = MAX_RETRIES): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === retries) throw err;
+      const isRetryable =
+        err instanceof TypeError || // Network error
+        (err instanceof Error && /5\d{2}|timeout|network|fetch/i.test(err.message));
+      if (!isRetryable) throw err;
+      const delay = BASE_DELAY_MS * Math.pow(2, attempt) + Math.random() * 200;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Retry exhausted'); // unreachable, satisfies TS
+}
+
+// ============================================================================
+// RAW API RESPONSE SHAPES (before transform)
+// ============================================================================
+
 interface ApiSceneObjectRaw {
   id: string;
   name: string;
@@ -40,6 +69,14 @@ interface ApiFormationRaw {
   audioTrack?: AudioTrack;
   musicTrackUrl?: string;
   musicDuration?: number;
+  drillSettings?: DrillSettings;
+  sets?: DrillSet[];
+  fieldConfig?: FieldConfig;
+  groups?: PerformerGroup[];
+  sectionShapeMap?: Record<string, SymbolShape>;
+  metmapSongId?: string;
+  tempoMap?: TempoMap;
+  useConstantTempo?: boolean;
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;
@@ -51,6 +88,10 @@ interface ApiPerformerRaw {
   label: string;
   color?: string;
   group?: string;
+  instrument?: string;
+  section?: string;
+  drillNumber?: string;
+  symbolShape?: SymbolShape;
 }
 
 interface ApiKeyframeRaw {
@@ -59,6 +100,8 @@ interface ApiKeyframeRaw {
   positions?: Record<string, Position>;
   transition?: string;
   duration?: number;
+  beatBinding?: { beatIndex: number; snapResolution: 'beat' | 'half-beat' | 'measure' };
+  pathCurves?: Record<string, PathCurve>;
 }
 
 // API Response types
@@ -137,16 +180,15 @@ export async function fetchFormations(projectId: string): Promise<FormationListI
 }
 
 /**
- * Fetch a single formation with all data
+ * Fetch a single formation with all data (with retry)
  */
 export async function fetchFormation(formationId: string): Promise<Formation> {
-  const result = await apiRequest<{ success: boolean; formation: ApiFormationRaw }>(
-    `/api/formations/${formationId}`
-  );
-
-  // Transform API response to match frontend Formation interface
-  const apiFormation = result.formation;
-  return transformApiFormation(apiFormation);
+  return withRetry(async () => {
+    const result = await apiRequest<{ success: boolean; formation: ApiFormationRaw }>(
+      `/api/formations/${formationId}`
+    );
+    return transformApiFormation(result.formation);
+  });
 }
 
 /**
@@ -208,7 +250,8 @@ export async function deleteFormation(formationId: string): Promise<void> {
 }
 
 /**
- * Save entire formation state (performers, keyframes, positions)
+ * Save entire formation state (performers, keyframes, positions, groups, etc.)
+ * Handles Map→Object serialization for positions and pathCurves.
  */
 export async function saveFormation(
   formationId: string,
@@ -221,30 +264,53 @@ export async function saveFormation(
       transition?: string;
       duration?: number;
       positions: Record<string, Position> | Map<string, Position>;
+      beatBinding?: Keyframe['beatBinding'];
+      pathCurves?: Record<string, PathCurve> | Map<string, PathCurve>;
     }>;
+    drillSettings?: DrillSettings;
+    sets?: DrillSet[];
+    fieldConfig?: FieldConfig;
+    groups?: PerformerGroup[];
+    sectionShapeMap?: Record<string, SymbolShape>;
+    metmapSongId?: string;
+    tempoMap?: TempoMap;
+    useConstantTempo?: boolean;
   }
 ): Promise<Formation> {
-  // Convert Map to object for serialization
+  // Convert Map types to plain objects for JSON serialization
   const keyframes = data.keyframes.map(kf => ({
     ...kf,
     positions: kf.positions instanceof Map
       ? Object.fromEntries(kf.positions)
-      : kf.positions
+      : kf.positions,
+    pathCurves: kf.pathCurves instanceof Map
+      ? Object.fromEntries(kf.pathCurves)
+      : kf.pathCurves,
   }));
 
-  const result = await apiRequest<{ success: boolean; formation: ApiFormationRaw }>(
-    `/api/formations/${formationId}/save`,
-    {
-      method: 'PUT',
-      body: JSON.stringify({
-        name: data.name,
-        performers: data.performers,
-        keyframes
-      })
-    }
-  );
+  return withRetry(async () => {
+    const result = await apiRequest<{ success: boolean; formation: ApiFormationRaw }>(
+      `/api/formations/${formationId}/save`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: data.name,
+          performers: data.performers,
+          keyframes,
+          drillSettings: data.drillSettings,
+          sets: data.sets,
+          fieldConfig: data.fieldConfig,
+          groups: data.groups,
+          sectionShapeMap: data.sectionShapeMap,
+          metmapSongId: data.metmapSongId,
+          tempoMap: data.tempoMap,
+          useConstantTempo: data.useConstantTempo,
+        })
+      }
+    );
 
-  return transformApiFormation(result.formation);
+    return transformApiFormation(result.formation);
+  });
 }
 
 // ============================================================================
@@ -474,13 +540,15 @@ export async function deleteSceneObject(formationId: string, objectId: string): 
 // ============================================================================
 
 export async function fetchSharedFormation(formationId: string): Promise<Formation & { createdBy?: string }> {
-  // Public endpoint — use fetch directly without auth
-  const url = getApiUrl(`/api/formations/${formationId}/share`);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch shared formation: ${res.status}`);
-  const data = await res.json();
-  const raw = data.data || data;
-  return { ...transformApiFormation(raw), createdBy: raw.createdBy };
+  return withRetry(async () => {
+    // Public endpoint — use fetch directly without auth
+    const url = getApiUrl(`/api/formations/${formationId}/share`);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to fetch shared formation: ${res.status}`);
+    const data = await res.json();
+    const raw = data.data || data;
+    return { ...transformApiFormation(raw), createdBy: raw.createdBy };
+  });
 }
 
 export async function generateShareLink(formationId: string): Promise<string> {
@@ -510,6 +578,14 @@ function transformApiFormation(api: ApiFormationRaw): Formation {
     audioTrack: api.audioTrack,
     musicTrackUrl: api.musicTrackUrl || api.audioTrack?.url,
     musicDuration: api.musicDuration || api.audioTrack?.duration,
+    drillSettings: api.drillSettings,
+    sets: api.sets,
+    fieldConfig: api.fieldConfig,
+    groups: api.groups,
+    sectionShapeMap: api.sectionShapeMap,
+    metmapSongId: api.metmapSongId,
+    tempoMap: api.tempoMap,
+    useConstantTempo: api.useConstantTempo,
     createdAt: api.createdAt ?? new Date().toISOString(),
     updatedAt: api.updatedAt ?? new Date().toISOString(),
     createdBy: api.createdBy ?? ''
@@ -522,7 +598,11 @@ function transformApiPerformer(api: ApiPerformerRaw): Performer {
     name: api.name,
     label: api.label,
     color: api.color ?? '#000000',
-    group: api.group
+    group: api.group,
+    instrument: api.instrument,
+    section: api.section,
+    drillNumber: api.drillNumber,
+    symbolShape: api.symbolShape,
   };
 }
 
@@ -556,12 +636,23 @@ function transformApiKeyframe(api: ApiKeyframeRaw): Keyframe {
     }
   }
 
+  // Convert pathCurves object to Map (if present)
+  let pathCurvesMap: Map<string, PathCurve> | undefined;
+  if (api.pathCurves && Object.keys(api.pathCurves).length > 0) {
+    pathCurvesMap = new Map<string, PathCurve>();
+    for (const [performerId, curve] of Object.entries(api.pathCurves)) {
+      pathCurvesMap.set(performerId, curve);
+    }
+  }
+
   return {
     id: api.id,
     timestamp: api.timestamp,
     positions: positionsMap,
     transition: api.transition as Keyframe['transition'],
-    duration: api.duration
+    duration: api.duration,
+    beatBinding: api.beatBinding,
+    pathCurves: pathCurvesMap,
   };
 }
 

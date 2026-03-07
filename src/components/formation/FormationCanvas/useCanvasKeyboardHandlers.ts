@@ -30,6 +30,8 @@ interface UseCanvasKeyboardHandlersProps {
   setShowAnalysisPanel?: React.Dispatch<React.SetStateAction<boolean>>;
   setShowMovementTools?: React.Dispatch<React.SetStateAction<boolean>>;
   setShowCoordinatePanel?: React.Dispatch<React.SetStateAction<boolean>>;
+  // Transform mode
+  setTransformMode?: React.Dispatch<React.SetStateAction<'none' | 'rotate' | 'scale' | 'mirror'>>;
   // Handlers from useCanvasHandlers
   handleUndo: () => void;
   handleRedo: () => void;
@@ -72,6 +74,7 @@ export function useCanvasKeyboardHandlers({
   setShowAnalysisPanel,
   setShowMovementTools,
   setShowCoordinatePanel,
+  setTransformMode,
   handleKeyframeSelect,
 }: UseCanvasKeyboardHandlersProps): { contextMenu: ContextMenuState; handleWheel: (e: React.WheelEvent) => void } {
   // Context menu state for long-press
@@ -215,14 +218,49 @@ export function useCanvasKeyboardHandlers({
         handleSelectAll();
       }
 
-      // Arrow nudge (not customizable — uses physical arrow keys)
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && selectedPerformerIds.size > 0) {
-        e.preventDefault();
-        const step = e.shiftKey ? 5 : 1;
-        if (e.key === 'ArrowUp') handleNudge(0, -step);
-        else if (e.key === 'ArrowDown') handleNudge(0, step);
-        else if (e.key === 'ArrowLeft') handleNudge(-step, 0);
-        else if (e.key === 'ArrowRight') handleNudge(step, 0);
+      // Arrow keys: Alt+Arrow = spatial navigation, plain Arrow = nudge
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        // Alt+Arrow: navigate to nearest performer in that direction (accessibility)
+        if (e.altKey && formation && selectedPerformerIds.size === 1) {
+          e.preventDefault();
+          const currentId = Array.from(selectedPerformerIds)[0];
+          const currentPos = currentPositions.get(currentId);
+          if (currentPos) {
+            let bestId: string | null = null;
+            let bestDist = Infinity;
+            for (const p of formation.performers) {
+              if (p.id === currentId) continue;
+              const pos = currentPositions.get(p.id);
+              if (!pos) continue;
+              const dx = pos.x - currentPos.x;
+              const dy = pos.y - currentPos.y;
+              // Check direction
+              const isCorrectDirection =
+                (e.key === 'ArrowRight' && dx > 0) ||
+                (e.key === 'ArrowLeft' && dx < 0) ||
+                (e.key === 'ArrowDown' && dy > 0) ||
+                (e.key === 'ArrowUp' && dy < 0);
+              if (!isCorrectDirection) continue;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < bestDist) {
+                bestDist = dist;
+                bestId = p.id;
+              }
+            }
+            if (bestId) {
+              setSelectedPerformerIds(new Set([bestId]));
+            }
+          }
+        }
+        // Plain Arrow (no Alt): nudge selected performers
+        else if (selectedPerformerIds.size > 0 && !e.altKey) {
+          e.preventDefault();
+          const step = e.shiftKey ? 5 : 1;
+          if (e.key === 'ArrowUp') handleNudge(0, -step);
+          else if (e.key === 'ArrowDown') handleNudge(0, step);
+          else if (e.key === 'ArrowLeft') handleNudge(-step, 0);
+          else if (e.key === 'ArrowRight') handleNudge(step, 0);
+        }
       }
 
       // Drill: Next/Previous set
@@ -273,6 +311,27 @@ export function useCanvasKeyboardHandlers({
         setShowCoordinatePanel(prev => !prev);
       }
 
+      // Transform mode shortcuts (R=rotate, S=scale, M=mirror) — requires selection
+      if (setTransformMode && selectedPerformerIds.size > 1 && !e.metaKey && !e.ctrlKey) {
+        if (e.key === 'r' || e.key === 'R') {
+          e.preventDefault();
+          setTransformMode(prev => prev === 'rotate' ? 'none' : 'rotate');
+        }
+        if (e.key === 's' && !e.shiftKey) {
+          e.preventDefault();
+          setTransformMode(prev => prev === 'scale' ? 'none' : 'scale');
+        }
+        if (e.key === 'm' || e.key === 'M') {
+          e.preventDefault();
+          setTransformMode(prev => prev === 'mirror' ? 'none' : 'mirror');
+        }
+      }
+
+      // Escape cancels transform mode
+      if (e.key === 'Escape' && setTransformMode) {
+        setTransformMode('none');
+      }
+
       // Number keys 1-9 to jump to specific set (not customizable)
       if (/^[1-9]$/.test(e.key) && !e.metaKey && !e.ctrlKey && formation && handleKeyframeSelect) {
         const setNum = parseInt(e.key, 10) - 1;
@@ -309,7 +368,7 @@ export function useCanvasKeyboardHandlers({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [getBinding, handleSave, playbackState.isPlaying, handlePause, handlePlay, handleUndo, handleRedo, handleCopy, handlePaste, handleDuplicateSelected, handleSelectAll, handleNudge, selectedPerformerIds, formation, currentPositions, setSelectedPerformerIds, handleDeleteSelected, handleDeselectAll, setShowShortcutsDialog, setZoom, setShowAnalysisPanel, setShowMovementTools, setShowCoordinatePanel, handleKeyframeSelect]);
+  }, [getBinding, handleSave, playbackState.isPlaying, handlePause, handlePlay, handleUndo, handleRedo, handleCopy, handlePaste, handleDuplicateSelected, handleSelectAll, handleNudge, selectedPerformerIds, formation, currentPositions, setSelectedPerformerIds, handleDeleteSelected, handleDeselectAll, setShowShortcutsDialog, setZoom, setShowAnalysisPanel, setShowMovementTools, setShowCoordinatePanel, setTransformMode, handleKeyframeSelect]);
 
   return {
     contextMenu: { ...contextMenuState, close: closeContextMenu },

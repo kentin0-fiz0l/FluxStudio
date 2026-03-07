@@ -72,6 +72,9 @@ export function SignupWizard() {
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get('ref') || undefined;
   const inviteParam = searchParams.get('invite') || '';
+  const hasSandboxData = searchParams.get('from') === 'sandbox' || (() => {
+    try { return !!localStorage.getItem('tryEditor_formations'); } catch { return false; }
+  })();
   const [currentStep, setCurrentStep] = useState(0);
   const [betaGateEnabled, setBetaGateEnabled] = useState(false);
   const [formData, setFormData] = useState<SignupFormData>({
@@ -206,11 +209,18 @@ export function SignupWizard() {
     try {
       await signup(formData.email, formData.password, formData.name, formData.userType, referralCode, formData.inviteCode || undefined);
       eventTracker.trackEvent('signup_complete', { method: 'email', userType: formData.userType });
+      if (hasSandboxData) {
+        eventTracker.trackEvent('sandbox_conversion', { method: 'email', userType: formData.userType });
+      }
       nextStep(); // Move to success step
 
       // Redirect after showing success
       setTimeout(() => {
-        navigate('/onboarding');
+        if (hasSandboxData) {
+          navigate('/formations/new?import=sandbox');
+        } else {
+          navigate('/onboarding');
+        }
       }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');
@@ -603,7 +613,7 @@ export function SignupWizard() {
                     </p>
                     <p className="text-sm text-gray-300">
                       <Sparkles className="inline h-4 w-4 text-blue-400 mr-2" aria-hidden="true" />
-                      Redirecting to onboarding...
+                      {hasSandboxData ? 'Redirecting to your formation...' : 'Redirecting to onboarding...'}
                     </p>
                   </div>
                 </div>

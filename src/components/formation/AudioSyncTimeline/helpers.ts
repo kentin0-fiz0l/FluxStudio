@@ -3,6 +3,8 @@
  */
 
 import type { BeatMap } from '../../../contexts/metmap/types';
+import type { TempoMap } from '../../../services/tempoMap';
+import { countToTimeMs } from '../../../services/tempoMap';
 
 /** Snap-proximity threshold in pixels -- when a keyframe is dragged within
  *  this many pixels of a beat line it magnetically locks. */
@@ -67,6 +69,43 @@ export function getBeatLevelTimestamps(
     timestamps.push(t);
   }
   return timestamps;
+}
+
+/**
+ * Walk the tempo map segments and generate a timestamp for each beat,
+ * respecting variable tempo and beatsPerBar.
+ *
+ * Returns an array of beat entries with time (ms), downbeat flag,
+ * beat-in-bar position, and bar number.
+ */
+export function getBeatTimestampsFromTempoMap(
+  tempoMap: TempoMap,
+  durationMs: number,
+): { time: number; isDownbeat: boolean; beatInBar: number; barNumber: number }[] {
+  if (tempoMap.segments.length === 0 || durationMs <= 0) return [];
+
+  const result: { time: number; isDownbeat: boolean; beatInBar: number; barNumber: number }[] = [];
+
+  for (const seg of tempoMap.segments) {
+    const segBeats = seg.endCount - seg.startCount + 1;
+
+    for (let b = 0; b < segBeats; b++) {
+      const count = seg.startCount + b;
+      const timeMs = countToTimeMs(count, tempoMap);
+
+      // Stop if we've exceeded the audio duration
+      if (timeMs > durationMs) break;
+
+      const beatInBar = (b % seg.beatsPerBar) + 1;
+      const barOffset = Math.floor(b / seg.beatsPerBar);
+      const barNumber = seg.startBar + barOffset;
+      const isDownbeat = beatInBar === 1;
+
+      result.push({ time: timeMs, isDownbeat, beatInBar, barNumber });
+    }
+  }
+
+  return result;
 }
 
 export function formatTime(ms: number): string {

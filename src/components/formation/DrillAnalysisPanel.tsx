@@ -17,6 +17,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import type { Formation, DrillSet } from '../../services/formationTypes';
+import type { TempoMap } from '../../services/tempoMap';
 import {
   fullDrillAnalysis,
   type AnalysisResult,
@@ -30,6 +31,7 @@ interface DrillAnalysisPanelProps {
   formation: Formation;
   sets: DrillSet[];
   config?: AnalysisConfig;
+  tempoMap?: TempoMap;
   onNavigateToSet?: (setId: string, performerIds?: string[]) => void;
 }
 
@@ -45,16 +47,45 @@ const severityColor: Record<IssueSeverity, string> = {
   info: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
 };
 
+/** Inline SVG icon: metronome for tempo-aware stride */
+const TempoStrideIcon = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 14L8 2l3 12H5z" />
+    <path d="M8 5l4-2" />
+  </svg>
+);
+
+/** Inline SVG icon: music note for alignment */
+const MusicAlignIcon = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 13V4l8-2v9" />
+    <circle cx="4" cy="13" r="2" />
+    <circle cx="12" cy="11" r="2" />
+  </svg>
+);
+
+/** Inline SVG icon: tempo change (BPM shift) */
+const TempoChangeIcon = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 10h4l2-4 2 4h4" />
+    <path d="M12 6l2-2m0 0l-2-2m2 2H10" />
+  </svg>
+);
+
 const typeIcon: Record<DrillIssue['type'], React.ReactNode> = {
   collision: <Shield className="w-3.5 h-3.5" />,
   stride: <Footprints className="w-3.5 h-3.5" />,
   direction_change: <RotateCcw className="w-3.5 h-3.5" />,
+  tempo_aware_stride: <TempoStrideIcon />,
+  music_alignment: <MusicAlignIcon />,
+  tempo_change_transition: <TempoChangeIcon />,
 };
 
 export const DrillAnalysisPanel: React.FC<DrillAnalysisPanelProps> = ({
   formation,
   sets,
   config = DEFAULT_ANALYSIS_CONFIG,
+  tempoMap,
   onNavigateToSet,
 }) => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -65,11 +96,11 @@ export const DrillAnalysisPanel: React.FC<DrillAnalysisPanelProps> = ({
     setIsRunning(true);
     // Use setTimeout to avoid blocking the UI
     setTimeout(() => {
-      const analysisResult = fullDrillAnalysis(formation, sets, config);
+      const analysisResult = fullDrillAnalysis(formation, sets, config, tempoMap);
       setResult(analysisResult);
       setIsRunning(false);
     }, 0);
-  }, [formation, sets, config]);
+  }, [formation, sets, config, tempoMap]);
 
   const handleIssueClick = useCallback(
     (issue: DrillIssue) => {
@@ -128,6 +159,49 @@ export const DrillAnalysisPanel: React.FC<DrillAnalysisPanelProps> = ({
         </div>
       )}
 
+      {/* Musical Flow Score */}
+      {result && tempoMap && result.summary.musicalFlowScore !== undefined && (
+        <div className="mx-4 mb-3 px-3 py-2 rounded-lg border" style={{
+          backgroundColor: result.summary.musicalFlowScore > 80
+            ? 'rgb(240, 253, 244)' : result.summary.musicalFlowScore >= 50
+            ? 'rgb(254, 252, 232)' : 'rgb(254, 242, 242)',
+          borderColor: result.summary.musicalFlowScore > 80
+            ? 'rgb(187, 247, 208)' : result.summary.musicalFlowScore >= 50
+            ? 'rgb(254, 240, 138)' : 'rgb(254, 202, 202)',
+        }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MusicAlignIcon />
+              <span className="text-xs font-medium" style={{
+                color: result.summary.musicalFlowScore > 80
+                  ? 'rgb(21, 128, 61)' : result.summary.musicalFlowScore >= 50
+                  ? 'rgb(161, 98, 7)' : 'rgb(185, 28, 28)',
+              }}>
+                Musical Flow
+              </span>
+            </div>
+            <span className="text-lg font-bold" style={{
+              color: result.summary.musicalFlowScore > 80
+                ? 'rgb(21, 128, 61)' : result.summary.musicalFlowScore >= 50
+                ? 'rgb(161, 98, 7)' : 'rgb(185, 28, 28)',
+            }}>
+              {result.summary.musicalFlowScore}
+            </span>
+          </div>
+          <div className="mt-1 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+            <div
+              className="h-1.5 rounded-full transition-all"
+              style={{
+                width: `${result.summary.musicalFlowScore}%`,
+                backgroundColor: result.summary.musicalFlowScore > 80
+                  ? 'rgb(34, 197, 94)' : result.summary.musicalFlowScore >= 50
+                  ? 'rgb(234, 179, 8)' : 'rgb(239, 68, 68)',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Worst stride */}
       {result?.summary.worstStride && (
         <div className="mx-4 mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
@@ -140,18 +214,33 @@ export const DrillAnalysisPanel: React.FC<DrillAnalysisPanelProps> = ({
 
       {/* Filter tabs */}
       {result && (
-        <div className="flex items-center gap-1 px-4 mb-2">
-          {(['all', 'collision', 'stride', 'direction_change'] as const).map((t) => (
+        <div className="flex items-center gap-1 px-4 mb-2 flex-wrap">
+          {(
+            [
+              'all',
+              'collision',
+              'stride',
+              'direction_change',
+              ...(tempoMap ? ['tempo_aware_stride', 'music_alignment', 'tempo_change_transition'] as const : []),
+            ] as const
+          ).map((t) => (
             <button
               key={t}
-              onClick={() => setExpandedType(t)}
+              onClick={() => setExpandedType(t as DrillIssue['type'] | 'all')}
               className={`px-2 py-1 text-xs rounded ${
                 expandedType === t
                   ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
-              {t === 'all' ? 'All' : t === 'collision' ? 'Collisions' : t === 'stride' ? 'Strides' : 'Direction'}
+              {t === 'all' ? 'All'
+                : t === 'collision' ? 'Collisions'
+                : t === 'stride' ? 'Strides'
+                : t === 'direction_change' ? 'Direction'
+                : t === 'tempo_aware_stride' ? 'Tempo Strides'
+                : t === 'music_alignment' ? 'Music Alignment'
+                : t === 'tempo_change_transition' ? 'Tempo Changes'
+                : t}
             </button>
           ))}
         </div>

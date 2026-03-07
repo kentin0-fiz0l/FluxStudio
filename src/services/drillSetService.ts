@@ -8,6 +8,13 @@
 
 import type { DrillSet, Keyframe } from './formationTypes';
 import { countToTime, timeToCount, type CountSettings } from '../utils/drillGeometry';
+import type { TempoMap } from './tempoMap';
+
+type TimingParam = CountSettings | TempoMap;
+
+function isTempoMap(timing: TimingParam): timing is TempoMap {
+  return 'segments' in timing;
+}
 
 // ============================================================================
 // SET CRUD OPERATIONS
@@ -140,26 +147,28 @@ export function getCountsForSet(
 
 /**
  * Convert a set to a timestamp in milliseconds.
+ * Accepts either CountSettings (constant BPM) or TempoMap (variable tempo).
  */
 export function setToTimestamp(
   sets: DrillSet[],
   setId: string,
-  countSettings: CountSettings,
+  timing: TimingParam,
 ): number | undefined {
   const counts = getCountsForSet(sets, setId);
   if (!counts) return undefined;
-  return countToTime(counts.startCount, countSettings);
+  return countToTime(counts.startCount, timing);
 }
 
 /**
  * Convert a timestamp to the containing set.
+ * Accepts either CountSettings (constant BPM) or TempoMap (variable tempo).
  */
 export function timestampToSet(
   sets: DrillSet[],
   timestampMs: number,
-  countSettings: CountSettings,
+  timing: TimingParam,
 ): DrillSet | undefined {
-  const count = timeToCount(timestampMs, countSettings);
+  const count = timeToCount(timestampMs, timing);
   return getSetAtCount(sets, count);
 }
 
@@ -177,10 +186,11 @@ export function getTotalCounts(sets: DrillSet[]): number {
 /**
  * Auto-generate sets from existing keyframes.
  * Uses the time delta between keyframes and BPM to calculate counts.
+ * Accepts either CountSettings (constant BPM) or TempoMap (variable tempo).
  */
 export function generateSetsFromKeyframes(
   keyframes: Keyframe[],
-  countSettings: CountSettings,
+  timing: TimingParam,
 ): DrillSet[] {
   if (keyframes.length === 0) return [];
 
@@ -192,13 +202,19 @@ export function generateSetsFromKeyframes(
     let counts: number;
 
     if (i < sorted.length - 1) {
-      // Calculate counts from time delta to next keyframe
       const deltaMs = sorted[i + 1].timestamp - kf.timestamp;
-      const msPerBeat = 60000 / countSettings.bpm;
-      counts = Math.max(1, Math.round(deltaMs / msPerBeat));
+      if (isTempoMap(timing)) {
+        // Use variable tempo: find counts from timestamps
+        const startCount = timeToCount(kf.timestamp, timing);
+        const endCount = timeToCount(sorted[i + 1].timestamp, timing);
+        counts = Math.max(1, Math.round(endCount - startCount));
+      } else {
+        const msPerBeat = 60000 / timing.bpm;
+        counts = Math.max(1, Math.round(deltaMs / msPerBeat));
+      }
     } else {
       // Last keyframe: default to phrase length
-      counts = countSettings.countsPerPhrase;
+      counts = isTempoMap(timing) ? 8 : timing.countsPerPhrase;
     }
 
     sets.push({
@@ -216,11 +232,12 @@ export function generateSetsFromKeyframes(
 /**
  * Sync sets with keyframes after keyframe add/remove.
  * Ensures 1:1 mapping is maintained.
+ * Accepts either CountSettings (constant BPM) or TempoMap (variable tempo).
  */
 export function syncSetsWithKeyframes(
   sets: DrillSet[],
   keyframes: Keyframe[],
-  countSettings: CountSettings,
+  timing: TimingParam,
 ): DrillSet[] {
   const keyframeIds = new Set(keyframes.map((kf) => kf.id));
   const setKeyframeIds = new Set(sets.map((s) => s.keyframeId));
@@ -233,12 +250,18 @@ export function syncSetsWithKeyframes(
   for (const kf of sortedKeyframes) {
     if (!setKeyframeIds.has(kf.id)) {
       const kfIndex = sortedKeyframes.indexOf(kf);
-      let counts = countSettings.countsPerPhrase;
+      let counts = isTempoMap(timing) ? 8 : timing.countsPerPhrase;
 
       if (kfIndex < sortedKeyframes.length - 1) {
         const deltaMs = sortedKeyframes[kfIndex + 1].timestamp - kf.timestamp;
-        const msPerBeat = 60000 / countSettings.bpm;
-        counts = Math.max(1, Math.round(deltaMs / msPerBeat));
+        if (isTempoMap(timing)) {
+          const startCount = timeToCount(kf.timestamp, timing);
+          const endCount = timeToCount(sortedKeyframes[kfIndex + 1].timestamp, timing);
+          counts = Math.max(1, Math.round(endCount - startCount));
+        } else {
+          const msPerBeat = 60000 / timing.bpm;
+          counts = Math.max(1, Math.round(deltaMs / msPerBeat));
+        }
       }
 
       result.push({

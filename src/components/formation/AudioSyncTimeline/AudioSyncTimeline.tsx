@@ -16,7 +16,8 @@
  */
 
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
-import type { BeatMap } from '../../../contexts/metmap/types';
+import type { BeatMap, Section, Chord } from '../../../contexts/metmap/types';
+import type { TempoMap } from '../../../services/tempoMap';
 import type { Keyframe } from '../../../services/formationTypes';
 import { snapToBeat } from '../../../services/audioAnalysis';
 import {
@@ -34,6 +35,9 @@ import { Playhead } from './Playhead';
 import { SnapResolutionSelector } from './SnapResolutionSelector';
 import { KeyframeDiamond } from './KeyframeDiamond';
 import { TrimHandle } from './TrimHandle';
+import { SectionRegions } from './SectionRegions';
+import { ChordAnnotations } from './ChordAnnotations';
+import { TempoCurve } from './TempoCurve';
 
 // ============================================================================
 // Types
@@ -62,6 +66,11 @@ export interface AudioSyncTimelineProps {
   trimEnd?: number; // ms - end of active region
   loopEnabled?: boolean;
   onTrimChange?: (start: number, end: number) => void;
+
+  // MetMap integration (optional -- when provided, renders musical context layers)
+  sections?: Section[];
+  chords?: Chord[];
+  tempoMap?: TempoMap;
 }
 
 // ============================================================================
@@ -89,6 +98,9 @@ export const AudioSyncTimeline = memo(function AudioSyncTimeline({
   trimEnd: trimEndProp,
   loopEnabled = false,
   onTrimChange,
+  sections,
+  chords,
+  tempoMap,
 }: AudioSyncTimelineProps) {
   const overlayRef = useRef<SVGSVGElement>(null);
 
@@ -288,6 +300,17 @@ export const AudioSyncTimeline = memo(function AudioSyncTimeline({
         onClick={handleOverlayClick}
         onDoubleClick={handleOverlayDoubleClick}
       >
+        {/* Section regions: colored background rectangles per MetMap section */}
+        {sections && tempoMap && (
+          <SectionRegions
+            sections={sections}
+            tempoMap={tempoMap}
+            durationMs={duration}
+            zoom={zoom}
+            height={OVERLAY_HEIGHT}
+          />
+        )}
+
         {/* Trim region: dimmed overlays outside active range */}
         <TrimRegionOverlay
           containerWidth={containerWidth}
@@ -309,7 +332,29 @@ export const AudioSyncTimeline = memo(function AudioSyncTimeline({
           bpm={bpm}
           snapResolution={snapResolution}
           OVERLAY_HEIGHT={OVERLAY_HEIGHT}
+          tempoMap={tempoMap}
         />
+
+        {/* Chord annotations above beat grid */}
+        {chords && sections && tempoMap && (
+          <ChordAnnotations
+            chords={chords}
+            sections={sections}
+            tempoMap={tempoMap}
+            zoom={zoom}
+          />
+        )}
+
+        {/* Tempo curve showing BPM over time */}
+        {tempoMap && (
+          <TempoCurve
+            tempoMap={tempoMap}
+            durationMs={duration}
+            zoom={zoom}
+            height={20}
+            yOffset={OVERLAY_HEIGHT - 34}
+          />
+        )}
 
         {/* Snap guide line during drag */}
         <SnapGuideLine

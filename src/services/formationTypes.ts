@@ -4,11 +4,44 @@
  */
 
 import type { SceneObject as SceneObject3D } from './scene3d/types';
+import type { TempoMap } from './tempoMap';
 
 export interface Position {
   x: number;
   y: number;
   rotation?: number;
+}
+
+/** Control points for a cubic Bezier curve between two keyframe positions */
+export interface PathCurve {
+  cp1: Position;
+  cp2: Position;
+}
+
+/** Performer symbol shapes for visual distinction between sections */
+export type SymbolShape = 'circle' | 'square' | 'diamond' | 'triangle' | 'cross';
+
+/** Named group of performers for bulk selection and operations */
+export interface PerformerGroup {
+  id: string;
+  name: string;
+  performerIds: string[];
+  color: string;
+}
+
+/** Group transform operation applied to selected performers */
+export interface GroupTransform {
+  type: 'rotate' | 'scale' | 'mirror';
+  /** Rotation angle in degrees (for rotate) */
+  angle?: number;
+  /** Scale factor (for scale) */
+  scaleFactor?: number;
+  /** Scale axis constraint (for scale) */
+  scaleAxis?: 'uniform' | 'x' | 'y';
+  /** Mirror axis (for mirror) */
+  mirrorAxis?: 'x' | 'y';
+  /** Center of transformation in normalized coordinates */
+  origin: Position;
 }
 
 export interface Performer {
@@ -23,6 +56,8 @@ export interface Performer {
   section?: string;
   /** Drill number (e.g., "T1", "S5", "CG3") */
   drillNumber?: string;
+  /** Visual shape on the field (default: 'circle') */
+  symbolShape?: SymbolShape;
 }
 
 export type TransitionType = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
@@ -34,6 +69,11 @@ export interface Keyframe {
   transition?: TransitionType;
   duration?: number;
   beatBinding?: { beatIndex: number; snapResolution: 'beat' | 'half-beat' | 'measure' };
+  /**
+   * Cubic Bezier control points for curved paths between this keyframe and the next.
+   * Keyed by performer ID. When undefined, linear interpolation is used (backward compatible).
+   */
+  pathCurves?: Map<string, PathCurve>;
 }
 
 export interface AudioTrack {
@@ -166,6 +206,16 @@ export interface Formation {
   sets?: DrillSet[];
   /** Field configuration for coordinate calculations */
   fieldConfig?: FieldConfig;
+  /** Named performer groups for bulk selection and operations */
+  groups?: PerformerGroup[];
+  /** Section-to-symbol shape mapping (e.g., "Trumpets" → "square") */
+  sectionShapeMap?: Record<string, SymbolShape>;
+  /** Linked MetMap song ID for music-driven drill design */
+  metmapSongId?: string;
+  /** Precomputed tempo map from linked MetMap song */
+  tempoMap?: TempoMap;
+  /** Override: ignore MetMap song, use drillSettings.bpm instead */
+  useConstantTempo?: boolean;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -187,6 +237,7 @@ export interface FormationExportOptions {
   fps?: number;
   resolution?: { width: number; height: number };
   includeFieldOverlay?: boolean;
+  includeAudio?: boolean;
   onProgress?: (progress: ExportProgress) => void;
 }
 

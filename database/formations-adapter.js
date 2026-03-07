@@ -539,10 +539,50 @@ class FormationsAdapter {
    * @param {string} formationId
    * @param {Object} data - { performers, keyframes with positions }
    */
-  async saveFormation(formationId, { name, performers, keyframes }) {
-    // Update formation name if provided
-    if (name) {
-      await this.updateFormation(formationId, { name });
+  async saveFormation(formationId, {
+    name, performers, keyframes,
+    drillSettings, sets, fieldConfig,
+    groups, sectionShapeMap,
+    metmapSongId, tempoMap, useConstantTempo
+  }) {
+    // Update formation metadata (name + extended fields stored as JSONB)
+    const metadataUpdates = {};
+    if (name) metadataUpdates.name = name;
+
+    // Store extended drill fields as a JSON blob in the extra_data column
+    const extraData = {};
+    if (drillSettings !== undefined) extraData.drillSettings = drillSettings;
+    if (sets !== undefined) extraData.sets = sets;
+    if (fieldConfig !== undefined) extraData.fieldConfig = fieldConfig;
+    if (groups !== undefined) extraData.groups = groups;
+    if (sectionShapeMap !== undefined) extraData.sectionShapeMap = sectionShapeMap;
+    if (metmapSongId !== undefined) extraData.metmapSongId = metmapSongId;
+    if (tempoMap !== undefined) extraData.tempoMap = tempoMap;
+    if (useConstantTempo !== undefined) extraData.useConstantTempo = useConstantTempo;
+
+    if (Object.keys(metadataUpdates).length > 0) {
+      await this.updateFormation(formationId, metadataUpdates);
+    }
+
+    // Save extended data as JSONB (add column if missing via upsert pattern)
+    if (Object.keys(extraData).length > 0) {
+      try {
+        await query(`
+          UPDATE formations SET extra_data = COALESCE(extra_data, '{}'::jsonb) || $2::jsonb, updated_at = NOW()
+          WHERE id = $1
+        `, [formationId, JSON.stringify(extraData)]);
+      } catch (e) {
+        // If extra_data column doesn't exist yet, add it
+        if (e.message && e.message.includes('extra_data')) {
+          await query(`ALTER TABLE formations ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb`);
+          await query(`
+            UPDATE formations SET extra_data = $2::jsonb, updated_at = NOW()
+            WHERE id = $1
+          `, [formationId, JSON.stringify(extraData)]);
+        } else {
+          console.error('Error saving extra formation data', e);
+        }
+      }
     }
 
     // Get existing performers and keyframes
@@ -581,6 +621,28 @@ class FormationsAdapter {
           )
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
         `, [performer.id, formationId, performer.name, performer.label, performer.color, performer.group || null, i]);
+      }
+
+      // Save extended performer fields as JSONB
+      const perfExtra = {};
+      if (performer.instrument) perfExtra.instrument = performer.instrument;
+      if (performer.section) perfExtra.section = performer.section;
+      if (performer.drillNumber) perfExtra.drillNumber = performer.drillNumber;
+      if (performer.symbolShape) perfExtra.symbolShape = performer.symbolShape;
+      if (Object.keys(perfExtra).length > 0) {
+        try {
+          await query(`
+            UPDATE formation_performers SET extra_data = COALESCE(extra_data, '{}'::jsonb) || $2::jsonb
+            WHERE id = $1
+          `, [performer.id, JSON.stringify(perfExtra)]);
+        } catch (e) {
+          if (e.message && e.message.includes('extra_data')) {
+            await query(`ALTER TABLE formation_performers ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb`);
+            await query(`
+              UPDATE formation_performers SET extra_data = $2::jsonb WHERE id = $1
+            `, [performer.id, JSON.stringify(perfExtra)]);
+          }
+        }
       }
     }
 
@@ -639,6 +701,32 @@ class FormationsAdapter {
           }
         }
       }
+
+      // Save pathCurves and beatBinding as JSONB on keyframe row
+      const kfExtra = {};
+      if (keyframe.pathCurves) {
+        kfExtra.pathCurves = keyframe.pathCurves instanceof Map
+          ? Object.fromEntries(keyframe.pathCurves)
+          : keyframe.pathCurves;
+      }
+      if (keyframe.beatBinding) {
+        kfExtra.beatBinding = keyframe.beatBinding;
+      }
+      if (Object.keys(kfExtra).length > 0) {
+        try {
+          await query(`
+            UPDATE formation_keyframes SET extra_data = COALESCE(extra_data, '{}'::jsonb) || $2::jsonb
+            WHERE id = $1
+          `, [keyframe.id, JSON.stringify(kfExtra)]);
+        } catch (e) {
+          if (e.message && e.message.includes('extra_data')) {
+            await query(`ALTER TABLE formation_keyframes ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb`);
+            await query(`
+              UPDATE formation_keyframes SET extra_data = $2::jsonb WHERE id = $1
+            `, [keyframe.id, JSON.stringify(kfExtra)]);
+          }
+        }
+      }
     }
 
     // Delete removed keyframes
@@ -666,6 +754,9 @@ class FormationsAdapter {
       duration: row.audio_duration ? parseInt(row.audio_duration) : 0
     } : undefined;
 
+    // Parse extra_data JSONB column for extended drill fields
+    const extra = row.extra_data || {};
+
     return {
       id: row.id,
       projectId: row.project_id,
@@ -677,6 +768,14 @@ class FormationsAdapter {
       audioTrack,
       musicTrackUrl: row.music_track_url || (audioTrack ? audioTrack.url : undefined),
       musicDuration: row.music_duration || (audioTrack ? audioTrack.duration : undefined),
+      drillSettings: extra.drillSettings || undefined,
+      sets: extra.sets || undefined,
+      fieldConfig: extra.fieldConfig || undefined,
+      groups: extra.groups || undefined,
+      sectionShapeMap: extra.sectionShapeMap || undefined,
+      metmapSongId: extra.metmapSongId || undefined,
+      tempoMap: extra.tempoMap || undefined,
+      useConstantTempo: extra.useConstantTempo || undefined,
       isArchived: row.is_archived,
       createdBy: row.created_by,
       creatorName: row.creator_name,
@@ -687,6 +786,7 @@ class FormationsAdapter {
   }
 
   _transformPerformer(row) {
+    const extra = row.extra_data || {};
     return {
       id: row.id,
       formationId: row.formation_id,
@@ -694,18 +794,25 @@ class FormationsAdapter {
       label: row.label,
       color: row.color,
       group: row.group_name,
-      sortOrder: row.sort_order
+      sortOrder: row.sort_order,
+      instrument: extra.instrument || undefined,
+      section: extra.section || undefined,
+      drillNumber: extra.drillNumber || undefined,
+      symbolShape: extra.symbolShape || undefined,
     };
   }
 
   _transformKeyframe(row) {
+    const extra = row.extra_data || {};
     return {
       id: row.id,
       formationId: row.formation_id,
       timestamp: row.timestamp_ms,
       transition: row.transition,
       duration: row.duration,
-      sortOrder: row.sort_order
+      sortOrder: row.sort_order,
+      pathCurves: extra.pathCurves || undefined,
+      beatBinding: extra.beatBinding || undefined,
     };
   }
 }

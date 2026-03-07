@@ -62,6 +62,7 @@ function computeBatchData(
     name: string;
     pixelX: number;
     pixelY: number;
+    shape: 'circle' | 'square' | 'diamond' | 'triangle' | 'cross';
   }> = [];
 
   for (const performer of performers) {
@@ -74,6 +75,7 @@ function computeBatchData(
       name: performer.name,
       pixelX: (pos.x / 100) * canvasWidth,
       pixelY: (pos.y / 100) * canvasHeight,
+      shape: 'circle',
     });
   }
 

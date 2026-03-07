@@ -259,23 +259,67 @@ export const PerformerMarker = React.memo<PerformerMarkerProps>(function Perform
         </div>
       )}
 
-      {/* Marker Circle */}
-      <div
-        className={`rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${
-          isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
-        }`}
-        style={{
-          width: markerSize,
-          height: markerSize,
-          backgroundColor: performer.color,
-          transform: showRotation ? `rotate(${rotation}deg)` : undefined,
-        }}
-        aria-label={performer.name}
-      >
-        {showLabel && (
-          <span className="pointer-events-none">{performer.label}</span>
-        )}
-      </div>
+      {/* Marker Shape */}
+      {(!performer.symbolShape || performer.symbolShape === 'circle') ? (
+        <div
+          className={`rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${
+            isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+          }`}
+          style={{
+            width: markerSize,
+            height: markerSize,
+            backgroundColor: performer.color,
+            transform: showRotation ? `rotate(${rotation}deg)` : undefined,
+          }}
+          aria-label={performer.name}
+        >
+          {showLabel && (
+            <span className="pointer-events-none">{performer.label}</span>
+          )}
+        </div>
+      ) : (
+        <svg
+          width={markerSize}
+          height={markerSize}
+          viewBox="0 0 32 32"
+          className={`shadow-lg ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+          style={{
+            transform: showRotation ? `rotate(${rotation}deg)` : undefined,
+            overflow: 'visible',
+          }}
+          aria-label={performer.name}
+        >
+          {performer.symbolShape === 'square' && (
+            <rect x="2" y="2" width="28" height="28" rx="2" fill={performer.color} />
+          )}
+          {performer.symbolShape === 'diamond' && (
+            <polygon points="16,1 31,16 16,31 1,16" fill={performer.color} />
+          )}
+          {performer.symbolShape === 'triangle' && (
+            <polygon points="16,2 30,27 2,27" fill={performer.color} />
+          )}
+          {performer.symbolShape === 'cross' && (
+            <path
+              d="M11,2 L21,2 L21,11 L30,11 L30,21 L21,21 L21,30 L11,30 L11,21 L2,21 L2,11 L11,11 Z"
+              fill={performer.color}
+            />
+          )}
+          {showLabel && (
+            <text
+              x="16"
+              y="16"
+              textAnchor="middle"
+              dominantBaseline="central"
+              fill="white"
+              fontSize="12"
+              fontWeight="bold"
+              className="pointer-events-none"
+            >
+              {performer.label}
+            </text>
+          )}
+        </svg>
+      )}
 
       {/* Performer Name (below marker) */}
       {showLabel && (

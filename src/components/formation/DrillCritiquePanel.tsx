@@ -7,6 +7,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Shield,
   Play,
@@ -162,6 +163,7 @@ interface SuggestionItemProps {
 }
 
 function SuggestionItem({ suggestion, onHighlight }: SuggestionItemProps) {
+  const { t } = useTranslation('common');
   const getPriorityStyles = (priority: DrillSuggestion['priority']) => {
     switch (priority) {
       case 'high':
@@ -225,7 +227,7 @@ function SuggestionItem({ suggestion, onHighlight }: SuggestionItemProps) {
               aria-label={`Highlight ${suggestion.performerIds!.length} involved performers`}
             >
               <Users className="w-3 h-3" aria-hidden="true" />
-              Highlight {suggestion.performerIds!.length} performer{suggestion.performerIds!.length !== 1 ? 's' : ''}
+              {t('formation.drillCritique.highlightPerformers', 'Highlight {{count}} performer(s)', { count: suggestion.performerIds!.length })}
               <ArrowRight className="w-3 h-3" aria-hidden="true" />
             </button>
           )}
@@ -246,6 +248,7 @@ export function DrillCritiquePanel({
   onHighlightPerformers,
   className = '',
 }: DrillCritiquePanelProps) {
+  const { t } = useTranslation('common');
   const [result, setResult] = useState<DrillCritiqueResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showCategories, setShowCategories] = useState(true);
@@ -293,7 +296,7 @@ export function DrillCritiquePanel({
         <div className="flex items-center gap-1.5">
           <Shield className="w-3.5 h-3.5 text-blue-500" aria-hidden="true" />
           <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-            Drill Critique
+            {t('formation.drillCritique.title', 'Drill Critique')}
           </span>
         </div>
         <button
@@ -305,17 +308,17 @@ export function DrillCritiquePanel({
           {isAnalyzing ? (
             <>
               <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
-              Analyzing...
+              {t('formation.drillCritique.analyzing', 'Analyzing...')}
             </>
           ) : result ? (
             <>
               <RefreshCw className="w-3 h-3" aria-hidden="true" />
-              Re-analyze
+              {t('formation.drillCritique.reAnalyze', 'Re-analyze')}
             </>
           ) : (
             <>
               <Play className="w-3 h-3" aria-hidden="true" />
-              Analyze
+              {t('formation.drillCritique.analyze', 'Analyze')}
             </>
           )}
         </button>
@@ -337,14 +340,14 @@ export function DrillCritiquePanel({
           <div className="flex flex-col items-center justify-center py-10 text-center px-4">
             <Shield className="w-10 h-10 text-gray-300 dark:text-gray-600 mb-3" aria-hidden="true" />
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-              Analyze your drill
+              {t('formation.drillCritique.analyzeYourDrill', 'Analyze your drill')}
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500 max-w-[200px]">
-              Check spacing, stride feasibility, and movement flow across all sets.
+              {t('formation.drillCritique.description', 'Check spacing, stride feasibility, and movement flow across all sets.')}
             </p>
             {!canAnalyze && (
               <p className="text-xs text-amber-500 mt-2">
-                Add performers and sets before analyzing.
+                {t('formation.drillCritique.addPerformersFirst', 'Add performers and sets before analyzing.')}
               </p>
             )}
           </div>
@@ -367,7 +370,7 @@ export function DrillCritiquePanel({
               <ScoreRing score={result.overallScore} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                  Overall Score
+                  {t('formation.drillCritique.overallScore', 'Overall Score')}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   {result.summary}
@@ -383,7 +386,7 @@ export function DrillCritiquePanel({
                 aria-expanded={showCategories}
               >
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                  Categories
+                  {t('formation.drillCritique.categories', 'Categories')}
                 </span>
                 {showCategories ? (
                   <ChevronUp className="w-3 h-3 text-gray-400" aria-hidden="true" />
@@ -409,7 +412,7 @@ export function DrillCritiquePanel({
                   aria-expanded={showSuggestions}
                 >
                   <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                    Suggestions ({result.suggestions.length})
+                    {t('formation.drillCritique.suggestions', 'Suggestions ({{count}})', { count: result.suggestions.length })}
                   </span>
                   {showSuggestions ? (
                     <ChevronUp className="w-3 h-3 text-gray-400" aria-hidden="true" />

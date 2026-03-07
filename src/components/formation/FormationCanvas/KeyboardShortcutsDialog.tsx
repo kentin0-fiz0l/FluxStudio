@@ -41,6 +41,7 @@ export function KeyboardShortcutsDialog({ onClose }: KeyboardShortcutsDialogProp
     groupMap.navigation.shortcuts.push(
       { keys: '\u2191 \u2193 \u2190 \u2192', desc: 'Nudge performer (1 unit)' },
       { keys: 'Shift+Arrow', desc: 'Nudge performer (5 units)' },
+      { keys: 'Alt+Arrow', desc: 'Navigate to nearest performer' },
     );
     groupMap.drill.shortcuts.push(
       { keys: '1-9', desc: 'Jump to set number' },

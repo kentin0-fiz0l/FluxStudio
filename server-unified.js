@@ -615,6 +615,11 @@ messagingRoutes.setMessagingNamespace(messagingNamespace);
 app.use('/integrations', integrationsRoutes);
 app.use('/api/integrations', integrationsRoutes);
 
+// Phase 9.4 - LMS Integration (Google Classroom, Canvas)
+const lmsRoutes = require('./routes/lms');
+app.use('/lms', lmsRoutes);
+app.use('/api/lms', lmsRoutes);
+
 app.use('/media', mediaRoutes);
 app.use('/api/media', mediaRoutes);
 
