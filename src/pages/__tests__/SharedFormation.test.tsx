@@ -13,22 +13,30 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock('../services/formationsApi', () => ({
+vi.mock('../../services/formationsApi', () => ({
   fetchSharedFormation: vi.fn().mockRejectedValue(new Error('Not found')),
 }));
 
-vi.mock('../components/SEOHead', () => ({
+vi.mock('../../components/SEOHead', () => ({
   SEOHead: () => <div data-testid="seo-head" />,
 }));
 
-vi.mock('../services/analytics/eventTracking', () => ({
+vi.mock('../../services/analytics/eventTracking', () => ({
   eventTracker: {
     trackEvent: vi.fn(),
   },
 }));
 
-vi.mock('../components/formation/Formation3DView', () => ({
+vi.mock('../../components/formation/Formation3DView', () => ({
   Formation3DView: () => <div data-testid="formation-3d-view" />,
+}));
+
+vi.mock('@/hooks/useFeatureFlag', () => ({
+  useFeatureFlag: () => false,
+}));
+
+vi.mock('@/services/presentationAIService', () => ({
+  generateLocalPresentationNotes: vi.fn().mockResolvedValue([]),
 }));
 
 import SharedFormation from '../SharedFormation';
