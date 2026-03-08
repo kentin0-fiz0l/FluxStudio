@@ -5,12 +5,14 @@
  * - aria-live announcements for selection changes, tool switches, and navigation
  * - Position descriptions using drill coordinate notation (e.g., "4 steps outside R35")
  * - Keyboard navigation between performers (Tab/Shift+Tab, arrow keys without selection)
+ * - Off-screen accessible data table synced with the visual canvas
  * - Focus management helpers
  *
  * Phase 10.3 - Formation Canvas Accessibility
+ * Phase 3.2 - WCAG 2.1 AA Completion
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { positionToCoordinateDetails } from '../../../services/coordinateSheetGenerator';
 import { NCAA_FOOTBALL_FIELD } from '../../../services/fieldConfigService';
 import type { Formation, Position } from '../../../services/formationService';
@@ -26,6 +28,16 @@ interface UseCanvasAccessibilityProps {
   fieldConfig?: FieldConfig;
 }
 
+export interface PerformerTableRow {
+  id: string;
+  name: string;
+  label: string;
+  x: number;
+  y: number;
+  coordinateDescription: string;
+  isSelected: boolean;
+}
+
 interface AccessibilityState {
   /** Current announcement for the aria-live region */
   announcement: string;
@@ -37,6 +49,16 @@ interface AccessibilityState {
   navigatePerformer: (direction: 'next' | 'prev') => string | null;
   /** Get summary of current canvas state for screen readers */
   getCanvasSummary: () => string;
+  /** Accessible table rows synced with canvas state */
+  tableRows: PerformerTableRow[];
+  /** Keyboard handlers for the accessible table */
+  tableKeyboardHandlers: {
+    onKeyDown: (e: React.KeyboardEvent, performerId: string) => void;
+  };
+  /** Ref for the accessible table container */
+  accessibleTableRef: React.RefObject<HTMLTableElement>;
+  /** Announce a change to screen readers */
+  announceChange: (message: string) => void;
 }
 
 const TOOL_LABELS: Record<Tool, string> = {
@@ -58,6 +80,7 @@ export function useCanvasAccessibility({
 }: UseCanvasAccessibilityProps): AccessibilityState {
   const [announcement, setAnnouncement] = useState('');
   const liveRegionRef = useRef<HTMLDivElement>(null!);
+  const accessibleTableRef = useRef<HTMLTableElement>(null!);
   const prevSelectedRef = useRef<Set<string>>(new Set());
   const prevToolRef = useRef<Tool>(activeTool);
 
@@ -138,6 +161,56 @@ export function useCanvasAccessibility({
     return parts.join('. ');
   }, [formation, selectedPerformerIds, activeTool]);
 
+  // Build accessible table rows synced with canvas state
+  const tableRows: PerformerTableRow[] = useMemo(() => {
+    if (!formation) return [];
+
+    return formation.performers.map((performer) => {
+      const position = currentPositions.get(performer.id);
+      let coordinateDescription = 'Position unknown';
+      if (position) {
+        const coords = positionToCoordinateDetails(position, fieldConfig);
+        coordinateDescription = `${coords.sideToSide}, ${coords.frontToBack}`;
+      }
+      return {
+        id: performer.id,
+        name: performer.name,
+        label: performer.label || performer.name,
+        x: position?.x ?? 0,
+        y: position?.y ?? 0,
+        coordinateDescription,
+        isSelected: selectedPerformerIds.has(performer.id),
+      };
+    });
+  }, [formation, currentPositions, selectedPerformerIds, fieldConfig]);
+
+  // Keyboard handlers for the accessible table (arrow keys to navigate rows)
+  const tableKeyboardHandlers = useMemo(() => ({
+    onKeyDown: (e: React.KeyboardEvent, performerId: string) => {
+      if (!formation) return;
+      const ids = formation.performers.map((p) => p.id);
+      const currentIdx = ids.indexOf(performerId);
+
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const nextIdx = e.key === 'ArrowDown'
+          ? Math.min(currentIdx + 1, ids.length - 1)
+          : Math.max(currentIdx - 1, 0);
+        // Focus the next row in the table
+        const table = accessibleTableRef.current;
+        if (table) {
+          const rows = table.querySelectorAll<HTMLElement>('tr[data-performer-id]');
+          rows[nextIdx]?.focus();
+        }
+      }
+
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        announce(`Selected: ${getPerformerDescription(performerId)}`);
+      }
+    },
+  }), [formation, announce, getPerformerDescription]);
+
   // Announce selection changes
   useEffect(() => {
     const prev = prevSelectedRef.current;
@@ -184,5 +257,9 @@ export function useCanvasAccessibility({
     getPerformerDescription,
     navigatePerformer,
     getCanvasSummary,
+    tableRows,
+    tableKeyboardHandlers,
+    accessibleTableRef,
+    announceChange: announce,
   };
 }

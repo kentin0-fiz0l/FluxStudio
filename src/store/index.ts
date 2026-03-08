@@ -128,6 +128,7 @@ export type {
   AIConversation,
   GenerationRequest,
   AISuggestion,
+  SharedAISuggestion,
   AIUsage,
   AIPreferences,
   AIState,

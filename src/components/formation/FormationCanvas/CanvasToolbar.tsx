@@ -16,9 +16,11 @@ import {
   Undo2, Redo2, Settings2, Circle, Share2, Code2, Menu, X,
   Shield, ArrowRightLeft, Footprints, MapPin,
   Ruler, UsersRound, Spline, MessageCircle, ShieldCheck, History,
+  Wand2,
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
 import { useSyncStatus } from '@/store/slices/offlineSlice';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { observability } from '@/services/observability';
 
 type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block' | 'comment';
@@ -96,6 +98,9 @@ interface CanvasToolbarProps {
   // Version history panel toggle
   showVersionHistory?: boolean;
   setShowVersionHistory?: (show: boolean) => void;
+  // Generate from Music (ai_collaborative feature flag)
+  onGenerateFromMusic?: () => void;
+  isGeneratingFromMusic?: boolean;
 }
 
 export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
@@ -126,9 +131,11 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
   validationMode, onToggleValidationMode,
   viewRole = 'designer', onViewRoleChange,
   showVersionHistory, setShowVersionHistory,
+  onGenerateFromMusic, isGeneratingFromMusic = false,
 }) => {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
+  const aiCollaborativeEnabled = useFeatureFlag('ai-collaborative');
   const [showViewOptions, setShowViewOptions] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const viewOptionsRef = useRef<HTMLDivElement>(null);
@@ -322,6 +329,23 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             aria-pressed={showDraftPanel}
           >
             <Bot className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+
+        {/* Generate from Music (ai_collaborative feature flag) */}
+        {aiCollaborativeEnabled && onGenerateFromMusic && (
+          <button
+            onClick={onGenerateFromMusic}
+            disabled={isGeneratingFromMusic}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${isGeneratingFromMusic ? 'text-purple-500 animate-pulse cursor-wait' : 'text-gray-400 hover:text-purple-500 dark:hover:text-purple-400'}`}
+            title="Generate Show from Music"
+            aria-label="Generate show from music"
+            aria-busy={isGeneratingFromMusic}
+          >
+            {isGeneratingFromMusic
+              ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+              : <Wand2 className="w-4 h-4" aria-hidden="true" />
+            }
           </button>
         )}
 

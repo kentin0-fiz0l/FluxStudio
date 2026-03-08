@@ -167,7 +167,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <p
             id={descriptionId}
             role={error ? 'alert' : undefined}
-            aria-live={error ? 'polite' : undefined}
+            aria-live={error ? 'assertive' : undefined}
             className={cn(
               'text-sm',
               error && 'text-error-600',

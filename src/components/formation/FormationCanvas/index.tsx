@@ -400,6 +400,50 @@ export function FormationCanvas(props: FormationCanvasProps) {
         {accessibility.getCanvasSummary()}
       </div>
 
+      {/* Off-screen accessible data table synced with the visual canvas */}
+      {accessibility.tableRows.length > 0 && (
+        <table
+          ref={accessibility.accessibleTableRef}
+          className="sr-only"
+          aria-label={t('formation.performerTable', 'Performer positions')}
+        >
+          <thead>
+            <tr>
+              <th scope="col">{t('formation.name', 'Name')}</th>
+              <th scope="col">{t('formation.label', 'Label')}</th>
+              <th scope="col">{t('formation.position', 'Position')}</th>
+              <th scope="col">{t('formation.status', 'Status')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {accessibility.tableRows.map((row) => (
+              <tr
+                key={row.id}
+                data-performer-id={row.id}
+                tabIndex={0}
+                role="row"
+                aria-selected={row.isSelected}
+                onKeyDown={(e) => {
+                  accessibility.tableKeyboardHandlers.onKeyDown(e, row.id);
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleSelectPerformer(row.id, false);
+                  }
+                  if (e.key === 'Delete' || e.key === 'Backspace') {
+                    if (row.isSelected) handleDeleteSelected();
+                  }
+                }}
+                onClick={() => handleSelectPerformer(row.id, false)}
+              >
+                <td>{row.name}</td>
+                <td>{row.label}</td>
+                <td>{row.coordinateDescription}</td>
+                <td>{row.isSelected ? t('formation.selected', 'Selected') : ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
       {isDesktop ? (
         <CanvasToolbar
           activeTool={activeTool} setActiveTool={setActiveTool}

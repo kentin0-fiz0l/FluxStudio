@@ -131,6 +131,15 @@ export function AIChatPanel({
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          role="dialog"
+          aria-label="AI chat panel"
+          tabIndex={-1}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.stopPropagation();
+              onClose();
+            }
+          }}
           initial={{ opacity: 0, x: position === 'right' ? 384 : 0, y: position === 'bottom' ? 384 : 0 }}
           animate={{ opacity: 1, x: 0, y: 0 }}
           exit={{ opacity: 0, x: position === 'right' ? 384 : 0, y: position === 'bottom' ? 384 : 0 }}

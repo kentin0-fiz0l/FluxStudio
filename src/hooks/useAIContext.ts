@@ -9,6 +9,27 @@ import * as React from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { useStore } from '@/store';
 
+export interface FormationContext {
+  /** Formation name */
+  name: string;
+  /** Total number of performers */
+  performerCount: number;
+  /** Active set index (0-based) */
+  activeSetIndex: number;
+  /** Active set name (e.g., "Set 3") */
+  currentSetName?: string;
+  /** Total number of sets */
+  totalSets: number;
+  /** Number of currently selected performers */
+  selectedPerformerCount: number;
+  /** Unique section names in this formation */
+  sections: string[];
+  /** Whether music is linked to the formation */
+  musicLinked: boolean;
+  /** BPM from music or drill settings */
+  bpm?: number;
+}
+
 export interface AIContext {
   // Current location
   page: string;
@@ -26,6 +47,9 @@ export interface AIContext {
     type: string;
     name: string;
   };
+
+  // Formation state (populated when on a formation page)
+  formation?: FormationContext;
 
   // User activity
   recentActions: string[];
@@ -202,6 +226,14 @@ export function useAIContext(options: UseAIContextOptions = {}) {
     }
   }, [addAction, trackActions]);
 
+  // Set formation context (call from FormationCanvas when formation state changes)
+  const setFormationContext = React.useCallback((formation: FormationContext | undefined) => {
+    setContext((prev) => ({
+      ...prev,
+      formation,
+    }));
+  }, []);
+
   // Generate context summary for AI
   const getContextSummary = React.useCallback((): string => {
     const parts: string[] = [];
@@ -214,6 +246,21 @@ export function useAIContext(options: UseAIContextOptions = {}) {
 
     if (context.activeEntity) {
       parts.push(`Has ${context.activeEntity.type} "${context.activeEntity.name}" open.`);
+    }
+
+    if (context.formation) {
+      const f = context.formation;
+      parts.push(`Editing formation "${f.name}" with ${f.performerCount} performers.`);
+      parts.push(`Active set: ${f.currentSetName || `Set ${f.activeSetIndex + 1}`} of ${f.totalSets}.`);
+      if (f.selectedPerformerCount > 0) {
+        parts.push(`${f.selectedPerformerCount} performer(s) selected.`);
+      }
+      if (f.sections.length > 0) {
+        parts.push(`Sections: ${f.sections.join(', ')}.`);
+      }
+      if (f.musicLinked) {
+        parts.push(`Music linked${f.bpm ? ` at ${f.bpm} BPM` : ''}.`);
+      }
     }
 
     if (context.selectedElement) {
@@ -235,6 +282,7 @@ export function useAIContext(options: UseAIContextOptions = {}) {
     addAction,
     setSelectedElement,
     setActiveEntity,
+    setFormationContext,
     getContextSummary,
   };
 }

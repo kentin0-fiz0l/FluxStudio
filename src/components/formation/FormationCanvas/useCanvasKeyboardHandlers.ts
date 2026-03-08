@@ -218,10 +218,45 @@ export function useCanvasKeyboardHandlers({
         handleSelectAll();
       }
 
-      // Arrow keys: Alt+Arrow = spatial navigation, plain Arrow = nudge
+      // Page Up/Down: navigate between sets/keyframes
+      if ((e.key === 'PageUp' || e.key === 'PageDown') && formation && handleKeyframeSelect) {
+        e.preventDefault();
+        const kfs = formation.keyframes;
+        if (kfs.length > 1) {
+          let curIdx = 0;
+          if (currentPositions.size > 0) {
+            const firstId = Array.from(currentPositions.keys())[0];
+            const curPos = currentPositions.get(firstId);
+            if (curPos) {
+              for (let i = 0; i < kfs.length; i++) {
+                const kfPos = kfs[i].positions.get(firstId);
+                if (kfPos && Math.abs(kfPos.x - curPos.x) < 0.01 && Math.abs(kfPos.y - curPos.y) < 0.01) {
+                  curIdx = i;
+                  break;
+                }
+              }
+            }
+          }
+          const targetIdx = e.key === 'PageDown'
+            ? Math.min(curIdx + 1, kfs.length - 1)
+            : Math.max(curIdx - 1, 0);
+          handleKeyframeSelect(kfs[targetIdx].id);
+        }
+      }
+
+      // Arrow keys: Ctrl+Arrow = move performer, Alt+Arrow = spatial navigation, plain Arrow = nudge
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        // Ctrl+Arrow: move selected performer(s) position (accessibility)
+        if ((e.ctrlKey || e.metaKey) && selectedPerformerIds.size > 0 && !e.altKey) {
+          e.preventDefault();
+          const step = e.shiftKey ? 5 : 1;
+          if (e.key === 'ArrowUp') handleNudge(0, -step);
+          else if (e.key === 'ArrowDown') handleNudge(0, step);
+          else if (e.key === 'ArrowLeft') handleNudge(-step, 0);
+          else if (e.key === 'ArrowRight') handleNudge(step, 0);
+        }
         // Alt+Arrow: navigate to nearest performer in that direction (accessibility)
-        if (e.altKey && formation && selectedPerformerIds.size === 1) {
+        else if (e.altKey && formation && selectedPerformerIds.size === 1) {
           e.preventDefault();
           const currentId = Array.from(selectedPerformerIds)[0];
           const currentPos = currentPositions.get(currentId);
@@ -252,8 +287,8 @@ export function useCanvasKeyboardHandlers({
             }
           }
         }
-        // Plain Arrow (no Alt): nudge selected performers
-        else if (selectedPerformerIds.size > 0 && !e.altKey) {
+        // Plain Arrow (no modifiers except Shift): nudge selected performers
+        else if (selectedPerformerIds.size > 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
           e.preventDefault();
           const step = e.shiftKey ? 5 : 1;
           if (e.key === 'ArrowUp') handleNudge(0, -step);

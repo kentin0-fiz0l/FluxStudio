@@ -124,11 +124,22 @@ export interface AIPreferences {
   maxHistoryLength: number;
 }
 
+/** A suggestion shared with all connected collaborators via Yjs */
+export interface SharedAISuggestion {
+  id: string;
+  userId: string;
+  userName: string;
+  suggestion: AISuggestion;
+  sharedAt: string;
+}
+
 export interface AIState {
   conversations: AIConversation[];
   activeConversationId: string | null;
   generationRequests: GenerationRequest[];
   suggestions: AISuggestion[];
+  /** Suggestions shared across collaborators via Yjs (ai_collaborative flag) */
+  sharedSuggestions: SharedAISuggestion[];
   usage: AIUsage;
   preferences: AIPreferences;
   isProcessing: boolean;
@@ -178,6 +189,11 @@ export interface AIActions {
   applySuggestion: (id: string) => void;
   clearSuggestions: () => void;
 
+  // Shared suggestions (ai_collaborative feature flag)
+  addSharedSuggestion: (shared: SharedAISuggestion) => void;
+  setSharedSuggestions: (suggestions: SharedAISuggestion[]) => void;
+  clearSharedSuggestions: () => void;
+
   // Preferences
   updatePreferences: (updates: Partial<AIPreferences>) => void;
 
@@ -220,6 +236,7 @@ const initialState: AIState = {
   activeConversationId: null,
   generationRequests: [],
   suggestions: [],
+  sharedSuggestions: [],
   usage: initialUsage,
   preferences: initialPreferences,
   isProcessing: false,
@@ -239,6 +256,31 @@ export const createAISlice: StateCreator<
 > = (set, get) => ({
   ai: {
     ...initialState,
+
+    // Shared suggestions actions (ai_collaborative feature flag)
+    // NOTE: These must appear before other actions to satisfy TypeScript inference
+    // for the AIState & AIActions type with 32+ members.
+    addSharedSuggestion: (shared: SharedAISuggestion) => {
+      set((state) => {
+        if (state.ai.sharedSuggestions.some((s) => s.id === shared.id)) return;
+        state.ai.sharedSuggestions.unshift(shared);
+        if (state.ai.sharedSuggestions.length > 50) {
+          state.ai.sharedSuggestions = state.ai.sharedSuggestions.slice(0, 50);
+        }
+      });
+    },
+
+    setSharedSuggestions: (suggestions: SharedAISuggestion[]) => {
+      set((state) => {
+        state.ai.sharedSuggestions = suggestions;
+      });
+    },
+
+    clearSharedSuggestions: () => {
+      set((state) => {
+        state.ai.sharedSuggestions = [];
+      });
+    },
 
     // Conversation actions
     createConversation: (options = {}) => {

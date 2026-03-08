@@ -13,8 +13,9 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Loader2, Play, Pause, RotateCcw, RefreshCw, Volume2, VolumeX, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Play, Pause, RotateCcw, RefreshCw, Volume2, VolumeX, ChevronLeft, ChevronRight, Maximize } from 'lucide-react';
 import * as formationsApi from '../services/formationsApi';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { Formation3DViewErrorBoundary } from '@/components/error/ErrorBoundary';
 
 const Formation3DViewLazy = React.lazy(
@@ -50,6 +51,26 @@ export default function EmbedFormation() {
 
   // Set navigation state
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
+
+  // Fullscreen support
+  const presentationModeEnabled = useFeatureFlag('presentation-mode');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
 
   const loadFormation = useCallback(async () => {
     if (!formationId) return;
@@ -289,7 +310,7 @@ export default function EmbedFormation() {
   const sortedSets = hasSets ? [...data.sets!].sort((a, b) => a.sortOrder - b.sortOrder) : [];
 
   return (
-    <div className="h-screen flex flex-col bg-gray-900 overflow-hidden">
+    <div ref={containerRef} className="h-screen flex flex-col bg-gray-900 overflow-hidden">
       {/* 3D View */}
       <div className="flex-1 relative">
         <Formation3DViewErrorBoundary>
@@ -427,6 +448,17 @@ export default function EmbedFormation() {
                 aria-label="Volume"
               />
             </div>
+          )}
+
+          {/* Fullscreen toggle */}
+          {presentationModeEnabled && (
+            <button
+              onClick={toggleFullscreen}
+              className="p-1 text-gray-400 hover:text-white transition-colors"
+              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            >
+              <Maximize className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
           )}
 
           <a

@@ -21,12 +21,20 @@ import {
   VolumeX,
   ChevronLeft,
   ChevronRight,
+  Presentation,
 } from 'lucide-react';
 import * as formationsApi from '../services/formationsApi';
 import { SEOHead } from '../components/SEOHead';
 import { eventTracker } from '../services/analytics/eventTracking';
 import { Formation3DViewErrorBoundary } from '@/components/error/ErrorBoundary';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { generateLocalPresentationNotes } from '@/services/presentationAIService';
+import type { PresentationNote } from '@/components/presentation/PresentationView';
 import type { DrillSet } from '../services/formationTypes';
+
+const PresentationViewLazy = React.lazy(
+  () => import('../components/presentation/PresentationView'),
+);
 
 const Formation3DViewLazy = React.lazy(
   () => import('../components/formation/Formation3DView').then((m) => ({ default: m.Formation3DView }))
@@ -91,11 +99,18 @@ export default function SharedFormation() {
   const performerId = searchParams.get('performerId');
   const sectionParam = searchParams.get('section');
 
+  // Feature flags
+  const presentationModeEnabled = useFeatureFlag('presentation-mode');
+
   // Core state
   const [formation, setFormation] = useState<SharedFormationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
+
+  // Presentation mode state
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
+  const [presentationNotes, setPresentationNotes] = useState<PresentationNote[]>([]);
 
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -571,6 +586,27 @@ export default function SharedFormation() {
             </button>
           </div>
 
+          {/* Present button (presentation-mode flag) */}
+          {presentationModeEnabled && formation.keyframes.length > 1 && (
+            <button
+              onClick={() => {
+                // Generate local notes on first enter
+                if (presentationNotes.length === 0 && formation.sets?.length) {
+                  const localNotes = generateLocalPresentationNotes(
+                    formation.sets.map((s) => ({ name: s.name, counts: s.counts, notes: s.notes })),
+                  );
+                  setPresentationNotes(localNotes);
+                }
+                setIsPresentationMode(true);
+                eventTracker.trackEvent('presentation_mode_enter', { formationId });
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 text-white rounded-lg text-sm hover:bg-gray-600 transition-colors"
+            >
+              <Presentation className="w-3.5 h-3.5" aria-hidden="true" />
+              Present
+            </button>
+          )}
+
           {/* CTA */}
           <button
             onClick={() => {
@@ -864,6 +900,28 @@ export default function SharedFormation() {
             FluxStudio
           </a>
         </div>
+      )}
+
+      {/* Presentation mode overlay */}
+      {isPresentationMode && (
+        <React.Suspense
+          fallback={
+            <div className="fixed inset-0 z-50 bg-gray-950 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-500" aria-hidden="true" />
+            </div>
+          }
+        >
+          <PresentationViewLazy
+            formationName={formation.name}
+            description={formation.description}
+            performers={formation.performers}
+            keyframes={formation.keyframes}
+            sets={formation.sets}
+            audioUrl={formation.audioTrack?.url}
+            notes={presentationNotes}
+            onExit={() => setIsPresentationMode(false)}
+          />
+        </React.Suspense>
       )}
     </div>
   );
