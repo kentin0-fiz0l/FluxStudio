@@ -5,9 +5,10 @@
  */
 
 import React, { useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { MessageCircle, Pin, Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
+import { MessageCircle, Pin, Check, CheckCheck, Clock, AlertCircle, Play, Pause } from 'lucide-react';
 import { ChatAvatar } from './ChatMessageBubble';
 import type { Message } from './types';
+import type { VoiceMessage } from './types';
 
 // ============================================================================
 // Helper Components
@@ -58,6 +59,62 @@ function TypingIndicator({ users }: { users: string[] }) {
         <span className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
       </div>
       <span className="text-xs text-neutral-500 dark:text-neutral-400">{message}</span>
+    </div>
+  );
+}
+
+// ============================================================================
+// InlineVoicePlayer — lightweight audio player for voice messages
+// ============================================================================
+
+function InlineVoicePlayer({ voiceMessage }: { voiceMessage: VoiceMessage }) {
+  const audioRef = React.useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = React.useState(false);
+  const [currentTime, setCurrentTime] = React.useState(0);
+
+  const toggle = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+    } else {
+      audio.play();
+    }
+    setPlaying(!playing);
+  };
+
+  const progress = voiceMessage.duration > 0
+    ? (currentTime / voiceMessage.duration) * 100
+    : 0;
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex items-center gap-2 py-1">
+      <audio
+        ref={audioRef}
+        src={voiceMessage.url}
+        onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
+        onEnded={() => { setPlaying(false); setCurrentTime(0); }}
+      />
+      <button
+        onClick={toggle}
+        className="w-8 h-8 flex items-center justify-center rounded-full bg-primary-600 text-white hover:bg-primary-700"
+      >
+        {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+      </button>
+      <div className="flex-1">
+        <div className="h-1 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+          <div className="h-full bg-primary-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+      <span className="text-xs text-neutral-500 tabular-nums">
+        {formatTime(playing ? currentTime : voiceMessage.duration)}
+      </span>
     </div>
   );
 }
@@ -188,7 +245,11 @@ const MessageBubbleWrapper = React.memo(function MessageBubbleWrapper({
                 </button>
               )}
 
-              <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+              {message.voiceMessage ? (
+                <InlineVoicePlayer voiceMessage={message.voiceMessage} />
+              ) : (
+                <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+              )}
 
               {message.isEdited && (
                 <span className={`text-[10px] ${isOwn ? 'text-white/60' : 'text-neutral-500'}`}>

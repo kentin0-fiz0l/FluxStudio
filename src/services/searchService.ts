@@ -6,6 +6,9 @@
  */
 
 import { apiService } from './apiService';
+import { isNaturalLanguageQuery, interpretQuery, generateSearchSummary } from './aiSearchService';
+import type { AISearchQuery } from './aiSearchService';
+import { getFlagSync } from './featureFlagService';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -74,6 +77,7 @@ export interface SearchResponse {
     projects: { id: string; name: string; count: number }[];
   };
   searchTime: number;
+  aiSummary?: string;
 }
 
 export interface SavedSearch {
@@ -248,6 +252,59 @@ class SearchService {
       console.error('Search error:', error);
       throw error;
     }
+  }
+
+  /**
+   * AI-powered search: interprets natural language, executes structured search,
+   * and streams an AI summary. Falls back to standard search on failure or if
+   * the ai_search flag is off.
+   */
+  async searchWithAI(query: string): Promise<SearchResponse> {
+    // Check feature flag and NL detection
+    if (!getFlagSync('ai_search') || !isNaturalLanguageQuery(query)) {
+      return this.search({ query });
+    }
+
+    let interpreted: AISearchQuery;
+    try {
+      interpreted = await interpretQuery(query);
+    } catch {
+      // AI interpretation failed — fall back to keyword search
+      return this.search({ query });
+    }
+
+    // Build structured search query from AI interpretation
+    const searchQuery: SearchQuery = {
+      query: interpreted.interpretedQuery.keywords.join(' '),
+      filters: {
+        types: interpreted.interpretedQuery.filters.type || [],
+        projectIds: [],
+        dateRange: {
+          start: interpreted.interpretedQuery.filters.dateRange?.start || null,
+          end: interpreted.interpretedQuery.filters.dateRange?.end || null,
+        },
+        status: [],
+        priority: [],
+        createdBy: interpreted.interpretedQuery.filters.author
+          ? [interpreted.interpretedQuery.filters.author]
+          : [],
+      },
+    };
+
+    const response = await this.search(searchQuery);
+
+    // Stream AI summary in background (collect into string)
+    try {
+      let summary = '';
+      for await (const chunk of generateSearchSummary(response.results, query)) {
+        summary += chunk;
+      }
+      response.aiSummary = summary;
+    } catch {
+      // Summary generation failed — return results without summary
+    }
+
+    return response;
   }
 
   /**

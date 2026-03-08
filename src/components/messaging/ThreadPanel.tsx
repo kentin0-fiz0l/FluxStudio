@@ -241,6 +241,15 @@ export function ThreadPanel({
 
   return (
     <div
+      role="dialog"
+      aria-label="Thread panel"
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          onClose();
+        }
+      }}
       className={cn(
         'flex flex-col bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-700',
         // Desktop: fixed width sidebar
@@ -338,5 +347,11 @@ export function ThreadPanel({
     </div>
   );
 }
+
+/**
+ * Re-export useThreadMode from InlineThread for convenience.
+ * Returns 'inline' on desktop (>768px) or 'panel' on mobile.
+ */
+export { useThreadMode } from './InlineThread';
 
 export default ThreadPanel;

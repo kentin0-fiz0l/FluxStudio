@@ -5,7 +5,10 @@
  * Features:
  * - Auto-resizing textarea
  * - Markdown formatting toolbar (bold, italic, code, links)
+ * - Markdown preview toggle
  * - Emoji picker with categories
+ * - @mention autocomplete with @AI support
+ * - /slash command menu
  * - File drag & drop with preview
  * - Pending attachments display
  * - Reply preview
@@ -13,7 +16,7 @@
  * - Keyboard shortcuts
  */
 
-import { useState, useRef, useEffect, lazy, Suspense } from 'react';
+import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react';
 import {
   Send,
   Paperclip,
@@ -24,11 +27,18 @@ import {
   Link2,
   Loader2,
   AlertCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
-import type { PendingAttachment, ReplyContext } from './types';
+import type { PendingAttachment, ReplyContext, MessageUser } from './types';
 import { EMOJI_CATEGORIES } from './types';
 import { formatFileSize } from './utils';
+import { MentionAutocomplete } from './MentionAutocomplete';
+import type { MentionUser } from './MentionAutocomplete';
+import { SlashCommandMenu } from './SlashCommandMenu';
+import type { SlashCommand } from './SlashCommandMenu';
+import { MarkdownMessage } from './MarkdownMessage';
 
 const VoiceRecorder = lazy(() =>
   import('./VoiceRecorder').then(m => ({ default: m.VoiceRecorder }))
@@ -144,6 +154,12 @@ export interface MessageComposerProps {
   onRemoveAttachment?: (id: string) => void;
   /** Called when voice recording is sent */
   onSendVoice?: (file: File) => void;
+  /** Users available for @mention autocomplete */
+  mentionUsers?: MessageUser[];
+  /** Called when a slash command is selected */
+  onSlashCommand?: (command: SlashCommand) => void;
+  /** Called when @AI mention is used in a sent message */
+  onAIMention?: (message: string) => void;
 }
 
 export function MessageComposer({
@@ -159,18 +175,138 @@ export function MessageComposer({
   pendingAttachments = [],
   onRemoveAttachment,
   onSendVoice,
+  mentionUsers = [],
+  onSlashCommand,
+  onAIMention,
 }: MessageComposerProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [showMarkdownPreview, setShowMarkdownPreview] = useState(false);
+
+  // Mention autocomplete state
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionStartPos, setMentionStartPos] = useState(-1);
+
+  // Slash command state
+  const [showSlashMenu, setShowSlashMenu] = useState(false);
+  const [slashQuery, setSlashQuery] = useState('');
+  const [slashStartPos, setSlashStartPos] = useState(-1);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
+  const handleChange = useCallback(
+    (newValue: string) => {
+      onChange(newValue);
+
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      // Use setTimeout to read cursor position after React updates
+      setTimeout(() => {
+        const cursorPos = textarea.selectionStart;
+        const textBefore = newValue.substring(0, cursorPos);
+
+        // Detect @ mention trigger
+        const atMatch = textBefore.match(/@(\w*)$/);
+        if (atMatch) {
+          setShowMentions(true);
+          setMentionQuery(atMatch[1]);
+          setMentionStartPos(cursorPos - atMatch[0].length);
+          setShowSlashMenu(false);
+        } else {
+          setShowMentions(false);
+          setMentionQuery('');
+          setMentionStartPos(-1);
+        }
+
+        // Detect / slash command trigger (only at start of line)
+        const lineStart = textBefore.lastIndexOf('\n') + 1;
+        const currentLine = textBefore.substring(lineStart);
+        const slashMatch = currentLine.match(/^\/(\w*)$/);
+        if (slashMatch && !showMentions) {
+          setShowSlashMenu(true);
+          setSlashQuery(slashMatch[1]);
+          setSlashStartPos(lineStart);
+          setShowMentions(false);
+        } else {
+          setShowSlashMenu(false);
+          setSlashQuery('');
+          setSlashStartPos(-1);
+        }
+      }, 0);
+    },
+    [onChange, showMentions]
+  );
+
+  const handleMentionSelect = useCallback(
+    (user: MentionUser) => {
+      const mentionText = user.id === '__ai__' ? '@AI' : `@${user.name}`;
+      const before = value.substring(0, mentionStartPos);
+      const after = value.substring(textareaRef.current?.selectionStart ?? value.length);
+      const newValue = before + mentionText + ' ' + after;
+      onChange(newValue);
+      setShowMentions(false);
+      setMentionQuery('');
+      setMentionStartPos(-1);
+
+      setTimeout(() => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+          const newCursorPos = before.length + mentionText.length + 1;
+          textarea.focus();
+          textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }
+      }, 0);
+    },
+    [value, mentionStartPos, onChange]
+  );
+
+  const handleSlashSelect = useCallback(
+    (command: SlashCommand) => {
+      // Clear the slash text from input
+      const before = value.substring(0, slashStartPos);
+      const after = value.substring(textareaRef.current?.selectionStart ?? value.length);
+      onChange(before + after);
+      setShowSlashMenu(false);
+      setSlashQuery('');
+      setSlashStartPos(-1);
+
+      onSlashCommand?.(command);
+
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 0);
+    },
+    [value, slashStartPos, onChange, onSlashCommand]
+  );
+
+  const handleSend = useCallback(() => {
+    // Check for @AI mention and trigger AI response
+    if (value.includes('@AI') && onAIMention) {
+      onAIMention(value);
+    }
+    onSend();
+  }, [value, onSend, onAIMention]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Let mention/slash menus handle their own keyboard events
+    if (showMentions || showSlashMenu) {
+      // These menus capture events via document listener, so just prevent default send
+      if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Tab') {
+        return;
+      }
+      if (e.key === 'Escape') {
+        return;
+      }
+    }
+
     // Send on Enter (without shift)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      handleSend();
       return;
     }
 
@@ -263,6 +399,14 @@ export function MessageComposer({
     }
   }, [value]);
 
+  // Convert MentionUser[] to MessageUser[] for autocomplete
+  const mentionUserList: MentionUser[] = mentionUsers.map((u) => ({
+    id: u.id,
+    name: u.name,
+    avatar: u.avatar,
+    isOnline: u.isOnline,
+  }));
+
   const hasContent = value.trim() || pendingAttachments.length > 0;
 
   return (
@@ -289,6 +433,18 @@ export function MessageComposer({
       {replyTo && (
         <div className="mb-3">
           <ReplyPreview replyTo={replyTo} onClear={onClearReply} />
+        </div>
+      )}
+
+      {/* Markdown preview */}
+      {showMarkdownPreview && value.trim() && (
+        <div className="mb-3 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg border border-neutral-200 dark:border-neutral-700">
+          <div className="text-[10px] font-semibold uppercase text-neutral-400 mb-1.5 tracking-wider">
+            Preview
+          </div>
+          <div className="text-sm text-neutral-800 dark:text-neutral-200">
+            <MarkdownMessage text={value} />
+          </div>
         </div>
       )}
 
@@ -380,6 +536,22 @@ export function MessageComposer({
         >
           <Link2 className="w-4 h-4 text-neutral-600 dark:text-neutral-400" aria-hidden="true" />
         </button>
+        <div className="w-px h-4 bg-neutral-200 dark:bg-neutral-700 mx-1" />
+        <button
+          onClick={() => setShowMarkdownPreview(!showMarkdownPreview)}
+          className={`p-1.5 rounded transition-colors ${
+            showMarkdownPreview
+              ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600'
+              : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+          }`}
+          title={showMarkdownPreview ? 'Hide preview' : 'Show preview'}
+        >
+          {showMarkdownPreview ? (
+            <EyeOff className="w-4 h-4" aria-hidden="true" />
+          ) : (
+            <Eye className="w-4 h-4" aria-hidden="true" />
+          )}
+        </button>
         <div className="flex-1" />
         <span className="text-[10px] text-neutral-400">Markdown supported</span>
       </div>
@@ -399,7 +571,7 @@ export function MessageComposer({
           <textarea
             ref={textareaRef}
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled}
@@ -424,12 +596,41 @@ export function MessageComposer({
               />
             )}
           </div>
+
+          {/* Mention Autocomplete */}
+          {showMentions && (
+            <MentionAutocomplete
+              query={mentionQuery}
+              users={mentionUserList}
+              onSelect={handleMentionSelect}
+              onClose={() => {
+                setShowMentions(false);
+                setMentionQuery('');
+                setMentionStartPos(-1);
+              }}
+              position={{ bottom: 0, left: 16 }}
+            />
+          )}
+
+          {/* Slash Command Menu */}
+          {showSlashMenu && (
+            <SlashCommandMenu
+              query={slashQuery}
+              onSelect={handleSlashSelect}
+              onClose={() => {
+                setShowSlashMenu(false);
+                setSlashQuery('');
+                setSlashStartPos(-1);
+              }}
+              position={{ bottom: 0, left: 16 }}
+            />
+          )}
         </div>
 
         {/* Voice message button (when empty) or Send button */}
         {hasContent ? (
           <button
-            onClick={onSend}
+            onClick={handleSend}
             disabled={disabled}
             className="flex-shrink-0 p-2.5 rounded-full bg-primary-600 hover:bg-primary-700 disabled:opacity-50 transition-colors shadow-lg hover:shadow-xl"
             title="Send message"

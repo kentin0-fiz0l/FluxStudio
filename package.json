@@ -237,7 +237,9 @@
             "db:migrate:verify": "node database/migration-system.js verify",
             "db:migrate:dry-run": "DRY_RUN=true node database/migration-system.js run",
             "lighthouse": "lhci autorun",
-            "cli": "node cli/bin/flux.js"
+            "cli": "node cli/bin/flux.js",
+            "tauri:dev": "cd apps/desktop && cargo tauri dev",
+            "tauri:build": "cd apps/desktop && cargo tauri build"
       },
       "overrides": {
             "tar": "$tar",

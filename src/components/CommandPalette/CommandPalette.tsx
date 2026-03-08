@@ -13,13 +13,15 @@ import {
   DialogContent,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Zap } from 'lucide-react';
 
 import type { Command, CommandPaletteProps, FrecencyStore } from './command-types';
 import { catOrder } from './command-constants';
 import { loadFrecency, recordCommandUsage, getFrecencyScore, buildCommands } from './command-utils';
 import { CommandGroupList } from './CommandGroupList';
 import { PaletteFooter } from './PaletteFooter';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { isNaturalLanguageQuery } from '@/services/aiSearchService';
 
 export function CommandPalette({
   open,
@@ -34,6 +36,7 @@ export function CommandPalette({
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const aiSearchEnabled = useFeatureFlag('ai_search');
 
   const handleOpenChange = useCallback((isOpen: boolean) => {
     if (!isOpen) {
@@ -152,6 +155,24 @@ export function CommandPalette({
             onExecute={executeCommand}
             onSelect={setSelectedIndex}
           />
+
+          {aiSearchEnabled && search.trim() && isNaturalLanguageQuery(search) && (
+            <button
+              onClick={() => {
+                handleOpenChange(false);
+                navigate(`/search?ai=true&q=${encodeURIComponent(search)}`);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 mt-2 rounded-lg text-left transition-colors border border-dashed border-neutral-300 dark:border-neutral-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-neutral-700 dark:text-neutral-300"
+            >
+              <Zap className="w-4 h-4 flex-shrink-0 text-amber-500" aria-hidden="true" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">Search with AI</div>
+                <div className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                  Interpret &quot;{search}&quot; with AI
+                </div>
+              </div>
+            </button>
+          )}
         </div>
 
         <PaletteFooter />

@@ -228,20 +228,23 @@ class MessagingService {
    * Add participants to a conversation
    */
   async addParticipants(conversationId: string, userIds: string[]): Promise<void> {
-    await this.apiRequest(`/conversations/${conversationId}/participants`, {
-      method: 'POST',
-      body: JSON.stringify({ userIds }),
-    });
+    for (const userId of userIds) {
+      await this.apiRequest(`/conversations/${conversationId}/members`, {
+        method: 'POST',
+        body: JSON.stringify({ userId, role: 'member' }),
+      });
+    }
   }
 
   /**
    * Remove participants from a conversation
    */
   async removeParticipants(conversationId: string, userIds: string[]): Promise<void> {
-    await this.apiRequest(`/conversations/${conversationId}/participants`, {
-      method: 'DELETE',
-      body: JSON.stringify({ userIds }),
-    });
+    for (const userId of userIds) {
+      await this.apiRequest(`/conversations/${conversationId}/members/${userId}`, {
+        method: 'DELETE',
+      });
+    }
   }
 
   /**
@@ -727,9 +730,9 @@ class MessagingService {
   /**
    * Pin a message in a conversation
    */
-  async pinMessage(conversationId: string, messageId: string): Promise<boolean> {
+  async pinMessage(_conversationId: string, messageId: string): Promise<boolean> {
     try {
-      await this.apiRequest(`/conversations/${conversationId}/messages/${messageId}/pin`, {
+      await this.apiRequest(`/messages/${messageId}/pin`, {
         method: 'POST'
       });
       return true;
@@ -741,9 +744,9 @@ class MessagingService {
   /**
    * Unpin a message
    */
-  async unpinMessage(conversationId: string, messageId: string): Promise<boolean> {
+  async unpinMessage(_conversationId: string, messageId: string): Promise<boolean> {
     try {
-      await this.apiRequest(`/conversations/${conversationId}/messages/${messageId}/pin`, {
+      await this.apiRequest(`/messages/${messageId}/pin`, {
         method: 'DELETE'
       });
       return true;

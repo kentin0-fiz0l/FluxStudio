@@ -7,7 +7,7 @@
  * - Mute/archive toggles
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Users, Bell, BellOff, Archive, ArchiveRestore } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 import { Badge } from '@/components/ui/badge';
@@ -73,7 +73,18 @@ export function ConversationInfoPanel({
   }, [conversation.id, conversation.participants]);
 
   return (
-    <Card className="w-80 flex-shrink-0 flex flex-col border-l border-neutral-200 dark:border-neutral-700 overflow-hidden">
+    <Card
+      role="dialog"
+      aria-label="Conversation info panel"
+      tabIndex={-1}
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          onClose();
+        }
+      }}
+      className="w-80 flex-shrink-0 flex flex-col border-l border-neutral-200 dark:border-neutral-700 overflow-hidden"
+    >
       {/* Header */}
       <div className="p-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
         <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">

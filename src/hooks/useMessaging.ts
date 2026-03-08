@@ -69,12 +69,12 @@ interface UseMessagingReturn {
   deleteMessage: (messageId: string) => Promise<void>;
   setActiveConversation: (conversationId: string | null) => void;
   joinConversation: (conversationId: string) => void;
-  leaveConversation: (conversationId: string) => void;
-  addParticipant: (conversationId: string, userId: string) => void;
-  removeParticipant: (conversationId: string, userId: string) => void;
+  leaveConversation: (conversationId: string) => Promise<void>;
+  addParticipant: (conversationId: string, userId: string) => Promise<void>;
+  removeParticipant: (conversationId: string, userId: string) => Promise<void>;
 
   // Search and filtering
-  searchMessages: (options: MessageSearchOptions) => Message[];
+  searchMessages: (options: MessageSearchOptions) => Promise<Message[]>;
   filterConversations: (filter: ConversationFilter) => Conversation[];
 
   // File handling
@@ -106,10 +106,10 @@ const defaultReturn: UseMessagingReturn = {
   deleteMessage: async () => {},
   setActiveConversation: () => {},
   joinConversation: () => {},
-  leaveConversation: () => {},
-  addParticipant: () => {},
-  removeParticipant: () => {},
-  searchMessages: () => [],
+  leaveConversation: async () => {},
+  addParticipant: async () => {},
+  removeParticipant: async () => {},
+  searchMessages: async () => [],
   filterConversations: () => [],
   uploadFile: async () => ({
     id: '',
@@ -249,7 +249,10 @@ export function useMessaging(): UseMessagingReturn {
     }
   }, [store.conversations]);
 
-  const uploadFile = useCallback(async (file: File, _conversationId: string): Promise<MessageAttachment> => {
+  const uploadFile = useCallback(async (file: File, conversationId: string): Promise<MessageAttachment> => {
+    const uploaded = await messagingService.uploadMessageFile(file, conversationId);
+    if (uploaded) return uploaded;
+    // Fallback if upload fails — return local blob so the UI doesn't break
     return {
       id: `file-${Date.now()}`,
       name: file.name,
@@ -269,6 +272,27 @@ export function useMessaging(): UseMessagingReturn {
     } else {
       messagingService.stopTyping(conversationId);
     }
+  }, []);
+
+  const joinConversation = useCallback((conversationId: string) => {
+    messagingService.joinConversation(conversationId);
+  }, []);
+
+  const leaveConversation = useCallback(async (conversationId: string) => {
+    const ok = await messagingService.leaveConversation(conversationId);
+    if (ok) store.fetchConversations();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const addParticipant = useCallback(async (conversationId: string, userId: string) => {
+    await apiService.post(`/conversations/${conversationId}/members`, { userId, role: 'member' });
+  }, []);
+
+  const removeParticipant = useCallback(async (conversationId: string, userId: string) => {
+    await apiService.delete(`/conversations/${conversationId}/members/${userId}`);
+  }, []);
+
+  const searchMessages = useCallback(async (options: MessageSearchOptions): Promise<Message[]> => {
+    return messagingService.searchMessages(options) as unknown as Promise<Message[]>;
   }, []);
 
   const refresh = useCallback(async () => {
@@ -338,11 +362,11 @@ export function useMessaging(): UseMessagingReturn {
     editMessage,
     deleteMessage,
     setActiveConversation,
-    joinConversation: () => {},
-    leaveConversation: () => {},
-    addParticipant: () => {},
-    removeParticipant: () => {},
-    searchMessages: () => [],
+    joinConversation,
+    leaveConversation,
+    addParticipant,
+    removeParticipant,
+    searchMessages,
     filterConversations,
     uploadFile,
     setTyping,

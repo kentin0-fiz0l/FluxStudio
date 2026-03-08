@@ -8,6 +8,7 @@
   import pkg from './package.json' with { type: 'json' };
 
   const isAnalyze = process.env.ANALYZE === 'true';
+  const isTauri = !!process.env.TAURI_ENV_PLATFORM;
 
   export default defineConfig(async () => {
     const visualizerPlugins = isAnalyze
@@ -95,6 +96,7 @@
     ],
     define: {
       '__APP_VERSION__': JSON.stringify(pkg.version),
+      '__IS_TAURI__': JSON.stringify(isTauri),
     },
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
@@ -346,8 +348,8 @@
     },
     server: {
       port: 5173,
-      host: true, // Allow access from external IPs
-      open: true,
+      host: true, // Allow access from external IPs (also needed for Tauri webview)
+      open: !isTauri, // Don't auto-open browser when launched via Tauri
       proxy: {
         '/api/messaging': {
           target: 'http://localhost:3004',

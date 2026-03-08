@@ -7,6 +7,7 @@ import {
   Plus,
   Search,
   Building2,
+  Zap,
 } from 'lucide-react';
 import type { FrecencyStore, Command } from './command-types';
 import { FRECENCY_KEY, HALF_LIFE_MS } from './command-constants';
@@ -193,6 +194,18 @@ export function buildCommands(
       keywords: ['search', 'find', 'look'],
       action: () => {
         navigate('/search');
+        handleOpenChange(false);
+      },
+    },
+    {
+      id: 'action-ai-search',
+      label: 'AI Search',
+      description: 'Search with natural language',
+      icon: Zap,
+      category: 'search',
+      keywords: ['ai', 'search', 'natural', 'language', 'smart', 'find'],
+      action: () => {
+        navigate('/search?ai=true');
         handleOpenChange(false);
       },
     },

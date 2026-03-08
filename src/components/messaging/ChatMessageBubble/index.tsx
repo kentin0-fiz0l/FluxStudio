@@ -22,6 +22,7 @@ import {
 import { MessageActionsMenu } from '../MessageActionsMenu';
 import { InlineReplyPreview } from '../InlineReplyPreview';
 import { MarkdownMessage } from '../MarkdownMessage';
+import { InlineThread } from '../InlineThread';
 import { LazyImage } from '../../LazyImage';
 import type { Message } from '../types';
 import { formatMessageTime, formatRelativeTime, formatFileSize, QUICK_REACTIONS } from '../utils';
@@ -49,6 +50,17 @@ export {
 // Types
 // ============================================================================
 
+interface ThreadMessage {
+  id: string;
+  userId: string;
+  conversationId: string;
+  text: string;
+  userName?: string;
+  userAvatar?: string;
+  createdAt: string;
+  editedAt?: string;
+}
+
 interface ChatMessageBubbleProps {
   message: Message;
   onReply: () => void;
@@ -73,6 +85,12 @@ interface ChatMessageBubbleProps {
   onCancelEdit?: () => void;
   readBy?: Array<{ id: string; name: string; avatar?: string }>;
   onRetry?: () => void;
+  /** Inline thread props - when provided, enables inline thread expansion */
+  inlineThreadMessages?: ThreadMessage[];
+  inlineThreadExpanded?: boolean;
+  onToggleInlineThread?: () => void;
+  onInlineThreadReply?: (text: string) => Promise<void>;
+  conversationId?: string;
 }
 
 // ============================================================================
@@ -103,6 +121,11 @@ function ChatMessageBubbleComponent({
   onCancelEdit,
   readBy = [],
   onRetry,
+  inlineThreadMessages,
+  inlineThreadExpanded = false,
+  onToggleInlineThread,
+  onInlineThreadReply,
+  conversationId,
 }: ChatMessageBubbleProps) {
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -404,28 +427,48 @@ function ChatMessageBubbleComponent({
           </div>
         )}
 
-        {/* Thread replies pill */}
+        {/* Thread replies pill / Inline thread */}
         {(message.threadReplyCount || 0) > 0 && onOpenThread && (
-          <div className="relative group/thread">
-            <button
-              onClick={onOpenThread}
-              className={`flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                isOwn
-                  ? 'bg-white/20 hover:bg-white/30 text-white'
-                  : 'bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 text-primary-600 dark:text-primary-400'
-              }`}
-            >
-              <MessageCircle className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>{message.threadReplyCount} {message.threadReplyCount === 1 ? 'reply' : 'replies'}</span>
-            </button>
-            {message.threadLastReplyAt && (
-              <div className={`absolute bottom-full mb-1 ${isOwn ? 'right-0' : 'left-0'} hidden group-hover/thread:block pointer-events-none z-20`}>
-                <div className="px-2 py-1 bg-neutral-900 dark:bg-neutral-700 text-white text-[10px] rounded shadow-lg whitespace-nowrap">
-                  Last reply {formatRelativeTime(message.threadLastReplyAt)}
+          inlineThreadMessages && onToggleInlineThread && onInlineThreadReply && conversationId ? (
+            <InlineThread
+              rootMessage={{
+                id: message.id,
+                userId: message.author.id,
+                conversationId,
+                text: message.content,
+                userName: message.author.name,
+                userAvatar: message.author.avatar,
+                createdAt: message.timestamp.toISOString(),
+              }}
+              messages={inlineThreadMessages}
+              onReply={onInlineThreadReply}
+              currentUserId={currentUserId}
+              conversationId={conversationId}
+              isExpanded={inlineThreadExpanded}
+              onToggle={onToggleInlineThread}
+            />
+          ) : (
+            <div className="relative group/thread">
+              <button
+                onClick={onOpenThread}
+                className={`flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  isOwn
+                    ? 'bg-white/20 hover:bg-white/30 text-white'
+                    : 'bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 text-primary-600 dark:text-primary-400'
+                }`}
+              >
+                <MessageCircle className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>{message.threadReplyCount} {message.threadReplyCount === 1 ? 'reply' : 'replies'}</span>
+              </button>
+              {message.threadLastReplyAt && (
+                <div className={`absolute bottom-full mb-1 ${isOwn ? 'right-0' : 'left-0'} hidden group-hover/thread:block pointer-events-none z-20`}>
+                  <div className="px-2 py-1 bg-neutral-900 dark:bg-neutral-700 text-white text-[10px] rounded shadow-lg whitespace-nowrap">
+                    Last reply {formatRelativeTime(message.threadLastReplyAt)}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )
         )}
 
         {/* Quick actions bar */}
@@ -509,6 +552,8 @@ export const ChatMessageBubble = memo(ChatMessageBubbleComponent, (prev, next) =
     prev.editingDraft === next.editingDraft &&
     prev.isGrouped === next.isGrouped &&
     prev.showAvatar === next.showAvatar &&
+    prev.inlineThreadExpanded === next.inlineThreadExpanded &&
+    prev.inlineThreadMessages === next.inlineThreadMessages &&
     JSON.stringify(prev.message.reactions) === JSON.stringify(next.message.reactions) &&
     JSON.stringify(prev.readBy) === JSON.stringify(next.readBy)
   );

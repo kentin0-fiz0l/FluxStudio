@@ -14,7 +14,7 @@ export interface Command {
   icon?: LucideIcon;
   shortcut?: string[];
   action: () => void;
-  category?: 'navigation' | 'actions' | 'create' | 'recent';
+  category?: 'navigation' | 'actions' | 'create' | 'recent' | 'search';
   keywords?: string[];
   /** If true, action is executed directly (e.g., opens modal) instead of navigating */
   isDirect?: boolean;

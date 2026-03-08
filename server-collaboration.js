@@ -86,6 +86,27 @@ async function checkProjectAccess(userId, projectId) {
   }
 }
 
+/**
+ * Check if user has access to a conversation
+ * @param {string} userId - User ID
+ * @param {string} conversationId - Conversation ID
+ * @returns {Promise<boolean>} - Whether user is a member
+ */
+async function checkConversationAccess(userId, conversationId) {
+  try {
+    const result = await db.query(`
+      SELECT id FROM conversation_members
+      WHERE conversation_id = $1 AND user_id = $2
+      LIMIT 1
+    `, [conversationId, userId]);
+
+    return result.rows.length > 0;
+  } catch (error) {
+    log.error('Error checking conversation access', error);
+    return false;
+  }
+}
+
 // ============================================================================
 // Awareness Data Validation
 // ============================================================================
@@ -364,6 +385,13 @@ async function createVersionSnapshot(roomName, doc, userId) {
       return;
     }
 
+    // Messaging rooms: save snapshot (no versioning needed)
+    const messagingMatch = roomName.match(/^messaging-(.+)$/);
+    if (messagingMatch) {
+      await saveDocument(roomName, doc);
+      return;
+    }
+
     // Get document ID from room_id
     const result = await db.query(
       'SELECT id FROM documents WHERE room_id = $1',
@@ -422,6 +450,21 @@ async function saveDocument(roomName, doc) {
         [buffer, formationId]
       );
       log.info('Saved formation', { roomName, bytes: buffer.length });
+      return true;
+    }
+
+    // Check if this is a messaging room
+    const messagingMatch = roomName.match(/^messaging-(.+)$/);
+    if (messagingMatch) {
+      const conversationId = messagingMatch[1];
+      await db.query(
+        `INSERT INTO documents (room_id, snapshot, updated_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (room_id) DO UPDATE
+         SET snapshot = $2, updated_at = NOW()`,
+        [roomName, buffer]
+      );
+      log.info('Saved messaging document', { roomName, conversationId, bytes: buffer.length });
       return true;
     }
 
@@ -617,6 +660,25 @@ async function loadDocument(roomName, doc) {
       return true;
     }
 
+    // Check if this is a messaging room
+    const messagingMatch = roomName.match(/^messaging-(.+)$/);
+    if (messagingMatch) {
+      const result = await db.query(
+        'SELECT snapshot FROM documents WHERE room_id = $1',
+        [roomName]
+      );
+
+      if (result.rows.length > 0) {
+        const snapshot = new Uint8Array(result.rows[0].snapshot);
+        Y.applyUpdate(doc, snapshot);
+        log.info('Loaded messaging document', { roomName, bytes: snapshot.length });
+        return true;
+      }
+
+      log.info('No existing messaging document for room', { roomName });
+      return false;
+    }
+
     // Default: document room
     const result = await db.query(
       'SELECT snapshot FROM documents WHERE room_id = $1',
@@ -737,11 +799,13 @@ wss.on('connection', async (ws, req) => {
 
     // Parse room ID to extract project ID
     // Expected formats:
-    //   - project-{projectId}-doc-{docId}      (documents)
+    //   - project-{projectId}-doc-{docId}              (documents)
     //   - project-{projectId}-formation-{formationId}  (formations)
+    //   - messaging-{conversationId}                   (messaging)
     const docMatch = roomName.match(/^project-([^-]+)-doc-/);
     const formationMatch = roomName.match(/^project-([^-]+)-formation-/);
-    const match = docMatch || formationMatch;
+    const messagingMatch = roomName.match(/^messaging-(.+)$/);
+    const match = docMatch || formationMatch || messagingMatch;
 
     if (!match) {
       log.error('Invalid room format', { roomName });
@@ -750,16 +814,36 @@ wss.on('connection', async (ws, req) => {
       return;
     }
 
-    const projectId = match[1];
-    const roomType = docMatch ? 'document' : 'formation';
+    let projectId = null;
+    let roomType = 'document';
 
-    // Check project access
-    const role = await checkProjectAccess(user.id, projectId);
-    if (!role) {
-      log.error('Access denied', { userId: user.id, projectId });
-      ws.close(4403, 'Forbidden: No access to this project');
-      stats.connections--;
-      return;
+    if (messagingMatch) {
+      // Messaging rooms use conversation membership for auth instead of project access
+      roomType = 'messaging';
+      const conversationId = messagingMatch[1];
+
+      const memberResult = await checkConversationAccess(user.id, conversationId);
+      if (!memberResult) {
+        log.error('Access denied to conversation', { userId: user.id, conversationId });
+        ws.close(4403, 'Forbidden: No access to this conversation');
+        stats.connections--;
+        return;
+      }
+    } else {
+      projectId = match[1];
+      roomType = docMatch ? 'document' : 'formation';
+    }
+
+    // Check project access (skip for messaging rooms which use conversation auth above)
+    let role = 'member';
+    if (projectId) {
+      role = await checkProjectAccess(user.id, projectId);
+      if (!role) {
+        log.error('Access denied', { userId: user.id, projectId });
+        ws.close(4403, 'Forbidden: No access to this project');
+        stats.connections--;
+        return;
+      }
     }
 
     // Store user information on WebSocket

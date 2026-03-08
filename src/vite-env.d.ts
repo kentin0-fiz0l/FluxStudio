@@ -40,6 +40,7 @@ import { ThreeElements } from '@react-three/fiber';
 
 declare global {
   const __APP_VERSION__: string;
+  const __IS_TAURI__: boolean;
 
   namespace JSX {
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
