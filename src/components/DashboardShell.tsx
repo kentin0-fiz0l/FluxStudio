@@ -88,18 +88,23 @@ export function DashboardShell({ children: _children }: DashboardShellProps) {
 
   return (
     <div className="min-h-screen w-full bg-background">
+      {/* Skip navigation */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:p-4 focus:bg-white focus:text-black">Skip to main content</a>
+
       {/* Header */}
-      <Suspense fallback={<div className="sticky top-0 z-50 w-full h-16 bg-neutral-900 border-b border-neutral-700/50" />}>
-        <EnhancedHeader
-          openCommandPalette={openCommandPalette}
-          activeView={activeView}
-          onViewChange={handleViewChange}
-          onMessagingToggle={() => setIsMessagingOpen(true)}
-        />
+      <Suspense fallback={<div className="sticky top-0 z-50 w-full h-16 bg-neutral-900 border-b border-neutral-700/50" role="banner" />}>
+        <div role="banner">
+          <EnhancedHeader
+            openCommandPalette={openCommandPalette}
+            activeView={activeView}
+            onViewChange={handleViewChange}
+            onMessagingToggle={() => setIsMessagingOpen(true)}
+          />
+        </div>
       </Suspense>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-950">
+      <main id="main-content" role="main" aria-label="Main content" className="flex-1 overflow-y-auto bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-950">
         <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 animate-fadeIn">
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-700 p-6 shadow-xl animate-slideUp">
             {activeView === 'files' ? (
@@ -119,10 +124,12 @@ export function DashboardShell({ children: _children }: DashboardShellProps) {
 
       {/* Messaging Sidepanel - Available from any view */}
       <Suspense fallback={null}>
-        <MessagingSidepanel
-          isOpen={isMessagingOpen}
-          onClose={() => setIsMessagingOpen(false)}
-        />
+        <div role="complementary" aria-label="Messaging">
+          <MessagingSidepanel
+            isOpen={isMessagingOpen}
+            onClose={() => setIsMessagingOpen(false)}
+          />
+        </div>
       </Suspense>
 
       {/* Floating Message Button - Always visible for quick access */}

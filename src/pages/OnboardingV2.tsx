@@ -1,12 +1,13 @@
 /**
  * OnboardingV2 - Streamlined 3-step onboarding for <30s time-to-first-creation
  *
- * Gated behind `onboarding_v2` feature flag.
+ * Now the default signup flow (rollback via `onboarding_v2_disabled` flag).
  *
  * Flow:
  *   Step 1: Quick Auth (target 10s) - email/password or Google sign-in
- *   Step 2: Template Selection (target 15s) - pick a formation template or blank
- *   Step 3: Into the Editor (target 5s) - redirect with coach-mark tooltip
+ *           After auth, role selection sub-step: Band Director vs Design Team
+ *   Step 2: Template Selection (target 15s) - role-filtered templates or blank
+ *   Step 3: Into the Editor (target 5s) - redirect with AI welcome + coach-mark
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -17,6 +18,8 @@ import {
   Eye,
   EyeOff,
   LayoutGrid,
+  Music,
+  Palette,
   Plus,
   Loader2,
   Users,
@@ -29,6 +32,7 @@ import { eventTracker } from '../services/analytics/eventTracking';
 import { templateRegistry } from '@/services/formationTemplates/registry';
 import type { DrillTemplate } from '@/services/formationTemplates/types';
 import { cn } from '@/lib/utils';
+import aiService from '@/services/aiService';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -41,7 +45,15 @@ const GOOGLE_CLIENT_ID =
 /** Maximum number of featured templates to show in step 2 */
 const FEATURED_TEMPLATE_COUNT = 6;
 
-type OnboardingStep = 'auth' | 'template' | 'launching';
+type OnboardingStep = 'auth' | 'role' | 'template' | 'launching';
+
+type UserRole = 'band_director' | 'design_team';
+
+/** Tags that indicate drill/formation templates for band directors */
+const BAND_DIRECTOR_TAGS = ['drill', 'marching', 'formation', 'line', 'wedge', 'stagger', 'fan'];
+
+/** Tags that indicate design/layout templates for design teams */
+const DESIGN_TEAM_TAGS = ['basic', 'intermediate', 'layout', 'scatter', 'circle', 'custom'];
 
 // ---------------------------------------------------------------------------
 // Step transition animation variants
@@ -61,6 +73,46 @@ const stepVariants = {
     opacity: 0,
   }),
 };
+
+// ---------------------------------------------------------------------------
+// Role Selection Card
+// ---------------------------------------------------------------------------
+
+interface RoleCardProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  selected: boolean;
+  onClick: () => void;
+}
+
+function RoleCard({ icon, title, description, selected, onClick }: RoleCardProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'flex-1 p-5 rounded-xl border text-left transition-all',
+        selected
+          ? 'border-blue-500 bg-blue-500/10 ring-1 ring-blue-500/50'
+          : 'border-white/10 hover:border-white/30 hover:bg-white/5',
+      )}
+    >
+      <div className={cn(
+        'w-10 h-10 rounded-lg flex items-center justify-center mb-3',
+        selected ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-gray-400',
+      )}>
+        {icon}
+      </div>
+      <h3 className={cn(
+        'text-sm font-semibold mb-1',
+        selected ? 'text-white' : 'text-gray-200',
+      )}>
+        {title}
+      </h3>
+      <p className="text-xs text-gray-500">{description}</p>
+    </button>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Main Component
@@ -83,8 +135,14 @@ export function OnboardingV2() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [betaGateEnabled, setBetaGateEnabled] = useState(false);
 
+  // Role selection state
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+
   // Template selection state
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+
+  // AI welcome message state
+  const [aiWelcome, setAiWelcome] = useState('');
 
   const { signup, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -105,10 +163,10 @@ export function OnboardingV2() {
       .catch(() => {});
   }, []);
 
-  // If already authenticated, skip to template step
+  // If already authenticated and still on auth step, skip to role selection
   useEffect(() => {
     if (isAuthenticated && step === 'auth') {
-      goToStep('template');
+      goToStep('role');
     }
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -118,23 +176,40 @@ export function OnboardingV2() {
     preload: true,
   });
 
-  // Featured templates (loaded once)
+  // Featured templates filtered by role
   const featuredTemplates = useMemo<DrillTemplate[]>(() => {
     const all = templateRegistry.getAllTemplates();
+
+    let filtered = all;
+    if (userRole === 'band_director') {
+      filtered = all.filter(t =>
+        t.tags.some(tag => BAND_DIRECTOR_TAGS.includes(tag)) || t.category === 'drill'
+      );
+    } else if (userRole === 'design_team') {
+      filtered = all.filter(t =>
+        t.tags.some(tag => DESIGN_TEAM_TAGS.includes(tag)) || t.category === 'basic' || t.category === 'intermediate'
+      );
+    }
+
+    // If filtering left too few results, fall back to all
+    if (filtered.length < FEATURED_TEMPLATE_COUNT) {
+      filtered = all;
+    }
+
     // Prefer basic + intermediate templates as they are more accessible for new users
-    const sorted = [...all].sort((a, b) => {
+    const sorted = [...filtered].sort((a, b) => {
       const order: Record<string, number> = { basic: 0, intermediate: 1, drill: 2, advanced: 3, custom: 4 };
       return (order[a.category] ?? 5) - (order[b.category] ?? 5);
     });
     return sorted.slice(0, FEATURED_TEMPLATE_COUNT);
-  }, []);
+  }, [userRole]);
 
   // ------------------------------------------------------------------
   // Navigation helpers
   // ------------------------------------------------------------------
 
   const goToStep = useCallback((next: OnboardingStep) => {
-    const order: OnboardingStep[] = ['auth', 'template', 'launching'];
+    const order: OnboardingStep[] = ['auth', 'role', 'template', 'launching'];
     const currentIdx = order.indexOf(step);
     const nextIdx = order.indexOf(next);
     setDirection(nextIdx > currentIdx ? 1 : -1);
@@ -162,12 +237,23 @@ export function OnboardingV2() {
     try {
       await signup(email, password, email.split('@')[0], 'client' as UserType, referralCode, inviteCode || undefined);
       eventTracker.trackEvent('onboarding_v2_auth_complete', { method: 'email' });
-      goToStep('template');
+      goToStep('role');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // ------------------------------------------------------------------
+  // Step 1b: Role selection
+  // ------------------------------------------------------------------
+
+  const handleRoleSelect = (role: UserRole) => {
+    setUserRole(role);
+    sessionStorage.setItem('onboarding_v2_role', role);
+    eventTracker.trackEvent('onboarding_v2_role_selected', { role });
+    goToStep('template');
   };
 
   // ------------------------------------------------------------------
@@ -199,24 +285,40 @@ export function OnboardingV2() {
         sessionStorage.setItem('onboarding_v2_template', templateId);
       }
 
+      // Fire AI welcome message (non-blocking)
+      if (userRole) {
+        const roleLabel = userRole === 'band_director' ? 'marching band director' : 'design team member';
+        aiService.streamChat(
+          `Welcome the user as a new ${roleLabel} on FluxStudio. Give them one helpful tip for getting started. Keep it under 50 words.`,
+          {},
+          {
+            onChunk: (chunk: string) => {
+              setAiWelcome(prev => prev + chunk);
+            },
+            onError: () => {
+              // Silently fall back - the static tip remains visible
+            },
+          },
+        ).catch(() => {
+          // Silently fall back
+        });
+      }
+
       // Short delay so the user sees the launching state, then redirect
       setTimeout(() => {
-        // Navigate to the formation editor.
-        // The get-started flow creates a default project; we route to /get-started
-        // which creates the project and redirects to its formation editor.
         navigate('/get-started', {
-          state: { fromOnboardingV2: true, templateId },
+          state: { fromOnboardingV2: true, templateId, userRole },
         });
-      }, 1200);
+      }, 2500);
     },
-    [goToStep, completeWelcome, completeOnboarding, navigate],
+    [goToStep, completeWelcome, completeOnboarding, navigate, userRole],
   );
 
   // ------------------------------------------------------------------
   // Progress indicator
   // ------------------------------------------------------------------
 
-  const stepIndex = step === 'auth' ? 0 : step === 'template' ? 1 : 2;
+  const stepIndex = step === 'auth' ? 0 : step === 'role' ? 0 : step === 'template' ? 1 : 2;
 
   // ------------------------------------------------------------------
   // Render
@@ -404,6 +506,44 @@ export function OnboardingV2() {
           )}
 
           {/* ---------------------------------------------------------------- */}
+          {/* STEP 1b: Role Selection                                           */}
+          {/* ---------------------------------------------------------------- */}
+          {step === 'role' && (
+            <motion.div
+              key="role"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="bg-white/5 backdrop-blur-lg rounded-2xl p-8 border border-white/10"
+            >
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold mb-1">What brings you here?</h2>
+                <p className="text-gray-400 text-sm">We'll tailor your experience</p>
+              </div>
+
+              <div className="flex gap-3">
+                <RoleCard
+                  icon={<Music className="h-5 w-5" aria-hidden="true" />}
+                  title="Marching Band Director"
+                  description="Formation design, drill charts, music sync"
+                  selected={userRole === 'band_director'}
+                  onClick={() => handleRoleSelect('band_director')}
+                />
+                <RoleCard
+                  icon={<Palette className="h-5 w-5" aria-hidden="true" />}
+                  title="Design Team"
+                  description="Creative collaboration, asset management, client feedback"
+                  selected={userRole === 'design_team'}
+                  onClick={() => handleRoleSelect('design_team')}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {/* ---------------------------------------------------------------- */}
           {/* STEP 2: Template Selection                                        */}
           {/* ---------------------------------------------------------------- */}
           {step === 'template' && (
@@ -484,6 +624,18 @@ export function OnboardingV2() {
               <p className="text-gray-400 text-sm mb-6">
                 {selectedTemplateId ? 'Loading your template...' : 'Setting up a blank canvas...'}
               </p>
+
+              {/* AI welcome message or static fallback */}
+              {aiWelcome ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="mb-4 px-4 py-3 bg-purple-500/10 border border-purple-500/20 rounded-lg text-sm text-purple-200 text-left"
+                >
+                  {aiWelcome}
+                </motion.div>
+              ) : null}
 
               {/* Coach-mark preview */}
               <motion.div

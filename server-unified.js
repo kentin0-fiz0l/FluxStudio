@@ -462,10 +462,18 @@ app.use('/monitoring', createMonitoringRouter());
 // Mount AI Design Assistant routes
 const aiRoutes = require('./routes/ai');
 const aiMetmapRoutes = require('./routes/ai-metmap');
+const aiDesignFeedbackRoutes = require('./routes/ai-design-feedback');
 app.use('/ai', aiRoutes);  // Direct path (DO ingress strips /api prefix)
 app.use('/api/ai', aiRoutes);
 app.use('/ai/metmap', aiMetmapRoutes);
 app.use('/api/ai/metmap', aiMetmapRoutes);
+app.use('/ai/design-feedback', aiDesignFeedbackRoutes);
+app.use('/api/ai/design-feedback', aiDesignFeedbackRoutes);
+
+// Mount AI Search routes (Phase 2.3)
+const aiSearchRoutes = require('./routes/ai-search');
+app.use('/search/ai', aiSearchRoutes);
+app.use('/api/search/ai', aiSearchRoutes);
 
 // Mount Analytics routes (Sprint 35)
 const analyticsRoutes = require('./routes/analytics');

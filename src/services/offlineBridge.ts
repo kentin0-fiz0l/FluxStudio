@@ -62,17 +62,31 @@ export function initOfflineBridge(store: Store) {
     // Dexie may be unavailable (private browsing, etc.)
   });
 
-  // 4. Subscribe to pending actions changes → persist to Dexie
+  // 4. Subscribe to pending actions changes → persist to Dexie + register background sync
   store.subscribe((state, prevState) => {
     const curr = state.offline.pendingActions;
     const prev = prevState.offline.pendingActions;
     if (curr !== prev) {
       syncActionsToDexie(curr);
+      if (curr.length > prev.length) {
+        registerBackgroundSync();
+      }
     }
   });
 
   // 5. Clean up legacy IndexedDB database (one-time)
   deleteLegacyDB().catch(() => {});
+}
+
+async function registerBackgroundSync() {
+  if (!('serviceWorker' in navigator) || !('SyncManager' in window)) return;
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    await (registration as ServiceWorkerRegistration & { sync: { register: (tag: string) => Promise<void> } }).sync.register('flux-offline-sync');
+  } catch {
+    // Background Sync not supported or permission denied
+  }
 }
 
 async function syncActionsToDexie(actions: FluxStore['offline']['pendingActions']) {

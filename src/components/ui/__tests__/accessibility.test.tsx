@@ -31,15 +31,7 @@ import { Label } from '../label';
 // Extend expect with axe matchers
 expect.extend(matchers);
 
-// Type augmentation for vitest-axe matchers
-declare module 'vitest' {
-  interface Assertion<T> {
-    toHaveNoViolations(): T;
-  }
-  interface AsymmetricMatchersContaining {
-    toHaveNoViolations(): void;
-  }
-}
+// Type augmentation for toHaveNoViolations is in src/test/vitest-axe.d.ts
 
 describe('UI Components Accessibility', () => {
   afterEach(() => {

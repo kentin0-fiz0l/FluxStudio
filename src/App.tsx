@@ -29,6 +29,7 @@ import { CommandPalette, useCommandPalette } from './components/CommandPalette';
 import { HelmetProvider } from 'react-helmet-async';
 import { CookieConsent } from './components/ui/CookieConsent';
 import { FeedbackWidget } from './components/ui/FeedbackWidget';
+import { ProgressiveProfileCapture } from './components/onboarding/ProgressiveProfileCapture';
 
 import { useAuth, useAuthInit } from '@/store/slices/authSlice';
 import { useFeatureFlag } from './hooks/useFeatureFlag';
@@ -101,7 +102,6 @@ const { Component: ProjectDashboard } = lazyLoadWithRetry(() => import('./compon
 const { Component: CreateOrganization } = lazyLoadWithRetry(() => import('./pages/CreateOrganization'));
 
 // Lazy load comprehensive platform components
-const { Component: ClientOnboarding } = lazyLoadWithRetry(() => import('./components/onboarding/ClientOnboarding'));
 const { Component: QuickOnboarding } = lazyLoadWithRetry(() => import('./components/onboarding/QuickOnboarding'));
 
 // Legal pages
@@ -150,10 +150,10 @@ function RootRedirect() {
   return <LandingPage />;
 }
 
-// Feature-flag-gated signup: shows OnboardingV2 when `onboarding_v2` is enabled
+// OnboardingV2 is now the default signup flow. Check `onboarding_v2_disabled` for rollback.
 function SignupGate() {
-  const isV2 = useFeatureFlag('onboarding_v2');
-  return isV2 ? <OnboardingV2 /> : <SignupWizard />;
+  const isDisabled = useFeatureFlag('onboarding_v2_disabled');
+  return isDisabled ? <SignupWizard /> : <OnboardingV2 />;
 }
 
 // OAuth callback routes wrapper - minimal providers (only auth init)
@@ -361,7 +361,7 @@ function AuthenticatedRoutes() {
                   <Route path="/dashboard/admin" element={<Navigate to="/projects" replace />} />
 
                   {/* Core Platform Features - Protected */}
-                  <Route path="/onboarding" element={<ProtectedRoute><ClientOnboarding /></ProtectedRoute>} />
+                  <Route path="/onboarding" element={<Navigate to="/settings?tab=organization" replace />} />
                   {/* Future routes: /dashboard/projects/:id/workflow, /review, /collaborate, /workspace */}
 
                   {/* Messaging redirect - consolidate to /messages */}
@@ -394,6 +394,7 @@ function AuthenticatedRoutes() {
       <AuthOnly>
         <PushPermissionPrompt />
         <FeedbackWidget />
+        <ProgressiveProfileCapture />
       </AuthOnly>
       {/* SW Update Banner */}
       <UpdateBanner />

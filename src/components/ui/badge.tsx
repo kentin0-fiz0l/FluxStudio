@@ -13,6 +13,7 @@
 
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Badge variants
@@ -35,19 +36,19 @@ const badgeVariants = cva(
         // Alternative: high contrast with darker background
         destructive: 'bg-error-100 text-error-900 border border-error-300',
 
-        // Solid variants
+        // Solid variants — WCAG AA contrast (4.5:1 minimum for text on background)
         solidPrimary: 'bg-primary-600 text-white',
         solidSecondary: 'bg-secondary-600 text-white',
-        solidAccent: 'bg-accent-600 text-white',
-        solidSuccess: 'bg-success-600 text-white',
-        solidWarning: 'bg-warning-600 text-white',
+        solidAccent: 'bg-accent-800 text-white',
+        solidSuccess: 'bg-success-800 text-white',
+        solidWarning: 'bg-warning-800 text-white',
         solidError: 'bg-error-600 text-white',
         solidInfo: 'bg-info-600 text-white',
 
         // Outline variants
         outline: 'bg-transparent border-2 border-neutral-300 text-neutral-700',
         outlinePrimary: 'bg-transparent border-2 border-primary-600 text-primary-600',
-        outlineSuccess: 'bg-transparent border-2 border-success-600 text-success-600',
+        outlineSuccess: 'bg-transparent border-2 border-success-700 text-success-800',
         outlineError: 'bg-transparent border-2 border-error-600 text-error-600',
       },
 
@@ -71,6 +72,14 @@ const badgeVariants = cva(
   }
 );
 
+/** Default icons for semantic status variants (color-beyond-color) */
+const STATUS_ICONS: Record<string, React.FC<{ className?: string }>> = {
+  success: CheckCircle,
+  error: XCircle,
+  warning: AlertTriangle,
+  info: Info,
+};
+
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {
@@ -88,10 +97,27 @@ export interface BadgeProps
    * Icon to display after text
    */
   iconRight?: React.ReactNode;
+
+  /**
+   * When true and no custom icon is provided, automatically add a semantic
+   * status icon for success/error/warning/info variants so color is never the
+   * only way to convey meaning (WCAG 1.4.1).
+   */
+  statusIcon?: boolean;
 }
 
 const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
-  ({ className, variant, size, dot, icon, iconRight, children, ...props }, ref) => {
+  ({ className, variant, size, dot, icon, iconRight, statusIcon, children, ...props }, ref) => {
+    // Resolve the leading icon: custom icon takes precedence, then statusIcon auto-icon
+    const resolvedIcon = icon ?? (
+      statusIcon && variant && STATUS_ICONS[variant]
+        ? React.createElement(STATUS_ICONS[variant], {
+            className: 'w-3.5 h-3.5',
+            'aria-hidden': 'true',
+          } as React.SVGAttributes<SVGSVGElement> & { 'aria-hidden': string })
+        : null
+    );
+
     return (
       <span
         ref={ref}
@@ -116,7 +142,7 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
         )}
 
         {/* Leading icon */}
-        {icon && <span className="inline-flex">{icon}</span>}
+        {resolvedIcon && <span className="inline-flex">{resolvedIcon}</span>}
 
         {/* Content */}
         {children}

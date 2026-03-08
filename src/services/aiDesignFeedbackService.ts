@@ -1,13 +1,20 @@
 /**
- * AI Design Feedback Service
- * Advanced AI-powered design analysis and feedback generation
- * Uses Anthropic Claude API for vision-based design analysis
+ * AI Design Feedback Service - SSE streaming client for design analysis
+ *
+ * Follows the same SSE pattern as drillMusicAIService.ts.
+ * Provides both the original class-based API (for backwards compatibility)
+ * and new streaming functions for real-time AI responses.
  */
 
+import { buildApiUrl } from '../config/environment';
 import { createLogger } from '@/services/logging';
 import { apiService } from '@/services/apiService';
 
 const logger = createLogger('AIDesignFeedback');
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface DesignElement {
   type: 'color' | 'typography' | 'layout' | 'imagery' | 'spacing' | 'composition';
@@ -82,6 +89,191 @@ interface DesignContext {
   brandGuidelines?: string;
   focusAreas?: string[];
 }
+
+interface StreamCallbacks {
+  onChunk: (text: string) => void;
+  onDone: (data?: unknown) => void;
+  onError: (err: Error) => void;
+  onStatus?: (message: string) => void;
+}
+
+// ============================================================================
+// SSE STREAM READER
+// ============================================================================
+
+/**
+ * Parse SSE events from a ReadableStream.
+ * Replicates the pattern from drillMusicAIService.ts with 60-second timeout.
+ * Also handles 'status' event type for progress updates.
+ */
+async function readSSEStream(
+  response: Response,
+  callbacks: StreamCallbacks,
+  signal: AbortSignal,
+) {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    callbacks.onError(new Error('No response body'));
+    return;
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let timedOut = false;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const resetTimeout = () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      timedOut = true;
+      callbacks.onError(new Error('Stream timed out — no response from AI service'));
+      reader.cancel();
+    }, 60_000);
+  };
+
+  resetTimeout();
+
+  try {
+    while (true) {
+      if (signal.aborted) break;
+
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      resetTimeout();
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const json = line.slice(6).trim();
+        if (!json) continue;
+
+        try {
+          const event = JSON.parse(json);
+          if (event.type === 'chunk' && event.content) {
+            callbacks.onChunk(event.content);
+          } else if (event.type === 'status' && event.message) {
+            callbacks.onStatus?.(event.message);
+          } else if (event.type === 'done') {
+            callbacks.onDone(event);
+          } else if (event.type === 'error') {
+            callbacks.onError(new Error(event.error));
+          }
+        } catch {
+          // Skip malformed SSE lines
+        }
+      }
+    }
+  } catch (err) {
+    if (!signal.aborted && !timedOut) {
+      callbacks.onError(err instanceof Error ? err : new Error(String(err)));
+    }
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+    reader.releaseLock();
+  }
+}
+
+/**
+ * Helper: get auth token and build headers for SSE requests.
+ */
+function getStreamHeaders(): Record<string, string> {
+  const token = localStorage.getItem('auth_token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+/**
+ * Helper: initiate a streaming fetch and wire up SSE reading.
+ */
+function startStream(
+  endpoint: string,
+  body: Record<string, unknown>,
+  callbacks: StreamCallbacks,
+): AbortController {
+  const controller = new AbortController();
+
+  fetch(buildApiUrl(endpoint), {
+    method: 'POST',
+    headers: getStreamHeaders(),
+    body: JSON.stringify(body),
+    signal: controller.signal,
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      return readSSEStream(res, callbacks, controller.signal);
+    })
+    .catch((err) => {
+      if (!controller.signal.aborted) {
+        if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+          callbacks.onError(
+            new Error('Unable to connect to AI service — check your internet connection'),
+          );
+        } else {
+          callbacks.onError(err instanceof Error ? err : new Error(String(err)));
+        }
+      }
+    });
+
+  return controller;
+}
+
+// ============================================================================
+// STREAMING PUBLIC API
+// ============================================================================
+
+/**
+ * Stream design analysis using Claude vision API.
+ * POST /api/ai/design-feedback/stream/analyze
+ */
+export function streamDesignAnalysis(
+  params: { imageUrl?: string; designElements?: Record<string, unknown>[]; context?: string },
+  callbacks: StreamCallbacks,
+): AbortController {
+  return startStream('/ai/design-feedback/stream/analyze', params, callbacks);
+}
+
+/**
+ * Stream color palette generation.
+ * POST /api/ai/design-feedback/stream/palette
+ */
+export function streamColorPaletteGeneration(
+  params: { industry?: string; mood?: string[]; brand?: string },
+  callbacks: StreamCallbacks,
+): AbortController {
+  return startStream('/ai/design-feedback/stream/palette', params, callbacks);
+}
+
+/**
+ * Stream layout analysis.
+ * POST /api/ai/design-feedback/stream/layout
+ */
+export function streamLayoutAnalysis(
+  params: { elements: Record<string, unknown>[]; viewport: { width: number; height: number } },
+  callbacks: StreamCallbacks,
+): AbortController {
+  return startStream('/ai/design-feedback/stream/layout', params, callbacks);
+}
+
+/**
+ * Stream accessibility report.
+ * POST /api/ai/design-feedback/stream/accessibility
+ */
+export function streamAccessibilityReport(
+  params: { designData: Record<string, unknown> },
+  callbacks: StreamCallbacks,
+): AbortController {
+  return startStream('/ai/design-feedback/stream/accessibility', params, callbacks);
+}
+
+// ============================================================================
+// ORIGINAL CLASS-BASED SERVICE (kept for backwards compatibility)
+// ============================================================================
 
 class AIDesignFeedbackService {
   private analysisCache = new Map<string, DesignAnalysis>();

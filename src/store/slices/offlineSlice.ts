@@ -156,15 +156,39 @@ export const createOfflineSlice: StateCreator<
       });
     },
 
-    resolveConflict: (id, _resolution) => {
+    resolveConflict: (id, resolution) => {
+      const conflict = get().offline.conflicts.find((c) => c.id === id);
+      if (!conflict) return;
+
       set((state) => {
-        const conflict = state.offline.conflicts.find((c) => c.id === id);
-        if (conflict) {
-          conflict.resolved = true;
-          // Apply resolution based on user choice
-          // In a real implementation, this would sync the chosen data
+        const c = state.offline.conflicts.find((c) => c.id === id);
+        if (c) {
+          c.resolved = true;
         }
       });
+
+      // Apply the resolution
+      const dataToSync = resolution === 'local' ? conflict.localData : conflict.serverData;
+
+      // Queue a sync action with the resolved data
+      if (conflict.localData && typeof conflict.localData === 'object') {
+        const entityData = conflict.localData as Record<string, unknown>;
+        const entityType = (entityData as { _entityType?: string })._entityType;
+        const entityId = (entityData as { _entityId?: string })._entityId;
+
+        if (entityType && entityId) {
+          get().offline.queueAction({
+            type: `resolve_conflict_${entityType}`,
+            payload: dataToSync,
+            endpoint: `/api/${entityType}s/${entityId}`,
+            method: 'PUT',
+            maxRetries: 3,
+          });
+        }
+      }
+
+      // Remove from Dexie conflicts
+      db.conflicts.delete(id).catch(() => {});
     },
 
     sync: async () => {
@@ -196,7 +220,21 @@ export const createOfflineSlice: StateCreator<
         } catch (error) {
           console.error(`Failed to sync action ${action.id}:`, error);
 
-          if (action.retryCount < action.maxRetries) {
+          const statusCode = (error as { status?: number })?.status;
+
+          if (statusCode === 409) {
+            // Conflict detected - extract server data from error response
+            const serverData = (error as { data?: unknown })?.data;
+            get().offline.addConflict({
+              localData: {
+                ...(action.payload as Record<string, unknown>),
+                _entityType: action.type,
+                _entityId: action.id,
+              },
+              serverData: serverData ?? null,
+            });
+            get().offline.removeAction(action.id);
+          } else if (action.retryCount < action.maxRetries) {
             get().offline.retryAction(action.id);
           } else {
             set((state) => {
@@ -222,20 +260,6 @@ export const createOfflineSlice: StateCreator<
     },
   },
 });
-
-// ============================================================================
-// Network Status Listener
-// ============================================================================
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => {
-    // Will be connected to store after initialization
-  });
-
-  window.addEventListener('offline', () => {
-    // Will be connected to store after initialization
-  });
-}
 
 // ============================================================================
 // Convenience Hooks

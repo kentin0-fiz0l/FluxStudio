@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import aiService from '@/services/aiService';
+import { getFlagSync } from '@/services/featureFlagService';
+import { streamDesignAnalysis } from '@/services/aiDesignFeedbackService';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -22,6 +24,9 @@ const AIDesignAssistant: React.FC = () => {
   const [reviewDescription, setReviewDescription] = useState('');
   const [selectedAspects, setSelectedAspects] = useState<Aspect[]>(['overall']);
   const [reviewFeedback, setReviewFeedback] = useState<string | null>(null);
+  const [streamingText, setStreamingText] = useState<string>('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Code Generation state
   const [codeDescription, setCodeDescription] = useState('');
@@ -37,6 +42,13 @@ const AIDesignAssistant: React.FC = () => {
     });
   }, []);
 
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
   const toggleAspect = (aspect: Aspect) => {
     setSelectedAspects((prev) =>
       prev.includes(aspect) ? prev.filter((a) => a !== aspect) : [...prev, aspect]
@@ -46,6 +58,45 @@ const AIDesignAssistant: React.FC = () => {
   const handleReview = async () => {
     setLoading(true);
     setError(null);
+    setReviewFeedback(null);
+    setStreamingText('');
+
+    // Use streaming when feature flag is on
+    if (getFlagSync('ai_design_real')) {
+      setIsStreaming(true);
+      abortRef.current?.abort();
+
+      const controller = streamDesignAnalysis(
+        {
+          context: `${reviewDescription}\n\nFocus areas: ${selectedAspects.join(', ')}`,
+        },
+        {
+          onChunk(text) {
+            setStreamingText((prev) => prev + text);
+          },
+          onDone() {
+            setIsStreaming(false);
+            setLoading(false);
+            setStreamingText((prev) => {
+              setReviewFeedback(prev);
+              return prev;
+            });
+          },
+          onError(err) {
+            setIsStreaming(false);
+            setLoading(false);
+            setError(err.message);
+          },
+          onStatus(message) {
+            setStreamingText(message + '\n');
+          },
+        },
+      );
+      abortRef.current = controller;
+      return;
+    }
+
+    // Non-streaming fallback
     try {
       const result = await aiService.reviewDesign({
         description: reviewDescription,
@@ -75,6 +126,8 @@ const AIDesignAssistant: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const displayedFeedback = isStreaming ? streamingText : reviewFeedback;
 
   return (
     <Card>
@@ -143,11 +196,12 @@ const AIDesignAssistant: React.FC = () => {
               disabled={loading || !reviewDescription.trim()}
             >
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Review Design
+              {isStreaming ? 'Analyzing...' : 'Review Design'}
             </Button>
-            {reviewFeedback && (
+            {displayedFeedback && (
               <div className="mt-4 p-3 border rounded bg-muted" style={{ whiteSpace: 'pre-wrap' }}>
-                {reviewFeedback}
+                {displayedFeedback}
+                {isStreaming && <span className="inline-block w-1.5 h-4 bg-foreground animate-pulse ml-0.5" />}
               </div>
             )}
           </div>

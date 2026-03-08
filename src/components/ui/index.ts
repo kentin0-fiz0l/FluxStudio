@@ -42,11 +42,7 @@ export {
 
 // Accessibility Components
 export { SkipLink, type SkipLinkProps } from './SkipLink';
-export {
-  LiveRegionProvider,
-  useLiveRegion,
-  announceToScreenReader,
-} from './LiveRegion';
+export { LiveRegion } from './LiveRegion';
 
 // Empty State
 export { EmptyState, type EmptyStateProps } from './EmptyState';
