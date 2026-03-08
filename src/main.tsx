@@ -4,6 +4,7 @@ import App from "./App.tsx";
 import "./styles.css";
 import "./styles/rtl.css";
 import "./styles/accessibility.css";
+import "./styles/print.css";
 
 // Initialize i18n - must be imported before any component that uses useTranslation
 import './i18n';

@@ -17,7 +17,7 @@ const { logAiUsage, getAiUsageLogs, sanitizeApiError } = require('../services/ai
 const { createLogger } = require('../lib/logger');
 const log = createLogger('AI');
 const { zodValidate } = require('../middleware/zodValidate');
-const { aiChatSchema, aiChatSyncSchema, aiDesignReviewSchema, aiGenerateCodeSchema, aiDesignFeedbackSchema, aiGenerateProjectStructureSchema, aiGenerateTemplateSchema } = require('../lib/schemas');
+const { aiChatSchema, aiChatSyncSchema, aiDesignReviewSchema, aiGenerateCodeSchema, aiDesignFeedbackSchema, aiGenerateProjectStructureSchema, aiGenerateTemplateSchema, aiSuggestDrillPathsSchema, aiGenerateShowSchema, aiSuggestSetsSchema } = require('../lib/schemas');
 
 // Quota check middleware (Sprint 38)
 let checkAiQuota = (_req, _res, next) => next();
@@ -835,5 +835,201 @@ function generateLocalStructure(description, category) {
     projectType: inferredCategory,
   };
 }
+
+// ============================================================================
+// DRILL AI ENDPOINTS (Sprint 89)
+// ============================================================================
+
+/**
+ * POST /api/ai/suggest-drill-paths
+ * Suggest curved paths (Bezier control points) between two sets of positions.
+ * Non-streaming (like /design-review).
+ */
+router.post('/suggest-drill-paths', authenticateToken, requireAnthropicClient, rateLimitByUser(20, 60000), checkAiQuota, zodValidate(aiSuggestDrillPathsSchema), async (req, res) => {
+  const { startPositions, endPositions, minSpacing = 2, maintainShape = false, style = 'smooth' } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const performerIds = Object.keys(startPositions);
+    const positionSummary = performerIds.map(id => {
+      const s = startPositions[id];
+      const e = endPositions[id];
+      return `${id}: (${s.x.toFixed(1)},${s.y.toFixed(1)}) → (${e.x.toFixed(1)},${e.y.toFixed(1)})`;
+    }).join('\n');
+
+    const prompt = `Given these performer movements on a 0-100 normalized field:\n${positionSummary}\n\nGenerate cubic Bezier control points (cp1, cp2) for each performer so they follow ${style} curved paths. Ensure minimum spacing of ${minSpacing} units between performers during the transition. ${maintainShape ? 'Maintain relative formation shape during the move.' : ''}\n\nRespond with ONLY valid JSON:\n{\n  "curves": { "performerId": { "cp1": { "x": number, "y": number }, "cp2": { "x": number, "y": number } } },\n  "confidence": 0.0-1.0,\n  "description": "brief description of the suggested paths"\n}`;
+
+    const response = await anthropic.messages.create({
+      model: DEFAULT_MODEL,
+      max_tokens: 4096,
+      system: 'You are an expert marching band drill designer specializing in smooth transition paths. Generate cubic Bezier control points that create visually appealing, collision-free curved paths between formations. Coordinates are normalized 0-100.',
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    logAiUsage({ userId, model: DEFAULT_MODEL, inputTokens: response.usage?.input_tokens || 0, outputTokens: response.usage?.output_tokens || 0, endpoint: 'suggest-drill-paths' });
+
+    const textContent = response.content.find(c => c.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
+    }
+
+    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
+    }
+
+    const result = JSON.parse(jsonMatch[0]);
+    res.json({ success: true, ...result });
+
+  } catch (error) {
+    handleAnthropicError(error, res, 'Suggest Drill Paths');
+  }
+});
+
+/**
+ * POST /api/ai/drill/generate-show
+ * Generate a full show of formations from music structure (SSE streaming).
+ * Streams individual sets as JSON: {type: 'set', data: {name, counts, positions}}
+ */
+router.post('/drill/generate-show', authenticateToken, requireAnthropicClient, rateLimitByUser(5, 60000), checkAiQuota, zodValidate(aiGenerateShowSchema), async (req, res) => {
+  const { performers, sections, fieldType = 'ncaa_football', defaultCounts = 8 } = req.body;
+  const userId = req.user.id;
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  try {
+    const performerSummary = performers.map(p => `${p.id}: ${p.name}${p.section ? ` (${p.section})` : ''}${p.instrument ? ` - ${p.instrument}` : ''}`).join('\n');
+    const sectionSummary = sections.map(s => `"${s.name}": ${s.bars} bars, ${s.timeSignature}, ${s.tempoStart} BPM${s.tempoEnd ? ` → ${s.tempoEnd} BPM` : ''}`).join('\n');
+
+    const prompt = `Design a marching band drill show for these performers:\n${performerSummary}\n\nMusic structure:\n${sectionSummary}\n\nField type: ${fieldType}. Default counts per set: ${defaultCounts}.\n\nFor each music section, generate 1-3 sets. Each set must include positions for ALL performers (x,y coordinates 0-100).\n\nReturn each set as a separate JSON block on its own line, formatted exactly as:\n{"type":"set","data":{"name":"Set N","counts":8,"sectionName":"section","positions":{"performerId":{"x":50,"y":50}}}}\n\nGenerate all sets sequentially. After the last set, output:\n{"type":"done","totalSets":N}`;
+
+    const stream = await anthropic.messages.stream({
+      model: DEFAULT_MODEL,
+      max_tokens: 16384,
+      system: 'You are an expert marching band drill designer. Generate formations that are visually effective, have safe spacing, and create smooth transitions. Positions are normalized 0-100 (x=left-right, y=front-back). Output each set as a separate JSON object on its own line. Do not wrap in markdown code blocks.',
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    let fullContent = '';
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let lineBuffer = '';
+
+    res.write(`data: ${JSON.stringify({ type: 'start' })}\n\n`);
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta?.text) {
+        lineBuffer += event.delta.text;
+
+        // Try to parse complete JSON lines from the buffer
+        const lines = lineBuffer.split('\n');
+        lineBuffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed.type === 'set' || parsed.type === 'done') {
+              res.write(`data: ${JSON.stringify(parsed)}\n\n`);
+            }
+          } catch {
+            // Not valid JSON yet, continue
+          }
+        }
+
+        fullContent += event.delta.text;
+      } else if (event.type === 'message_start' && event.message?.usage) {
+        inputTokens = event.message.usage.input_tokens || 0;
+      } else if (event.type === 'message_delta' && event.usage) {
+        outputTokens = event.usage.output_tokens || 0;
+      }
+    }
+
+    // Process remaining buffer
+    if (lineBuffer.trim()) {
+      try {
+        const parsed = JSON.parse(lineBuffer.trim());
+        if (parsed.type === 'set' || parsed.type === 'done') {
+          res.write(`data: ${JSON.stringify(parsed)}\n\n`);
+        }
+      } catch { /* ignore */ }
+    }
+
+    logAiUsage({ userId, model: DEFAULT_MODEL, inputTokens, outputTokens, endpoint: 'drill-generate-show' });
+
+    res.write(`data: ${JSON.stringify({ type: 'complete', tokensUsed: inputTokens + outputTokens })}\n\n`);
+    res.end();
+
+  } catch (error) {
+    const safeMessage = sanitizeApiError(error);
+    log.error('Drill show generation error', { error: safeMessage });
+    res.write(`data: ${JSON.stringify({ type: 'error', error: safeMessage })}\n\n`);
+    res.end();
+  }
+});
+
+/**
+ * POST /api/ai/drill/suggest-sets
+ * Stream natural language advice about set placement for a song (SSE streaming).
+ */
+router.post('/drill/suggest-sets', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), checkAiQuota, zodValidate(aiSuggestSetsSchema), async (req, res) => {
+  const { songId, formationContext } = req.body;
+  const userId = req.user.id;
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  try {
+    const contextStr = formationContext
+      ? `\n\nCurrent formation context:\n${JSON.stringify(formationContext, null, 2)}`
+      : '';
+
+    const prompt = `I'm designing drill for a marching band show linked to song ${songId}.${contextStr}\n\nPlease suggest where to place sets (formation changes) in the music. Consider:\n- Musical phrases and sections\n- Tempo changes that affect step sizes\n- Dynamic contrasts (loud/soft) for visual impact\n- Rehearsal marks as natural set boundaries\n\nProvide specific, actionable advice about set placement, counts per set, and formation ideas for each section.`;
+
+    const stream = await anthropic.messages.stream({
+      model: DEFAULT_MODEL,
+      max_tokens: 4096,
+      system: 'You are an experienced marching band drill designer advising on set placement within music. Give practical, specific advice tied to musical structure. Be concise and use band terminology.',
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    let fullContent = '';
+    let inputTokens = 0;
+    let outputTokens = 0;
+
+    res.write(`data: ${JSON.stringify({ type: 'start' })}\n\n`);
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta?.text) {
+        const chunk = event.delta.text;
+        fullContent += chunk;
+        res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+      } else if (event.type === 'message_start' && event.message?.usage) {
+        inputTokens = event.message.usage.input_tokens || 0;
+      } else if (event.type === 'message_delta' && event.usage) {
+        outputTokens = event.usage.output_tokens || 0;
+      }
+    }
+
+    logAiUsage({ userId, model: DEFAULT_MODEL, inputTokens, outputTokens, endpoint: 'drill-suggest-sets' });
+
+    res.write(`data: ${JSON.stringify({ type: 'done', tokensUsed: inputTokens + outputTokens })}\n\n`);
+    res.end();
+
+  } catch (error) {
+    const safeMessage = sanitizeApiError(error);
+    log.error('Drill set suggestion error', { error: safeMessage });
+    res.write(`data: ${JSON.stringify({ type: 'error', error: safeMessage })}\n\n`);
+    res.end();
+  }
+});
 
 module.exports = router;

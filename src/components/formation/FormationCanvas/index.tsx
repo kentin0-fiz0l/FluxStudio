@@ -27,6 +27,8 @@ import { GroupPanel } from '../GroupPanel';
 import { CollisionOverlay } from '../CollisionOverlay';
 import { FormationVersionHistoryPanel } from '../FormationVersionHistory';
 import { CanvasToolbar } from './CanvasToolbar';
+import { MobileCanvasToolbar } from './MobileCanvasToolbar';
+import { MobileSetNavigator } from './MobileSetNavigator';
 import { PerformerPanel } from './PerformerPanel';
 import { AlignmentToolbar } from './AlignmentToolbar';
 import { OnboardingHints } from './OnboardingHints';
@@ -36,6 +38,7 @@ import { useCanvasState } from './useCanvasState';
 import { useCanvasHandlers } from './useCanvasHandlers';
 import { useCanvasKeyboardHandlers } from './useCanvasKeyboardHandlers';
 import { useCanvasAccessibility } from './useCanvasAccessibility';
+import { useBreakpoint } from '../../../hooks/useBreakpoint';
 import { useMetMapSongLink } from '../../../hooks/useMetMapSongLink';
 import { NCAA_FOOTBALL_FIELD } from '../../../services/fieldConfigService';
 import type { DrillSet, Position as DrillPosition, Formation } from '../../../services/formationTypes';
@@ -110,6 +113,9 @@ export function FormationCanvas(props: FormationCanvasProps) {
     linkSong,
     unlinkSong,
   } = useMetMapSongLink(formation, handleFormationUpdate);
+
+  const { isDesktop } = useBreakpoint();
+  const isMobileView = !isDesktop; // < 1024px
 
   const handlers = useCanvasHandlers({
     state,
@@ -394,50 +400,58 @@ export function FormationCanvas(props: FormationCanvasProps) {
         {accessibility.getCanvasSummary()}
       </div>
 
-      <CanvasToolbar
-        activeTool={activeTool} setActiveTool={setActiveTool}
-        showGrid={showGrid} setShowGrid={setShowGrid}
-        showLabels={showLabels} setShowLabels={setShowLabels}
-        showRotation={showRotation} setShowRotation={setShowRotation}
-        showPaths={showPaths} setShowPaths={setShowPaths}
-        snapEnabled={snapEnabled} setSnapEnabled={setSnapEnabled}
-        timeDisplayMode={timeDisplayMode} setTimeDisplayMode={setTimeDisplayMode}
-        showFieldOverlay={showFieldOverlay} setShowFieldOverlay={setShowFieldOverlay}
-        zoom={zoom} onZoomIn={handleZoomIn} onZoomOut={handleZoomOut}
-        formationName={formation.name} onNameChange={handleNameChange}
-        isCollaborativeEnabled={isCollaborativeEnabled} collab={collab} currentUser={currentUser}
-        showPerformerPanel={showPerformerPanel} setShowPerformerPanel={setShowPerformerPanel}
-        showAudioPanel={showAudioPanel} setShowAudioPanel={setShowAudioPanel}
-        hasAudioTrack={!!formation?.audioTrack}
-        setShowTemplatePicker={setShowTemplatePicker} setIsExportDialogOpen={setIsExportDialogOpen}
-        onSave={handleSave} saveStatus={saveStatus} apiSaving={apiSaving}
-        onUndo={handleUndo} onRedo={handleRedo}
-        canUndo={history.canUndo} canRedo={history.canRedo}
-        hasUnsavedChanges={hasUnsavedChanges}
-        sandboxMode={sandboxMode}
-        formationId={formationId}
-        fingerMode={fingerMode}
-        setFingerMode={setFingerMode}
-        showAnalysisPanel={showAnalysisPanel}
-        setShowAnalysisPanel={setShowAnalysisPanel}
-        showMovementTools={showMovementTools}
-        setShowMovementTools={setShowMovementTools}
-        showStepSizes={showStepSizes}
-        setShowStepSizes={setShowStepSizes}
-        showCoordinatePanel={showCoordinatePanel}
-        setShowCoordinatePanel={setShowCoordinatePanel}
-        showMeasurements={showMeasurements}
-        setShowMeasurements={setShowMeasurements}
-        showGroupPanel={showGroupPanel}
-        setShowGroupPanel={setShowGroupPanel}
-        curveEditMode={curveEditMode}
-        setCurveEditMode={setCurveEditMode}
-        showVersionHistory={showVersionHistory}
-        setShowVersionHistory={setShowVersionHistory}
-      />
+      {isDesktop ? (
+        <CanvasToolbar
+          activeTool={activeTool} setActiveTool={setActiveTool}
+          showGrid={showGrid} setShowGrid={setShowGrid}
+          showLabels={showLabels} setShowLabels={setShowLabels}
+          showRotation={showRotation} setShowRotation={setShowRotation}
+          showPaths={showPaths} setShowPaths={setShowPaths}
+          snapEnabled={snapEnabled} setSnapEnabled={setSnapEnabled}
+          timeDisplayMode={timeDisplayMode} setTimeDisplayMode={setTimeDisplayMode}
+          showFieldOverlay={showFieldOverlay} setShowFieldOverlay={setShowFieldOverlay}
+          zoom={zoom} onZoomIn={handleZoomIn} onZoomOut={handleZoomOut}
+          formationName={formation.name} onNameChange={handleNameChange}
+          isCollaborativeEnabled={isCollaborativeEnabled} collab={collab} currentUser={currentUser}
+          showPerformerPanel={showPerformerPanel} setShowPerformerPanel={setShowPerformerPanel}
+          showAudioPanel={showAudioPanel} setShowAudioPanel={setShowAudioPanel}
+          hasAudioTrack={!!formation?.audioTrack}
+          setShowTemplatePicker={setShowTemplatePicker} setIsExportDialogOpen={setIsExportDialogOpen}
+          onSave={handleSave} saveStatus={saveStatus} apiSaving={apiSaving}
+          onUndo={handleUndo} onRedo={handleRedo}
+          canUndo={history.canUndo} canRedo={history.canRedo}
+          hasUnsavedChanges={hasUnsavedChanges}
+          sandboxMode={sandboxMode}
+          formationId={formationId}
+          fingerMode={fingerMode}
+          setFingerMode={setFingerMode}
+          showAnalysisPanel={showAnalysisPanel}
+          setShowAnalysisPanel={setShowAnalysisPanel}
+          showMovementTools={showMovementTools}
+          setShowMovementTools={setShowMovementTools}
+          showStepSizes={showStepSizes}
+          setShowStepSizes={setShowStepSizes}
+          showCoordinatePanel={showCoordinatePanel}
+          setShowCoordinatePanel={setShowCoordinatePanel}
+          showMeasurements={showMeasurements}
+          setShowMeasurements={setShowMeasurements}
+          showGroupPanel={showGroupPanel}
+          setShowGroupPanel={setShowGroupPanel}
+          curveEditMode={curveEditMode}
+          setCurveEditMode={setCurveEditMode}
+          showVersionHistory={showVersionHistory}
+          setShowVersionHistory={setShowVersionHistory}
+        />
+      ) : (
+        <MobileSetNavigator
+          keyframes={formation.keyframes}
+          selectedKeyframeId={selectedKeyframeId}
+          onKeyframeSelect={handleKeyframeSelect}
+        />
+      )}
 
-      <div className="flex-1 flex overflow-hidden">
-        <div id="canvas-area" className="flex-1 relative overflow-auto p-8 bg-gray-100 dark:bg-gray-900">
+      <div className={`flex-1 flex overflow-hidden ${isMobileView ? 'pb-[60px]' : ''}`}>
+        <div id="canvas-area" className={`flex-1 relative overflow-auto bg-gray-100 dark:bg-gray-900 ${isMobileView ? 'p-2' : 'p-8'}`}>
           {sandboxMode && <OnboardingHints />}
           <AlignmentToolbar
             selectedCount={selectedPerformerIds.size}
@@ -485,64 +499,75 @@ export function FormationCanvas(props: FormationCanvasProps) {
             transformMode={transformMode}
           />
         </div>
+        {/* Side panels: slide-over drawers on mobile, inline on desktop */}
         {showPerformerPanel && (
-          <PerformerPanel
-            formation={formation}
-            selectedPerformerIds={selectedPerformerIds}
-            onSelectPerformer={handleSelectPerformer}
-            onAddPerformer={handleAddPerformer}
-            onRemovePerformer={handleRemovePerformer}
-          />
+          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-72 shadow-xl' : ''}>
+            <PerformerPanel
+              formation={formation}
+              selectedPerformerIds={selectedPerformerIds}
+              onSelectPerformer={handleSelectPerformer}
+              onAddPerformer={handleAddPerformer}
+              onRemovePerformer={handleRemovePerformer}
+            />
+          </div>
         )}
         {showCoordinatePanel && selectedPerformerInfo && (
-          <CoordinatePanel
-            performerId={selectedPerformerInfo.id}
-            performerName={selectedPerformerInfo.name}
-            position={selectedPerformerInfo.position}
-            nextPosition={selectedPerformerInfo.nextPosition}
-            prevPosition={selectedPerformerInfo.prevPosition}
-            fieldConfig={NCAA_FOOTBALL_FIELD}
-            currentSetCounts={drillSets[currentSetIndex]?.counts ?? 8}
-            prevSetCounts={currentSetIndex > 0 ? (drillSets[currentSetIndex - 1]?.counts ?? 8) : 0}
-            onPositionChange={(pos) => {
-              if (selectedPerformerInfo) {
-                setCurrentPositions(prev => {
-                  const next = new Map(prev);
-                  next.set(selectedPerformerInfo.id, pos);
-                  return next;
-                });
-                setHasUnsavedChanges(true);
-              }
-            }}
-          />
+          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-72 shadow-xl' : ''}>
+            <CoordinatePanel
+              performerId={selectedPerformerInfo.id}
+              performerName={selectedPerformerInfo.name}
+              position={selectedPerformerInfo.position}
+              nextPosition={selectedPerformerInfo.nextPosition}
+              prevPosition={selectedPerformerInfo.prevPosition}
+              fieldConfig={NCAA_FOOTBALL_FIELD}
+              currentSetCounts={drillSets[currentSetIndex]?.counts ?? 8}
+              prevSetCounts={currentSetIndex > 0 ? (drillSets[currentSetIndex - 1]?.counts ?? 8) : 0}
+              onPositionChange={(pos) => {
+                if (selectedPerformerInfo) {
+                  setCurrentPositions(prev => {
+                    const next = new Map(prev);
+                    next.set(selectedPerformerInfo.id, pos);
+                    return next;
+                  });
+                  setHasUnsavedChanges(true);
+                }
+              }}
+            />
+          </div>
         )}
         {showAnalysisPanel && (
-          <DrillAnalysisPanel
-            formation={formation}
-            sets={drillSets}
-            onNavigateToSet={handleNavigateToSet}
-          />
+          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-72 shadow-xl' : ''}>
+            <DrillAnalysisPanel
+              formation={formation}
+              sets={drillSets}
+              onNavigateToSet={handleNavigateToSet}
+            />
+          </div>
         )}
         {showGroupPanel && (
-          <GroupPanel
-            groups={formation.groups ?? []}
-            performers={formation.performers}
-            selectedPerformerIds={selectedPerformerIds}
-            onCreateGroup={handleCreateGroup}
-            onDeleteGroup={handleDeleteGroup}
-            onRenameGroup={handleRenameGroup}
-            onSelectGroup={handleSelectGroup}
-            onUpdateGroupColor={handleUpdateGroupColor}
-            onClose={() => setShowGroupPanel(false)}
-          />
+          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-72 shadow-xl' : ''}>
+            <GroupPanel
+              groups={formation.groups ?? []}
+              performers={formation.performers}
+              selectedPerformerIds={selectedPerformerIds}
+              onCreateGroup={handleCreateGroup}
+              onDeleteGroup={handleDeleteGroup}
+              onRenameGroup={handleRenameGroup}
+              onSelectGroup={handleSelectGroup}
+              onUpdateGroupColor={handleUpdateGroupColor}
+              onClose={() => setShowGroupPanel(false)}
+            />
+          </div>
         )}
         {showVersionHistory && formation.id && (
-          <FormationVersionHistoryPanel
-            formationId={formation.id}
-            currentFormation={formation}
-            onRestore={handleVersionRestore}
-            onClose={() => setShowVersionHistory(false)}
-          />
+          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-72 shadow-xl' : ''}>
+            <FormationVersionHistoryPanel
+              formationId={formation.id}
+              currentFormation={formation}
+              onRestore={handleVersionRestore}
+              onClose={() => setShowVersionHistory(false)}
+            />
+          </div>
         )}
       </div>
 
@@ -583,43 +608,76 @@ export function FormationCanvas(props: FormationCanvasProps) {
         </div>
       )}
 
-      {/* MetMap song selector (above timeline) */}
-      <div id="timeline-area" className="flex items-center gap-2 px-4 py-1 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-        <MetMapSongSelector
-          linkedSongId={formation.metmapSongId}
-          linkedSong={linkedSong}
-          onLinkSong={linkSong}
-          onUnlinkSong={unlinkSong}
-        />
-      </div>
+      {/* Desktop: MetMap song selector + full Timeline */}
+      {isDesktop && (
+        <>
+          <div id="timeline-area" className="flex items-center gap-2 px-4 py-1 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+            <MetMapSongSelector
+              linkedSongId={formation.metmapSongId}
+              linkedSong={linkedSong}
+              onLinkSong={linkSong}
+              onUnlinkSong={unlinkSong}
+            />
+          </div>
 
-      <Timeline
-        keyframes={formation.keyframes}
-        duration={playbackState.duration}
-        currentTime={playbackState.currentTime}
-        playbackState={playbackState}
-        selectedKeyframeId={selectedKeyframeId}
-        audioTrack={formation.audioTrack}
-        drillSettings={drillSettings}
-        timeDisplayMode={timeDisplayMode}
-        snapResolution={snapResolution}
-        onSnapResolutionChange={setSnapResolution}
-        onDrillSettingsChange={setDrillSettings}
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onStop={handleStop}
-        onSeek={handleSeek}
-        onSpeedChange={handleSpeedChange}
-        onToggleLoop={handleToggleLoop}
-        onKeyframeSelect={handleKeyframeSelect}
-        onKeyframeAdd={handleKeyframeAdd}
-        onKeyframeRemove={handleKeyframeRemove}
-        onKeyframeMove={handleKeyframeMove}
-        sections={metmapSections}
-        chords={metmapChords}
-        tempoMap={metmapTempoMap ?? undefined}
-        beatMap={metmapBeatMap ?? undefined}
-      />
+          <Timeline
+            keyframes={formation.keyframes}
+            duration={playbackState.duration}
+            currentTime={playbackState.currentTime}
+            playbackState={playbackState}
+            selectedKeyframeId={selectedKeyframeId}
+            audioTrack={formation.audioTrack}
+            drillSettings={drillSettings}
+            timeDisplayMode={timeDisplayMode}
+            snapResolution={snapResolution}
+            onSnapResolutionChange={setSnapResolution}
+            onDrillSettingsChange={setDrillSettings}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onStop={handleStop}
+            onSeek={handleSeek}
+            onSpeedChange={handleSpeedChange}
+            onToggleLoop={handleToggleLoop}
+            onKeyframeSelect={handleKeyframeSelect}
+            onKeyframeAdd={handleKeyframeAdd}
+            onKeyframeRemove={handleKeyframeRemove}
+            onKeyframeMove={handleKeyframeMove}
+            sections={metmapSections}
+            chords={metmapChords}
+            tempoMap={metmapTempoMap ?? undefined}
+            beatMap={metmapBeatMap ?? undefined}
+          />
+        </>
+      )}
+
+      {/* Mobile: bottom-anchored toolbar */}
+      {isMobileView && (
+        <MobileCanvasToolbar
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          fingerMode={fingerMode}
+          setFingerMode={setFingerMode}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={history.canUndo}
+          canRedo={history.canRedo}
+          zoom={zoom}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onSave={handleSave}
+          saveStatus={saveStatus}
+          setIsExportDialogOpen={setIsExportDialogOpen}
+          showGrid={showGrid}
+          setShowGrid={setShowGrid}
+          showLabels={showLabels}
+          setShowLabels={setShowLabels}
+          showFieldOverlay={showFieldOverlay}
+          setShowFieldOverlay={setShowFieldOverlay}
+          playbackState={playbackState}
+          onPlay={handlePlay}
+          onPause={handlePause}
+        />
+      )}
 
       <ExportDialog isOpen={isExportDialogOpen} formationName={formation.name} onClose={() => setIsExportDialogOpen(false)} onExport={handleExport} />
       {showShortcutsDialog && <KeyboardShortcutsDialog onClose={() => setShowShortcutsDialog(false)} />}

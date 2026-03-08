@@ -1,53 +1,27 @@
 /**
  * LMS Integration Routes - FluxStudio
  *
- * Stub Express router for LMS (Google Classroom, Canvas) integration.
- * Returns placeholder data for development and frontend wiring.
+ * Express router for LMS (Google Classroom, Canvas) integration.
+ * Uses lms-oauth-service for real OAuth flows and API calls.
  *
  * Endpoints:
- * - GET  /providers         — available LMS providers
- * - GET  /:provider/courses — placeholder courses
- * - POST /:provider/connect — placeholder OAuth auth URL
- * - POST /:provider/share   — placeholder share result
+ * - GET  /providers             — available LMS providers and connection status
+ * - GET  /:provider/courses     — list courses for a connected provider
+ * - GET  /:provider/callback    — OAuth redirect handler
+ * - POST /:provider/connect     — initiate OAuth flow (returns real auth URL)
+ * - POST /:provider/share       — share a formation as an assignment
+ * - DELETE /:provider/disconnect — remove OAuth connection
  */
 
 const express = require('express');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('LMS');
 const { authenticateToken } = require('../lib/data-helpers');
+const lmsOAuth = require('../services/lms-oauth-service');
 
 const router = express.Router();
 
-// ========================================
-// Placeholder Data
-// ========================================
-
-const PROVIDERS = [
-  {
-    id: 'google_classroom',
-    name: 'Google Classroom',
-    icon: 'google-classroom',
-    connected: false,
-  },
-  {
-    id: 'canvas_lms',
-    name: 'Canvas LMS',
-    icon: 'canvas',
-    connected: false,
-  },
-];
-
-const PLACEHOLDER_COURSES = {
-  google_classroom: [
-    { id: 'gc-101', name: 'Marching Band 101', section: 'Section A', enrollmentCode: 'abc123' },
-    { id: 'gc-202', name: 'Color Guard Techniques', section: 'Fall 2025' },
-    { id: 'gc-303', name: 'Drill Design Workshop', section: 'Advanced' },
-  ],
-  canvas_lms: [
-    { id: 'cv-101', name: 'Introduction to Drill', section: 'Period 1' },
-    { id: 'cv-202', name: 'Music Performance Ensemble', section: 'Period 3' },
-  ],
-};
+const VALID_PROVIDERS = ['google_classroom', 'canvas_lms'];
 
 // ========================================
 // Routes
@@ -56,40 +30,176 @@ const PLACEHOLDER_COURSES = {
 /**
  * GET /providers — list available LMS providers and connection status.
  */
-router.get('/providers', authenticateToken, (_req, res) => {
-  log.info('Listing LMS providers');
-  res.json({ providers: PROVIDERS });
+router.get('/providers', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const connectionStatus = await lmsOAuth.getLMSConnectionStatus(userId);
+
+    const providers = [
+      {
+        id: 'google_classroom',
+        name: 'Google Classroom',
+        icon: 'google-classroom',
+        connected: !!connectionStatus.google_classroom?.connected,
+      },
+      {
+        id: 'canvas_lms',
+        name: 'Canvas LMS',
+        icon: 'canvas',
+        connected: !!connectionStatus.canvas_lms?.connected,
+        baseUrl: connectionStatus.canvas_lms?.baseUrl || null,
+      },
+    ];
+
+    log.info('Listing LMS providers', { userId });
+    res.json({ providers });
+  } catch (error) {
+    // Handle missing table gracefully (migrations not run)
+    if (error.code === '42P01' || error.message?.includes('does not exist')) {
+      log.warn('LMS tables not yet created — returning defaults');
+      return res.json({
+        providers: [
+          { id: 'google_classroom', name: 'Google Classroom', icon: 'google-classroom', connected: false },
+          { id: 'canvas_lms', name: 'Canvas LMS', icon: 'canvas', connected: false },
+        ],
+      });
+    }
+    log.error('Error listing LMS providers', error);
+    res.status(500).json({ success: false, error: 'Failed to list providers' });
+  }
 });
 
 /**
  * GET /:provider/courses — list courses for a connected provider.
  */
-router.get('/:provider/courses', authenticateToken, (req, res) => {
+router.get('/:provider/courses', authenticateToken, async (req, res) => {
   const { provider } = req.params;
-  const courses = PLACEHOLDER_COURSES[provider] || [];
-  log.info(`Listing courses for ${provider}`, { count: courses.length });
-  res.json({ courses });
+  if (!VALID_PROVIDERS.includes(provider)) {
+    return res.status(400).json({ success: false, error: 'Invalid LMS provider' });
+  }
+
+  try {
+    const userId = req.user.id;
+    let courses;
+
+    if (provider === 'google_classroom') {
+      courses = await lmsOAuth.getGoogleClassroomCourses(userId);
+    } else {
+      courses = await lmsOAuth.getCanvasCourses(userId);
+    }
+
+    log.info(`Listing courses for ${provider}`, { userId, count: courses.length });
+    res.json({ courses });
+  } catch (error) {
+    log.error(`Error fetching courses for ${provider}`, error);
+    const status = error.message?.includes('not connected') ? 401 : 500;
+    res.status(status).json({ success: false, error: error.message });
+  }
 });
 
 /**
- * POST /:provider/connect — initiate OAuth flow (returns placeholder auth URL).
+ * GET /:provider/callback — OAuth redirect handler (browser redirect).
  */
-router.post('/:provider/connect', authenticateToken, (req, res) => {
+router.get('/:provider/callback', async (req, res) => {
   const { provider } = req.params;
-  log.info(`Connect request for ${provider}`);
-  const authUrl = provider === 'google_classroom'
-    ? 'https://accounts.google.com/o/oauth2/v2/auth?scope=classroom&redirect_uri=placeholder'
-    : 'https://canvas.instructure.com/login/oauth2/auth?redirect_uri=placeholder';
-  res.json({ authUrl });
+  if (!VALID_PROVIDERS.includes(provider)) {
+    return res.status(400).json({ success: false, error: 'Invalid LMS provider' });
+  }
+
+  const { code, state } = req.query;
+  if (!code || !state) {
+    return res.redirect(
+      `${process.env.APP_URL || 'https://fluxstudio.art'}/auth/callback/${provider}?error=missing_params`,
+    );
+  }
+
+  try {
+    // The state token encodes the user_id via oauth_state_tokens table lookup,
+    // but we need userId from the state token record. The consumeStateToken
+    // inside each handler returns the user_id.
+
+    if (provider === 'google_classroom') {
+      // Look up user from state token before consuming
+      const stateRow = await require('../database/config').query(
+        `SELECT user_id FROM oauth_state_tokens WHERE state_token = $1 AND provider = $2 AND used = false AND expires_at > NOW()`,
+        [state, provider],
+      );
+      if (stateRow.rows.length === 0) {
+        throw new Error('Invalid or expired OAuth state');
+      }
+      const userId = stateRow.rows[0].user_id;
+      await lmsOAuth.handleGoogleClassroomCallback(code, state, userId);
+    } else {
+      // Canvas: composite state = stateToken:base64(institutionUrl)
+      const colonIdx = state.indexOf(':');
+      const stateToken = colonIdx > -1 ? state.substring(0, colonIdx) : state;
+
+      const stateRow = await require('../database/config').query(
+        `SELECT user_id FROM oauth_state_tokens WHERE state_token = $1 AND provider = $2 AND used = false AND expires_at > NOW()`,
+        [stateToken, provider],
+      );
+      if (stateRow.rows.length === 0) {
+        throw new Error('Invalid or expired OAuth state');
+      }
+      const userId = stateRow.rows[0].user_id;
+      await lmsOAuth.handleCanvasCallback(code, state, userId);
+    }
+
+    res.redirect(
+      `${process.env.APP_URL || 'https://fluxstudio.art'}/auth/callback/${provider}?success=true`,
+    );
+  } catch (error) {
+    log.error(`OAuth callback error (${provider})`, error);
+    res.redirect(
+      `${process.env.APP_URL || 'https://fluxstudio.art'}/auth/callback/${provider}?error=${encodeURIComponent(error.message)}`,
+    );
+  }
+});
+
+/**
+ * POST /:provider/connect — initiate OAuth flow (returns real auth URL).
+ */
+router.post('/:provider/connect', authenticateToken, async (req, res) => {
+  const { provider } = req.params;
+  if (!VALID_PROVIDERS.includes(provider)) {
+    return res.status(400).json({ success: false, error: 'Invalid LMS provider' });
+  }
+
+  try {
+    const userId = req.user.id;
+    let authUrl;
+
+    if (provider === 'google_classroom') {
+      authUrl = await lmsOAuth.initiateGoogleClassroomOAuth(userId);
+    } else {
+      const { institutionUrl } = req.body;
+      if (!institutionUrl) {
+        return res.status(400).json({
+          success: false,
+          error: 'institutionUrl is required for Canvas LMS',
+        });
+      }
+      authUrl = await lmsOAuth.initiateCanvasOAuth(userId, institutionUrl);
+    }
+
+    log.info(`Connect request for ${provider}`, { userId });
+    res.json({ authUrl });
+  } catch (error) {
+    log.error(`Error initiating ${provider} OAuth`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 /**
  * POST /:provider/share — share a formation to an LMS course as an assignment.
  */
-router.post('/:provider/share', authenticateToken, (req, res) => {
+router.post('/:provider/share', authenticateToken, async (req, res) => {
   const { provider } = req.params;
-  const { courseId, title, formationId } = req.body;
+  if (!VALID_PROVIDERS.includes(provider)) {
+    return res.status(400).json({ success: false, error: 'Invalid LMS provider' });
+  }
 
+  const { courseId, title, formationId, embedUrl } = req.body;
   if (!courseId || !title || !formationId) {
     return res.status(400).json({
       success: false,
@@ -97,14 +207,45 @@ router.post('/:provider/share', authenticateToken, (req, res) => {
     });
   }
 
-  log.info(`Share to ${provider}`, { courseId, title, formationId });
+  try {
+    const userId = req.user.id;
+    const formationUrl = embedUrl ||
+      `${process.env.APP_URL || 'https://fluxstudio.art'}/embed/formation/${formationId}`;
 
-  const assignmentId = `${provider}-${Date.now()}`;
-  const url = provider === 'google_classroom'
-    ? `https://classroom.google.com/c/${courseId}/a/${assignmentId}`
-    : `https://canvas.instructure.com/courses/${courseId}/assignments/${assignmentId}`;
+    let result;
+    if (provider === 'google_classroom') {
+      result = await lmsOAuth.createGoogleClassroomAssignment(userId, courseId, title, formationUrl);
+    } else {
+      result = await lmsOAuth.createCanvasAssignment(userId, courseId, title, formationUrl);
+    }
 
-  res.json({ url, assignmentId });
+    log.info(`Share to ${provider}`, { userId, courseId, title, formationId });
+    res.json({ url: result.url, assignmentId: result.assignmentId });
+  } catch (error) {
+    log.error(`Error sharing to ${provider}`, error);
+    const status = error.message?.includes('not connected') ? 401 : 500;
+    res.status(status).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * DELETE /:provider/disconnect — remove OAuth connection for an LMS provider.
+ */
+router.delete('/:provider/disconnect', authenticateToken, async (req, res) => {
+  const { provider } = req.params;
+  if (!VALID_PROVIDERS.includes(provider)) {
+    return res.status(400).json({ success: false, error: 'Invalid LMS provider' });
+  }
+
+  try {
+    const userId = req.user.id;
+    await lmsOAuth.deactivateToken(userId, provider);
+    log.info(`${provider} disconnected`, { userId });
+    res.json({ success: true, message: `${provider} disconnected` });
+  } catch (error) {
+    log.error(`Error disconnecting ${provider}`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 module.exports = router;

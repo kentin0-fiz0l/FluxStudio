@@ -13,7 +13,7 @@
  * "Create a company front on the 40"
  */
 
-import { useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type {
   Formation,
   Position,
@@ -24,6 +24,7 @@ import {
   generateFormationFromDescription,
   type FormationFromDescriptionResult,
 } from '../services/drillAiService';
+import { buildApiUrl } from '../config/environment';
 
 export interface FormationAIContext {
   /** Current formation name and dimensions */
@@ -93,6 +94,8 @@ function buildFormationContextSummary(ctx: FormationAIContext): string {
   return parts.join(' ');
 }
 
+export type AIStatus = 'idle' | 'generating' | 'error';
+
 export function useAIFormationAssistant(options: UseAIFormationAssistantOptions) {
   const {
     formation,
@@ -103,6 +106,9 @@ export function useAIFormationAssistant(options: UseAIFormationAssistantOptions)
     sets,
     onApplyPositions,
   } = options;
+
+  const [aiStatus, setAiStatus] = useState<AIStatus>('idle');
+  const [useClaudeForGeneration, setUseClaudeForGeneration] = useState(true);
 
   // Build formation context for AI
   const formationContext = useMemo((): FormationAIContext | null => {
@@ -158,22 +164,68 @@ export function useAIFormationAssistant(options: UseAIFormationAssistantOptions)
     return buildFormationContextSummary(formationContext);
   }, [formationContext]);
 
-  // Apply a text description to generate positions
+  // Apply a text description to generate positions (with Claude API fallback)
   const applyDescription = useCallback(
-    (description: string): FormationFromDescriptionResult | null => {
+    async (description: string): Promise<FormationFromDescriptionResult | null> => {
       if (!formation || performers.length === 0) return null;
 
-      // Determine target performers (selected or all)
       const targetPerformers = selectedPerformerIds.size > 0
         ? performers.filter((p) => selectedPerformerIds.has(p.id))
         : performers;
 
+      // Try Claude API first when enabled
+      if (useClaudeForGeneration) {
+        setAiStatus('generating');
+        try {
+          const contextSummary = formationContext ? buildFormationContextSummary(formationContext) : '';
+          const performerList = targetPerformers.map(p => `${p.id}: ${p.name}${p.section ? ` (${p.section})` : ''}`).join(', ');
+
+          const drillPrompt = `You are a marching band drill designer. ${contextSummary}\n\nPerformers: ${performerList}\n\nUser request: "${description}"\n\nGenerate positions (x,y coordinates, 0-100 normalized) for each performer. Respond with ONLY valid JSON:\n{"positions":{"performerId":{"x":number,"y":number}},"description":"brief description"}`;
+
+          const res = await fetch(buildApiUrl('/ai/chat/sync'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: drillPrompt }),
+            credentials: 'include',
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const content: string = data.content || '';
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              if (parsed.positions && typeof parsed.positions === 'object') {
+                const newPositions = new Map(currentPositions);
+                for (const [id, pos] of Object.entries(parsed.positions)) {
+                  const p = pos as { x: number; y: number };
+                  if (typeof p.x === 'number' && typeof p.y === 'number') {
+                    newPositions.set(id, { x: p.x, y: p.y });
+                  }
+                }
+                onApplyPositions?.(newPositions);
+                setAiStatus('idle');
+                return {
+                  sets: [{ name: 'Set 1', counts: 8, positions: newPositions, notes: parsed.description }],
+                  description: parsed.description || `AI-generated: ${description}`,
+                };
+              }
+            }
+          }
+          // If API call failed or response couldn't be parsed, fall through to local
+        } catch {
+          // Fall through to local heuristic
+        }
+        setAiStatus('idle');
+      }
+
+      // Fallback: local heuristic generation
       const result = generateFormationFromDescription({
         description,
         performers: targetPerformers,
       });
 
-      // Apply the first set's positions
       if (result.sets.length > 0 && onApplyPositions) {
         const newPositions = new Map(currentPositions);
         for (const [id, pos] of result.sets[0].positions) {
@@ -184,7 +236,7 @@ export function useAIFormationAssistant(options: UseAIFormationAssistantOptions)
 
       return result;
     },
-    [formation, performers, selectedPerformerIds, currentPositions, onApplyPositions],
+    [formation, performers, selectedPerformerIds, currentPositions, onApplyPositions, useClaudeForGeneration, formationContext],
   );
 
   return {
@@ -196,5 +248,11 @@ export function useAIFormationAssistant(options: UseAIFormationAssistantOptions)
     applyDescription,
     /** Whether formation context is available */
     isAvailable: !!formationContext,
+    /** AI generation status */
+    aiStatus,
+    /** Whether to use Claude API for generation (vs local heuristics) */
+    useClaudeForGeneration,
+    /** Toggle Claude API usage */
+    setUseClaudeForGeneration,
   };
 }

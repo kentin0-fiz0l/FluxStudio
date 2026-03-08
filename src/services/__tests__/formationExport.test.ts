@@ -29,6 +29,7 @@ const mockDocMethods = {
   circle: vi.fn(),
   line: vi.fn(),
   addPage: vi.fn(),
+  setPage: vi.fn(),
   getTextWidth: vi.fn().mockReturnValue(30),
   output: vi.fn().mockReturnValue(new Blob(['pdf-data'], { type: 'application/pdf' })),
   internal: {

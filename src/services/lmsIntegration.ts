@@ -16,6 +16,7 @@ export interface LMSProvider {
   name: string;
   icon: string;
   connected: boolean;
+  baseUrl?: string | null;
 }
 
 export interface ClassroomCourse {
@@ -47,15 +48,31 @@ export interface LMSShareResult {
 }
 
 // ============================================================================
+// Auth Token Helper
+// ============================================================================
+
+function getAuthToken(): string {
+  return localStorage.getItem('token') || '';
+}
+
+function authHeaders(token?: string): Record<string, string> {
+  const t = token || getAuthToken();
+  return {
+    Authorization: `Bearer ${t}`,
+    'Content-Type': 'application/json',
+  };
+}
+
+// ============================================================================
 // API FUNCTIONS
 // ============================================================================
 
 /**
  * Get list of available LMS providers and connection status.
  */
-export async function getLMSProviders(token: string): Promise<LMSProvider[]> {
+export async function getLMSProviders(token?: string): Promise<LMSProvider[]> {
   const res = await fetch(buildApiUrl('/lms/providers'), {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(token),
   });
   if (!res.ok) throw new Error(`Failed to get LMS providers (${res.status})`);
   const data = await res.json();
@@ -67,10 +84,10 @@ export async function getLMSProviders(token: string): Promise<LMSProvider[]> {
  */
 export async function getLMSCourses(
   provider: LMSProvider['id'],
-  token: string,
+  token?: string,
 ): Promise<ClassroomCourse[]> {
   const res = await fetch(buildApiUrl(`/lms/${provider}/courses`), {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(token),
   });
   if (!res.ok) throw new Error(`Failed to get courses (${res.status})`);
   const data = await res.json();
@@ -83,18 +100,46 @@ export async function getLMSCourses(
  */
 export async function connectLMSProvider(
   provider: LMSProvider['id'],
-  token: string,
+  token?: string,
+  institutionUrl?: string,
 ): Promise<string> {
   const res = await fetch(buildApiUrl(`/lms/${provider}/connect`), {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: authHeaders(token),
+    body: JSON.stringify(institutionUrl ? { institutionUrl } : {}),
   });
-  if (!res.ok) throw new Error(`Failed to connect to ${provider} (${res.status})`);
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || `Failed to connect to ${provider} (${res.status})`);
+  }
   const data = await res.json();
   return data.authUrl;
+}
+
+/**
+ * Disconnect an LMS provider.
+ */
+export async function disconnectLMSProvider(
+  provider: LMSProvider['id'],
+  token?: string,
+): Promise<void> {
+  const res = await fetch(buildApiUrl(`/lms/${provider}/disconnect`), {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || `Failed to disconnect ${provider} (${res.status})`);
+  }
+}
+
+/**
+ * Get connection status for all LMS providers.
+ */
+export async function getLMSConnectionStatus(
+  token?: string,
+): Promise<LMSProvider[]> {
+  return getLMSProviders(token);
 }
 
 /**
@@ -102,14 +147,11 @@ export async function connectLMSProvider(
  */
 export async function shareToLMS(
   options: LMSShareOptions,
-  token: string,
+  token?: string,
 ): Promise<LMSShareResult> {
   const res = await fetch(buildApiUrl(`/lms/${options.provider}/share`), {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: authHeaders(token),
     body: JSON.stringify({
       courseId: options.courseId,
       title: options.title,

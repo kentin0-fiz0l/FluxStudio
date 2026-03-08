@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#6366f1",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "categories": ["design", "productivity", "business"],
   "lang": "en-US",
   "dir": "ltr",

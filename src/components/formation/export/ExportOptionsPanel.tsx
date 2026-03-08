@@ -211,8 +211,8 @@ export function ExportOptionsPanel({
         </div>
       )}
 
-      {/* PDF Options */}
-      {isPdfFormat && (
+      {/* PDF Options (also show orientation for coordinate_sheet) */}
+      {(isPdfFormat || selectedFormat === 'coordinate_sheet') && (
         <div className="mb-6">
           <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
             {t('formation.pdfOptions', 'PDF Options')}

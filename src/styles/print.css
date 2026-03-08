@@ -1,0 +1,72 @@
+/**
+ * Consolidated print stylesheet for FluxStudio.
+ * Hides app shell, applies page margins, table formatting, and difficulty colors.
+ */
+
+@media print {
+  /* Hide app shell and non-printable elements */
+  nav,
+  header,
+  footer,
+  aside,
+  .sidebar,
+  .toolbar,
+  .toast-container,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 15mm;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background: white;
+    color: black;
+    font-family: Helvetica, Arial, sans-serif;
+  }
+
+  /* Table formatting */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+  }
+
+  table th,
+  table td {
+    border: 0.5pt solid #ccc;
+    padding: 2pt 4pt;
+    text-align: left;
+  }
+
+  table th {
+    background-color: #f0f0f5 !important;
+    font-weight: bold;
+  }
+
+  table tr:nth-child(even) td {
+    background-color: #fafafc !important;
+  }
+
+  /* Difficulty color classes */
+  .difficulty-easy {
+    color: #228b22 !important;
+  }
+
+  .difficulty-moderate {
+    color: #ca8a04 !important;
+  }
+
+  .difficulty-hard {
+    color: #dc2626 !important;
+  }
+
+  /* Prevent page breaks inside table rows */
+  tr {
+    page-break-inside: avoid;
+  }
+}
