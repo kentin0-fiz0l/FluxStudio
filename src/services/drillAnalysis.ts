@@ -376,7 +376,7 @@ export function analyzeTempoAwareStrides(
   sets: DrillSet[],
   tempoMap: TempoMap,
   fieldConfig: FieldConfig,
-  config?: AnalysisConfig,
+  _config?: AnalysisConfig,
 ): DrillIssue[] {
   const issues: DrillIssue[] = [];
   const { keyframes, performers } = formation;

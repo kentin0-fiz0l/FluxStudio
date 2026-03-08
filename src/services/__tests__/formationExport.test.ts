@@ -8,8 +8,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import type { Formation, FormationExportOptions, Keyframe, Performer, Position, DrillSet, FieldConfig, CoordinateEntry, StepInfo } from '../formationTypes';
-import type { TempoMap, TempoMapSegment } from '../tempoMap';
+import type { Formation, FormationExportOptions, Keyframe, Performer, Position, DrillSet, FieldConfig, CoordinateEntry } from '../formationTypes';
+import type { TempoMap } from '../tempoMap';
 import type { ProductionSheet, ProductionSheetEntry } from '../productionSheet';
 
 // ---------------------------------------------------------------------------
@@ -932,7 +932,7 @@ describe('formationExport', () => {
     it('throws if performer not found', async () => {
       const formation = makeFormation();
       await expect(
-        exportToCoordinateSheetPdf(formation, 'nonexistent'),
+        exportToCoordinateSheetPdf(formation, 'nonexistent', []),
       ).rejects.toThrow('Performer nonexistent not found');
     });
 
@@ -1474,7 +1474,7 @@ describe('formationExport', () => {
     it('handles formation without sets property', () => {
       const formation = makeFormation();
       // sets is undefined by default in makeFormation
-      delete (formation as Record<string, unknown>).sets;
+      delete (formation as unknown as Record<string, unknown>).sets;
       const parsed = JSON.parse(exportAudioSyncFile(formation, makeTempoMap()));
       expect(Object.keys(parsed.setTimestamps)).toHaveLength(0);
     });

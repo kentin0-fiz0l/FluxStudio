@@ -142,7 +142,6 @@ function makeCollab() {
  */
 function makeState(overrides: Record<string, unknown> = {}) {
   const formation = (overrides.formation !== undefined ? overrides.formation : makeFormation()) as Formation | null;
-  const performers = formation?.performers || [];
   const positions = formation?.keyframes[0]?.positions || new Map<string, Position>();
 
   // Use a mutable ref-like objects for testing

@@ -42,7 +42,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-const mockUseAuth = vi.fn(() => ({ user: { id: 'user-1', name: 'Test User', email: 'test@example.com', avatar: null } }));
+const mockUseAuth = vi.fn(() => ({ user: { id: 'user-1', name: 'Test User', email: 'test@example.com', avatar: null } as { id: string; name: string; email: string; avatar: null } | null }));
 
 vi.mock('@/store/slices/authSlice', () => ({
   useAuth: () => mockUseAuth(),
@@ -562,7 +562,7 @@ describe('useCanvasState', () => {
 
     it('should update snapGuides via setSnapGuides', () => {
       const { result } = renderHook(() => useCanvasState(defaultProps()));
-      const guides = [{ type: 'horizontal' as const, position: 50, performerIds: ['p1'] }];
+      const guides = [{ type: 'x' as const, value: 50, source: 'performer' as const }];
       act(() => { result.current.setSnapGuides(guides); });
       expect(result.current.snapGuides).toHaveLength(1);
     });

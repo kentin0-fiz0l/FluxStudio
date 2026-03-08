@@ -65,6 +65,7 @@ describe('useMetMapSnapshots', () => {
 
   test('createSnapshot calls API with correct params', async () => {
     vi.mocked(apiService.post).mockResolvedValueOnce({
+      success: true,
       data: {
         snapshot: {
           id: 'snap-1',
@@ -92,7 +93,7 @@ describe('useMetMapSnapshots', () => {
   })
 
   test('deleteSnapshot calls API with correct params', async () => {
-    vi.mocked(apiService.delete).mockResolvedValueOnce({})
+    vi.mocked(apiService.delete).mockResolvedValueOnce({ success: true })
 
     const { result } = renderHook(() => useMetMapSnapshots('song-1'), {
       wrapper: createWrapper(),
@@ -106,7 +107,7 @@ describe('useMetMapSnapshots', () => {
   })
 
   test('restoreSnapshot calls API with correct params', async () => {
-    vi.mocked(apiService.post).mockResolvedValueOnce({})
+    vi.mocked(apiService.post).mockResolvedValueOnce({ success: true })
 
     const { result } = renderHook(() => useMetMapSnapshots('song-1'), {
       wrapper: createWrapper(),
@@ -120,7 +121,7 @@ describe('useMetMapSnapshots', () => {
   })
 
   test('isCreating flag reflects mutation state', async () => {
-    let resolvePost: (v: unknown) => void
+    let resolvePost: (v: any) => void
     vi.mocked(apiService.post).mockReturnValueOnce(
       new Promise((r) => { resolvePost = r })
     )
@@ -146,7 +147,7 @@ describe('useMetMapSnapshots', () => {
   })
 
   test('isRestoring flag reflects mutation state', async () => {
-    let resolvePost: (v: unknown) => void
+    let resolvePost: (v: any) => void
     vi.mocked(apiService.post).mockReturnValueOnce(
       new Promise((r) => { resolvePost = r })
     )

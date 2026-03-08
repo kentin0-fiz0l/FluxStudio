@@ -169,6 +169,18 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 - [x] SEO programmatic landing pages and structured data
 - [x] Admin metrics dashboard (real data)
 
+### 6.8 Mobile PWA, LMS Integration & AI Drill Design (Sprint 89)
+- [x] Mobile-optimized formation canvas toolbar (bottom-anchored, touch targets, overflow menu)
+- [x] Mobile set navigator (horizontal scroll/swipe between keyframes)
+- [x] PDF coordinate sheet export with per-performer drill books
+- [x] Print-friendly CSS for production sheets
+- [x] LMS OAuth integration (Google Classroom + Canvas LMS)
+- [x] LMS assignment sharing (create coursework with formation embed links)
+- [x] AI drill path suggestion endpoint (Bezier curve generation)
+- [x] AI full show generation endpoint (SSE streaming, music-aware formations)
+- [x] AI set placement advisor endpoint (SSE streaming, music structure analysis)
+- [x] PWA manifest enhancements for mobile install experience
+
 ---
 
 ## Technical Principles
@@ -190,7 +202,7 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 | Real-time Latency | ~200ms | ~80ms | <50ms |
 | Provider Nesting | 13 levels | 1 level (Zustand) | 1 level ✅ |
 | Bundle Size | 1.07MB | ~650KB (lazy vendor chunks excluded from CI hard limit) | <500KB |
-| Test Coverage | ~20% | ~55% (thresholds at 75%) | 75%+ |
+| Test Coverage | ~20% | ~60% (thresholds at 75%) | 75%+ |
 | Lighthouse Score | — | 90+ enforced (CI) | 90+ ✅ |
 | Monthly Active Users | 0 | 0 | First 100 |
 
@@ -223,4 +235,4 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 
 ---
 
-*Last Updated: February 2026 (Sprint 62)*
+*Last Updated: March 2026 (Sprint 90)*

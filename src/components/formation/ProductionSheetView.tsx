@@ -199,7 +199,7 @@ export const ProductionSheetView: React.FC<ProductionSheetViewProps> = ({
       if (!file) return;
       const reader = new FileReader();
       reader.onload = () => {
-        const _imported = importProductionSheetCsv(reader.result as string, formationId);
+        importProductionSheetCsv(reader.result as string, formationId);
         // TODO: Apply imported sheet to formation
       };
       reader.readAsText(file);

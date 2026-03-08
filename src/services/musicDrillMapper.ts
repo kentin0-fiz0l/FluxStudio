@@ -146,7 +146,7 @@ export function suggestSetsFromMusic(
 function subdivideLongSection(
   startCount: number,
   endCount: number,
-  totalCounts: number,
+  _totalCounts: number,
   phraseLength: number,
   minCounts: number,
   maxCounts: number,
@@ -278,7 +278,7 @@ function splitOnTempoChanges(
   suggestions: SetSuggestion[],
   tempoMap: TempoMap,
   minCounts: number,
-  maxCounts: number,
+  _maxCounts: number,
 ): SetSuggestion[] {
   const result: SetSuggestion[] = [];
 

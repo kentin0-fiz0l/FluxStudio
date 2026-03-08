@@ -859,4 +859,282 @@ describe('AI Routes', () => {
       expect(response.status).toBe(503);
     });
   });
+
+  // ─────────────────────────────────────────────
+  // POST /api/ai/suggest-drill-paths
+  // ─────────────────────────────────────────────
+  describe('POST /api/ai/suggest-drill-paths', () => {
+    const validPayload = {
+      startPositions: {
+        'p1': { x: 10, y: 20 },
+        'p2': { x: 30, y: 40 },
+      },
+      endPositions: {
+        'p1': { x: 50, y: 60 },
+        'p2': { x: 70, y: 80 },
+      },
+    };
+
+    it('should return Bezier curves for valid input', async () => {
+      const aiResult = {
+        curves: {
+          'p1': { cp1: { x: 20, y: 30 }, cp2: { x: 40, y: 50 } },
+          'p2': { cp1: { x: 40, y: 50 }, cp2: { x: 60, y: 70 } },
+        },
+        confidence: 0.9,
+        description: 'Smooth curved paths',
+      };
+
+      mockCreate.mockResolvedValue({
+        content: [{ type: 'text', text: JSON.stringify(aiResult) }],
+        usage: { input_tokens: 300, output_tokens: 200 },
+      });
+
+      const response = await request(app)
+        .post('/api/ai/suggest-drill-paths')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send(validPayload);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.curves).toBeDefined();
+      expect(response.body.curves.p1.cp1).toEqual({ x: 20, y: 30 });
+      expect(response.body.confidence).toBeGreaterThan(0);
+    });
+
+    it('should return 400 for missing startPositions', async () => {
+      const response = await request(app)
+        .post('/api/ai/suggest-drill-paths')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ endPositions: validPayload.endPositions });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 400 for missing endPositions', async () => {
+      const response = await request(app)
+        .post('/api/ai/suggest-drill-paths')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ startPositions: validPayload.startPositions });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should accept optional style parameter', async () => {
+      mockCreate.mockResolvedValue({
+        content: [{ type: 'text', text: JSON.stringify({ curves: {}, confidence: 0.8, description: 'Direct paths' }) }],
+        usage: { input_tokens: 200, output_tokens: 100 },
+      });
+
+      const response = await request(app)
+        .post('/api/ai/suggest-drill-paths')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ ...validPayload, style: 'direct', minSpacing: 3, maintainShape: true });
+
+      expect(response.status).toBe(200);
+    });
+
+    it('should return 401 without authentication', async () => {
+      const response = await request(app)
+        .post('/api/ai/suggest-drill-paths')
+        .send(validPayload);
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should handle Anthropic API errors', async () => {
+      const error = new Error('Service error');
+      error.status = 500;
+      mockCreate.mockRejectedValue(error);
+
+      const response = await request(app)
+        .post('/api/ai/suggest-drill-paths')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send(validPayload);
+
+      expect(response.status).toBe(503);
+    });
+  });
+
+  // ─────────────────────────────────────────────
+  // POST /api/ai/drill/generate-show (SSE)
+  // ─────────────────────────────────────────────
+  describe('POST /api/ai/drill/generate-show', () => {
+    const validPayload = {
+      performers: [
+        { id: 'p1', name: 'Player 1', section: 'brass', instrument: 'trumpet' },
+        { id: 'p2', name: 'Player 2', section: 'woodwinds' },
+      ],
+      sections: [
+        { name: 'Intro', bars: 8, timeSignature: '4/4', tempoStart: 120 },
+        { name: 'Verse', bars: 16, timeSignature: '4/4', tempoStart: 120, tempoEnd: 130 },
+      ],
+    };
+
+    it('should stream SSE events for valid input', async () => {
+      // Mock streaming response
+      const mockStreamEvents = [
+        { type: 'content_block_delta', delta: { text: '{"type":"set","data":{"name":"Set 1","counts":8,"sectionName":"Intro","positions":{"p1":{"x":25,"y":50},"p2":{"x":75,"y":50}}}}\n' } },
+        { type: 'content_block_delta', delta: { text: '{"type":"done","totalSets":1}\n' } },
+        { type: 'message_delta', usage: { output_tokens: 100 } },
+      ];
+
+      mockStream.mockResolvedValue({
+        [Symbol.asyncIterator]: async function* () {
+          for (const event of mockStreamEvents) {
+            yield event;
+          }
+        },
+      });
+
+      const response = await request(app)
+        .post('/api/ai/drill/generate-show')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send(validPayload);
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toContain('text/event-stream');
+      expect(response.text).toContain('"type":"start"');
+    });
+
+    it('should return 400 when performers is missing', async () => {
+      const response = await request(app)
+        .post('/api/ai/drill/generate-show')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ sections: validPayload.sections });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 400 when sections is missing', async () => {
+      const response = await request(app)
+        .post('/api/ai/drill/generate-show')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ performers: validPayload.performers });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 401 without authentication', async () => {
+      const response = await request(app)
+        .post('/api/ai/drill/generate-show')
+        .send(validPayload);
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should accept optional fieldType and defaultCounts', async () => {
+      mockStream.mockResolvedValue({
+        [Symbol.asyncIterator]: async function* () {
+          yield { type: 'content_block_delta', delta: { text: '{"type":"done","totalSets":0}\n' } };
+        },
+      });
+
+      const response = await request(app)
+        .post('/api/ai/drill/generate-show')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ ...validPayload, fieldType: 'high_school', defaultCounts: 16 });
+
+      expect(response.status).toBe(200);
+    });
+  });
+
+  // ─────────────────────────────────────────────
+  // POST /api/ai/drill/suggest-sets (SSE)
+  // ─────────────────────────────────────────────
+  describe('POST /api/ai/drill/suggest-sets', () => {
+    const validPayload = {
+      songId: 'song-123',
+    };
+
+    it('should stream advice for valid songId', async () => {
+      const mockStreamEvents = [
+        { type: 'content_block_delta', delta: { text: 'Consider placing sets at ' } },
+        { type: 'content_block_delta', delta: { text: 'rehearsal marks A and B.' } },
+        { type: 'message_delta', usage: { output_tokens: 50 } },
+      ];
+
+      mockStream.mockResolvedValue({
+        [Symbol.asyncIterator]: async function* () {
+          for (const event of mockStreamEvents) {
+            yield event;
+          }
+        },
+      });
+
+      const response = await request(app)
+        .post('/api/ai/drill/suggest-sets')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send(validPayload);
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toContain('text/event-stream');
+      expect(response.text).toContain('"type":"start"');
+      expect(response.text).toContain('"type":"chunk"');
+      expect(response.text).toContain('"type":"done"');
+    });
+
+    it('should return 400 when songId is missing', async () => {
+      const response = await request(app)
+        .post('/api/ai/drill/suggest-sets')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({});
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should accept optional formationContext', async () => {
+      mockStream.mockResolvedValue({
+        [Symbol.asyncIterator]: async function* () {
+          yield { type: 'content_block_delta', delta: { text: 'Contextual advice.' } };
+        },
+      });
+
+      const response = await request(app)
+        .post('/api/ai/drill/suggest-sets')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ songId: 'song-123', formationContext: { performers: 32, currentSets: 5 } });
+
+      expect(response.status).toBe(200);
+    });
+
+    it('should return 401 without authentication', async () => {
+      const response = await request(app)
+        .post('/api/ai/drill/suggest-sets')
+        .send(validPayload);
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  // ─────────────────────────────────────────────
+  // Anthropic client not configured (503)
+  // ─────────────────────────────────────────────
+  describe('Missing Anthropic client', () => {
+    it('should return 503 when ANTHROPIC_API_KEY is not set', async () => {
+      const savedKey = process.env.ANTHROPIC_API_KEY;
+      delete process.env.ANTHROPIC_API_KEY;
+
+      let noKeyApp;
+      jest.isolateModules(() => {
+        const noKeyRouter = require('../../routes/ai');
+        noKeyApp = express();
+        noKeyApp.use(express.json());
+        noKeyApp.use('/api/ai', noKeyRouter);
+      });
+
+      const response = await request(noKeyApp)
+        .post('/api/ai/suggest-drill-paths')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          startPositions: { p1: { x: 0, y: 0 } },
+          endPositions: { p1: { x: 50, y: 50 } },
+        });
+
+      expect(response.status).toBe(503);
+      expect(response.body.code).toBe('AI_NOT_CONFIGURED');
+
+      process.env.ANTHROPIC_API_KEY = savedKey;
+    });
+  });
 });

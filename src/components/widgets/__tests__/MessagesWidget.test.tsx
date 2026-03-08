@@ -127,7 +127,6 @@ describe('MessagesWidget', () => {
       conversationMessages: [],
     })
     const { container } = render(<MessagesWidget config={mockConfig} />)
-    const sendBtn = container.querySelector('button[disabled].bg-blue-500, button.disabled\\:bg-white\\/10')
     // The send button has the disabled attribute when message is empty
     const allButtons = container.querySelectorAll('button')
     const sendButton = Array.from(allButtons).find(btn =>

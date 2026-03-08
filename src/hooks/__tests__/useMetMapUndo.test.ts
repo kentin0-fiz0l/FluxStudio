@@ -83,7 +83,7 @@ describe('useMetMapUndo', () => {
     const doc = new Y.Doc()
     const { result, rerender } = renderHook(
       ({ d }: { d: Y.Doc | null }) => useMetMapUndo(d),
-      { initialProps: { d: doc } }
+      { initialProps: { d: doc as Y.Doc | null } }
     )
     rerender({ d: null })
     expect(result.current.canUndo).toBe(false)
