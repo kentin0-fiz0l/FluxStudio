@@ -21,6 +21,7 @@ import { loadFrecency, recordCommandUsage, getFrecencyScore, buildCommands } fro
 import { CommandGroupList } from './CommandGroupList';
 import { PaletteFooter } from './PaletteFooter';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import { isNaturalLanguageQuery } from '@/services/aiSearchService';
 
 export function CommandPalette({
@@ -36,7 +37,7 @@ export function CommandPalette({
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const aiSearchEnabled = useFeatureFlag('ai_search');
+  const aiSearchEnabled = useFeatureFlag(FEATURE_FLAGS.AI_SEARCH);
 
   const handleOpenChange = useCallback((isOpen: boolean) => {
     if (!isOpen) {

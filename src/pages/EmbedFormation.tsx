@@ -16,6 +16,7 @@ import { useParams } from 'react-router-dom';
 import { Loader2, Play, Pause, RotateCcw, RefreshCw, Volume2, VolumeX, ChevronLeft, ChevronRight, Maximize } from 'lucide-react';
 import * as formationsApi from '../services/formationsApi';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import { Formation3DViewErrorBoundary } from '@/components/error/ErrorBoundary';
 
 const Formation3DViewLazy = React.lazy(
@@ -53,7 +54,7 @@ export default function EmbedFormation() {
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
 
   // Fullscreen support
-  const presentationModeEnabled = useFeatureFlag('presentation-mode');
+  const presentationModeEnabled = useFeatureFlag(FEATURE_FLAGS.PRESENTATION_MODE);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 

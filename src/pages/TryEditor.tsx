@@ -15,6 +15,7 @@ import { SEOHead } from '@/components/SEOHead';
 import { ArrowRight, X, Users, Shield } from 'lucide-react';
 import { eventTracker } from '@/services/analytics/eventTracking';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import type { Position } from '@/services/formationService';
 
 const STORAGE_KEY_FORMATIONS = 'tryEditor_formations';
@@ -75,7 +76,7 @@ export default function TryEditor() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // A/B test: CTA copy variant
-  const ctaVariantActive = useFeatureFlag('try-cta-variant');
+  const ctaVariantActive = useFeatureFlag(FEATURE_FLAGS.TRY_CTA_VARIANT);
 
   // Restore saved positions or fall back to default V-formation
   const sandboxPositions = useMemo(() => {

@@ -12,6 +12,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { IndexeddbPersistence } from 'y-indexeddb';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import type { Extension } from '@tiptap/react';
@@ -59,7 +60,7 @@ export function useCollaborativeDocument({
   enabled = true,
   fragmentName = 'content',
 }: UseCollaborativeDocumentOptions): UseCollaborativeDocumentResult | null {
-  const isFeatureEnabled = useFeatureFlag('yjs-documents');
+  const isFeatureEnabled = useFeatureFlag(FEATURE_FLAGS.YJS_DOCUMENTS);
   const { user } = useAuth();
 
   const [isConnected, setIsConnected] = useState(false);

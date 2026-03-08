@@ -21,6 +21,7 @@ import {
 import { FormationPresencePanel } from '../FormationPresencePanel';
 import { useSyncStatus } from '@/store/slices/offlineSlice';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import { observability } from '@/services/observability';
 
 type Tool = 'select' | 'pan' | 'add' | 'line' | 'arc' | 'block' | 'comment';
@@ -135,7 +136,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
 }) => {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
-  const aiCollaborativeEnabled = useFeatureFlag('ai-collaborative');
+  const aiCollaborativeEnabled = useFeatureFlag(FEATURE_FLAGS.AI_COLLABORATIVE);
   const [showViewOptions, setShowViewOptions] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const viewOptionsRef = useRef<HTMLDivElement>(null);

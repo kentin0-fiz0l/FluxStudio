@@ -12,6 +12,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { IndexeddbPersistence } from 'y-indexeddb';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import { useAuth } from '@/store/slices/authSlice';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { getUserColor } from '@/services/formation/yjs/formationYjsTypes';
@@ -89,7 +90,7 @@ export function useMessagingYjs({
   conversationId,
   enabled = true,
 }: UseMessagingYjsOptions): UseMessagingYjsResult | null {
-  const isFeatureEnabled = useFeatureFlag('yjs-messaging');
+  const isFeatureEnabled = useFeatureFlag(FEATURE_FLAGS.YJS_MESSAGING);
   const { user } = useAuth();
 
   const [messages, setMessages] = useState<ConversationMessage[]>([]);

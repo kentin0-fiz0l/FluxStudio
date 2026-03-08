@@ -33,6 +33,7 @@ import { ProgressiveProfileCapture } from './components/onboarding/ProgressivePr
 
 import { useAuth, useAuthInit } from '@/store/slices/authSlice';
 import { useFeatureFlag } from './hooks/useFeatureFlag';
+import { FEATURE_FLAGS } from './constants/featureFlags';
 import { AssetsProvider } from './contexts/AssetsContext';
 
 // All pages lazy loaded for smaller initial bundle
@@ -152,7 +153,7 @@ function RootRedirect() {
 
 // OnboardingV2 is now the default signup flow. Check `onboarding_v2_disabled` for rollback.
 function SignupGate() {
-  const isDisabled = useFeatureFlag('onboarding_v2_disabled');
+  const isDisabled = useFeatureFlag(FEATURE_FLAGS.ONBOARDING_V2_DISABLED);
   return isDisabled ? <SignupWizard /> : <OnboardingV2 />;
 }
 

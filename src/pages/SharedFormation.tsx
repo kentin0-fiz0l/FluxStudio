@@ -28,6 +28,7 @@ import { SEOHead } from '../components/SEOHead';
 import { eventTracker } from '../services/analytics/eventTracking';
 import { Formation3DViewErrorBoundary } from '@/components/error/ErrorBoundary';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import { generateLocalPresentationNotes } from '@/services/presentationAIService';
 import type { PresentationNote } from '@/components/presentation/PresentationView';
 import type { DrillSet } from '../services/formationTypes';
@@ -100,7 +101,7 @@ export default function SharedFormation() {
   const sectionParam = searchParams.get('section');
 
   // Feature flags
-  const presentationModeEnabled = useFeatureFlag('presentation-mode');
+  const presentationModeEnabled = useFeatureFlag(FEATURE_FLAGS.PRESENTATION_MODE);
 
   // Core state
   const [formation, setFormation] = useState<SharedFormationData | null>(null);
