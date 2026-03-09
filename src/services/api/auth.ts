@@ -1,34 +1,40 @@
 /**
- * Auth API endpoints
+ * Auth API endpoints — with Zod response validation
  */
 
 import { buildAuthUrl } from '../../config/environment';
 import type { ApiResponse, ApiService, UserSettings } from './base';
+import {
+  authResponseSchema,
+  userResponseSchema,
+  type AuthResponse,
+  type UserResponse,
+} from '../apiValidation';
 
 export function authApi(service: ApiService) {
   return {
     login(email: string, password: string) {
-      return service.makeRequest(buildAuthUrl('/login'), {
-        method: 'POST',
-        requireAuth: false,
-        body: JSON.stringify({ email, password }),
-      });
+      return service.makeValidatedRequest<AuthResponse>(
+        buildAuthUrl('/login'),
+        authResponseSchema,
+        { method: 'POST', requireAuth: false, body: JSON.stringify({ email, password }) },
+      );
     },
 
     signup(email: string, password: string, name: string, userType: string, referralCode?: string, inviteCode?: string) {
-      return service.makeRequest(buildAuthUrl('/signup'), {
-        method: 'POST',
-        requireAuth: false,
-        body: JSON.stringify({ email, password, name, userType, referralCode, inviteCode }),
-      });
+      return service.makeValidatedRequest<AuthResponse>(
+        buildAuthUrl('/signup'),
+        authResponseSchema,
+        { method: 'POST', requireAuth: false, body: JSON.stringify({ email, password, name, userType, referralCode, inviteCode }) },
+      );
     },
 
     loginWithGoogle(credential: string) {
-      return service.makeRequest(buildAuthUrl('/google'), {
-        method: 'POST',
-        requireAuth: false,
-        body: JSON.stringify({ credential }),
-      });
+      return service.makeValidatedRequest<AuthResponse>(
+        buildAuthUrl('/google'),
+        authResponseSchema,
+        { method: 'POST', requireAuth: false, body: JSON.stringify({ credential }) },
+      );
     },
 
     logout() {
@@ -36,7 +42,10 @@ export function authApi(service: ApiService) {
     },
 
     getMe() {
-      return service.makeRequest(buildAuthUrl('/me'));
+      return service.makeValidatedRequest<UserResponse>(
+        buildAuthUrl('/me'),
+        userResponseSchema,
+      );
     },
 
     getSettings(): Promise<ApiResponse<{ success: boolean; settings: UserSettings }>> {

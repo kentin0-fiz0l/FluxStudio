@@ -18,6 +18,7 @@ vi.mock('../../config/environment', () => ({
 // Mock validation
 vi.mock('../apiValidation', () => ({
   validate: (_schema: any, data: any) => data,
+  validateSafe: (_schema: any, data: any) => data,
   createOrganizationSchema: {},
   updateOrganizationSchema: {},
   createTeamSchema: {},
@@ -27,6 +28,12 @@ vi.mock('../apiValidation', () => ({
   fileMetadataSchema: {},
   sendMessageSchema: {},
   quickPrintSchema: {},
+  authResponseSchema: {},
+  userResponseSchema: {},
+  checkoutSessionResponseSchema: {},
+  portalSessionResponseSchema: {},
+  pricingResponseSchema: {},
+  subscriptionResponseSchema: {},
 }));
 
 // Import after mocks

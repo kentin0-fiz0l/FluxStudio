@@ -189,7 +189,7 @@ export const ProductionSheetView: React.FC<ProductionSheetViewProps> = ({
     URL.revokeObjectURL(url);
   }, [sheet]);
 
-  // Import CSV
+  // Import CSV — parse and apply to formation via callbacks
   const handleImportCsv = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -199,13 +199,33 @@ export const ProductionSheetView: React.FC<ProductionSheetViewProps> = ({
       if (!file) return;
       const reader = new FileReader();
       reader.onload = () => {
-        importProductionSheetCsv(reader.result as string, formationId);
-        // TODO: Apply imported sheet to formation
+        const imported = importProductionSheetCsv(reader.result as string, formationId);
+        if (imported.entries.length === 0) return;
+
+        // Match imported entries to existing sets by index, update or create
+        imported.entries.forEach((entry, idx) => {
+          if (idx < sets.length) {
+            // Update existing set with imported data
+            const existingSet = sets[idx];
+            onSetUpdate?.(existingSet.id, {
+              counts: entry.counts,
+              rehearsalMark: entry.rehearsalMark,
+              notes: entry.notes,
+            });
+            // Propagate tempo to MetMap section
+            if (entry.tempo && entry.sectionId) {
+              onSectionTempoUpdate?.(entry.sectionId, entry.tempo);
+            }
+          } else {
+            // Add new sets for extra imported entries
+            onSetAdd?.(sets.length + idx - 1);
+          }
+        });
       };
       reader.readAsText(file);
     };
     input.click();
-  }, [formationId]);
+  }, [formationId, sets, onSetUpdate, onSetAdd, onSectionTempoUpdate]);
 
   // Render editable cell
   const renderCell = (entry: ProductionSheetEntry, column: string, value: string, editable: boolean = true) => {

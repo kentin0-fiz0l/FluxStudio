@@ -4,6 +4,8 @@
 
 import { buildApiUrl, config } from '../../config/environment';
 import { apiLogger } from '../../lib/logger';
+import type { z } from 'zod';
+import { validateSafe } from '../apiValidation';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -239,6 +241,26 @@ export class ApiService {
   async delete<T = unknown>(endpoint: string): Promise<ApiResponse<T>> {
     const url = endpoint.startsWith('http') ? endpoint : buildApiUrl(endpoint);
     return this.makeRequest<T>(url, { method: 'DELETE' });
+  }
+
+  /**
+   * Make a request and validate the response data against a Zod schema.
+   * If validation fails, logs a warning and returns the raw data.
+   */
+  async makeValidatedRequest<T>(
+    url: string,
+    schema: z.ZodSchema<T>,
+    options: RequestConfig = {}
+  ): Promise<ApiResponse<T>> {
+    const response = await this.makeRequest<T>(url, options);
+    if (response.success && response.data) {
+      const validated = validateSafe(schema, response.data);
+      if (validated) {
+        return { ...response, data: validated };
+      }
+      apiLogger.warn('API response validation failed, using raw data', { url });
+    }
+    return response;
   }
 
   async healthCheck() {

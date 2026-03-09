@@ -192,6 +192,86 @@ export type EditMessageInput = z.infer<typeof editMessageSchema>;
 export type AddReactionInput = z.infer<typeof addReactionSchema>;
 
 // ============================================================================
+// API Response Schemas
+// ============================================================================
+
+/** Base API envelope used by all endpoints */
+export const apiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  z.object({
+    success: z.boolean(),
+    data: dataSchema.optional(),
+    error: z.string().optional(),
+    message: z.string().optional(),
+  });
+
+/** Auth / user response */
+export const userResponseSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string(),
+  userType: z.string(),
+  avatar: z.string().nullable().optional(),
+  organizationId: z.string().nullable().optional(),
+  createdAt: z.string().optional(),
+});
+
+export type UserResponse = z.infer<typeof userResponseSchema>;
+
+/** Login / signup response */
+export const authResponseSchema = z.object({
+  token: z.string(),
+  refreshToken: z.string().optional(),
+  user: userResponseSchema,
+});
+
+export type AuthResponse = z.infer<typeof authResponseSchema>;
+
+/** Payment subscription response */
+export const subscriptionResponseSchema = z.object({
+  id: z.string(),
+  status: z.enum(['active', 'canceled', 'past_due', 'trialing', 'incomplete', 'unpaid']),
+  planId: z.string().optional(),
+  planName: z.string().optional(),
+  currentPeriodEnd: z.string().optional(),
+  cancelAtPeriodEnd: z.boolean().optional(),
+});
+
+export type SubscriptionResponse = z.infer<typeof subscriptionResponseSchema>;
+
+/** Checkout session response */
+export const checkoutSessionResponseSchema = z.object({
+  sessionId: z.string().optional(),
+  url: z.string().url().optional(),
+});
+
+export type CheckoutSessionResponse = z.infer<typeof checkoutSessionResponseSchema>;
+
+/** Pricing plan */
+export const pricingPlanSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  priceMonthly: z.number(),
+  priceAnnual: z.number().optional(),
+  features: z.array(z.string()).optional(),
+  stripePriceId: z.string().optional(),
+});
+
+export const pricingResponseSchema = z.object({
+  plans: z.array(pricingPlanSchema),
+});
+
+export type PricingPlan = z.infer<typeof pricingPlanSchema>;
+export type PricingResponse = z.infer<typeof pricingResponseSchema>;
+
+/** Portal session response */
+export const portalSessionResponseSchema = z.object({
+  url: z.string().url(),
+});
+
+export type PortalSessionResponse = z.infer<typeof portalSessionResponseSchema>;
+
+// ============================================================================
 // Validation Helper
 // ============================================================================
 

@@ -235,4 +235,45 @@ Transform FluxStudio into the definitive platform for collaborative creative wor
 
 ---
 
-*Last Updated: March 2026 (Sprint 90)*
+---
+
+## Sprint 91 Baseline (March 8, 2026)
+
+### Metrics Snapshot
+
+| Metric | Value |
+|--------|-------|
+| Version | 2.0.0 |
+| Total Commits | ~897 |
+| TypeScript (`tsc --noEmit`) | 0 errors |
+| Build (`vite build`) | Clean |
+| Vitest (verified subset) | 2,424 passing / 157 files |
+| Full test suite | ~4,200 est. (OOM fixed, pending verification) |
+| `:any` count (est.) | ~232 |
+| Bundle Size (main) | ~650KB |
+| Lighthouse Score | 90+ |
+| Monthly Active Users | 0 |
+| Paying Customers | 0 |
+| MRR | $0 |
+
+### Sprint 91 Completed
+
+- eval() replacement — already done (safeExpressionEvaluator)
+- Vulnerable dep updates: multer 2.1.1, tar 7.5.10, express-rate-limit 8.2.2, dompurify 3.3.2, MCP SDK 1.27.1
+- Transitive overrides: minimatch >=10.2.3, rollup >=4.59.0, serialize-javascript >=7.0.3, hono >=4.12.4
+- Zod response validation for auth and payments API modules
+- Formation CSV import flow completed (ProductionSheetView)
+- Test runner OOM fix: maxForks: 4 + NODE_OPTIONS --max-old-space-size=4096
+
+### 12-Month Strategic Roadmap
+
+See full plan: Q1 (Launch), Q2 (PMF), Q3 (Scale), Q4 (Maturity)
+
+| Quarter | Sprints | North Star |
+|---------|---------|------------|
+| Q1 | 91-96 | 50 MAU, 10 paying |
+| Q2 | 97-102 | 200 MAU, 40 paying, PMF |
+| Q3 | 103-108 | 500 MAU, 100 paying, API + marketplace |
+| Q4 | 109-114 | 1,000 MAU, 250 paying, $15K MRR |
+
+*Last Updated: March 2026 (Sprint 91)*
