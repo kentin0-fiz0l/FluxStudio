@@ -17,6 +17,7 @@ import {
   Shield, ArrowRightLeft, Footprints, MapPin,
   Ruler, UsersRound, Spline, MessageCircle, ShieldCheck, History,
   Wand2,
+  GitBranch,
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
 import { useSyncStatus } from '@/store/slices/offlineSlice';
@@ -102,6 +103,10 @@ interface CanvasToolbarProps {
   // Generate from Music (ai_collaborative feature flag)
   onGenerateFromMusic?: () => void;
   isGeneratingFromMusic?: boolean;
+  // Transition Suggester
+  showTransitionSuggester?: boolean;
+  setShowTransitionSuggester?: (show: boolean) => void;
+  keyframeCount?: number;
 }
 
 export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
@@ -133,6 +138,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
   viewRole = 'designer', onViewRoleChange,
   showVersionHistory, setShowVersionHistory,
   onGenerateFromMusic, isGeneratingFromMusic = false,
+  showTransitionSuggester, setShowTransitionSuggester, keyframeCount = 0,
 }) => {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
@@ -426,6 +432,17 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             aria-pressed={curveEditMode}
           >
             <Spline className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+        {setShowTransitionSuggester && keyframeCount >= 2 && (
+          <button
+            onClick={() => setShowTransitionSuggester(!showTransitionSuggester)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showTransitionSuggester ? 'text-purple-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Suggest Transitions"
+            aria-label="Suggest transitions between keyframes"
+            aria-pressed={!!showTransitionSuggester}
+          >
+            <GitBranch className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
         {setShowVersionHistory && (

@@ -1,9 +1,9 @@
 /**
- * AlignmentToolbar - Floating toolbar for multi-select alignment and distribution
+ * AlignmentToolbar - Floating toolbar for multi-select alignment, distribution, and shape distribution
  * Appears when 2+ performers are selected.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AlignStartVertical,
@@ -15,21 +15,28 @@ import {
   ArrowRightLeft,
   ArrowUpDown,
   Maximize2,
+  Shapes,
+  ChevronDown,
 } from 'lucide-react';
 import type { AlignmentType, DistributionType } from '../../../utils/drillGeometry';
+
+export type ShapeDistributionType = 'line' | 'arc' | 'circle' | 'grid';
 
 interface AlignmentToolbarProps {
   selectedCount: number;
   onAlign: (type: AlignmentType) => void;
   onDistribute: (type: DistributionType) => void;
+  onDistributeInShape?: (shape: ShapeDistributionType) => void;
 }
 
 export const AlignmentToolbar: React.FC<AlignmentToolbarProps> = ({
   selectedCount,
   onAlign,
   onDistribute,
+  onDistributeInShape,
 }) => {
   const { t } = useTranslation('common');
+  const [showShapeMenu, setShowShapeMenu] = useState(false);
 
   if (selectedCount < 2) return null;
 
@@ -115,6 +122,39 @@ export const AlignmentToolbar: React.FC<AlignmentToolbarProps> = ({
               <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           </div>
+
+          {/* Shape distribution dropdown */}
+          {onDistributeInShape && (
+            <>
+              <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-0.5" />
+              <div className="relative">
+                <button
+                  onClick={() => setShowShapeMenu(!showShapeMenu)}
+                  className="flex items-center gap-0.5 p-1.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                  title="Distribute in Shape"
+                >
+                  <Shapes className="w-3.5 h-3.5" aria-hidden="true" />
+                  <ChevronDown className="w-2.5 h-2.5" aria-hidden="true" />
+                </button>
+                {showShapeMenu && (
+                  <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 py-1 min-w-[120px]">
+                    {(['line', 'arc', 'circle', 'grid'] as const).map((shape) => (
+                      <button
+                        key={shape}
+                        onClick={() => {
+                          onDistributeInShape(shape);
+                          setShowShapeMenu(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300"
+                      >
+                        {shape.charAt(0).toUpperCase() + shape.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

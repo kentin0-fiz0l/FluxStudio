@@ -17,6 +17,7 @@ import { ExportDialog } from '../ExportDialog';
 import { AudioUpload } from '../AudioUpload';
 import { TemplatePicker } from '../TemplatePicker';
 import { DrillAnalysisPanel } from '../DrillAnalysisPanel';
+import { DrillCritiquePanel } from '../DrillCritiquePanel';
 import { MovementToolsPanel } from '../MovementToolsPanel';
 import { CoordinatePanel } from '../CoordinatePanel';
 import { StepSizeOverlay } from '../StepSizeOverlay';
@@ -25,7 +26,12 @@ import { MetMapSongSelector } from '../MetMapSongSelector';
 import { MeasurementOverlay } from '../MeasurementOverlay';
 import { GroupPanel } from '../GroupPanel';
 import { CollisionOverlay } from '../CollisionOverlay';
+import { GhostPreviewOverlay } from '../GhostPreviewOverlay';
+import { GhostPreviewControls } from '../GhostPreviewControls';
+import { FormationPromptBar } from '../FormationPromptBar';
+import { TransitionSuggester } from '../TransitionSuggester';
 import { FormationVersionHistoryPanel } from '../FormationVersionHistory';
+import { CanvasEffectsLayer, CanvasEffectsPanel } from '../effects';
 import { CanvasToolbar } from './CanvasToolbar';
 import { MobileCanvasToolbar } from './MobileCanvasToolbar';
 import { MobileSetNavigator } from './MobileSetNavigator';
@@ -41,7 +47,12 @@ import { useCanvasAccessibility } from './useCanvasAccessibility';
 import { useBreakpoint } from '../../../hooks/useBreakpoint';
 import { useMetMapSongLink } from '../../../hooks/useMetMapSongLink';
 import { NCAA_FOOTBALL_FIELD } from '../../../services/fieldConfigService';
+import { useGhostPreview } from '../../../store/slices/ghostPreviewSlice';
+import { executePromptCommand } from '../../../services/promptExecutor';
+import { resolveStaticCollisions } from '../../../services/collisionResolver';
+import type { ShapeDistributionType } from './AlignmentToolbar';
 import type { DrillSet, Position as DrillPosition, Formation } from '../../../services/formationTypes';
+import type { DrillSuggestion } from '../../../services/drillAiService';
 import type { FormationCanvasProps } from './types';
 
 export type { FormationCanvasProps };
@@ -51,6 +62,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
   const { t } = useTranslation('common');
   const [snapResolution, setSnapResolution] = useState<'beat' | 'half-beat' | 'measure'>('beat');
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showTransitionSuggester, setShowTransitionSuggester] = useState(false);
 
   const state = useCanvasState(props);
 
@@ -113,6 +125,124 @@ export function FormationCanvas(props: FormationCanvasProps) {
     linkSong,
     unlinkSong,
   } = useMetMapSongLink(formation, handleFormationUpdate);
+
+  // Ghost preview state
+  const ghostPreview = useGhostPreview();
+
+  // Accept ghost preview: apply proposed positions to canvas
+  const handleGhostAccept = useCallback(() => {
+    if (!ghostPreview.activePreview) return;
+    const proposed = ghostPreview.activePreview.proposedPositions;
+    setCurrentPositions(prev => {
+      const next = new Map(prev);
+      for (const [id, pos] of proposed) {
+        next.set(id, pos);
+      }
+      return next;
+    });
+    setHasUnsavedChanges(true);
+    ghostPreview.clearPreview();
+  }, [ghostPreview, setCurrentPositions, setHasUnsavedChanges]);
+
+  // Reject ghost preview: clear without applying
+  const handleGhostReject = useCallback(() => {
+    ghostPreview.clearPreview();
+  }, [ghostPreview]);
+
+  // Shape distribution from AlignmentToolbar → ghost preview
+  const handleDistributeInShape = useCallback((shape: ShapeDistributionType) => {
+    if (!formation || selectedPerformerIds.size < 2) return;
+    const ids = Array.from(selectedPerformerIds);
+    const result = executePromptCommand(
+      {
+        type: 'distribute',
+        shape,
+        performerFilter: { type: 'selected', ids },
+        params: shape === 'arc'
+          ? { center: { x: 50, y: 50 }, radius: 30, startAngle: -Math.PI * 0.75, endAngle: -Math.PI * 0.25 }
+          : shape === 'circle'
+            ? { center: { x: 50, y: 50 }, radius: 30 }
+            : { start: { x: 10, y: 50 }, end: { x: 90, y: shape === 'grid' ? 80 : 50 } },
+      },
+      formation.performers,
+      currentPositions,
+    );
+    if (result.affectedPerformerIds.length > 0) {
+      ghostPreview.setPreview({
+        id: `shape-${Date.now()}`,
+        source: 'prompt',
+        sourceLabel: `Distribute in ${shape}`,
+        proposedPositions: result.proposedPositions,
+        affectedPerformerIds: result.affectedPerformerIds,
+      });
+    }
+  }, [formation, selectedPerformerIds, currentPositions, ghostPreview]);
+
+  // Apply transition path curves from TransitionSuggester
+  const handleApplyTransitionPaths = useCallback((pathCurves: Map<string, import('../../../services/formationTypes').PathCurve>) => {
+    if (!formation || !selectedKeyframeId) return;
+    setFormation(prev => {
+      if (!prev) return prev;
+      const keyframes = prev.keyframes.map(kf => {
+        if (kf.id !== selectedKeyframeId) return kf;
+        return { ...kf, pathCurves: new Map([...(kf.pathCurves ?? []), ...pathCurves]) };
+      });
+      return { ...prev, keyframes };
+    });
+    setHasUnsavedChanges(true);
+    setShowTransitionSuggester(false);
+  }, [formation, selectedKeyframeId, setFormation, setHasUnsavedChanges]);
+
+  // Auto-fix a single collision suggestion via ghost preview
+  const handleAutoFixCollision = useCallback((suggestion: DrillSuggestion) => {
+    if (!suggestion.collisionData || !currentPositions) return;
+    const collisionPairs = suggestion.collisionData.map(c => ({
+      id1: c.id1,
+      id2: c.id2,
+      distance: c.distance,
+    }));
+    const fix = resolveStaticCollisions(currentPositions, collisionPairs);
+    const affectedIds = suggestion.performerIds ?? collisionPairs.flatMap(p => [p.id1, p.id2]);
+    ghostPreview.setPreview({
+      id: `collision-fix-${Date.now()}`,
+      source: 'collision_fix',
+      sourceLabel: `Fix ${collisionPairs.length} collision(s)`,
+      proposedPositions: fix.performerAdjustments,
+      affectedPerformerIds: [...new Set(affectedIds)],
+    });
+  }, [currentPositions, ghostPreview]);
+
+  // Auto-fix all collision suggestions at once via ghost preview
+  const handleAutoFixAllCollisions = useCallback((suggestions: DrillSuggestion[]) => {
+    if (!currentPositions) return;
+    const allPairs = suggestions
+      .filter(s => s.collisionData)
+      .flatMap(s => s.collisionData!.map(c => ({
+        id1: c.id1,
+        id2: c.id2,
+        distance: c.distance,
+      })));
+    if (allPairs.length === 0) return;
+
+    // Deduplicate collision pairs
+    const seen = new Set<string>();
+    const uniquePairs = allPairs.filter(p => {
+      const key = [p.id1, p.id2].sort().join('-');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    const fix = resolveStaticCollisions(currentPositions, uniquePairs);
+    const affectedIds = [...new Set(uniquePairs.flatMap(p => [p.id1, p.id2]))];
+    ghostPreview.setPreview({
+      id: `collision-fix-all-${Date.now()}`,
+      source: 'collision_fix',
+      sourceLabel: `Fix all ${uniquePairs.length} collision(s)`,
+      proposedPositions: fix.performerAdjustments,
+      affectedPerformerIds: affectedIds,
+    });
+  }, [currentPositions, ghostPreview]);
 
   const { isDesktop } = useBreakpoint();
   const isMobileView = !isDesktop; // < 1024px
@@ -189,6 +319,12 @@ export function FormationCanvas(props: FormationCanvasProps) {
       onPositionsChange(currentPositions);
     }
   }, [currentPositions, onPositionsChange]);
+
+  // All keyframe positions for heat map effects
+  const keyframePositions = useMemo(() => {
+    if (!formation) return [];
+    return formation.keyframes.map(kf => new Map(kf.positions));
+  }, [formation]);
 
   // Derive drill sets from keyframes for drill panels
   const drillSets: DrillSet[] = useMemo(() => {
@@ -485,6 +621,9 @@ export function FormationCanvas(props: FormationCanvasProps) {
           setCurveEditMode={setCurveEditMode}
           showVersionHistory={showVersionHistory}
           setShowVersionHistory={setShowVersionHistory}
+          showTransitionSuggester={showTransitionSuggester}
+          setShowTransitionSuggester={setShowTransitionSuggester}
+          keyframeCount={formation.keyframes.length}
         />
       ) : (
         <MobileSetNavigator
@@ -501,6 +640,7 @@ export function FormationCanvas(props: FormationCanvasProps) {
             selectedCount={selectedPerformerIds.size}
             onAlign={handleAlign}
             onDistribute={handleDistribute}
+            onDistributeInShape={handleDistributeInShape}
           />
           <CanvasRenderer
             formation={formation}
@@ -542,6 +682,16 @@ export function FormationCanvas(props: FormationCanvasProps) {
             snapGuides={snapGuides}
             transformMode={transformMode}
           />
+          <CanvasEffectsLayer
+            performers={formation.performers}
+            positions={currentPositions}
+            selectedPerformerIds={selectedPerformerIds}
+            performerPaths={performerPaths}
+            keyframePositions={keyframePositions}
+            canvasWidth={formation.stageWidth * 20 * zoom}
+            canvasHeight={formation.stageHeight * 20 * zoom}
+          />
+          <CanvasEffectsPanel />
         </div>
         {/* Side panels: slide-over drawers on mobile, inline on desktop */}
         {showPerformerPanel && (
@@ -585,6 +735,15 @@ export function FormationCanvas(props: FormationCanvasProps) {
               formation={formation}
               sets={drillSets}
               onNavigateToSet={handleNavigateToSet}
+            />
+            <DrillCritiquePanel
+              formation={formation}
+              sets={drillSets}
+              currentPositions={currentPositions}
+              onHighlightPerformers={(ids) => setSelectedPerformerIds(new Set(ids))}
+              onAutoFixCollision={handleAutoFixCollision}
+              onAutoFixAllCollisions={handleAutoFixAllCollisions}
+              className="border-t border-gray-200 dark:border-gray-700"
             />
           </div>
         )}
@@ -630,14 +789,59 @@ export function FormationCanvas(props: FormationCanvasProps) {
         </div>
       )}
 
+      {/* Ghost preview overlay (z-index 15: between performers and collision overlay) */}
+      {ghostPreview.activePreview && (
+        <div className="absolute inset-0 pointer-events-none" style={{ top: '48px' }}>
+          <GhostPreviewOverlay
+            preview={ghostPreview.activePreview}
+            currentPositions={currentPositions}
+            performers={formation.performers}
+            canvasWidth={canvasRef.current?.clientWidth ?? 800}
+            canvasHeight={canvasRef.current?.clientHeight ?? 500}
+            ghostOpacity={ghostPreview.ghostOpacity}
+            showMovementArrows={ghostPreview.showMovementArrows}
+          />
+        </div>
+      )}
+
+      {/* Ghost preview accept/reject controls */}
+      {ghostPreview.activePreview && (
+        <div className="absolute inset-0" style={{ top: '48px', pointerEvents: 'none' }}>
+          <div style={{ pointerEvents: 'auto' }}>
+            <GhostPreviewControls
+              preview={ghostPreview.activePreview}
+              currentPositions={currentPositions}
+              canvasWidth={canvasRef.current?.clientWidth ?? 800}
+              canvasHeight={canvasRef.current?.clientHeight ?? 500}
+              onAccept={handleGhostAccept}
+              onReject={handleGhostReject}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Collision detection overlay */}
       <div className="absolute inset-0 pointer-events-none" style={{ top: '48px' }}>
         <CollisionOverlay
           positions={currentPositions}
           canvasWidth={canvasRef.current?.clientWidth ?? 800}
           canvasHeight={canvasRef.current?.clientHeight ?? 500}
+          ghostPreviewSource={ghostPreview.activePreview?.source ?? undefined}
         />
       </div>
+
+      {/* Transition Suggester (floating popover) */}
+      {showTransitionSuggester && nextSetPositions && (
+        <div className="absolute top-20 right-4 z-50">
+          <TransitionSuggester
+            fromPositions={currentPositions}
+            toPositions={nextSetPositions}
+            performerIds={formation.performers.map(p => p.id)}
+            onApplyPathCurves={handleApplyTransitionPaths}
+            onClose={() => setShowTransitionSuggester(false)}
+          />
+        </div>
+      )}
 
       {showAudioPanel && (
         <div className="absolute top-20 right-4 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
@@ -650,6 +854,20 @@ export function FormationCanvas(props: FormationCanvasProps) {
             <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">{t('formation.audioHelp', 'Upload an audio track to sync with your formation animation. The music will play during playback.')}</p>
           </div>
         </div>
+      )}
+
+      {/* Formation Prompt Bar (above timeline) */}
+      {isDesktop && formation.performers.length > 0 && (
+        <FormationPromptBar
+          performers={formation.performers}
+          currentPositions={currentPositions}
+          selectedPerformerIds={Array.from(selectedPerformerIds)}
+          onApplyPositions={(positions) => {
+            setCurrentPositions(positions);
+            setHasUnsavedChanges(true);
+          }}
+          fieldConfig={formation.fieldConfig}
+        />
       )}
 
       {/* Desktop: MetMap song selector + full Timeline */}

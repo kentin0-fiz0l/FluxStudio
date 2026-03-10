@@ -9,6 +9,7 @@
 
 import { useMemo } from 'react';
 import type { Position } from '../../services/formationTypes';
+import type { GhostPreviewSource } from '../../store/slices/ghostPreviewSlice';
 import { detectCollisions } from '../../utils/drillGeometry';
 
 export interface TransitionCollision {
@@ -30,6 +31,8 @@ interface CollisionOverlayProps {
   enabled?: boolean;
   /** Collision points detected during transitions between keyframes */
   transitionCollisions?: TransitionCollision[];
+  /** When a ghost preview is active with source 'collision_fix', render resolved lines green */
+  ghostPreviewSource?: GhostPreviewSource;
 }
 
 export function CollisionOverlay({
@@ -39,6 +42,7 @@ export function CollisionOverlay({
   minDistance = 2,
   enabled = true,
   transitionCollisions,
+  ghostPreviewSource,
 }: CollisionOverlayProps) {
   const collisions = useMemo(() => {
     if (!enabled) return [];
@@ -111,6 +115,12 @@ export function CollisionOverlay({
       .join(' ');
   }, [transitionMarkers]);
 
+  // When collision_fix ghost preview is active, render in green to show resolved state
+  const isResolving = ghostPreviewSource === 'collision_fix';
+  const strokeColor = isResolving ? '#22c55e' : '#ef4444';
+  const markerFill = isResolving ? '#22c55e' : '#ef4444';
+  const markerStroke = isResolving ? '#16a34a' : '#dc2626';
+
   const hasStaticCollisions = collisions.length > 0;
   const hasTransitionCollisions = transitionMarkers.length > 0;
 
@@ -131,7 +141,7 @@ export function CollisionOverlay({
           y1={line.y1}
           x2={line.x2}
           y2={line.y2}
-          stroke="#ef4444"
+          stroke={strokeColor}
           strokeWidth={2}
           strokeOpacity={0.6 + (1 - line.severity) * 0.4}
           strokeDasharray="4 2"
@@ -146,7 +156,7 @@ export function CollisionOverlay({
             cy={circle.cy}
             r={20}
             fill="none"
-            stroke="#ef4444"
+            stroke={strokeColor}
             strokeWidth={2}
             strokeOpacity={0.7}
             strokeDasharray="3 2"
@@ -169,7 +179,7 @@ export function CollisionOverlay({
             x={circle.cx}
             y={circle.cy - 22}
             textAnchor="middle"
-            fill="#ef4444"
+            fill={strokeColor}
             fontSize={12}
             fontWeight="bold"
           >
@@ -183,7 +193,7 @@ export function CollisionOverlay({
         <path
           d={dangerZonePath}
           fill="none"
-          stroke="#ef4444"
+          stroke={strokeColor}
           strokeWidth={1.5}
           strokeOpacity={0.25}
           strokeDasharray="6 3"
@@ -199,9 +209,9 @@ export function CollisionOverlay({
             y={marker.cy - 5}
             width={10}
             height={10}
-            fill="#ef4444"
+            fill={markerFill}
             fillOpacity={0.8}
-            stroke="#dc2626"
+            stroke={markerStroke}
             strokeWidth={1.5}
             transform={`rotate(45 ${marker.cx} ${marker.cy})`}
           >

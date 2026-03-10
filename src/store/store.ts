@@ -26,6 +26,8 @@ import { createConnectorSlice, ConnectorSlice } from './slices/connectorSlice';
 import { createScene3DSlice, Scene3DSlice } from './slices/scene3dSlice';
 import { createFormationDraftSlice, FormationDraftSlice } from './slices/formationDraftSlice';
 import { createSocketSlice, SocketSlice } from './slices/socketSlice';
+import { createCanvasEffectsSlice, CanvasEffectsSlice } from './slices/canvasEffectsSlice';
+import { createGhostPreviewSlice, GhostPreviewSlice } from './slices/ghostPreviewSlice';
 
 // ============================================================================
 // Combined Store Type
@@ -46,7 +48,9 @@ export type FluxStore = AuthSlice &
   ConnectorSlice &
   Scene3DSlice &
   FormationDraftSlice &
-  SocketSlice;
+  SocketSlice &
+  CanvasEffectsSlice &
+  GhostPreviewSlice;
 
 // ============================================================================
 // Store Creation
@@ -73,6 +77,8 @@ export const useStore = create<FluxStore>()(
           ...createScene3DSlice(...(args as Parameters<typeof createScene3DSlice>)),
           ...createFormationDraftSlice(...(args as Parameters<typeof createFormationDraftSlice>)),
           ...createSocketSlice(...(args as Parameters<typeof createSocketSlice>)),
+          ...createCanvasEffectsSlice(...(args as Parameters<typeof createCanvasEffectsSlice>)),
+          ...createGhostPreviewSlice(...(args as Parameters<typeof createGhostPreviewSlice>)),
         })),
         {
           name: 'fluxstudio-store',
@@ -162,6 +168,12 @@ export const useFormationDraftStore = () => useStore((state) => state.formationD
 
 // Socket
 export const useSocketStoreRoot = () => useStore((state) => state.socket);
+
+// Canvas Effects
+export const useCanvasEffectsStore = () => useStore((state) => state.canvasEffects);
+
+// Ghost Preview
+export const useGhostPreviewStore = () => useStore((state) => state.ghostPreview);
 
 // ============================================================================
 // Cross-Slice Selectors

@@ -20,6 +20,7 @@ import {
   Users,
   ArrowRight,
   RefreshCw,
+  Wrench,
 } from 'lucide-react';
 import type { Formation, DrillSet, Position } from '@/services/formationTypes';
 import {
@@ -42,6 +43,10 @@ interface DrillCritiquePanelProps {
   currentPositions: Map<string, Position>;
   /** Callback to highlight specific performers on the canvas */
   onHighlightPerformers: (ids: string[]) => void;
+  /** Callback to auto-fix a single collision suggestion */
+  onAutoFixCollision?: (suggestion: DrillSuggestion) => void;
+  /** Callback to auto-fix all collision suggestions at once */
+  onAutoFixAllCollisions?: (suggestions: DrillSuggestion[]) => void;
   /** Optional class name */
   className?: string;
 }
@@ -160,9 +165,10 @@ function CategoryBar({ category }: CategoryBarProps) {
 interface SuggestionItemProps {
   suggestion: DrillSuggestion;
   onHighlight: (ids: string[]) => void;
+  onAutoFix?: (suggestion: DrillSuggestion) => void;
 }
 
-function SuggestionItem({ suggestion, onHighlight }: SuggestionItemProps) {
+function SuggestionItem({ suggestion, onHighlight, onAutoFix }: SuggestionItemProps) {
   const { t } = useTranslation('common');
   const getPriorityStyles = (priority: DrillSuggestion['priority']) => {
     switch (priority) {
@@ -221,15 +227,27 @@ function SuggestionItem({ suggestion, onHighlight }: SuggestionItemProps) {
             {suggestion.message}
           </p>
           {hasPerformers && (
-            <button
-              onClick={() => onHighlight(suggestion.performerIds!)}
-              className="flex items-center gap-1 mt-1.5 text-[10px] text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus-visible:ring-2 focus-visible:ring-blue-500 outline-none rounded"
-              aria-label={`Highlight ${suggestion.performerIds!.length} involved performers`}
-            >
-              <Users className="w-3 h-3" aria-hidden="true" />
-              {t('formation.drillCritique.highlightPerformers', 'Highlight {{count}} performer(s)', { count: suggestion.performerIds!.length })}
-              <ArrowRight className="w-3 h-3" aria-hidden="true" />
-            </button>
+            <div className="flex items-center gap-2 mt-1.5">
+              <button
+                onClick={() => onHighlight(suggestion.performerIds!)}
+                className="flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 focus-visible:ring-2 focus-visible:ring-blue-500 outline-none rounded"
+                aria-label={`Highlight ${suggestion.performerIds!.length} involved performers`}
+              >
+                <Users className="w-3 h-3" aria-hidden="true" />
+                {t('formation.drillCritique.highlightPerformers', 'Highlight {{count}} performer(s)', { count: suggestion.performerIds!.length })}
+                <ArrowRight className="w-3 h-3" aria-hidden="true" />
+              </button>
+              {suggestion.fixable && onAutoFix && (
+                <button
+                  onClick={() => onAutoFix(suggestion)}
+                  className="flex items-center gap-1 text-[10px] text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 focus-visible:ring-2 focus-visible:ring-green-500 outline-none rounded"
+                  aria-label="Auto-fix this collision"
+                >
+                  <Wrench className="w-3 h-3" aria-hidden="true" />
+                  Auto-fix
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -246,6 +264,8 @@ export function DrillCritiquePanel({
   sets,
   currentPositions: _currentPositions,
   onHighlightPerformers,
+  onAutoFixCollision,
+  onAutoFixAllCollisions,
   className = '',
 }: DrillCritiquePanelProps) {
   const { t } = useTranslation('common');
@@ -288,6 +308,7 @@ export function DrillCritiquePanel({
 
   const highPrioritySuggestions = result?.suggestions.filter((s) => s.priority === 'high') ?? [];
   const otherSuggestions = result?.suggestions.filter((s) => s.priority !== 'high') ?? [];
+  const fixableCollisions = result?.suggestions.filter((s) => s.fixable) ?? [];
 
   return (
     <div className={`flex flex-col bg-white dark:bg-gray-900 ${className}`}>
@@ -299,29 +320,41 @@ export function DrillCritiquePanel({
             {t('formation.drillCritique.title', 'Drill Critique')}
           </span>
         </div>
-        <button
-          onClick={handleAnalyze}
-          disabled={isAnalyzing || !canAnalyze}
-          className="flex items-center gap-1 px-2.5 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 outline-none transition-colors"
-          aria-label={result ? 'Re-analyze drill' : 'Analyze drill'}
-        >
-          {isAnalyzing ? (
-            <>
-              <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
-              {t('formation.drillCritique.analyzing', 'Analyzing...')}
-            </>
-          ) : result ? (
-            <>
-              <RefreshCw className="w-3 h-3" aria-hidden="true" />
-              {t('formation.drillCritique.reAnalyze', 'Re-analyze')}
-            </>
-          ) : (
-            <>
-              <Play className="w-3 h-3" aria-hidden="true" />
-              {t('formation.drillCritique.analyze', 'Analyze')}
-            </>
+        <div className="flex items-center gap-1.5">
+          {fixableCollisions.length > 0 && onAutoFixAllCollisions && (
+            <button
+              onClick={() => onAutoFixAllCollisions(fixableCollisions)}
+              className="flex items-center gap-1 px-2 py-1 text-xs bg-green-500 hover:bg-green-600 text-white rounded-md focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 outline-none transition-colors"
+              aria-label="Fix all collisions"
+            >
+              <Wrench className="w-3 h-3" aria-hidden="true" />
+              Fix All ({fixableCollisions.length})
+            </button>
           )}
-        </button>
+          <button
+            onClick={handleAnalyze}
+            disabled={isAnalyzing || !canAnalyze}
+            className="flex items-center gap-1 px-2.5 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 outline-none transition-colors"
+            aria-label={result ? 'Re-analyze drill' : 'Analyze drill'}
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                {t('formation.drillCritique.analyzing', 'Analyzing...')}
+              </>
+            ) : result ? (
+              <>
+                <RefreshCw className="w-3 h-3" aria-hidden="true" />
+                {t('formation.drillCritique.reAnalyze', 'Re-analyze')}
+              </>
+            ) : (
+              <>
+                <Play className="w-3 h-3" aria-hidden="true" />
+                {t('formation.drillCritique.analyze', 'Analyze')}
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Error */}
@@ -428,6 +461,7 @@ export function DrillCritiquePanel({
                         key={`high-${i}`}
                         suggestion={suggestion}
                         onHighlight={onHighlightPerformers}
+                        onAutoFix={onAutoFixCollision}
                       />
                     ))}
                     {/* Others */}
@@ -436,6 +470,7 @@ export function DrillCritiquePanel({
                         key={`other-${i}`}
                         suggestion={suggestion}
                         onHighlight={onHighlightPerformers}
+                        onAutoFix={onAutoFixCollision}
                       />
                     ))}
                   </div>

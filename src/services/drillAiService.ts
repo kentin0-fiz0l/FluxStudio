@@ -53,6 +53,10 @@ export interface DrillSuggestion {
   performerIds?: string[];
   message: string;
   priority: 'high' | 'medium' | 'low';
+  /** Whether this suggestion has an auto-fix available */
+  fixable?: boolean;
+  /** Collision pair data for auto-fix (only on collision suggestions) */
+  collisionData?: Array<{ id1: string; id2: string; distance: number }>;
 }
 
 export interface FormationFromDescriptionRequest {
@@ -151,6 +155,10 @@ export function generateDrillCritique(
       performerIds: issue.performerIds,
       message: issue.message,
       priority: 'high',
+      fixable: true,
+      collisionData: issue.performerIds && issue.performerIds.length >= 2
+        ? [{ id1: issue.performerIds[0], id2: issue.performerIds[1], distance: 0 }]
+        : undefined,
     });
   }
 
