@@ -262,6 +262,13 @@ export const createAuthSlice: StateCreator<
         return;
       }
 
+      // Skip auth check on OAuth callback pages — the callback component
+      // handles token extraction from URL params and will call setAuthToken
+      if (window.location.pathname.includes('/auth/callback')) {
+        set((state) => { state.auth.isLoading = false; });
+        return;
+      }
+
       try {
         const token = localStorage.getItem(ACCESS_TOKEN_KEY);
         if (token) {
@@ -543,7 +550,7 @@ export function useAuthInit() {
       const { isLoading } = store.getState().auth;
       if (isLoading) return;
 
-      const publicAuthPaths = ['/login', '/signup', '/forgot-password', '/reset-password'];
+      const publicAuthPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback'];
       const isPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.includes(path));
       if (!isPublicAuthPage) {
         await logout();
