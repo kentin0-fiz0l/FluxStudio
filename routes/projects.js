@@ -110,9 +110,11 @@ router.get('/', authenticateToken, async (req, res) => {
                 COUNT(m.id) as unread_count
               FROM conversations c
               LEFT JOIN messages m ON m.conversation_id = c.id
-                AND m.sender_id != $1
-                AND m.read_at IS NULL
-              WHERE c.project_id = ANY($2::uuid[])
+                AND COALESCE(m.sender_id, m.author_id::TEXT) != $1
+              LEFT JOIN conversation_members cm ON cm.conversation_id = c.id
+                AND cm.user_id = $1
+              WHERE c.project_id = ANY($2::text[])
+                AND (cm.last_read_message_id IS NULL OR m.id > cm.last_read_message_id)
               GROUP BY c.project_id
             `, [userId, projectIds]);
 
@@ -571,34 +573,27 @@ router.get('/:projectId/counts', authenticateToken, async (req, res) => {
       }
     }
 
-    // Get counts using database aggregations
-    const [messagesResult, filesResult, assetsResult, boardsResult] = await Promise.all([
-      query(`
-        SELECT COUNT(*) as count FROM conversations
-        WHERE project_id = $1 AND archived_at IS NULL
-      `, [projectId]),
-      query(`
-        SELECT COUNT(*) as count FROM printing_files
-        WHERE project_id = $1
-      `, [projectId]),
-      query(`
-        SELECT COUNT(*) as count FROM assets
-        WHERE project_id = $1 AND status = 'active'
-      `, [projectId]),
-      query(`
-        SELECT COUNT(*) as count FROM design_boards
-        WHERE project_id = $1 AND archived_at IS NULL
-      `, [projectId])
+    // Get counts using database aggregations (each wrapped in try/catch for resilience)
+    const safeCount = async (sql, params) => {
+      try {
+        const result = await query(sql, params);
+        return parseInt(result.rows[0]?.count || 0);
+      } catch (e) {
+        log.warn('Count query failed:', e.message);
+        return 0;
+      }
+    };
+
+    const [messages, files, assets, boards] = await Promise.all([
+      safeCount(`SELECT COUNT(*) as count FROM conversations WHERE project_id = $1 AND archived_at IS NULL`, [projectId]),
+      safeCount(`SELECT COUNT(*) as count FROM files WHERE project_id = $1`, [projectId]),
+      safeCount(`SELECT COUNT(*) as count FROM assets WHERE project_id = $1 AND status = 'active'`, [projectId]),
+      safeCount(`SELECT COUNT(*) as count FROM design_boards WHERE project_id = $1 AND is_archived = false`, [projectId])
     ]);
 
     res.json({
       success: true,
-      counts: {
-        messages: parseInt(messagesResult.rows[0]?.count || 0),
-        files: parseInt(filesResult.rows[0]?.count || 0),
-        assets: parseInt(assetsResult.rows[0]?.count || 0),
-        boards: parseInt(boardsResult.rows[0]?.count || 0)
-      }
+      counts: { messages, files, assets, boards }
     });
   } catch (error) {
     log.error('Get project counts error', error);
