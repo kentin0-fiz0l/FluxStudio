@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, XCircle, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 import { apiService } from '../services/apiService';
@@ -40,6 +40,7 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
   const [redirectUrl, setRedirectUrl] = useState<string>('/projects');
   const [countdown, setCountdown] = useState(5);
   const { setAuthToken } = useAuth();
+  const callbackHandled = useRef(false);
 
   // Handle manual redirect - cancels auto-redirect
   const handleContinue = useCallback(() => {
@@ -63,6 +64,9 @@ export default function OAuthCallback({ provider }: OAuthCallbackProps) {
     setIsPopup(popup);
 
     const handleCallback = async () => {
+      if (callbackHandled.current) return;
+      callbackHandled.current = true;
+
       try {
         // Handle Google auth redirect flow (token in URL)
         if (provider === 'google') {
