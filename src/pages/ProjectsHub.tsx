@@ -321,6 +321,8 @@ export function ProjectsHub() {
                               showProgress
                               showTeam
                               showTags
+                              showActions
+                              onClick={() => navigate(`/projects/${project.id}`)}
                               onView={() => navigate(`/projects/${project.id}`)}
                             />
                           </motion.div>
