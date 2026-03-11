@@ -18,6 +18,8 @@
     "dotenv": "^16.4.5",
     "undici": "^7.3.0",
     "ws": "^8.18.0",
+    "y-websocket": "^2.0.0",
+    "yjs": "^13.6.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
