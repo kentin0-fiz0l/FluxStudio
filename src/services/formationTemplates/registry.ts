@@ -636,6 +636,278 @@ const pinwheelTemplate: DrillTemplate = (() => {
 })();
 
 // ============================================================================
+// SHOW TEMPLATES (multi-set)
+// ============================================================================
+
+// Halftime Show Starter - 24 performers, 4 keyframes
+const halftimeStarterTemplate: DrillTemplate = (() => {
+  const count = 24;
+  const performers: TemplatePerformer[] = [];
+  const kf0Positions = new Map<number, TemplatePosition>();
+
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 6; col++) {
+      const i = row * 6 + col;
+      const x = 20 + col * 12;
+      const y = 30 + row * 12;
+      performers.push({ index: i, label: String(i + 1), relativePosition: { x, y, rotation: 0 } });
+      kf0Positions.set(i, { x, y, rotation: 0 });
+    }
+  }
+
+  const kf1Positions = new Map<number, TemplatePosition>();
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 6; col++) {
+      const i = row * 6 + col;
+      const angle = (col / 6) * Math.PI * 2;
+      const x = 50 + Math.cos(angle) * (15 + row * 8);
+      const y = 50 + Math.sin(angle) * (15 + row * 8);
+      kf1Positions.set(i, { x, y, rotation: 0 });
+    }
+  }
+
+  const kf2Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    kf2Positions.set(i, { x: 5 + (i * 90) / 23, y: 50, rotation: 0 });
+  }
+
+  const kf3Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    kf3Positions.set(i, {
+      x: 15 + ((i * 17 + 7) % 23) * 3.2,
+      y: 20 + ((i * 13 + 3) % 19) * 3.5,
+      rotation: 0,
+    });
+  }
+
+  return createTemplate(
+    'show-halftime-starter',
+    'Halftime Show Starter',
+    'A complete halftime show opening with 4 sets: block formation, fan-out, company front, and scatter-to-logo',
+    'drill',
+    performers,
+    [
+      createInitialKeyframe(kf0Positions),
+      { index: 1, timestamp: 4000, transition: 'linear', positions: kf1Positions },
+      { index: 2, timestamp: 8000, transition: 'linear', positions: kf2Positions },
+      { index: 3, timestamp: 12000, transition: 'linear', positions: kf3Positions },
+    ],
+    {
+      tags: ['drill', 'marching', 'show', 'halftime', 'multi-set'],
+      parameters: { minPerformers: 12, maxPerformers: 48, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// Parade Block - 16 performers, 3 keyframes
+const paradeBlockTemplate: DrillTemplate = (() => {
+  const count = 16;
+  const performers: TemplatePerformer[] = [];
+  const kf0Positions = new Map<number, TemplatePosition>();
+
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      const i = row * 4 + col;
+      const x = 30 + col * 13;
+      const y = 25 + row * 15;
+      performers.push({ index: i, label: String(i + 1), relativePosition: { x, y, rotation: 0 } });
+      kf0Positions.set(i, { x, y, rotation: 0 });
+    }
+  }
+
+  const kf1Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    const row = Math.floor(i / 2);
+    const col = i % 2;
+    kf1Positions.set(i, { x: 45 + col * 10, y: 15 + row * 9, rotation: 0 });
+  }
+
+  const kf2Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    kf2Positions.set(i, { x: 10 + (i * 80) / 15, y: 50, rotation: 0 });
+  }
+
+  return createTemplate(
+    'show-parade-block',
+    'Parade Block',
+    'Classic parade formation: marching block, column-of-twos, halt-and-present',
+    'drill',
+    performers,
+    [
+      createInitialKeyframe(kf0Positions),
+      { index: 1, timestamp: 4000, transition: 'linear', positions: kf1Positions },
+      { index: 2, timestamp: 8000, transition: 'linear', positions: kf2Positions },
+    ],
+    {
+      tags: ['drill', 'marching', 'show', 'parade'],
+      parameters: { minPerformers: 8, maxPerformers: 32, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// Indoor Drumline - 12 performers, 3 keyframes
+const indoorDrumlineTemplate: DrillTemplate = (() => {
+  const count = 12;
+  const performers: TemplatePerformer[] = [];
+  const kf0Positions = new Map<number, TemplatePosition>();
+
+  for (let i = 0; i < count; i++) {
+    const angle = Math.PI + (i / 11) * Math.PI;
+    const x = 50 + Math.cos(angle) * 30;
+    const y = 60 + Math.sin(angle) * 25;
+    performers.push({ index: i, label: String(i + 1), relativePosition: { x, y, rotation: 0 } });
+    kf0Positions.set(i, { x, y, rotation: 0 });
+  }
+
+  const kf1Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    kf1Positions.set(i, { x: 15 + (i * 70) / 11, y: 80 - (i * 60) / 11, rotation: 0 });
+  }
+
+  const kf2Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    const angle = (i / 12) * Math.PI * 2;
+    kf2Positions.set(i, {
+      x: 50 + Math.cos(angle) * (5 + (i % 3) * 5),
+      y: 50 + Math.sin(angle) * (5 + (i % 3) * 5),
+      rotation: 0,
+    });
+  }
+
+  return createTemplate(
+    'show-indoor-drumline',
+    'Indoor Drumline',
+    'Indoor percussion staging: arc formation, diagonal slash, impact moment cluster',
+    'drill',
+    performers,
+    [
+      createInitialKeyframe(kf0Positions),
+      { index: 1, timestamp: 3000, transition: 'linear', positions: kf1Positions },
+      { index: 2, timestamp: 6000, transition: 'linear', positions: kf2Positions },
+    ],
+    {
+      tags: ['drill', 'marching', 'show', 'indoor', 'drumline', 'percussion'],
+      parameters: { minPerformers: 6, maxPerformers: 24, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// Color Guard Opener - 8 performers, 3 keyframes
+const colorGuardOpenerTemplate: DrillTemplate = (() => {
+  const count = 8;
+  const performers: TemplatePerformer[] = [];
+  const kf0Positions = new Map<number, TemplatePosition>();
+
+  for (let i = 0; i < count; i++) {
+    const x = 15 + (i * 70) / 7;
+    const y = 50 + (i % 2 === 0 ? -8 : 8);
+    performers.push({ index: i, label: String(i + 1), relativePosition: { x, y, rotation: 0 } });
+    kf0Positions.set(i, { x, y, rotation: 0 });
+  }
+
+  const diamondPositions: [number, number][] = [
+    [50, 20], [30, 40], [70, 40], [20, 55],
+    [80, 55], [35, 70], [65, 70], [50, 85],
+  ];
+  const kf1Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    kf1Positions.set(i, { x: diamondPositions[i][0], y: diamondPositions[i][1], rotation: 0 });
+  }
+
+  const kf2Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    const angle = (i / 8) * Math.PI * 2 - Math.PI / 2;
+    kf2Positions.set(i, {
+      x: 50 + Math.cos(angle) * 25,
+      y: 50 + Math.sin(angle) * 25,
+      rotation: 0,
+    });
+  }
+
+  return createTemplate(
+    'show-color-guard-opener',
+    'Color Guard Opener',
+    'Color guard opening sequence: staggered line, diamond formation, circle-to-line reveal',
+    'drill',
+    performers,
+    [
+      createInitialKeyframe(kf0Positions),
+      { index: 1, timestamp: 3000, transition: 'linear', positions: kf1Positions },
+      { index: 2, timestamp: 6000, transition: 'linear', positions: kf2Positions },
+    ],
+    {
+      tags: ['drill', 'marching', 'show', 'color-guard', 'guard'],
+      parameters: { minPerformers: 4, maxPerformers: 16, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// Full Field Show - 32 performers, 5 keyframes
+const fullFieldShowTemplate: DrillTemplate = (() => {
+  const count = 32;
+  const performers: TemplatePerformer[] = [];
+  const kf0Positions = new Map<number, TemplatePosition>();
+
+  for (let i = 0; i < count; i++) {
+    const row = Math.floor(i / 8);
+    const col = i % 8;
+    const x = 10 + col * 11.5;
+    const y = 25 + row * 15;
+    performers.push({ index: i, label: String(i + 1), relativePosition: { x, y, rotation: 0 } });
+    kf0Positions.set(i, { x, y, rotation: 0 });
+  }
+
+  const kf1Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    const halfIdx = i < 16 ? i : 31 - i;
+    const depth = Math.floor(halfIdx / 2);
+    const side = i < 16 ? -1 : 1;
+    kf1Positions.set(i, { x: 50 + side * (5 + depth * 4), y: 25 + halfIdx * 3.5, rotation: 0 });
+  }
+
+  const kf2Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    const angle = Math.PI + (i / 31) * Math.PI;
+    kf2Positions.set(i, {
+      x: 50 + Math.cos(angle) * 40,
+      y: 65 + Math.sin(angle) * 30,
+      rotation: 0,
+    });
+  }
+
+  const kf3Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    kf3Positions.set(i, { x: 5 + (i * 90) / 31, y: 50, rotation: 0 });
+  }
+
+  const kf4Positions = new Map<number, TemplatePosition>();
+  for (let i = 0; i < count; i++) {
+    const row = Math.floor(i / 16);
+    const col = i % 16;
+    kf4Positions.set(i, { x: 10 + col * 5.3, y: 45 + row * 12, rotation: 0 });
+  }
+
+  return createTemplate(
+    'show-full-field',
+    'Full Field Show',
+    'Complete 5-set field show: opening spread, transition wedge, feature arc, closer line, final bow',
+    'drill',
+    performers,
+    [
+      createInitialKeyframe(kf0Positions),
+      { index: 1, timestamp: 5000, transition: 'linear', positions: kf1Positions },
+      { index: 2, timestamp: 10000, transition: 'linear', positions: kf2Positions },
+      { index: 3, timestamp: 15000, transition: 'linear', positions: kf3Positions },
+      { index: 4, timestamp: 18000, transition: 'linear', positions: kf4Positions },
+    ],
+    {
+      tags: ['drill', 'marching', 'show', 'field', 'competition', 'multi-set'],
+      parameters: { minPerformers: 16, maxPerformers: 64, scalable: true, reversible: true, mirrorable: true, rotatable: true },
+    }
+  );
+})();
+
+// ============================================================================
 // TEMPLATE REGISTRY CLASS
 // ============================================================================
 
@@ -666,6 +938,11 @@ class FormationTemplateRegistry {
       followTheLeaderTemplate,
       gateTurnTemplate,
       pinwheelTemplate,
+      halftimeStarterTemplate,
+      paradeBlockTemplate,
+      indoorDrumlineTemplate,
+      colorGuardOpenerTemplate,
+      fullFieldShowTemplate,
     ];
 
     for (const template of builtIn) {

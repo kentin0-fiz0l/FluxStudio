@@ -30,8 +30,10 @@ import { GhostPreviewOverlay } from '../GhostPreviewOverlay';
 import { GhostPreviewControls } from '../GhostPreviewControls';
 import { FormationPromptBar } from '../FormationPromptBar';
 import { TransitionSuggester } from '../TransitionSuggester';
+import { ShowPacingGraph } from '../ShowPacingGraph';
 import { FormationVersionHistoryPanel } from '../FormationVersionHistory';
 import { CanvasEffectsLayer, CanvasEffectsPanel } from '../effects';
+import { RehearsalModePanel } from '../RehearsalModePanel';
 import { CanvasToolbar } from './CanvasToolbar';
 import { MobileCanvasToolbar } from './MobileCanvasToolbar';
 import { MobileSetNavigator } from './MobileSetNavigator';
@@ -63,6 +65,9 @@ export function FormationCanvas(props: FormationCanvasProps) {
   const [snapResolution, setSnapResolution] = useState<'beat' | 'half-beat' | 'measure'>('beat');
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showTransitionSuggester, setShowTransitionSuggester] = useState(false);
+  const [showPacingGraph, setShowPacingGraph] = useState(false);
+  const [showRehearsalMode, setShowRehearsalMode] = useState(false);
+  const [showAudienceHeatmap, setShowAudienceHeatmap] = useState(false);
 
   const state = useCanvasState(props);
 
@@ -624,6 +629,12 @@ export function FormationCanvas(props: FormationCanvasProps) {
           showTransitionSuggester={showTransitionSuggester}
           setShowTransitionSuggester={setShowTransitionSuggester}
           keyframeCount={formation.keyframes.length}
+          showPacingGraph={showPacingGraph}
+          setShowPacingGraph={setShowPacingGraph}
+          showAudienceHeatmap={showAudienceHeatmap}
+          setShowAudienceHeatmap={setShowAudienceHeatmap}
+          showRehearsalMode={showRehearsalMode}
+          setShowRehearsalMode={setShowRehearsalMode}
         />
       ) : (
         <MobileSetNavigator
@@ -681,6 +692,8 @@ export function FormationCanvas(props: FormationCanvasProps) {
             onCurveControlPointMove={handleCurveControlPointMove}
             snapGuides={snapGuides}
             transformMode={transformMode}
+            showAudienceHeatmap={showAudienceHeatmap}
+            audienceHeatmapMode="audience"
           />
           <CanvasEffectsLayer
             performers={formation.performers}
@@ -769,6 +782,17 @@ export function FormationCanvas(props: FormationCanvasProps) {
               currentFormation={formation}
               onRestore={handleVersionRestore}
               onClose={() => setShowVersionHistory(false)}
+            />
+          </div>
+        )}
+        {showRehearsalMode && (
+          <div className={isMobileView ? 'absolute inset-y-0 right-0 z-30 w-80 shadow-xl' : ''}>
+            <RehearsalModePanel
+              formation={formation}
+              sets={drillSets}
+              onClose={() => setShowRehearsalMode(false)}
+              onNavigateToSet={(setId) => handleNavigateToSet(setId)}
+              onHighlightPerformers={(ids) => setSelectedPerformerIds(new Set(ids))}
             />
           </div>
         )}
@@ -909,6 +933,16 @@ export function FormationCanvas(props: FormationCanvasProps) {
             tempoMap={metmapTempoMap ?? undefined}
             beatMap={metmapBeatMap ?? undefined}
           />
+
+          {showPacingGraph && drillSets.length > 0 && (
+            <ShowPacingGraph
+              formation={formation}
+              sets={drillSets}
+              tempoMap={metmapTempoMap ?? undefined}
+              onNavigateToSet={(setId) => handleNavigateToSet(setId)}
+              className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2"
+            />
+          )}
         </>
       )}
 

@@ -82,7 +82,7 @@ export interface AIContext {
 
 export interface ChatOptions {
   conversationId?: string;
-  model?: 'claude-sonnet-4-20250514' | 'claude-3-5-sonnet-20241022' | 'claude-3-5-haiku-20241022' | 'claude-3-opus-20240229';
+  model?: 'claude-opus-4-6' | 'claude-sonnet-4-6' | 'claude-haiku-4-5-20251001';
   context?: AIContext;
 }
 
@@ -144,7 +144,7 @@ export async function streamChat(
   options: ChatOptions = {},
   callbacks: StreamCallbacks = {}
 ): Promise<void> {
-  const { conversationId, model = 'claude-sonnet-4-20250514', context } = options;
+  const { conversationId, model = 'claude-sonnet-4-6', context } = options;
   const { onStart, onChunk, onDone, onError } = callbacks;
 
   const url = getApiUrl('/api/ai/chat');

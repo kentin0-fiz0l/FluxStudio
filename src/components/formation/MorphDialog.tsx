@@ -3,12 +3,16 @@
  *
  * Split-view dot map showing source and target positions with connecting
  * lines. Supports proximity, index-order, and manual matching methods.
+ *
+ * MorphSliderDialog (Feature 10) - Continuous slider to interpolate between
+ * current formation and a target formation template, with live preview.
  */
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Shuffle, ArrowRight, Check, X } from 'lucide-react';
-import type { Position } from '../../services/formationTypes';
+import type { Position, Performer } from '../../services/formationTypes';
 import { calculateMorphMapping, type MorphMethod } from '../../services/movementTools';
+import { FORMATION_TEMPLATES, type FormationTemplate } from '../../services/formationTemplates';
 
 // ============================================================================
 // TYPES
@@ -468,3 +472,336 @@ export const MorphDialog: React.FC<MorphDialogProps> = ({
 };
 
 export default MorphDialog;
+
+// ============================================================================
+// MORPH SLIDER DIALOG (Feature 10)
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// Types
+// ----------------------------------------------------------------------------
+
+interface MorphSliderDialogProps {
+  open: boolean;
+  onClose: () => void;
+  performers: Performer[];
+  currentPositions: Map<string, Position>;
+  onApply: (positions: Map<string, Position>) => void;
+}
+
+// ----------------------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------------------
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+function lerpPosition(current: Position, target: Position, t: number): Position {
+  return {
+    x: lerp(current.x, target.x, t),
+    y: lerp(current.y, target.y, t),
+  };
+}
+
+const PREVIEW_DIMS = { width: 320, height: 240, padding: 24 };
+const PREVIEW_DOT_RADIUS = 6;
+
+function posToPreviewPixel(pos: Position): { x: number; y: number } {
+  const usable = {
+    w: PREVIEW_DIMS.width - 2 * PREVIEW_DIMS.padding,
+    h: PREVIEW_DIMS.height - 2 * PREVIEW_DIMS.padding,
+  };
+  return {
+    x: PREVIEW_DIMS.padding + (pos.x / 100) * usable.w,
+    y: PREVIEW_DIMS.padding + (pos.y / 100) * usable.h,
+  };
+}
+
+/**
+ * Generate target positions for each performer from a formation template.
+ * Uses the template generator to produce positions for N performers,
+ * then maps each performer ID to a template position by index order.
+ */
+function targetPositionsFromTemplate(
+  template: FormationTemplate,
+  performerIds: string[],
+): Map<string, Position> {
+  const generated = template.generator(
+    performerIds.length,
+    { minX: 15, minY: 15, maxX: 85, maxY: 85 },
+  );
+  const result = new Map<string, Position>();
+  for (let i = 0; i < performerIds.length; i++) {
+    const pos = generated[i];
+    if (pos) {
+      result.set(performerIds[i], { x: pos.x, y: pos.y });
+    }
+  }
+  return result;
+}
+
+// ----------------------------------------------------------------------------
+// Component
+// ----------------------------------------------------------------------------
+
+export const MorphSliderDialog: React.FC<MorphSliderDialogProps> = ({
+  open,
+  onClose,
+  performers,
+  currentPositions,
+  onApply,
+}) => {
+  const [morphT, setMorphT] = useState(0);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
+    FORMATION_TEMPLATES[0]?.id ?? '',
+  );
+  // Build performer ID list (stable order)
+  const performerIds = useMemo(
+    () => performers.map((p) => p.id),
+    [performers],
+  );
+
+  // Compute target positions from the selected template
+  const targetPositions = useMemo(() => {
+    const template = FORMATION_TEMPLATES.find((t) => t.id === selectedTemplateId);
+    if (!template) return new Map<string, Position>();
+    return targetPositionsFromTemplate(template, performerIds);
+  }, [selectedTemplateId, performerIds]);
+
+  // Compute interpolated positions based on slider value
+  const interpolatedPositions = useMemo(() => {
+    const t = morphT / 100;
+    const result = new Map<string, Position>();
+
+    for (const id of performerIds) {
+      const current = currentPositions.get(id);
+      const target = targetPositions.get(id);
+      if (current && target) {
+        result.set(id, lerpPosition(current, target, t));
+      } else if (current) {
+        result.set(id, current);
+      }
+    }
+
+    return result;
+  }, [morphT, performerIds, currentPositions, targetPositions]);
+
+  // Handle slider change
+  const handleSliderChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setMorphT(Number(e.target.value));
+    },
+    [],
+  );
+
+  // Handle template selection
+  const handleTemplateChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setSelectedTemplateId(e.target.value);
+      setMorphT(0);
+    },
+    [],
+  );
+
+  // Apply the current interpolated positions
+  const handleApply = useCallback(() => {
+    onApply(interpolatedPositions);
+  }, [interpolatedPositions, onApply]);
+
+  // Reset slider when dialog opens
+  useEffect(() => {
+    if (open) {
+      setMorphT(0);
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" role="presentation" onClick={onClose} />
+
+      {/* Dialog */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Formation Morph Slider"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
+        className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <Shuffle className="w-5 h-5 text-blue-500" aria-hidden="true" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Formation Morph Slider
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label="Close morph slider dialog"
+          >
+            <X className="w-5 h-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-160px)]">
+          {/* Target Selector */}
+          <div className="mb-5">
+            <label
+              htmlFor="morph-target-template"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Target Formation
+            </label>
+            <select
+              id="morph-target-template"
+              value={selectedTemplateId}
+              onChange={handleTemplateChange}
+              className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {FORMATION_TEMPLATES.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.name} ({template.category})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Morph Slider */}
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-2">
+              <label
+                htmlFor="morph-slider"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Morph Amount
+              </label>
+              <span className="text-sm font-mono text-blue-600 dark:text-blue-400">
+                {morphT}%
+              </span>
+            </div>
+            <input
+              id="morph-slider"
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={morphT}
+              onChange={handleSliderChange}
+              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={morphT}
+              aria-label="Morph interpolation amount"
+            />
+            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
+              <span>Current</span>
+              <span>Target</span>
+            </div>
+          </div>
+
+          {/* Live Preview */}
+          <div className="mb-4">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Preview
+            </h3>
+            <div className="flex justify-center">
+              <svg
+                width={PREVIEW_DIMS.width}
+                height={PREVIEW_DIMS.height}
+                className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
+              >
+                {/* Ghost dots: target positions (faded) */}
+                {performerIds.map((id, i) => {
+                  const target = targetPositions.get(id);
+                  if (!target) return null;
+                  const p = posToPreviewPixel(target);
+                  return (
+                    <circle
+                      key={`ghost-${id}`}
+                      cx={p.x}
+                      cy={p.y}
+                      r={PREVIEW_DOT_RADIUS}
+                      fill={getColor(i)}
+                      fillOpacity={0.15}
+                      stroke={getColor(i)}
+                      strokeWidth={1}
+                      strokeOpacity={0.3}
+                      strokeDasharray="2 2"
+                    />
+                  );
+                })}
+
+                {/* Current dots: original positions (ring only) */}
+                {performerIds.map((id, i) => {
+                  const current = currentPositions.get(id);
+                  if (!current) return null;
+                  const p = posToPreviewPixel(current);
+                  return (
+                    <circle
+                      key={`orig-${id}`}
+                      cx={p.x}
+                      cy={p.y}
+                      r={PREVIEW_DOT_RADIUS}
+                      fill="none"
+                      stroke={getColor(i)}
+                      strokeWidth={1}
+                      strokeOpacity={0.3}
+                    />
+                  );
+                })}
+
+                {/* Interpolated dots (active positions) */}
+                {performerIds.map((id, i) => {
+                  const pos = interpolatedPositions.get(id);
+                  if (!pos) return null;
+                  const p = posToPreviewPixel(pos);
+                  const performer = performers[i];
+                  return (
+                    <g key={`interp-${id}`}>
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r={PREVIEW_DOT_RADIUS}
+                        fill={getColor(i)}
+                        fillOpacity={0.9}
+                        stroke="white"
+                        strokeWidth={1.5}
+                      />
+                      <title>{performer?.name ?? `Performer ${i + 1}`}</title>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+            Cancel
+          </button>
+          <button
+            onClick={handleApply}
+            className="flex items-center gap-1.5 px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium"
+          >
+            <Check className="w-4 h-4" aria-hidden="true" />
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -2,7 +2,7 @@
  * ExportOptionsPanel - Display options, PDF/image/animation settings, performer selection
  */
 
-import { Grid, Tag, Clock, Music } from 'lucide-react';
+import { Grid, Tag, Clock, Music, Eye } from 'lucide-react';
 import type { Performer } from '../../../services/formationService';
 import type { ExportFormat } from './ExportFormatSelector';
 
@@ -22,8 +22,14 @@ export interface ExportOptionsState {
   fps: number;
   resolution: { width: number; height: number };
   selectedResolutionPreset: string;
-  selectedPerformerScope: 'all' | 'selected';
+  selectedPerformerScope: 'all' | 'selected' | 'by_section';
   selectedPerformerIds: string[];
+  selectedSection: string;
+  // Video overlay options
+  videoOverlayPerformerStyle: 'dots' | 'numbers' | 'icons';
+  videoOverlayShowTrails: boolean;
+  videoOverlayShowGrid: boolean;
+  videoOverlayTransparent: boolean;
 }
 
 export interface ExportOptionsPanelProps {
@@ -68,6 +74,13 @@ export function ExportOptionsPanel({
   const isImageFormat = selectedFormat === 'png' || selectedFormat === 'jpg';
   const isPdfFormat = selectedFormat === 'pdf';
   const isDrillFormat = selectedFormat === 'drill_book' || selectedFormat === 'coordinate_sheet';
+  const isDotBookFormat = selectedFormat === 'dotbook';
+  const isVideoOverlayFormat = selectedFormat === 'video_overlay';
+
+  // Compute unique sections from performers
+  const performerSections = performers
+    ? [...new Set(performers.map((p) => p.section).filter(Boolean))] as string[]
+    : [];
 
   const handleResolutionPresetChange = (preset: string) => {
     onOptionsChange('selectedResolutionPreset', preset);
@@ -343,6 +356,238 @@ export function ExportOptionsPanel({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Dot Book Options */}
+      {isDotBookFormat && performers && performers.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+            {t('formation.dotBookOptions', 'Dot Book Options')}
+          </h3>
+
+          {/* Performer scope selector */}
+          <div className="space-y-2 mb-4">
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+              {t('formation.performerScope', 'Performers')}
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                checked={options.selectedPerformerScope === 'all'}
+                onChange={() => onOptionsChange('selectedPerformerScope', 'all')}
+                className="w-4 h-4 text-blue-500"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {t('formation.allPerformers', 'All performers ({{count}})', { count: performers.length })}
+              </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                checked={options.selectedPerformerScope === 'selected'}
+                onChange={() => onOptionsChange('selectedPerformerScope', 'selected')}
+                className="w-4 h-4 text-blue-500"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {t('formation.selectedPerformersOnly', 'Selected performers only')}
+              </span>
+            </label>
+            {performerSections.length > 0 && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  checked={options.selectedPerformerScope === 'by_section'}
+                  onChange={() => onOptionsChange('selectedPerformerScope', 'by_section')}
+                  className="w-4 h-4 text-blue-500"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {t('formation.bySection', 'By section')}
+                </span>
+              </label>
+            )}
+            {options.selectedPerformerScope === 'selected' && (
+              <div className="ml-6 max-h-32 overflow-y-auto space-y-1 border rounded-lg p-2 bg-gray-50 dark:bg-gray-700/50">
+                {performers.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 dark:text-gray-400">
+                    <input
+                      type="checkbox"
+                      checked={options.selectedPerformerIds.includes(p.id)}
+                      onChange={(e) => {
+                        const newIds = e.target.checked
+                          ? [...options.selectedPerformerIds, p.id]
+                          : options.selectedPerformerIds.filter((id) => id !== p.id);
+                        onOptionsChange('selectedPerformerIds', newIds);
+                      }}
+                      className="w-3.5 h-3.5 rounded text-blue-500"
+                    />
+                    {p.name} {p.drillNumber ? `(#${p.drillNumber})` : ''}
+                  </label>
+                ))}
+              </div>
+            )}
+            {options.selectedPerformerScope === 'by_section' && performerSections.length > 0 && (
+              <div className="ml-6">
+                <select
+                  value={options.selectedSection}
+                  onChange={(e) => onOptionsChange('selectedSection', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-sm"
+                >
+                  {performerSections.map((section) => (
+                    <option key={section} value={section}>{section}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Paper size */}
+          <div>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+              {t('formation.paperSize', 'Paper Size')}
+            </label>
+            <select
+              value={options.paperSize}
+              onChange={(e) => onOptionsChange('paperSize', e.target.value as ExportOptionsState['paperSize'])}
+              className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+            >
+              {paperSizes.filter((s) => s.value !== 'tabloid').map((size) => (
+                <option key={size.value} value={size.value}>
+                  {size.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Video Overlay Options */}
+      {isVideoOverlayFormat && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+            {t('formation.videoOverlayOptions', 'Video Overlay Options')}
+          </h3>
+
+          {/* Resolution and FPS */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                {t('formation.resolution', 'Resolution')}
+              </label>
+              <select
+                value={options.selectedResolutionPreset}
+                onChange={(e) => handleResolutionPresetChange(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+              >
+                {resolutionPresets.map((res) => (
+                  <option key={res.value} value={res.value}>{res.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                {t('formation.fps', 'Frame Rate')}
+              </label>
+              <select
+                value={options.fps}
+                onChange={(e) => onOptionsChange('fps', Number(e.target.value))}
+                className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+              >
+                <option value={15}>15 FPS</option>
+                <option value={24}>24 FPS</option>
+                <option value={30}>30 FPS</option>
+                <option value={60}>60 FPS</option>
+              </select>
+            </div>
+          </div>
+
+          {options.selectedResolutionPreset === 'custom' && (
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  {t('formation.width', 'Width')}
+                </label>
+                <input
+                  type="number"
+                  value={options.resolution.width}
+                  onChange={(e) =>
+                    onOptionsChange('resolution', { ...options.resolution, width: Number(e.target.value) })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  {t('formation.height', 'Height')}
+                </label>
+                <input
+                  type="number"
+                  value={options.resolution.height}
+                  onChange={(e) =>
+                    onOptionsChange('resolution', { ...options.resolution, height: Number(e.target.value) })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Performer style */}
+          <div className="mb-4">
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+              {t('formation.performerStyle', 'Performer Style')}
+            </label>
+            <select
+              value={options.videoOverlayPerformerStyle}
+              onChange={(e) => onOptionsChange('videoOverlayPerformerStyle', e.target.value as ExportOptionsState['videoOverlayPerformerStyle'])}
+              className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+            >
+              <option value="dots">{t('formation.styleDots', 'Dots')}</option>
+              <option value="numbers">{t('formation.styleNumbers', 'Numbers')}</option>
+              <option value="icons">{t('formation.styleIcons', 'Icons')}</option>
+            </select>
+          </div>
+
+          {/* Toggles */}
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={options.videoOverlayShowTrails}
+                onChange={(e) => onOptionsChange('videoOverlayShowTrails', e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+              />
+              <Eye className="w-4 h-4 text-gray-400" aria-hidden="true" />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {t('formation.showTrails', 'Show motion trails')}
+              </span>
+            </label>
+
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={options.videoOverlayShowGrid}
+                onChange={(e) => onOptionsChange('videoOverlayShowGrid', e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+              />
+              <Grid className="w-4 h-4 text-gray-400" aria-hidden="true" />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {t('formation.showGrid', 'Show grid overlay')}
+              </span>
+            </label>
+
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={options.videoOverlayTransparent}
+                onChange={(e) => onOptionsChange('videoOverlayTransparent', e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {t('formation.transparentBackground', 'Transparent background (alpha channel)')}
+              </span>
+            </label>
+          </div>
         </div>
       )}
     </>

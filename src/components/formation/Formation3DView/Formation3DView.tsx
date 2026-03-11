@@ -24,6 +24,8 @@ import { FIELD_DIMENSIONS } from '../../../services/scene3d/types';
 import { FieldMesh } from './FieldMesh';
 import { PerformerInstances } from './PerformerInstances';
 import { SceneObjectRenderer } from './SceneObjectRenderer';
+import { FlyThroughController } from '../FlyThroughController';
+import type { FlyThroughPreset, CameraWaypoint } from '../FlyThroughController';
 
 // ============================================================================
 // Types
@@ -58,6 +60,12 @@ interface Formation3DViewProps {
   /** Custom field dimensions (used when fieldType is 'custom') */
   customFieldWidth?: number;
   customFieldLength?: number;
+  /** Fly-through camera mode */
+  flyThroughEnabled?: boolean;
+  flyThroughPreset?: FlyThroughPreset;
+  flyThroughCustomWaypoints?: CameraWaypoint[];
+  /** Normalized playback progress 0-1 for fly-through */
+  playbackProgress?: number;
   /** Callbacks */
   onSelectObject: (id: string | null) => void;
   onUpdateObjectPosition: (id: string, position: { x?: number; y?: number; z?: number }) => void;
@@ -202,6 +210,10 @@ export function Formation3DView({
   fieldType = 'football',
   customFieldWidth,
   customFieldLength,
+  flyThroughEnabled = false,
+  flyThroughPreset = 'audience_sweep',
+  flyThroughCustomWaypoints,
+  playbackProgress = 0,
   onSelectObject,
   onUpdateObjectPosition,
 }: Formation3DViewProps) {
@@ -238,12 +250,22 @@ export function Formation3DView({
         dpr={[1, 2]}
       >
         <PerspectiveCamera makeDefault position={[0, 80, 60]} fov={50} />
-        <OrbitControls
-          makeDefault
-          maxPolarAngle={Math.PI / 2.05}
-          minDistance={10}
-          maxDistance={200}
-          target={[0, 0, 0]}
+        {!flyThroughEnabled && (
+          <OrbitControls
+            makeDefault
+            maxPolarAngle={Math.PI / 2.05}
+            minDistance={10}
+            maxDistance={200}
+            target={[0, 0, 0]}
+          />
+        )}
+
+        {/* Fly-through camera controller */}
+        <FlyThroughController
+          enabled={flyThroughEnabled}
+          preset={flyThroughPreset}
+          customWaypoints={flyThroughCustomWaypoints}
+          playbackProgress={playbackProgress}
         />
 
         {/* Camera preset animator */}

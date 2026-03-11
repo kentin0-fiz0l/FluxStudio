@@ -6,8 +6,9 @@
  * Shows draggable control point handles when a transition is selected.
  */
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import type { Position, Performer, Keyframe } from '../../services/formationTypes';
+import { EasingCurveEditor, type EasingControlPoints } from './EasingCurveEditor';
 
 interface PathOverlayProps {
   performers: Performer[];
@@ -34,6 +35,8 @@ interface PathOverlayProps {
   ) => void;
   /** Whether curve editing is active */
   curveEditMode?: boolean;
+  /** Callback when easing control points change for a curve */
+  onEasingChange?: (keyframeId: string, performerId: string, easing: EasingControlPoints) => void;
 }
 
 export function PathOverlay({
@@ -52,7 +55,15 @@ export function PathOverlay({
   selectedKeyframeIndex,
   onCurveControlPointMove,
   curveEditMode = false,
+  onEasingChange,
 }: PathOverlayProps) {
+  // Track which curve's easing popover is open
+  const [easingPopover, setEasingPopover] = useState<{
+    keyframeId: string;
+    performerId: string;
+    x: number;
+    y: number;
+  } | null>(null);
   // Convert normalized positions (0-100) to canvas coordinates
   const toCanvasCoords = useCallback((pos: Position) => ({
     x: (pos.x / 100) * canvasWidth,
@@ -239,6 +250,7 @@ export function PathOverlay({
   if (!showPaths) return null;
 
   return (
+    <>
     <svg
       className="absolute inset-0"
       width={canvasWidth}
@@ -383,9 +395,81 @@ export function PathOverlay({
               handleControlPointPointerDown(e, handle.keyframeId, handle.performerId, 'cp2')
             }
           />
+
+          {/* Easing curve editor toggle (small icon at midpoint of curve) */}
+          {onEasingChange && (
+            <g
+              style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+              onClick={() => {
+                const midX = (handle.startPos.x + handle.endPos.x) / 2;
+                const midY = (handle.startPos.y + handle.endPos.y) / 2;
+                setEasingPopover(
+                  easingPopover?.performerId === handle.performerId
+                    ? null
+                    : { keyframeId: handle.keyframeId, performerId: handle.performerId, x: midX, y: midY }
+                );
+              }}
+            >
+              <circle
+                cx={(handle.startPos.x + handle.endPos.x) / 2}
+                cy={(handle.startPos.y + handle.endPos.y) / 2 - 14}
+                r={9}
+                fill="white"
+                stroke="#8b5cf6"
+                strokeWidth={1.5}
+              />
+              <text
+                x={(handle.startPos.x + handle.endPos.x) / 2}
+                y={(handle.startPos.y + handle.endPos.y) / 2 - 10}
+                textAnchor="middle"
+                fontSize={10}
+                fill="#8b5cf6"
+                fontWeight="bold"
+              >
+                E
+              </text>
+            </g>
+          )}
         </g>
       ))}
     </svg>
+
+    {/* Easing curve editor popover (rendered outside SVG as HTML overlay) */}
+    {curveEditMode && easingPopover && onEasingChange && (() => {
+      const popover = easingPopover!;
+      const easingHandler = onEasingChange!;
+      const kf = keyframes?.find(k => k.id === popover.keyframeId);
+      const curve = kf?.pathCurves?.get(popover.performerId);
+      const currentEasing: EasingControlPoints = curve?.easingControlPoints ?? {
+        cp1x: 0.25, cp1y: 0.25, cp2x: 0.75, cp2y: 0.75,
+      };
+
+      return (
+        <div
+          className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-3"
+          style={{
+            left: `${Math.min(popover.x, canvasWidth - 240)}px`,
+            top: `${Math.max(0, popover.y - 280)}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Easing Curve</span>
+            <button
+              onClick={() => setEasingPopover(null)}
+              className="text-gray-400 hover:text-gray-600 text-xs"
+            >
+              Close
+            </button>
+          </div>
+          <EasingCurveEditor
+            value={currentEasing}
+            onChange={(points) => easingHandler(popover.keyframeId, popover.performerId, points)}
+          />
+        </div>
+      );
+    })()}
+    </>
   );
 }
 

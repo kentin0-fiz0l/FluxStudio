@@ -23,6 +23,9 @@ import { ShapeToolOverlay } from './ShapeToolOverlay';
 import type { Formation, Performer, Position, PlaybackState } from '../../../services/formationService';
 import type { Tool, Marquee } from './types';
 import type { FormationAwarenessState } from '../../../services/formation/yjs/formationYjsTypes';
+import { AudienceHeatmap } from '../AudienceHeatmap';
+import { CountOverlay } from '../CountOverlay';
+import { KeyframeGhostLayer } from '../KeyframeGhostLayer';
 import { isInViewport } from '../../../utils/performanceUtils';
 
 // ============================================================================
@@ -81,6 +84,22 @@ interface CanvasRendererProps {
   // Transform handles
   transformMode?: 'none' | 'rotate' | 'scale' | 'mirror';
   onTransformApply?: (mode: 'rotate' | 'scale' | 'mirror', value: number, axis?: 'x' | 'y') => void;
+  // Audience heatmap
+  showAudienceHeatmap?: boolean;
+  audienceHeatmapMode?: 'top-down' | 'audience';
+  // Count overlay data (rendered when playback is active)
+  countOverlay?: {
+    currentBeat: number;
+    currentMeasure: number;
+    beatsPerMeasure: number;
+    showMetronome?: boolean;
+  };
+  // Multi-keyframe ghost comparison
+  ghostKeyframeIds?: string[];
+  // Annotations
+  annotations?: import('../../../services/formationTypes').Annotation[];
+  currentKeyframeIndex?: number;
+  onAnnotationClick?: (id: string) => void;
 }
 
 // ============================================================================
@@ -349,6 +368,13 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
   onCurveControlPointMove,
   snapGuides,
   transformMode,
+  showAudienceHeatmap,
+  audienceHeatmapMode = 'audience',
+  countOverlay,
+  ghostKeyframeIds,
+  annotations,
+  currentKeyframeIndex,
+  onAnnotationClick,
 }) {
   const canvasWidth = formation.stageWidth * 20 * zoom;
   const canvasHeight = formation.stageHeight * 20 * zoom;
@@ -657,6 +683,32 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
         );
       })()}
 
+      {/* Audience heatmap overlay (z-index 4: behind performers, above grid) */}
+      {showAudienceHeatmap && (
+        <AudienceHeatmap
+          performers={formation.performers}
+          positions={currentPositions}
+          canvasWidth={canvasWidth}
+          canvasHeight={canvasHeight}
+          mode={audienceHeatmapMode}
+          zoom={zoom}
+        />
+      )}
+
+      {/* Multi-keyframe ghost comparison layer (z-index 4: behind performers) */}
+      {ghostKeyframeIds && ghostKeyframeIds.length > 0 && (
+        <KeyframeGhostLayer
+          keyframes={formation.keyframes}
+          performers={formation.performers}
+          activeKeyframeIds={ghostKeyframeIds}
+          canvasWidth={canvasWidth}
+          canvasHeight={canvasHeight}
+          zoom={zoom}
+          currentPositions={currentPositions}
+          showConnectingLines
+        />
+      )}
+
       {/* Canvas2D batch layer for non-interactive performers */}
       <PerformerCanvasLayer
         performers={formation.performers}
@@ -704,6 +756,63 @@ export const CanvasRenderer = React.memo<CanvasRendererProps>(function CanvasRen
           canvasHeight={canvasHeight}
           performerPositions={currentPositions}
           zoom={zoom}
+        />
+      )}
+      {/* Annotation markers (z-index 35: above performers, below selection UI) */}
+      {annotations && annotations.length > 0 && currentKeyframeIndex != null && (() => {
+        const kfAnnotations = annotations.filter(
+          (a) => a.keyframeIndex === currentKeyframeIndex && a.position != null,
+        );
+        if (kfAnnotations.length === 0) return null;
+        return kfAnnotations.map((annotation) => {
+          const pos = annotation.position!;
+          const leftPx = (pos.x / 100) * canvasWidth;
+          const topPx = (pos.y / 100) * canvasHeight;
+          const bgColor = annotation.color ?? '#3b82f6';
+          return (
+            <div
+              key={annotation.id}
+              className="absolute flex items-center justify-center cursor-pointer group"
+              style={{
+                left: leftPx - 12,
+                top: topPx - 12,
+                width: 24,
+                height: 24,
+                zIndex: 35,
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAnnotationClick?.(annotation.id);
+              }}
+              title={`${annotation.author}: ${annotation.text}`}
+            >
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center shadow-sm"
+                style={{ backgroundColor: bgColor }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </div>
+              {/* Tooltip on hover */}
+              <div className="hidden group-hover:block absolute left-7 top-0 z-50 bg-gray-900 text-white text-[10px] rounded px-2 py-1 whitespace-nowrap shadow-lg max-w-[200px]">
+                <div className="font-semibold">{annotation.author}</div>
+                <div className="truncate">{annotation.text}</div>
+                <div className="text-gray-400">{new Date(annotation.timestamp).toLocaleTimeString()}</div>
+              </div>
+            </div>
+          );
+        });
+      })()}
+
+      {/* Count overlay during playback */}
+      {playbackState.isPlaying && countOverlay && (
+        <CountOverlay
+          currentBeat={countOverlay.currentBeat}
+          currentMeasure={countOverlay.currentMeasure}
+          beatsPerMeasure={countOverlay.beatsPerMeasure}
+          isPlaying={playbackState.isPlaying}
+          showMetronome={countOverlay.showMetronome}
         />
       )}
     </div>

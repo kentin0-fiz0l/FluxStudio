@@ -57,6 +57,9 @@ export function Timeline({
   tempoMap,
   beatMap,
   onSetsReorder,
+  ghostKeyframeIds,
+  onGhostKeyframeToggle,
+  annotations,
 }: TimelineProps) {
   const { t } = useTranslation('common');
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -80,6 +83,25 @@ export function Timeline({
       return { set, position, timeMs };
     });
   }, [isSetsMode, sets, keyframes, duration]);
+
+  // Compute tempo change markers from the tempo map
+  const tempoChangeMarkers = useMemo(() => {
+    if (!tempoMap || tempoMap.segments.length <= 1) return [];
+    const markers: { position: number; fromBpm: number; toBpm: number; timeMs: number }[] = [];
+
+    for (let i = 1; i < tempoMap.segments.length; i++) {
+      const prevSeg = tempoMap.segments[i - 1];
+      const seg = tempoMap.segments[i];
+      const fromBpm = Math.round(prevSeg.tempoEnd);
+      const toBpm = Math.round(seg.tempoStart);
+      // Only show marker if tempo actually changes
+      if (fromBpm === toBpm) continue;
+      const timeMs = countToTimeMs(seg.startCount, tempoMap);
+      const position = duration > 0 ? (timeMs / duration) * 100 : 0;
+      markers.push({ position, fromBpm, toBpm, timeMs });
+    }
+    return markers;
+  }, [tempoMap, duration]);
 
   // Audio playback integration
   const {
@@ -294,6 +316,24 @@ export function Timeline({
               });
             })()}
 
+            {/* Tempo Change Markers */}
+            {tempoChangeMarkers.map((marker, i) => (
+              <div
+                key={`tempo-change-${i}`}
+                className="absolute top-0 bottom-0 z-10 pointer-events-auto group"
+                style={{ left: `${marker.position}%` }}
+              >
+                {/* Dashed vertical line */}
+                <div className="w-px h-full border-l border-dashed border-amber-500 dark:border-amber-400 opacity-60" />
+                {/* Tempo dot indicator */}
+                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-amber-500 dark:bg-amber-400 border border-white dark:border-gray-800 shadow-sm" />
+                {/* Tooltip on hover */}
+                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center whitespace-nowrap px-2 py-1 rounded bg-gray-900 dark:bg-gray-700 text-white text-[10px] font-medium shadow-lg z-50">
+                  {marker.fromBpm} BPM &#8594; {marker.toBpm} BPM
+                </div>
+              </div>
+            ))}
+
             {/* Set Boundary Markers (vertical lines on the timeline bar in sets mode) */}
             {isSetsMode && setBoundaries.map(({ set, position }) => (
               <div
@@ -322,6 +362,24 @@ export function Timeline({
               />
             ))}
 
+            {/* Annotation indicators on keyframes */}
+            {annotations && annotations.length > 0 && keyframes.map((keyframe, index) => {
+              const count = annotations.filter((a) => a.keyframeIndex === index).length;
+              if (count === 0) return null;
+              const position = duration > 0 ? (keyframe.timestamp / duration) * 100 : 0;
+              const firstText = annotations.find((a) => a.keyframeIndex === index)?.text ?? '';
+              return (
+                <div
+                  key={`annot-${keyframe.id}`}
+                  className="absolute z-30 pointer-events-none"
+                  style={{ left: `${position}%`, top: -2, transform: 'translateX(-50%)' }}
+                  title={count === 1 ? firstText : `${count} annotations`}
+                >
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500 border border-white dark:border-gray-700" />
+                </div>
+              );
+            })}
+
             {/* Playhead */}
             <div
               className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-50"
@@ -338,22 +396,60 @@ export function Timeline({
         <span className="text-sm text-gray-600 dark:text-gray-400 shrink-0">
           {t('formation.keyframes', 'Keyframes')}:
         </span>
-        {keyframes.map((keyframe, index) => (
-          <button
-            key={keyframe.id}
-            onClick={() => {
-              onKeyframeSelect(keyframe.id);
-              onSeek(keyframe.timestamp);
-            }}
-            className={`shrink-0 px-3 py-1 rounded text-sm font-medium transition-colors ${
-              selectedKeyframeId === keyframe.id
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-            }`}
-          >
-            {index + 1}: {isCountMode && drillSettings ? formatCount(keyframe.timestamp, drillSettings) : formatTime(keyframe.timestamp)}
-          </button>
-        ))}
+        {keyframes.map((keyframe, index) => {
+          const isGhostActive = ghostKeyframeIds?.includes(keyframe.id) ?? false;
+          const ghostCount = ghostKeyframeIds?.length ?? 0;
+          const isSelected = selectedKeyframeId === keyframe.id;
+          const annotationCount = annotations?.filter((a) => a.keyframeIndex === index).length ?? 0;
+          const firstAnnotation = annotations?.find((a) => a.keyframeIndex === index);
+
+          return (
+            <div key={keyframe.id} className="shrink-0 flex items-center gap-0.5 relative">
+              <button
+                onClick={() => {
+                  onKeyframeSelect(keyframe.id);
+                  onSeek(keyframe.timestamp);
+                }}
+                className={`px-3 py-1 rounded-l text-sm font-medium transition-colors ${
+                  isSelected
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                {index + 1}: {isCountMode && drillSettings ? formatCount(keyframe.timestamp, drillSettings) : formatTime(keyframe.timestamp)}
+              </button>
+              {/* Annotation count badge */}
+              {annotationCount > 0 && (
+                <span
+                  className="absolute -top-1.5 -right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-amber-500 text-white text-[9px] font-bold px-1 z-10"
+                  title={annotationCount === 1 ? firstAnnotation?.text : `${annotationCount} annotations`}
+                >
+                  {annotationCount}
+                </span>
+              )}
+              {onGhostKeyframeToggle && (
+                <button
+                  onClick={() => onGhostKeyframeToggle(keyframe.id)}
+                  disabled={!isGhostActive && ghostCount >= 3}
+                  title={isGhostActive ? 'Hide ghost' : ghostCount >= 3 ? 'Max 3 ghosts' : 'Show as ghost'}
+                  className={`px-1.5 py-1 rounded-r text-xs transition-colors ${
+                    isGhostActive
+                      ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/60'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed'
+                  }`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {isGhostActive ? (
+                      <><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></>
+                    ) : (
+                      <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" /></>
+                    )}
+                  </svg>
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

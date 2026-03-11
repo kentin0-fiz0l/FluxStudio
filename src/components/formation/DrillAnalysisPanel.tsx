@@ -26,6 +26,7 @@ import {
   type IssueSeverity,
   DEFAULT_ANALYSIS_CONFIG,
 } from '../../services/drillAnalysis';
+import { rateFormation, type DifficultyScore } from '../../services/difficultyRating';
 
 interface DrillAnalysisPanelProps {
   formation: Formation;
@@ -89,6 +90,7 @@ export const DrillAnalysisPanel: React.FC<DrillAnalysisPanelProps> = ({
   onNavigateToSet,
 }) => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [difficultyScore, setDifficultyScore] = useState<DifficultyScore | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [expandedType, setExpandedType] = useState<DrillIssue['type'] | 'all'>('all');
 
@@ -98,6 +100,7 @@ export const DrillAnalysisPanel: React.FC<DrillAnalysisPanelProps> = ({
     setTimeout(() => {
       const analysisResult = fullDrillAnalysis(formation, sets, config, tempoMap);
       setResult(analysisResult);
+      setDifficultyScore(rateFormation(analysisResult, formation, sets));
       setIsRunning(false);
     }, 0);
   }, [formation, sets, config, tempoMap]);
@@ -122,6 +125,21 @@ export const DrillAnalysisPanel: React.FC<DrillAnalysisPanelProps> = ({
         <h3 className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
           <Shield className="w-5 h-5 text-blue-500" />
           Drill Analysis
+          {difficultyScore && (
+            <span
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold text-white"
+              style={{
+                backgroundColor:
+                  difficultyScore.overall <= 3 ? '#22c55e' :
+                  difficultyScore.overall <= 6 ? '#f59e0b' :
+                  difficultyScore.overall <= 8 ? '#f97316' :
+                  '#ef4444',
+              }}
+              title={`Difficulty: ${difficultyScore.overall}/10 (${difficultyScore.label})`}
+            >
+              {difficultyScore.overall}/10 {difficultyScore.label}
+            </span>
+          )}
         </h3>
         <button
           onClick={handleRunAnalysis}

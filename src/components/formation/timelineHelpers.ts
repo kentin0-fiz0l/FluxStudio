@@ -1,5 +1,5 @@
 import { Keyframe, PlaybackState, AudioTrack } from '../../services/formationService';
-import type { DrillSettings, DrillSet } from '../../services/formationTypes';
+import type { DrillSettings, DrillSet, Annotation } from '../../services/formationTypes';
 import type { Section, Chord, BeatMap } from '../../contexts/metmap/types';
 import type { TempoMap } from '../../services/tempoMap';
 import { timeToCount } from '../../utils/drillGeometry';
@@ -39,6 +39,11 @@ export interface TimelineProps {
   chords?: Chord[];
   tempoMap?: TempoMap;
   beatMap?: BeatMap;
+  // Multi-keyframe ghost comparison
+  ghostKeyframeIds?: string[];
+  onGhostKeyframeToggle?: (keyframeId: string) => void;
+  // Annotations
+  annotations?: Annotation[];
 }
 
 export function formatTime(ms: number): string {

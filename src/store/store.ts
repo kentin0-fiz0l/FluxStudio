@@ -28,6 +28,7 @@ import { createFormationDraftSlice, FormationDraftSlice } from './slices/formati
 import { createSocketSlice, SocketSlice } from './slices/socketSlice';
 import { createCanvasEffectsSlice, CanvasEffectsSlice } from './slices/canvasEffectsSlice';
 import { createGhostPreviewSlice, GhostPreviewSlice } from './slices/ghostPreviewSlice';
+import { createFormationLibrarySlice, FormationLibrarySlice } from './slices/formationLibrarySlice';
 
 // ============================================================================
 // Combined Store Type
@@ -50,7 +51,8 @@ export type FluxStore = AuthSlice &
   FormationDraftSlice &
   SocketSlice &
   CanvasEffectsSlice &
-  GhostPreviewSlice;
+  GhostPreviewSlice &
+  FormationLibrarySlice;
 
 // ============================================================================
 // Store Creation
@@ -79,6 +81,7 @@ export const useStore = create<FluxStore>()(
           ...createSocketSlice(...(args as Parameters<typeof createSocketSlice>)),
           ...createCanvasEffectsSlice(...(args as Parameters<typeof createCanvasEffectsSlice>)),
           ...createGhostPreviewSlice(...(args as Parameters<typeof createGhostPreviewSlice>)),
+          ...createFormationLibrarySlice(...(args as Parameters<typeof createFormationLibrarySlice>)),
         })),
         {
           name: 'fluxstudio-store',
@@ -98,6 +101,9 @@ export const useStore = create<FluxStore>()(
             },
             offline: {
               pendingActions: state.offline.pendingActions,
+            },
+            formationLibrary: {
+              savedFormations: state.formationLibrary.savedFormations,
             },
           }),
           // Deep merge to preserve action functions inside nested slice objects
@@ -174,6 +180,9 @@ export const useCanvasEffectsStore = () => useStore((state) => state.canvasEffec
 
 // Ghost Preview
 export const useGhostPreviewStore = () => useStore((state) => state.ghostPreview);
+
+// Formation Library
+export const useFormationLibraryStore = () => useStore((state) => state.formationLibrary);
 
 // ============================================================================
 // Cross-Slice Selectors

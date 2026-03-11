@@ -12,6 +12,7 @@ import {
   Table,
   Sheet,
   Music,
+  BookOpen,
 } from 'lucide-react';
 import type { FormationExportOptions } from '../../../services/formationService';
 
@@ -23,6 +24,8 @@ export type ExportFormat =
   | FormationExportOptions['format']
   | 'drill_book'
   | 'coordinate_sheet'
+  | 'dotbook'
+  | 'video_overlay'
   | 'production_sheet_pdf'
   | 'production_sheet_csv'
   | 'audio_sync';
@@ -102,6 +105,20 @@ export const formatOptions: FormatOption[] = [
     description: 'Printable coordinate table per performer',
     icon: <FileText className="w-5 h-5" aria-hidden="true" />,
     category: 'static',
+  },
+  {
+    value: 'dotbook' as ExportFormat,
+    label: 'Dot Books',
+    description: 'Per-performer dot books with field diagrams & coordinates',
+    icon: <BookOpen className="w-5 h-5" aria-hidden="true" />,
+    category: 'static',
+  },
+  {
+    value: 'video_overlay' as ExportFormat,
+    label: 'Video Overlay',
+    description: 'Transparent video overlay of formation animation',
+    icon: <Film className="w-5 h-5" aria-hidden="true" />,
+    category: 'animated',
   },
   {
     value: 'production_sheet_pdf' as ExportFormat,

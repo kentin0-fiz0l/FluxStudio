@@ -8,3 +8,7 @@ export type { CoordinateSheetPdfOptions } from './exportPdf';
 export { exportToImage, exportToSvg } from './exportImage';
 export { exportToAnimation } from './exportAnimation';
 export { exportProductionSheetCsv, exportAudioSyncFile } from './exportCoordinateSheet';
+export { generateDotBook, generateAllDotBooks } from './dotBookExporter';
+export type { DotBookOptions } from './dotBookExporter';
+export { exportVideoOverlay, interpolatePositions } from './videoOverlayExporter';
+export type { VideoOverlayOptions } from './videoOverlayExporter';

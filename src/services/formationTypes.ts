@@ -16,6 +16,8 @@ export interface Position {
 export interface PathCurve {
   cp1: Position;
   cp2: Position;
+  /** Optional easing curve control points (cubic-bezier in 0-1 space) for timing */
+  easingControlPoints?: { cp1x: number; cp1y: number; cp2x: number; cp2y: number };
 }
 
 /** Performer symbol shapes for visual distinction between sections */
@@ -187,6 +189,21 @@ export interface FieldConfig {
   unit: 'yards' | 'feet' | 'meters' | 'steps';
 }
 
+export interface Annotation {
+  id: string;
+  text: string;
+  /** Position on canvas in normalized 0-100 coordinates (null for keyframe-level annotations) */
+  position: Position | null;
+  /** Keyframe index this annotation is pinned to */
+  keyframeIndex: number;
+  /** Author name */
+  author: string;
+  /** Timestamp */
+  timestamp: number;
+  /** Optional color for visual distinction */
+  color?: string;
+}
+
 export interface Formation {
   id: string;
   name: string;
@@ -216,6 +233,8 @@ export interface Formation {
   tempoMap?: TempoMap;
   /** Override: ignore MetMap song, use drillSettings.bpm instead */
   useConstantTempo?: boolean;
+  /** Annotations / comments pinned to keyframes and canvas positions */
+  annotations?: Annotation[];
   createdAt: string;
   updatedAt: string;
   createdBy: string;

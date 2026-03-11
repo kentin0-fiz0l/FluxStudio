@@ -9,7 +9,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Plus, Grid, Download, Save, ZoomIn, ZoomOut,
+  Plus, Grid, Download, Upload, Save, ZoomIn, ZoomOut,
   Move, MousePointer, Layers, Eye, EyeOff,
   Loader2, Check, Music, Route, LayoutGrid, Users, Magnet, Hash,
   Minus, CircleDot, Grid3x3, Map, Bot, Hand, WifiOff, Cloud,
@@ -18,6 +18,12 @@ import {
   Ruler, UsersRound, Spline, MessageCircle, ShieldCheck, History,
   Wand2,
   GitBranch,
+  BarChart3,
+  ScanEye,
+  Video,
+  GraduationCap,
+  BookOpen,
+  PieChart,
 } from 'lucide-react';
 import { FormationPresencePanel } from '../FormationPresencePanel';
 import { useSyncStatus } from '@/store/slices/offlineSlice';
@@ -107,6 +113,31 @@ interface CanvasToolbarProps {
   showTransitionSuggester?: boolean;
   setShowTransitionSuggester?: (show: boolean) => void;
   keyframeCount?: number;
+  // Difficulty score chip
+  difficultyScore?: number;
+  // Show Pacing Graph toggle
+  showPacingGraph?: boolean;
+  setShowPacingGraph?: (show: boolean) => void;
+  // Audience Heatmap toggle
+  showAudienceHeatmap?: boolean;
+  setShowAudienceHeatmap?: (show: boolean) => void;
+  // 3D Fly-Through toggle (visible only when 3D mode is active)
+  showFlyThrough?: boolean;
+  setShowFlyThrough?: (show: boolean) => void;
+  flyThroughPreset?: string;
+  setFlyThroughPreset?: (preset: string) => void;
+  is3DMode?: boolean;
+  // Rehearsal Mode toggle
+  showRehearsalMode?: boolean;
+  setShowRehearsalMode?: (show: boolean) => void;
+  // Formation Library panel toggle
+  showLibraryPanel?: boolean;
+  setShowLibraryPanel?: (show: boolean) => void;
+  // Import panel toggle
+  onShowImportPanel?: () => void;
+  // Section Leader Dashboard toggle
+  showSectionDashboard?: boolean;
+  setShowSectionDashboard?: (show: boolean) => void;
 }
 
 export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
@@ -139,6 +170,14 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
   showVersionHistory, setShowVersionHistory,
   onGenerateFromMusic, isGeneratingFromMusic = false,
   showTransitionSuggester, setShowTransitionSuggester, keyframeCount = 0,
+  difficultyScore,
+  showPacingGraph, setShowPacingGraph,
+  showAudienceHeatmap, setShowAudienceHeatmap,
+  showFlyThrough, setShowFlyThrough, flyThroughPreset: _flyThroughPreset, setFlyThroughPreset: _setFlyThroughPreset, is3DMode,
+  showRehearsalMode, setShowRehearsalMode,
+  showLibraryPanel, setShowLibraryPanel,
+  onShowImportPanel,
+  showSectionDashboard, setShowSectionDashboard,
 }) => {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
@@ -327,6 +366,17 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
         <button onClick={() => setShowTemplatePicker(true)} className="p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 outline-none" title="Formation Templates" aria-label="Formation templates">
           <LayoutGrid className="w-4 h-4" aria-hidden="true" />
         </button>
+        {setShowLibraryPanel && (
+          <button
+            onClick={() => setShowLibraryPanel(!showLibraryPanel)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showLibraryPanel ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Formation Library"
+            aria-label="Formation library panel"
+            aria-pressed={!!showLibraryPanel}
+          >
+            <BookOpen className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
         {setShowDraftPanel && (
           <button
             onClick={() => setShowDraftPanel(!showDraftPanel)}
@@ -401,6 +451,43 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             <Shield className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
+        {difficultyScore != null && difficultyScore > 0 && (
+          <span
+            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white leading-none"
+            style={{
+              backgroundColor:
+                difficultyScore <= 3 ? '#22c55e' :
+                difficultyScore <= 6 ? '#f59e0b' :
+                difficultyScore <= 8 ? '#f97316' :
+                '#ef4444',
+            }}
+            title={`Difficulty: ${difficultyScore}/10`}
+          >
+            {difficultyScore}
+          </span>
+        )}
+        {setShowPacingGraph && (
+          <button
+            onClick={() => setShowPacingGraph(!showPacingGraph)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showPacingGraph ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Show Pacing Graph"
+            aria-label="Show pacing graph"
+            aria-pressed={showPacingGraph}
+          >
+            <BarChart3 className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+        {setShowAudienceHeatmap && (
+          <button
+            onClick={() => setShowAudienceHeatmap(!showAudienceHeatmap)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showAudienceHeatmap ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Audience View Heatmap"
+            aria-label="Toggle audience view heatmap"
+            aria-pressed={showAudienceHeatmap}
+          >
+            <ScanEye className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
         {setShowMeasurements && (
           <button
             onClick={() => setShowMeasurements(!showMeasurements)}
@@ -454,6 +541,42 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
             aria-pressed={showVersionHistory}
           >
             <History className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+        {setShowSectionDashboard && (
+          <button
+            onClick={() => setShowSectionDashboard(!showSectionDashboard)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showSectionDashboard ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Section Dashboard"
+            aria-label="Section leader dashboard"
+            aria-pressed={showSectionDashboard}
+          >
+            <PieChart className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+
+        {/* 3D Fly-Through toggle (only in 3D mode) */}
+        {is3DMode && setShowFlyThrough && (
+          <button
+            onClick={() => setShowFlyThrough(!showFlyThrough)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showFlyThrough ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Fly-Through Camera"
+            aria-label="Toggle fly-through camera mode"
+            aria-pressed={showFlyThrough}
+          >
+            <Video className="w-4 h-4" aria-hidden="true" />
+          </button>
+        )}
+        {/* Rehearsal Mode toggle */}
+        {setShowRehearsalMode && (
+          <button
+            onClick={() => setShowRehearsalMode(!showRehearsalMode)}
+            className={`p-1.5 min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 rounded focus-visible:ring-2 focus-visible:ring-blue-500 outline-none ${showRehearsalMode ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+            title="Rehearsal Mode"
+            aria-label="Toggle rehearsal mode panel"
+            aria-pressed={showRehearsalMode}
+          >
+            <GraduationCap className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
 
@@ -522,6 +645,12 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = React.memo(({
               >
                 <Code2 className="w-4 h-4" aria-hidden="true" />
                 <span className="text-xs hidden sm:inline">Embed</span>
+              </button>
+            )}
+            {onShowImportPanel && (
+              <button onClick={onShowImportPanel} className="flex items-center gap-1 px-2 py-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded hover:bg-gray-100 dark:hover:bg-gray-700" title="Import drill file" aria-label="Import drill file">
+                <Upload className="w-4 h-4" aria-hidden="true" />
+                <span className="text-xs hidden sm:inline">Import</span>
               </button>
             )}
             <button onClick={() => setIsExportDialogOpen(true)} className="flex items-center gap-1 px-2 py-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded hover:bg-gray-100 dark:hover:bg-gray-700">

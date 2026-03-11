@@ -5,7 +5,7 @@
  * Users can create checkpoints, preview versions, restore, and delete.
  */
 
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo, lazy, Suspense } from 'react';
 import {
   History,
   Plus,
@@ -17,10 +17,13 @@ import {
   Check,
   Zap,
   Bookmark,
+  GitCompareArrows,
 } from 'lucide-react';
 import { FormationVersionHistory as VersionHistoryClass } from '../../services/formationVersionService';
 import type { FormationVersion } from '../../services/formationVersionService';
-import type { Formation } from '../../services/formationTypes';
+import type { Formation, Position } from '../../services/formationTypes';
+
+const VersionDiffViewer = lazy(() => import('./VersionDiffViewer'));
 
 // ============================================================================
 // Types
@@ -286,12 +289,14 @@ function timeAgo(dateStr: string): string {
 interface VersionItemProps {
   version: FormationVersion;
   isSelected: boolean;
+  isCompareSource: boolean;
   onSelect: (id: string) => void;
   onRestore: (version: FormationVersion) => void;
   onDelete: (id: string) => void;
+  onCompare: (id: string) => void;
 }
 
-function VersionItem({ version, isSelected, onSelect, onRestore, onDelete }: VersionItemProps) {
+function VersionItem({ version, isSelected, isCompareSource, onSelect, onRestore, onDelete, onCompare }: VersionItemProps) {
   const [confirmRestore, setConfirmRestore] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -401,6 +406,17 @@ function VersionItem({ version, isSelected, onSelect, onRestore, onDelete }: Ver
             <button
               style={{
                 ...styles.deleteBtn,
+                ...(isCompareSource ? { background: '#89b4fa22', color: '#89b4fa' } : {}),
+              }}
+              onClick={(e) => { e.stopPropagation(); onCompare(version.id); }}
+              aria-label={isCompareSource ? 'Cancel compare' : `Compare with version: ${version.name}`}
+            >
+              <GitCompareArrows style={{ width: 12, height: 12 }} aria-hidden="true" />
+              {isCompareSource ? 'Comparing...' : 'Compare'}
+            </button>
+            <button
+              style={{
+                ...styles.deleteBtn,
                 ...(confirmDelete ? styles.deleteBtnConfirm : {}),
               }}
               onClick={handleDelete}
@@ -430,6 +446,9 @@ export function FormationVersionHistoryPanel({
   const [checkpointName, setCheckpointName] = useState('');
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [compareSourceId, setCompareSourceId] = useState<string | null>(null);
+  const [showDiffViewer, setShowDiffViewer] = useState(false);
+  const [diffVersions, setDiffVersions] = useState<{ a: FormationVersion; b: FormationVersion } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Create history service (stable across renders for same formationId)
@@ -485,6 +504,28 @@ export function FormationVersionHistoryPanel({
   const handleSelect = useCallback((id: string) => {
     setSelectedVersionId((prev) => (prev === id ? null : id));
   }, []);
+
+  const handleCompare = useCallback(
+    (id: string) => {
+      if (!compareSourceId) {
+        // First click: set source
+        setCompareSourceId(id);
+      } else if (compareSourceId === id) {
+        // Cancel compare
+        setCompareSourceId(null);
+      } else {
+        // Second click: open diff viewer
+        const versionA = versions.find((v) => v.id === compareSourceId);
+        const versionB = versions.find((v) => v.id === id);
+        if (versionA && versionB) {
+          setDiffVersions({ a: versionA, b: versionB });
+          setShowDiffViewer(true);
+        }
+        setCompareSourceId(null);
+      }
+    },
+    [compareSourceId, versions],
+  );
 
   return (
     <div style={styles.panel} role="complementary" aria-label="Version history">
@@ -586,18 +627,51 @@ export function FormationVersionHistoryPanel({
             </p>
           </div>
         ) : (
-          versions.map((version) => (
-            <VersionItem
-              key={version.id}
-              version={version}
-              isSelected={selectedVersionId === version.id}
-              onSelect={handleSelect}
-              onRestore={handleRestore}
-              onDelete={handleDelete}
-            />
-          ))
+          <>
+            {compareSourceId && (
+              <div style={{ padding: '6px 12px', marginBottom: 4, borderRadius: 6, background: '#89b4fa22', fontSize: 11, color: '#89b4fa', textAlign: 'center' }}>
+                Select another version to compare
+              </div>
+            )}
+            {versions.map((version) => (
+              <VersionItem
+                key={version.id}
+                version={version}
+                isSelected={selectedVersionId === version.id}
+                isCompareSource={compareSourceId === version.id}
+                onSelect={handleSelect}
+                onRestore={handleRestore}
+                onDelete={handleDelete}
+                onCompare={handleCompare}
+              />
+            ))}
+          </>
         )}
       </div>
+
+      {/* Version Diff Viewer Modal */}
+      {showDiffViewer && diffVersions && (
+        <Suspense fallback={null}>
+          <VersionDiffViewer
+            versionA={{
+              positions: diffVersions.a.snapshot.keyframes[0]?.positions ?? new Map<string, Position>(),
+              label: diffVersions.a.name,
+            }}
+            versionB={{
+              positions: diffVersions.b.snapshot.keyframes[0]?.positions ?? new Map<string, Position>(),
+              label: diffVersions.b.name,
+            }}
+            performers={currentFormation.performers}
+            canvasWidth={currentFormation.stageWidth * 20}
+            canvasHeight={currentFormation.stageHeight * 20}
+            mode="overlay"
+            onClose={() => {
+              setShowDiffViewer(false);
+              setDiffVersions(null);
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

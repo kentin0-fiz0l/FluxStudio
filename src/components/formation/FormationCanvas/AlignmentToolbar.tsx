@@ -17,8 +17,11 @@ import {
   Maximize2,
   Shapes,
   ChevronDown,
+  Grid,
+  LayoutTemplate,
 } from 'lucide-react';
 import type { AlignmentType, DistributionType } from '../../../utils/drillGeometry';
+import { getTemplatesByCategory } from '../../../services/formationTemplates';
 
 export type ShapeDistributionType = 'line' | 'arc' | 'circle' | 'grid';
 
@@ -27,6 +30,8 @@ interface AlignmentToolbarProps {
   onAlign: (type: AlignmentType) => void;
   onDistribute: (type: DistributionType) => void;
   onDistributeInShape?: (shape: ShapeDistributionType) => void;
+  onOptimizeSpacing?: () => void;
+  onApplyTemplate?: (templateId: string) => void;
 }
 
 export const AlignmentToolbar: React.FC<AlignmentToolbarProps> = ({
@@ -34,9 +39,13 @@ export const AlignmentToolbar: React.FC<AlignmentToolbarProps> = ({
   onAlign,
   onDistribute,
   onDistributeInShape,
+  onOptimizeSpacing,
+  onApplyTemplate,
 }) => {
   const { t } = useTranslation('common');
   const [showShapeMenu, setShowShapeMenu] = useState(false);
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
+  const templatesByCategory = React.useMemo(() => getTemplatesByCategory(), []);
 
   if (selectedCount < 2) return null;
 
@@ -121,6 +130,15 @@ export const AlignmentToolbar: React.FC<AlignmentToolbarProps> = ({
             >
               <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
+            {onOptimizeSpacing && (
+              <button
+                onClick={onOptimizeSpacing}
+                className="p-1.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                title={t('formation.smartSpacing', 'Smart Spacing (auto-detect shape)')}
+              >
+                <Grid className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+            )}
           </div>
 
           {/* Shape distribution dropdown */}
@@ -155,6 +173,49 @@ export const AlignmentToolbar: React.FC<AlignmentToolbarProps> = ({
               </div>
             </>
           )}
+        </>
+      )}
+
+      {/* Templates dropdown */}
+      {onApplyTemplate && (
+        <>
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-0.5" />
+          <div className="relative">
+            <button
+              onClick={() => { setShowTemplateMenu(!showTemplateMenu); setShowShapeMenu(false); }}
+              className="flex items-center gap-0.5 p-1.5 rounded hover:bg-purple-50 dark:hover:bg-purple-900/20 text-purple-600 dark:text-purple-400"
+              title="Snap to Template"
+            >
+              <LayoutTemplate className="w-3.5 h-3.5" aria-hidden="true" />
+              <ChevronDown className="w-2.5 h-2.5" aria-hidden="true" />
+            </button>
+            {showTemplateMenu && (
+              <div className="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 py-1 min-w-[160px] max-h-[300px] overflow-y-auto">
+                {Array.from(templatesByCategory.entries()).map(([category, templates]) => (
+                  <div key={category}>
+                    <p className="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                      {category}
+                    </p>
+                    {templates.map((template) => (
+                      <button
+                        key={template.id}
+                        onClick={() => {
+                          onApplyTemplate(template.id);
+                          setShowTemplateMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 40 40" className="flex-shrink-0">
+                          <path d={template.thumbnail} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        {template.name}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

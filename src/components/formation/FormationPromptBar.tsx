@@ -20,6 +20,13 @@ import type { Performer, Position, FieldConfig } from '@/services/formationTypes
 import { parsePrompt } from '@/services/promptParser';
 import { executePromptCommand } from '@/services/promptExecutor';
 import { useGhostPreview } from '@/store/slices/ghostPreviewSlice';
+import { VoiceInputButton } from './VoiceInputButton';
+import { FORMATION_TEMPLATES, snapToTemplate } from '@/services/formationTemplates';
+
+// Template chips for quick template access (pick 6 popular ones)
+const TEMPLATE_CHIPS = FORMATION_TEMPLATES.filter(t =>
+  ['company_front', 'wedge', 'diamond', 'block', 'concentric_circles', 'starburst'].includes(t.id)
+);
 
 // ============================================================================
 // Types
@@ -125,6 +132,17 @@ export function FormationPromptBar({
     [prompt, performers, currentPositions, selectedPerformerIds, fieldConfig, ghostPreview],
   );
 
+  const handleVoiceTranscript = useCallback(
+    (text: string) => {
+      setPrompt(text);
+      // Auto-submit after a brief delay so the user sees the text
+      setTimeout(() => {
+        handleGenerate(text);
+      }, 200);
+    },
+    [handleGenerate],
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -150,6 +168,28 @@ export function FormationPromptBar({
       handleGenerate(suggestionPrompt);
     },
     [handleGenerate],
+  );
+
+  // Apply a formation template via ghost preview
+  const handleTemplateClick = useCallback(
+    (templateId: string) => {
+      if (performers.length === 0) return;
+      const template = FORMATION_TEMPLATES.find(t => t.id === templateId);
+      if (!template) return;
+
+      setShowSuggestions(false);
+      const performerIds = performers.map(p => p.id);
+      const proposedPositions = snapToTemplate(currentPositions, performerIds, template);
+
+      ghostPreview.setPreview({
+        id: `template-${templateId}-${Date.now()}`,
+        source: 'prompt',
+        sourceLabel: template.name,
+        proposedPositions,
+        affectedPerformerIds: performerIds,
+      });
+    },
+    [performers, currentPositions, ghostPreview],
   );
 
   // Close suggestions when clicking outside
@@ -216,6 +256,28 @@ export function FormationPromptBar({
                 </button>
               ))}
             </div>
+
+            {/* Template chips */}
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 mb-1.5 px-1">
+              Snap to template
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {TEMPLATE_CHIPS.map((template) => (
+                <button
+                  key={template.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTemplateClick(template.id);
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-200 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-purple-500 outline-none"
+                >
+                  <svg width="14" height="14" viewBox="0 0 40 40" className="flex-shrink-0">
+                    <path d={template.thumbnail} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
+                  {template.name}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -249,6 +311,7 @@ export function FormationPromptBar({
           )}
 
           <div className="flex items-center gap-1 flex-shrink-0">
+            <VoiceInputButton onTranscript={handleVoiceTranscript} />
             <button
               onClick={() => handleGenerate()}
               disabled={!canGenerate || isGenerating}

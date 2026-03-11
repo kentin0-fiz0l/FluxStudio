@@ -81,6 +81,11 @@ export function ExportDialog({
     selectedResolutionPreset: '1080p',
     selectedPerformerScope: 'all',
     selectedPerformerIds: [],
+    selectedSection: '',
+    videoOverlayPerformerStyle: 'dots',
+    videoOverlayShowTrails: true,
+    videoOverlayShowGrid: false,
+    videoOverlayTransparent: true,
   });
 
   const isAnimatedFormat = selectedFormat === 'gif' || selectedFormat === 'video';
