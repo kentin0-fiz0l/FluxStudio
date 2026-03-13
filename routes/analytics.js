@@ -66,15 +66,39 @@ router.get('/project/:projectId/health', authenticateToken, async (req, res) => 
     const project = await verifyProjectAccess(projectId, req.user.id);
     if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 'ANALYTICS_PROJECT_NOT_FOUND' });
 
-    // 1. Task stats from view
-    const statsResult = await query(
-      'SELECT * FROM project_task_stats WHERE project_id = $1',
-      [projectId]
-    );
-    const taskStats = statsResult.rows[0] || {
+    // 1. Task stats from view (may not exist if migration 006 failed)
+    let taskStats = {
       total_tasks: 0, completed_tasks: 0, in_progress_tasks: 0,
       todo_tasks: 0, blocked_tasks: 0, overdue_tasks: 0, completion_percentage: 0,
     };
+    try {
+      const statsResult = await query(
+        'SELECT * FROM project_task_stats WHERE project_id = $1',
+        [projectId]
+      );
+      if (statsResult.rows[0]) taskStats = statsResult.rows[0];
+    } catch (e) {
+      log.warn('project_task_stats view unavailable, using fallback', e.message);
+      // Fallback: compute directly from tasks table
+      try {
+        const fallback = await query(
+          `SELECT COUNT(*) as total_tasks,
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_tasks,
+            COUNT(CASE WHEN status = 'in-progress' THEN 1 END) as in_progress_tasks,
+            COUNT(CASE WHEN status = 'todo' THEN 1 END) as todo_tasks,
+            COUNT(CASE WHEN status = 'blocked' THEN 1 END) as blocked_tasks,
+            COUNT(CASE WHEN due_date < NOW() AND status != 'completed' THEN 1 END) as overdue_tasks
+           FROM tasks WHERE project_id = $1`,
+          [projectId]
+        );
+        if (fallback.rows[0]) {
+          taskStats = fallback.rows[0];
+          const total = parseInt(taskStats.total_tasks) || 0;
+          const completed = parseInt(taskStats.completed_tasks) || 0;
+          taskStats.completion_percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+        }
+      } catch { /* tasks table may not exist either */ }
+    }
 
     // 2. Velocity data from completed tasks
     const velocityResult = await query(
@@ -90,28 +114,34 @@ router.get('/project/:projectId/health', authenticateToken, async (req, res) => 
     };
 
     // 3. Momentum data (activity in last 7d vs previous 7d)
-    const momentumResult = await query(
-      `SELECT
-        COUNT(CASE WHEN timestamp >= NOW() - INTERVAL '7 days' THEN 1 END) as recent,
-        COUNT(CASE WHEN timestamp >= NOW() - INTERVAL '14 days' AND timestamp < NOW() - INTERVAL '7 days' THEN 1 END) as previous
-       FROM activities WHERE project_id = $1`,
-      [projectId]
-    );
-    const momentumData = {
-      recentActivityCount: parseInt(momentumResult.rows[0]?.recent) || 0,
-      previousActivityCount: parseInt(momentumResult.rows[0]?.previous) || 0,
-    };
+    let momentumData = { recentActivityCount: 0, previousActivityCount: 0 };
+    try {
+      const momentumResult = await query(
+        `SELECT
+          COUNT(CASE WHEN timestamp >= NOW() - INTERVAL '7 days' THEN 1 END) as recent,
+          COUNT(CASE WHEN timestamp >= NOW() - INTERVAL '14 days' AND timestamp < NOW() - INTERVAL '7 days' THEN 1 END) as previous
+         FROM activities WHERE project_id = $1`,
+        [projectId]
+      );
+      momentumData = {
+        recentActivityCount: parseInt(momentumResult.rows[0]?.recent) || 0,
+        previousActivityCount: parseInt(momentumResult.rows[0]?.previous) || 0,
+      };
+    } catch (e) {
+      log.warn('Activities table unavailable for momentum', e.message);
+    }
 
     const health = calculateProjectHealth(taskStats, velocityData, momentumData);
 
-    // Cache the snapshot
+    // Cache the snapshot (non-critical — don't fail the request)
+    const crypto = require('crypto');
     await query(
       `INSERT INTO project_health_snapshots
-       (project_id, health_score, completion_score, velocity_score, momentum_score, overdue_score, breakdown)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [projectId, health.score, health.completionScore, health.velocityScore,
+       (id, project_id, health_score, completion_score, velocity_score, momentum_score, overdue_score, breakdown)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [crypto.randomUUID(), projectId, health.score, health.completionScore, health.velocityScore,
        health.momentumScore, health.overdueScore, JSON.stringify(health.breakdown)]
-    ).catch(() => {}); // Non-critical — don't fail the request
+    ).catch(() => {});
 
     res.json({
       projectId,
@@ -391,17 +421,22 @@ router.get('/project/:projectId/risks', authenticateToken, async (req, res) => {
     }));
 
     // Health history (last 30 days)
-    const historyResult = await query(
-      `SELECT health_score, captured_at::date as date
-       FROM project_health_snapshots
-       WHERE project_id = $1 AND captured_at >= NOW() - INTERVAL '30 days'
-       ORDER BY captured_at ASC`,
-      [projectId]
-    );
-    const healthHistory = historyResult.rows.map(r => ({
-      date: r.date,
-      score: r.health_score,
-    }));
+    let healthHistory = [];
+    try {
+      const historyResult = await query(
+        `SELECT health_score, captured_at::date as date
+         FROM project_health_snapshots
+         WHERE project_id = $1 AND captured_at >= NOW() - INTERVAL '30 days'
+         ORDER BY captured_at ASC`,
+        [projectId]
+      );
+      healthHistory = historyResult.rows.map(r => ({
+        date: r.date,
+        score: r.health_score,
+      }));
+    } catch (e) {
+      log.warn('project_health_snapshots unavailable', e.message);
+    }
 
     res.json({
       projectId,
