@@ -254,6 +254,17 @@ export function OnboardingV2() {
     setUserRole(role);
     sessionStorage.setItem('onboarding_v2_role', role);
     eventTracker.trackEvent('onboarding_v2_role_selected', { role });
+
+    // Persist role to user profile (non-blocking)
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    if (token) {
+      fetch('/api/auth/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ user_type: role }),
+      }).catch(() => {});
+    }
+
     goToStep('trial');
   };
 
@@ -616,7 +627,7 @@ export function OnboardingV2() {
                 {[
                   'AI drill writing assistant (200 calls/month)',
                   'Real-time collaboration with up to 5 users',
-                  'All export formats (PDF, Pyware, Dot Book)',
+                  'All export formats (PDF, Dot Book, CSV)',
                   'Audio sync & 3D preview',
                 ].map((feature) => (
                   <div key={feature} className="flex items-center gap-3 text-sm text-gray-300">
@@ -650,12 +661,14 @@ export function OnboardingV2() {
                 )}
               </button>
 
-              <button
-                onClick={handleSkipTrial}
-                className="mt-3 w-full text-center text-sm text-gray-500 hover:text-gray-300 transition-colors"
-              >
-                Continue with free plan
-              </button>
+              <p className="mt-4 text-center">
+                <button
+                  onClick={handleSkipTrial}
+                  className="text-xs text-gray-600 hover:text-gray-400 underline underline-offset-2 transition-colors"
+                >
+                  No thanks, continue with free plan
+                </button>
+              </p>
             </motion.div>
           )}
 
@@ -699,13 +712,9 @@ export function OnboardingV2() {
                 Start blank
               </button>
 
-              {/* Skip link */}
+              {/* Skip link — goes to blank editor, not empty dashboard */}
               <button
-                onClick={() => {
-                  completeWelcome();
-                  completeOnboarding();
-                  navigate('/projects');
-                }}
+                onClick={() => handleSelectTemplate(null)}
                 className="mt-4 w-full text-center text-xs text-gray-600 hover:text-gray-400 transition-colors"
               >
                 Skip to editor

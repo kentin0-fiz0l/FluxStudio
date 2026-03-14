@@ -14,6 +14,7 @@ import {
   type FormationExportOptions,
 } from '../../../services/formationService';
 import { toast } from '../../../lib/toast';
+import { eventTracker } from '@/services/analytics/eventTracking';
 import * as formationsApi from '../../../services/formationsApi';
 import {
   snapToGrid, snapToCount,
@@ -264,6 +265,12 @@ export function useCanvasHandlers({ state, formationId, projectId, onSave, sandb
     setDraggingPerformerId(null);
     setSnapGuides([]);
     pushHistory('Move performer');
+
+    // Phase 5: Track first_edit funnel event (once per user)
+    if (!localStorage.getItem('flux_first_edit_tracked')) {
+      localStorage.setItem('flux_first_edit_tracked', '1');
+      eventTracker.trackEvent('first_edit', { action: 'drag_performer' });
+    }
   }, [isCollaborativeEnabled, collab, pushHistory, setDraggingPerformerId, setSnapGuides]);
 
   // ---- Performer actions ----

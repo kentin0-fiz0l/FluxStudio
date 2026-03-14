@@ -140,7 +140,7 @@ export function Login() {
                   </div>
                   <p className="text-gray-400 text-sm mb-4">Enter the 6-digit code from your authenticator app, or use a backup code.</p>
                   {error && (
-                    <div className="mb-3 p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                    <div id="login-error" className="mb-3 p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm" role="alert">
                       {error}
                     </div>
                   )}
@@ -155,6 +155,7 @@ export function Login() {
                       maxLength={8}
                       autoComplete="one-time-code"
                       inputMode="numeric"
+                      aria-describedby={error ? "login-error" : undefined}
                     />
                     <button
                       type="submit"
@@ -175,7 +176,7 @@ export function Login() {
               )}
 
               {!twoFAStep && error && (
-                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                <div id="login-error" className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm" role="alert">
                   {error}
                 </div>
               )}

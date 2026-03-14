@@ -253,7 +253,7 @@ export function FieldMesh({ length, width, fieldType = 'football', showGrid }: F
       )}
 
       {/* Field lines */}
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- three-mesh-bvh augments BufferGeometry with extra props */}
       <lineSegments geometry={linesMesh as any}>
         <lineBasicMaterial color={colors.lineColor} linewidth={1} />
       </lineSegments>

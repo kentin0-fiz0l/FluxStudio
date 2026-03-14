@@ -135,6 +135,11 @@ const { Component: SharedFormation } = lazyLoadWithRetry(() => import('./pages/S
 const { Component: EmbedFormation } = lazyLoadWithRetry(() => import('./pages/EmbedFormation'));
 const { Component: FormationCategory } = lazyLoadWithRetry(() => import('./pages/FormationCategory'));
 const { Component: TemplateLibrary } = lazyLoadWithRetry(() => import('./pages/TemplateLibrary'));
+const { Component: TemplateDetail } = lazyLoadWithRetry(() => import('./pages/TemplateDetail'));
+
+// Blog pages
+const { Component: BlogList } = lazyLoadWithRetry(() => import('./pages/BlogList'));
+const { Component: BlogPost } = lazyLoadWithRetry(() => import('./pages/BlogPost'));
 
 // 404 Not Found page
 const { Component: NotFound } = lazyLoadWithRetry(() => import('./pages/NotFound'));
@@ -285,8 +290,13 @@ function AuthenticatedRoutes() {
                   <Route path="/share/:formationId" element={<SharedFormation />} />
                   <Route path="/embed/:formationId" element={<EmbedFormation />} />
                   <Route path="/formations/:category" element={<FormationCategory />} />
+                  <Route path="/templates/:templateId" element={<TemplateDetail />} />
                   <Route path="/templates" element={<TemplateLibrary />} />
                   <Route path="/changelog" element={<Changelog />} />
+
+                  {/* Blog pages - public */}
+                  <Route path="/blog" element={<BlogList />} />
+                  <Route path="/blog/:slug" element={<BlogPost />} />
 
                   {/* Help & Support pages - public but with optional auth */}
                   <Route path="/help" element={<HelpCenter />} />

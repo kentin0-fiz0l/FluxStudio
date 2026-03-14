@@ -34,45 +34,65 @@ class ProjectsAdapter {
    */
   async getProjects(userId, options = {}) {
     try {
-      const { organizationId, status, limit = 50, offset = 0 } = options;
+      const { organizationId, status, search, limit = 50, offset = 0 } = options;
 
-      // Build query based on project access
-      let sql = `
+      const params = [userId];
+      let paramIndex = 2;
+
+      // Build dynamic WHERE conditions
+      let conditions = '';
+
+      if (organizationId) {
+        conditions += ` AND p.organization_id = $${paramIndex}`;
+        params.push(organizationId);
+        paramIndex++;
+      }
+
+      if (status && status !== 'all') {
+        conditions += ` AND p.status = $${paramIndex}`;
+        params.push(status);
+        paramIndex++;
+      }
+
+      if (search) {
+        conditions += ` AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex})`;
+        params.push(`%${search}%`);
+        paramIndex++;
+      }
+
+      const sql = `
+        WITH project_stats AS (
+          SELECT project_id, COUNT(*) as member_count
+          FROM project_members GROUP BY project_id
+        ),
+        task_stats AS (
+          SELECT project_id,
+                 COUNT(*) as task_count,
+                 COUNT(*) FILTER (WHERE status = 'completed') as completed_task_count
+          FROM tasks GROUP BY project_id
+        )
         SELECT DISTINCT p.*,
                o.name as organization_name,
                o.slug as organization_slug,
                u.name as manager_name,
                u.email as manager_email,
                t.name as team_name,
-               (SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) as member_count,
-               (SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id) as task_count,
-               (SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id AND tk.status = 'completed') as completed_task_count
+               COALESCE(ps.member_count, 0) as member_count,
+               COALESCE(ts.task_count, 0) as task_count,
+               COALESCE(ts.completed_task_count, 0) as completed_task_count
         FROM projects p
         LEFT JOIN organizations o ON p.organization_id = o.id
         LEFT JOIN users u ON p.manager_id = u.id
         LEFT JOIN teams t ON p.team_id = t.id
+        LEFT JOIN project_stats ps ON ps.project_id = p.id
+        LEFT JOIN task_stats ts ON ts.project_id = p.id
         WHERE (
           p.manager_id = $1
           OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $1)
         )
+        ${conditions}
+        ORDER BY p.updated_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
-
-      const params = [userId];
-      let paramIndex = 2;
-
-      if (organizationId) {
-        sql += ` AND p.organization_id = $${paramIndex}`;
-        params.push(organizationId);
-        paramIndex++;
-      }
-
-      if (status && status !== 'all') {
-        sql += ` AND p.status = $${paramIndex}`;
-        params.push(status);
-        paramIndex++;
-      }
-
-      sql += ` ORDER BY p.updated_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
       params.push(limit, offset);
 
       const result = await query(sql, params);
@@ -89,19 +109,31 @@ class ProjectsAdapter {
   async getProjectById(projectId, userId) {
     try {
       const result = await query(`
+        WITH project_stats AS (
+          SELECT project_id, COUNT(*) as member_count
+          FROM project_members GROUP BY project_id
+        ),
+        task_stats AS (
+          SELECT project_id,
+                 COUNT(*) as task_count,
+                 COUNT(*) FILTER (WHERE status = 'completed') as completed_task_count
+          FROM tasks GROUP BY project_id
+        )
         SELECT p.*,
                o.name as organization_name,
                o.slug as organization_slug,
                u.name as manager_name,
                u.email as manager_email,
                t.name as team_name,
-               (SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) as member_count,
-               (SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id) as task_count,
-               (SELECT COUNT(*) FROM tasks tk WHERE tk.project_id = p.id AND tk.status = 'completed') as completed_task_count
+               COALESCE(ps.member_count, 0) as member_count,
+               COALESCE(ts.task_count, 0) as task_count,
+               COALESCE(ts.completed_task_count, 0) as completed_task_count
         FROM projects p
         LEFT JOIN organizations o ON p.organization_id = o.id
         LEFT JOIN users u ON p.manager_id = u.id
         LEFT JOIN teams t ON p.team_id = t.id
+        LEFT JOIN project_stats ps ON ps.project_id = p.id
+        LEFT JOIN task_stats ts ON ts.project_id = p.id
         WHERE p.id = $1
       `, [projectId]);
 

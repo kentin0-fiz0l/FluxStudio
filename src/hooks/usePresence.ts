@@ -86,8 +86,7 @@ export function usePresence({
 
       states.forEach(([clientId, state]) => {
         if (clientId === awareness.clientID) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const s = state as any;
+        const s = state as { user?: PresenceUser; isActive?: boolean; isTyping?: boolean };
         if (!s.user || !s.isActive) return;
 
         const presenceUser: PresenceUser = {

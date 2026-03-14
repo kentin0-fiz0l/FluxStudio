@@ -16,7 +16,7 @@ const { logAiUsage, getAiUsageLogs, sanitizeApiError } = require('../services/ai
 const { createLogger } = require('../lib/logger');
 const log = createLogger('AI');
 const { zodValidate } = require('../middleware/zodValidate');
-const { aiChatSchema, aiChatSyncSchema, aiDesignReviewSchema, aiGenerateCodeSchema, aiDesignFeedbackSchema, aiGenerateProjectStructureSchema, aiGenerateTemplateSchema, aiSuggestDrillPathsSchema, aiGenerateShowSchema, aiSuggestSetsSchema } = require('../lib/schemas');
+const { aiChatSchema, aiChatSyncSchema, aiDesignReviewSchema, aiGenerateCodeSchema, aiDesignFeedbackSchema, aiGenerateProjectStructureSchema, aiGenerateTemplateSchema, aiSuggestDrillPathsSchema, aiGenerateShowSchema, aiSuggestSetsSchema, aiCritiqueSchema } = require('../lib/schemas');
 const { getClient } = require('../lib/ai/client');
 const { getModelForTask, getMaxTokensForTask, buildApiParams } = require('../lib/ai/config');
 const { extractTextContent } = require('../lib/ai/response-handlers');
@@ -71,8 +71,8 @@ function rateLimitByIP(req, res, next) {
     return res.status(429).json({
       success: false,
       error: 'Sandbox limit reached',
-      message: `You've used all ${SANDBOX_MAX_CALLS} free AI tries today. Create a free account to get more!`,
-      code: 'SANDBOX_RATE_LIMIT',
+      message: 'Sign up free for 200 AI calls/month',
+      code: 'SANDBOX_LIMIT',
       remainingCalls: 0,
     });
   }
@@ -1073,6 +1073,95 @@ router.post('/drill/suggest-sets', authenticateToken, requireAnthropicClient, ra
     log.error('Drill set suggestion error', { error: safeMessage });
     res.write(`data: ${JSON.stringify({ type: 'error', error: safeMessage })}\n\n`);
     res.end();
+  }
+});
+
+// ============================================================================
+// SHOW CRITIQUE ENDPOINT
+// ============================================================================
+
+// Tier-based feature gating for AI show critic
+let checkShowCriticTier = (_req, _res, next) => next();
+try {
+  const { requireFeature } = require('../middleware/requireTier');
+  checkShowCriticTier = requireFeature('ai_show_critic');
+} catch { /* requireTier may not be available yet */ }
+
+/**
+ * POST /api/ai/critique
+ * AI-powered show critique. Accepts drill analysis summary and formation data,
+ * returns structured feedback from Claude.
+ * Feature-gated to Pro tier (ai_show_critic).
+ */
+router.post('/critique', authenticateToken, requireAnthropicClient, rateLimitByUser(10, 60000), checkShowCriticTier, checkAiQuota, zodValidate(aiCritiqueSchema), async (req, res) => {
+  const { analysisData, formationData } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const issueDetails = formationData.issueDetails
+      ? formationData.issueDetails.map(i => `- [${i.severity}] ${i.type}: ${i.message}`).join('\n')
+      : 'No detailed issue data provided.';
+
+    const prompt = `Analyze this marching band drill show and provide a detailed critique.
+
+## Show Overview
+- Performers: ${formationData.performerCount}
+- Sets (formations): ${formationData.setCount}
+- Average difficulty: ${formationData.avgDifficulty.toFixed(1)}/10
+
+## Analysis Summary
+- Total issues detected: ${analysisData.totalIssues}
+- Errors: ${analysisData.errors}
+- Warnings: ${analysisData.warnings}
+- Collisions: ${analysisData.collisionCount}
+- Performers with issues: ${analysisData.performersWithIssues}
+${analysisData.worstStride ? `- Worst stride: ${analysisData.worstStride.performerName} at ${analysisData.worstStride.stepSize.toFixed(1)}-to-5 (${analysisData.worstStride.setName})` : '- No stride issues detected'}
+${analysisData.musicalFlowScore !== undefined ? `- Musical flow score: ${analysisData.musicalFlowScore}%` : ''}
+${analysisData.tempoAwareStrideIssues !== undefined ? `- Tempo-aware stride issues: ${analysisData.tempoAwareStrideIssues}` : ''}
+
+## Issue Details
+${issueDetails}
+
+Provide your critique as JSON in exactly this format:
+{
+  "overallScore": <1-10 integer>,
+  "strengths": ["strength 1", "strength 2", ...],
+  "improvements": ["improvement 1", "improvement 2", ...],
+  "perSetNotes": [{"setIndex": 0, "setName": "Set 1", "note": "note text", "score": 7}],
+  "summary": "One paragraph overall assessment"
+}
+
+Be specific and constructive. Reference actual metrics from the data. For perSetNotes, only include notes for sets that have notable issues or strengths.`;
+
+    const critiqueParams = buildApiParams('critique', {
+      system: 'You are an expert marching band drill designer and show critique specialist. Analyze the following formation data and provide constructive, actionable feedback. Focus on safety (collisions, stride feasibility), visual impact, pacing, and overall design quality. Always respond with valid JSON.',
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const response = await getClient().messages.create(critiqueParams);
+
+    logAiUsage({
+      userId,
+      model: critiqueParams.model,
+      inputTokens: response.usage?.input_tokens || 0,
+      outputTokens: response.usage?.output_tokens || 0,
+      endpoint: 'critique',
+    });
+
+    const textContent = extractTextContent(response);
+    if (!textContent) {
+      return res.status(500).json({ success: false, error: 'No response from AI', code: 'AI_NO_RESPONSE' });
+    }
+
+    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return res.status(500).json({ success: false, error: 'Could not parse AI response', code: 'AI_PARSE_ERROR' });
+    }
+
+    const critique = JSON.parse(jsonMatch[0]);
+    res.json({ success: true, data: critique });
+  } catch (error) {
+    handleAnthropicError(error, res, 'Show Critique');
   }
 });
 

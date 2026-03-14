@@ -43,6 +43,8 @@ interface FormationPromptBarProps {
   onApplyPositions: (positions: Map<string, Position>) => void;
   /** Field configuration for context-aware generation */
   fieldConfig?: FieldConfig;
+  /** Pre-fill the prompt input (e.g. from a ?prompt= query param) */
+  initialPrompt?: string;
   /** Optional class name */
   className?: string;
 }
@@ -72,14 +74,16 @@ export function FormationPromptBar({
   selectedPerformerIds,
   onApplyPositions: _onApplyPositions,
   fieldConfig,
+  initialPrompt = '',
   className = '',
 }: FormationPromptBarProps) {
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(initialPrompt);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const autoTriggeredRef = useRef(false);
   const ghostPreview = useGhostPreview();
 
   const hasActivePreview = ghostPreview.activePreview !== null;
@@ -131,6 +135,17 @@ export function FormationPromptBar({
     },
     [prompt, performers, currentPositions, selectedPerformerIds, fieldConfig, ghostPreview],
   );
+
+  // Auto-submit when initialPrompt is provided (e.g. from ?prompt= query param)
+  useEffect(() => {
+    if (initialPrompt && performers.length > 0 && !autoTriggeredRef.current) {
+      autoTriggeredRef.current = true;
+      const timer = setTimeout(() => {
+        handleGenerate(initialPrompt);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [initialPrompt, performers.length, handleGenerate]);
 
   const handleVoiceTranscript = useCallback(
     (text: string) => {

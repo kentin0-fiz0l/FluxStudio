@@ -33,7 +33,8 @@ import {
   type DrillCritiqueCategory,
   type DrillSuggestion,
 } from '@/services/drillAiService';
-import { critiqueShow, type ShowCritique } from '@/services/showCritic';
+import { critiqueShow, generateAICritique, type ShowCritique } from '@/services/showCritic';
+import { FeatureGate } from '@/components/FeatureGate';
 
 // ============================================================================
 // Types
@@ -283,6 +284,10 @@ export function DrillCritiquePanel({
   const [isCritiquing, setIsCritiquing] = useState(false);
   const [showCritiqueError, setShowCritiqueError] = useState<string | null>(null);
   const [showPerSetNotes, setShowPerSetNotes] = useState(true);
+  const [aiCritiqueResult, setAiCritiqueResult] = useState<ShowCritique | null>(null);
+  const [isAiCritiquing, setIsAiCritiquing] = useState(false);
+  const [aiCritiqueError, setAiCritiqueError] = useState<string | null>(null);
+  const [showAiPerSetNotes, setShowAiPerSetNotes] = useState(true);
 
   const canAnalyze = useMemo(() => {
     return formation.performers.length > 0 && sets.length > 0;
@@ -328,6 +333,22 @@ export function DrillCritiquePanel({
       setShowCritiqueError(err instanceof Error ? err.message : 'Show critique failed');
     } finally {
       setIsCritiquing(false);
+    }
+  }, [canAnalyze, formation]);
+
+  const handleAiCritique = useCallback(async () => {
+    if (!canAnalyze) return;
+
+    setIsAiCritiquing(true);
+    setAiCritiqueError(null);
+
+    try {
+      const critique = await generateAICritique(formation);
+      setAiCritiqueResult(critique);
+    } catch (err) {
+      setAiCritiqueError(err instanceof Error ? err.message : 'AI critique failed');
+    } finally {
+      setIsAiCritiquing(false);
     }
   }, [canAnalyze, formation]);
 
@@ -701,6 +722,207 @@ export function DrillCritiquePanel({
               )}
             </div>
           )}
+        </div>
+        {/* AI-Powered Critique Section (Pro tier) */}
+        <div className="border-t border-gray-200 dark:border-gray-700">
+          <div className="px-3 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Lightbulb className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                AI Critique
+              </span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium uppercase tracking-wider bg-gradient-to-r from-blue-100 to-purple-100 text-purple-700 dark:from-blue-900/30 dark:to-purple-900/30 dark:text-purple-400">
+                Pro
+              </span>
+            </div>
+            <FeatureGate feature="ai_show_critic" hide>
+              <button
+                onClick={handleAiCritique}
+                disabled={isAiCritiquing || !canAnalyze}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-md disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 outline-none transition-colors"
+                aria-label={aiCritiqueResult ? 'Re-run AI critique' : 'Get AI critique'}
+              >
+                {isAiCritiquing ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                    Analyzing...
+                  </>
+                ) : aiCritiqueResult ? (
+                  <>
+                    <RefreshCw className="w-3 h-3" aria-hidden="true" />
+                    Re-critique
+                  </>
+                ) : (
+                  <>
+                    <Star className="w-3 h-3" aria-hidden="true" />
+                    Get AI Critique
+                  </>
+                )}
+              </button>
+            </FeatureGate>
+          </div>
+
+          <FeatureGate
+            feature="ai_show_critic"
+            fallback={
+              <div className="px-3 pb-3">
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  Get detailed, AI-powered feedback on your drill design. Upgrade to Pro for expert-level critique powered by Claude.
+                </p>
+              </div>
+            }
+          >
+            {aiCritiqueError && (
+              <div className="px-3 py-2 bg-red-50 dark:bg-red-900/20 border-t border-red-200 dark:border-red-800">
+                <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
+                  {aiCritiqueError}
+                </p>
+              </div>
+            )}
+
+            {isAiCritiquing && (
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 className="w-8 h-8 text-amber-500 animate-spin mb-3" aria-hidden="true" />
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Getting AI-powered critique...
+                </p>
+              </div>
+            )}
+
+            {aiCritiqueResult && !isAiCritiquing && (
+              <div className="px-3 pb-3 space-y-4">
+                {/* Overall Score Badge */}
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`flex items-center justify-center w-12 h-12 rounded-full text-white font-bold text-lg ${
+                      aiCritiqueResult.overallScore >= 8
+                        ? 'bg-green-500'
+                        : aiCritiqueResult.overallScore >= 5
+                          ? 'bg-yellow-500'
+                          : 'bg-red-500'
+                    }`}
+                  >
+                    {aiCritiqueResult.overallScore}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      AI Score
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">/ 10</span>
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {aiCritiqueResult.summary}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Strengths */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <ThumbsUp className="w-3.5 h-3.5 text-green-500" aria-hidden="true" />
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                      Strengths
+                    </span>
+                  </div>
+                  <ul className="space-y-1">
+                    {aiCritiqueResult.strengths.map((strength, i) => (
+                      <li
+                        key={`ai-strength-${i}`}
+                        className="text-xs text-gray-700 dark:text-gray-300 flex items-start gap-1.5"
+                      >
+                        <span className="text-green-500 mt-0.5 flex-shrink-0">+</span>
+                        {strength}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Improvements */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <ThumbsDown className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                      Areas for Improvement
+                    </span>
+                  </div>
+                  <ul className="space-y-1">
+                    {aiCritiqueResult.improvements.map((improvement, i) => (
+                      <li
+                        key={`ai-improvement-${i}`}
+                        className="text-xs text-gray-700 dark:text-gray-300 flex items-start gap-1.5"
+                      >
+                        <span className="text-amber-500 mt-0.5 flex-shrink-0">-</span>
+                        {improvement}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Per-Set Notes */}
+                {aiCritiqueResult.perSetNotes.length > 0 && (
+                  <div>
+                    <button
+                      onClick={() => setShowAiPerSetNotes(!showAiPerSetNotes)}
+                      className="flex items-center justify-between w-full text-left py-1 focus-visible:ring-2 focus-visible:ring-amber-500 outline-none rounded"
+                      aria-expanded={showAiPerSetNotes}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                          Per-Set Notes ({aiCritiqueResult.perSetNotes.length})
+                        </span>
+                      </div>
+                      {showAiPerSetNotes ? (
+                        <ChevronUp className="w-3 h-3 text-gray-400" aria-hidden="true" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3 text-gray-400" aria-hidden="true" />
+                      )}
+                    </button>
+                    {showAiPerSetNotes && (
+                      <div className="mt-2 space-y-1.5">
+                        {aiCritiqueResult.perSetNotes.map((setNote) => (
+                          <div
+                            key={`ai-set-note-${setNote.setIndex}`}
+                            className={`border-l-2 rounded-r-md bg-gray-50 dark:bg-gray-800/50 px-3 py-2 ${
+                              setNote.score <= 3
+                                ? 'border-l-green-500'
+                                : setNote.score <= 6
+                                  ? 'border-l-yellow-500'
+                                  : setNote.score <= 8
+                                    ? 'border-l-orange-500'
+                                    : 'border-l-red-500'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                {setNote.setName}
+                              </span>
+                              <span
+                                className={`text-[10px] font-bold ${
+                                  setNote.score <= 3
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : setNote.score <= 6
+                                      ? 'text-yellow-600 dark:text-yellow-400'
+                                      : setNote.score <= 8
+                                        ? 'text-orange-600 dark:text-orange-400'
+                                        : 'text-red-600 dark:text-red-400'
+                                }`}
+                              >
+                                {setNote.score}/10
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                              {setNote.note}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </FeatureGate>
         </div>
       </div>
     </div>

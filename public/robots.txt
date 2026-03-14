@@ -1,5 +1,4 @@
 # FluxStudio robots.txt
-# Sprint 43: Phase 6.1 SEO Foundation
 
 User-agent: *
 Allow: /
@@ -12,6 +11,11 @@ Allow: /help
 Allow: /try
 Allow: /formations/
 Allow: /templates
+Allow: /templates/
+Allow: /blog
+Allow: /blog/
+Allow: /shared/
+Allow: /embed/
 
 Disallow: /api/
 Disallow: /auth/
@@ -24,5 +28,8 @@ Disallow: /notifications
 Disallow: /profile
 Disallow: /connectors
 Disallow: /plugins
+Disallow: /checkout
+Disallow: /billing
+Disallow: /oauth/
 
 Sitemap: https://fluxstudio.art/sitemap.xml

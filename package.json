@@ -194,7 +194,7 @@
       },
       "scripts": {
             "dev": "vite",
-            "build": "vite build",
+            "build": "tsx src/sitemap-generator.ts && vite build",
             "deploy": "./scripts/deploy.sh",
             "deploy:force": "./scripts/deploy.sh --force",
             "deploy:quick": "./scripts/deploy.sh --no-health-check",

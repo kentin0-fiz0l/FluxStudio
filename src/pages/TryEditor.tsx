@@ -8,7 +8,7 @@
  */
 
 import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FormationCanvas } from '@/components/formation';
 import { FormationEditorErrorBoundary } from '@/components/error/ErrorBoundary';
 import { FormationPromptBar } from '@/components/formation/FormationPromptBar';
@@ -71,9 +71,13 @@ function buildSandboxPositions(): Map<string, Position> {
 
 export default function TryEditor() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialPrompt = searchParams.get('prompt') || '';
   const [showBanner, setShowBanner] = useState(true);
   const [showExitIntent, setShowExitIntent] = useState(false);
   const [showAiCTA, setShowAiCTA] = useState(false);
+  const [showSandboxLimit, setShowSandboxLimit] = useState(false);
+  const [showSaveBanner, setShowSaveBanner] = useState(false);
   const exitIntentShownRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -136,6 +140,14 @@ export default function TryEditor() {
   useEffect(() => {
     eventTracker.trackEvent('sandbox_page_view', { page: '/try' });
   }, []);
+
+  // Show "save your work" banner after 3+ interactions
+  useEffect(() => {
+    if (interactionCount >= 3 && !showSaveBanner) {
+      const timer = setTimeout(() => setShowSaveBanner(true), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [interactionCount, showSaveBanner]);
 
   // Exit-intent modal: triggers on mouseleave from document (desktop only)
   useEffect(() => {
@@ -221,12 +233,13 @@ export default function TryEditor() {
         </FormationEditorErrorBoundary>
 
         {/* Formation prompt bar — AI-powered formation descriptions */}
-        <div className="absolute bottom-0 left-0 right-0 z-10">
+        <div className="absolute bottom-0 left-0 right-0 z-10 pb-safe">
           <FormationPromptBar
             performers={SANDBOX_PERFORMERS}
             currentPositions={sandboxPositions}
             selectedPerformerIds={[]}
             onApplyPositions={handlePromptApply}
+            initialPrompt={initialPrompt}
           />
         </div>
       </div>
@@ -253,6 +266,50 @@ export default function TryEditor() {
               <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Sandbox limit upgrade banner */}
+      {showSandboxLimit && (
+        <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-200" aria-hidden="true" />
+            <span className="font-medium">You've used your 3 free AI calls today. Sign up free for 200/month.</span>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={() => {
+                eventTracker.trackEvent('sandbox_signup_click', { source: 'sandbox_limit', interactions: interactionCount });
+                navigate('/signup?from=sandbox');
+              }}
+              className="flex items-center gap-1 px-4 py-1.5 bg-white text-amber-700 rounded-lg font-medium text-sm hover:bg-amber-50 transition-colors"
+            >
+              Sign up free
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+            <button onClick={() => setShowSandboxLimit(false)} className="p-1 text-amber-200 hover:text-white">
+              <X className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating "save your work" banner */}
+      {showSaveBanner && !showBanner && interactionCount >= 3 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white dark:bg-gray-800 shadow-xl rounded-xl px-5 py-3 flex items-center gap-4 border border-gray-200 dark:border-gray-700">
+          <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Save your work — sign up free</span>
+          <button
+            onClick={() => {
+              eventTracker.trackEvent('sandbox_signup_click', { source: 'save_banner', interactions: interactionCount });
+              navigate('/signup?from=sandbox');
+            }}
+            className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+          >
+            Sign up
+          </button>
+          <button onClick={() => setShowSaveBanner(false)} className="text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
         </div>
       )}
 

@@ -10,11 +10,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/templates';
 import { FormationCanvas } from '@/components/formation';
 import { FormationEditorErrorBoundary, Formation3DViewErrorBoundary } from '@/components/error/ErrorBoundary';
+import { CollaborationErrorBoundary } from '@/components/error/featureBoundaries';
 import { useRegisterShortcuts } from '@/contexts/KeyboardShortcutsContext';
 import { useAuth } from '@/store/slices/authSlice';
 import { useNotification } from '@/store/slices/notificationSlice';
 import { Formation } from '../services/formationService';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { ViewToggle } from '../components/formation/ViewToggle';
 import { PerformerView } from '../components/formation/PerformerView';
@@ -32,8 +33,10 @@ import * as formationsApi from '../services/formationsApi';
 import { observability } from '@/services/observability';
 import type { ComposedPrimitive } from '../services/scene3d/types';
 import { ProductTour, type TourStep } from '@/components/onboarding/ProductTour';
+import { openShortcutsDialog } from '@/components/ui/KeyboardShortcutsDialog';
 import { CollaborationStatusIndicator } from '@/components/formation/CollaborationStatusIndicator';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { UsageLimitNudge } from '@/components/UsageLimitNudge';
 import { Layout, Clock, Wrench, Sparkles, Play } from 'lucide-react';
 
 const FORMATION_TOUR_KEY = 'fluxstudio_formation_tour_completed';
@@ -101,12 +104,41 @@ export default function FormationEditor() {
     return id || undefined;
   });
 
+  const isMac = typeof navigator !== 'undefined' && navigator.platform.includes('Mac');
+  const mod = isMac ? '⌘' : 'Ctrl';
+
   // Register formation-specific shortcuts when editor is active
   useRegisterShortcuts([
+    // Playback
     { id: 'formation-play', keys: ['Space'], action: 'Play/Pause playback', section: 'Formation Editor', priority: 10 },
-    { id: 'formation-snap', keys: ['G'], action: 'Toggle grid snap', section: 'Formation Editor', priority: 20 },
-    { id: 'formation-select-all', keys: ['⌘', 'A'], action: 'Select all performers', section: 'Formation Editor', priority: 30 },
-    { id: 'formation-delete', keys: ['Delete'], action: 'Remove selected performers', section: 'Formation Editor', priority: 40 },
+    // Selection
+    { id: 'formation-select-all', keys: [mod, 'A'], action: 'Select all performers', section: 'Formation Editor', priority: 20 },
+    { id: 'formation-deselect', keys: ['Escape'], action: 'Deselect all / close panels', section: 'Formation Editor', priority: 21 },
+    { id: 'formation-delete', keys: ['Delete'], action: 'Remove selected performers', section: 'Formation Editor', priority: 22 },
+    { id: 'formation-tab-cycle', keys: ['Tab'], action: 'Cycle through performers', section: 'Formation Editor', priority: 23 },
+    // Editing
+    { id: 'formation-undo', keys: [mod, 'Z'], action: 'Undo', section: 'Formation Editor', priority: 30 },
+    { id: 'formation-redo', keys: [mod, 'Shift', 'Z'], action: 'Redo', section: 'Formation Editor', priority: 31 },
+    { id: 'formation-copy', keys: [mod, 'C'], action: 'Copy selected', section: 'Formation Editor', priority: 32 },
+    { id: 'formation-paste', keys: [mod, 'V'], action: 'Paste', section: 'Formation Editor', priority: 33 },
+    { id: 'formation-duplicate', keys: [mod, 'D'], action: 'Duplicate selected', section: 'Formation Editor', priority: 34 },
+    { id: 'formation-save', keys: [mod, 'S'], action: 'Save formation', section: 'Formation Editor', priority: 35 },
+    // Navigation
+    { id: 'formation-nudge', keys: ['Arrow keys'], action: 'Nudge selected performers', section: 'Formation Editor', priority: 40 },
+    { id: 'formation-nudge-large', keys: ['Shift', 'Arrow'], action: 'Nudge performers (5 units)', section: 'Formation Editor', priority: 41 },
+    { id: 'formation-nav-performer', keys: ['Alt', 'Arrow'], action: 'Navigate to nearest performer', section: 'Formation Editor', priority: 42 },
+    { id: 'formation-set-jump', keys: ['1-9'], action: 'Jump to set number', section: 'Formation Editor', priority: 43 },
+    { id: 'formation-set-next', keys: ['PageDown'], action: 'Next set', section: 'Formation Editor', priority: 44 },
+    { id: 'formation-set-prev', keys: ['PageUp'], action: 'Previous set', section: 'Formation Editor', priority: 45 },
+    // View
+    { id: 'formation-zoom-in', keys: ['+'], action: 'Zoom in', section: 'Formation Editor', priority: 50 },
+    { id: 'formation-zoom-out', keys: ['-'], action: 'Zoom out', section: 'Formation Editor', priority: 51 },
+    // Transform
+    { id: 'formation-rotate', keys: ['R'], action: 'Rotate mode (multi-select)', section: 'Formation Editor', priority: 60 },
+    { id: 'formation-scale', keys: ['S'], action: 'Scale mode (multi-select)', section: 'Formation Editor', priority: 61 },
+    { id: 'formation-mirror', keys: ['M'], action: 'Mirror mode (multi-select)', section: 'Formation Editor', priority: 62 },
+    // Help
+    { id: 'formation-shortcuts', keys: ['?'], action: 'Show keyboard shortcuts', section: 'Formation Editor', priority: 70 },
   ]);
 
   const {
@@ -395,14 +427,28 @@ export default function FormationEditor() {
               <option value="performer">Performer</option>
             </select>
           </div>
-          <CollaborationStatusIndicator
-            isConnected={collabConnected}
-            isSyncing={false}
-            hasPendingChanges={!collabConnected && collabLastSyncedAt !== null}
-            lastSyncedAt={collabLastSyncedAt}
-            collaboratorCount={collabCount}
-          />
+          <CollaborationErrorBoundary>
+            <CollaborationStatusIndicator
+              isConnected={collabConnected}
+              isSyncing={false}
+              hasPendingChanges={!collabConnected && collabLastSyncedAt !== null}
+              lastSyncedAt={collabLastSyncedAt}
+              collaboratorCount={collabCount}
+            />
+          </CollaborationErrorBoundary>
           <ViewToggle mode={viewMode} onChange={setViewMode} />
+          {/* Keyboard shortcuts button */}
+          <button
+            onClick={openShortcutsDialog}
+            className="text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors px-2 py-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center gap-1"
+            title="Keyboard shortcuts (?)"
+            aria-label="Show keyboard shortcuts"
+          >
+            <Keyboard className="w-4 h-4" aria-hidden="true" />
+            <span className="hidden lg:inline">
+              Press <kbd className="px-1 py-0.5 text-[10px] bg-neutral-100 dark:bg-neutral-700 rounded border border-neutral-200 dark:border-neutral-600">?</kbd> for shortcuts
+            </span>
+          </button>
           {/* Help / Tour button */}
           <button
             onClick={() => setShowTour(true)}
@@ -412,6 +458,11 @@ export default function FormationEditor() {
             <Sparkles className="w-4 h-4 inline-block mr-1" aria-hidden="true" />
             Tour
           </button>
+        </div>
+
+        {/* AI usage limit nudge */}
+        <div className="px-4">
+          <UsageLimitNudge resource="aiCalls" />
         </div>
 
         {/* 3D Toolbar (only when 3D view is active and in designer mode) */}

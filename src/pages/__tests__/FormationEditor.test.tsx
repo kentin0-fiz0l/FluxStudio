@@ -65,7 +65,12 @@ vi.mock('@/components/formation', () => ({
 }));
 
 vi.mock('@/components/error/ErrorBoundary', () => ({
+  ErrorBoundary: ({ children }: any) => <div data-testid="error-boundary">{children}</div>,
   FormationEditorErrorBoundary: ({ children }: any) => <div data-testid="error-boundary">{children}</div>,
+}));
+
+vi.mock('@/components/UsageLimitNudge', () => ({
+  UsageLimitNudge: () => null,
 }));
 
 vi.mock('@/components/formation/ViewToggle', () => ({

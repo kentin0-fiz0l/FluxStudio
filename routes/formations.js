@@ -724,6 +724,435 @@ router.get('/og/:formationId.png', async (req, res) => {
   }
 });
 
+// ============================================================================
+// TEMPLATE OG IMAGE — Server-side position data for built-in templates
+// ============================================================================
+
+/**
+ * Minimal server-side template data for OG image generation.
+ * Positions are 0-100 normalized coordinates matching the client-side registry.
+ */
+const TEMPLATE_OG_DATA = {
+  'line-horizontal': {
+    name: 'Horizontal Line',
+    description: 'Performers arranged in a straight horizontal line',
+    category: 'basic',
+    positions: Array.from({ length: 8 }, (_, i) => ({ x: 15 + (i * 70) / 7, y: 50 })),
+  },
+  'v-formation': {
+    name: 'V-Formation',
+    description: 'Classic V-shape pointing forward',
+    category: 'basic',
+    positions: [
+      { x: 50, y: 25 }, { x: 40, y: 35 }, { x: 60, y: 35 },
+      { x: 30, y: 45 }, { x: 70, y: 45 }, { x: 20, y: 55 },
+      { x: 80, y: 55 }, { x: 10, y: 65 }, { x: 90, y: 65 },
+    ],
+  },
+  'diamond': {
+    name: 'Diamond',
+    description: 'Classic diamond shape formation',
+    category: 'basic',
+    positions: [
+      { x: 50, y: 20 }, { x: 30, y: 40 }, { x: 70, y: 40 },
+      { x: 50, y: 60 }, { x: 30, y: 60 }, { x: 70, y: 60 }, { x: 50, y: 80 },
+    ],
+  },
+  'circle': {
+    name: 'Circle',
+    description: 'Performers arranged in a circle facing inward',
+    category: 'basic',
+    positions: Array.from({ length: 12 }, (_, i) => {
+      const angle = (i / 12) * 2 * Math.PI - Math.PI / 2;
+      return { x: 50 + Math.cos(angle) * 35, y: 50 + Math.sin(angle) * 35 };
+    }),
+  },
+  'box': {
+    name: 'Box',
+    description: 'Square/rectangular formation',
+    category: 'basic',
+    positions: [
+      { x: 25, y: 25 }, { x: 50, y: 25 }, { x: 75, y: 25 },
+      { x: 25, y: 50 }, { x: 75, y: 50 },
+      { x: 25, y: 75 }, { x: 50, y: 75 }, { x: 75, y: 75 },
+    ],
+  },
+  'scatter': {
+    name: 'Scatter',
+    description: 'Random scattered positions across the stage',
+    category: 'basic',
+    positions: [
+      { x: 20, y: 30 }, { x: 65, y: 25 }, { x: 35, y: 55 }, { x: 80, y: 45 },
+      { x: 15, y: 70 }, { x: 55, y: 75 }, { x: 75, y: 70 }, { x: 45, y: 35 },
+    ],
+  },
+  'spiral': {
+    name: 'Spiral',
+    description: 'Performers arranged in a spiral pattern',
+    category: 'intermediate',
+    positions: Array.from({ length: 12 }, (_, i) => {
+      const angle = (i / 12) * 3 * Math.PI;
+      const radius = 10 + (i / 12) * 35;
+      return { x: 50 + Math.cos(angle) * radius, y: 50 + Math.sin(angle) * radius };
+    }),
+  },
+  'arrow': {
+    name: 'Arrow',
+    description: 'Arrow pointing forward with shaft',
+    category: 'intermediate',
+    positions: [
+      { x: 50, y: 20 }, { x: 35, y: 35 }, { x: 65, y: 35 },
+      { x: 50, y: 45 }, { x: 50, y: 55 }, { x: 50, y: 65 }, { x: 50, y: 75 },
+    ],
+  },
+  'two-lines': {
+    name: 'Two Lines',
+    description: 'Two parallel horizontal lines',
+    category: 'basic',
+    positions: Array.from({ length: 8 }, (_, i) => ({
+      x: 20 + ((i % 4) * 60) / 3,
+      y: i < 4 ? 35 : 65,
+    })),
+  },
+  'diagonal': {
+    name: 'Diagonal Line',
+    description: 'Performers arranged in a diagonal line',
+    category: 'basic',
+    positions: Array.from({ length: 8 }, (_, i) => ({
+      x: 15 + (i * 70) / 7,
+      y: 15 + (i * 70) / 7,
+    })),
+  },
+  'drill-company-front': {
+    name: 'Company Front',
+    description: 'Signature marching band formation — straight line across the field',
+    category: 'drill',
+    positions: Array.from({ length: 12 }, (_, i) => ({ x: 10 + (i * 80) / 11, y: 50 })),
+  },
+  'drill-wedge': {
+    name: 'Wedge',
+    description: 'Inverted V-shape with point performer at the front',
+    category: 'drill',
+    positions: [
+      { x: 50, y: 30 }, { x: 42, y: 38 }, { x: 58, y: 38 },
+      { x: 34, y: 46 }, { x: 66, y: 46 }, { x: 26, y: 54 },
+      { x: 74, y: 54 }, { x: 18, y: 62 }, { x: 82, y: 62 },
+    ],
+  },
+  'drill-stagger': {
+    name: 'Stagger',
+    description: 'Offset rows creating a checkerboard pattern',
+    category: 'drill',
+    positions: Array.from({ length: 12 }, (_, i) => {
+      const row = Math.floor(i / 4);
+      const col = i % 4;
+      const offset = row % 2 === 1 ? 10 : 0;
+      return { x: 20 + col * 20 + offset, y: 30 + row * 15 };
+    }),
+  },
+  'drill-fan-spread': {
+    name: 'Fan Spread',
+    description: 'Semicircular fan shape spreading from a pivot point',
+    category: 'drill',
+    positions: Array.from({ length: 9 }, (_, i) => {
+      const angle = -Math.PI / 2 + ((i / 8) * Math.PI);
+      return { x: 50 + Math.cos(angle) * 30, y: 70 + Math.sin(angle) * 30 };
+    }),
+  },
+  'drill-follow-the-leader': {
+    name: 'Follow the Leader',
+    description: 'Performers along a serpentine curve',
+    category: 'drill',
+    positions: Array.from({ length: 10 }, (_, i) => {
+      const t = i / 9;
+      return { x: 20 + t * 60, y: 50 + Math.sin(t * 2 * Math.PI) * 15 };
+    }),
+  },
+  'drill-gate-turn': {
+    name: 'Gate Turn',
+    description: 'Two mirrored lines that pivot from a center point',
+    category: 'drill',
+    positions: [
+      { x: 50, y: 35 }, { x: 42, y: 35 }, { x: 34, y: 35 }, { x: 26, y: 35 },
+      { x: 50, y: 65 }, { x: 58, y: 65 }, { x: 66, y: 65 }, { x: 74, y: 65 },
+    ],
+  },
+  'drill-pinwheel': {
+    name: 'Pinwheel',
+    description: 'Radial arms from a center point',
+    category: 'drill',
+    positions: (() => {
+      const pts = [];
+      for (let arm = 0; arm < 4; arm++) {
+        const baseAngle = (arm / 4) * 2 * Math.PI - Math.PI / 2;
+        for (let j = 0; j < 3; j++) {
+          const radius = 10 + j * 12;
+          pts.push({ x: 50 + Math.cos(baseAngle) * radius, y: 50 + Math.sin(baseAngle) * radius });
+        }
+      }
+      return pts;
+    })(),
+  },
+  'show-halftime-starter': {
+    name: 'Halftime Show Starter',
+    description: '4-set show: block, fan-out, company front, scatter',
+    category: 'drill',
+    positions: Array.from({ length: 24 }, (_, i) => {
+      const row = Math.floor(i / 6);
+      const col = i % 6;
+      return { x: 20 + col * 12, y: 30 + row * 12 };
+    }),
+  },
+  'show-parade-block': {
+    name: 'Parade Block',
+    description: 'Classic parade formation with transitions',
+    category: 'drill',
+    positions: Array.from({ length: 16 }, (_, i) => {
+      const row = Math.floor(i / 4);
+      const col = i % 4;
+      return { x: 30 + col * 13, y: 25 + row * 15 };
+    }),
+  },
+  'show-indoor-drumline': {
+    name: 'Indoor Drumline',
+    description: 'Indoor percussion staging with arc formation',
+    category: 'drill',
+    positions: Array.from({ length: 12 }, (_, i) => {
+      const angle = Math.PI + (i / 11) * Math.PI;
+      return { x: 50 + Math.cos(angle) * 30, y: 60 + Math.sin(angle) * 25 };
+    }),
+  },
+  'show-color-guard-opener': {
+    name: 'Color Guard Opener',
+    description: 'Color guard opening sequence with staggered line',
+    category: 'drill',
+    positions: Array.from({ length: 8 }, (_, i) => ({
+      x: 15 + (i * 70) / 7,
+      y: 50 + (i % 2 === 0 ? -8 : 8),
+    })),
+  },
+  'show-full-field': {
+    name: 'Full Field Show',
+    description: 'Complete 5-set field show with 32 performers',
+    category: 'drill',
+    positions: Array.from({ length: 32 }, (_, i) => {
+      const row = Math.floor(i / 8);
+      const col = i % 8;
+      return { x: 10 + col * 11.5, y: 25 + row * 15 };
+    }),
+  },
+  'show-concert-arc': {
+    name: 'Concert Arc',
+    description: 'Semicircular concert seating arc',
+    category: 'drill',
+    positions: (() => {
+      const pts = [];
+      for (let row = 0; row < 2; row++) {
+        const rowCount = row === 0 ? 10 : 6;
+        const radius = 30 + row * 12;
+        const startAngle = Math.PI + Math.PI * 0.15;
+        const endAngle = 2 * Math.PI - Math.PI * 0.15;
+        for (let i = 0; i < rowCount; i++) {
+          const angle = startAngle + (i / (rowCount - 1)) * (endAngle - startAngle);
+          pts.push({ x: 50 + Math.cos(angle) * radius, y: 65 + Math.sin(angle) * radius });
+        }
+      }
+      return pts;
+    })(),
+  },
+  'show-diamond-to-box': {
+    name: 'Diamond \u2192 Box',
+    description: 'Diamond formation morphs into a box and back',
+    category: 'drill',
+    positions: (() => {
+      const pts = [];
+      const perSide = 4, cx = 50, cy = 50, r = 30;
+      for (let i = 0; i < perSide; i++) { const t = i / perSide; pts.push({ x: cx + t * r, y: cy - (1 - t) * r }); }
+      for (let i = 0; i < perSide; i++) { const t = i / perSide; pts.push({ x: cx + (1 - t) * r, y: cy + t * r }); }
+      for (let i = 0; i < perSide; i++) { const t = i / perSide; pts.push({ x: cx - t * r, y: cy + (1 - t) * r }); }
+      for (let i = 0; i < perSide; i++) { const t = i / perSide; pts.push({ x: cx - (1 - t) * r, y: cy - t * r }); }
+      return pts;
+    })(),
+  },
+  'show-diagonal-to-front': {
+    name: 'Diagonal \u2192 Company Front',
+    description: 'Classic drill: diagonal line to company front',
+    category: 'drill',
+    positions: Array.from({ length: 12 }, (_, i) => {
+      const t = i / 11;
+      return { x: 15 + t * 70, y: 20 + t * 60 };
+    }),
+  },
+  'show-scatter-to-logo': {
+    name: 'Scatter \u2192 Logo',
+    description: 'Scattered performers converge into an "F" logo',
+    category: 'drill',
+    positions: (() => {
+      const pts = [];
+      const phi = (1 + Math.sqrt(5)) / 2;
+      for (let i = 0; i < 20; i++) {
+        pts.push({ x: 15 + ((i * phi * 37) % 70), y: 15 + ((i * phi * 23 + 11) % 70) });
+      }
+      return pts;
+    })(),
+  },
+  'show-basic-block-band': {
+    name: 'Basic Block Band',
+    description: 'Full 32-performer block formation',
+    category: 'drill',
+    positions: Array.from({ length: 32 }, (_, i) => {
+      const row = Math.floor(i / 8);
+      const col = i % 8;
+      return { x: 10 + (col * 80) / 7, y: 30 + (row * 40) / 3 };
+    }),
+  },
+};
+
+// In-memory cache for generated template OG images
+const templateOgCache = new Map();
+
+/**
+ * GET /api/og/template/:templateId.png
+ * Generate a dynamic OG image (1200x630) for a formation template page.
+ * Renders performer positions as dots on a field visualization.
+ */
+router.get('/og/template/:templateId.png', async (req, res) => {
+  try {
+    const { templateId } = req.params;
+    const template = TEMPLATE_OG_DATA[templateId];
+
+    if (!template) {
+      return res.status(404).send('Template not found');
+    }
+
+    // Return cached image if available
+    if (templateOgCache.has(templateId)) {
+      const cached = templateOgCache.get(templateId);
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=604800'); // 7-day cache (static)
+      return res.send(cached);
+    }
+
+    const sharp = require('sharp');
+
+    let title = template.name;
+    const subtitle = template.description;
+    const performerCount = template.positions.length;
+
+    if (title.length > 35) title = title.slice(0, 32) + '...';
+
+    // Category badge colors
+    const categoryColors = {
+      basic: { bg: 'rgba(34,197,94,0.15)', text: '#4ade80', label: 'Basic' },
+      intermediate: { bg: 'rgba(59,130,246,0.15)', text: '#60a5fa', label: 'Intermediate' },
+      advanced: { bg: 'rgba(168,85,247,0.15)', text: '#c084fc', label: 'Advanced' },
+      drill: { bg: 'rgba(236,72,153,0.15)', text: '#f472b6', label: 'Drill' },
+      custom: { bg: 'rgba(251,146,60,0.15)', text: '#fb923c', label: 'Custom' },
+    };
+    const cat = categoryColors[template.category] || categoryColors.basic;
+
+    // Dot colors for performers (cycle through)
+    const dotColors = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#f43f5e', '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4'];
+
+    // Field area: right side of the image (500x400 area)
+    const fieldX = 640;
+    const fieldY = 100;
+    const fieldW = 480;
+    const fieldH = 420;
+
+    // Generate dots SVG
+    const dotsSvg = template.positions.map((pos, i) => {
+      const cx = fieldX + (pos.x / 100) * fieldW;
+      const cy = fieldY + (pos.y / 100) * fieldH;
+      const color = dotColors[i % dotColors.length];
+      return `<circle cx="${cx}" cy="${cy}" r="8" fill="${color}" opacity="0.9"/>`;
+    }).join('\n        ');
+
+    // Generate grid lines on the field
+    const gridLinesSvg = [];
+    for (let gx = 0; gx <= 4; gx++) {
+      const x = fieldX + (gx / 4) * fieldW;
+      gridLinesSvg.push(`<line x1="${x}" y1="${fieldY}" x2="${x}" y2="${fieldY + fieldH}" stroke="#333" stroke-width="1" opacity="0.3"/>`);
+    }
+    for (let gy = 0; gy <= 4; gy++) {
+      const y = fieldY + (gy / 4) * fieldH;
+      gridLinesSvg.push(`<line x1="${fieldX}" y1="${y}" x2="${fieldX + fieldW}" y2="${y}" stroke="#333" stroke-width="1" opacity="0.3"/>`);
+    }
+
+    const svg = `
+      <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#0a0a0a"/>
+            <stop offset="100%" style="stop-color:#1a1a2e"/>
+          </linearGradient>
+          <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#8b5cf6"/>
+            <stop offset="50%" style="stop-color:#6366f1"/>
+            <stop offset="100%" style="stop-color:#ec4899"/>
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="630" fill="url(#bg)"/>
+        <!-- Accent bar -->
+        <rect x="0" y="0" width="1200" height="4" fill="url(#accent)"/>
+
+        <!-- Logo text -->
+        <text x="60" y="80" font-family="system-ui,sans-serif" font-size="24" font-weight="700" fill="url(#accent)">
+          FLUX STUDIO
+        </text>
+        <!-- "Formation Template" label -->
+        <text x="60" y="110" font-family="system-ui,sans-serif" font-size="16" fill="#6b7280">
+          Formation Template
+        </text>
+
+        <!-- Template title -->
+        <text x="60" y="230" font-family="system-ui,sans-serif" font-size="48" font-weight="700" fill="#ffffff">
+          ${escapeHtml(title)}
+        </text>
+        <!-- Description -->
+        <text x="60" y="280" font-family="system-ui,sans-serif" font-size="20" fill="#9ca3af">
+          ${escapeHtml(subtitle.length > 50 ? subtitle.slice(0, 47) + '...' : subtitle)}
+        </text>
+
+        <!-- Category badge -->
+        <rect x="60" y="310" width="${cat.label.length * 12 + 24}" height="32" rx="16" fill="${cat.bg}"/>
+        <text x="72" y="332" font-family="system-ui,sans-serif" font-size="15" font-weight="600" fill="${cat.text}">
+          ${cat.label}
+        </text>
+
+        <!-- Performer count -->
+        <text x="60" y="380" font-family="system-ui,sans-serif" font-size="18" fill="#a78bfa">
+          ${performerCount} performer${performerCount === 1 ? '' : 's'}
+        </text>
+
+        <!-- Field visualization area -->
+        <rect x="${fieldX}" y="${fieldY}" width="${fieldW}" height="${fieldH}" rx="12" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <!-- Grid lines -->
+        ${gridLinesSvg.join('\n        ')}
+        <!-- Performer dots -->
+        ${dotsSvg}
+
+        <!-- Bottom tagline -->
+        <text x="60" y="580" font-family="system-ui,sans-serif" font-size="16" fill="#6b7280">
+          fluxstudio.art/templates — Browse formation templates
+        </text>
+      </svg>
+    `;
+
+    const png = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();
+
+    // Cache the result (templates are static)
+    templateOgCache.set(templateId, png);
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=604800'); // 7-day cache
+    res.send(png);
+  } catch (err) {
+    log.error('Error generating template OG image', { error: err.message });
+    res.status(500).send('Error generating image');
+  }
+});
+
 /**
  * GET /api/og-image.png
  * Default static OG image for the site (non-formation pages).

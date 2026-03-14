@@ -92,9 +92,8 @@ describe('EditorialLanding', () => {
 
   test('displays hero lines', () => {
     renderPage();
-    expect(screen.getByText('Design in Motion.')).toBeInTheDocument();
-    expect(screen.getByText('Collaboration')).toBeInTheDocument();
-    expect(screen.getByText('Elevated.')).toBeInTheDocument();
+    expect(screen.getByText('Drill Design.')).toBeInTheDocument();
+    expect(screen.getByText('Reimagined.')).toBeInTheDocument();
   });
 
   test('displays navigation links', () => {
@@ -107,47 +106,41 @@ describe('EditorialLanding', () => {
     renderPage();
     const trialButtons = screen.getAllByText('Start Free Trial');
     expect(trialButtons.length).toBeGreaterThan(0);
-    const editorLinks = screen.getAllByText('Try the Editor');
-    expect(editorLinks.length).toBeGreaterThan(0);
   });
 
   test('displays stats', () => {
     renderPage();
-    expect(screen.getByText('10K+')).toBeInTheDocument();
-    expect(screen.getByText('50K+')).toBeInTheDocument();
-    expect(screen.getByText('99.9%')).toBeInTheDocument();
-    expect(screen.getByText('24/7')).toBeInTheDocument();
+    expect(screen.getByText('70+')).toBeInTheDocument();
+    expect(screen.getByText('Real-Time')).toBeInTheDocument();
+    expect(screen.getByText('AI-Powered')).toBeInTheDocument();
   });
 
   test('displays features section with heading', () => {
     renderPage();
-    expect(screen.getByText('Everything You Need to Create')).toBeInTheDocument();
+    expect(screen.getByText('Everything You Need to Design Your Show')).toBeInTheDocument();
   });
 
   test('displays all feature cards', () => {
     renderPage();
-    expect(screen.getByText('Design Collaboration')).toBeInTheDocument();
-    expect(screen.getByText('Smart File Management')).toBeInTheDocument();
-    expect(screen.getByText('Team Communication')).toBeInTheDocument();
-    expect(screen.getByText('Workflow Automation')).toBeInTheDocument();
-    expect(screen.getByText('Project Analytics')).toBeInTheDocument();
-    expect(screen.getByText('Enterprise Security')).toBeInTheDocument();
+    expect(screen.getByText('Formation Editor')).toBeInTheDocument();
+    expect(screen.getByText('Audio Sync')).toBeInTheDocument();
+    expect(screen.getByText('AI Assistant')).toBeInTheDocument();
+    expect(screen.getByText('Team Collaboration')).toBeInTheDocument();
+    expect(screen.getByText('Production Sheets')).toBeInTheDocument();
+    expect(screen.getByText('Mobile Rehearsal')).toBeInTheDocument();
   });
 
   test('displays use cases section', () => {
     renderPage();
-    expect(screen.getByText('Built for Every Creative')).toBeInTheDocument();
-    expect(screen.getByText('For Design Teams')).toBeInTheDocument();
-    expect(screen.getByText('For Agencies')).toBeInTheDocument();
-    expect(screen.getByText('For Freelancers')).toBeInTheDocument();
+    expect(screen.getByText('Built for Marching Arts')).toBeInTheDocument();
+    expect(screen.getByText('For Band Directors')).toBeInTheDocument();
+    expect(screen.getByText('For Drill Writers')).toBeInTheDocument();
   });
 
   test('displays testimonials section', () => {
     renderPage();
-    expect(screen.getByText('Loved by Creative Teams')).toBeInTheDocument();
-    expect(screen.getByText('Sarah Chen')).toBeInTheDocument();
-    expect(screen.getByText('Michael Torres')).toBeInTheDocument();
-    expect(screen.getByText('Emily Johnson')).toBeInTheDocument();
+    const testimonialHeading = screen.queryAllByText(/Loved by/);
+    expect(testimonialHeading.length).toBeGreaterThan(0);
   });
 
   test('displays pricing section', () => {
@@ -157,7 +150,7 @@ describe('EditorialLanding', () => {
 
   test('displays CTA footer section', () => {
     renderPage();
-    const readyTexts = screen.getAllByText(/Ready to Transform/);
+    const readyTexts = screen.getAllByText(/Ready to Design/);
     expect(readyTexts.length).toBeGreaterThan(0);
   });
 

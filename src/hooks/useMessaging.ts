@@ -193,8 +193,7 @@ export function useMessaging(): UseMessagingReturn {
         tags: [],
       },
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    store.addConversation(conversation as any);
+    store.addConversation(conversation as unknown as import('../store/slices/messagingSlice').Conversation);
     return conversation.id;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

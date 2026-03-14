@@ -119,8 +119,7 @@ export function useCollaborativeDocument({
       const users: CollaborativeDocumentUser[] = states
         .filter(([clientId]) => clientId !== wsProvider.awareness.clientID)
         .map(([, state]) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const s = state as any;
+          const s = state as { user?: CollaborativeDocumentUser };
           return s.user as CollaborativeDocumentUser;
         })
         .filter(Boolean);

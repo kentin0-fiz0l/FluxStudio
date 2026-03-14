@@ -521,4 +521,86 @@ router.get('/funnel', authenticateToken, async (req, res) => {
   }
 });
 
+// =============================================================================
+// Phase 5: Admin Growth Dashboard endpoint
+// =============================================================================
+
+/**
+ * GET /api/analytics/admin/growth
+ * Admin-only: growth metrics for the Q1 dashboard.
+ */
+router.get('/admin/growth', authenticateToken, async (req, res) => {
+  try {
+    // Simple admin check
+    const userResult = await query('SELECT role FROM users WHERE id = $1', [req.user.id]);
+    if (!userResult.rows[0] || userResult.rows[0].role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Admin access required', code: 'ANALYTICS_ADMIN_REQUIRED' });
+    }
+
+    // Run all metrics queries in parallel
+    const [mauResult, activeTrialsResult, trialConversionResult, mrrResult, recentSignupsResult] = await Promise.all([
+      // MAU (30d) — distinct users with any event in last 30 days
+      query(`
+        SELECT COUNT(DISTINCT user_id) AS mau
+        FROM analytics_events
+        WHERE created_at > NOW() - INTERVAL '30 days'
+          AND user_id IS NOT NULL
+      `),
+
+      // Active trials
+      query(`
+        SELECT COUNT(*) AS active_trials
+        FROM users
+        WHERE trial_ends_at > NOW()
+          AND plan_id = 'pro'
+      `),
+
+      // Trial conversion rate
+      query(`
+        SELECT
+          COUNT(*) FILTER (WHERE trial_ends_at IS NOT NULL) AS total_trials,
+          COUNT(*) FILTER (WHERE plan_id != 'free' AND trial_ends_at IS NOT NULL) AS converted
+        FROM users
+        WHERE trial_ends_at IS NOT NULL
+      `),
+
+      // MRR from active subscriptions
+      query(`
+        SELECT COALESCE(SUM(sp.price_monthly), 0) AS mrr
+        FROM subscriptions s
+        JOIN subscription_plans sp ON s.plan_id = sp.id
+        WHERE s.status = 'active'
+      `).catch(() => ({ rows: [{ mrr: 0 }] })),
+
+      // Recent signups (7d)
+      query(`
+        SELECT COUNT(*) AS recent_signups
+        FROM users
+        WHERE created_at > NOW() - INTERVAL '7 days'
+      `),
+    ]);
+
+    const totalTrials = parseInt(trialConversionResult.rows[0]?.total_trials) || 0;
+    const converted = parseInt(trialConversionResult.rows[0]?.converted) || 0;
+
+    res.json({
+      success: true,
+      metrics: {
+        mau: parseInt(mauResult.rows[0]?.mau) || 0,
+        activeTrials: parseInt(activeTrialsResult.rows[0]?.active_trials) || 0,
+        trialConversion: {
+          total: totalTrials,
+          converted,
+          rate: totalTrials > 0 ? Math.round((converted / totalTrials) * 100) : 0,
+        },
+        mrr: parseInt(mrrResult.rows[0]?.mrr) || 0,
+        recentSignups: parseInt(recentSignupsResult.rows[0]?.recent_signups) || 0,
+      },
+    });
+  } catch (error) {
+    log.error('Growth metrics error', error);
+    res.status(500).json({ success: false, error: 'Failed to load growth metrics', code: 'ANALYTICS_GROWTH_ERROR' });
+  }
+});
+
 module.exports = router;

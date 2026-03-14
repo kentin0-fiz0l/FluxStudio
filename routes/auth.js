@@ -114,6 +114,12 @@ router.post('/signup',
     try {
       const { email, password, name, userType = 'client' } = req.body;
 
+      // Phase 5: Track signup_started at the top before validation
+      ingestEvent(null, 'signup_started', {
+        userType,
+        hasReferral: !!req.body.referralCode,
+      }, { ipAddress: req.ip, userAgent: req.get('user-agent') }).catch(() => {});
+
       // Check if IP is blocked (Sprint 13 Day 2 - Anomaly Detection)
       const isBlocked = await anomalyDetector.isIpBlocked(req.ip);
       if (isBlocked) {

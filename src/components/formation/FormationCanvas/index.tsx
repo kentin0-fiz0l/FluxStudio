@@ -53,6 +53,8 @@ import { NCAA_FOOTBALL_FIELD } from '../../../services/fieldConfigService';
 import { useGhostPreview } from '../../../store/slices/ghostPreviewSlice';
 import { executePromptCommand } from '../../../services/promptExecutor';
 import { resolveStaticCollisions } from '../../../services/collisionResolver';
+import { validateFormation } from '../../../services/formationValidator';
+import { FormationWarningsPanel } from '../FormationWarningsPanel';
 import type { ShapeDistributionType } from './AlignmentToolbar';
 import type { DrillSet, Position as DrillPosition, Formation } from '../../../services/formationTypes';
 import type { DrillSuggestion } from '../../../services/drillAiService';
@@ -383,6 +385,14 @@ export function FormationCanvas(props: FormationCanvasProps) {
     if (!formation || currentSetIndex >= formation.keyframes.length - 1) return null;
     return new Map(formation.keyframes[currentSetIndex + 1].positions);
   }, [formation, currentSetIndex]);
+
+  // Formation feasibility warnings
+  const formationWarnings = useMemo(() => {
+    if (!formation || currentPositions.size === 0) return [];
+    const counts = drillSets[currentSetIndex]?.counts ?? 8;
+    const tempo = formation.drillSettings?.bpm ?? 120;
+    return validateFormation(currentPositions, nextSetPositions ?? undefined, counts, tempo);
+  }, [currentPositions, nextSetPositions, formation, drillSets, currentSetIndex]);
 
   // Previous set positions for coordinate panel
   const prevSetPositions = useMemo(() => {
@@ -1061,6 +1071,9 @@ export function FormationCanvas(props: FormationCanvasProps) {
           />
         </div>
       )}
+
+      {/* Formation feasibility warnings */}
+      <FormationWarningsPanel warnings={formationWarnings} />
     </div>
   );
 }

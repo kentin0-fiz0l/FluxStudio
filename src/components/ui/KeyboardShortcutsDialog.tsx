@@ -179,11 +179,23 @@ export function useKeyboardShortcuts() {
       }
     };
 
+    // Listen for programmatic open requests (e.g. from toolbar buttons)
+    const handleOpenRequest = () => setOpen(true);
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('open-shortcuts-dialog', handleOpenRequest);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('open-shortcuts-dialog', handleOpenRequest);
+    };
   }, []);
 
   return { open, setOpen };
+}
+
+/** Programmatically open the keyboard shortcuts dialog from anywhere */
+export function openShortcutsDialog() {
+  window.dispatchEvent(new CustomEvent('open-shortcuts-dialog'));
 }
 
 export default KeyboardShortcutsDialog;

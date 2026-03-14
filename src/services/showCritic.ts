@@ -1,13 +1,15 @@
 /**
  * Show Critic Service - FluxStudio
  *
- * AI-powered full-show analysis that evaluates design quality,
- * visual impact, and pacing across all sets and transitions.
+ * Full-show analysis that evaluates design quality, visual impact,
+ * and pacing across all sets and transitions. Includes both heuristic
+ * analysis (free tier) and AI-powered critique via Claude API (Pro tier).
  */
 
 import type { Formation } from './formationTypes';
 import { rateFormation, type DifficultyScore } from './difficultyRating';
 import { fullDrillAnalysis, type AnalysisResult } from './drillAnalysis';
+import { apiService } from '@/services/apiService';
 
 // ============================================================================
 // TYPES
@@ -114,5 +116,83 @@ export async function critiqueShow(
     improvements: improvements.length > 0 ? improvements : ['No major improvements needed'],
     perSetNotes,
     summary,
+  };
+}
+
+// ============================================================================
+// AI-POWERED CRITIQUE (Pro tier)
+// ============================================================================
+
+/**
+ * Generate an AI-powered critique using the Claude API.
+ * Sends drill analysis data to the backend `/api/ai/critique` endpoint
+ * and returns structured feedback.
+ *
+ * This is a Pro-tier feature; free users should use `critiqueShow()` instead.
+ */
+export async function generateAICritique(
+  formation: Formation,
+): Promise<ShowCritique> {
+  const sets = formation.sets ?? [];
+
+  // Gather analysis data
+  const analysis: AnalysisResult = fullDrillAnalysis(formation, sets);
+  const difficultyScores: DifficultyScore[] = [];
+
+  for (let i = 0; i < formation.keyframes.length - 1; i++) {
+    const score = rateFormation(analysis, formation, sets);
+    difficultyScores.push(score);
+  }
+
+  const performerCount = formation.performers.length;
+  const setCount = formation.keyframes.length;
+  const avgDifficulty =
+    difficultyScores.length > 0
+      ? difficultyScores.reduce((sum, d) => sum + d.overall, 0) / difficultyScores.length
+      : 5;
+
+  // Build issue details (up to 20 for context without bloating the prompt)
+  const issueDetails = analysis.issues.slice(0, 20).map((issue) => ({
+    type: issue.type,
+    severity: issue.severity,
+    message: issue.message,
+  }));
+
+  const response = await apiService.post<{ data: ShowCritique }>(
+    '/api/ai/critique',
+    {
+      analysisData: {
+        totalIssues: analysis.summary.totalIssues,
+        errors: analysis.summary.errors,
+        warnings: analysis.summary.warnings,
+        info: analysis.summary.info,
+        collisionCount: analysis.summary.collisionCount,
+        performersWithIssues: analysis.summary.performersWithIssues,
+        worstStride: analysis.summary.worstStride,
+        musicalFlowScore: analysis.summary.musicalFlowScore,
+        tempoAwareStrideIssues: analysis.summary.tempoAwareStrideIssues,
+      },
+      formationData: {
+        performerCount,
+        setCount,
+        avgDifficulty,
+        issueDetails,
+      },
+    },
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || 'AI critique failed');
+  }
+
+  // The API wraps the result in { data: ... }
+  const critique = (response.data as { data: ShowCritique }).data ?? response.data;
+
+  return {
+    overallScore: critique.overallScore,
+    strengths: critique.strengths,
+    improvements: critique.improvements,
+    perSetNotes: critique.perSetNotes ?? [],
+    summary: critique.summary,
   };
 }

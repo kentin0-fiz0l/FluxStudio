@@ -57,7 +57,7 @@ function FeatureGateUpgradePrompt({ feature, requiredTier }: { feature: string; 
     realtime_collaboration: 'Real-time Collaboration',
     collaborator_invite: 'Invite Collaborators',
     export_video: 'Video Export',
-    export_pyware: 'Pyware Export',
+    import_pyware: 'Pyware Import (.3dz)',
     api_access: 'API Access',
     priority_support: 'Priority Support',
     custom_branding: 'Custom Branding',
@@ -69,7 +69,14 @@ function FeatureGateUpgradePrompt({ feature, requiredTier }: { feature: string; 
 
   const handleClick = () => {
     eventTracker.trackEvent('upgrade_prompt_clicked', { feature, requiredTier });
-    navigate('/pricing');
+    navigate('/pricing', {
+      state: { highlightFeature: feature, suggestedPlan: requiredTier },
+    });
+  };
+
+  const handleDirectCheckout = () => {
+    eventTracker.trackEvent('upgrade_direct_checkout', { feature, requiredTier });
+    navigate(`/checkout?plan=${requiredTier || 'pro'}&interval=year`);
   };
 
   return (
@@ -83,13 +90,21 @@ function FeatureGateUpgradePrompt({ feature, requiredTier }: { feature: string; 
       <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4 max-w-sm">
         This feature requires a {tierName} plan or higher. Upgrade to unlock {label.toLowerCase()} and more.
       </p>
-      <button
-        onClick={handleClick}
-        className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-medium rounded-lg transition-all"
-      >
-        Upgrade to {tierName}
-        <ArrowRight className="w-4 h-4" aria-hidden="true" />
-      </button>
+      <div className="flex flex-col items-center gap-2">
+        <button
+          onClick={handleDirectCheckout}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-medium rounded-lg transition-all"
+        >
+          Upgrade to {tierName}
+          <ArrowRight className="w-4 h-4" aria-hidden="true" />
+        </button>
+        <button
+          onClick={handleClick}
+          className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+        >
+          Compare plans
+        </button>
+      </div>
     </div>
   );
 }

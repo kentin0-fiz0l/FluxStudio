@@ -858,7 +858,26 @@ wss.on('connection', async (ws, req) => {
     if (!stats.rooms.has(roomName)) {
       stats.rooms.set(roomName, new Set());
     }
-    stats.rooms.get(roomName).add(ws);
+    const room = stats.rooms.get(roomName);
+    room.add(ws);
+
+    // Phase 5: Track first_collaboration when second user joins a room
+    if (room.size === 2) {
+      try {
+        const { ingestEvent } = require('./lib/analytics/funnelTracker');
+        // Track for all users in the room
+        for (const client of room) {
+          if (client.userId) {
+            ingestEvent(client.userId, 'first_collaboration', {
+              roomName,
+              projectId: client.projectId,
+            }).catch(() => {});
+          }
+        }
+      } catch (_) {
+        // Analytics not critical for collaboration
+      }
+    }
 
     // Get Y.Doc and awareness for this room (loads from database if exists)
     const doc = await getDoc(roomName);

@@ -37,16 +37,11 @@ describe('EmbedFormation', () => {
 
   test('shows error state when formation not available', async () => {
     renderPage();
-    expect(await screen.findByText('Formation not available')).toBeInTheDocument();
+    expect(await screen.findByText('Formation not available.')).toBeInTheDocument();
   });
 
-  test('shows retry button on error', async () => {
-    renderPage();
-    expect(await screen.findByText('Retry')).toBeInTheDocument();
-  });
-
-  test('shows formation not available for invalid formation', async () => {
+  test('shows error for invalid formation', async () => {
     renderPage('nonexistent-id');
-    expect(await screen.findByText('Formation not available')).toBeInTheDocument();
+    expect(await screen.findByText('Formation not available.')).toBeInTheDocument();
   });
 });

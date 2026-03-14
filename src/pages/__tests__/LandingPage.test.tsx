@@ -97,33 +97,19 @@ describe('LandingPage (composed)', () => {
 
   test('renders hero from EditorialLanding', () => {
     renderPage();
-    expect(screen.getByText('Design in Motion.')).toBeInTheDocument();
-    // 'Collaboration' and 'Elevated.' may appear in multiple sections
-    const collabTexts = screen.getAllByText('Collaboration');
-    expect(collabTexts.length).toBeGreaterThan(0);
-    const elevatedTexts = screen.getAllByText('Elevated.');
-    expect(elevatedTexts.length).toBeGreaterThan(0);
-  });
-
-  test('renders features from BoldLanding (bento grid)', () => {
-    renderPage();
-    expect(screen.getByText('Everything You Need to Create')).toBeInTheDocument();
-  });
-
-  test('renders pricing from MinimalistLanding (comparison table)', () => {
-    renderPage();
-    expect(screen.getByText('Simple, Transparent')).toBeInTheDocument();
-    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByText('Drill Design.')).toBeInTheDocument();
+    expect(screen.getByText('Reimagined.')).toBeInTheDocument();
   });
 
   test('renders testimonials', () => {
     renderPage();
-    expect(screen.getByText('Sarah Chen')).toBeInTheDocument();
+    const testimonialHeading = screen.queryAllByText(/Loved by/);
+    expect(testimonialHeading.length).toBeGreaterThan(0);
   });
 
   test('renders CTA footer', () => {
     renderPage();
-    const readyTexts = screen.getAllByText(/Ready to Transform/);
+    const readyTexts = screen.getAllByText(/Ready to Design/);
     expect(readyTexts.length).toBeGreaterThan(0);
   });
 

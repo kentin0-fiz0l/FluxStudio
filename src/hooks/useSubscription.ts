@@ -46,7 +46,7 @@ const FEATURE_TIERS: Record<string, Tier> = {
   realtime_collaboration: 'pro',
   collaborator_invite: 'pro',
   export_video: 'pro',
-  export_pyware: 'pro',
+  import_pyware: 'pro',
   api_access: 'team',
   priority_support: 'team',
   custom_branding: 'team',
@@ -163,11 +163,24 @@ export function useSubscription() {
     return current >= limit;
   }, [state.usage]);
 
+  /**
+   * Check if a usage resource is approaching its limit (>= 80%).
+   * Returns false for unlimited resources (limit === -1).
+   */
+  const isApproachingLimit = useCallback((resource: keyof UsageData): boolean => {
+    if (!state.usage) return false;
+    const { current, limit } = state.usage[resource];
+    if (limit === -1) return false; // unlimited
+    if (limit === 0) return false;
+    return current >= limit * 0.8;
+  }, [state.usage]);
+
   return useMemo(() => ({
     ...state,
     canUseFeature,
     hasTier,
     getRequiredTier,
     isAtLimit,
-  }), [state, canUseFeature, hasTier, getRequiredTier, isAtLimit]);
+    isApproachingLimit,
+  }), [state, canUseFeature, hasTier, getRequiredTier, isAtLimit, isApproachingLimit]);
 }

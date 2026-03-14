@@ -1,11 +1,13 @@
 /**
- * Production sheet CSV and audio sync file exports.
+ * Production sheet CSV, coordinate sheet CSV, and audio sync file exports.
  */
 
-import type { Formation } from '../formationTypes';
+import type { Formation, DrillSet, FieldConfig, CoordinateEntry } from '../formationTypes';
 import type { TempoMap } from '../tempoMap';
 import type { ProductionSheet } from '../productionSheet';
-import { countToTimeMs } from '../tempoMap';
+import { countToTimeMs, getSegmentAtCount } from '../tempoMap';
+import { generateCoordinateSheet, generateAllCoordinateSheets } from '../coordinateSheetGenerator';
+import { NCAA_FOOTBALL_FIELD } from '../fieldConfigService';
 
 /**
  * Export production sheet as CSV.
@@ -49,6 +51,124 @@ function csvEscape(value: string): string {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
+}
+
+/**
+ * Export a coordinate sheet CSV for a single performer.
+ * Columns match the PDF coordinate sheet: Set, Counts, S/S, F/B, Step Size,
+ * Direction, Difficulty, and optionally Section + Tempo when tempoMap is linked.
+ */
+export function exportCoordinateSheetCsv(
+  formation: Formation,
+  performerId: string,
+  sets: DrillSet[],
+  fieldConfig: FieldConfig = NCAA_FOOTBALL_FIELD,
+  tempoMap?: TempoMap,
+): string {
+  const performer = formation.performers.find((p) => p.id === performerId);
+  if (!performer) throw new Error(`Performer ${performerId} not found`);
+
+  const entries = generateCoordinateSheet(formation, performerId, sets, fieldConfig);
+  return buildCoordinateSheetCsv(entries, tempoMap);
+}
+
+/**
+ * Export coordinate sheets for all performers in a single CSV.
+ * Includes Performer Name and Drill # columns so all data is in one file.
+ */
+export function exportAllCoordinateSheetsCsv(
+  formation: Formation,
+  sets: DrillSet[],
+  fieldConfig: FieldConfig = NCAA_FOOTBALL_FIELD,
+  tempoMap?: TempoMap,
+): string {
+  const sheets = generateAllCoordinateSheets(formation, sets, fieldConfig);
+
+  const hasTempoMap = !!tempoMap;
+  const headers = [
+    'Performer',
+    'Drill #',
+    'Set',
+    'Counts',
+    'Side-to-Side',
+    'Front-to-Back',
+    'Step Size',
+    'Direction',
+    'Difficulty',
+    ...(hasTempoMap ? ['Section', 'Tempo'] : []),
+  ];
+
+  const rows: string[] = [headers.join(',')];
+
+  for (const [, { performer, entries }] of sheets) {
+    let cumulativeCount = 1;
+    for (const entry of entries) {
+      const row = buildCoordinateRow(entry, cumulativeCount, tempoMap);
+      rows.push(
+        [
+          csvEscape(performer.name),
+          csvEscape(performer.drillNumber ?? performer.label),
+          ...row,
+        ].join(','),
+      );
+      cumulativeCount += entry.set.counts;
+    }
+  }
+
+  return rows.join('\n');
+}
+
+/** Build CSV text for a single performer's coordinate entries. */
+function buildCoordinateSheetCsv(
+  entries: CoordinateEntry[],
+  tempoMap?: TempoMap,
+): string {
+  const hasTempoMap = !!tempoMap;
+  const headers = [
+    'Set',
+    'Counts',
+    'Side-to-Side',
+    'Front-to-Back',
+    'Step Size',
+    'Direction',
+    'Difficulty',
+    ...(hasTempoMap ? ['Section', 'Tempo'] : []),
+  ];
+
+  const rows: string[] = [headers.join(',')];
+  let cumulativeCount = 1;
+
+  for (const entry of entries) {
+    rows.push(buildCoordinateRow(entry, cumulativeCount, tempoMap).join(','));
+    cumulativeCount += entry.set.counts;
+  }
+
+  return rows.join('\n');
+}
+
+/** Build a single CSV row array for a coordinate entry. */
+function buildCoordinateRow(
+  entry: CoordinateEntry,
+  cumulativeCount: number,
+  tempoMap?: TempoMap,
+): string[] {
+  const row = [
+    csvEscape(entry.set.name),
+    String(entry.set.counts),
+    csvEscape(entry.coordinateDetails.sideToSide),
+    csvEscape(entry.coordinateDetails.frontToBack),
+    csvEscape(entry.stepToNext?.stepSizeLabel ?? '-'),
+    csvEscape(entry.stepToNext?.directionLabel ?? '-'),
+    csvEscape(entry.stepToNext?.difficulty ?? '-'),
+  ];
+
+  if (tempoMap) {
+    const segment = getSegmentAtCount(cumulativeCount, tempoMap);
+    row.push(csvEscape(segment?.sectionName ?? '-'));
+    row.push(segment ? String(Math.round(segment.tempoStart)) : '-');
+  }
+
+  return row;
 }
 
 /**

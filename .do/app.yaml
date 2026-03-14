@@ -135,6 +135,52 @@ jobs:
         scope: RUN_TIME
         type: SECRET
 
+  # Phase 5: Weekly digest email (Mondays 9am EST / 2pm UTC)
+  - name: weekly-digest
+    github:
+      repo: kentin0-fiz0l/FluxStudio
+      branch: main
+    build_command: corepack enable && pnpm install --frozen-lockfile
+    run_command: node scripts/send-weekly-digest.js
+    environment_slug: node-js
+    kind: POST_DEPLOY
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        scope: RUN_TIME
+        type: SECRET
+      - key: SMTP_PASSWORD
+        scope: RUN_TIME
+        type: SECRET
+      - key: EMAIL_FROM
+        value: noreply@fluxstudio.art
+      - key: FRONTEND_URL
+        value: https://fluxstudio.art
+
+  # Phase 5: Trial expiry check (daily at 6am UTC)
+  - name: expire-trials
+    github:
+      repo: kentin0-fiz0l/FluxStudio
+      branch: main
+    build_command: corepack enable && pnpm install --frozen-lockfile
+    run_command: node scripts/expire-trials.js
+    environment_slug: node-js
+    kind: POST_DEPLOY
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+
 # Unified Backend (Auth + Messaging consolidated)
 services:
   - name: unified-backend

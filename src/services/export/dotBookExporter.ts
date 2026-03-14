@@ -209,8 +209,7 @@ export async function generateAllDotBooks(
   }
 
   // Multiple performers: package into a ZIP
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const JSZipModule = await import('jszip') as any;
+  const JSZipModule = await import('jszip');
   const JSZip = JSZipModule.default ?? JSZipModule;
   const zip = new JSZip();
 

@@ -61,6 +61,7 @@ function useCopyToClipboard() {
       await navigator.clipboard.writeText(text);
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), COPY_RESET_DELAY);
+      eventTracker.trackEvent('share_link_copied', { method: key });
       return true;
     } catch {
       // Fallback for older browsers
@@ -74,6 +75,7 @@ function useCopyToClipboard() {
       document.body.removeChild(textarea);
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), COPY_RESET_DELAY);
+      eventTracker.trackEvent('share_link_copied', { method: key });
       return true;
     }
   }, []);
@@ -383,15 +385,21 @@ function SectionsTab({
 }
 
 function EmbedTab({
-  baseUrl,
+  formationId,
   copiedKey,
   onCopy,
 }: {
-  baseUrl: string;
+  formationId: string;
   copiedKey: string | null;
   onCopy: (text: string, key: string) => Promise<boolean>;
 }) {
-  const embedSnippet = `<iframe src="${baseUrl}" width="800" height="600" frameborder="0"></iframe>`;
+  const embedSnippet = `<iframe src="https://fluxstudio.art/embed/${formationId}" width="600" height="400" frameborder="0" allow="autoplay"></iframe>`;
+
+  const handleCopyEmbed = useCallback(async (text: string, key: string) => {
+    const result = await onCopy(text, key);
+    eventTracker.trackEvent('embed_code_copied', { formationId });
+    return result;
+  }, [onCopy, formationId]);
 
   return (
     <div className="space-y-4">
@@ -410,7 +418,7 @@ function EmbedTab({
         text={embedSnippet}
         copyKey="embed-snippet"
         copiedKey={copiedKey}
-        onCopy={onCopy}
+        onCopy={handleCopyEmbed}
         label="Copy Embed Code"
       />
     </div>
@@ -562,7 +570,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
 
           {activeTab === 'embed' && (
             <EmbedTab
-              baseUrl={baseUrl}
+              formationId={formationId}
               copiedKey={copiedKey}
               onCopy={handleCopy}
             />

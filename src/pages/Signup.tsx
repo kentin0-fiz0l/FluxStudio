@@ -160,7 +160,7 @@ export function Signup() {
             <p className="text-gray-400 mb-6">Start creating with FluxStudio</p>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+              <div id="signup-error" className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm" role="alert">
                 {error}
               </div>
             )}
@@ -218,6 +218,7 @@ export function Signup() {
                   placeholder="you@example.com"
                   required
                   autoComplete="email"
+                  aria-describedby={error ? "signup-error" : undefined}
                 />
               </div>
 
@@ -235,6 +236,7 @@ export function Signup() {
                     placeholder="Create a password"
                     required
                     autoComplete="new-password"
+                    aria-describedby={error ? "signup-error" : undefined}
                   />
                   <button
                     type="button"
@@ -247,8 +249,8 @@ export function Signup() {
                 </div>
                 {/* Password Strength Indicator */}
                 {password && (
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-center gap-2">
+                  <div className="mt-2 space-y-2" aria-live="polite">
+                    <div className="flex items-center gap-2" role="status">
                       <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
                         <div
                           className={`h-full ${passwordStrength.color} transition-all duration-300`}

@@ -74,7 +74,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       'Unlimited projects & formations',
       '200 AI drill writing calls/month',
       'Real-time collaboration (up to 5 users)',
-      'All export formats (PDF, Pyware, Dot Book)',
+      'All export formats (PDF, Dot Book, CSV)',
       'Audio sync & playback',
       'Advanced templates & 3D preview',
       'Priority support',

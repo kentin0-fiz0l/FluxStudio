@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { eventTracker } from '@/services/analytics/eventTracking';
 import { Link } from 'react-router-dom';
 import { SEOHead } from '@/components/SEOHead';
 import {
@@ -82,6 +83,10 @@ export default function TemplateLibrary() {
 
   const allTemplates = useMemo(() => templateRegistry.getAllTemplates(), []);
   const categories = useMemo(() => templateRegistry.getCategories(), []);
+
+  useEffect(() => {
+    eventTracker.trackEvent('template_library_view');
+  }, []);
 
   const filtered = useMemo(() => {
     let result = allTemplates;
@@ -293,7 +298,8 @@ function TemplateLibraryCard({ template }: { template: DrillTemplate }) {
 
   return (
     <Link
-      to={`/try?template=${template.id}`}
+      to={`/templates/${template.id}`}
+      onClick={() => eventTracker.trackEvent('template_card_click', { templateId: template.id, templateName: template.name })}
       className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-lg transition-all overflow-hidden"
     >
       {/* Preview */}

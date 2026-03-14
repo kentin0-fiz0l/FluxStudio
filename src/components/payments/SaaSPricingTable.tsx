@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { PLANS, PLAN_ORDER, formatPrice, formatStorage, isUnlimited } from '../../config/plans';
 import type { PlanId } from '../../config/plans';
@@ -14,9 +14,25 @@ interface SaaSPricingTableProps {
   currentPlan?: PlanId;
 }
 
+const FEATURE_LABELS: Record<string, string> = {
+  ai_drill_writing: 'AI Drill Writing',
+  ai_show_critic: 'AI Show Critic',
+  ai_design_analysis: 'AI Design Analysis',
+  realtime_collaboration: 'Real-time Collaboration',
+  collaborator_invite: 'Invite Collaborators',
+  export_video: 'Video Export',
+  import_pyware: 'Pyware Import (.3dz)',
+  api_access: 'API Access',
+  priority_support: 'Priority Support',
+  custom_branding: 'Custom Branding',
+  sso_authentication: 'SSO Authentication',
+};
+
 export function SaaSPricingTable({ currentPlan }: SaaSPricingTableProps) {
   const [interval, setInterval] = useState<'month' | 'year'>('year');
   const navigate = useNavigate();
+  const location = useLocation();
+  const navState = location.state as { highlightFeature?: string; suggestedPlan?: string } | null;
 
   const handleSelectPlan = (planId: PlanId) => {
     if (planId === 'free') return;
@@ -55,12 +71,25 @@ export function SaaSPricingTable({ currentPlan }: SaaSPricingTableProps) {
         )}
       </div>
 
+      {/* Contextual upgrade banner from FeatureGate */}
+      {navState?.highlightFeature && navState?.suggestedPlan && (
+        <div className="max-w-5xl mx-auto p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 text-center">
+          <p className="text-sm font-medium text-neutral-900 dark:text-white">
+            Upgrade to {navState.suggestedPlan === 'team' ? 'Team' : 'Pro'} to unlock{' '}
+            <span className="font-semibold">
+              {FEATURE_LABELS[navState.highlightFeature] || navState.highlightFeature.replace(/_/g, ' ')}
+            </span>
+          </p>
+        </div>
+      )}
+
       {/* Plan Cards */}
       <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
         {PLAN_ORDER.map((planId) => {
           const plan = PLANS[planId];
           const isCurrent = planId === currentPlan;
-          const isPopular = plan.popular;
+          const isSuggested = navState?.suggestedPlan === planId;
+          const isPopular = plan.popular || isSuggested;
           const price = interval === 'month' ? plan.priceMonthly : plan.priceYearly;
 
           return (

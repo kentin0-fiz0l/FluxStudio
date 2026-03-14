@@ -34,12 +34,12 @@ describe('CheckoutSuccess', () => {
   describe('Rendering', () => {
     test('renders without crashing', () => {
       renderCheckoutSuccess();
-      expect(screen.getByText('Payment Successful!')).toBeInTheDocument();
+      expect(screen.getByText('Subscription Active!')).toBeInTheDocument();
     });
 
-    test('displays thank you message', () => {
+    test('displays activation message', () => {
       renderCheckoutSuccess();
-      expect(screen.getByText(/thank you for your purchase/i)).toBeInTheDocument();
+      expect(screen.getByText(/plan is now active/i)).toBeInTheDocument();
     });
 
     test('displays what happens next section', () => {

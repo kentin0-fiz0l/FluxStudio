@@ -9,6 +9,8 @@
 
 import { writeFileSync } from 'fs';
 import { resolve } from 'path';
+import { templateRegistry } from './services/formationTemplates/registry';
+import { getAllArticleSlugs } from './content/articles';
 
 const BASE_URL = 'https://fluxstudio.art';
 
@@ -53,7 +55,26 @@ const categoryPages: SitemapEntry[] = FORMATION_CATEGORIES.map(slug => ({
   lastmod: today,
 }));
 
-const allEntries = [...staticPages, ...categoryPages];
+// Individual template detail pages for SEO
+const templatePages: SitemapEntry[] = templateRegistry.getAllTemplates().map(t => ({
+  loc: `/templates/${t.id}`,
+  changefreq: 'monthly' as const,
+  priority: '0.7',
+  lastmod: today,
+}));
+
+// Blog pages for SEO
+const blogPages: SitemapEntry[] = [
+  { loc: '/blog', changefreq: 'weekly' as const, priority: '0.8', lastmod: today },
+  ...getAllArticleSlugs().map(slug => ({
+    loc: `/blog/${slug}`,
+    changefreq: 'monthly' as const,
+    priority: '0.7',
+    lastmod: today,
+  })),
+];
+
+const allEntries = [...staticPages, ...categoryPages, ...templatePages, ...blogPages];
 
 export function generateSitemapXml(): string {
   const urls = allEntries.map(entry => {

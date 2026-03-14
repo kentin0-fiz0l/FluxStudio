@@ -15,6 +15,7 @@ import { BlockedIPs } from './pages/BlockedIPs';
 import { Tokens } from './pages/Tokens';
 import { Events } from './pages/Events';
 import { Performance } from './pages/Performance';
+import { GrowthDashboard } from './pages/GrowthDashboard';
 
 /**
  * Protected Route Component
@@ -72,6 +73,9 @@ export function AdminApp() {
           <Route path="blocked-ips" element={<BlockedIPs />} />
           <Route path="tokens" element={<Tokens />} />
           <Route path="events" element={<Events />} />
+
+          {/* Growth */}
+          <Route path="growth" element={<GrowthDashboard />} />
 
           {/* System Monitoring */}
           <Route path="performance" element={<Performance />} />

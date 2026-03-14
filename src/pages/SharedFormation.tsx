@@ -107,7 +107,7 @@ export default function SharedFormation() {
   const [formation, setFormation] = useState<SharedFormationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
+  const [viewMode, setViewMode] = useState<'3d' | '2d'>(window.innerWidth < 768 ? '2d' : '3d');
 
   // Presentation mode state
   const [isPresentationMode, setIsPresentationMode] = useState(false);
@@ -692,7 +692,7 @@ export default function SharedFormation() {
 
         {/* Performer coordinate sheet overlay */}
         {role === 'performer' && highlightedPerformer && performerCoordinateSheet && (
-          <div className="absolute bottom-4 left-4 right-4 max-w-sm bg-black/80 backdrop-blur-sm rounded-lg text-white text-xs p-3 z-10">
+          <div className="absolute bottom-2 left-2 right-2 sm:bottom-4 sm:left-4 sm:right-4 max-w-sm max-h-[40vh] bg-black/80 backdrop-blur-sm rounded-lg text-white text-xs p-3 z-10">
             <div className="flex items-center gap-2 mb-2">
               <div
                 className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
@@ -721,20 +721,26 @@ export default function SharedFormation() {
 
         {/* Watermark (shown when no transport bar) */}
         {duration === 0 && (
-          <div className="absolute bottom-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-sm rounded-lg text-white/70 text-xs">
+          <a
+            href="/signup?utm_source=shared_formation&utm_medium=watermark"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute bottom-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-sm rounded-lg text-white/70 text-xs"
+            onClick={() => eventTracker.trackEvent('shared_formation_watermark_click', { formationId })}
+          >
             <RotateCcw className="w-3 h-3" aria-hidden="true" />
             Made with FluxStudio
-          </div>
+          </a>
         )}
       </div>
 
       {/* Transport Bar */}
       {duration > 0 && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-gray-800 border-t border-gray-700">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-gray-800 border-t border-gray-700">
           {/* Play/Pause */}
           <button
             onClick={handlePlayPause}
-            className="p-1.5 text-white hover:text-indigo-400 transition-colors"
+            className="p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-white hover:text-indigo-400 transition-colors"
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? (
@@ -747,7 +753,7 @@ export default function SharedFormation() {
           {/* Stop/Reset */}
           <button
             onClick={handleStop}
-            className="p-1.5 text-gray-400 hover:text-white transition-colors"
+            className="p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white transition-colors"
             aria-label="Stop and reset"
           >
             <SkipBack className="w-3.5 h-3.5" aria-hidden="true" />
@@ -758,7 +764,7 @@ export default function SharedFormation() {
             <button
               onClick={() => navigateToSet(currentSetIndex - 1)}
               disabled={currentSetIndex <= 0}
-              className="p-1.5 text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="Previous set"
             >
               <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" />
@@ -777,7 +783,7 @@ export default function SharedFormation() {
             <button
               onClick={() => navigateToSet(currentSetIndex + 1)}
               disabled={currentSetIndex >= sortedSets.length - 1}
-              className="p-1.5 text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="Next set"
             >
               <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
@@ -786,7 +792,7 @@ export default function SharedFormation() {
 
           {/* Progress bar */}
           <div
-            className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden cursor-pointer group"
+            className="flex-1 h-3 sm:h-1.5 bg-gray-700 rounded-full overflow-hidden cursor-pointer group"
             role="slider"
             tabIndex={0}
             aria-label="Playback progress"
@@ -857,7 +863,7 @@ export default function SharedFormation() {
               <button
                 onClick={() => setIsMuted((m) => !m)}
                 onMouseEnter={() => setShowVolumeSlider(true)}
-                className="p-1.5 text-gray-400 hover:text-white transition-colors"
+                className="p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white transition-colors"
                 aria-label={isMuted ? 'Unmute' : 'Mute'}
               >
                 {isMuted || volume === 0 ? (
@@ -893,10 +899,11 @@ export default function SharedFormation() {
 
           {/* Watermark in transport bar */}
           <a
-            href={`https://fluxstudio.art/share/${formationId}`}
+            href="/signup?utm_source=shared_formation&utm_medium=watermark"
             target="_blank"
             rel="noopener noreferrer"
             className="text-[10px] text-gray-500 hover:text-gray-300 whitespace-nowrap ml-1"
+            onClick={() => eventTracker.trackEvent('shared_formation_watermark_click', { formationId })}
           >
             FluxStudio
           </a>

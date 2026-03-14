@@ -1,6 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap");
-
-/* Rampart One font removed - using Outfit instead */
+/* Google Fonts loaded via <link> tags in index.html (render-blocking Lexend,
+   async preload Outfit + Swanky). Removed duplicate @import that caused
+   a second render-blocking network request. */
 
 @font-face {
   font-family: 'Rock Salt';

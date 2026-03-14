@@ -18,6 +18,7 @@ const { zodValidate } = require('../middleware/zodValidate');
 const { createCheckoutSessionSchema, createPortalSessionSchema } = require('../lib/schemas/payments');
 const { createLogger } = require('../lib/logger');
 const log = createLogger('Payments');
+const { ingestEvent } = require('../lib/analytics/funnelTracker');
 
 // Store auth helper for protected routes
 let authHelper = null;
@@ -402,6 +403,11 @@ router.post('/start-trial', requireAuth, async (req, res) => {
     } catch {
       // Email service may not be available
     }
+
+    // Phase 5: Track trial_started funnel event server-side
+    ingestEvent(userId, 'trial_started', {
+      source: 'api',
+    }, { ipAddress: req.ip, userAgent: req.get('user-agent') }).catch(() => {});
 
     log.info('Trial started', { userId, trialEndsAt: trialEndsAt.toISOString() });
 

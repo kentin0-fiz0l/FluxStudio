@@ -38,6 +38,7 @@ import {
   LayoutGrid,
   List,
   MessageSquare,
+  Star,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/templates';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useFirstTimeExperience } from '@/hooks/useFirstTimeExperience';
 import { ProductTour } from '@/components/onboarding/ProductTour';
+import { UsageLimitNudge } from '@/components/UsageLimitNudge';
 
 type ViewMode = 'grid' | 'list';
 
@@ -89,6 +91,28 @@ export function ProjectsHub() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [activityExpanded, setActivityExpanded] = useState(false);
+  const [sortBy, setSortBy] = useState<'recent' | 'name' | 'oldest'>('recent');
+
+  // Favorites persisted to localStorage
+  const [favorites, setFavorites] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('flux_favorite_projects');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  const toggleFavorite = useCallback((projectId: string) => {
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(projectId)) {
+        next.delete(projectId);
+      } else {
+        next.add(projectId);
+      }
+      localStorage.setItem('flux_favorite_projects', JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
 
   // Custom project order (persisted to localStorage)
   const [customOrder, setCustomOrder] = useState<string[]>(() => {
@@ -109,8 +133,8 @@ export function ProjectsHub() {
     if (!over || active.id === over.id) return;
 
     setCustomOrder((prev) => {
-      // Build the current ID list from filteredProjects or prev
-      const currentIds = filteredProjects.map((p) => p.id);
+      // Build the current ID list from allFilteredProjects or prev
+      const currentIds = allFilteredProjects.map((p) => p.id);
       const ordered = prev.length > 0
         ? prev.filter((id) => currentIds.includes(id)).concat(currentIds.filter((id) => !prev.includes(id)))
         : currentIds;
@@ -126,8 +150,8 @@ export function ProjectsHub() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filter projects based on search, then apply custom sort order
-  const filteredProjects = useMemo(() => {
+  // Filter projects based on search, apply sort, then split by favorites
+  const { favoritedProjects, unfavoritedProjects, allFilteredProjects } = useMemo(() => {
     let result = projects;
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -138,7 +162,15 @@ export function ProjectsHub() {
       );
     }
 
-    // Apply custom order if available
+    // Sort
+    result = [...result].sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      // 'recent' - default, by updatedAt desc
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+
+    // Apply custom DnD order if available
     if (customOrder.length > 0) {
       const orderMap = new Map(customOrder.map((id, idx) => [id, idx]));
       result = [...result].sort((a, b) => {
@@ -148,8 +180,12 @@ export function ProjectsHub() {
       });
     }
 
-    return result;
-  }, [projects, searchTerm, customOrder]);
+    return {
+      favoritedProjects: result.filter(p => favorites.has(p.id)),
+      unfavoritedProjects: result.filter(p => !favorites.has(p.id)),
+      allFilteredProjects: result,
+    };
+  }, [projects, searchTerm, customOrder, sortBy, favorites]);
 
   // Current timestamp for deadline calculations (captured once on mount)
   const [now] = useState(() => Date.now());
@@ -214,6 +250,9 @@ export function ProjectsHub() {
           </Button>
         </motion.div>
 
+        {/* Usage limit nudge — projects */}
+        <UsageLimitNudge resource="projects" />
+
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* ZONE 2: Projects (60% on desktop, 100% on mobile) */}
@@ -257,6 +296,16 @@ export function ProjectsHub() {
                   <List className="w-4 h-4" aria-hidden="true" />
                 </Button>
               </div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'recent' | 'name' | 'oldest')}
+                className="text-sm bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-2 text-neutral-700 dark:text-neutral-300"
+                aria-label="Sort projects"
+              >
+                <option value="recent">Recently updated</option>
+                <option value="name">Name A-Z</option>
+                <option value="oldest">Oldest first</option>
+              </select>
             </div>
 
             {/* Projects Grid/List */}
@@ -277,14 +326,14 @@ export function ProjectsHub() {
                     <ProjectCardSkeleton key={i} />
                   ))}
                 </motion.div>
-              ) : filteredProjects.length > 0 ? (
+              ) : allFilteredProjects.length > 0 ? (
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
                   <SortableContext
-                    items={filteredProjects.map((p) => p.id)}
+                    items={allFilteredProjects.map((p) => p.id)}
                     strategy={rectSortingStrategy}
                   >
                     <motion.div
@@ -292,42 +341,94 @@ export function ProjectsHub() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className={cn(
-                        viewMode === 'grid'
-                          ? 'grid grid-cols-1 md:grid-cols-2 gap-4'
-                          : 'space-y-3'
-                      )}
                     >
-                      {filteredProjects.map((project, index) => (
-                        <SortableProjectCard key={project.id} id={project.id}>
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                          >
-                            <ProjectCard
-                              project={{
-                                id: project.id,
-                                name: project.name,
-                                description: project.description || '',
-                                status: 'active',
-                                progress: project.progress || 0,
-                                dueDate: project.dueDate ? new Date(project.dueDate) : undefined,
-                                teamSize: project.members?.length || 1,
-                                teamAvatars: [],
-                                tags: (project as unknown as Record<string, unknown>).tags as string[] || [],
-                              }}
-                              variant={viewMode === 'list' ? 'compact' : 'default'}
-                              showProgress
-                              showTeam
-                              showTags
-                              showActions
-                              onClick={() => navigate(`/projects/${project.id}`)}
-                              onView={() => navigate(`/projects/${project.id}`)}
-                            />
-                          </motion.div>
-                        </SortableProjectCard>
-                      ))}
+                      {favoritedProjects.length > 0 && (
+                        <div className="mb-6">
+                          <h2 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-3 flex items-center gap-1.5">
+                            <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                            Favorites
+                          </h2>
+                          <div className={cn(viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-3')}>
+                            {favoritedProjects.map((project, index) => (
+                              <SortableProjectCard key={project.id} id={project.id}>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleFavorite(project.id); }}
+                                  className="absolute top-2 left-2 z-10 p-1.5 rounded-full bg-white/80 dark:bg-neutral-800/80 hover:bg-white dark:hover:bg-neutral-800 transition-colors"
+                                  aria-label="Remove from favorites"
+                                >
+                                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                </button>
+                                <motion.div
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: index * 0.05 }}
+                                >
+                                  <ProjectCard
+                                    project={{
+                                      id: project.id,
+                                      name: project.name,
+                                      description: project.description || '',
+                                      status: 'active',
+                                      progress: project.progress || 0,
+                                      dueDate: project.dueDate ? new Date(project.dueDate) : undefined,
+                                      teamSize: project.members?.length || 1,
+                                      teamAvatars: [],
+                                      tags: (project as unknown as Record<string, unknown>).tags as string[] || [],
+                                    }}
+                                    variant={viewMode === 'list' ? 'compact' : 'default'}
+                                    showProgress
+                                    showTeam
+                                    showTags
+                                    showActions
+                                    onClick={() => navigate(`/projects/${project.id}`)}
+                                    onView={() => navigate(`/projects/${project.id}`)}
+                                  />
+                                </motion.div>
+                              </SortableProjectCard>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className={cn(viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-3')}>
+                        {unfavoritedProjects.map((project, index) => (
+                          <SortableProjectCard key={project.id} id={project.id}>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleFavorite(project.id); }}
+                              className="absolute top-2 left-2 z-10 p-1.5 rounded-full bg-white/80 dark:bg-neutral-800/80 hover:bg-white dark:hover:bg-neutral-800 transition-colors"
+                              aria-label="Add to favorites"
+                            >
+                              <Star className="w-4 h-4 text-neutral-400" />
+                            </button>
+                            <motion.div
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                            >
+                              <ProjectCard
+                                project={{
+                                  id: project.id,
+                                  name: project.name,
+                                  description: project.description || '',
+                                  status: 'active',
+                                  progress: project.progress || 0,
+                                  dueDate: project.dueDate ? new Date(project.dueDate) : undefined,
+                                  teamSize: project.members?.length || 1,
+                                  teamAvatars: [],
+                                  tags: (project as unknown as Record<string, unknown>).tags as string[] || [],
+                                }}
+                                variant={viewMode === 'list' ? 'compact' : 'default'}
+                                showProgress
+                                showTeam
+                                showTags
+                                showActions
+                                onClick={() => navigate(`/projects/${project.id}`)}
+                                onView={() => navigate(`/projects/${project.id}`)}
+                              />
+                            </motion.div>
+                          </SortableProjectCard>
+                        ))}
+                      </div>
                     </motion.div>
                   </SortableContext>
                 </DndContext>

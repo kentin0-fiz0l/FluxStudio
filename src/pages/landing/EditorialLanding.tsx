@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { eventTracker } from '@/services/analytics/eventTracking';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import {
   Music,
@@ -228,6 +229,7 @@ const NAV_LINKS = [
   { label: 'Features', href: '#features' },
   { label: 'Use Cases', href: '#use-cases' },
   { label: 'Templates', href: '/templates' },
+  { label: 'Blog', href: '/blog' },
   { label: 'Testimonials', href: '#testimonials' },
   { label: 'Pricing', href: '#pricing' },
 ];
@@ -529,17 +531,19 @@ export function Hero() {
                 className="flex flex-col sm:flex-row gap-4 mb-12"
               >
                 <Link
-                  to="/signup"
+                  to="/try?utm_source=landing&utm_content=hero"
+                  onClick={() => eventTracker.trackEvent('landing_cta_click', { section: 'hero', destination: '/try' })}
                   className="inline-flex items-center justify-center gap-2 font-sans font-semibold bg-gradient-to-r from-primary-500 to-secondary-500 px-8 py-4 rounded-full text-lg text-white hover:shadow-primary-glow hover:scale-[1.03] transition-all duration-normal focus-visible-ring"
                 >
-                  Start Free Trial
+                  Start Designing Your Show
                   <ArrowRight className="w-5 h-5" aria-hidden="true" />
                 </Link>
                 <Link
-                  to="/try"
+                  to="/signup?utm_source=landing&utm_content=hero"
+                  onClick={() => eventTracker.trackEvent('landing_cta_click', { section: 'hero', destination: '/signup' })}
                   className="inline-flex items-center justify-center gap-2 font-sans font-semibold border border-neutral-700 px-8 py-4 rounded-full text-lg text-neutral-300 hover:bg-neutral-800/60 hover:border-neutral-500 transition-all duration-normal focus-visible-ring"
                 >
-                  Try the Editor
+                  Create Account
                   <Play className="w-4 h-4" aria-hidden="true" />
                 </Link>
               </motion.div>
@@ -1135,17 +1139,19 @@ export function CTAFooter() {
               className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6"
             >
               <Link
-                to="/signup"
+                to="/try?utm_source=landing&utm_content=final"
+                onClick={() => eventTracker.trackEvent('landing_cta_click', { section: 'final', destination: '/try' })}
                 className="inline-flex items-center justify-center gap-2 font-sans font-semibold bg-gradient-to-r from-primary-500 to-secondary-500 px-8 py-4 rounded-full text-lg text-white hover:shadow-primary-glow hover:scale-[1.03] transition-all duration-normal focus-visible-ring"
               >
-                Start Your Free Trial
+                Try Free Demo
                 <ArrowRight className="w-5 h-5" aria-hidden="true" />
               </Link>
               <Link
-                to="/try"
+                to="/signup?utm_source=landing&utm_content=final"
+                onClick={() => eventTracker.trackEvent('landing_cta_click', { section: 'final', destination: '/signup' })}
                 className="inline-flex items-center justify-center gap-2 font-sans font-semibold border border-neutral-700 px-8 py-4 rounded-full text-lg text-neutral-300 hover:bg-neutral-800/60 hover:border-neutral-500 transition-all duration-normal focus-visible-ring"
               >
-                Try the Editor
+                Create Account
                 <Play className="w-4 h-4" aria-hidden="true" />
               </Link>
             </motion.div>

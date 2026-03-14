@@ -346,6 +346,14 @@ app.use(ipRateLimiters.global());
 app.use(traceIdMiddleware); // Generate unique trace ID for each request
 app.use(apiVersionMiddleware); // Set X-API-Version on every response
 app.use(helmet);
+// Allow /embed/ routes to be loaded in iframes on external sites
+app.use('/embed', (req, res, next) => {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Content-Security-Policy',
+    res.getHeader('Content-Security-Policy')?.toString().replace("frame-ancestors 'self'", "frame-ancestors *") || ''
+  );
+  next();
+});
 app.use(cors);
 app.use(auditLogger);
 app.use(rateLimit());

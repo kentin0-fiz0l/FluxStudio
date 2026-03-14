@@ -7,7 +7,7 @@ export { exportToPdf, exportToCoordinateSheetPdf, exportToDrillBookPdf, exportAl
 export type { CoordinateSheetPdfOptions } from './exportPdf';
 export { exportToImage, exportToSvg } from './exportImage';
 export { exportToAnimation } from './exportAnimation';
-export { exportProductionSheetCsv, exportAudioSyncFile } from './exportCoordinateSheet';
+export { exportProductionSheetCsv, exportCoordinateSheetCsv, exportAllCoordinateSheetsCsv, exportAudioSyncFile } from './exportCoordinateSheet';
 export { generateDotBook, generateAllDotBooks } from './dotBookExporter';
 export type { DotBookOptions } from './dotBookExporter';
 export { exportVideoOverlay, interpolatePositions } from './videoOverlayExporter';
